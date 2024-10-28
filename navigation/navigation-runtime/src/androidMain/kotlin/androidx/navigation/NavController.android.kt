@@ -1820,7 +1820,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(deepLink: Uri) {
+    public actual open fun navigate(deepLink: Uri) {
         navigate(NavDeepLinkRequest(deepLink, null, null))
     }
 
@@ -1835,7 +1835,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(deepLink: Uri, navOptions: NavOptions?) {
+    public actual open fun navigate(deepLink: Uri, navOptions: NavOptions?) {
         navigate(NavDeepLinkRequest(deepLink, null, null), navOptions, null)
     }
 
@@ -1851,7 +1851,7 @@ public actual open class NavController(
      * @see NavController.navigate
      */
     @MainThread
-    public open fun navigate(
+    public actual open fun navigate(
         deepLink: Uri,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
@@ -1869,7 +1869,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(request: NavDeepLinkRequest) {
+    public actual open fun navigate(request: NavDeepLinkRequest) {
         navigate(request, null)
     }
 
@@ -1884,7 +1884,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?) {
+    public actual open fun navigate(request: NavDeepLinkRequest, navOptions: NavOptions?) {
         navigate(request, navOptions, null)
     }
 
@@ -1900,7 +1900,7 @@ public actual open class NavController(
      * @throws IllegalArgumentException if the given deep link request is invalid
      */
     @MainThread
-    public open fun navigate(
+    public actual open fun navigate(
         request: NavDeepLinkRequest,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
@@ -2745,7 +2745,7 @@ public actual open class NavController(
             return iterator.asSequence().firstOrNull { entry -> entry.destination !is NavGraph }
         }
 
-    public companion object {
+    public actual companion object {
         private const val TAG = "NavController"
         private const val KEY_NAVIGATOR_STATE = "android-support-nav:controller:navigatorState"
         private const val KEY_NAVIGATOR_STATE_NAMES =
@@ -2786,7 +2786,7 @@ public actual open class NavController(
          */
         @JvmStatic
         @NavDeepLinkSaveStateControl
-        public fun enableDeepLinkSaveState(saveState: Boolean) {
+        public actual fun enableDeepLinkSaveState(saveState: Boolean) {
             deepLinkSaveState = saveState
         }
     }

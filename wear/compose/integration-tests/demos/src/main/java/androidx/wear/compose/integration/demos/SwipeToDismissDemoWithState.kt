@@ -31,18 +31,16 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.wear.compose.foundation.SwipeToDismissBox
 import androidx.wear.compose.foundation.SwipeToDismissValue
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.ToggleButton
 
 @Composable
-fun SwipeToDismissBoxWithState(
-    quit: () -> Unit
-) {
+fun SwipeToDismissBoxWithState(quit: () -> Unit) {
     // This sample flips between 2 stateful composables when you swipe:
     //   1) ToggleScreen - displays a ToggleButton that alternates between On/Off
     //   2) CounterScreen - displays a counter Button that increments when clicked

@@ -521,7 +521,8 @@ fun CanvasBasedWindow(
         )
     }
 
-    val canvas = document.getElementById(canvasElementId) as HTMLCanvasElement
+    val canvas = document.getElementById(canvasElementId)?.let { it as HTMLCanvasElement }
+        ?: error("failed to find element with id '$canvasElementId'")
 
     ComposeWindow(
         canvas = canvas,
@@ -541,7 +542,8 @@ fun ComposeViewport(
     viewportContainerId: String,
     content: @Composable () -> Unit = { }
 ) {
-    ComposeViewport(document.getElementById(viewportContainerId)!!, content)
+    val canvasContainer = document.getElementById(viewportContainerId) ?: error("failed to find element by viewportContainerId: '$viewportContainerId'")
+    ComposeViewport(canvasContainer, content)
 }
 
 /**

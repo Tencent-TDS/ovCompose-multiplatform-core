@@ -41,6 +41,7 @@ import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.camera2.internal.util.SemaphoreReleasingCamera2Callbacks;
@@ -83,7 +84,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -106,7 +106,7 @@ public class ExposureDeviceTest {
     private static final int DEFAULT_AVAILABLE_CAMERA_COUNT = 1;
 
     @Rule
-    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTest(
+    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
             new CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
     );
 
@@ -180,7 +180,7 @@ public class ExposureDeviceTest {
                 StreamSpec.builder(new Size(640, 480)).build());
         mCameraCoordinator = new FakeCameraCoordinator();
         mCameraUseCaseAdapter = new CameraUseCaseAdapter(
-                new LinkedHashSet<>(Collections.singleton(mCamera2CameraImpl)),
+                mCamera2CameraImpl,
                 mCameraCoordinator,
                 fakeCameraDeviceSurfaceManager, new FakeUseCaseConfigFactory());
     }
@@ -447,10 +447,11 @@ public class ExposureDeviceTest {
         @Override
         @NonNull
         protected StreamSpec onSuggestedStreamSpecUpdated(
-                @NonNull StreamSpec suggestedStreamSpec) {
-            createPipeline(suggestedStreamSpec);
+                @NonNull StreamSpec primaryStreamSpec,
+                @Nullable StreamSpec secondaryStreamSpec) {
+            createPipeline(primaryStreamSpec);
             notifyActive();
-            return suggestedStreamSpec;
+            return primaryStreamSpec;
         }
 
         private void createPipeline(StreamSpec streamSpec) {
@@ -487,11 +488,11 @@ public class ExposureDeviceTest {
                         }
                     }));
 
-            builder.addErrorListener((sessionConfig, error) -> {
+            builder.setErrorListener((sessionConfig, error) -> {
                 // Create new pipeline and it will close the old one.
                 createPipeline(streamSpec);
             });
-            updateSessionConfig(builder.build());
+            updateSessionConfig(List.of(builder.build()));
         }
     }
 }

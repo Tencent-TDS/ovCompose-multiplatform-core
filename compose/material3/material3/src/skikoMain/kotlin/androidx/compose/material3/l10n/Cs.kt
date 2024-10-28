@@ -33,6 +33,7 @@ internal fun Translations.cs() = mapOf(
     Strings.MenuCollapsed to "Sbaleno",
     Strings.ToggleDropdownMenu to "Přepnout rozbalovací nabídku",
     Strings.SnackbarDismiss to "Zavřít",
+    Strings.SnackbarPaneTitle to "Upozornění",
     Strings.SearchBarSearch to "Vyhledávání",
     Strings.SuggestionsAvailable to "Níže jsou k dispozici návrhy",
     Strings.DatePickerTitle to "Výběr data",
@@ -85,4 +86,6 @@ internal fun Translations.cs() = mapOf(
     Strings.TimePickerHour to "Hodina",
     Strings.TimePickerMinuteTextField to "pro minuty",
     Strings.TimePickerHourTextField to "pro hodinu",
+    Strings.CloseRail to "Zavřít sloupec",
+    Strings.WideNavigationRailPaneTitle to "Navigační sloupec",
 )

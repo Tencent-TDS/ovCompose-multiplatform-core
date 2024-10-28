@@ -28,4 +28,5 @@ internal fun Translations.el() = mapOf(
     Strings.DefaultErrorMessage to "Μη έγκυρη καταχώριση",
     Strings.SliderRangeStart to "Αρχή εύρους",
     Strings.SliderRangeEnd to "Τέλος εύρους",
+    Strings.SnackbarPaneTitle to "Ειδοποίηση",
 )

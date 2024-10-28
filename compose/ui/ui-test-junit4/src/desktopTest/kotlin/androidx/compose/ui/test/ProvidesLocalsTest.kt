@@ -18,23 +18,20 @@ package androidx.compose.ui.test
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.platform.WindowInfo
+import kotlin.test.Test
 import kotlin.test.assertNotEquals
-import org.junit.Rule
-import org.junit.Test
 
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
 class ProvidesLocalsTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
-    fun providesWindowInfo() {
-        rule.setContent {
-            val windowInfo = LocalWindowInfo.current
-            assertNotEquals(0, windowInfo.containerSize.width)
-            assertNotEquals(0, windowInfo.containerSize.height)
+    fun providesWindowInfo() = runComposeUiTest {
+        lateinit var windowInfo: WindowInfo
+        setContent {
+            windowInfo = LocalWindowInfo.current
         }
+        assertNotEquals(0, windowInfo.containerSize.width)
+        assertNotEquals(0, windowInfo.containerSize.height)
     }
 }

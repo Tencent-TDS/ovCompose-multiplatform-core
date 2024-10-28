@@ -93,6 +93,12 @@ public class MainActivity extends AppCompatActivity {
                 new MenuListView.MenuItem(
                         getResources().getString(R.string.multi_profile_activity_title),
                         new Intent(activityContext, MultiProfileTestActivity.class)),
+                new MenuListView.MenuItem(
+                        getResources().getString(R.string.mute_audio_activity_title),
+                        new Intent(activityContext, MuteAudioActivity.class)),
+                new MenuListView.MenuItem(
+                        getResources().getString(R.string.restricted_content_activity_title),
+                        new Intent(activityContext, RestrictedContentActivity.class)),
         };
         listView.setItems(menuItems);
     }

@@ -28,4 +28,5 @@ internal fun Translations.ka() = mapOf(
     Strings.DefaultErrorMessage to "შენატანი არასწორია",
     Strings.SliderRangeStart to "დიაპაზონის დასაწყისი",
     Strings.SliderRangeEnd to "დიაპაზონის დასასრული",
+    Strings.SnackbarPaneTitle to "გაფრთხილება",
 )

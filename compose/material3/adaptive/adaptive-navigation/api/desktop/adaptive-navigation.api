@@ -23,12 +23,17 @@ public abstract interface class androidx/compose/material3/adaptive/navigation/T
 	public static synthetic fun canNavigateBack--pgVGNs$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;ILjava/lang/Object;)Z
 	public abstract fun getCurrentDestination ()Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldDestinationItem;
 	public abstract fun getScaffoldDirective ()Landroidx/compose/material3/adaptive/layout/PaneScaffoldDirective;
+	public abstract fun getScaffoldState ()Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldState;
 	public abstract fun getScaffoldValue ()Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldValue;
 	public abstract fun isDestinationHistoryAware ()Z
-	public abstract fun navigateBack--pgVGNs (Ljava/lang/String;)Z
-	public static synthetic fun navigateBack--pgVGNs$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;ILjava/lang/Object;)Z
-	public abstract fun navigateTo (Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;)V
-	public static synthetic fun navigateTo$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;ILjava/lang/Object;)V
+	public abstract fun navigateBack-5OWwzt4 (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun navigateBack-5OWwzt4$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun navigateTo (Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun navigateTo$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldRole;Ljava/lang/Object;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public abstract fun peekPreviousScaffoldValue--pgVGNs (Ljava/lang/String;)Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldValue;
+	public static synthetic fun peekPreviousScaffoldValue--pgVGNs$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;ILjava/lang/Object;)Landroidx/compose/material3/adaptive/layout/ThreePaneScaffoldValue;
+	public abstract fun seekBack-L4_6JmI (Ljava/lang/String;FLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun seekBack-L4_6JmI$default (Landroidx/compose/material3/adaptive/navigation/ThreePaneScaffoldNavigator;Ljava/lang/String;FLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public abstract fun setDestinationHistoryAware (Z)V
 }
 

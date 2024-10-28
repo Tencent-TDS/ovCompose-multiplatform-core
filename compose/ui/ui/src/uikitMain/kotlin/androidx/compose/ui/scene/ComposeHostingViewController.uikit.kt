@@ -26,7 +26,6 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
@@ -34,6 +33,7 @@ import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
@@ -362,7 +362,9 @@ internal class ComposeHostingViewController(
             render = { canvas, nanoTime ->
                 mediator?.render(canvas.asComposeCanvas(), nanoTime)
             }
-        )
+        ).apply {
+            canBeOpaque = configuration.opaque
+        }
     }
 
     /**
@@ -380,6 +382,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun dispose() {
+        metalView.dispose()
         lifecycleOwner.dispose()
         mediator?.dispose()
         rootView.dispose()

@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 import androidx.build.RunApiTasks
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -25,7 +32,7 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.5.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.activity:activity:1.7.0")
     api(project(":wear:watchface:watchface-complications-data"))
     api(project(":wear:watchface:watchface-data"))
@@ -41,9 +48,9 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.mockitoCore)
     androidTestImplementation(libs.mockitoKotlin)
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(libs.truth)
 
     testImplementation(project(":wear:watchface:watchface-complications-rendering"))
@@ -55,8 +62,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinTest)
-
-    samples(project(":wear:watchface:watchface-samples"))
 }
 
 android {
@@ -65,7 +70,7 @@ android {
     }
 
     sourceSets.androidTest.assets.srcDirs +=
-         project.rootDir.absolutePath + "/golden/wear/wear-watchface"
+         project.rootDir.absolutePath + "/../../golden/wear/wear-watchface"
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
@@ -74,8 +79,9 @@ android {
 
 androidx {
     name = "Android Wear Watchface"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Wear Watchface"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    samples(project(":wear:watchface:watchface-samples"))
 }

@@ -45,7 +45,6 @@ import java.util.Locale;
  * Utility class to convert an {@link Image} from YUV to RGB.
  *
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class ImageProcessingUtil {
 
@@ -146,10 +145,24 @@ public final class ImageProcessingUtil {
     }
 
     /**
-     * Convert a YUV_420_888 ImageProxy to a JPEG bytes data as an Image into the Surface.
+     * Convert a YUV_420_888 Image to a JPEG bytes data as an Image into the Surface.
      *
      * <p>Returns true if it succeeds and false otherwise.
      */
+    public static boolean convertYuvToJpegBytesIntoSurface(
+            @NonNull Image image,
+            @IntRange(from = 1, to = 100) int jpegQuality,
+            @ImageOutputConfig.RotationDegreesValue int rotationDegrees,
+            @NonNull Surface outputSurface) {
+        return convertYuvToJpegBytesIntoSurface(new AndroidImageProxy(image), jpegQuality,
+                rotationDegrees, outputSurface);
+    }
+
+        /**
+         * Convert a YUV_420_888 ImageProxy to a JPEG bytes data as an Image into the Surface.
+         *
+         * <p>Returns true if it succeeds and false otherwise.
+         */
     public static boolean convertYuvToJpegBytesIntoSurface(
             @NonNull ImageProxy imageProxy,
             @IntRange(from = 1, to = 100) int jpegQuality,

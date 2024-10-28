@@ -48,6 +48,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlin.jvm.JvmInline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,10 +224,6 @@ internal fun DateInputTextField(
  * @param errorInvalidRangeInput a string for displaying an error message when in a range input mode
  *   and one of the input dates is out of order (i.e. the user inputs a start date that is after the
  *   end date, or an end date that is before the start date)
- * @param currentStartDateMillis the currently selected start date in milliseconds. Only checked
- *   against when the [InputIdentifier] is [InputIdentifier.EndDateInput].
- * @param currentEndDateMillis the currently selected end date in milliseconds. Only checked against
- *   when the [InputIdentifier] is [InputIdentifier.StartDateInput].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Stable
@@ -238,20 +235,20 @@ internal class DateInputValidator(
     private val errorDatePattern: String,
     private val errorDateOutOfYearRange: String,
     private val errorInvalidNotAllowed: String,
-    private val errorInvalidRangeInput: String,
-    internal var currentStartDateMillis: Long? = null,
-    internal var currentEndDateMillis: Long? = null,
+    private val errorInvalidRangeInput: String
 ) {
+    /**
+     * the currently selected start date in milliseconds. Only checked against when the
+     * [InputIdentifier] is [InputIdentifier.EndDateInput].
+     */
+    var currentStartDateMillis: Long? = null
 
     /**
-     * Validates a [CalendarDate] input and returns an error string in case an issue with the given
-     * date is detected, or an empty string in case there are no issues.
-     *
-     * @param dateToValidate a [CalendarDate] input to validate
-     * @param inputIdentifier an [InputIdentifier] that provides information about the input field
-     *   that is supposed to hold the date.
-     * @param locale the current [CalendarLocale]
+     * the currently selected end date in milliseconds. Only checked against when the
+     * [InputIdentifier] is [InputIdentifier.StartDateInput].
      */
+    var currentEndDateMillis: Long? = null
+
     fun validate(
         dateToValidate: CalendarDate?,
         inputIdentifier: InputIdentifier,
@@ -271,7 +268,7 @@ internal class DateInputValidator(
         with(selectableDates) {
             if (
                 !isSelectableYear(dateToValidate.year) ||
-                    !isSelectableDate(dateToValidate.utcTimeMillis)
+                !isSelectableDate(dateToValidate.utcTimeMillis)
             ) {
                 return errorInvalidNotAllowed.format(
                     dateFormatter.formatDate(
@@ -286,8 +283,8 @@ internal class DateInputValidator(
         if (
             (inputIdentifier == InputIdentifier.StartDateInput &&
                 dateToValidate.utcTimeMillis >= (currentEndDateMillis ?: Long.MAX_VALUE)) ||
-                (inputIdentifier == InputIdentifier.EndDateInput &&
-                    dateToValidate.utcTimeMillis < (currentStartDateMillis ?: Long.MIN_VALUE))
+            (inputIdentifier == InputIdentifier.EndDateInput &&
+                dateToValidate.utcTimeMillis < (currentStartDateMillis ?: Long.MIN_VALUE))
         ) {
             // The input start date is after the end date, or the end date is before the start date.
             return errorInvalidRangeInput
@@ -302,7 +299,7 @@ internal class DateInputValidator(
  * when validating the user input, and especially when validating an input range.
  */
 @Immutable
-@kotlin.jvm.JvmInline
+@JvmInline
 internal value class InputIdentifier internal constructor(internal val value: Int) {
 
     companion object {

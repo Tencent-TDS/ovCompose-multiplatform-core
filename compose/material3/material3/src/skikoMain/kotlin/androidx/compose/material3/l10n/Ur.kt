@@ -33,6 +33,7 @@ internal fun Translations.ur() = mapOf(
     Strings.MenuCollapsed to "سکیڑا گیا",
     Strings.ToggleDropdownMenu to "ڈراپ ڈاؤن مینیو کو ٹوگل کریں",
     Strings.SnackbarDismiss to "برخاست کریں",
+    Strings.SnackbarPaneTitle to "الرٹ",
     Strings.SearchBarSearch to "تلاش کریں",
     Strings.SuggestionsAvailable to "تلاش کی تجاویز نیچے دستیاب ہیں",
     Strings.DatePickerTitle to "تاریخ منتخب کریں",
@@ -85,4 +86,6 @@ internal fun Translations.ur() = mapOf(
     Strings.TimePickerHour to "گھنٹہ",
     Strings.TimePickerMinuteTextField to "منٹ کے لیے",
     Strings.TimePickerHourTextField to "گھنٹے کے لیے",
+    Strings.CloseRail to "ریل بند کریں",
+    Strings.WideNavigationRailPaneTitle to "نیوی گیشن ریل",
 )

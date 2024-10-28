@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -34,15 +40,10 @@ androidXMultiplatform {
     defaultPlatform(PlatformIdentifier.JVM)
 
     sourceSets {
-        all {
-            languageSettings.optIn("kotlin.RequiresOptIn")
-        }
-
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api(projectOrArtifact(":annotation:annotation"))
-
+                api(project(":annotation:annotation"))
             }
         }
 
@@ -64,15 +65,25 @@ androidXMultiplatform {
                 implementation(libs.kotlinTestJunit)
             }
         }
+
+        nativeMain {
+            dependsOn(commonMain)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nativeMain)
+                }
+            }
+        }
     }
 }
 
 androidx {
     name = "Room-Common"
     type = LibraryType.PUBLISHED_LIBRARY
-    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2017"
     description = "Android Room-Common"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = true
 }

@@ -17,8 +17,6 @@
 package androidx.compose.material3
 
 import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.material3.tokens.PrimaryNavigationTabTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -112,13 +111,13 @@ fun Tab(
             }
         }
     Tab(
-        selected,
-        onClick,
-        modifier,
-        enabled,
-        selectedContentColor,
-        unselectedContentColor,
-        interactionSource
+        modifier = modifier.badgeBounds(),
+        selected = selected,
+        onClick = onClick,
+        enabled = enabled,
+        selectedContentColor = selectedContentColor,
+        unselectedContentColor = unselectedContentColor,
+        interactionSource = interactionSource
     ) {
         TabBaselineLayout(icon = icon, text = styledText)
     }
@@ -169,7 +168,7 @@ fun LeadingIconTab(
     // The color of the Ripple should always the be selected color, as we want to show the color
     // before the item is considered selected, and hence before the new contentColor is
     // provided by TabTransition.
-    val ripple = rippleOrFallbackImplementation(bounded = true, color = selectedContentColor)
+    val ripple = ripple(bounded = true, color = selectedContentColor)
 
     TabTransition(selectedContentColor, unselectedContentColor, selected) {
         Row(
@@ -214,7 +213,6 @@ fun LeadingIconTab(
  * A custom tab using this API may look like:
  *
  * @sample androidx.compose.material3.samples.FancyTab
- *
  * @param selected whether this tab is selected or not
  * @param onClick called when this tab is clicked
  * @param modifier the [Modifier] to be applied to this tab
@@ -244,7 +242,7 @@ fun Tab(
     // The color of the Ripple should always the selected color, as we want to show the color
     // before the item is considered selected, and hence before the new contentColor is
     // provided by TabTransition.
-    val ripple = rippleOrFallbackImplementation(bounded = true, color = selectedContentColor)
+    val ripple = ripple(bounded = true, color = selectedContentColor)
 
     TabTransition(selectedContentColor, unselectedContentColor, selected) {
         Column(
@@ -279,17 +277,16 @@ private fun TabTransition(
     content: @Composable () -> Unit
 ) {
     val transition = updateTransition(selected)
+    // TODO Load the motionScheme tokens from the component tokens file
     val color by
         transition.animateColor(
             transitionSpec = {
                 if (false isTransitioningTo true) {
-                    tween(
-                        durationMillis = TabFadeInAnimationDuration,
-                        delayMillis = TabFadeInAnimationDelay,
-                        easing = LinearEasing
-                    )
+                    // Fade-in
+                    MotionSchemeKeyTokens.DefaultEffects.value()
                 } else {
-                    tween(durationMillis = TabFadeOutAnimationDuration, easing = LinearEasing)
+                    // Fade-out
+                    MotionSchemeKeyTokens.FastEffects.value()
                 }
             }
         ) {
@@ -425,11 +422,6 @@ private fun Placeable.PlacementScope.placeTextAndIcon(
 // Tab specifications
 private val SmallTabHeight = PrimaryNavigationTabTokens.ContainerHeight
 private val LargeTabHeight = 72.dp
-
-// Tab transition specifications
-private const val TabFadeInAnimationDuration = 150
-private const val TabFadeInAnimationDelay = 100
-private const val TabFadeOutAnimationDuration = 100
 
 // The horizontal padding on the left and right of text
 internal val HorizontalTextPadding = 16.dp

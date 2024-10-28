@@ -86,6 +86,8 @@ import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
@@ -169,6 +171,20 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
 //                project.validatePublishedMultiplatformHasDefault()
 //            }
 //        }
+
+        // We Use languageVersion 1.9 for now to align with Jetpack Compose
+        val lv = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            project.extensions.configure(KotlinMultiplatformExtension::class.java) {
+                it.compilerOptions {
+                    languageVersion.set(lv)
+                    apiVersion.set(lv)
+                }
+            }
+        }
+
     }
 
     /**
@@ -331,13 +347,13 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         project.afterEvaluate {
             project.tasks.withType(KotlinCompile::class.java).configureEach { task ->
                 if (extension.type == LibraryType.COMPILER_PLUGIN) {
-                    task.kotlinOptions.jvmTarget = "11"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
                 } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
                     extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
                 ) {
-                    task.kotlinOptions.jvmTarget = "17"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
                 } else {
-                    task.kotlinOptions.jvmTarget = "1.8"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
                 }
                 val kotlinCompilerArgs = mutableListOf(
                     "-Xskip-metadata-version-check",
@@ -346,10 +362,10 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 if (!project.name.contains("camera-camera2-pipe")) {
                     kotlinCompilerArgs += "-Xjvm-default=all"
                 }
-                task.kotlinOptions.freeCompilerArgs += kotlinCompilerArgs
+                task.compilerOptions.freeCompilerArgs.addAll(kotlinCompilerArgs)
 
                 // Suppress a warning that 'expect'/'actual' classes are in Beta.
-                task.kotlinOptions.freeCompilerArgs += "-Xexpect-actual-classes"
+                task.compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
             }
 
             val isAndroidProject = project.plugins.hasPlugin(LibraryPlugin::class.java) ||
@@ -361,7 +377,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                     // Workaround for https://youtrack.jetbrains.com/issue/KT-37652
                     if (task.name.endsWith("TestKotlin")) return@configureEach
                     if (task.name.endsWith("TestKotlinJvm")) return@configureEach
-                    task.kotlinOptions.freeCompilerArgs += listOf("-Xexplicit-api=strict")
+                    task.compilerOptions.freeCompilerArgs.addAll(listOf("-Xexplicit-api=strict"))
                 }
             }
         }
@@ -533,18 +549,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 taskProvider.configure { task ->
                     task.dependsOn(libraryVariant.javaCompileProvider)
                 }
-            }
-        }
-
-        val reportLibraryMetrics = project.configureReportLibraryMetricsTask()
-        project.addToBuildOnServer(reportLibraryMetrics)
-        libraryExtension.defaultPublishVariant { libraryVariant ->
-            reportLibraryMetrics.configure {
-                it.jarFiles.from(
-                    libraryVariant.packageLibraryProvider.map { zip ->
-                        zip.inputs.files
-                    }
-                )
             }
         }
 
@@ -818,7 +822,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         val relativeRootPath = konanPrebuiltsFolder.relativeTo(rootProject.projectDir).path
         val relativeProjectPath = konanPrebuiltsFolder.relativeTo(projectDir).path
         tasks.withType(KotlinNativeCompile::class.java).configureEach {
-            it.kotlinOptions.freeCompilerArgs += listOf(
+            it.compilerOptions.freeCompilerArgs.add(
                 "-Xoverride-konan-properties=dependenciesUrl=file:$relativeRootPath"
             )
         }

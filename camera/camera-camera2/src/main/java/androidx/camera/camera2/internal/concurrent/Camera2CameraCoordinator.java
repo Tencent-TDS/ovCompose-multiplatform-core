@@ -16,12 +16,13 @@
 
 package androidx.camera.camera2.internal.concurrent;
 
+import static androidx.camera.camera2.internal.CameraIdUtil.isBackwardCompatible;
+
 import android.hardware.camera2.CameraCharacteristics;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
@@ -29,10 +30,12 @@ import androidx.camera.camera2.interop.Camera2CameraInfo;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.InitializationException;
 import androidx.camera.core.Logger;
 import androidx.camera.core.concurrent.CameraCoordinator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +46,6 @@ import java.util.Set;
 /**
  * Implementation for {@link CameraCoordinator}.
  */
-@RequiresApi(21)
 public class Camera2CameraCoordinator implements CameraCoordinator {
 
     private static final String TAG = "Camera2CameraCoordinator";
@@ -150,18 +152,31 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
     }
 
     private void retrieveConcurrentCameraIds() {
+        Set<Set<String>> concurrentCameraIds = new HashSet<>();
         try {
-            mConcurrentCameraIds = mCameraManager.getConcurrentCameraIds();
+            concurrentCameraIds = mCameraManager.getConcurrentCameraIds();
         } catch (CameraAccessExceptionCompat e) {
             Logger.e(TAG, "Failed to get concurrent camera ids");
         }
 
-        for (Set<String> concurrentCameraIdList: mConcurrentCameraIds) {
+        for (Set<String> concurrentCameraIdList: concurrentCameraIds) {
             List<String> cameraIdList = new ArrayList<>(concurrentCameraIdList);
 
             if (cameraIdList.size() >= 2) {
                 String cameraId1 = cameraIdList.get(0);
                 String cameraId2 = cameraIdList.get(1);
+                boolean isBackwardCompatible = false;
+                try {
+                    isBackwardCompatible = isBackwardCompatible(mCameraManager, cameraId1)
+                            && isBackwardCompatible(mCameraManager, cameraId2);
+                } catch (InitializationException e) {
+                    Logger.d(TAG, "Concurrent camera id pair: (" + cameraId1 + ", "
+                            + cameraId2 + ") is not backward compatible");
+                }
+                if (!isBackwardCompatible) {
+                    continue;
+                }
+                mConcurrentCameraIds.add(new HashSet<>(Arrays.asList(cameraId1, cameraId2)));
                 if (!mConcurrentCameraIdMap.containsKey(cameraId1)) {
                     mConcurrentCameraIdMap.put(cameraId1, new ArrayList<>());
                 }

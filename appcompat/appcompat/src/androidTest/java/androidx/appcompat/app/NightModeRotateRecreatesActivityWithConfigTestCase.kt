@@ -19,7 +19,6 @@ package androidx.appcompat.app
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.res.Configuration
-import android.os.Build
 import androidx.appcompat.Orientation
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
@@ -33,7 +32,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import androidx.testutils.LifecycleOwnerUtils
+import androidx.testutils.lifecycle.LifecycleOwnerUtils
 import org.junit.After
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
@@ -132,10 +131,6 @@ public class NightModeRotateRecreatesActivityWithConfigTestCase(private val setM
     public companion object {
         @JvmStatic
         @Parameterized.Parameters
-        public fun data(): List<NightSetMode> = if (Build.VERSION.SDK_INT >= 17) {
-            listOf(NightSetMode.DEFAULT, NightSetMode.LOCAL)
-        } else {
-            listOf(NightSetMode.DEFAULT)
-        }
+        public fun data(): List<NightSetMode> = listOf(NightSetMode.DEFAULT, NightSetMode.LOCAL)
     }
 }

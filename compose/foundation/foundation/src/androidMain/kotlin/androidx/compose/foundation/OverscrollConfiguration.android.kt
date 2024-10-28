@@ -24,15 +24,11 @@ import androidx.compose.ui.graphics.Color
 /**
  * Metadata for overscroll effects for android platform.
  *
- * Note: this API is experimental and liable to be changed / removed. [glowColor] and [drawPadding]
- * only apply before Android S and so might be misleading to have in a generic configuration object.
- *
  * @param glowColor color for the glow effect, if the platform effect is a glow effect, otherwise
- * ignored.
- * @param drawPadding the amount of padding to apply from scrollable container bounds to
- * the effect before drawing it, if the platform effect is a glow effect, otherwise ignored.
+ *   ignored.
+ * @param drawPadding the amount of padding to apply from scrollable container bounds to the effect
+ *   before drawing it, if the platform effect is a glow effect, otherwise ignored.
  */
-@ExperimentalFoundationApi
 @Stable
 class OverscrollConfiguration(
     val glowColor: Color = Color(0xff666666), // taken from EdgeEffect.java defaults
@@ -62,14 +58,9 @@ class OverscrollConfiguration(
 }
 
 /**
- * Composition local to provide configuration for scrolling containers down the
- * hierarchy. `null` means there will be no overscroll at all.
- *
- * Note: this is experimental since the underlying [OverscrollConfiguration] is also experimental.
+ * Composition local to provide configuration for scrolling containers down the hierarchy. `null`
+ * means there will be no overscroll at all.
  */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-@ExperimentalFoundationApi
-@get:ExperimentalFoundationApi
-val LocalOverscrollConfiguration = compositionLocalOf<OverscrollConfiguration?> {
-    OverscrollConfiguration()
-}
+val LocalOverscrollConfiguration =
+    compositionLocalOf<OverscrollConfiguration?> { OverscrollConfiguration() }

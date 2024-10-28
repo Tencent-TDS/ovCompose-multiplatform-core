@@ -165,20 +165,23 @@ class ProduceStateDetector : Detector(), SourceCodeScanner {
     }
 
     companion object {
-        val ProduceStateDoesNotAssignValue = Issue.create(
-            "ProduceStateDoesNotAssignValue",
-            "produceState calls should assign `value` inside the producer lambda",
-            "produceState returns an observable State using values assigned inside the producer " +
-                "lambda. If the lambda never assigns (i.e `value = foo`), then the State will " +
-                "never change. Make sure to assign a value when the source you are producing " +
-                "values from changes / emits a new value. For sample usage see the produceState " +
-                "documentation.",
-            Category.CORRECTNESS, 3, Severity.ERROR,
-            Implementation(
-                ProduceStateDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+        val ProduceStateDoesNotAssignValue =
+            Issue.create(
+                "ProduceStateDoesNotAssignValue",
+                "produceState calls should assign `value` inside the producer lambda",
+                "produceState returns an observable State using values assigned inside the producer " +
+                    "lambda. If the lambda never assigns (i.e `value = foo`), then the State will " +
+                    "never change. Make sure to assign a value when the source you are producing " +
+                    "values from changes / emits a new value. For sample usage see the produceState " +
+                    "documentation.",
+                Category.CORRECTNESS,
+                3,
+                Severity.ERROR,
+                Implementation(
+                    ProduceStateDetector::class.java,
+                    EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+                )
             )
-        )
     }
 }
 

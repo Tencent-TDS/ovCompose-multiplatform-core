@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id('AndroidXPlugin')
@@ -30,19 +37,17 @@ dependencies {
     androidTestImplementation project(':appsearch:appsearch')
     androidTestImplementation project(':appsearch:appsearch-local-storage')
     androidTestImplementation project(':appsearch:appsearch-test-util')
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(libs.junit)
 }
 
 androidx {
     name = "AppSearch Builtin Types"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = '2021'
     description = 'Contains AppSearch Document classes and builders for a variety of common ' +
             'objects based on http://schema.org. Data interchange with the system, and other ' +
@@ -53,8 +58,4 @@ androidx {
 
 android {
     namespace "androidx.appsearch.builtintypes"
-
-    defaultConfig {
-        multiDexEnabled true
-    }
 }

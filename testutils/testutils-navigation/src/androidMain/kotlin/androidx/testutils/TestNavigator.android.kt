@@ -21,10 +21,8 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 
-/**
- * A simple Navigator that doesn't actually navigate anywhere, but does dispatch correctly
- */
-@Navigator.Name(TEST_NAVIGATOR_NAME)
+/** A simple Navigator that doesn't actually navigate anywhere, but does dispatch correctly */
+@Navigator.Name("test")
 open class TestNavigator(private val hasTransitions: Boolean = false) :
     Navigator<TestNavigator.Destination>() {
 
@@ -32,8 +30,7 @@ open class TestNavigator(private val hasTransitions: Boolean = false) :
         get() = state.backStack.value
 
     val current: NavBackStackEntry
-        get() = backStack.lastOrNull()
-            ?: throw IllegalStateException("Nothing on the back stack")
+        get() = backStack.lastOrNull() ?: throw IllegalStateException("Nothing on the back stack")
 
     fun popCurrent() {
         state.pop(current, false)
@@ -69,10 +66,7 @@ open class TestNavigator(private val hasTransitions: Boolean = false) :
         state.markTransitionComplete(entry)
     }
 
-    /**
-     * A simple Test destination
-     */
-    open class Destination constructor(
-        navigator: Navigator<out NavDestination>
-    ) : NavDestination(navigator)
+    /** A simple Test destination */
+    open class Destination constructor(navigator: Navigator<out NavDestination>) :
+        NavDestination(navigator)
 }

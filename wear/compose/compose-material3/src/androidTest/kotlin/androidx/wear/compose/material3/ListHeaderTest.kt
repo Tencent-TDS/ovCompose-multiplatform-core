@@ -29,6 +29,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.wear.compose.material3.tokens.ListHeaderTokens
+import androidx.wear.compose.material3.tokens.ListSubHeaderTokens
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
@@ -37,17 +39,12 @@ import org.junit.runner.RunWith
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class ListHeaderTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun supports_testtag() {
         rule.setContentWithTheme {
-            ListHeader(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                Text("Header")
-            }
+            ListHeader(modifier = Modifier.testTag(TEST_TAG)) { Text("Header") }
         }
 
         rule.onNodeWithTag(TEST_TAG).assertExists()
@@ -56,11 +53,7 @@ class ListHeaderTest {
     @Test
     fun listHeader_has_semantic_heading_property() {
         rule.setContentWithTheme {
-            ListHeader(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                Text("Header")
-            }
+            ListHeader(modifier = Modifier.testTag(TEST_TAG)) { Text("Header") }
         }
 
         rule.assertNodeIsHeading(TEST_TAG)
@@ -69,11 +62,7 @@ class ListHeaderTest {
     @Test
     fun listSubheader_has_semantic_heading_property() {
         rule.setContentWithTheme {
-            ListSubheader(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                Text("Subheader")
-            }
+            ListSubheader(modifier = Modifier.testTag(TEST_TAG)) { Text("Subheader") }
         }
 
         rule.assertNodeIsHeading(TEST_TAG)
@@ -86,9 +75,7 @@ class ListHeaderTest {
 
         rule.setContentWithTheme {
             expectedTextStyle = MaterialTheme.typography.titleMedium
-            ListHeader {
-                actualTextStyle = LocalTextStyle.current
-            }
+            ListHeader { actualTextStyle = LocalTextStyle.current }
         }
 
         Assert.assertEquals(expectedTextStyle, actualTextStyle)
@@ -96,34 +83,34 @@ class ListHeaderTest {
 
     @Test
     fun listHeader_has_adjustable_height() {
-        val minHeight = ListHeaderDefaults.Height + 1.dp
+        val minHeight = ListHeaderTokens.Height + 1.dp
 
-        rule.setContentWithThemeForSizeAssertions {
-            ListHeader(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                Text("Header with multiple lines of text to exceed" +
-                    " the minimum height, should adjust"
-                )
+        rule
+            .setContentWithThemeForSizeAssertions {
+                ListHeader(modifier = Modifier.testTag(TEST_TAG)) {
+                    Text(
+                        "Header with multiple lines of text to exceed" +
+                            " the minimum height, should adjust"
+                    )
+                }
             }
-        }
-        .assertHeightIsAtLeast(minHeight)
+            .assertHeightIsAtLeast(minHeight)
     }
 
     @Test
     fun listsubHeader_has_adjustable_height() {
-        val minHeight = ListHeaderDefaults.Height + 1.dp
+        val minHeight = ListSubHeaderTokens.Height + 1.dp
 
-        rule.setContentWithThemeForSizeAssertions {
-            ListSubheader(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                Text("Header with multiple lines of text to exceed" +
-                    " the minimum height, should adjust"
-                )
+        rule
+            .setContentWithThemeForSizeAssertions {
+                ListSubheader(modifier = Modifier.testTag(TEST_TAG)) {
+                    Text(
+                        "Header with multiple lines of text to exceed" +
+                            " the minimum height, should adjust"
+                    )
+                }
             }
-        }
-        .assertHeightIsAtLeast(minHeight)
+            .assertHeightIsAtLeast(minHeight)
     }
 
     @Test
@@ -133,20 +120,13 @@ class ListHeaderTest {
 
         rule.setContentWithTheme {
             expectedTextStyle = MaterialTheme.typography.titleMedium
-            ListSubheader {
-                actualTextStyle = LocalTextStyle.current
-            }
+            ListSubheader { actualTextStyle = LocalTextStyle.current }
         }
 
         Assert.assertEquals(expectedTextStyle, actualTextStyle)
     }
 
     private fun ComposeContentTestRule.assertNodeIsHeading(tag: String) {
-        onNodeWithTag(tag)
-            .assert(
-                SemanticsMatcher.keyIsDefined(
-                    SemanticsProperties.Heading
-                )
-            )
+        onNodeWithTag(tag).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 }

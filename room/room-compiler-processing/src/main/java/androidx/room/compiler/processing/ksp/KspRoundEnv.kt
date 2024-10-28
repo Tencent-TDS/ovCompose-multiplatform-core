@@ -29,11 +29,10 @@ import com.google.devtools.ksp.symbol.KSValueParameter
 import kotlin.reflect.KClass
 
 internal class KspRoundEnv(
-    private val env: KspProcessingEnv,
-    override val isProcessingOver: Boolean
+    private val env: KspProcessingEnv?, // null on last round (i.e. isProcessingOver == true)
 ) : XRoundEnv {
-    override val rootElements: Set<XElement>
-        get() = TODO("not supported")
+    override val isProcessingOver: Boolean
+        get() = env == null
 
     override fun getElementsAnnotatedWith(klass: KClass<out Annotation>): Set<XElement> {
         return getElementsAnnotatedWith(
@@ -46,75 +45,80 @@ internal class KspRoundEnv(
         if (annotationQualifiedName == "*") {
             return emptySet()
         }
+        if (isProcessingOver) {
+            return emptySet()
+        }
+        checkNotNull(env)
         return buildSet {
-            env.resolver.getSymbolsWithAnnotation(annotationQualifiedName)
-                .forEach { symbol ->
+                env.resolver.getSymbolsWithAnnotation(annotationQualifiedName).forEach { symbol ->
                     when (symbol) {
                         is KSPropertyDeclaration -> {
-                           add(KspFieldElement.create(env, symbol))
+                            add(KspFieldElement.create(env, symbol))
                         }
-
                         is KSClassDeclaration -> {
                             when (symbol.classKind) {
-                                ClassKind.ENUM_ENTRY ->
-                                    add(KspEnumEntry.create(env, symbol))
+                                ClassKind.ENUM_ENTRY -> add(KspEnumEntry.create(env, symbol))
                                 else -> add(KspTypeElement.create(env, symbol))
                             }
                         }
-
                         is KSFunctionDeclaration -> {
-                            add(KspExecutableElement.create(env, symbol))
+                            add(env.wrapFunctionDeclaration(symbol))
                         }
-
                         is KSPropertyAccessor -> {
-                            if (symbol.receiver.isStatic() &&
-                                symbol.receiver.parentDeclaration is KSClassDeclaration &&
-                                (symbol.receiver.hasJvmStaticAnnotation() ||
-                                    symbol.hasJvmStaticAnnotation())) {
+                            if (
+                                symbol.receiver.isStatic() &&
+                                    symbol.receiver.parentDeclaration is KSClassDeclaration &&
+                                    (symbol.receiver.hasJvmStaticAnnotation() ||
+                                        symbol.hasJvmStaticAnnotation())
+                            ) {
                                 // Getter/setter can be copied from companion object to its
                                 // outer class if the field is annotated with @JvmStatic.
                                 add(
                                     KspSyntheticPropertyMethodElement.create(
-                                        env, symbol, isSyntheticStatic = true
+                                        env,
+                                        symbol,
+                                        isSyntheticStatic = true
                                     )
                                 )
                             }
                             // static fields are the properties that are coming from the companion.
                             // Whether we'll generate method for it or not depends on the JVMStatic
                             // annotation
-                            if (!symbol.receiver.isStatic() ||
-                                symbol.receiver.hasJvmStaticAnnotation() ||
-                                symbol.hasJvmStaticAnnotation() ||
-                                symbol.receiver.parentDeclaration !is KSClassDeclaration
+                            if (
+                                !symbol.receiver.isStatic() ||
+                                    symbol.receiver.hasJvmStaticAnnotation() ||
+                                    symbol.hasJvmStaticAnnotation() ||
+                                    symbol.receiver.parentDeclaration !is KSClassDeclaration
                             ) {
                                 add(
                                     KspSyntheticPropertyMethodElement.create(
-                                        env, symbol, isSyntheticStatic = false
+                                        env,
+                                        symbol,
+                                        isSyntheticStatic = false
                                     )
                                 )
                             }
                         }
-
                         is KSValueParameter -> {
                             add(KspExecutableParameterElement.create(env, symbol))
                         }
-
                         else ->
                             error("Unsupported $symbol with annotation $annotationQualifiedName")
                     }
                 }
 
-            env.resolver.getPackagesWithAnnotation(annotationQualifiedName)
-                .forEach { packageName ->
+                env.resolver.getPackagesWithAnnotation(annotationQualifiedName).forEach {
+                    packageName ->
                     add(KspPackageElement(env, packageName))
                 }
-        }
-        .filter {
-            // Due to the bug in https://github.com/google/ksp/issues/1198, KSP may incorrectly
-            // copy annotations from a constructor KSValueParameter to its KSPropertyDeclaration
-            // which we remove manually, so check here to make sure this is in sync with the
-            // actual annotations on the element.
-            it.getAllAnnotations().any { it.qualifiedName == annotationQualifiedName }
-        }.toSet()
+            }
+            .filter {
+                // Due to the bug in https://github.com/google/ksp/issues/1198, KSP may incorrectly
+                // copy annotations from a constructor KSValueParameter to its KSPropertyDeclaration
+                // which we remove manually, so check here to make sure this is in sync with the
+                // actual annotations on the element.
+                it.getAllAnnotations().any { it.qualifiedName == annotationQualifiedName }
+            }
+            .toSet()
     }
 }

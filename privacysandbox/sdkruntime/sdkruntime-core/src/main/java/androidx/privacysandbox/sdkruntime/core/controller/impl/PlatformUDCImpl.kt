@@ -23,26 +23,45 @@ import android.app.sdksandbox.sdkprovider.SdkSandboxController
 import android.content.Context
 import android.os.Bundle
 import android.os.IBinder
-import android.os.ext.SdkExtensions
 import androidx.activity.OnBackPressedDispatcher
 import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresExtension
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
+import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
+import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
 import androidx.privacysandbox.sdkruntime.core.activity.ActivityHolder
 import androidx.privacysandbox.sdkruntime.core.activity.SdkSandboxActivityHandlerCompat
+import androidx.privacysandbox.sdkruntime.core.controller.LoadSdkCallback
+import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat
+import java.util.concurrent.Executor
 
-/**
- * Implementation that delegates to platform [SdkSandboxController] for Android U.
- */
-@RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 5)
+/** Implementation that delegates to platform [SdkSandboxController] for Android U. */
 @RequiresApi(34)
-internal class PlatformUDCImpl(
-    private val controller: SdkSandboxController
-) : PlatformImpl(controller) {
+internal class PlatformUDCImpl(private val controller: SdkSandboxController, sdkContext: Context) :
+    SdkSandboxControllerCompat.SandboxControllerImpl {
+
+    private val appOwnedSdkProvider = AppOwnedSdkProvider.create(controller)
+    private val sdkLoader = PlatformSdkLoader.create(controller)
+    private val clientPackageNameProvider = ClientPackageNameProvider(controller, sdkContext)
 
     private val compatToPlatformMap =
         hashMapOf<SdkSandboxActivityHandlerCompat, SdkSandboxActivityHandler>()
+
+    override fun loadSdk(
+        sdkName: String,
+        params: Bundle,
+        executor: Executor,
+        callback: LoadSdkCallback
+    ) {
+        sdkLoader.loadSdk(sdkName, params, executor, callback)
+    }
+
+    override fun getSandboxedSdks(): List<SandboxedSdkCompat> {
+        return controller.sandboxedSdks.map { platformSdk -> SandboxedSdkCompat(platformSdk) }
+    }
+
+    override fun getAppOwnedSdkSandboxInterfaces(): List<AppOwnedSdkSandboxInterfaceCompat> =
+        appOwnedSdkProvider.getAppOwnedSdkSandboxInterfaces()
 
     override fun registerSdkSandboxActivityHandler(
         handlerCompat: SdkSandboxActivityHandlerCompat
@@ -50,9 +69,9 @@ internal class PlatformUDCImpl(
         synchronized(compatToPlatformMap) {
             val platformHandler: SdkSandboxActivityHandler =
                 compatToPlatformMap[handlerCompat]
-                ?: SdkSandboxActivityHandler { platformActivity: Activity ->
-                    handlerCompat.onActivityCreated(ActivityHolderImpl(platformActivity))
-                }
+                    ?: SdkSandboxActivityHandler { platformActivity: Activity ->
+                        handlerCompat.onActivityCreated(ActivityHolderImpl(platformActivity))
+                    }
             val token = controller.registerSdkSandboxActivityHandler(platformHandler)
             compatToPlatformMap[handlerCompat] = platformHandler
             return token
@@ -70,9 +89,9 @@ internal class PlatformUDCImpl(
         }
     }
 
-    internal class ActivityHolderImpl(
-        private val platformActivity: Activity
-    ) : ActivityHolder {
+    override fun getClientPackageName(): String = clientPackageNameProvider.getClientPackageName()
+
+    internal class ActivityHolderImpl(private val platformActivity: Activity) : ActivityHolder {
         private val dispatcher = OnBackPressedDispatcher {}
         private var lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
 
@@ -95,56 +114,57 @@ internal class PlatformUDCImpl(
             get() = lifecycleRegistry
 
         private fun proxyLifeCycleEvents() {
-            val callback = object : Application.ActivityLifecycleCallbacks {
-                override fun onActivityCreated(activity: Activity, bundle: Bundle?) {}
+            val callback =
+                object : Application.ActivityLifecycleCallbacks {
+                    override fun onActivityCreated(activity: Activity, bundle: Bundle?) {}
 
-                override fun onActivityPostCreated(
-                    activity: Activity,
-                    savedInstanceState: Bundle?
-                ) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                    override fun onActivityPostCreated(
+                        activity: Activity,
+                        savedInstanceState: Bundle?
+                    ) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+                    }
+
+                    override fun onActivityStarted(activity: Activity) {}
+
+                    override fun onActivityPostStarted(activity: Activity) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
+                    }
+
+                    override fun onActivityResumed(activity: Activity) {}
+
+                    override fun onActivityPostResumed(activity: Activity) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+                    }
+
+                    override fun onActivityPrePaused(activity: Activity) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+                    }
+
+                    override fun onActivityPaused(activity: Activity) {}
+
+                    override fun onActivityPreStopped(activity: Activity) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
+                    }
+
+                    override fun onActivityStopped(activity: Activity) {}
+
+                    override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
+
+                    override fun onActivityPreDestroyed(activity: Activity) {
+                        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+                    }
+
+                    override fun onActivityDestroyed(activity: Activity) {}
                 }
-
-                override fun onActivityStarted(activity: Activity) {}
-
-                override fun onActivityPostStarted(activity: Activity) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-                }
-
-                override fun onActivityResumed(activity: Activity) {}
-
-                override fun onActivityPostResumed(activity: Activity) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-                }
-
-                override fun onActivityPrePaused(activity: Activity) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
-                }
-
-                override fun onActivityPaused(activity: Activity) {}
-
-                override fun onActivityPreStopped(activity: Activity) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-                }
-
-                override fun onActivityStopped(activity: Activity) {}
-
-                override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
-
-                override fun onActivityPreDestroyed(activity: Activity) {
-                    lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-                }
-
-                override fun onActivityDestroyed(activity: Activity) {}
-            }
             platformActivity.registerActivityLifecycleCallbacks(callback)
         }
     }
 
     companion object {
-        fun from(context: Context): PlatformImpl {
+        fun from(context: Context): PlatformUDCImpl {
             val sdkSandboxController = context.getSystemService(SdkSandboxController::class.java)
-            return PlatformUDCImpl(sdkSandboxController)
+            return PlatformUDCImpl(sdkSandboxController, context)
         }
     }
 }

@@ -25,7 +25,6 @@ import android.view.ViewConfiguration;
 import android.view.ViewParent;
 import android.view.accessibility.AccessibilityEvent;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
@@ -62,6 +61,7 @@ public final class ViewParentCompat {
      * @deprecated Use {@link ViewParent#requestSendAccessibilityEvent(View, AccessibilityEvent)}
      * directly.
      */
+    @androidx.annotation.ReplaceWith(expression = "parent.requestSendAccessibilityEvent(child, event)")
     @Deprecated
     public static boolean requestSendAccessibilityEvent(
             ViewParent parent, View child, AccessibilityEvent event) {
@@ -504,12 +504,13 @@ public final class ViewParentCompat {
      *            <li>{@link AccessibilityEvent#CONTENT_CHANGE_TYPE_TEXT}
      *            <li>{@link AccessibilityEvent#CONTENT_CHANGE_TYPE_UNDEFINED}
      *            </ul>
+     * @deprecated Call {@link ViewParent#notifySubtreeAccessibilityStateChanged()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "parent.notifySubtreeAccessibilityStateChanged(child, source, changeType)")
     public static void notifySubtreeAccessibilityStateChanged(@NonNull ViewParent parent,
             @NonNull View child, @NonNull View source, int changeType) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            Api19Impl.notifySubtreeAccessibilityStateChanged(parent, child, source, changeType);
-        }
+        parent.notifySubtreeAccessibilityStateChanged(child, source, changeType);
     }
 
     private static int[] getTempNestedScrollConsumed() {
@@ -522,58 +523,38 @@ public final class ViewParentCompat {
         return sTempNestedScrollConsumed;
     }
 
-    @RequiresApi(19)
-    static class Api19Impl {
-        private Api19Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void notifySubtreeAccessibilityStateChanged(ViewParent viewParent, View view,
-                View view1, int i) {
-            viewParent.notifySubtreeAccessibilityStateChanged(view, view1, i);
-        }
-    }
-
     @RequiresApi(21)
     static class Api21Impl {
         private Api21Impl() {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean onStartNestedScroll(ViewParent viewParent, View view, View view1, int i) {
             return viewParent.onStartNestedScroll(view, view1, i);
         }
 
-        @DoNotInline
         static void onNestedScrollAccepted(ViewParent viewParent, View view, View view1, int i) {
             viewParent.onNestedScrollAccepted(view, view1, i);
         }
 
-        @DoNotInline
         static void onStopNestedScroll(ViewParent viewParent, View view) {
             viewParent.onStopNestedScroll(view);
         }
 
-        @DoNotInline
         static void onNestedScroll(ViewParent viewParent, View view, int i, int i1, int i2,
                 int i3) {
             viewParent.onNestedScroll(view, i, i1, i2, i3);
         }
 
-        @DoNotInline
         static void onNestedPreScroll(ViewParent viewParent, View view, int i, int i1, int[] ints) {
             viewParent.onNestedPreScroll(view, i, i1, ints);
         }
 
-        @DoNotInline
         static boolean onNestedFling(ViewParent viewParent, View view, float v, float v1,
                 boolean b) {
             return viewParent.onNestedFling(view, v, v1, b);
         }
 
-        @DoNotInline
         static boolean onNestedPreFling(ViewParent viewParent, View view, float v, float v1) {
             return viewParent.onNestedPreFling(view, v, v1);
         }

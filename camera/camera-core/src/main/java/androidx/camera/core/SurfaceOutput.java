@@ -19,6 +19,7 @@ package androidx.camera.core;
 import static androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE;
 
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraCharacteristics;
 import android.util.Size;
@@ -26,7 +27,9 @@ import android.view.Surface;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.camera.core.impl.CameraInternal;
 import androidx.core.util.Consumer;
 
 import com.google.auto.value.AutoValue;
@@ -152,12 +155,19 @@ public interface SurfaceOutput extends Closeable {
     void updateTransformMatrix(@NonNull float[] updated, @NonNull float[] original);
 
     /**
+     * Applies an additional 4x4 transformation on the original matrix, in dual concurrent cameras.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    default void updateTransformMatrix(
+            @NonNull float[] updated, @NonNull float[] original, boolean isPrimary) {
+    }
+
+    /**
      * Returns the sensor to image buffer transform matrix.
      *
      * <p>The value is a mapping from sensor coordinates to buffer coordinates, which is,
      * from the rect of {@link CameraCharacteristics#SENSOR_INFO_ACTIVE_ARRAY_SIZE} to the
-     * rect defined by {@code (0, 0, SurfaceRequest#getResolution#getWidth(),
-     * SurfaceRequest#getResolution#getHeight())}. The matrix can
+     * rect defined by {@code (0, 0, #getSize()#getWidth(), #getSize()#getHeight())}. The matrix can
      * be used to map the coordinates from one {@link UseCase} to another. For example,
      * detecting face with {@link ImageAnalysis}, and then highlighting the face in
      * {@link Preview}.
@@ -174,7 +184,6 @@ public interface SurfaceOutput extends Closeable {
      *  analysisToEffect.postConcat(sensorToEffect);
      * </pre></code>
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @NonNull
     default Matrix getSensorToBufferTransform() {
         return new Matrix();
@@ -232,6 +241,57 @@ public interface SurfaceOutput extends Closeable {
         public static SurfaceOutput.Event of(@EventCode int code,
                 @NonNull SurfaceOutput surfaceOutput) {
             return new AutoValue_SurfaceOutput_Event(code, surfaceOutput);
+        }
+    }
+
+    /**
+     * Camera input information for transformation matrix calculation in {@link SurfaceOutput}.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @AutoValue
+    abstract class CameraInputInfo {
+
+        /**
+         * Gets input size.
+         */
+        @NonNull
+        public abstract Size getInputSize();
+
+        /**
+         * Gets input crop rect.
+         */
+        @NonNull
+        public abstract Rect getInputCropRect();
+
+        /**
+         * Gets {@link CameraInternal}.
+         */
+        @Nullable
+        public abstract CameraInternal getCameraInternal();
+
+        /**
+         * Gets input rotation degrees.
+         */
+        public abstract int getRotationDegrees();
+
+        /**
+         * Gets input mirroring state.
+         */
+        public abstract boolean getMirroring();
+
+        /**
+         * Creates a {@link CameraInputInfo}.
+         */
+        @NonNull
+        public static SurfaceOutput.CameraInputInfo of(
+                @NonNull Size inputSize,
+                @NonNull Rect inputCropRect,
+                @Nullable CameraInternal cameraInternal,
+                int rotationDegrees,
+                boolean mirroring) {
+            return new AutoValue_SurfaceOutput_CameraInputInfo(
+                    inputSize, inputCropRect, cameraInternal,
+                    rotationDegrees, mirroring);
         }
     }
 }

@@ -28,6 +28,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.internal.Icons
+import androidx.compose.material3.internal.MenuPosition
 import androidx.compose.material3.internal.Strings
 import androidx.compose.material3.internal.getString
 import androidx.compose.material3.internal.rememberAccessibilityServiceState
@@ -332,7 +337,8 @@ private fun View.getWindowBounds(): Rect =
         it.toComposeRect()
     }
 
-private fun LayoutCoordinates?.getAnchorBounds(): Rect {
-    // Don't use `boundsInWindow()` because it can report 0 when the window is animating/resizing
-    return if (this == null) Rect.Zero else Rect(positionInWindow(), size.toSize())
-}
+// Don't use `boundsInWindow()` because it can report 0 when the window is animating/resizing
+private fun LayoutCoordinates?.getAnchorBounds(): Rect =
+    if (this == null || !this.isAttached) Rect.Zero else Rect(positionInWindow(), size.toSize())
+
+private val ExposedDropdownMenuItemHorizontalPadding = 16.dp

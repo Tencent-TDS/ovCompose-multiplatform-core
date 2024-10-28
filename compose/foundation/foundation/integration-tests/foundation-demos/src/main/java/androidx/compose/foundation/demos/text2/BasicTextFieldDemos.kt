@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package androidx.compose.foundation.demos.text2
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.demos.text.TagLine
@@ -58,30 +55,18 @@ fun SwapFieldSameStateDemo() {
     val state = remember { TextFieldState() }
 
     Column {
-        Button(onClick = { swapped = !swapped }) {
-            Text("Swap")
-        }
+        Button(onClick = { swapped = !swapped }) { Text("Swap") }
         if (swapped) {
-            BasicTextField(
-                state,
-                Modifier.border(1.dp, Color.Magenta)
-            )
+            BasicTextField(state, Modifier.border(1.dp, Color.Magenta))
         } else {
-            BasicTextField(
-                state,
-                Modifier.border(1.dp, Color.Blue)
-            )
+            BasicTextField(state, Modifier.border(1.dp, Color.Blue))
         }
     }
 }
 
 @Composable
 fun BasicTextFieldDemos() {
-    Column(
-        Modifier
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-    ) {
+    Column(Modifier.imePadding().verticalScroll(rememberScrollState())) {
         TagLine(tag = "Plain BasicTextField")
         PlainBasicTextField()
 
@@ -101,11 +86,7 @@ fun BasicTextFieldDemos() {
 
 @Composable
 fun BasicTextFieldValueCallbackDemo() {
-    Column(
-        Modifier
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-    ) {
+    Column(Modifier.imePadding().verticalScroll(rememberScrollState())) {
         TagLine("Simple string-only")
         SimpleValueCallbackDemo()
 
@@ -117,11 +98,7 @@ fun BasicTextFieldValueCallbackDemo() {
 @Composable
 private fun SimpleValueCallbackDemo() {
     var text by remember { mutableStateOf("") }
-    BasicTextField(
-        value = text,
-        onValueChange = { text = it },
-        modifier = demoTextFieldModifiers
-    )
+    BasicTextField(value = text, onValueChange = { text = it }, modifier = demoTextFieldModifiers)
 }
 
 @Composable
@@ -135,14 +112,12 @@ private fun CapitalizeValueCallbackDemo() {
     Text(text = "Backing state: \"$text\"", style = MaterialTheme.typography.caption)
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlainBasicTextField() {
     val state = remember { TextFieldState() }
     BasicTextField(state, demoTextFieldModifiers, textStyle = LocalTextStyle.current)
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SingleLineBasicTextField() {
     val state = remember { TextFieldState() }
@@ -154,7 +129,6 @@ fun SingleLineBasicTextField() {
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MultiLineBasicTextField() {
     val state = remember { TextFieldState() }
@@ -162,28 +136,27 @@ fun MultiLineBasicTextField() {
         state = state,
         modifier = demoTextFieldModifiers,
         textStyle = TextStyle(fontSize = fontSize8, textAlign = TextAlign.Center),
-        lineLimits = TextFieldLineLimits.MultiLine(
-            minHeightInLines = 3,
-            maxHeightInLines = 3
-        )
+        lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 3, maxHeightInLines = 3)
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StateTogglingBasicTextField() {
     var counter by remember { mutableIntStateOf(0) }
     val states = remember { listOf(TextFieldState(), TextFieldState()) }
     val state = states[counter]
-    Text("Click to toggle state: $counter", modifier = Modifier.clickable {
-        counter++
-        counter %= 2
-    })
+    Text(
+        "Click to toggle state: $counter",
+        modifier =
+            Modifier.clickable {
+                counter++
+                counter %= 2
+            }
+    )
 
     BasicTextField(state, demoTextFieldModifiers, textStyle = LocalTextStyle.current)
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BasicTextFieldEditControls() {
     var enabled by remember { mutableStateOf(true) }

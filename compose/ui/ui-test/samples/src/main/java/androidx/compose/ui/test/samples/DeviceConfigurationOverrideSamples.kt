@@ -17,9 +17,15 @@
 package androidx.compose.ui.test.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.roundToAndroidXInsets
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.DarkMode
 import androidx.compose.ui.test.DeviceConfigurationOverride
@@ -29,11 +35,14 @@ import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.LayoutDirection
 import androidx.compose.ui.test.Locales
 import androidx.compose.ui.test.RoundScreen
+import androidx.compose.ui.test.WindowInsets
 import androidx.compose.ui.test.then
 import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowInsetsCompat
 
 @Sampled
 @Composable
@@ -49,9 +58,7 @@ fun DeviceConfigurationOverrideThenSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideFontScaleSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.FontScale(1.5f)
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.FontScale(1.5f)) {
         MyScreen() // will be rendered with a larger than default font scale
     }
 }
@@ -59,9 +66,7 @@ fun DeviceConfigurationOverrideFontScaleSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideForcedSizeSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.ForcedSize(DpSize(1280.dp, 800.dp))
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(1280.dp, 800.dp))) {
         MyScreen() // will be rendered in the space for 1280dp by 800dp without clipping
     }
 }
@@ -69,9 +74,7 @@ fun DeviceConfigurationOverrideForcedSizeSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideLayoutDirectionSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.LayoutDirection(LayoutDirection.Rtl)
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.LayoutDirection(LayoutDirection.Rtl)) {
         MyComponent() // will be rendered with a right-to-left layout direction
     }
 }
@@ -79,9 +82,7 @@ fun DeviceConfigurationOverrideLayoutDirectionSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideLocalesSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.Locales(LocaleList("es-ES"))
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.Locales(LocaleList("es-ES"))) {
         MyScreen() // will be rendered with overridden locale
     }
 }
@@ -89,9 +90,7 @@ fun DeviceConfigurationOverrideLocalesSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideDarkModeSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.DarkMode(true)
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.DarkMode(true)) {
         isSystemInDarkTheme() // will be true
     }
 }
@@ -99,9 +98,7 @@ fun DeviceConfigurationOverrideDarkModeSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideFontWeightAdjustmentSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.FontWeightAdjustment(200)
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.FontWeightAdjustment(200)) {
         MyComponent() // will be rendered with adjusted font weight
     }
 }
@@ -110,15 +107,38 @@ fun DeviceConfigurationOverrideFontWeightAdjustmentSample() {
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideRoundScreenSample() {
-    DeviceConfigurationOverride(
-        DeviceConfigurationOverride.RoundScreen(true)
-    ) {
+    DeviceConfigurationOverride(DeviceConfigurationOverride.RoundScreen(true)) {
         LocalConfiguration.current.isScreenRound // will be true
     }
 }
 
+@Sampled
 @Composable
-private fun MyScreen() = Unit
+fun DeviceConfigurationOverrideWindowInsetsSample() {
+    DeviceConfigurationOverride(
+        DeviceConfigurationOverride.WindowInsets(
+            WindowInsetsCompat.Builder()
+                .setInsets(
+                    WindowInsetsCompat.Type.captionBar(),
+                    DpRect(0.dp, 64.dp, 0.dp, 0.dp).roundToAndroidXInsets(),
+                )
+                .setInsets(
+                    WindowInsetsCompat.Type.navigationBars(),
+                    DpRect(24.dp, 0.dp, 48.dp, 24.dp).roundToAndroidXInsets(),
+                )
+                .build()
+        )
+    ) {
+        Box(
+            Modifier.background(Color.Blue)
+                // Will apply 64dp padding on the top, 24dp padding on the sides, and 48dp on the
+                // bottom
+                .safeDrawingPadding()
+                .background(Color.Red)
+        )
+    }
+}
 
-@Composable
-private fun MyComponent() = Unit
+@Composable private fun MyScreen() = Unit
+
+@Composable private fun MyComponent() = Unit

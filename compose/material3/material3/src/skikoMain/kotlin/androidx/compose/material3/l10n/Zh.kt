@@ -33,6 +33,7 @@ internal fun Translations.zhCN() = mapOf(
     Strings.MenuCollapsed to "已收起",
     Strings.ToggleDropdownMenu to "展开/收起下拉菜单",
     Strings.SnackbarDismiss to "关闭",
+    Strings.SnackbarPaneTitle to "提醒",
     Strings.SearchBarSearch to "搜索",
     Strings.SuggestionsAvailable to "以下是搜索建议",
     Strings.DatePickerTitle to "选择日期",
@@ -85,6 +86,8 @@ internal fun Translations.zhCN() = mapOf(
     Strings.TimePickerHour to "小时",
     Strings.TimePickerMinuteTextField to "输入分钟",
     Strings.TimePickerHourTextField to "输入小时",
+    Strings.CloseRail to "关闭此栏",
+    Strings.WideNavigationRailPaneTitle to "侧边导航栏",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -101,6 +104,7 @@ internal fun Translations.zhHK() = mapOf(
     Strings.MenuCollapsed to "已收合",
     Strings.ToggleDropdownMenu to "切換下拉式選單",
     Strings.SnackbarDismiss to "關閉",
+    Strings.SnackbarPaneTitle to "警示",
     Strings.SearchBarSearch to "搜尋",
     Strings.SuggestionsAvailable to "建議如下",
     Strings.DatePickerTitle to "選取日期",
@@ -153,6 +157,8 @@ internal fun Translations.zhHK() = mapOf(
     Strings.TimePickerHour to "小時",
     Strings.TimePickerMinuteTextField to "分鐘",
     Strings.TimePickerHourTextField to "小時",
+    Strings.CloseRail to "閂咗個欄",
+    Strings.WideNavigationRailPaneTitle to "導覽欄",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -169,6 +175,7 @@ internal fun Translations.zhTW() = mapOf(
     Strings.MenuCollapsed to "已收合",
     Strings.ToggleDropdownMenu to "切換鈕下拉式選單",
     Strings.SnackbarDismiss to "關閉",
+    Strings.SnackbarPaneTitle to "快訊",
     Strings.SearchBarSearch to "搜尋",
     Strings.SuggestionsAvailable to "建議如下",
     Strings.DatePickerTitle to "選取日期",
@@ -221,4 +228,6 @@ internal fun Translations.zhTW() = mapOf(
     Strings.TimePickerHour to "小時",
     Strings.TimePickerMinuteTextField to "分鐘",
     Strings.TimePickerHourTextField to "小時",
+    Strings.CloseRail to "關閉邊欄",
+    Strings.WideNavigationRailPaneTitle to "導覽邊欄",
 )

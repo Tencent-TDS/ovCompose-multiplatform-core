@@ -28,4 +28,5 @@ internal fun Translations.gu() = mapOf(
     Strings.DefaultErrorMessage to "અમાન્ય ઇનપુટ",
     Strings.SliderRangeStart to "રેંજની શરૂઆત",
     Strings.SliderRangeEnd to "રેંજની સમાપ્તિ",
+    Strings.SnackbarPaneTitle to "અલર્ટ",
 )

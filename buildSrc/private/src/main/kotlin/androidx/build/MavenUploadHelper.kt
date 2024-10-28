@@ -231,7 +231,7 @@ private fun Project.configureComponentPublishing(
 }
 
 /**
- * Looks for a dependencies XML element within [pom] and sorts its contents.
+ * Looks for a dependencies XML element within [pom], sorts its contents and modify it by redirecting coordinates
  */
 internal fun modifyPomDependencies(
     pom: String,
@@ -253,7 +253,7 @@ internal fun modifyPomDependencies(
             val deps = element.elements()
             val modifiedDeps = deps
                 .map { modifyPomDependency(it, mavenCoordsToRedirecting) }
-                .toSortedSet(compareBy { it.stringValue }).toList()
+                .sortedBy { it.stringValue }
 
             // Content contains formatting nodes, so to avoid modifying those we replace
             // each element with the sorted element from its respective index. Note this
@@ -367,8 +367,12 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
+private val coreKmpLibraries = setOf(
+    ":core:core-bundle",
+    ":core:core-uri",
+)
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
-    if (project.path != ":core:core-bundle") return
+    if (project.path !in coreKmpLibraries) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {

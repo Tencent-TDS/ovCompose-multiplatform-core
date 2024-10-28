@@ -16,15 +16,20 @@
 
 package androidx.health.connect.client.impl
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
+import androidx.health.connect.client.impl.converters.datatype.RECORDS_CLASS_NAME_MAP
+import androidx.health.connect.client.impl.platform.aggregate.AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10
 import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_PREFIX
 import androidx.health.connect.client.readRecord
+import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -39,6 +44,8 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Mass
+import androidx.health.connect.client.units.grams
+import androidx.health.connect.client.units.millimetersOfMercury
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -52,18 +59,21 @@ import java.time.Period
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertThrows
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalFeatureAvailabilityApi::class)
 @RunWith(AndroidJUnit4::class)
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @MediumTest
-@TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-// Comment the SDK suppress to run on emulators lower than U.
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, codeName = "UpsideDownCake")
 class HealthConnectClientUpsideDownImplTest {
 
@@ -83,11 +93,10 @@ class HealthConnectClientUpsideDownImplTest {
                 context.packageName,
                 PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong())
             )
-            .requestedPermissions
+            .requestedPermissions!!
             .filter { it.startsWith(PERMISSION_PREFIX) }
             .toTypedArray()
 
-    // Grant every permission as deletion by id checks for every permission
     @get:Rule
     val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(*allHealthPermissions)
 
@@ -100,9 +109,39 @@ class HealthConnectClientUpsideDownImplTest {
 
     @After
     fun tearDown() = runTest {
-        healthConnectClient.deleteRecords(StepsRecord::class, TimeRangeFilter.none())
-        healthConnectClient.deleteRecords(HeartRateRecord::class, TimeRangeFilter.none())
-        healthConnectClient.deleteRecords(NutritionRecord::class, TimeRangeFilter.none())
+        for (recordType in RECORDS_CLASS_NAME_MAP.keys) {
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+        }
+    }
+
+    @Test
+    fun backgroundReads_ext13_isSupported() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13)
+
+        assertThat(
+                healthConnectClient.features.getFeatureStatus(
+                    HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND
+                )
+            )
+            .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_AVAILABLE)
+    }
+
+    @Test
+    fun allFeatures_belowUExt13_noneSupported() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) < 13)
+
+        val features =
+            listOf(
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
+                HealthConnectFeatures.FEATURE_HEALTH_DATA_HISTORIC_READ,
+                HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE,
+                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE
+            )
+
+        for (feature in features) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_UNAVAILABLE)
+        }
     }
 
     @Test
@@ -310,6 +349,7 @@ class HealthConnectClientUpsideDownImplTest {
         assertThat(readResponse.records[0].count).isEqualTo(5)
     }
 
+    @Ignore("b/314092270")
     @Test
     fun aggregateRecords() = runTest {
         healthConnectClient.insertRecords(
@@ -393,6 +433,95 @@ class HealthConnectClientUpsideDownImplTest {
         }
     }
 
+    // TODO(b/361297592): Remove once the aggregation bug is fixed
+    @Test
+    fun aggregateRecords_unsupportedMetrics_throwsUOE() = runTest {
+        for (metric in AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10) {
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregate(
+                        AggregateRequest(setOf(metric), TimeRangeFilter.none())
+                    )
+                }
+            }
+
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregateGroupByDuration(
+                        AggregateGroupByDurationRequest(
+                            setOf(metric),
+                            TimeRangeFilter.none(),
+                            Duration.ofDays(1)
+                        )
+                    )
+                }
+            }
+
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregateGroupByPeriod(
+                        AggregateGroupByPeriodRequest(
+                            setOf(metric),
+                            TimeRangeFilter.none(),
+                            Period.ofDays(1)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    @Ignore("b/326414908")
+    @Test
+    fun aggregateRecords_belowSdkExt10() = runTest {
+        assumeFalse(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)
+
+        healthConnectClient.insertRecords(
+            listOf(
+                NutritionRecord(
+                    startTime = START_TIME,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endTime = START_TIME + 1.minutes,
+                    endZoneOffset = ZoneOffset.UTC,
+                    transFat = 0.5.grams
+                ),
+                BloodPressureRecord(
+                    time = START_TIME,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 120.millimetersOfMercury,
+                    diastolic = 80.millimetersOfMercury
+                )
+            )
+        )
+
+        val aggregateResponse =
+            healthConnectClient.aggregate(
+                AggregateRequest(
+                    setOf(
+                        BloodPressureRecord.DIASTOLIC_AVG,
+                        BloodPressureRecord.DIASTOLIC_MAX,
+                        BloodPressureRecord.DIASTOLIC_MIN,
+                        BloodPressureRecord.SYSTOLIC_AVG,
+                        BloodPressureRecord.SYSTOLIC_MAX,
+                        BloodPressureRecord.SYSTOLIC_MIN,
+                        NutritionRecord.TRANS_FAT_TOTAL
+                    ),
+                    TimeRangeFilter.none()
+                )
+            )
+
+        assertEquals(
+            aggregateResponse[NutritionRecord.TRANS_FAT_TOTAL] to 0.5.grams,
+            aggregateResponse[BloodPressureRecord.SYSTOLIC_AVG] to 120.millimetersOfMercury,
+            aggregateResponse[BloodPressureRecord.SYSTOLIC_MAX] to 120.millimetersOfMercury,
+            aggregateResponse[BloodPressureRecord.SYSTOLIC_MIN] to 120.millimetersOfMercury,
+            aggregateResponse[BloodPressureRecord.DIASTOLIC_AVG] to 80.millimetersOfMercury,
+            aggregateResponse[BloodPressureRecord.DIASTOLIC_MAX] to 80.millimetersOfMercury,
+            aggregateResponse[BloodPressureRecord.DIASTOLIC_MIN] to 80.millimetersOfMercury,
+        )
+    }
+
+    @Ignore("b/314092270")
     @Test
     fun aggregateRecordsGroupByDuration() = runTest {
         healthConnectClient.insertRecords(
@@ -438,6 +567,7 @@ class HealthConnectClientUpsideDownImplTest {
         }
     }
 
+    @Ignore("b/314092270")
     @Test
     fun aggregateRecordsGroupByPeriod() = runTest {
         healthConnectClient.insertRecords(
@@ -485,6 +615,7 @@ class HealthConnectClientUpsideDownImplTest {
         }
     }
 
+    @Ignore("b/314092270")
     @Test
     fun aggregateRecordsGroupByPeriod_monthly() = runTest {
         healthConnectClient.insertRecords(
@@ -541,6 +672,7 @@ class HealthConnectClientUpsideDownImplTest {
         }
     }
 
+    @Ignore("b/314092270")
     @Test
     fun aggregateRecordsGroupByPeriod_monthly_noData() = runTest {
         val queryStartTime = LocalDateTime.ofInstant(START_TIME - 40.days, ZONE_ID)
@@ -703,6 +835,10 @@ class HealthConnectClientUpsideDownImplTest {
     fun getGrantedPermissions() = runTest {
         assertThat(healthConnectClient.permissionController.getGrantedPermissions())
             .containsExactlyElementsIn(allHealthPermissions)
+    }
+
+    private fun <A, E> assertEquals(vararg assertions: Pair<A, E>) {
+        assertions.forEach { (actual, expected) -> assertThat(actual).isEqualTo(expected) }
     }
 
     private val Int.seconds: Duration

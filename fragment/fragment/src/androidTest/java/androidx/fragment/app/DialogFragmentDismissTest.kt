@@ -19,28 +19,25 @@ package androidx.fragment.app
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.DialogInterface
-import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import androidx.fragment.app.test.EmptyFragmentTestActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.filters.LargeTest
+import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import leakcanary.DetectLeaksAfterTestSuccess
-import leakcanary.SkipLeakDetection
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/**
- * Class representing the different ways of dismissing a [DialogFragment]
- */
+/** Class representing the different ways of dismissing a [DialogFragment] */
 sealed class Operation {
     abstract fun run(dialogFragment: DialogFragment)
 
@@ -79,114 +76,94 @@ object FragmentDismissNow : Operation() {
 
 @LargeTest
 @RunWith(Parameterized::class)
-class DialogFragmentDismissTest(
-    private val operation: Operation,
-    private val mainThread: Boolean
-) {
+class DialogFragmentDismissTest(private val operation: Operation, private val mainThread: Boolean) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "operation={0}, mainThread={1}")
-        fun data() = mutableListOf<Array<Any>>().apply {
-            arrayOf(
-                ActivityFinish,
-                FragmentDismiss,
-                DialogDismiss,
-                DialogCancel
-            ).forEach { operation ->
-                // Run the operation on the main thread
-                add(arrayOf(operation, true))
-                // Run the operation off the main thread
-                add(arrayOf(operation, false))
+        fun data() =
+            mutableListOf<Array<Any>>().apply {
+                arrayOf(ActivityFinish, FragmentDismiss, DialogDismiss, DialogCancel).forEach {
+                    operation ->
+                    // Run the operation on the main thread
+                    add(arrayOf(operation, true))
+                    // Run the operation off the main thread
+                    add(arrayOf(operation, false))
+                }
+                // dismissNow can only be run on the main thread
+                add(arrayOf(FragmentDismissNow, true))
             }
-            // dismissNow can only be run on the main thread
-            add(arrayOf(FragmentDismissNow, true))
-        }
     }
 
-    @Suppress("DEPRECATION")
-    val activityTestRule =
-        androidx.test.rule.ActivityTestRule(EmptyFragmentTestActivity::class.java)
+    @get:Rule
+    val activityScenarioTestRule = ActivityScenarioRule(EmptyFragmentTestActivity::class.java)
 
     // Detect leaks BEFORE and AFTER activity is destroyed
     @get:Rule
-    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess())
-        .around(activityTestRule)
+    val ruleChain: RuleChain =
+        RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(activityScenarioTestRule)
 
-    @SkipLeakDetection("There is a platform ViewRootImpl leak this is triggered on this test")
     @Test
-    @Ignore("b/308684873")
     fun testDialogFragmentDismiss() {
-        // Due to b/157955883, we need to early return if API == 30.
-        // Otherwise, this test flakes.
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.R) {
-            return
-        }
         val fragment = TestDialogFragment()
-        activityTestRule.runOnUiThread {
-            fragment.showNow(activityTestRule.activity.supportFragmentManager, null)
-        }
+        activityScenarioTestRule.withActivity { fragment.showNow(supportFragmentManager, null) }
 
-        assertWithMessage("Dialog was not being shown")
-            .that(fragment.dialog?.isShowing)
-            .isTrue()
+        assertWithMessage("Dialog was not being shown").that(fragment.dialog?.isShowing).isTrue()
 
         var dialogIsNonNull = false
         var isShowing = false
         var onDismissCalledCount = 0
-        val countDownLatch = CountDownLatch(3)
-        activityTestRule.runOnUiThread {
+        val onStopCountDownLatch = CountDownLatch(1)
+        val onDestroyCountDownLatch = CountDownLatch(1)
+        val dismissCountDownLatch = CountDownLatch(1)
+        activityScenarioTestRule.withActivity {
             fragment.lifecycle.addObserver(
                 LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_STOP) {
                         val dialog = fragment.dialog
                         dialogIsNonNull = dialog != null
                         isShowing = dialog != null && dialog.isShowing
-                        countDownLatch.countDown()
+                        onStopCountDownLatch.countDown()
                     } else if (event == Lifecycle.Event.ON_DESTROY) {
                         onDismissCalledCount = fragment.onDismissCalledCount
-                        countDownLatch.countDown()
+                        onDestroyCountDownLatch.countDown()
                     }
                 }
             )
         }
         var dismissOnMainThread = false
-        var dismissCalled = false
         fragment.dismissCallback = {
-            dismissCalled = true
             dismissOnMainThread = Looper.myLooper() == Looper.getMainLooper()
-            countDownLatch.countDown()
+            dismissCountDownLatch.countDown()
         }
 
         if (mainThread) {
-            activityTestRule.runOnUiThread {
-                operation.run(fragment)
-            }
+            activityScenarioTestRule.withActivity { operation.run(fragment) }
         } else {
             operation.run(fragment)
         }
 
+        assertWithMessage("Timed out waiting for ON_STOP")
+            .that(onStopCountDownLatch.await(1, TimeUnit.SECONDS))
+            .isTrue()
+        assertWithMessage("Timed out waiting for onDismiss callback")
+            .that(dismissCountDownLatch.await(2, TimeUnit.SECONDS))
+            .isTrue()
         assertWithMessage("Timed out waiting for ON_DESTROY")
-            .that(countDownLatch.await(5, TimeUnit.SECONDS))
+            .that(onDestroyCountDownLatch.await(2, TimeUnit.SECONDS))
             .isTrue()
 
-        assertWithMessage("Dialog should be dismissed")
-            .that(dismissCalled)
-            .isTrue()
         assertWithMessage("Dismiss should always be called on the main thread")
             .that(dismissOnMainThread)
             .isTrue()
         assertWithMessage("onDismiss() should be called before onDestroy()")
             .that(onDismissCalledCount)
             .isEqualTo(1)
-        assertWithMessage("Dialog should not be null in onStop()")
-            .that(dialogIsNonNull)
-            .isTrue()
+        assertWithMessage("Dialog should not be null in onStop()").that(dialogIsNonNull).isTrue()
 
         if (operation is ActivityFinish) {
             assertWithMessage(
-                "Dialog should still be showing in onStop() during " +
-                    "the normal lifecycle"
-            )
+                    "Dialog should still be showing in onStop() during the normal lifecycle"
+                )
                 .that(isShowing)
                 .isTrue()
         } else {
@@ -203,24 +180,20 @@ class DialogFragmentDismissTest(
     @Test
     fun testDismissDestroyedDialog() {
         val dialogFragment = TestDialogFragment()
-        val fm = activityTestRule.activity.supportFragmentManager
+        val fm = activityScenarioTestRule.withActivity { supportFragmentManager }
 
-        activityTestRule.runOnUiThread {
-            fm.beginTransaction()
-                .add(dialogFragment, null)
-                .commitNow()
+        activityScenarioTestRule.withActivity {
+            fm.beginTransaction().add(dialogFragment, null).commitNow()
         }
 
         val dialog = dialogFragment.requireDialog()
 
-        activityTestRule.runOnUiThread {
+        activityScenarioTestRule.withActivity {
             dialog.dismiss()
-            fm.beginTransaction()
-                .remove(dialogFragment)
-                .commitNow()
+            fm.beginTransaction().remove(dialogFragment).commitNow()
         }
 
-        activityTestRule.runOnUiThread {
+        activityScenarioTestRule.withActivity {
             assertWithMessage("onDismiss should only have been called once")
                 .that(dialogFragment.onDismissCalledCount)
                 .isEqualTo(1)

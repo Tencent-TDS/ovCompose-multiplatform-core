@@ -28,4 +28,5 @@ internal fun Translations.ms() = mapOf(
     Strings.DefaultErrorMessage to "Input tidak sah",
     Strings.SliderRangeStart to "Permulaan julat",
     Strings.SliderRangeEnd to "Penghujung julat",
+    Strings.SnackbarPaneTitle to "Makluman",
 )

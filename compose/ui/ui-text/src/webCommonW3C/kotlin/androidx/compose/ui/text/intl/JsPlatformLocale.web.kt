@@ -68,6 +68,4 @@ actual external class PlatformLocale {
 internal fun parseLanguageTagToIntlLocale(languageTag: String): PlatformLocale =
     js("new Intl.Locale(languageTag)")
 
-internal expect fun userPreferredLanguages(): List<String>
-
 private fun String.toIntlLocale(): PlatformLocale = parseLanguageTagToIntlLocale(this)

@@ -54,49 +54,68 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
 
     private final GlobalSearchClient mGmsClient;
     private final Features mFeatures;
+    private final Executor mExecutor;
+
+    private boolean mIsClosed = false;
 
     GlobalSearchSessionImpl(
             @NonNull GlobalSearchClient gmsClient,
-            @NonNull Features features) {
+            @NonNull Features features,
+            @NonNull Executor executor) {
         mGmsClient = Preconditions.checkNotNull(gmsClient);
         mFeatures = Preconditions.checkNotNull(features);
+        mExecutor = Preconditions.checkNotNull(executor);
     }
     @NonNull
     @Override
     public ListenableFuture<AppSearchBatchResult<String, GenericDocument>> getByDocumentIdAsync(
             @NonNull String packageName, @NonNull String databaseName,
             @NonNull GetByDocumentIdRequest request) {
+        Preconditions.checkNotNull(packageName);
+        Preconditions.checkNotNull(databaseName);
+        Preconditions.checkNotNull(request);
+        Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
         return AppSearchTaskFutures.toListenableFuture(
                 mGmsClient.getByDocumentId(packageName, databaseName,
                         RequestToGmsConverter.toGmsGetByDocumentIdRequest(request)),
                 result -> AppSearchResultToGmsConverter.gmsAppSearchBatchResultToJetpack(
-                        result, GenericDocumentToGmsConverter::toJetpackGenericDocument));
+                        result, GenericDocumentToGmsConverter::toJetpackGenericDocument),
+                mExecutor);
     }
 
     @NonNull
     @Override
     public SearchResults search(@NonNull String queryExpression, @NonNull SearchSpec searchSpec) {
+        Preconditions.checkNotNull(queryExpression);
+        Preconditions.checkNotNull(searchSpec);
+        Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
         com.google.android.gms.appsearch.SearchResults searchResults =
                 mGmsClient.search(queryExpression,
                         SearchSpecToGmsConverter.toGmsSearchSpec(searchSpec));
-        return new SearchResultsImpl(searchResults, searchSpec);
+        return new SearchResultsImpl(searchResults, mExecutor);
     }
 
     @NonNull
     @Override
     public ListenableFuture<Void> reportSystemUsageAsync(
             @NonNull ReportSystemUsageRequest request) {
+        Preconditions.checkNotNull(request);
+        Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
         Task<Void> flushTask = Tasks.forResult(null);
-        return AppSearchTaskFutures.toListenableFuture(flushTask, /* valueMapper= */ i-> i);
+        return AppSearchTaskFutures.toListenableFuture(flushTask, /* valueMapper= */ i-> i,
+                mExecutor);
     }
 
     @NonNull
     @Override
     public ListenableFuture<GetSchemaResponse> getSchemaAsync(@NonNull String packageName,
             @NonNull String databaseName) {
+        Preconditions.checkNotNull(packageName);
+        Preconditions.checkNotNull(databaseName);
+        Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
         return AppSearchTaskFutures.toListenableFuture(
                 mGmsClient.getSchema(packageName, databaseName),
-                GetSchemaResponseToGmsConverter::toJetpackGetSchemaResponse);
+                GetSchemaResponseToGmsConverter::toJetpackGetSchemaResponse, mExecutor);
     }
 
     @NonNull
@@ -125,6 +144,6 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
 
     @Override
     public void close() {
-        mGmsClient.close();
+        mIsClosed = true;
     }
 }

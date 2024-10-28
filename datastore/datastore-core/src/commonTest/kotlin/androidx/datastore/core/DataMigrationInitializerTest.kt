@@ -33,36 +33,35 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 
 @OptIn(ExperimentalCoroutinesApi::class)
-abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
-    (private val testIO: TestIO<F, IOE>) {
+abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>(
+    private val testIO: TestIO<F, IOE>
+) {
 
     private lateinit var storage: Storage<Byte>
     private lateinit var testScope: TestScope
     private lateinit var dataStoreScope: TestScope
+    protected lateinit var testFile: F
 
     @BeforeTest
     fun setUp() {
         testScope = TestScope(UnconfinedTestDispatcher())
         dataStoreScope = TestScope(UnconfinedTestDispatcher())
+        testFile = testIO.newTempFile()
     }
 
     fun doTest(test: suspend TestScope.() -> Unit) {
-        testScope.runTest(timeout = 10000.milliseconds) {
-            test(testScope)
-        }
+        testScope.runTest(timeout = 10000.milliseconds) { test(testScope) }
     }
 
     @Test
     fun testMigration() = doTest {
         val migrateTo100 = TestingDataMigration(migration = { 100 })
 
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(
-                    listOf(migrateTo100)
-                )
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(migrateTo100)))
             )
-        )
 
         assertThat(store.data.first()).isEqualTo(100)
     }
@@ -72,13 +71,13 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
         val migratePlus2 = TestingDataMigration(migration = { it.inc().inc() })
         val migratePlus3 = TestingDataMigration(migration = { it.inc().inc().inc() })
 
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(
-                    listOf(migratePlus2, migratePlus3)
-                )
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(
+                        DataMigrationInitializer.getInitializer(listOf(migratePlus2, migratePlus3))
+                    )
             )
-        )
 
         assertThat(store.data.first()).isEqualTo(5)
     }
@@ -88,16 +87,17 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
         val continueMigration = CompletableDeferred<Byte>()
         val cleanUpFinished = CompletableDeferred<Unit>()
 
-        val noOpMigration = TestingDataMigration(
-            migration = { continueMigration.await() },
-            cleanUpFunction = { cleanUpFinished.complete(Unit) }
-        )
-
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(listOf(noOpMigration))
+        val noOpMigration =
+            TestingDataMigration(
+                migration = { continueMigration.await() },
+                cleanUpFunction = { cleanUpFinished.complete(Unit) }
             )
-        )
+
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(noOpMigration)))
+            )
 
         val getData = async { store.data.first() }
 
@@ -112,16 +112,17 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
         val continueMigration = CompletableDeferred<Byte>()
         val cleanUpFinished = CompletableDeferred<Unit>()
 
-        val noOpMigration = TestingDataMigration(
-            migration = { continueMigration.await() },
-            cleanUpFunction = { cleanUpFinished.complete(Unit) }
-        )
-
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(listOf(noOpMigration))
+        val noOpMigration =
+            TestingDataMigration(
+                migration = { continueMigration.await() },
+                cleanUpFunction = { cleanUpFinished.complete(Unit) }
             )
-        )
+
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(noOpMigration)))
+            )
 
         val getData = async { assertThrows(testIO.ioExceptionClass()) { store.data.first() } }
 
@@ -137,21 +138,27 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
         val continueMigration = CompletableDeferred<Byte>()
         val cleanUpFinished = CompletableDeferred<Unit>()
 
-        val noOpMigration = TestingDataMigration(
-            migration = { continueMigration.await() },
-            cleanUpFunction = { cleanUpFinished.complete(Unit) }
-        )
+        val noOpMigration =
+            TestingDataMigration(
+                migration = { continueMigration.await() },
+                cleanUpFunction = { cleanUpFinished.complete(Unit) }
+            )
 
-        val storage = testIO.getStorage(
-            TestingSerializerConfig(failingWrite = true),
-            { createSingleProcessCoordinator() }
-        ) { testIO.newTempFile() }
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(listOf(noOpMigration))
-            ),
-            storage = storage,
-        )
+        val testFile = testIO.newTempFile()
+
+        val storage =
+            testIO.getStorage(
+                TestingSerializerConfig(failingWrite = true),
+                { createSingleProcessCoordinator(testFile.path()) }
+            ) {
+                testFile
+            }
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(noOpMigration))),
+                storage = storage,
+            )
 
         val getData = async { assertThrows(testIO.ioExceptionClass()) { store.data.first() } }
 
@@ -164,17 +171,14 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
 
     @Test
     fun testCleanUpErrorPropagates() = doTest {
-        val cleanUpFailingMigration = TestingDataMigration(
-            cleanUpFunction = {
-                throw IOException("Clean up failure")
-            }
-        )
+        val cleanUpFailingMigration =
+            TestingDataMigration(cleanUpFunction = { throw IOException("Clean up failure") })
 
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(listOf(cleanUpFailingMigration))
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(cleanUpFailingMigration)))
             )
-        )
 
         assertThrows<IOException> { store.data.first() }
     }
@@ -183,33 +187,31 @@ abstract class DataMigrationInitializerTest<F : TestFile<F>, IOE : Throwable>
     fun testShouldMigrateUsed() = doTest {
         val neverRunMigration = TestingDataMigration(shouldMigrate = false, migration = { 99 })
 
-        val store = newDataStore(
-            initTasksList = listOf(
-                DataMigrationInitializer.getInitializer(listOf(neverRunMigration))
+        val store =
+            newDataStore(
+                initTasksList =
+                    listOf(DataMigrationInitializer.getInitializer(listOf(neverRunMigration)))
             )
-        )
 
         assertThat(store.data.first()).isEqualTo(0)
     }
 
     private fun newDataStore(
         initTasksList: List<suspend (api: InitializerApi<Byte>) -> Unit> = listOf(),
-        storage: Storage<Byte> = testIO.getStorage(
-            TestingSerializerConfig(),
-            { createSingleProcessCoordinator() }
-        )
+        storage: Storage<Byte> =
+            testIO.getStorage(
+                TestingSerializerConfig(),
+                { createSingleProcessCoordinator(testFile.path()) },
+                { testFile }
+            )
     ): DataStore<Byte> {
-        return DataStoreImpl(
-            storage,
-            scope = dataStoreScope,
-            initTasksList = initTasksList
-        )
+        return DataStoreImpl(storage, scope = dataStoreScope, initTasksList = initTasksList)
     }
 
     class TestingDataMigration(
         private val shouldMigrate: Boolean = true,
         private val migration: suspend (byte: Byte) -> Byte = { 0 },
-        private val cleanUpFunction: suspend () -> Unit = { }
+        private val cleanUpFunction: suspend () -> Unit = {}
     ) : DataMigration<Byte> {
         override suspend fun shouldMigrate(currentData: Byte): Boolean = shouldMigrate
 

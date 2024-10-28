@@ -79,7 +79,14 @@ public abstract interface class androidx/lifecycle/ViewModelStoreOwner {
 }
 
 public abstract class androidx/lifecycle/viewmodel/CreationExtras {
+	public static final field Companion Landroidx/lifecycle/viewmodel/CreationExtras$Companion;
+	public fun equals (Ljava/lang/Object;)Z
 	public abstract fun get (Landroidx/lifecycle/viewmodel/CreationExtras$Key;)Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class androidx/lifecycle/viewmodel/CreationExtras$Companion {
 }
 
 public final class androidx/lifecycle/viewmodel/CreationExtras$Empty : androidx/lifecycle/viewmodel/CreationExtras {
@@ -88,6 +95,12 @@ public final class androidx/lifecycle/viewmodel/CreationExtras$Empty : androidx/
 }
 
 public abstract interface class androidx/lifecycle/viewmodel/CreationExtras$Key {
+}
+
+public final class androidx/lifecycle/viewmodel/CreationExtrasKt {
+	public static final fun contains (Landroidx/lifecycle/viewmodel/CreationExtras;Landroidx/lifecycle/viewmodel/CreationExtras$Key;)Z
+	public static final fun plus (Landroidx/lifecycle/viewmodel/CreationExtras;Landroidx/lifecycle/viewmodel/CreationExtras;)Landroidx/lifecycle/viewmodel/MutableCreationExtras;
+	public static final fun plusAssign (Landroidx/lifecycle/viewmodel/MutableCreationExtras;Landroidx/lifecycle/viewmodel/CreationExtras;)V
 }
 
 public final class androidx/lifecycle/viewmodel/InitializerViewModelFactoryBuilder {

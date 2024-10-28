@@ -28,6 +28,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricCameraPipeTestRunner::class)
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 internal class RequestTest {
+    private val request =
+        Request(
+            listOf(StreamId(1)),
+            parameters = mapOf(CaptureRequest.EDGE_MODE to CaptureRequest.EDGE_MODE_HIGH_QUALITY),
+            extras = mapOf(FakeMetadata.TEST_KEY to 42)
+        )
 
     @Test
     fun requestHasDefaults() {
@@ -42,15 +48,28 @@ internal class RequestTest {
     }
 
     @Test
-    fun canReadCaptureParameters() {
-        val request =
-            Request(
-                listOf(StreamId(1)),
-                parameters =
-                mapOf(CaptureRequest.EDGE_MODE to CaptureRequest.EDGE_MODE_HIGH_QUALITY),
-                extras = mapOf(FakeMetadata.TEST_KEY to 42)
-            )
+    fun requestsWithIdenticalParametersAreNotEqual() {
+        val request1 = Request(listOf(StreamId(1)))
+        val request2 = Request(listOf(StreamId(1)))
 
+        assertThat(request1).isNotSameInstanceAs(request2)
+        assertThat(request1).isNotEqualTo(request2)
+    }
+
+    @Test
+    fun requestHasNiceLoggingString() {
+        val request1 = Request(listOf(StreamId(1)))
+
+        assertThat("$request1").contains("1")
+        assertThat("$request1").contains("Request")
+
+        assertThat("$request").contains("42")
+        assertThat("$request").contains("parameters")
+        assertThat("$request").contains("extras")
+    }
+
+    @Test
+    fun canReadCaptureParameters() {
         // Check with a valid test key
         assertThat(request[FakeMetadata.TEST_KEY]).isEqualTo(42)
         assertThat(request.getOrDefault(FakeMetadata.TEST_KEY, default = 24)).isEqualTo(42)
@@ -68,10 +87,11 @@ internal class RequestTest {
         // Check with an invalid test key
         assertThat(request.get(CaptureRequest.CONTROL_AE_MODE)).isNull()
         assertThat(
-            request.getOrDefault(
-                CaptureRequest.CONTROL_AE_MODE, default = CaptureRequest.CONTROL_AE_MODE_ON
+                request.getOrDefault(
+                    CaptureRequest.CONTROL_AE_MODE,
+                    default = CaptureRequest.CONTROL_AE_MODE_ON
+                )
             )
-        )
             .isEqualTo(CaptureRequest.CONTROL_AE_MODE_ON)
     }
 }

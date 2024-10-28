@@ -248,7 +248,7 @@ public actual open class NavDestination actual constructor(
      * @see NavController.navigate
      * @see NavDestination.hasDeepLink
      */
-    public open fun hasDeepLink(deepLink: Uri): Boolean {
+    public actual open fun hasDeepLink(deepLink: Uri): Boolean {
         return hasDeepLink(NavDeepLinkRequest(deepLink, null, null))
     }
 
@@ -265,7 +265,7 @@ public actual open class NavDestination actual constructor(
      * @see NavDestination.addDeepLink
      * @see NavController.navigate
      */
-    public open fun hasDeepLink(deepLinkRequest: NavDeepLinkRequest): Boolean {
+    public actual open fun hasDeepLink(deepLinkRequest: NavDeepLinkRequest): Boolean {
         return matchDeepLink(deepLinkRequest) != null
     }
 
@@ -376,7 +376,7 @@ public actual open class NavDestination actual constructor(
      *   from the Uri, or null if no match was found.
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public open fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch? {
+    public actual open fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch? {
         if (deepLinks.isEmpty()) {
             return null
         }

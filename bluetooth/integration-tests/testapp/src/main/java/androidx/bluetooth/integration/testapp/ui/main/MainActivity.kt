@@ -47,20 +47,19 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "MainActivity"
     }
 
-    private val bluetoothStateBroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
-                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0)
-                isBluetoothEnabled = state == BluetoothAdapter.STATE_ON
+    private val bluetoothStateBroadcastReceiver =
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, 0)
+                    isBluetoothEnabled = state == BluetoothAdapter.STATE_ON
+                }
             }
         }
-    }
 
     private val requestBluetoothPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
-            perms.entries.forEach { permission ->
-                Log.d(TAG, "${permission.key} = ${permission.value}")
-            }
+            perms.entries.forEach { (key, value) -> Log.d(TAG, "$key = $value") }
         }
 
     private var isBluetoothEnabled: Boolean = false
@@ -83,24 +82,28 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
 
-        val appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.navigation_scanner,
-                R.id.navigation_connections,
-                R.id.navigation_advertiser,
-                R.id.navigation_gatt_server
+        val appBarConfiguration =
+            AppBarConfiguration(
+                setOf(
+                    R.id.navigation_scanner,
+                    R.id.navigation_connections,
+                    R.id.navigation_advertiser,
+                    R.id.navigation_gatt_server
+                )
             )
-        )
         setupActionBarWithNavController(navController, appBarConfiguration)
         binding.bottomNavigationView.setupWithNavController(navController)
 
-        val bluetoothManager = getSystemService(BluetoothManager::class.java)
-        isBluetoothEnabled = bluetoothManager.adapter.isEnabled
+        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
+        isBluetoothEnabled = bluetoothManager?.adapter?.isEnabled ?: false
 
         binding.buttonEnable.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(
-                    this, Manifest.permission.BLUETOOTH_CONNECT
-                ) == PackageManager.PERMISSION_GRANTED
+            if (
+                Build.VERSION.SDK_INT < 31 ||
+                    (ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED)
             ) {
                 startActivity(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             }
@@ -124,16 +127,19 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
 
         requestBluetoothPermissions.launch(
-            if (Build.VERSION.SDK_INT >= 31) arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN
-            ) else arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
+            if (Build.VERSION.SDK_INT >= 31)
+                arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_SCAN
+                )
+            else
+                arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
         )
     }
 

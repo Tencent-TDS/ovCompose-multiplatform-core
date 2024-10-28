@@ -217,6 +217,7 @@ class ModalBottomSheetTest {
                     latch.countDown()
                 }
 
+                @Deprecated("deprecated")
                 override fun onLowMemory() {
                     // NO-OP
                 }
@@ -273,6 +274,7 @@ class ModalBottomSheetTest {
                     latch.countDown()
                 }
 
+                @Deprecated("deprecated")
                 override fun onLowMemory() {
                     // NO-OP
                 }
@@ -1146,6 +1148,32 @@ class ModalBottomSheetTest {
             // Ensure that sheet A11y info is read before scrim view.
             assertThat(sheetViewANI?.extras?.traversalBefore).isAtMost(scrimViewId)
         }
+    }
+
+    @Test
+    fun modalBottomSheet_testDragHandleClick() {
+        lateinit var sheetState: SheetState
+        rule.setContent {
+            sheetState = rememberModalBottomSheetState()
+            ModalBottomSheet(
+                onDismissRequest = {},
+                sheetState = sheetState,
+                dragHandle = { Box(Modifier.testTag(dragHandleTag).size(dragHandleSize)) },
+            ) {
+                Box(Modifier.fillMaxSize().testTag(sheetTag))
+            }
+        }
+
+        rule.waitForIdle()
+        assertThat(sheetState.currentValue).isEqualTo(SheetValue.PartiallyExpanded)
+
+        rule.onNodeWithTag(dragHandleTag, useUnmergedTree = true).performClick()
+        rule.waitForIdle()
+        assertThat(sheetState.currentValue).isEqualTo(SheetValue.Expanded)
+
+        rule.onNodeWithTag(dragHandleTag, useUnmergedTree = true).performClick()
+        rule.waitForIdle()
+        assertThat(sheetState.currentValue).isEqualTo(SheetValue.Hidden)
     }
 
     private val Bundle.traversalBefore: Int

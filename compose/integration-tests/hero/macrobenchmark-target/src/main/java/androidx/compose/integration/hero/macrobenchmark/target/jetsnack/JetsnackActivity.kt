@@ -19,18 +19,14 @@ package androidx.compose.integration.hero.macrobenchmark.target.jetsnack
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.integration.hero.implementation.jetsnack.Feed
-import androidx.compose.integration.hero.implementation.jetsnack.theme.JetsnackTheme
+import androidx.compose.integration.hero.implementation.jetsnack.compose.Feed
+import androidx.compose.integration.hero.implementation.jetsnack.compose.theme.JetsnackTheme
 import androidx.compose.integration.hero.macrobenchmark.target.launchIdlenessTracking
 
 class JetsnackActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            JetsnackTheme {
-                Feed(onSnackClick = { /* Do Nothing */ })
-            }
-        }
+        setContent { JetsnackTheme { Feed(onSnackClick = { /* Do Nothing */ }) } }
 
         launchIdlenessTracking()
     }

@@ -16,8 +16,9 @@
 
 package androidx.compose.foundation.text.modifiers
 
+import androidx.compose.foundation.internal.requirePreconditionNotNull
+import androidx.compose.foundation.text.AutoSize
 import androidx.compose.foundation.text.DefaultMinLines
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
@@ -58,29 +59,32 @@ internal class SelectableTextAnnotatedStringNode(
     onPlaceholderLayout: ((List<Rect?>) -> Unit)? = null,
     private var selectionController: SelectionController? = null,
     overrideColor: ColorProducer? = null,
+    autoSize: AutoSize? = null,
     private var onShowTranslation: ((TextAnnotatedStringNode.TextSubstitutionValue) -> Unit)? = null
 ) : DelegatingNode(), LayoutModifierNode, DrawModifierNode, GlobalPositionAwareModifierNode {
 
-    private val delegate = delegate(
-        TextAnnotatedStringNode(
-            text = text,
-            style = style,
-            fontFamilyResolver = fontFamilyResolver,
-            onTextLayout = onTextLayout,
-            overflow = overflow,
-            softWrap = softWrap,
-            maxLines = maxLines,
-            minLines = minLines,
-            placeholders = placeholders,
-            onPlaceholderLayout = onPlaceholderLayout,
-            selectionController = selectionController,
-            overrideColor = overrideColor,
-            onShowTranslation = onShowTranslation
+    private val delegate =
+        delegate(
+            TextAnnotatedStringNode(
+                text = text,
+                style = style,
+                fontFamilyResolver = fontFamilyResolver,
+                onTextLayout = onTextLayout,
+                overflow = overflow,
+                softWrap = softWrap,
+                maxLines = maxLines,
+                minLines = minLines,
+                placeholders = placeholders,
+                onPlaceholderLayout = onPlaceholderLayout,
+                selectionController = selectionController,
+                overrideColor = overrideColor,
+                autoSize = autoSize,
+                onShowTranslation = onShowTranslation
+            )
         )
-    )
 
     init {
-        requireNotNull(selectionController) {
+        requirePreconditionNotNull(selectionController) {
             "Do not use SelectionCapableStaticTextModifier unless selectionController != null"
         }
     }
@@ -128,28 +132,30 @@ internal class SelectableTextAnnotatedStringNode(
         onTextLayout: ((TextLayoutResult) -> Unit)?,
         onPlaceholderLayout: ((List<Rect?>) -> Unit)?,
         selectionController: SelectionController?,
-        color: ColorProducer?
+        color: ColorProducer?,
+        autoSize: AutoSize?
     ) {
         delegate.doInvalidations(
             drawChanged = delegate.updateDraw(color, style),
-            textChanged = delegate.updateText(
-                text = text
-            ),
-            layoutChanged = delegate.updateLayoutRelatedArgs(
-                style = style,
-                placeholders = placeholders,
-                minLines = minLines,
-                maxLines = maxLines,
-                softWrap = softWrap,
-                fontFamilyResolver = fontFamilyResolver,
-                overflow = overflow
-            ),
-            callbacksChanged = delegate.updateCallbacks(
-                onTextLayout = onTextLayout,
-                onPlaceholderLayout = onPlaceholderLayout,
-                selectionController = selectionController,
-                onShowTranslation = onShowTranslation
-            ),
+            textChanged = delegate.updateText(text = text),
+            layoutChanged =
+                delegate.updateLayoutRelatedArgs(
+                    style = style,
+                    placeholders = placeholders,
+                    minLines = minLines,
+                    maxLines = maxLines,
+                    softWrap = softWrap,
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = overflow,
+                    autoSize = autoSize
+                ),
+            callbacksChanged =
+                delegate.updateCallbacks(
+                    onTextLayout = onTextLayout,
+                    onPlaceholderLayout = onPlaceholderLayout,
+                    selectionController = selectionController,
+                    onShowTranslation = onShowTranslation
+                ),
         )
         this.selectionController = selectionController
         // we always relayout when we're selectable

@@ -16,19 +16,17 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.synchronized
-import androidx.compose.ui.createSynchronizedObject
+import kotlin.concurrent.Volatile
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
-import kotlin.concurrent.Volatile
-import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.InternalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Runnable
+import kotlinx.coroutines.launch
 
 /**
  * Dispatcher with the ability to immediately perform (flush) all pending tasks.

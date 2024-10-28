@@ -33,6 +33,7 @@ internal fun Translations.nl() = mapOf(
     Strings.MenuCollapsed to "Samengevouwen",
     Strings.ToggleDropdownMenu to "Dropdownmenu aan-/uitzetten",
     Strings.SnackbarDismiss to "Sluiten",
+    Strings.SnackbarPaneTitle to "Melding",
     Strings.SearchBarSearch to "Zoeken",
     Strings.SuggestionsAvailable to "Suggesties hieronder",
     Strings.DatePickerTitle to "Datum selecteren",
@@ -85,4 +86,6 @@ internal fun Translations.nl() = mapOf(
     Strings.TimePickerHour to "Uur",
     Strings.TimePickerMinuteTextField to "voor minuten",
     Strings.TimePickerHourTextField to "voor uur",
+    Strings.CloseRail to "Rail sluiten",
+    Strings.WideNavigationRailPaneTitle to "Navigatierail",
 )

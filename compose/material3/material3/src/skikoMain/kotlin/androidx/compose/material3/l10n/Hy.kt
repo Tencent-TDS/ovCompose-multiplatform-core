@@ -33,6 +33,7 @@ internal fun Translations.hy() = mapOf(
     Strings.MenuCollapsed to "Ծալված է",
     Strings.ToggleDropdownMenu to "Բացել/փակել իջնող ցանկը",
     Strings.SnackbarDismiss to "Փակել",
+    Strings.SnackbarPaneTitle to "Ծանուցում",
     Strings.SearchBarSearch to "Որոնում",
     Strings.SuggestionsAvailable to "Առաջարկները հասանելի են ստորև",
     Strings.DatePickerTitle to "Ընտրեք ամսաթիվը",
@@ -85,4 +86,6 @@ internal fun Translations.hy() = mapOf(
     Strings.TimePickerHour to "Ժամ",
     Strings.TimePickerMinuteTextField to "րոպեներ",
     Strings.TimePickerHourTextField to "ժամեր",
+    Strings.CloseRail to "Փակել նավիգացիայի գոտին",
+    Strings.WideNavigationRailPaneTitle to "Նավիգացիայի գոտի",
 )

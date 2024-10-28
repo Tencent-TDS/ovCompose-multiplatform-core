@@ -37,6 +37,13 @@ val libraryToComponents = mapOf(
             neverRedirect = true
         ),
     ),
+    "CORE_URI" to listOf(
+        ComposeComponent(
+            path = ":core:core-uri",
+            supportedPlatforms = ComposePlatforms.ALL_AOSP,
+            neverRedirect = true
+        ),
+    ),
     "COMPOSE" to listOf(
         // TODO https://youtrack.jetbrains.com/issue/CMP-1604/Publish-public-collection-annotation-libraries-with-a-separate-version
         // They are part of COMPOSE versioning
@@ -51,7 +58,7 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:material:material"),
         ComposeComponent(":compose:material3:material3"),
         ComposeComponent(":compose:material3:material3-common"),
-        ComposeComponent(":compose:material:material-icons-core"),
+        //ComposeComponent(":compose:material:material-icons-core"),
         ComposeComponent(":compose:material:material-ripple"),
         //disable 'material-navigation' publication until Google releases its version
         //ComposeComponent(":compose:material:material-navigation"),
@@ -88,6 +95,13 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:material3:adaptive:adaptive"),
         ComposeComponent(":compose:material3:adaptive:adaptive-layout"),
         ComposeComponent(":compose:material3:adaptive:adaptive-navigation"),
+    ),
+    "GRAPHICS_SHAPES" to listOf(
+        ComposeComponent(
+            path = ":graphics:graphics-shapes",
+            // TODO: Maybe it makes sense to support mingwX64 here for consistency
+            supportedPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
+        ),
     ),
     "LIFECYCLE" to listOf(
         ComposeComponent(
@@ -156,10 +170,9 @@ tasks.register("publishComposeJbToMavenLocal", ComposePublishingTask::class) {
 
 // isn't included in libraryToComponents for easy conflict resolution
 // (it is changed in integration and should be removed in 1.8)
+// TODO remove this and CI tasks after merging Jetpack Compose 1.8 to jb-main
 val iconsComponents =
-    listOf(
-        ComposeComponent(":compose:material:material-icons-extended"),
-    )
+    emptyList<ComposeComponent>()
 
 fun ComposePublishingTask.iconsPublications() {
     iconsComponents.forEach { publishMultiplatform(it) }
@@ -199,6 +212,7 @@ val testWebJs = tasks.register("testWebJs") {
     dependsOn(":compose:runtime:runtime:jsTest")
     dependsOn(":compose:ui:ui-text:compileTestKotlinJs")
     dependsOn(":compose:ui:ui:compileTestKotlinJs")
+    dependsOn(":navigation:navigation-runtime:jsTest")
 }
 
 val testWebWasm = tasks.register("testWebWasm") {
@@ -209,6 +223,7 @@ val testWebWasm = tasks.register("testWebWasm") {
     dependsOn(":compose:runtime:runtime:wasmJsTest")
     dependsOn(":compose:ui:ui-text:wasmJsTest")
     dependsOn(":compose:ui:ui:wasmJsTest")
+    dependsOn(":navigation:navigation-runtime:wasmJsTest")
 }
 
 tasks.register("testUIKit") {

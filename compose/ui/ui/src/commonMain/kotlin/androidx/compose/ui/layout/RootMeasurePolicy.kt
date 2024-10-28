@@ -18,23 +18,20 @@ package androidx.compose.ui.layout
 
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.constrainHeight
-import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 
-internal object RootMeasurePolicy : LayoutNode.NoIntrinsicsMeasurePolicy(
-    "Undefined intrinsics block and it is required"
-) {
+internal object RootMeasurePolicy :
+    LayoutNode.NoIntrinsicsMeasurePolicy("Undefined intrinsics block and it is required") {
     override fun MeasureScope.measure(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
-        return when {
-            measurables.isEmpty() -> {
+        return when (measurables.size) {
+            0 -> {
                 layout(constraints.minWidth, constraints.minHeight) {}
             }
-            measurables.size == 1 -> {
+            1 -> {
                 val placeable = measurables[0].measure(constraints)
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeable.placeRelativeWithLayer(0, 0)

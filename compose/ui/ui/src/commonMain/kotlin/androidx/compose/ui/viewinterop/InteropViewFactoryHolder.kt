@@ -23,7 +23,10 @@ import androidx.compose.ui.InternalComposeUiApi
 @InternalComposeUiApi
 internal expect class InteropViewFactoryHolder : ComposeNodeLifecycleCallback {
     fun getInteropView(): InteropView?
+
     override fun onReuse()
+
     override fun onDeactivate()
+
     override fun onRelease()
 }

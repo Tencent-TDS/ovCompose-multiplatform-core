@@ -28,4 +28,5 @@ internal fun Translations.lv() = mapOf(
     Strings.DefaultErrorMessage to "Nederīga ievade",
     Strings.SliderRangeStart to "Diapazona sākums",
     Strings.SliderRangeEnd to "Diapazona beigas",
+    Strings.SnackbarPaneTitle to "Brīdinājums",
 )

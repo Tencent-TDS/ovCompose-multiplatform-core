@@ -37,7 +37,6 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.RootNodeOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.setContent
@@ -149,7 +148,7 @@ private class CanvasLayersComposeSceneImpl(
 
     override val focusManager = ComposeSceneFocusManager { focusedOwner.focusOwner }
 
-    override val dragAndDropTarget = ComposeSceneDragAndDropTarget { focusedOwner.dragAndDropOwner }
+    override val rootDragAndDropNode = ComposeSceneDragAndDropNode { focusedOwner.dragAndDropOwner }
 
     private val layers = mutableListOf<AttachedComposeSceneLayer>()
     private val _layersCopyCache = CopiedList {

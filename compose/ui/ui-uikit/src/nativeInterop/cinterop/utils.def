@@ -1,3 +1,5 @@
 linkerOpts = -framework UIKit
 package = androidx.compose.ui.uikit.utils
 language = Objective-C
+compilerOpts = -D_Float16=short
+headerFilter = CMP*

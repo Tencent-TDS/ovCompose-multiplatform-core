@@ -33,6 +33,7 @@ internal fun Translations.`in`() = mapOf(
     Strings.MenuCollapsed to "Diciutkan",
     Strings.ToggleDropdownMenu to "Aktifkan/nonaktifkan menu dropdown",
     Strings.SnackbarDismiss to "Tutup",
+    Strings.SnackbarPaneTitle to "Pemberitahuan",
     Strings.SearchBarSearch to "Telusuri",
     Strings.SuggestionsAvailable to "Saran di bawah",
     Strings.DatePickerTitle to "Pilih tanggal",
@@ -85,4 +86,6 @@ internal fun Translations.`in`() = mapOf(
     Strings.TimePickerHour to "Jam",
     Strings.TimePickerMinuteTextField to "untuk menit",
     Strings.TimePickerHourTextField to "untuk jam",
+    Strings.CloseRail to "Tutup kolom samping",
+    Strings.WideNavigationRailPaneTitle to "Kolom samping navigasi",
 )

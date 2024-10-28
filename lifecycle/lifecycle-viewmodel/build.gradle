@@ -92,11 +92,11 @@ kotlin {
             }
         }
 
-        jvmMain {
+        jvmCommonMain {
             dependsOn(commonMain)
         }
 
-        jvmTest {
+        jvmCommonTest {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.junit)
@@ -104,14 +104,14 @@ kotlin {
         }
 
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(jvmCommonMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
             }
         }
 
         androidUnitTest {
-            dependsOn(jvmTest)
+            dependsOn(jvmCommonTest)
             dependencies {
                 implementation(libs.mockitoCore4)
             }
@@ -127,17 +127,17 @@ kotlin {
             }
         }
 
-        desktopMain.dependsOn(jvmMain)
-        nonJvmMain.dependsOn(commonMain)
-        nativeMain.dependsOn(nonJvmMain)
+        desktopMain.dependsOn(jvmCommonMain)
+        nonJvmCommonMain.dependsOn(commonMain)
+        nativeMain.dependsOn(nonJvmCommonMain)
         darwinMain.dependsOn(nativeMain)
         linuxMain.dependsOn(nativeMain)
 
         if (jsEnabled || wasmEnabled) {
-            webMain.dependsOn(nonJvmMain)
+            webMain.dependsOn(nonJvmCommonMain)
         }
 
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
@@ -162,7 +162,7 @@ kotlin {
 }
 
 android {
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     namespace "androidx.lifecycle.viewmodel"

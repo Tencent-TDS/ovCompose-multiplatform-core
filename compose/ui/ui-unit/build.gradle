@@ -106,7 +106,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you

@@ -33,20 +33,17 @@ import org.xmlpull.v1.XmlPullParserException
  *
  * @param id the resource identifier
  * @return an animated vector drawable resource.
- *
  * @sample androidx.compose.animation.graphics.samples.AnimatedVectorSample
  */
 @ExperimentalAnimationGraphicsApi
 @Composable
-fun AnimatedImageVector.Companion.animatedVectorResource(
+public fun AnimatedImageVector.Companion.animatedVectorResource(
     @DrawableRes id: Int
 ): AnimatedImageVector {
     val context = LocalContext.current
     val res = context.resources
     val theme = context.theme
-    return remember(id) {
-        loadAnimatedVectorResource(theme, res, id)
-    }
+    return remember(id) { loadAnimatedVectorResource(theme, res, id) }
 }
 
 @ExperimentalAnimationGraphicsApi

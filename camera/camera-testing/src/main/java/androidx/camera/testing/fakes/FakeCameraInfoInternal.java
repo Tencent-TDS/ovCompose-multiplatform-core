@@ -18,6 +18,9 @@ package androidx.camera.testing.fakes;
 
 import static androidx.camera.core.DynamicRange.SDR;
 
+import android.content.Context;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.util.Range;
 import android.util.Rational;
 import android.util.Size;
@@ -25,7 +28,8 @@ import android.view.Surface;
 
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraState;
 import androidx.camera.core.DynamicRange;
@@ -35,6 +39,7 @@ import androidx.camera.core.TorchState;
 import androidx.camera.core.ZoomState;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraInfoInternal;
+import androidx.camera.core.impl.DynamicRanges;
 import androidx.camera.core.impl.EncoderProfilesProvider;
 import androidx.camera.core.impl.ImageOutputConfig.RotationValue;
 import androidx.camera.core.impl.Quirk;
@@ -45,6 +50,7 @@ import androidx.camera.core.internal.ImmutableZoomState;
 import androidx.core.util.Preconditions;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.test.core.app.ApplicationProvider;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,7 +67,6 @@ import java.util.concurrent.Executor;
  *
  * <p>This camera info can be constructed with fake values.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class FakeCameraInfoInternal implements CameraInfoInternal {
     private static final Set<Range<Integer>> FAKE_FPS_RANGES = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
@@ -79,7 +84,7 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
     private final MutableLiveData<ZoomState> mZoomLiveData;
     private final Map<Integer, List<Size>> mSupportedResolutionMap = new HashMap<>();
     private final Map<Integer, List<Size>> mSupportedHighResolutionMap = new HashMap<>();
-    private MutableLiveData<CameraState> mCameraStateLiveData;
+    private MutableLiveData<CameraState> mCameraStateMutableLiveData;
 
     private final Set<DynamicRange> mSupportedDynamicRanges = new HashSet<>(DEFAULT_DYNAMIC_RANGES);
     private String mImplementationType = IMPLEMENTATION_TYPE_FAKE;
@@ -100,29 +105,50 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
 
     private Timebase mTimebase = Timebase.UPTIME;
 
+    @Nullable
+    private CameraManager mCameraManager;
+
     public FakeCameraInfoInternal() {
         this(/*sensorRotation=*/ 0, /*lensFacing=*/ CameraSelector.LENS_FACING_BACK);
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public FakeCameraInfoInternal(@NonNull String cameraId,
+            @NonNull Context context) {
+        this(cameraId, 0, CameraSelector.LENS_FACING_BACK, context);
+    }
+
     public FakeCameraInfoInternal(@NonNull String cameraId) {
-        this(cameraId, 0, CameraSelector.LENS_FACING_BACK);
+        this(cameraId, 0, CameraSelector.LENS_FACING_BACK,
+                ApplicationProvider.getApplicationContext());
     }
 
     public FakeCameraInfoInternal(@NonNull String cameraId,
             @CameraSelector.LensFacing int lensFacing) {
-        this(cameraId, 0, lensFacing);
+        this(cameraId, 0, lensFacing,
+                ApplicationProvider.getApplicationContext());
     }
 
     public FakeCameraInfoInternal(int sensorRotation, @CameraSelector.LensFacing int lensFacing) {
-        this("0", sensorRotation, lensFacing);
+        this("0", sensorRotation, lensFacing,
+                ApplicationProvider.getApplicationContext());
     }
 
     public FakeCameraInfoInternal(@NonNull String cameraId, int sensorRotation,
             @CameraSelector.LensFacing int lensFacing) {
+        this(cameraId, sensorRotation, lensFacing,
+                ApplicationProvider.getApplicationContext());
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public FakeCameraInfoInternal(@NonNull String cameraId, int sensorRotation,
+            @CameraSelector.LensFacing int lensFacing,
+            @NonNull Context context) {
         mCameraId = cameraId;
         mSensorRotation = sensorRotation;
         mLensFacing = lensFacing;
         mZoomLiveData = new MutableLiveData<>(ImmutableZoomState.create(1.0f, 4.0f, 1.0f, 0.0f));
+        mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
 
     /**
@@ -211,14 +237,18 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
         return mExposureState;
     }
 
+    private MutableLiveData<CameraState> getCameraStateMutableLiveData() {
+        if (mCameraStateMutableLiveData == null) {
+            mCameraStateMutableLiveData = new MutableLiveData<>(
+                    CameraState.create(CameraState.Type.CLOSED));
+        }
+        return mCameraStateMutableLiveData;
+    }
+
     @NonNull
     @Override
     public LiveData<CameraState> getCameraState() {
-        if (mCameraStateLiveData == null) {
-            mCameraStateLiveData = new MutableLiveData<>(
-                    CameraState.create(CameraState.Type.CLOSED));
-        }
-        return mCameraStateLiveData;
+        return getCameraStateMutableLiveData();
     }
 
     @NonNull
@@ -240,6 +270,13 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
         return mTimebase;
     }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @NonNull
+    @Override
+    public Set<Integer> getSupportedOutputFormats() {
+        return mSupportedResolutionMap.keySet();
+    }
+
     @NonNull
     @Override
     public List<Size> getSupportedResolutions(int format) {
@@ -258,6 +295,29 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
     @Override
     public Set<DynamicRange> getSupportedDynamicRanges() {
         return mSupportedDynamicRanges;
+    }
+
+    /**
+     * Returns the supported dynamic ranges of this camera from a set of candidate dynamic ranges.
+     *
+     * <p>The dynamic ranges which represent what the camera supports will come from the dynamic
+     * ranges set on {@link #setSupportedDynamicRanges(Set)}, or will consist of {@code {SDR}} if
+     * {@code setSupportedDynamicRanges(Set)} has not been called. In order to stay compliant
+     * with the API contract of
+     * {@link androidx.camera.core.CameraInfo#querySupportedDynamicRanges(Set)}, it is
+     * required that the {@link Set} provided to {@code setSupportedDynamicRanges(Set)} should
+     * always contain {@link DynamicRange#SDR} and should never contain under-specified dynamic
+     * ranges, such as {@link DynamicRange#UNSPECIFIED} and
+     * {@link DynamicRange#HDR_UNSPECIFIED_10_BIT}.
+     *
+     * @see androidx.camera.core.CameraInfo#querySupportedDynamicRanges(Set)
+     */
+    @NonNull
+    @Override
+    public Set<DynamicRange> querySupportedDynamicRanges(
+            @NonNull Set<DynamicRange> candidateDynamicRanges) {
+        return DynamicRanges.findAllPossibleMatches(
+                candidateDynamicRanges, getSupportedDynamicRanges());
     }
 
     @Override
@@ -288,6 +348,7 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
         return mIsFocusMeteringSupported;
     }
 
+    @androidx.camera.core.ExperimentalZeroShutterLag
     @Override
     public boolean isZslSupported() {
         return false;
@@ -318,6 +379,17 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
     @SuppressWarnings("unused")
     public void addCameraQuirk(@NonNull final Quirk quirk) {
         mCameraQuirks.add(quirk);
+    }
+
+    /**
+     * Updates the {@link CameraState} value to the {@code LiveData} provided by
+     * {@link #getCameraState()}.
+     *
+     * @param cameraState the camera state value to set.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public void updateCameraState(@NonNull CameraState cameraState) {
+        getCameraStateMutableLiveData().postValue(cameraState);
     }
 
     /**
@@ -364,7 +436,28 @@ public final class FakeCameraInfoInternal implements CameraInfoInternal {
         mSupportedDynamicRanges.addAll(dynamicRanges);
     }
 
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+    @NonNull
+    @Override
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public Object getCameraCharacteristics() {
+        try {
+            return mCameraManager.getCameraCharacteristics(mCameraId);
+        } catch (CameraAccessException e) {
+            throw new IllegalStateException("can't get CameraCharacteristics", e);
+        }
+    }
+
+    @Nullable
+    @Override
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public Object getPhysicalCameraCharacteristics(@NonNull String physicalCameraId) {
+        try {
+            return mCameraManager.getCameraCharacteristics(physicalCameraId);
+        } catch (CameraAccessException e) {
+            throw new IllegalStateException("can't get CameraCharacteristics", e);
+        }
+    }
+
     static final class FakeExposureState implements ExposureState {
         private int mIndex = 0;
         private Range<Integer> mRange = new Range<>(0, 0);

@@ -25,7 +25,8 @@ import androidx.lifecycle.viewmodel.internal.JvmViewModelProviders
 import androidx.lifecycle.viewmodel.internal.ViewModelProviders
 import kotlin.reflect.KClass
 
-public actual class ViewModelProvider private constructor(
+public actual class ViewModelProvider
+private constructor(
     private val impl: ViewModelProviderImpl,
 ) {
 
@@ -102,8 +103,6 @@ public actual class ViewModelProvider private constructor(
             extras: CreationExtras
         ): ViewModelProvider = ViewModelProvider(ViewModelProviderImpl(store, factory, extras))
 
-        @JvmField
-        public actual val VIEW_MODEL_KEY: CreationExtras.Key<String> =
-            ViewModelProviders.ViewModelKey
+        @JvmField public actual val VIEW_MODEL_KEY: Key<String> = CreationExtras.Companion.Key()
     }
 }

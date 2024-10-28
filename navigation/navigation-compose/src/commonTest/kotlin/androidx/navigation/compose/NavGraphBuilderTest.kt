@@ -18,14 +18,17 @@ package androidx.navigation.compose
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.core.bundle.Bundle
+import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
+import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.contains
 import androidx.navigation.get
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import androidx.navigation.serialization.generateHashCode
 import androidx.navigation.testing.TestNavHostController
@@ -40,6 +43,61 @@ import kotlinx.serialization.serializer
 @OptIn(ExperimentalTestApi::class)
 @ExperimentalCoroutinesApi
 class NavGraphBuilderTest {
+
+    @Test
+    fun testDeepLink() = runComposeUiTestOnUiThread {
+        lateinit var navController: TestNavHostController
+        val uriString = "https://www.example.com"
+        val deeplink = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(uriString)).build()
+        setContentWithLifecycleOwner {
+            navController = TestNavHostController()
+            navController.navigatorProvider.addNavigator(ComposeNavigator())
+
+            NavHost(navController, startDestination = firstRoute) {
+                composable(firstRoute) {}
+                composable(
+                    secondRoute,
+                    deepLinks = listOf(navDeepLink { uriPattern = uriString })
+                ) {}
+            }
+        }
+
+        runOnUiThread {
+            navController.navigate(UriUtils.parse(uriString))
+            assertThat(navController.currentBackStackEntry!!.destination.hasDeepLink(deeplink))
+                .isTrue()
+        }
+    }
+
+    @Test
+    fun testNestedNavigationDeepLink() = runComposeUiTestOnUiThread {
+        lateinit var navController: TestNavHostController
+        val uriString = "https://www.example.com"
+        val deeplink = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(uriString)).build()
+        setContentWithLifecycleOwner {
+            navController = TestNavHostController()
+            navController.navigatorProvider.addNavigator(ComposeNavigator())
+
+            NavHost(navController, startDestination = firstRoute) {
+                composable(firstRoute) {}
+                navigation(
+                    startDestination = thirdRoute,
+                    route = secondRoute,
+                    deepLinks = listOf(navDeepLink { uriPattern = uriString })
+                ) {
+                    composable(thirdRoute) {}
+                }
+            }
+        }
+
+        runOnUiThread {
+            navController.navigate(UriUtils.parse(uriString))
+            assertThat(
+                navController.getBackStackEntry(secondRoute).destination.hasDeepLink(deeplink)
+            )
+                .isTrue()
+        }
+    }
 
     @Test
     fun testCurrentBackStackEntryNavigate() = runComposeUiTestOnUiThread {

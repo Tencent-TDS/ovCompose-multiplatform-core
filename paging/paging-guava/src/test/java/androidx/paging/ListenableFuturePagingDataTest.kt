@@ -35,54 +35,58 @@ class ListenableFuturePagingDataTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val testScope = TestScope(testDispatcher)
-    private val differ = TestPagingDataDiffer<String>(testDispatcher)
+    private val presenter = TestPagingDataPresenter<String>(testDispatcher)
 
     @Test
-    fun map() = testScope.runTest {
-        val transformed = original.mapAsync(
-            AsyncFunction<String, String> {
-                Futures.immediateFuture(it + it)
-            },
-            testDispatcher.asExecutor()
-        )
-        differ.collectFrom(transformed)
-        assertEquals(listOf("aa", "bb", "cc"), differ.currentList)
-    }
+    fun map() =
+        testScope.runTest {
+            val transformed =
+                original.mapAsync(
+                    AsyncFunction<String, String> { Futures.immediateFuture(it + it) },
+                    testDispatcher.asExecutor()
+                )
+            presenter.collectFrom(transformed)
+            assertEquals(listOf("aa", "bb", "cc"), presenter.currentList)
+        }
 
     @Test
-    fun flatMap() = testScope.runTest {
-        val transformed = original.flatMapAsync(
-            AsyncFunction<String, Iterable<String>> {
-                Futures.immediateFuture(listOf(it!!, it))
-            },
-            testDispatcher.asExecutor()
-        )
-        differ.collectFrom(transformed)
-        assertEquals(listOf("a", "a", "b", "b", "c", "c"), differ.currentList)
-    }
+    fun flatMap() =
+        testScope.runTest {
+            val transformed =
+                original.flatMapAsync(
+                    AsyncFunction<String, Iterable<String>> {
+                        Futures.immediateFuture(listOf(it!!, it))
+                    },
+                    testDispatcher.asExecutor()
+                )
+            presenter.collectFrom(transformed)
+            assertEquals(listOf("a", "a", "b", "b", "c", "c"), presenter.currentList)
+        }
 
     @Test
-    fun filter() = testScope.runTest {
-        val filtered = original.filterAsync(
-            AsyncFunction {
-                Futures.immediateFuture(it != "b")
-            },
-            testDispatcher.asExecutor()
-        )
-        differ.collectFrom(filtered)
-        assertEquals(listOf("a", "c"), differ.currentList)
-    }
+    fun filter() =
+        testScope.runTest {
+            val filtered =
+                original.filterAsync(
+                    AsyncFunction { Futures.immediateFuture(it != "b") },
+                    testDispatcher.asExecutor()
+                )
+            presenter.collectFrom(filtered)
+            assertEquals(listOf("a", "c"), presenter.currentList)
+        }
 
     @Test
-    fun insertSeparators() = testScope.runTest {
-        val separated = original.insertSeparatorsAsync(
-            AsyncFunction<AdjacentItems<String>, String?> {
-                val (before, after) = it!!
-                Futures.immediateFuture(if (before == null || after == null) null else "|")
-            },
-            testDispatcher.asExecutor()
-        )
-        differ.collectFrom(separated)
-        assertEquals(listOf("a", "|", "b", "|", "c"), differ.currentList)
-    }
+    fun insertSeparators() =
+        testScope.runTest {
+            val separated =
+                original.insertSeparatorsAsync(
+                    AsyncFunction<AdjacentItems<String>, String?> {
+                        val (before, after) = it!!
+                        Futures.immediateFuture(if (before == null || after == null) null else "|")
+                    },
+                    testDispatcher.asExecutor()
+                )
+            presenter.collectFrom(separated)
+            assertEquals(listOf("a", "|", "b", "|", "c"), presenter.currentList)
+        }
 }

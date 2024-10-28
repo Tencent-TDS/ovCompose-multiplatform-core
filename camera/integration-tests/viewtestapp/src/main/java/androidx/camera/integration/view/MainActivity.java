@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String COMPOSE_UI_FRAGMENT = "ComposeUi";
 
     private static final String[] REQUIRED_PERMISSIONS;
+
     static {
         // From Android T, skips the permission check of WRITE_EXTERNAL_STORAGE since it won't be
         // granted any more.
@@ -66,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
             };
         }
     }
+
     private static final int REQUEST_CODE_PERMISSIONS = 10;
 
     // Possible values for this intent key are the name values of LensFacing encoded as
@@ -169,25 +171,21 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("NonConstantResourceId")
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.preview_view:
-                mFragmentType = FragmentType.PREVIEW_VIEW;
-                break;
-            case R.id.camera_controller:
-                mFragmentType = FragmentType.CAMERA_CONTROLLER;
-                break;
-            case R.id.transform:
-                mFragmentType = FragmentType.TRANSFORM;
-                break;
-            case R.id.compose_ui:
-                mFragmentType = FragmentType.COMPOSE_UI;
-                break;
-            case R.id.mlkit:
-                mFragmentType = FragmentType.MLKIT;
-                break;
-            case R.id.effects:
-                mFragmentType = FragmentType.EFFECTS;
-                break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.preview_view) {
+            mFragmentType = FragmentType.PREVIEW_VIEW;
+        } else if (itemId == R.id.camera_controller) {
+            mFragmentType = FragmentType.CAMERA_CONTROLLER;
+        } else if (itemId == R.id.transform) {
+            mFragmentType = FragmentType.TRANSFORM;
+        } else if (itemId == R.id.compose_ui) {
+            mFragmentType = FragmentType.COMPOSE_UI;
+        } else if (itemId == R.id.mlkit) {
+            mFragmentType = FragmentType.MLKIT;
+        } else if (itemId == R.id.effects) {
+            mFragmentType = FragmentType.EFFECTS;
+        } else if (itemId == R.id.overlay_effect) {
+            mFragmentType = FragmentType.OVERLAY_EFFECTS;
         }
         startFragment();
         return true;
@@ -232,6 +230,9 @@ public class MainActivity extends AppCompatActivity {
             case EFFECTS:
                 startFragment(R.string.effects, new EffectsFragment());
                 break;
+            case OVERLAY_EFFECTS:
+                startFragment(R.string.overlay_effect, new OverlayEffectFragment());
+                break;
         }
     }
 
@@ -253,6 +254,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private enum FragmentType {
-        PREVIEW_VIEW, CAMERA_CONTROLLER, TRANSFORM, COMPOSE_UI, MLKIT, EFFECTS
+        PREVIEW_VIEW, CAMERA_CONTROLLER, TRANSFORM, COMPOSE_UI, MLKIT, EFFECTS, OVERLAY_EFFECTS
     }
 }

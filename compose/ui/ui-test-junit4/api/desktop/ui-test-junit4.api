@@ -3,11 +3,15 @@ public abstract interface class androidx/compose/ui/test/junit4/ComposeContentTe
 }
 
 public final class androidx/compose/ui/test/junit4/ComposeContentTestRule$DefaultImpls {
+	public static fun disableAccessibilityChecks (Landroidx/compose/ui/test/junit4/ComposeContentTestRule;)V
+	public static fun enableAccessibilityChecks (Landroidx/compose/ui/test/junit4/ComposeContentTestRule;)V
 	public static fun waitUntil (Landroidx/compose/ui/test/junit4/ComposeContentTestRule;Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 }
 
 public abstract interface class androidx/compose/ui/test/junit4/ComposeTestRule : androidx/compose/ui/test/SemanticsNodeInteractionsProvider, org/junit/rules/TestRule {
 	public abstract fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun disableAccessibilityChecks ()V
+	public fun enableAccessibilityChecks ()V
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public abstract fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
 	public abstract fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
@@ -30,6 +34,8 @@ public abstract interface class androidx/compose/ui/test/junit4/ComposeTestRule 
 }
 
 public final class androidx/compose/ui/test/junit4/ComposeTestRule$DefaultImpls {
+	public static fun disableAccessibilityChecks (Landroidx/compose/ui/test/junit4/ComposeTestRule;)V
+	public static fun enableAccessibilityChecks (Landroidx/compose/ui/test/junit4/ComposeTestRule;)V
 	public static fun waitUntil (Landroidx/compose/ui/test/junit4/ComposeTestRule;Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 	public static synthetic fun waitUntil$default (Landroidx/compose/ui/test/junit4/ComposeTestRule;JLkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static synthetic fun waitUntil$default (Landroidx/compose/ui/test/junit4/ComposeTestRule;Ljava/lang/String;JLkotlin/jvm/functions/Function0;ILjava/lang/Object;)V

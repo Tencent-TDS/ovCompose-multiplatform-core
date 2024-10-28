@@ -28,4 +28,5 @@ internal fun Translations.ml() = mapOf(
     Strings.DefaultErrorMessage to "ഇൻപുട്ട് അസാധുവാണ്",
     Strings.SliderRangeStart to "ശ്രേണിയുടെ ആരംഭം",
     Strings.SliderRangeEnd to "ശ്രേണിയുടെ അവസാനം",
+    Strings.SnackbarPaneTitle to "മുന്നറിയിപ്പ്",
 )

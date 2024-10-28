@@ -43,12 +43,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import platform.UIKit.UIDragItem
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -83,8 +78,9 @@ actual fun DragAndDropExample() {
                     drawDragDecoration = {
                         drawRect(Color.Gray, Offset(0f, 0f), size)
                     },
-                    block = {
-                        // TODO: wait for upstream for non-imperative drag and drop
+                    transferData = { offset ->
+                        // TODO: Implement iOS specific transfer data creation
+                        null
                     }
                 )
                 .background(Color.DarkGray),

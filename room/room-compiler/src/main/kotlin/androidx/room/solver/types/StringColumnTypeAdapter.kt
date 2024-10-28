@@ -23,24 +23,24 @@ import androidx.room.ext.CommonTypeNames
 import androidx.room.parser.SQLTypeAffinity.TEXT
 import androidx.room.solver.CodeGenScope
 
-class StringColumnTypeAdapter private constructor(
-    out: XType
-) : ColumnTypeAdapter(out = out, typeAffinity = TEXT) {
+class StringColumnTypeAdapter private constructor(out: XType) :
+    ColumnTypeAdapter(out = out, typeAffinity = TEXT) {
     override fun readFromCursor(
         outVarName: String,
         cursorVarName: String,
         indexVarName: String,
         scope: CodeGenScope
     ) {
+        val getter = if (scope.useDriverApi) "getText" else "getString"
         scope.builder.apply {
             if (out.nullability == XNullability.NONNULL) {
-                addStatement("%L = %L.getString(%L)", outVarName, cursorVarName, indexVarName)
+                addStatement("%L = %L.$getter(%L)", outVarName, cursorVarName, indexVarName)
             } else {
                 beginControlFlow("if (%L.isNull(%L))", cursorVarName, indexVarName).apply {
                     addStatement("%L = null", outVarName)
                 }
                 nextControlFlow("else").apply {
-                    addStatement("%L = %L.getString(%L)", outVarName, cursorVarName, indexVarName)
+                    addStatement("%L = %L.$getter(%L)", outVarName, cursorVarName, indexVarName)
                 }
                 endControlFlow()
             }
@@ -53,14 +53,15 @@ class StringColumnTypeAdapter private constructor(
         valueVarName: String,
         scope: CodeGenScope
     ) {
+        val setter = if (scope.useDriverApi) "bindText" else "bindString"
         scope.builder.apply {
             if (out.nullability == XNullability.NONNULL) {
-                addStatement("%L.bindString(%L, %L)", stmtName, indexVarName, valueVarName)
+                addStatement("%L.$setter(%L, %L)", stmtName, indexVarName, valueVarName)
             } else {
                 beginControlFlow("if (%L == null)", valueVarName)
                     .addStatement("%L.bindNull(%L)", stmtName, indexVarName)
                 nextControlFlow("else")
-                    .addStatement("%L.bindString(%L, %L)", stmtName, indexVarName, valueVarName)
+                    .addStatement("%L.$setter(%L, %L)", stmtName, indexVarName, valueVarName)
                 endControlFlow()
             }
         }
@@ -71,13 +72,11 @@ class StringColumnTypeAdapter private constructor(
             val stringType = env.requireType(CommonTypeNames.STRING)
             return if (env.backend == XProcessingEnv.Backend.KSP) {
                 listOf(
-                    StringColumnTypeAdapter(stringType.makeNonNullable()),
                     StringColumnTypeAdapter(stringType.makeNullable()),
+                    StringColumnTypeAdapter(stringType.makeNonNullable()),
                 )
             } else {
-                listOf(
-                    StringColumnTypeAdapter(stringType.makeNullable())
-                )
+                listOf(StringColumnTypeAdapter(stringType.makeNullable()))
             }
         }
     }

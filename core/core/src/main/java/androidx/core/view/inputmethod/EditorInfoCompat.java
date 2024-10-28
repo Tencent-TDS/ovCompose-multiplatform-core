@@ -34,12 +34,14 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.os.BuildCompat;
 import androidx.core.util.Preconditions;
 
 import java.lang.annotation.Retention;
@@ -103,6 +105,9 @@ public final class EditorInfoCompat {
     private static final String CONTENT_SELECTION_END_KEY =
             "androidx.core.view.inputmethod.EditorInfoCompat.CONTENT_SELECTION_END";
 
+    @VisibleForTesting
+    static final String STYLUS_HANDWRITING_ENABLED_KEY =
+            "androidx.core.view.inputmethod.EditorInfoCompat.STYLUS_HANDWRITING_ENABLED";
 
     @Retention(SOURCE)
     @IntDef({Protocol.Unknown, Protocol.PlatformApi, Protocol.SupportLib, Protocol.AndroidX_1_0_0,
@@ -193,6 +198,43 @@ public final class EditorInfoCompat {
             }
             return result != null ? result : EMPTY_STRING_ARRAY;
         }
+    }
+
+    /**
+     * Set {@code true} if the editor has {@link InputMethodManager#startStylusHandwriting stylus
+     * handwriting} enabled.
+     * {@code false} by default, editor must set it {@code true} to indicate that it supports
+     * stylus handwriting.
+     * @param editorInfo the editor with which we set handwriting enabled.
+     * @param enabled {@code true} if stylus handwriting is enabled.
+     * @see View#setAutoHandwritingEnabled(boolean)
+     */
+    public static void setStylusHandwritingEnabled(@NonNull EditorInfo editorInfo,
+            boolean enabled) {
+        if (BuildCompat.isAtLeastV()) {
+            Api35Impl.setStylusHandwritingEnabled(editorInfo, enabled);
+        }
+        if (editorInfo.extras == null) {
+            editorInfo.extras = new Bundle();
+        }
+        editorInfo.extras.putBoolean(STYLUS_HANDWRITING_ENABLED_KEY, enabled);
+    }
+
+    /**
+     * Returns {@code true} when an editor has stylus handwriting enabled. {@code false} by default.
+     * @param editorInfo the editor from which we get stylus handwriting enabled.
+     * @see #setStylusHandwritingEnabled(EditorInfo, boolean)
+     * @see InputMethodManager#isStylusHandwritingAvailable()
+     */
+    public static boolean isStylusHandwritingEnabled(@NonNull EditorInfo editorInfo) {
+        if (editorInfo.extras != null
+                && editorInfo.extras.containsKey(STYLUS_HANDWRITING_ENABLED_KEY)) {
+            return editorInfo.extras.getBoolean(STYLUS_HANDWRITING_ENABLED_KEY);
+        }
+        if (BuildCompat.isAtLeastV()) {
+            return Api35Impl.isStylusHandwritingEnabled(editorInfo);
+        }
+        return false;
     }
 
     /**
@@ -553,6 +595,19 @@ public final class EditorInfoCompat {
         static CharSequence getInitialTextAfterCursor(@NonNull EditorInfo editorInfo, int length,
                 int flags) {
             return editorInfo.getInitialTextAfterCursor(length, flags);
+        }
+    }
+
+    @RequiresApi(35)
+    private static class Api35Impl {
+        private Api35Impl() {}
+
+        static void setStylusHandwritingEnabled(@NonNull EditorInfo editorInfo, boolean enabled) {
+            editorInfo.setStylusHandwritingEnabled(enabled);
+        }
+
+        static boolean isStylusHandwritingEnabled(@NonNull EditorInfo editorInfo) {
+            return editorInfo.isStylusHandwritingEnabled();
         }
     }
 }

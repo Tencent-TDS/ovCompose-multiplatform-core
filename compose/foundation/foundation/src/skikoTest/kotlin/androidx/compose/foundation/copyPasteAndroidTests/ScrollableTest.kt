@@ -1701,10 +1701,8 @@ class ScrollableTest {
             }
         }
 
-        runOnIdle {
-            assertThat(isOuterInScrollableContainer).isFalse()
-            assertThat(isInnerInScrollableContainer).isTrue()
-        }
+        assertThat(isOuterInScrollableContainer).isFalse()
+        assertThat(isInnerInScrollableContainer).isTrue()
     }
 
     @Test
@@ -1712,12 +1710,10 @@ class ScrollableTest {
         mainClock.autoAdvance = false
 
         var total = 0f
-        val controller = ScrollableState(
-            consumeScrollDelta = {
-                total += it
-                it
-            }
-        )
+        val controller = ScrollableState {
+            total += it
+            it
+        }
         setContentAndGetScope {
             Box(
                 modifier = Modifier
@@ -1729,62 +1725,48 @@ class ScrollableTest {
             )
         }
 
-        runOnIdle {
-            scope.launch {
-                controller.animateScrollBy(
-                    100f,
-                    keyframes {
-                        durationMillis = 2500
-                        // emulate a repeatable animation:
-                        0f at 0
-                        100f at 500
-                        100f at 1000
-                        0f at 1500
-                        0f at 2000
-                        100f at 2500
-                    }
-                )
-            }
+        scope.launch {
+            controller.animateScrollBy(
+                value = 100f,
+                animationSpec = keyframes {
+                    durationMillis = 2500
+                    // emulate a repeatable animation:
+                    0f at 0
+                    100f at 500
+                    100f at 1000
+                    0f at 1500
+                    0f at 2000
+                    100f at 2500
+                }
+            )
         }
 
         mainClock.advanceTimeBy(250)
-        runOnIdle {
-            // in the middle of the first animation
-            assertThat(total).isGreaterThan(0f)
-            assertThat(total).isLessThan(100f)
-        }
+        // in the middle of the first animation
+        assertThat(total).isGreaterThan(0f)
+        assertThat(total).isLessThan(100f)
 
         mainClock.advanceTimeBy(500) // 750 ms
-        runOnIdle {
-            // first animation finished
-            assertThat(total).isEqualTo(100f)
-        }
+        // first animation finished
+        assertThat(total).isEqualTo(100f)
 
         mainClock.advanceTimeBy(250) // 1250 ms
-        runOnIdle {
-            // in the middle of the second animation
-            assertThat(total).isGreaterThan(0f)
-            assertThat(total).isLessThan(100f)
-        }
+        // in the middle of the second animation
+        assertThat(total).isGreaterThan(0f)
+        assertThat(total).isLessThan(100f)
 
         mainClock.advanceTimeBy(500) // 1750 ms
-        runOnIdle {
-            // second animation finished
-            assertThat(total).isEqualTo(0f)
-        }
+        // second animation finished
+        assertThat(total).isEqualTo(0f)
 
         mainClock.advanceTimeBy(500) // 2250 ms
-        runOnIdle {
-            // in the middle of the third animation
-            assertThat(total).isGreaterThan(0f)
-            assertThat(total).isLessThan(100f)
-        }
+        // in the middle of the third animation
+        assertThat(total).isGreaterThan(0f)
+        assertThat(total).isLessThan(100f)
 
         mainClock.advanceTimeBy(500) // 2750 ms
-        runOnIdle {
-            // third animation finished
-            assertThat(total).isEqualTo(100f)
-        }
+        // third animation finished
+        assertThat(total).isEqualTo(100f)
     }
 
     @Test

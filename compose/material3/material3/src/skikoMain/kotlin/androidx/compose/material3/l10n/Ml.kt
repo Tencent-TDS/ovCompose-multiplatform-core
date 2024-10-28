@@ -33,6 +33,7 @@ internal fun Translations.ml() = mapOf(
     Strings.MenuCollapsed to "ചുരുക്കിയത്",
     Strings.ToggleDropdownMenu to "ഡ്രോപ്പ്ഡൗൺ മെനു ടോഗിൾ ചെയ്യുക",
     Strings.SnackbarDismiss to "ഡിസ്‌മിസ് ചെയ്യുക",
+    Strings.SnackbarPaneTitle to "മുന്നറിയിപ്പ്",
     Strings.SearchBarSearch to "തിരയുക",
     Strings.SuggestionsAvailable to "നിദ്ദേശങ്ങൾ ചുവടെയുണ്ട്",
     Strings.DatePickerTitle to "തീയതി തിരഞ്ഞെടുക്കുക",
@@ -85,4 +86,6 @@ internal fun Translations.ml() = mapOf(
     Strings.TimePickerHour to "മണിക്കൂർ",
     Strings.TimePickerMinuteTextField to "മിനിറ്റ് നേരത്തേക്ക്",
     Strings.TimePickerHourTextField to "മണിക്കൂർ നേരത്തേക്ക്",
+    Strings.CloseRail to "റെയിൽ അടയ്ക്കുക",
+    Strings.WideNavigationRailPaneTitle to "നാവിഗേഷൻ റെയിൽ",
 )

@@ -1414,7 +1414,11 @@ class LazyListAnimateItemPlacementTest {
                 .testTag(tag.toString())
                 .then(
                     if (animSpec != null) {
-                        Modifier.animateItemPlacement(animSpec)
+                        Modifier.animateItem(
+                            fadeInSpec = null,
+                            fadeOutSpec = null,
+                            placementSpec = animSpec
+                        )
                     } else {
                         Modifier
                     }

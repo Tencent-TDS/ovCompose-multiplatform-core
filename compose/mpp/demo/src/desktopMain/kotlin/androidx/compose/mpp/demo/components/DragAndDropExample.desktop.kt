@@ -90,27 +90,20 @@ actual fun DragAndDropExample() {
                         )
                     )
                 }
-            ) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        startTransfer(
-                            DragAndDropTransferData(
-                                transferable = DragAndDropTransferable(
-                                    StringSelection(exportedText)
-                                ),
-                                supportedActions = listOf(
-                                    DragAndDropTransferAction.Copy,
-                                    DragAndDropTransferAction.Move,
-                                    DragAndDropTransferAction.Link,
-                                ),
-                                dragDecorationOffset = offset,
-                                onTransferCompleted = { action ->
-                                    println("Action at source: $action")
-                                }
-                            )
-                        )
-                    },
-                    onDrag = { _, _ -> },
+            ) { offset ->
+                DragAndDropTransferData(
+                    transferable = DragAndDropTransferable(
+                        StringSelection(exportedText)
+                    ),
+                    supportedActions = listOf(
+                        DragAndDropTransferAction.Copy,
+                        DragAndDropTransferAction.Move,
+                        DragAndDropTransferAction.Link,
+                    ),
+                    dragDecorationOffset = offset,
+                    onTransferCompleted = { action ->
+                        println("Action at source: $action")
+                    }
                 )
             }
         ) {

@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy
 
+import androidx.collection.IntList
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
 import androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScope
@@ -23,28 +24,27 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItemProvider
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 
-/**
- * Abstracts away the subcomposition from the measuring logic.
- */
+/** Abstracts away the subcomposition from the measuring logic. */
 @OptIn(ExperimentalFoundationApi::class)
-internal abstract class LazyListMeasuredItemProvider @ExperimentalFoundationApi constructor(
+internal abstract class LazyListMeasuredItemProvider(
     constraints: Constraints,
     isVertical: Boolean,
     private val itemProvider: LazyListItemProvider,
     private val measureScope: LazyLayoutMeasureScope
 ) : LazyLayoutMeasuredItemProvider<LazyListMeasuredItem> {
     // the constraints we will measure child with. the main axis is not restricted
-    val childConstraints = Constraints(
-        maxWidth = if (isVertical) constraints.maxWidth else Constraints.Infinity,
-        maxHeight = if (!isVertical) constraints.maxHeight else Constraints.Infinity
-    )
+    val childConstraints =
+        Constraints(
+            maxWidth = if (isVertical) constraints.maxWidth else Constraints.Infinity,
+            maxHeight = if (!isVertical) constraints.maxHeight else Constraints.Infinity
+        )
 
     override fun getAndMeasure(index: Int, lane: Int, span: Int, constraints: Constraints) =
         getAndMeasure(index, constraints)
 
     /**
-     * Used to subcompose items of lazy lists. Composed placeables will be measured with the
-     * correct constraints and wrapped into [LazyListMeasuredItem].
+     * Used to subcompose items of lazy lists. Composed placeables will be measured with the correct
+     * constraints and wrapped into [LazyListMeasuredItem].
      */
     fun getAndMeasure(
         index: Int,
@@ -57,10 +57,14 @@ internal abstract class LazyListMeasuredItemProvider @ExperimentalFoundationApi 
     }
 
     /**
-     * Contains the mapping between the key and the index. It could contain not all the items of
-     * the list as an optimization.
+     * Contains the mapping between the key and the index. It could contain not all the items of the
+     * list as an optimization.
      */
-    val keyIndexMap: LazyLayoutKeyIndexMap get() = itemProvider.keyIndexMap
+    val keyIndexMap: LazyLayoutKeyIndexMap
+        get() = itemProvider.keyIndexMap
+
+    val headerIndexes: IntList
+        get() = itemProvider.headerIndexes
 
     abstract fun createItem(
         index: Int,

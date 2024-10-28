@@ -17,12 +17,13 @@
 package androidx.compose.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.CanvasBasedWindow
+import androidx.compose.ui.window.ComposeViewport
 import kotlin.test.BeforeTest
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
@@ -32,32 +33,38 @@ import org.w3c.dom.events.Event
  * An interface with helper functions to initialise the tests
  */
 
-private const val canvasId: String = "canvasApp"
+private const val containerId: String = "canvasApp"
+
+private external interface CanReplaceChildren {
+    // this is a standard method for (among other things) emptying DOM element content
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/replaceChildren
+    // TODO: add this to our kotlin web external definitions
+    fun replaceChildren()
+}
 
 internal interface OnCanvasTests {
 
     @BeforeTest
     fun beforeTest() {
-        resetCanvas()
-    }
-
-    fun getCanvas() = document.getElementById(canvasId) as HTMLCanvasElement
-
-    private fun resetCanvas() {
         /** TODO: [kotlin.test.AfterTest] is fixed only in kotlin 2.0
         see https://youtrack.jetbrains.com/issue/KT-61888
          */
-        document.getElementById(canvasId)?.remove()
+        resetCanvas()
+    }
 
-        val canvas = document.createElement("canvas") as HTMLCanvasElement
-        canvas.setAttribute("id", canvasId)
-        canvas.setAttribute("tabindex", "0")
+    private fun resetCanvas() {
+        (getCanvasContainer() as CanReplaceChildren).replaceChildren()
+    }
 
-        document.body!!.appendChild(canvas)
+    private fun getCanvasContainer() = document.getElementById(containerId) ?: error("failed to get canvas with id ${containerId}")
+
+    fun getCanvas(): HTMLCanvasElement {
+        val canvas = (getCanvasContainer().querySelector("canvas") as? HTMLCanvasElement) ?: error("failed to get canvas")
+        return canvas
     }
 
     fun createComposeWindow(content: @Composable () -> Unit) {
-        CanvasBasedWindow(canvasElementId = canvasId, content = content)
+        ComposeViewport(containerId, content = content)
     }
 
     fun dispatchEvents(vararg events: Any) {
@@ -68,6 +75,6 @@ internal interface OnCanvasTests {
     }
 }
 
-internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = GlobalScope) {
+internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = MainScope()) {
     scope.launch(Dispatchers.Unconfined) { send(value) }
 }

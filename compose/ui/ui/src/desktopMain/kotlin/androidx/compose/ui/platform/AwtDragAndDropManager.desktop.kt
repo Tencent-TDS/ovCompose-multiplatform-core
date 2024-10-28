@@ -31,7 +31,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.toAwtImage
-import androidx.compose.ui.scene.ComposeSceneDragAndDropTarget
+import androidx.compose.ui.scene.ComposeSceneDragAndDropNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -81,7 +81,7 @@ internal fun DragAndDropTransferAction.Companion.fromAwtAction(
  */
 internal class AwtDragAndDropManager(
     private val rootContainer: JComponent,
-    private val dragAndDropTarget: () -> ComposeSceneDragAndDropTarget
+    private val getComposeRootDragAndDropNode: () -> ComposeSceneDragAndDropNode
 ) : PlatformDragAndDropManager {
     private val density: Density
         get() = rootContainer.density
@@ -97,7 +97,7 @@ internal class AwtDragAndDropManager(
         )
     }
 
-    override val isRequestDragAndDropTransferSupported: Boolean
+    override val isRequestDragAndDropTransferRequired: Boolean
         get() = true
 
     override fun requestDragAndDropTransfer(source: PlatformDragAndDropSource, offset: Offset) {
@@ -177,13 +177,13 @@ internal class AwtDragAndDropManager(
     private val dropTargetListener = object : DropTargetListener {
         override fun dragEnter(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
+            val rootNode = getComposeRootDragAndDropNode()
 
             // There's no drag-start event in AWT, so start in dragEnter, and stop in dragExit
-            val acceptedTransfer = dragAndDropTarget.acceptDragAndDropTransfer(event)
+            val acceptedTransfer = rootNode.acceptDragAndDropTransfer(event)
             if (acceptedTransfer) {
-                dragAndDropTarget.onStarted(event)
-                dragAndDropTarget.onEntered(event)
+                rootNode.onStarted(event)
+                rootNode.onEntered(event)
             } else {
                 dtde.rejectDrag()
             }
@@ -191,16 +191,16 @@ internal class AwtDragAndDropManager(
 
         override fun dragExit(dte: DropTargetEvent) {
             val event = DragAndDropEvent(dte)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onExited(event)
-            dragAndDropTarget.onEnded(event)
+            val rootNode = getComposeRootDragAndDropNode()
+            rootNode.onExited(event)
+            rootNode.onEnded(event)
         }
 
         override fun dragOver(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onMoved(event)
-            if (dragAndDropTarget.hasEligibleDropTarget) {
+            val rootNode = getComposeRootDragAndDropNode()
+            rootNode.onMoved(event)
+            if (rootNode.hasEligibleDropTarget) {
                 dtde.acceptDrag(dtde.dropAction)
             } else {
                 dtde.rejectDrag()
@@ -209,16 +209,16 @@ internal class AwtDragAndDropManager(
 
         override fun dropActionChanged(dtde: DropTargetDragEvent) {
             val event = DragAndDropEvent(dtde)
-            val dragAndDropTarget = dragAndDropTarget()
-            dragAndDropTarget.onChanged(event)
+            val rootNode = getComposeRootDragAndDropNode()
+            rootNode.onChanged(event)
         }
 
         override fun drop(dtde: DropTargetDropEvent) {
             val event = DragAndDropEvent(dtde)
             dtde.acceptDrop(dtde.dropAction)
-            val dragAndDropTarget = dragAndDropTarget()
-            dtde.dropComplete(dragAndDropTarget.onDrop(event))
-            dragAndDropTarget.onEnded(event)
+            val rootNode = getComposeRootDragAndDropNode()
+            dtde.dropComplete(rootNode.onDrop(event))
+            rootNode.onEnded(event)
         }
 
         private fun DragAndDropEvent(dragEvent: DropTargetDragEvent) = DragAndDropEvent(

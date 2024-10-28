@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.RunApiTasks
 
-import androidx.build.Publish
+import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -26,13 +33,12 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.versionedparcelable:versionedparcelable:1.1.0")
-    api("androidx.wear.protolayout:protolayout-expression:1.0.0-beta01")
+    api("androidx.wear.protolayout:protolayout-expression:1.0.0")
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesAndroid)
 
-    implementation("androidx.annotation:annotation:1.2.0")
     implementation("androidx.core:core:1.1.0")
     implementation("androidx.preference:preference:1.1.0")
     implementation("androidx.wear.protolayout:protolayout-expression-pipeline:1.0.0-beta01")
@@ -59,7 +65,7 @@ android {
     defaultConfig {
         minSdkVersion 26
     }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
 
@@ -70,8 +76,8 @@ android {
 
 androidx {
     name = "Android Wear Complications Data"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Wear Complications Data"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

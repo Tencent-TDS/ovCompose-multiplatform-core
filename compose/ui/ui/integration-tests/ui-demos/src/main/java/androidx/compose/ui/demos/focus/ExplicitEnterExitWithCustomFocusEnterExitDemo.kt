@@ -23,7 +23,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection.Companion.Down
 import androidx.compose.ui.focus.FocusDirection.Companion.Enter
@@ -37,19 +36,20 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalInputModeManager
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ExplicitEnterExitWithCustomFocusEnterExitDemo() {
     val (top, row, item1, item2, item3, bottom) = remember { FocusRequester.createRefs() }
     val inputModeManager = LocalInputModeManager.current
     Column {
-        Text("""
+        Text(
+            """
             Click on the top button to request focus on the row, which focuses on item 2.
             Entering the row from the top focuses on item 1.
             Entering the row from the bottom focusses on item 3.
             Exiting the row from the left focuses on the top button.
             Exiting the row from right focuses on the bottom button.
-            """.trimIndent()
+            """
+                .trimIndent()
         )
         Button(
             onClick = {
@@ -67,8 +67,7 @@ fun ExplicitEnterExitWithCustomFocusEnterExitDemo() {
         }
 
         Row(
-            Modifier
-                .focusRequester(row)
+            Modifier.focusRequester(row)
                 .focusProperties {
                     enter = {
                         when (it) {

@@ -23,7 +23,6 @@ import android.view.Surface;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -49,7 +48,6 @@ import java.util.concurrent.Executor;
  *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class MetadataImageReader implements ImageReaderProxy,
         ForwardingImageProxy.OnImageCloseListener {
     private static final String TAG = "MetadataImageReader";
@@ -58,8 +56,9 @@ public class MetadataImageReader implements ImageReaderProxy,
     // Callback when camera capture is completed.
     private CameraCaptureCallback mCameraCaptureCallback = new CameraCaptureCallback() {
         @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureResult cameraCaptureResult) {
-            super.onCaptureCompleted(cameraCaptureResult);
+        public void onCaptureCompleted(int captureConfigId,
+                @NonNull CameraCaptureResult cameraCaptureResult) {
+            super.onCaptureCompleted(captureConfigId, cameraCaptureResult);
             resultIncoming(cameraCaptureResult);
         }
     };

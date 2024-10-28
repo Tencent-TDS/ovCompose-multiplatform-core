@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -22,7 +29,7 @@ plugins {
 }
 
 dependencies {
-    compileOnly(libs.androidBuilderModelMin)
+    compileOnly("com.android.tools.build:builder-model:8.1.0")
     compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
 

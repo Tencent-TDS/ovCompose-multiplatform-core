@@ -25,6 +25,7 @@
 import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.AndroidXComposePlugin
 import androidx.build.LibraryType
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -70,15 +71,11 @@ kotlin {
         }
 
         nonAndroidMain.dependsOn(commonMain)
-        desktopMain.dependsOn(nonAndroidMain)
-        nativeMain.dependsOn(nonAndroidMain)
-        jsMain.dependsOn(nonAndroidMain)
-        wasmJsMain.dependsOn(nonAndroidMain)
 
         targets.all { target ->
-            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+            if (target.platformType !in [KotlinPlatformType.androidJvm, KotlinPlatformType.common]) {
                 target.compilations["main"].defaultSourceSet {
-                    dependsOn(nativeMain)
+                    dependsOn(nonAndroidMain)
                 }
             }
         }

@@ -18,6 +18,7 @@ package androidx.activity
 
 import android.graphics.Color
 import android.os.Build
+import android.view.WindowManager
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,6 +33,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class EdgeToEdgeTest {
 
+    @Suppress("DEPRECATION")
     @Test
     fun enableAuto() {
         withUse(ActivityScenario.launch(ComponentActivity::class.java)) {
@@ -59,18 +61,28 @@ class EdgeToEdgeTest {
                         assertThat(isAppearanceLightStatusBars).isTrue()
                     }
                 }
+                if (Build.VERSION.SDK_INT >= 30) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+                } else if (Build.VERSION.SDK_INT >= 28) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        )
+                }
             }
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun enableCustom() {
         withUse(ActivityScenario.launch(ComponentActivity::class.java)) {
             withActivity {
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(Color.CYAN, Color.DKGRAY) { _ -> false },
-                    navigationBarStyle = SystemBarStyle
-                        .auto(Color.CYAN, Color.DKGRAY) { _ -> false }
+                    navigationBarStyle =
+                        SystemBarStyle.auto(Color.CYAN, Color.DKGRAY) { _ -> false }
                 )
                 val view = window.decorView
                 if (Build.VERSION.SDK_INT >= 29) {
@@ -94,10 +106,20 @@ class EdgeToEdgeTest {
                         assertThat(isAppearanceLightStatusBars).isTrue()
                     }
                 }
+                if (Build.VERSION.SDK_INT >= 30) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+                } else if (Build.VERSION.SDK_INT >= 28) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        )
+                }
             }
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun enableDark() {
         withUse(ActivityScenario.launch(ComponentActivity::class.java)) {
@@ -121,10 +143,20 @@ class EdgeToEdgeTest {
                         assertThat(isAppearanceLightStatusBars).isFalse()
                     }
                 }
+                if (Build.VERSION.SDK_INT >= 30) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+                } else if (Build.VERSION.SDK_INT >= 28) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        )
+                }
             }
         }
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun enableLight() {
         withUse(ActivityScenario.launch(ComponentActivity::class.java)) {
@@ -147,6 +179,15 @@ class EdgeToEdgeTest {
                     WindowInsetsControllerCompat(window, view).run {
                         assertThat(isAppearanceLightStatusBars).isTrue()
                     }
+                }
+                if (Build.VERSION.SDK_INT >= 30) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS)
+                } else if (Build.VERSION.SDK_INT >= 28) {
+                    assertThat(window.attributes.layoutInDisplayCutoutMode)
+                        .isEqualTo(
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                        )
                 }
             }
         }

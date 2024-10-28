@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Network;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -40,7 +41,6 @@ import android.widget.RemoteViews;
 import androidx.annotation.AnimRes;
 import androidx.annotation.ColorInt;
 import androidx.annotation.Dimension;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -48,6 +48,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.IntentCompat;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -617,6 +618,13 @@ public final class CustomTabsIntent {
             "androidx.browser.customtabs.extra.NAVIGATION_BAR_DIVIDER_COLOR";
 
     /**
+     * Extra that specifies the {@link Network} to be bound when launching a Custom Tab or using
+     * mayLaunchUrl.
+     * See {@link Builder#setNetwork}.
+     */
+    public static final String EXTRA_NETWORK = "androidx.browser.customtabs.extra.NETWORK";
+
+    /**
      * Key that specifies the unique ID for an action button. To make a button to show on the
      * toolbar, use {@link #TOOLBAR_ACTION_BUTTON_ID} as its ID.
      */
@@ -723,7 +731,7 @@ public final class CustomTabsIntent {
          * Overrides the effect of {@link #setSession}.
          *
          */
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @ExperimentalPendingSession
         @NonNull
         public Builder setPendingSession(@NonNull CustomTabsSession.PendingSession session) {
             setSessionParameters(null, session.getId());
@@ -1257,7 +1265,8 @@ public final class CustomTabsIntent {
          * @param enabled Whether the maximization button is enabled.
          * @see CustomTabsIntent#EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION
          */
-        @NonNull Builder setActivitySideSheetEnableMaximization(boolean enabled) {
+        @NonNull
+        public Builder setActivitySideSheetMaximizationEnabled(boolean enabled) {
             mIntent.putExtra(EXTRA_ACTIVITY_SIDE_SHEET_ENABLE_MAXIMIZATION, enabled);
             return this;
         }
@@ -1432,6 +1441,27 @@ public final class CustomTabsIntent {
         @NonNull
         public Builder setShareIdentityEnabled(boolean enabled) {
             mShareIdentity = enabled;
+            return this;
+        }
+
+        /**
+         * Sets the target network {@link Network} to bind when launching a custom tab.
+         *
+         * This API allows the caller to specify the target network to bind when launching a URL
+         * via Custom Tabs, e.g. may want to open a custom tab over a Wi-Fi network, while the
+         * default network is a cellular connection. All URLRequests created in the future via this
+         * tab will be bound to {@link Network}.
+         *
+         * If the browser does not support this feature it will be ignored and a Custom Tab will
+         * be opened using the default network. Check the support by calling {@link
+         * CustomTabsClient#isSetNetworkSupported}.
+         *
+         * @param network {@link Network} the target network to be bound.
+         * @see CustomTabsIntent#EXTRA_NETWORK
+         */
+        @NonNull
+        public Builder setNetwork(@NonNull Network network) {
+            mIntent.putExtra(EXTRA_NETWORK, network);
             return this;
         }
 
@@ -1767,6 +1797,17 @@ public final class CustomTabsIntent {
     }
 
     /**
+     * Gets the target network that the custom tab is currently bound to if any.
+     *
+     * @return The target {@link Network} is bound to.
+     * @see CustomTabsIntent#EXTRA_NETWORK
+     */
+    @Nullable
+    public static Network getNetwork(@NonNull Intent intent) {
+        return IntentCompat.getParcelableExtra(intent, EXTRA_NETWORK, Network.class);
+    }
+
+    /**
      * @return Whether the background interaction is enabled.
      * @see CustomTabsIntent#EXTRA_DISABLE_BACKGROUND_INTERACTION
      */
@@ -1787,12 +1828,10 @@ public final class CustomTabsIntent {
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static class Api21Impl {
-        @DoNotInline
         static void setLanguageTag(Intent intent, Locale locale) {
             intent.putExtra(EXTRA_TRANSLATE_LANGUAGE_TAG, locale.toLanguageTag());
         }
 
-        @DoNotInline
         @Nullable
         static Locale getLocaleForLanguageTag(Intent intent) {
             String languageTag = intent.getStringExtra(EXTRA_TRANSLATE_LANGUAGE_TAG);
@@ -1802,7 +1841,6 @@ public final class CustomTabsIntent {
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private static class Api23Impl {
-        @DoNotInline
         static ActivityOptions makeBasicActivityOptions() {
             return ActivityOptions.makeBasic();
         }
@@ -1810,7 +1848,6 @@ public final class CustomTabsIntent {
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static class Api24Impl {
-        @DoNotInline
         @Nullable
         static String getDefaultLocale() {
             LocaleList defaultLocaleList = LocaleList.getAdjustedDefault();
@@ -1820,7 +1857,6 @@ public final class CustomTabsIntent {
 
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private static class Api34Impl {
-        @DoNotInline
         static void setShareIdentityEnabled(ActivityOptions activityOptions, boolean enabled) {
             activityOptions.setShareIdentityEnabled(enabled);
         }

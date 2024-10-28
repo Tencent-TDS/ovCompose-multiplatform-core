@@ -28,4 +28,5 @@ internal fun Translations.fa() = mapOf(
     Strings.DefaultErrorMessage to "ورودی نامعتبر",
     Strings.SliderRangeStart to "شروع محدوده",
     Strings.SliderRangeEnd to "پایان محدوده",
+    Strings.SnackbarPaneTitle to "هشدار",
 )

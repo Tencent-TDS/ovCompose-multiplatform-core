@@ -30,7 +30,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material.Text
 
@@ -43,17 +42,16 @@ import androidx.wear.compose.material.Text
 //  support.
 @Composable
 fun ScrollableRowDemo() {
-    LocalTextInputService
     Column {
         NotScrollableLabel(Modifier.weight(1f))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .horizontalScroll(rememberScrollState())
-                .background(Color.Green.copy(alpha = 0.1f))
-                .padding(vertical = 24.dp)
+            modifier =
+                Modifier.fillMaxWidth()
+                    .wrapContentHeight()
+                    .horizontalScroll(rememberScrollState())
+                    .background(Color.Green.copy(alpha = 0.1f))
+                    .padding(vertical = 24.dp)
         ) {
             for (i in 0 until 100) {
                 Text("$i")
@@ -68,9 +66,6 @@ private fun NotScrollableLabel(modifier: Modifier) {
     Text(
         "Not scrollable",
         color = Color.Red,
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Red.copy(alpha = 0.1f))
-            .wrapContentSize()
+        modifier = modifier.fillMaxSize().background(Color.Red.copy(alpha = 0.1f)).wrapContentSize()
     )
 }

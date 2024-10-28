@@ -25,7 +25,7 @@ import androidx.compose.mpp.demo.Screen
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.uikit.LocalUIViewController
 import platform.AVFoundation.AVPlayer
 import platform.AVKit.AVPlayerViewController
 import platform.Foundation.NSURL

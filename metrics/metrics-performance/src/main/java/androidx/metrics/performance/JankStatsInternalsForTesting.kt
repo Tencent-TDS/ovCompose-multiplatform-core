@@ -23,8 +23,8 @@ import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
 
 /**
- * This class exists for calling into otherwise private/internal APIs in JankStats, to allow
- * for easier, more targeted testing of those internal pieces.
+ * This class exists for calling into otherwise private/internal APIs in JankStats, to allow for
+ * easier, more targeted testing of those internal pieces.
  */
 @VisibleForTesting
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -35,7 +35,6 @@ class JankStatsInternalsForTesting(val jankStats: JankStats) {
         performanceMetricsState.removeStateNow(stateName)
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     fun getFrameData(): FrameData? {
         when (impl) {
             is JankStatsApi16Impl -> {
@@ -55,7 +54,6 @@ class JankStatsInternalsForTesting(val jankStats: JankStats) {
         return null
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     fun logFrameData(frameData: FrameData) {
         jankStats.logFrameData(frameData)
     }

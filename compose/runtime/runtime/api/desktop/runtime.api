@@ -22,6 +22,7 @@ public final class androidx/compose/runtime/ActualJvm_jvmKt {
 }
 
 public abstract interface class androidx/compose/runtime/Applier {
+	public fun apply (Lkotlin/jvm/functions/Function2;Ljava/lang/Object;)V
 	public abstract fun clear ()V
 	public abstract fun down (Ljava/lang/Object;)V
 	public abstract fun getCurrent ()Ljava/lang/Object;
@@ -31,12 +32,15 @@ public abstract interface class androidx/compose/runtime/Applier {
 	public fun onBeginChanges ()V
 	public fun onEndChanges ()V
 	public abstract fun remove (II)V
+	public fun reuse ()V
 	public abstract fun up ()V
 }
 
 public final class androidx/compose/runtime/Applier$DefaultImpls {
+	public static fun apply (Landroidx/compose/runtime/Applier;Lkotlin/jvm/functions/Function2;Ljava/lang/Object;)V
 	public static fun onBeginChanges (Landroidx/compose/runtime/Applier;)V
 	public static fun onEndChanges (Landroidx/compose/runtime/Applier;)V
+	public static fun reuse (Landroidx/compose/runtime/Applier;)V
 }
 
 public final class androidx/compose/runtime/BroadcastFrameClock : androidx/compose/runtime/MonotonicFrameClock {
@@ -53,10 +57,6 @@ public final class androidx/compose/runtime/BroadcastFrameClock : androidx/compo
 	public fun plus (Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
 	public final fun sendFrame (J)V
 	public fun withFrameNanos (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-}
-
-public abstract interface annotation class androidx/compose/runtime/CheckResult : java/lang/annotation/Annotation {
-	public abstract fun suggest ()Ljava/lang/String;
 }
 
 public abstract interface annotation class androidx/compose/runtime/Composable : java/lang/annotation/Annotation {
@@ -169,6 +169,7 @@ public abstract interface class androidx/compose/runtime/Composer {
 	public abstract fun recordSideEffect (Lkotlin/jvm/functions/Function0;)V
 	public abstract fun recordUsed (Landroidx/compose/runtime/RecomposeScope;)V
 	public abstract fun rememberedValue ()Ljava/lang/Object;
+	public abstract fun shouldExecute (ZI)Z
 	public abstract fun skipCurrentGroup ()V
 	public abstract fun skipToGroupEnd ()V
 	public abstract fun sourceInformation (Ljava/lang/String;)V
@@ -227,9 +228,6 @@ public abstract interface class androidx/compose/runtime/Composition {
 public abstract class androidx/compose/runtime/CompositionContext {
 	public static final field $stable I
 	public abstract fun getEffectCoroutineContext ()Lkotlin/coroutines/CoroutineContext;
-}
-
-public abstract interface annotation class androidx/compose/runtime/CompositionContextLocal : java/lang/annotation/Annotation {
 }
 
 public final class androidx/compose/runtime/CompositionKt {
@@ -314,6 +312,7 @@ public abstract interface class androidx/compose/runtime/ControlledComposition :
 	public abstract fun recordModificationsOf (Ljava/util/Set;)V
 	public abstract fun recordReadOf (Ljava/lang/Object;)V
 	public abstract fun recordWriteOf (Ljava/lang/Object;)V
+	public abstract fun setShouldPauseCallback (Lkotlin/jvm/functions/Function0;)Lkotlin/jvm/functions/Function0;
 	public abstract fun verifyConsistent ()V
 }
 
@@ -536,6 +535,15 @@ public abstract interface annotation class androidx/compose/runtime/NonRestartab
 public abstract interface annotation class androidx/compose/runtime/NonSkippableComposable : java/lang/annotation/Annotation {
 }
 
+public abstract interface class androidx/compose/runtime/PausableComposition : androidx/compose/runtime/ReusableComposition {
+	public abstract fun setPausableContent (Lkotlin/jvm/functions/Function2;)Landroidx/compose/runtime/PausedComposition;
+	public abstract fun setPausableContentWithReuse (Lkotlin/jvm/functions/Function2;)Landroidx/compose/runtime/PausedComposition;
+}
+
+public final class androidx/compose/runtime/PausableCompositionKt {
+	public static final fun PausableComposition (Landroidx/compose/runtime/Applier;Landroidx/compose/runtime/CompositionContext;)Landroidx/compose/runtime/PausableComposition;
+}
+
 public final class androidx/compose/runtime/PausableMonotonicFrameClock : androidx/compose/runtime/MonotonicFrameClock {
 	public static final field $stable I
 	public fun <init> (Landroidx/compose/runtime/MonotonicFrameClock;)V
@@ -547,6 +555,13 @@ public final class androidx/compose/runtime/PausableMonotonicFrameClock : androi
 	public fun plus (Lkotlin/coroutines/CoroutineContext;)Lkotlin/coroutines/CoroutineContext;
 	public final fun resume ()V
 	public fun withFrameNanos (Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class androidx/compose/runtime/PausedComposition {
+	public abstract fun apply ()V
+	public abstract fun cancel ()V
+	public abstract fun isComplete ()Z
+	public abstract fun resume (Lkotlin/jvm/functions/Function0;)Z
 }
 
 public final class androidx/compose/runtime/PrimitiveSnapshotStateKt {
@@ -705,6 +720,8 @@ public final class androidx/compose/runtime/SnapshotStateKt {
 	public static final fun mutableStateMapOf ([Lkotlin/Pair;)Landroidx/compose/runtime/snapshots/SnapshotStateMap;
 	public static final fun mutableStateOf (Ljava/lang/Object;Landroidx/compose/runtime/SnapshotMutationPolicy;)Landroidx/compose/runtime/MutableState;
 	public static synthetic fun mutableStateOf$default (Ljava/lang/Object;Landroidx/compose/runtime/SnapshotMutationPolicy;ILjava/lang/Object;)Landroidx/compose/runtime/MutableState;
+	public static final fun mutableStateSetOf ()Landroidx/compose/runtime/snapshots/SnapshotStateSet;
+	public static final fun mutableStateSetOf ([Ljava/lang/Object;)Landroidx/compose/runtime/snapshots/SnapshotStateSet;
 	public static final fun neverEqualPolicy ()Landroidx/compose/runtime/SnapshotMutationPolicy;
 	public static final fun produceState (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
 	public static final fun produceState (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
@@ -818,6 +835,7 @@ public final class androidx/compose/runtime/collection/MutableVector : java/util
 	public final fun sortWith (Ljava/util/Comparator;)V
 	public final fun sumBy (Lkotlin/jvm/functions/Function1;)I
 	public final fun throwNoSuchElementException ()Ljava/lang/Void;
+	public final fun throwNoSuchElementException (Ljava/lang/String;)Ljava/lang/Void;
 }
 
 public abstract interface class androidx/compose/runtime/internal/ComposableLambda : kotlin/jvm/functions/Function10, kotlin/jvm/functions/Function11, kotlin/jvm/functions/Function13, kotlin/jvm/functions/Function14, kotlin/jvm/functions/Function15, kotlin/jvm/functions/Function16, kotlin/jvm/functions/Function17, kotlin/jvm/functions/Function18, kotlin/jvm/functions/Function19, kotlin/jvm/functions/Function2, kotlin/jvm/functions/Function20, kotlin/jvm/functions/Function21, kotlin/jvm/functions/Function3, kotlin/jvm/functions/Function4, kotlin/jvm/functions/Function5, kotlin/jvm/functions/Function6, kotlin/jvm/functions/Function7, kotlin/jvm/functions/Function8, kotlin/jvm/functions/Function9 {
@@ -1069,6 +1087,10 @@ public final class androidx/compose/runtime/snapshots/SnapshotStateList : androi
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class androidx/compose/runtime/snapshots/SnapshotStateListKt {
+	public static final fun SnapshotStateList (ILkotlin/jvm/functions/Function1;)Landroidx/compose/runtime/snapshots/SnapshotStateList;
+}
+
 public final class androidx/compose/runtime/snapshots/SnapshotStateMap : androidx/compose/runtime/snapshots/StateObject, java/util/Map, kotlin/jvm/internal/markers/KMutableMap {
 	public static final field $stable I
 	public fun <init> ()V
@@ -1107,6 +1129,29 @@ public final class androidx/compose/runtime/snapshots/SnapshotStateObserver {
 	public final fun withNoObservations (Lkotlin/jvm/functions/Function0;)V
 }
 
+public final class androidx/compose/runtime/snapshots/SnapshotStateSet : androidx/compose/runtime/snapshots/StateObject, java/util/RandomAccess, java/util/Set, kotlin/jvm/internal/markers/KMutableSet {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun add (Ljava/lang/Object;)Z
+	public fun addAll (Ljava/util/Collection;)Z
+	public fun clear ()V
+	public fun contains (Ljava/lang/Object;)Z
+	public fun containsAll (Ljava/util/Collection;)Z
+	public fun getFirstStateRecord ()Landroidx/compose/runtime/snapshots/StateRecord;
+	public fun getSize ()I
+	public fun isEmpty ()Z
+	public fun iterator ()Ljava/util/Iterator;
+	public fun prependStateRecord (Landroidx/compose/runtime/snapshots/StateRecord;)V
+	public fun remove (Ljava/lang/Object;)Z
+	public fun removeAll (Ljava/util/Collection;)Z
+	public fun retainAll (Ljava/util/Collection;)Z
+	public final fun size ()I
+	public fun toArray ()[Ljava/lang/Object;
+	public fun toArray ([Ljava/lang/Object;)[Ljava/lang/Object;
+	public final fun toSet ()Ljava/util/Set;
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface annotation class androidx/compose/runtime/snapshots/StateFactoryMarker : java/lang/annotation/Annotation {
 }
 
@@ -1125,6 +1170,26 @@ public abstract class androidx/compose/runtime/snapshots/StateRecord {
 	public fun <init> ()V
 	public abstract fun assign (Landroidx/compose/runtime/snapshots/StateRecord;)V
 	public abstract fun create ()Landroidx/compose/runtime/snapshots/StateRecord;
+}
+
+public final class androidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getReadObserver ()Lkotlin/jvm/functions/Function1;
+	public final fun getWriteObserver ()Lkotlin/jvm/functions/Function1;
+}
+
+public abstract interface class androidx/compose/runtime/snapshots/tooling/SnapshotObserver {
+	public fun onApplied (Landroidx/compose/runtime/snapshots/Snapshot;Ljava/util/Set;)V
+	public fun onCreated (Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;)V
+	public fun onCreating (Landroidx/compose/runtime/snapshots/Snapshot;Z)Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;
+	public fun onDisposing (Landroidx/compose/runtime/snapshots/Snapshot;)V
+}
+
+public final class androidx/compose/runtime/snapshots/tooling/SnapshotObserverKt {
+	public static final fun observeSnapshots (Landroidx/compose/runtime/snapshots/Snapshot$Companion;Landroidx/compose/runtime/snapshots/tooling/SnapshotObserver;)Landroidx/compose/runtime/snapshots/ObserverHandle;
 }
 
 public abstract interface class androidx/compose/runtime/tooling/CompositionData {

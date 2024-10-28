@@ -28,4 +28,5 @@ internal fun Translations.sw() = mapOf(
     Strings.DefaultErrorMessage to "Ulichoweka si sahihi",
     Strings.SliderRangeStart to "Mwanzo wa masafa",
     Strings.SliderRangeEnd to "Mwisho wa masafa",
+    Strings.SnackbarPaneTitle to "Arifa",
 )

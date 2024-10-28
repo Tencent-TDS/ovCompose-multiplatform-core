@@ -28,4 +28,5 @@ internal fun Translations.sl() = mapOf(
     Strings.DefaultErrorMessage to "Neveljaven vnos",
     Strings.SliderRangeStart to "Začetek razpona",
     Strings.SliderRangeEnd to "Konec razpona",
+    Strings.SnackbarPaneTitle to "Opozorilo",
 )

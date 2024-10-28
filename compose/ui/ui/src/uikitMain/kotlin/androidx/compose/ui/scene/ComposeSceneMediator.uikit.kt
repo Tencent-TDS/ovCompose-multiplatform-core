@@ -51,7 +51,6 @@ import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
@@ -135,11 +134,11 @@ private class SemanticsOwnerListenerImpl(
     private val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
-    var current: Pair<SemanticsOwner, AccessibilityMediator>? = null
+    private var mediator: AccessibilityMediator? = null
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
-        if (current == null) {
-            current = semanticsOwner to AccessibilityMediator(
+        if (mediator == null) {
+            mediator = AccessibilityMediator(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
@@ -151,28 +150,27 @@ private class SemanticsOwnerListenerImpl(
     }
 
     override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
-        val current = current ?: return
-
-        if (current.first == semanticsOwner) {
-            current.second.dispose()
-            this.current = null
+        if (mediator?.owner == semanticsOwner) {
+            mediator?.dispose()
+            mediator = null
         }
     }
 
     override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
-        val current = current ?: return
-
-        if (current.first == semanticsOwner) {
-            current.second.onSemanticsChange()
+        if (mediator?.owner == semanticsOwner) {
+            mediator?.onSemanticsChange()
         }
     }
 
     override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) {
-        val current = current ?: return
-
-        if (current.first == semanticsOwner) {
-            current.second.onLayoutChange(nodeId = semanticsNodeId)
+        if (mediator?.owner == semanticsOwner) {
+            mediator?.onLayoutChange(nodeId = semanticsNodeId)
         }
+    }
+
+    fun dispose() {
+        mediator?.dispose()
+        mediator = null
     }
 }
 
@@ -279,9 +277,7 @@ internal class ComposeSceneMediator(
 
     private val dragAndDropManager = UIKitDragAndDropManager(
         view = userInputView,
-        getDragAndDropTarget = {
-            scene.dragAndDropTarget
-        }
+        getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
     )
 
     /**
@@ -591,9 +587,12 @@ internal class ComposeSceneMediator(
 
         scene.close()
         interopContainer.dispose()
+        semanticsOwnerListener.dispose()
     }
 
-    private fun setNeedsRedraw() = redrawer.setNeedsRedraw()
+    private fun setNeedsRedraw() {
+        redrawer.setNeedsRedraw()
+    }
 
     /**
      * Updates the [ComposeScene] with the properties derived from the [view].

@@ -28,4 +28,5 @@ internal fun Translations.ru() = mapOf(
     Strings.DefaultErrorMessage to "Неправильный ввод",
     Strings.SliderRangeStart to "Начало диапазона",
     Strings.SliderRangeEnd to "Конец диапазона",
+    Strings.SnackbarPaneTitle to "Оповещение",
 )

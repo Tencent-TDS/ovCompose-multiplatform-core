@@ -84,8 +84,9 @@ public final class androidx/navigation/NavDeepLink {
 	public fun <init> (Ljava/lang/String;)V
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getAction ()Ljava/lang/String;
-	public final fun getMatchingArguments (Ljava/lang/String;Ljava/util/Map;)Landroidx/core/bundle/Bundle;
+	public final fun getMatchingArguments (Landroidx/core/uri/Uri;Ljava/util/Map;)Landroidx/core/bundle/Bundle;
 	public final fun getMimeType ()Ljava/lang/String;
+	public final fun getMimeTypeMatchRating (Ljava/lang/String;)I
 	public final fun getUriPattern ()Ljava/lang/String;
 	public fun hashCode ()I
 	public final fun isExactDeepLink ()Z
@@ -122,6 +123,31 @@ public final class androidx/navigation/NavDeepLinkDslBuilderKt {
 	public static final fun navDeepLink (Lkotlin/jvm/functions/Function1;)Landroidx/navigation/NavDeepLink;
 }
 
+public class androidx/navigation/NavDeepLinkRequest {
+	public fun <init> (Landroidx/core/uri/Uri;Ljava/lang/String;Ljava/lang/String;)V
+	public fun getAction ()Ljava/lang/String;
+	public fun getMimeType ()Ljava/lang/String;
+	public fun getUri ()Landroidx/core/uri/Uri;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class androidx/navigation/NavDeepLinkRequest$Builder {
+	public static final field Companion Landroidx/navigation/NavDeepLinkRequest$Builder$Companion;
+	public final fun build ()Landroidx/navigation/NavDeepLinkRequest;
+	public static final fun fromAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public static final fun fromMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public static final fun fromUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun setAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun setMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun setUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+}
+
+public final class androidx/navigation/NavDeepLinkRequest$Builder$Companion {
+	public final fun fromAction (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun fromMimeType (Ljava/lang/String;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+	public final fun fromUri (Landroidx/core/uri/Uri;)Landroidx/navigation/NavDeepLinkRequest$Builder;
+}
+
 public class androidx/navigation/NavDestination {
 	public static final field Companion Landroidx/navigation/NavDestination$Companion;
 	public fun <init> (Landroidx/navigation/Navigator;)V
@@ -130,6 +156,8 @@ public class androidx/navigation/NavDestination {
 	public final fun addDeepLink (Landroidx/navigation/NavDeepLink;)V
 	public final fun addDeepLink (Ljava/lang/String;)V
 	public final fun addInDefaultArgs (Landroidx/core/bundle/Bundle;)Landroidx/core/bundle/Bundle;
+	public final fun buildDeepLinkDestinations (Landroidx/navigation/NavDestination;)Ljava/util/List;
+	public static synthetic fun buildDeepLinkDestinations$default (Landroidx/navigation/NavDestination;Landroidx/navigation/NavDestination;ILjava/lang/Object;)Ljava/util/List;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getArguments ()Ljava/util/Map;
 	public fun getDisplayName ()Ljava/lang/String;
@@ -140,9 +168,12 @@ public class androidx/navigation/NavDestination {
 	public final fun getNavigatorName ()Ljava/lang/String;
 	public final fun getParent ()Landroidx/navigation/NavGraph;
 	public final fun getRoute ()Ljava/lang/String;
+	public fun hasDeepLink (Landroidx/core/uri/Uri;)Z
+	public fun hasDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Z
 	public static final fun hasRoute (Landroidx/navigation/NavDestination;Lkotlin/reflect/KClass;)Z
 	public final fun hasRoute (Ljava/lang/String;Landroidx/core/bundle/Bundle;)Z
 	public fun hashCode ()I
+	public fun matchDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Landroidx/navigation/NavDestination$DeepLinkMatch;
 	public final fun matchDeepLink (Ljava/lang/String;)Landroidx/navigation/NavDestination$DeepLinkMatch;
 	public final fun removeArgument (Ljava/lang/String;)V
 	public final fun setId (I)V
@@ -211,9 +242,8 @@ public class androidx/navigation/NavGraph : androidx/navigation/NavDestination, 
 	public final fun getStartDestinationRoute ()Ljava/lang/String;
 	public fun hashCode ()I
 	public final fun iterator ()Ljava/util/Iterator;
-	public final fun matchDeepLinkComprehensive (Ljava/lang/String;ZZLandroidx/navigation/NavDestination;)Landroidx/navigation/NavDestination$DeepLinkMatch;
-	public fun matchDeepLinkRequest (Ljava/lang/String;)Landroidx/navigation/NavDestination$DeepLinkMatch;
-	public synthetic fun matchDeepLinkRequest$navigation_common (Ljava/lang/String;)Landroidx/navigation/NavDestination$DeepLinkMatch;
+	public fun matchDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Landroidx/navigation/NavDestination$DeepLinkMatch;
+	public final fun matchDeepLinkComprehensive (Landroidx/navigation/NavDeepLinkRequest;ZZLandroidx/navigation/NavDestination;)Landroidx/navigation/NavDestination$DeepLinkMatch;
 	public final fun remove (Landroidx/navigation/NavDestination;)V
 	public final fun setStartDestination (I)V
 	public final fun setStartDestination (Ljava/lang/Object;)V

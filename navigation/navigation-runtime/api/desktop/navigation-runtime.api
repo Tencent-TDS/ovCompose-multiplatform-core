@@ -5,6 +5,7 @@ public class androidx/navigation/NavController {
 	public final fun clearBackStack (I)Z
 	public final fun clearBackStack (Ljava/lang/Object;)Z
 	public final fun clearBackStack (Ljava/lang/String;)Z
+	public static final fun enableDeepLinkSaveState (Z)V
 	public final fun findDestination (I)Landroidx/navigation/NavDestination;
 	public final fun findDestination (Ljava/lang/String;)Landroidx/navigation/NavDestination;
 	public final fun findDestinationComprehensive (Landroidx/navigation/NavDestination;IZ)Landroidx/navigation/NavDestination;
@@ -18,6 +19,13 @@ public class androidx/navigation/NavController {
 	public fun getNavigatorProvider ()Landroidx/navigation/NavigatorProvider;
 	public fun getPreviousBackStackEntry ()Landroidx/navigation/NavBackStackEntry;
 	public final fun getVisibleEntries ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun handleDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Z
+	public fun navigate (Landroidx/core/uri/Uri;)V
+	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;)V
+	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
+	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;)V
+	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;)V
+	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
 	public final fun navigate (Ljava/lang/Object;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
@@ -49,6 +57,7 @@ public class androidx/navigation/NavController {
 }
 
 public final class androidx/navigation/NavController$Companion {
+	public final fun enableDeepLinkSaveState (Z)V
 }
 
 public abstract interface class androidx/navigation/NavController$OnDestinationChangedListener {
@@ -62,6 +71,9 @@ public final class androidx/navigation/NavControllerKt {
 	public static synthetic fun createGraph$default (Landroidx/navigation/NavController;Ljava/lang/Object;Lkotlin/reflect/KClass;Ljava/util/Map;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/navigation/NavGraph;
 	public static synthetic fun createGraph$default (Landroidx/navigation/NavController;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/navigation/NavGraph;
 	public static synthetic fun createGraph$default (Landroidx/navigation/NavController;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;Ljava/util/Map;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/navigation/NavGraph;
+}
+
+public abstract interface annotation class androidx/navigation/NavDeepLinkSaveStateControl : java/lang/annotation/Annotation {
 }
 
 public abstract interface class androidx/navigation/NavHost {

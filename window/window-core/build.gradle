@@ -77,7 +77,7 @@ kotlin {
                 implementation(libs.kotlinCoroutinesCore)
                 // TODO remove when https://youtrack.jetbrains.com/issue/KT-62368/Kotlin-1.9.X-fails-to-detect-kotlin.test.Test-annotation-reference-on-commonTest-source-set-when-targeting-JVMAndroid
                 // is fixed
-                implementation(libs.kotlinTestJunit)
+                implementation(libs.kotlinTest)
             }
         }
 
@@ -105,6 +105,7 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "WindowManager Core Library."
+    legacyDisableKotlinStrictApiMode = true
 }
 
 java {

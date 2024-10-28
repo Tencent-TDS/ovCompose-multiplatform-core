@@ -17,25 +17,29 @@
 package androidx.room.ext
 
 import androidx.room.compiler.processing.XElement
-import androidx.room.compiler.processing.XFieldElement
+import androidx.room.compiler.processing.XExecutableParameterElement
 import androidx.room.compiler.processing.XTypeElement
 import kotlin.contracts.contract
 
 fun XElement.isEntityElement(): Boolean {
-    contract {
-        returns(true) implies (this@isEntityElement is XTypeElement)
-    }
+    contract { returns(true) implies (this@isEntityElement is XTypeElement) }
     return this.hasAnnotation(androidx.room.Entity::class)
 }
 
-fun XTypeElement.getValueClassUnderlyingProperty(): XFieldElement {
+fun XTypeElement.getValueClassUnderlyingElement(): XExecutableParameterElement {
     check(this.isValueClass()) {
         "Can't get value class property, type element '$this' is not a value class"
     }
-    return this.getDeclaredFields().single()
+    // Kotlin states:
+    // * Primary constructor is required for value class
+    // * Value class must have exactly one primary constructor parameter
+    // * Value class primary constructor must only have final read-only (val) property parameter
+    return checkNotNull(this.findPrimaryConstructor()) {
+            "Couldn't find primary constructor for value class."
+        }
+        .parameters
+        .single()
 }
 
-/**
- * Suffix of the Kotlin synthetic class created interface method implementations.
- */
+/** Suffix of the Kotlin synthetic class created interface method implementations. */
 const val DEFAULT_IMPLS_CLASS_NAME = "DefaultImpls"

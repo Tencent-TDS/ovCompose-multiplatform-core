@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.layout.transformToScreen
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
@@ -57,8 +58,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class AndroidComposeViewScreenCoordinatesTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private lateinit var windowManager: WindowManager
     private lateinit var view: TestView
@@ -73,21 +73,21 @@ class AndroidComposeViewScreenCoordinatesTest {
                     hostView.context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
                 view = TestView(hostView)
                 @Suppress("DEPRECATION")
-                val layoutParams = LayoutParams().also {
-                    it.x = 0
-                    it.y = 0
-                    it.width = LayoutParams.WRAP_CONTENT
-                    it.height = LayoutParams.WRAP_CONTENT
-                    it.type = LayoutParams.TYPE_APPLICATION
-                    // Fullscreen to avoid accounting for system decorations.
-                    it.flags = LayoutParams.FLAG_LAYOUT_NO_LIMITS or LayoutParams.FLAG_FULLSCREEN
-                    it.gravity = Gravity.LEFT or Gravity.TOP
-                }
+                val layoutParams =
+                    LayoutParams().also {
+                        it.x = 0
+                        it.y = 0
+                        it.width = LayoutParams.WRAP_CONTENT
+                        it.height = LayoutParams.WRAP_CONTENT
+                        it.type = LayoutParams.TYPE_APPLICATION
+                        // Fullscreen to avoid accounting for system decorations.
+                        it.flags =
+                            LayoutParams.FLAG_LAYOUT_NO_LIMITS or LayoutParams.FLAG_FULLSCREEN
+                        it.gravity = Gravity.LEFT or Gravity.TOP
+                    }
                 windowManager.addView(view, layoutParams)
 
-                onDispose {
-                    windowManager.removeView(view)
-                }
+                onDispose { windowManager.removeView(view) }
             }
         }
     }
@@ -288,8 +288,7 @@ class AndroidComposeViewScreenCoordinatesTest {
         @Composable
         override fun Content() {
             Box(
-                Modifier
-                    .background(Color.Blue)
+                Modifier.background(Color.Blue)
                     .layout { measurable, _ ->
                         val placeable = measurable.measure(Constraints.fixed(10, 10))
                         layout(

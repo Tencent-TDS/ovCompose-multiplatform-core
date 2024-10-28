@@ -30,6 +30,7 @@ import androidx.compose.ui.text.ceilToInt
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import kotlin.jvm.JvmMultifileClass
@@ -61,7 +62,7 @@ internal actual fun ActualParagraph(
         createFontFamilyResolver(resourceLoader)
     ),
     maxLines,
-    ellipsis,
+    if (ellipsis) TextOverflow.Ellipsis else TextOverflow.Clip,
     Constraints(maxWidth = width.ceilToInt())
 )
 
@@ -71,7 +72,7 @@ internal actual fun ActualParagraph(
     spanStyles: List<Range<SpanStyle>>,
     placeholders: List<Range<Placeholder>>,
     maxLines: Int,
-    ellipsis: Boolean,
+    overflow: TextOverflow,
     constraints: Constraints,
     density: Density,
     fontFamilyResolver: FontFamily.Resolver
@@ -85,18 +86,18 @@ internal actual fun ActualParagraph(
         fontFamilyResolver
     ),
     maxLines,
-    ellipsis,
+    overflow,
     constraints
 )
 
 internal actual fun ActualParagraph(
     paragraphIntrinsics: ParagraphIntrinsics,
     maxLines: Int,
-    ellipsis: Boolean,
+    overflow: TextOverflow,
     constraints: Constraints
 ): Paragraph = SkiaParagraph(
     paragraphIntrinsics as SkiaParagraphIntrinsics,
     maxLines,
-    ellipsis,
+    overflow,
     constraints
 )

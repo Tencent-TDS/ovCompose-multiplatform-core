@@ -28,4 +28,5 @@ internal fun Translations.hr() = mapOf(
     Strings.DefaultErrorMessage to "Nevažeći unos",
     Strings.SliderRangeStart to "Početak raspona",
     Strings.SliderRangeEnd to "Kraj raspona",
+    Strings.SnackbarPaneTitle to "Upozorenje",
 )

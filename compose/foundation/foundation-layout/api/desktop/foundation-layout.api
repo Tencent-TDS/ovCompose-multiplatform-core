@@ -131,7 +131,9 @@ public final class androidx/compose/foundation/layout/ContextualFlowColumnOverfl
 public abstract interface class androidx/compose/foundation/layout/ContextualFlowColumnOverflowScope : androidx/compose/foundation/layout/FlowColumnOverflowScope {
 }
 
-public abstract interface class androidx/compose/foundation/layout/ContextualFlowColumnScope : androidx/compose/foundation/layout/FlowColumnScope {
+public abstract interface class androidx/compose/foundation/layout/ContextualFlowColumnScope : androidx/compose/foundation/layout/ColumnScope {
+	public abstract fun fillMaxColumnWidth (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
+	public static synthetic fun fillMaxColumnWidth$default (Landroidx/compose/foundation/layout/ContextualFlowColumnScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public abstract fun getIndexInLine ()I
 	public abstract fun getLineIndex ()I
 	public abstract fun getMaxHeightInLine-D9Ej5fM ()F
@@ -139,8 +141,8 @@ public abstract interface class androidx/compose/foundation/layout/ContextualFlo
 }
 
 public final class androidx/compose/foundation/layout/ContextualFlowLayoutKt {
-	public static final fun ContextualFlowColumn (ILandroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;IILandroidx/compose/foundation/layout/ContextualFlowColumnOverflow;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
-	public static final fun ContextualFlowRow (ILandroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;IILandroidx/compose/foundation/layout/ContextualFlowRowOverflow;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ContextualFlowColumn (ILandroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Horizontal;IILandroidx/compose/foundation/layout/ContextualFlowColumnOverflow;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ContextualFlowRow (ILandroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Vertical;IILandroidx/compose/foundation/layout/ContextualFlowRowOverflow;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/foundation/layout/ContextualFlowRowOverflow : androidx/compose/foundation/layout/FlowLayoutOverflow {
@@ -159,7 +161,9 @@ public final class androidx/compose/foundation/layout/ContextualFlowRowOverflow$
 public abstract interface class androidx/compose/foundation/layout/ContextualFlowRowOverflowScope : androidx/compose/foundation/layout/FlowRowOverflowScope {
 }
 
-public abstract interface class androidx/compose/foundation/layout/ContextualFlowRowScope : androidx/compose/foundation/layout/FlowRowScope {
+public abstract interface class androidx/compose/foundation/layout/ContextualFlowRowScope : androidx/compose/foundation/layout/RowScope {
+	public abstract fun fillMaxRowHeight (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
+	public static synthetic fun fillMaxRowHeight$default (Landroidx/compose/foundation/layout/ContextualFlowRowScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public abstract fun getIndexInLine ()I
 	public abstract fun getLineIndex ()I
 	public abstract fun getMaxHeight-D9Ej5fM ()F
@@ -193,8 +197,8 @@ public abstract interface class androidx/compose/foundation/layout/FlowColumnSco
 }
 
 public final class androidx/compose/foundation/layout/FlowLayoutKt {
-	public static final fun FlowColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;IILandroidx/compose/foundation/layout/FlowColumnOverflow;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-	public static final fun FlowRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;IILandroidx/compose/foundation/layout/FlowRowOverflow;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun FlowColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Horizontal;IILandroidx/compose/foundation/layout/FlowColumnOverflow;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun FlowRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Vertical;IILandroidx/compose/foundation/layout/FlowRowOverflow;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun columnMeasurementHelper (Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;ILandroidx/compose/runtime/Composer;I)Landroidx/compose/ui/layout/MeasurePolicy;
 	public static final fun rowMeasurementHelper (Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;ILandroidx/compose/runtime/Composer;I)Landroidx/compose/ui/layout/MeasurePolicy;
 }
@@ -396,6 +400,7 @@ public final class androidx/compose/foundation/layout/WindowInsetsPaddingKt {
 	public static final fun consumeWindowInsets (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;)Landroidx/compose/ui/Modifier;
 	public static final fun consumeWindowInsets (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/WindowInsets;)Landroidx/compose/ui/Modifier;
 	public static final fun onConsumedWindowInsetsChanged (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+	public static final fun recalculateWindowInsets (Landroidx/compose/ui/Modifier;)Landroidx/compose/ui/Modifier;
 	public static final fun windowInsetsPadding (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/WindowInsets;)Landroidx/compose/ui/Modifier;
 }
 

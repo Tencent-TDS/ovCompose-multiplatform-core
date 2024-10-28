@@ -28,4 +28,5 @@ internal fun Translations.ky() = mapOf(
     Strings.DefaultErrorMessage to "Киргизилген маалымат жараксыз",
     Strings.SliderRangeStart to "Диапазондун башы",
     Strings.SliderRangeEnd to "Диапазондун аягы",
+    Strings.SnackbarPaneTitle to "Эскертүү",
 )

@@ -30,10 +30,8 @@ import androidx.compose.ui.text.font.GenericFontFamily
 import androidx.compose.ui.text.font.LoadedFontFamily
 import androidx.compose.ui.text.font.Typeface
 import androidx.compose.ui.text.font.createFontFamilyResolver
-import org.jetbrains.skia.FontMgr
 import org.jetbrains.skia.FontMgrWithFallback
 import org.jetbrains.skia.paragraph.FontCollection
-import org.jetbrains.skia.paragraph.TypefaceFontProvider
 import org.jetbrains.skia.paragraph.TypefaceFontProviderWithFallback
 
 expect sealed class PlatformFont() : Font {
@@ -174,8 +172,10 @@ fun Typeface(typeface: SkTypeface, alias: String? = null): Typeface {
 )
 class FontLoader : Font.ResourceLoader {
 
-    internal val fontCache: FontCache = FontCache()
-    internal val fontFamilyResolver: FontFamily.Resolver = createFontFamilyResolver(fontCache)
+    private val fontCache: FontCache by lazy { FontCache() }
+    internal val fontFamilyResolver: FontFamily.Resolver by lazy {
+        createFontFamilyResolver(fontCache)
+    }
 
     // TODO: we need to support:
     //  1. font collection (.ttc). Looks like skia currently doesn't have

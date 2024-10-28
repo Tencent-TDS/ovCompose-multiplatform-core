@@ -47,6 +47,7 @@ class CallListAdapter(
         val callIdTextView: TextView = itemView.findViewById(R.id.callIdTextView)
         val currentState: TextView = itemView.findViewById(R.id.callStateTextView)
         val currentEndpoint: TextView = itemView.findViewById(R.id.endpointStateTextView)
+        val participants: TextView = itemView.findViewById(R.id.participantsTextView)
 
         // Call State Buttons
         val activeButton: Button = itemView.findViewById(R.id.activeButton)
@@ -54,15 +55,18 @@ class CallListAdapter(
         val disconnectButton: Button = itemView.findViewById(R.id.disconnectButton)
 
         // Call Audio Buttons
-        val earpieceButton: Button = itemView.findViewById(R.id.earpieceButton)
+        val earpieceButton: Button = itemView.findViewById(R.id.selectEndpointButton)
         val speakerButton: Button = itemView.findViewById(R.id.speakerButton)
         val bluetoothButton: Button = itemView.findViewById(R.id.bluetoothButton)
+
+        // Participant Buttons
+        val addParticipantButton: Button = itemView.findViewById(R.id.addParticipantButton)
+        val removeParticipantButton: Button = itemView.findViewById(R.id.removeParticipantButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         // inflates the card_view_design view that is used to hold list item
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.call_row, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.call_row, parent, false)
 
         return ViewHolder(view)
     }
@@ -93,7 +97,6 @@ class CallListAdapter(
                         is CallControlResult.Success -> {
                             holder.currentState.text = "CurrentState=[active]"
                         }
-
                         is CallControlResult.Error -> {
                             holder.currentState.text = CONTROL_ACTION_FAILED_MSG
                         }
@@ -109,7 +112,6 @@ class CallListAdapter(
                         is CallControlResult.Success -> {
                             holder.currentState.text = "CurrentState=[onHold]"
                         }
-
                         is CallControlResult.Error -> {
                             holder.currentState.text = CONTROL_ACTION_FAILED_MSG
                         }
@@ -121,9 +123,7 @@ class CallListAdapter(
                 CoroutineScope(Dispatchers.IO).launch {
                     endAudioRecording()
                     ItemsViewModel.callObject.mCallControl?.disconnect(
-                        DisconnectCause(
-                            DisconnectCause.LOCAL
-                        )
+                        DisconnectCause(DisconnectCause.LOCAL)
                     )
                 }
                 holder.currentState.text = "CurrentState=[null]"
@@ -144,12 +144,14 @@ class CallListAdapter(
             }
             holder.speakerButton.setOnClickListener {
                 CoroutineScope(Dispatchers.Main).launch {
-                    val speakerEndpoint = ItemsViewModel.callObject
-                        .getEndpointType(CallEndpoint.TYPE_SPEAKER)
+                    val speakerEndpoint =
+                        ItemsViewModel.callObject.getEndpointType(CallEndpoint.TYPE_SPEAKER)
                     if (speakerEndpoint != null) {
-                        when (ItemsViewModel.callObject.mCallControl!!.requestEndpointChange(
-                            speakerEndpoint
-                        )) {
+                        when (
+                            ItemsViewModel.callObject.mCallControl!!.requestEndpointChange(
+                                speakerEndpoint
+                            )
+                        ) {
                             is CallControlResult.Success -> {
                                 holder.currentState.text = "CurrentState=[speaker]"
                             }
@@ -163,12 +165,14 @@ class CallListAdapter(
 
             holder.bluetoothButton.setOnClickListener {
                 CoroutineScope(Dispatchers.Main).launch {
-                    val bluetoothEndpoint = ItemsViewModel.callObject
-                        .getEndpointType(CallEndpoint.TYPE_BLUETOOTH)
+                    val bluetoothEndpoint =
+                        ItemsViewModel.callObject.getEndpointType(CallEndpoint.TYPE_BLUETOOTH)
                     if (bluetoothEndpoint != null) {
-                        when (ItemsViewModel.callObject.mCallControl!!.requestEndpointChange(
-                            bluetoothEndpoint
-                        )) {
+                        when (
+                            ItemsViewModel.callObject.mCallControl!!.requestEndpointChange(
+                                bluetoothEndpoint
+                            )
+                        ) {
                             is CallControlResult.Success -> {
                                 holder.currentEndpoint.text =
                                     "currentEndpoint=[BT:${bluetoothEndpoint.name}]"
@@ -181,6 +185,25 @@ class CallListAdapter(
                     }
                 }
             }
+
+            holder.addParticipantButton.setOnClickListener {
+                CoroutineScope(Dispatchers.Main).launch {
+                    ItemsViewModel.callObject.mParticipantControl?.onParticipantAdded?.invoke()
+                }
+            }
+
+            holder.removeParticipantButton.setOnClickListener {
+                CoroutineScope(Dispatchers.Main).launch {
+                    ItemsViewModel.callObject.mParticipantControl?.onParticipantRemoved?.invoke()
+                }
+            }
+        }
+    }
+
+    fun updateParticipants(callId: String, participants: List<ParticipantState>) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val holder = mCallIdToViewHolder[callId]
+            holder?.participants?.text = "participants=[${printParticipants(participants)}]"
         }
     }
 
@@ -196,6 +219,32 @@ class CallListAdapter(
             val holder = mCallIdToViewHolder[callId]
             holder?.currentEndpoint?.text = "currentEndpoint=[$endpoint]"
         }
+    }
+
+    private fun printParticipants(participants: List<ParticipantState>): String {
+        if (participants.isEmpty()) return "<NONE>"
+        val builder = StringBuilder()
+        val iterator = participants.iterator()
+        while (iterator.hasNext()) {
+            val participant = iterator.next()
+            builder.append("<")
+            if (participant.isActive) {
+                builder.append(" * ")
+            }
+            builder.append(participant.name)
+            if (participant.isSelf) {
+                builder.append("(me)")
+            }
+            if (participant.isHandRaised) {
+                builder.append(" ")
+                builder.append("(RH)")
+            }
+            builder.append(">")
+            if (iterator.hasNext()) {
+                builder.append(", ")
+            }
+        }
+        return builder.toString()
     }
 
     private fun endAudioRecording() {

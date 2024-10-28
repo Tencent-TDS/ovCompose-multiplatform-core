@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION") // Suppress for WindowWidthSizeClass
+
 package androidx.compose.material3.adaptive.navigationsuite.samples
 
 import androidx.annotation.Sampled
@@ -76,18 +78,20 @@ fun NavigationSuiteScaffoldSample() {
 @Preview
 @Sampled
 @Composable
+@Suppress("DEPRECATION") // WindowWidthSizeClass is deprecated
 fun NavigationSuiteScaffoldCustomConfigSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val navItems = listOf("Songs", "Artists", "Playlists")
     val adaptiveInfo = currentWindowAdaptiveInfo()
     // Custom configuration that shows a navigation drawer in large screens.
-    val customNavSuiteType = with(adaptiveInfo) {
-        if (windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED) {
-            NavigationSuiteType.NavigationDrawer
-        } else {
-            NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+    val customNavSuiteType =
+        with(adaptiveInfo) {
+            if (windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED) {
+                NavigationSuiteType.NavigationDrawer
+            } else {
+                NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+            }
         }
-    }
 
     NavigationSuiteScaffold(
         layoutType = customNavSuiteType,

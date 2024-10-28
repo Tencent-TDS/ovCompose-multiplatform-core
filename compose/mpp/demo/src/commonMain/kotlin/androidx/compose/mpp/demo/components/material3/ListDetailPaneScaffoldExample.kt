@@ -28,14 +28,17 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun ListDetailPaneScaffoldExample() {
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
+    val coroutineScope = rememberCoroutineScope()
     ListDetailPaneScaffold(
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
@@ -47,7 +50,12 @@ fun ListDetailPaneScaffoldExample() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, item)
+                                    coroutineScope.launch {
+                                        navigator.navigateTo(
+                                            ListDetailPaneScaffoldRole.Detail,
+                                            item
+                                        )
+                                    }
                                 }
                                 .padding(16.dp),
                             text = "Item $item"
@@ -59,7 +67,7 @@ fun ListDetailPaneScaffoldExample() {
         detailPane = {
             AnimatedPane {
                 // Show the detail pane content if selected item is available
-                navigator.currentDestination?.content?.let {
+                navigator.currentDestination?.contentKey?.let {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center

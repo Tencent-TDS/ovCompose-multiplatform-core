@@ -26,14 +26,17 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.PlatformDragAndDropSource
 import androidx.compose.ui.platform.toUIImage
-import androidx.compose.ui.scene.ComposeSceneDragAndDropTarget
+import androidx.compose.ui.scene.ComposeSceneDragAndDropNode
 import androidx.compose.ui.uikit.utils.CMPDragInteractionProxy
 import androidx.compose.ui.uikit.utils.CMPDropInteractionProxy
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.UserInputView
 import kotlin.math.roundToInt
 import kotlinx.cinterop.readValue
@@ -163,9 +166,12 @@ internal class DropSessionContext(
  * context between iOS and Compose.
  */
 internal class UIKitDragAndDropManager(
-    val view: UserInputView,
-    val getDragAndDropTarget: () -> ComposeSceneDragAndDropTarget
+    private val view: UserInputView,
+    private val getComposeRootDragAndDropNode: () -> ComposeSceneDragAndDropNode
 ) : PlatformDragAndDropManager {
+    private val rootNode: ComposeSceneDragAndDropNode
+        get() = getComposeRootDragAndDropNode()
+
     /**
      * Context for an ongoing drag session initiated from Compose.
      */
@@ -190,41 +196,35 @@ internal class UIKitDragAndDropManager(
         override fun itemsForBeginningSession(
             session: UIDragSessionProtocol, interaction: UIDragInteraction
         ): List<*> {
-            // TODO: temporary stubs
-            return emptyList<UIDragItem>()
-//            val scope = object : DragAndDropSourceScope {
-//                override fun startDragAndDropTransfer(
-//                    transferData: DragAndDropTransferData,
-//                    decorationSize: Size,
-//                    drawDragDecoration: DrawScope.() -> Unit
-//                ): Boolean {
-//                    dragSessionContext = DragSessionContext(
-//                        transferData = transferData,
-//                        decorationSize = decorationSize,
-//                        drawDragDecoration = drawDragDecoration
-//                    )
-//                    return true
-//                }
-//            }
-//
-//            val density = Density(density = view.window?.screen?.scale?.toFloat() ?: 1f)
-//            val offset = session
-//                .locationInView(view)
-//                .useContents {
-//                    asDpOffset()
-//                }
-//                .toOffset(density)
-//
-//            with(rootDragAndDropNode) {
-//                scope.startDragAndDropTransfer(
-//                    offset = offset,
-//                    isTransferStarted = {
-//                        dragSessionContext != null
-//                    }
-//                )
-//            }
-//
-//            return dragSessionContext?.transferData?.items ?: emptyList<UIDragItem>()
+            val startTransferScope = object : PlatformDragAndDropSource.StartTransferScope {
+                override fun startDragAndDropTransfer(
+                    transferData: DragAndDropTransferData,
+                    decorationSize: Size,
+                    drawDragDecoration: DrawScope.() -> Unit
+                ): Boolean {
+                    dragSessionContext = DragSessionContext(
+                        transferData = transferData,
+                        decorationSize = decorationSize,
+                        drawDragDecoration = drawDragDecoration
+                    )
+                    return true
+                }
+            }
+
+            val density = Density(density = view.window?.screen?.scale?.toFloat() ?: 1f)
+            val offset = session
+                .locationInView(view)
+                .useContents { asDpOffset() }
+                .toOffset(density)
+
+            with(rootNode) {
+                startTransferScope.startDragAndDropTransfer(
+                    offset = offset,
+                    isTransferStarted = { dragSessionContext != null }
+                )
+            }
+
+            return dragSessionContext?.transferData?.items ?: emptyList<UIDragItem>()
         }
 
         override fun previewForLiftingItemInSession(
@@ -262,9 +262,7 @@ internal class UIKitDragAndDropManager(
             if (dropSessionContext != null) return false
 
             val context = DropSessionContext(view, session)
-
-            val accepts = dragAndDropTarget.acceptDragAndDropTransfer(context.event)
-
+            val accepts = rootNode.acceptDragAndDropTransfer(context.event)
             if (accepts) {
                 dropSessionContext = context
             }
@@ -277,15 +275,15 @@ internal class UIKitDragAndDropManager(
             session: UIDropSessionProtocol, interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onDrop(event)
+                rootNode.onDrop(event)
             }
         }
 
         override fun proposalForSessionUpdate(
             session: UIDropSessionProtocol, interaction: UIDropInteraction
         ): UIDropProposal = withDropSessionContext {
-            dragAndDropTarget.onMoved(event)
-            if (dragAndDropTarget.hasEligibleDropTarget) {
+            rootNode.onMoved(event)
+            if (rootNode.hasEligibleDropTarget) {
                 UIDropProposal(UIDropOperationCopy)
             } else {
                 UIDropProposal(UIDropOperationForbidden)
@@ -297,7 +295,7 @@ internal class UIKitDragAndDropManager(
             interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onEntered(event)
+                rootNode.onEntered(event)
             }
         }
 
@@ -306,26 +304,18 @@ internal class UIKitDragAndDropManager(
             interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onExited(event)
+                rootNode.onExited(event)
             }
         }
 
         override fun sessionDidEnd(session: UIDropSessionProtocol, interaction: UIDropInteraction) {
             withDropSessionContext {
-                dragAndDropTarget.onEnded(event)
+                rootNode.onEnded(event)
             }
 
             dropSessionContext = null
         }
     }
-
-    /**
-     * The root [DragAndDropNode] that is used to perform traversal of the drag and drop aware
-     * nodes in the hierarchy. `null` returned implies that the root node is not an actual
-     * [DragAndDropTarget].
-     */
-    private val dragAndDropTarget: ComposeSceneDragAndDropTarget
-        get() = getDragAndDropTarget()
 
     init {
         view.addInteraction(UIDragInteraction(delegate = dragInteractionProxy))

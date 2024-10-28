@@ -170,7 +170,6 @@ public expect abstract class NavType<T>(
          *
          * Null values are not supported.
          */
-        @JvmField
         public val IntType: NavType<Int>
 
         /**
@@ -180,7 +179,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * Default values in Navigation XML files are not supported.
          */
-        @JvmField
         public val IntArrayType: NavType<IntArray?>
 
         /**
@@ -189,7 +187,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * List NavTypes in Navigation XML files are not supported.
          */
-        @JvmField
         public val IntListType: NavType<List<Int>?>
 
         /**
@@ -200,7 +197,6 @@ public expect abstract class NavType<T>(
          * Default values for this type in Navigation XML files must always end with an 'L' suffix, e.g.
          * `app:defaultValue="123L"`.
          */
-        @JvmField
         public val LongType: NavType<Long>
 
         /**
@@ -210,7 +206,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * Default values in Navigation XML files are not supported.
          */
-        @JvmField
         public val LongArrayType: NavType<LongArray?>
 
         /**
@@ -219,7 +214,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * List NavTypes in Navigation XML files are not supported.
          */
-        @JvmField
         public val LongListType: NavType<List<Long>?>
 
         /**
@@ -228,7 +222,6 @@ public expect abstract class NavType<T>(
          *
          * Null values are not supported.
          */
-        @JvmField
         public val FloatType: NavType<Float>
 
         /**
@@ -238,7 +231,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * Default values in Navigation XML files are not supported.
          */
-        @JvmField
         public val FloatArrayType: NavType<FloatArray?>
 
         /**
@@ -247,7 +239,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * List NavTypes in Navigation XML files are not supported.
          */
-        @JvmField
         public val FloatListType: NavType<List<Float>?>
 
         /**
@@ -256,7 +247,6 @@ public expect abstract class NavType<T>(
          *
          * Null values are not supported.
          */
-        @JvmField
         public val BoolType: NavType<Boolean>
 
         /**
@@ -266,7 +256,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * Default values in Navigation XML files are not supported.
          */
-        @JvmField
         public val BoolArrayType: NavType<BooleanArray?>
 
         /**
@@ -275,7 +264,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * List NavTypes in Navigation XML files are not supported.
          */
-        @JvmField
         public val BoolListType: NavType<List<Boolean>?>
 
         /**
@@ -284,7 +272,6 @@ public expect abstract class NavType<T>(
          *
          * Null values are supported.
          */
-        @JvmField
         public val StringType: NavType<String?>
 
         /**
@@ -294,7 +281,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * Default values in Navigation XML files are not supported.
          */
-        @JvmField
         public val StringArrayType: NavType<Array<String>?>
 
         /**
@@ -303,7 +289,6 @@ public expect abstract class NavType<T>(
          * Null values are supported.
          * List NavTypes in Navigation XML files are not supported.
          */
-        @JvmField
         public val StringListType: NavType<List<String>?>
     }
 }

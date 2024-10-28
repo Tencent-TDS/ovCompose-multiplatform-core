@@ -33,6 +33,7 @@ internal fun Translations.nb() = mapOf(
     Strings.MenuCollapsed to "Skjules",
     Strings.ToggleDropdownMenu to "Slå rullegardinmeny av/på",
     Strings.SnackbarDismiss to "Lukk",
+    Strings.SnackbarPaneTitle to "Varsel",
     Strings.SearchBarSearch to "Søk",
     Strings.SuggestionsAvailable to "Du finner forslag nedenfor",
     Strings.DatePickerTitle to "Velg dato",
@@ -85,4 +86,6 @@ internal fun Translations.nb() = mapOf(
     Strings.TimePickerHour to "Time",
     Strings.TimePickerMinuteTextField to "for minutter",
     Strings.TimePickerHourTextField to "for timer",
+    Strings.CloseRail to "Lukk linjen",
+    Strings.WideNavigationRailPaneTitle to "Navigasjonslinje",
 )

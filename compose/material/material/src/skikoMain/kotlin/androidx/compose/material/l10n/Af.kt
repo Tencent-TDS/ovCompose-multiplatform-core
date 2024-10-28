@@ -28,4 +28,5 @@ internal fun Translations.af() = mapOf(
     Strings.DefaultErrorMessage to "Ongeldige invoer",
     Strings.SliderRangeStart to "Begingrens",
     Strings.SliderRangeEnd to "Eindgrens",
+    Strings.SnackbarPaneTitle to "Opletberig",
 )

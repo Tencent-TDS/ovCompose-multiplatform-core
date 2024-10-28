@@ -30,7 +30,6 @@ import androidx.compose.testutils.ComposeTestCase
 import androidx.compose.testutils.ToggleableTestCase
 import androidx.compose.testutils.benchmark.ComposeBenchmarkRule
 import androidx.compose.testutils.benchmark.toggleStateBenchmarkComposeMeasureLayout
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.LocalView
@@ -48,7 +47,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @LargeTest
-@OptIn(ExperimentalComposeUiApi::class)
 @RunWith(AndroidJUnit4::class)
 class SemanticsEventsBenchmark {
 
@@ -58,18 +56,13 @@ class SemanticsEventsBenchmark {
 
     private val semanticsFactory = { SemanticsTestCase() }
 
-     /**
-      * Send semantic events by changing AnnotatedString in content via toggling.
-      */
+    /** Send semantic events by changing AnnotatedString in content via toggling. */
     @Test
     fun sendSemanticsEvents() {
-        benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(
-            caseFactory = semanticsFactory
-        )
+        benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(caseFactory = semanticsFactory)
     }
 
-    class SemanticsTestCase :
-        ComposeTestCase, ToggleableTestCase {
+    class SemanticsTestCase : ComposeTestCase, ToggleableTestCase {
 
         private lateinit var state: MutableState<Boolean>
 
@@ -81,13 +74,11 @@ class SemanticsEventsBenchmark {
             // Use an AnnotatedString to trigger semantics changes and send accessibility events.
             repeat(10) {
                 Box(
-                    Modifier
-                        .size(10.dp)
-                        .semantics(mergeDescendants = true) {
-                            setText { true }
-                            textSelectionRange = TextRange(4)
-                            editableText = AnnotatedString(if (!state.value) "1234" else "1235")
-                        }
+                    Modifier.size(10.dp).semantics(mergeDescendants = true) {
+                        setText { true }
+                        textSelectionRange = TextRange(4)
+                        editableText = AnnotatedString(if (!state.value) "1234" else "1235")
+                    }
                 )
                 BasicText(state.value.toString())
             }

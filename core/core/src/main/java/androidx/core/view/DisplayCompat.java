@@ -27,7 +27,6 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.view.Display;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -75,11 +74,7 @@ public final class DisplayCompat {
         }
 
         displaySize = new Point();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            Api17Impl.getRealSize(display, displaySize);
-        } else {
-            display.getSize(displaySize);
-        }
+        display.getRealSize(displaySize);
         return displaySize;
     }
 
@@ -304,15 +299,6 @@ public final class DisplayCompat {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    static class Api17Impl {
-        private Api17Impl() {}
-
-        static void getRealSize(Display display, Point displaySize) {
-            display.getRealSize(displaySize);
-        }
-    }
-
     /**
      * Compat class which provides access to the underlying display mode, if there is one, and
      * a more reliable display mode size.
@@ -410,12 +396,10 @@ public final class DisplayCompat {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static int getPhysicalWidth(Display.Mode mode) {
                 return mode.getPhysicalWidth();
             }
 
-            @DoNotInline
             static int getPhysicalHeight(Display.Mode mode) {
                 return mode.getPhysicalHeight();
             }

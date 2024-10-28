@@ -37,7 +37,7 @@ import java.util.function.IntConsumer
  * Creates a [NullableInputConnectionWrapper] – see the kdoc on that interface for more info.
  *
  * @param delegate The [InputConnection] that will receive all calls on this object until
- * `disposeDelegate` or `closeConnection` are called.
+ *   `disposeDelegate` or `closeConnection` are called.
  * @param onConnectionClosed A callback that will be invoked the first time `closeConnection` is
  *   called. Will not be invoked by `disposeDelegate`, and will not be invoked if `disposeDelegate`
  *   is called before `closeConnection`. Passed in [NullableInputConnectionWrapper] is the same
@@ -62,15 +62,15 @@ internal fun NullableInputConnectionWrapper(
  * similar to the platform `InputConnectionWrapper` class, but no-ops when the delegate is null
  * instead of throwing.
  *
- * This class allows the PlatformTextInput system to make stronger guarantees about the lifetime
- * of [InputConnection]s – see [PlatformTextInputMethodRequest.createInputConnection] for
- * documentation about what these guarantees are.
+ * This class allows the PlatformTextInput system to make stronger guarantees about the lifetime of
+ * [InputConnection]s – see [PlatformTextInputMethodRequest.createInputConnection] for documentation
+ * about what these guarantees are.
  *
  * This class has two responsibilities besides basic delegation:
- *  - Clear its reference to its delegate as eagerly as possible, so even if this instance is leaked
- *    by the system the underlying [InputConnection] is not.
- *  - Ensure that [InputConnection.closeConnection] is invoked on the delegate on every API level
- *    where it's available (24+), as soon as possible.
+ * - Clear its reference to its delegate as eagerly as possible, so even if this instance is leaked
+ *   by the system the underlying [InputConnection] is not.
+ * - Ensure that [InputConnection.closeConnection] is invoked on the delegate on every API level
+ *   where it's available (24+), as soon as possible.
  */
 internal sealed interface NullableInputConnectionWrapper : InputConnection {
     /**
@@ -119,8 +119,7 @@ private open class NullableInputConnectionWrapperApi21(
     override fun deleteSurroundingText(p0: Int, p1: Int): Boolean =
         delegate?.deleteSurroundingText(p0, p1) ?: false
 
-    override fun deleteSurroundingTextInCodePoints(p0: Int, p1: Int): Boolean =
-        false
+    override fun deleteSurroundingTextInCodePoints(p0: Int, p1: Int): Boolean = false
 
     override fun setComposingText(p0: CharSequence?, p1: Int): Boolean =
         delegate?.setComposingText(p0, p1) ?: false
@@ -167,12 +166,9 @@ private open class NullableInputConnectionWrapperApi21(
     override fun getHandler(): Handler? = null
 
     // Only supported on higher API level.
-    override fun commitContent(p0: InputContentInfo, p1: Int, p2: Bundle?): Boolean =
-        false
+    override fun commitContent(p0: InputContentInfo, p1: Int, p2: Bundle?): Boolean = false
 
-    /**
-     * Support method to invoke [InputConnection.closeConnection] on supported API levels.
-     */
+    /** Support method to invoke [InputConnection.closeConnection] on supported API levels. */
     protected open fun closeDelegate(delegate: InputConnection) {}
 }
 
@@ -218,6 +214,5 @@ private open class NullableInputConnectionWrapperApi34(
     final override fun previewHandwritingGesture(
         gesture: PreviewableHandwritingGesture,
         cancellationSignal: CancellationSignal?
-    ): Boolean =
-        delegate?.previewHandwritingGesture(gesture, cancellationSignal) ?: false
+    ): Boolean = delegate?.previewHandwritingGesture(gesture, cancellationSignal) ?: false
 }

@@ -51,7 +51,6 @@ import android.text.TextUtils;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.math.MathUtils;
 import androidx.core.util.Pair;
@@ -76,7 +75,6 @@ import java.util.List;
  * forward. If you are looking for a framework that handles communication across apps,
  * consider using {@link android.app.appsearch.AppSearchManager}.
  */
-@RequiresApi(19)
 @Deprecated
 public class SliceMetadata {
 
@@ -356,7 +354,6 @@ public class SliceMetadata {
      *
      * @return the current value of a progress bar or input range associated with this slice.
      */
-    @NonNull
     public int getRangeValue() {
         if (mTemplateType == ROW_TYPE_SLIDER
                 || mTemplateType == ROW_TYPE_PROGRESS) {

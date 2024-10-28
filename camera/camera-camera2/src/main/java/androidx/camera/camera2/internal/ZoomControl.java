@@ -68,7 +68,6 @@ import java.util.concurrent.Executor;
  * on {@link ZoomControl} when apps are ready to accept zoom operations and set inactive if camera
  * is closing or closed.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class ZoomControl {
     private static final String TAG = "ZoomControl";
     public static final float DEFAULT_ZOOM_RATIO = 1.0f;
@@ -243,8 +242,6 @@ final class ZoomControl {
             completer.setException(new OperationCanceledException("Camera is not active."));
             return;
         }
-
-        updateLiveData(zoomState);
 
         mZoomImpl.setZoomRatio(zoomState.getZoomRatio(), completer);
         mCamera2CameraControlImpl.updateSessionConfigSynchronous();

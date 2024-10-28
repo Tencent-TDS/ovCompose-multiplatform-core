@@ -19,6 +19,7 @@ package androidx.appsearch.compiler.annotationwrapper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appsearch.compiler.IntrospectionHelper;
+import androidx.appsearch.compiler.ProcessingException;
 
 import com.squareup.javapoet.ClassName;
 
@@ -37,12 +38,13 @@ import javax.lang.model.element.AnnotationMirror;
  *     <li>{@link DoublePropertyAnnotation}</li>
  *     <li>{@link BooleanPropertyAnnotation}</li>
  *     <li>{@link BytesPropertyAnnotation}</li>
+ *     <li>{@link EmbeddingPropertyAnnotation}</li>
  * </ul>
  */
 public abstract class DataPropertyAnnotation implements PropertyAnnotation {
     public enum Kind {
         STRING_PROPERTY, DOCUMENT_PROPERTY, LONG_PROPERTY, DOUBLE_PROPERTY, BOOLEAN_PROPERTY,
-        BYTES_PROPERTY
+        BYTES_PROPERTY, EMBEDDING_PROPERTY
     }
 
     @NonNull
@@ -78,12 +80,15 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
      *
      * @param defaultName The name to use for the annotated property in case the annotation
      *                    params do not mention an explicit name.
+     * @throws ProcessingException If the {@link AnnotationMirror} is a valid
+     *                             {@link DataPropertyAnnotation} but its params are malformed
+     *                             e.g. point to an illegal serializer class etc.
      */
     @Nullable
     public static DataPropertyAnnotation tryParse(
             @NonNull AnnotationMirror annotation,
             @NonNull String defaultName,
-            @NonNull IntrospectionHelper helper) {
+            @NonNull IntrospectionHelper helper) throws ProcessingException {
         Map<String, Object> annotationParams = helper.getAnnotationParams(annotation);
         String qualifiedClassName = annotation.getAnnotationType().toString();
         if (qualifiedClassName.equals(BooleanPropertyAnnotation.CLASS_NAME.canonicalName())) {
@@ -99,6 +104,9 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
             return LongPropertyAnnotation.parse(annotationParams, defaultName);
         } else if (qualifiedClassName.equals(StringPropertyAnnotation.CLASS_NAME.canonicalName())) {
             return StringPropertyAnnotation.parse(annotationParams, defaultName);
+        } else if (qualifiedClassName.equals(
+                EmbeddingPropertyAnnotation.CLASS_NAME.canonicalName())) {
+            return EmbeddingPropertyAnnotation.parse(annotationParams, defaultName);
         }
         return null;
     }

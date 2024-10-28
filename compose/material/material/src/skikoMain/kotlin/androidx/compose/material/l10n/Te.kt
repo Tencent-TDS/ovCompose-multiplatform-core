@@ -28,4 +28,5 @@ internal fun Translations.te() = mapOf(
     Strings.DefaultErrorMessage to "ఇన్‌పుట్ చెల్లదు",
     Strings.SliderRangeStart to "పరిధి ప్రారంభమయింది",
     Strings.SliderRangeEnd to "పరిధి ముగిసింది",
+    Strings.SnackbarPaneTitle to "హెచ్చరిక",
 )

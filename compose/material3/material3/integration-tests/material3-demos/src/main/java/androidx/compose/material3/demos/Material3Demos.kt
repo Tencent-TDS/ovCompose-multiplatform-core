@@ -24,10 +24,28 @@ val Material3Demos =
         "Material 3",
         listOf(
             ComposableDemo("Color Scheme") { ColorSchemeDemo() },
+            ComposableDemo("FAB Menu") { FloatingActionButtonMenuDemo() },
             ComposableDemo("Pull To Refresh") { PullToRefreshDemo() },
-            ComposableDemo("Shape") { ShapeDemo() },
             ComposableDemo("Swipe To Dismiss") { SwipeToDismissDemo() },
             ComposableDemo("Tooltip") { TooltipDemo() },
             ComposableDemo("Text fields") { MaterialTextFieldDemo() },
+            DemoCategory(
+                "Icon Buttons",
+                listOf(
+                    ComposableDemo("Sizes") { IconButtonMeasurementsDemo() },
+                    ComposableDemo("Corners") { IconButtonCornerRadiusDemo() },
+                    ComposableDemo("Icon button & icon toggle buttons") {
+                        IconButtonAndToggleButtonsDemo()
+                    },
+                )
+            ),
+            DemoCategory(
+                "Shapes",
+                listOf(
+                    ComposableDemo("Shape") { ShapeDemo() },
+                    ComposableDemo("Material Shape") { MaterialShapeDemo() },
+                    ComposableDemo("Material Shape Morphing") { MaterialShapeMorphDemo() },
+                )
+            )
         ),
     )

@@ -33,6 +33,7 @@ internal fun Translations.tr() = mapOf(
     Strings.MenuCollapsed to "Daraltıldı",
     Strings.ToggleDropdownMenu to "Açılır menüyü açın/kapatın",
     Strings.SnackbarDismiss to "Kapat",
+    Strings.SnackbarPaneTitle to "Uyarı",
     Strings.SearchBarSearch to "Arama",
     Strings.SuggestionsAvailable to "Önerileri aşağıda bulabilirsiniz",
     Strings.DatePickerTitle to "Tarih seç",
@@ -85,4 +86,6 @@ internal fun Translations.tr() = mapOf(
     Strings.TimePickerHour to "Saat",
     Strings.TimePickerMinuteTextField to "dakika",
     Strings.TimePickerHourTextField to "saat",
+    Strings.CloseRail to "Sütunu kapat",
+    Strings.WideNavigationRailPaneTitle to "Gezinme sütunu",
 )

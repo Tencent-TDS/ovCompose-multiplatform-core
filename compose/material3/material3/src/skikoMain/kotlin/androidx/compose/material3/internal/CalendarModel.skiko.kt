@@ -18,16 +18,14 @@ package androidx.compose.material3.internal
 
 import androidx.compose.material3.CalendarLocale
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.internal.PlatformDateFormat
 
 
 @ExperimentalMaterial3Api
 internal actual fun createCalendarModel(locale: CalendarLocale): CalendarModel =
     KotlinxDatetimeCalendarModel(locale)
 
-
 @ExperimentalMaterial3Api
-actual fun formatWithSkeleton(
+internal actual fun formatWithSkeleton(
     utcTimeMillis: Long,
     skeleton: String,
     locale: CalendarLocale,

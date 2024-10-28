@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.input
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -37,8 +38,8 @@ import kotlin.jvm.JvmName
  * To chain filters together, call [then].
  *
  * Prebuilt filters are provided for common filter operations. See:
- *  - [InputTransformation].[maxLength]`()`
- *  - [InputTransformation].[allCaps]`()`
+ * - [InputTransformation].[maxLength]`()`
+ * - [InputTransformation].[allCaps]`()`
  *
  * @sample androidx.compose.foundation.samples.BasicTextFieldCustomInputTransformationSample
  */
@@ -49,7 +50,8 @@ fun interface InputTransformation {
      * Optional [KeyboardOptions] that will be used as the default keyboard options for configuring
      * the IME. The options passed directly to the text field composable will always override this.
      */
-    val keyboardOptions: KeyboardOptions? get() = null
+    val keyboardOptions: KeyboardOptions?
+        get() = null
 
     /**
      * Optional semantics configuration that can update certain characteristics of the applied
@@ -88,11 +90,10 @@ fun interface InputTransformation {
  * Creates a filter chain that will run [next] after this. Filters are applied sequentially, so any
  * changes made by this filter will be visible to [next].
  *
- * The returned filter will use the [KeyboardOptions] from [next] if non-null, otherwise it will
- * use the options from this transformation.
+ * The returned filter will use the [KeyboardOptions] from [next] if non-null, otherwise it will use
+ * the options from this transformation.
  *
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationChainingSample
- *
  * @param next The [InputTransformation] that will be ran after this one.
  */
 @Stable
@@ -105,18 +106,15 @@ fun InputTransformation.then(next: InputTransformation): InputTransformation =
  *
  * [transformation] can return either `current`, `proposed`, or a completely different value.
  *
- * The selection or cursor will be updated automatically. For more control of selection
- * implement [InputTransformation] directly.
+ * The selection or cursor will be updated automatically. For more control of selection implement
+ * [InputTransformation] directly.
  *
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationByValueChooseSample
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationByValueReplaceSample
  */
 @Stable
 fun InputTransformation.byValue(
-    transformation: (
-        current: CharSequence,
-        proposed: CharSequence
-    ) -> CharSequence
+    transformation: (current: CharSequence, proposed: CharSequence) -> CharSequence
 ): InputTransformation = this.then(InputTransformationByValue(transformation))
 
 /**
@@ -147,8 +145,9 @@ private class FilterChain(
 ) : InputTransformation {
 
     override val keyboardOptions: KeyboardOptions?
-        get() = second.keyboardOptions?.fillUnspecifiedValuesWith(first.keyboardOptions)
-            ?: first.keyboardOptions
+        get() =
+            second.keyboardOptions?.fillUnspecifiedValuesWith(first.keyboardOptions)
+                ?: first.keyboardOptions
 
     override fun SemanticsPropertyReceiver.applySemantics() {
         with(first) { applySemantics() }
@@ -185,10 +184,7 @@ private class FilterChain(
 }
 
 private data class InputTransformationByValue(
-    val transformation: (
-        current: CharSequence,
-        proposed: CharSequence
-    ) -> CharSequence
+    val transformation: (current: CharSequence, proposed: CharSequence) -> CharSequence
 ) : InputTransformation {
     override fun TextFieldBuffer.transformInput() {
         val proposed = toTextFieldCharSequence()
@@ -209,19 +205,14 @@ private data class InputTransformationByValue(
 // This is a very naive implementation for now, not intended to be production-ready.
 @OptIn(ExperimentalFoundationApi::class)
 private data class AllCapsTransformation(private val locale: Locale) : InputTransformation {
-    override val keyboardOptions = KeyboardOptions(
-        capitalization = KeyboardCapitalization.Characters
-    )
+    override val keyboardOptions =
+        KeyboardOptions(capitalization = KeyboardCapitalization.Characters)
 
     override fun TextFieldBuffer.transformInput() {
         // only update inserted content
         changes.forEachChange { range, _ ->
             if (!range.collapsed) {
-                replace(
-                    range.min,
-                    range.max,
-                    asCharSequence().substring(range).toUpperCase(locale)
-                )
+                replace(range.min, range.max, asCharSequence().substring(range).toUpperCase(locale))
             }
         }
     }
@@ -230,12 +221,10 @@ private data class AllCapsTransformation(private val locale: Locale) : InputTran
 }
 
 // This is a very naive implementation for now, not intended to be production-ready.
-private data class MaxLengthFilter(
-    private val maxLength: Int
-) : InputTransformation {
+private data class MaxLengthFilter(private val maxLength: Int) : InputTransformation {
 
     init {
-        require(maxLength >= 0) { "maxLength must be at least zero, was $maxLength" }
+        requirePrecondition(maxLength >= 0) { "maxLength must be at least zero" }
     }
 
     override fun SemanticsPropertyReceiver.applySemantics() {

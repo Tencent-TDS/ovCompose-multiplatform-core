@@ -25,6 +25,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -32,6 +33,7 @@ import android.graphics.Insets
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.drawable.Icon
+import android.opengl.EGL14
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -123,6 +125,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Assume
@@ -150,6 +153,8 @@ private const val INTERACTIVE_UPDATE_RATE_MS = 16L
 private const val LEFT_COMPLICATION_ID = 1000
 private const val RIGHT_COMPLICATION_ID = 1001
 private const val EDGE_COMPLICATION_ID = 1002
+private const val MOCK_COMPLICATION_ID = 1003
+private const val MOCK_COMPLICATION_ID2 = 1004
 private const val BACKGROUND_COMPLICATION_ID = 1111
 private const val NO_COMPLICATIONS = "NO_COMPLICATIONS"
 private const val LEFT_COMPLICATION = "LEFT_COMPLICATION"
@@ -344,6 +349,52 @@ public class WatchFaceServiceTest {
             .setDefaultDataSourceType(ComplicationType.SHORT_TEXT)
             .build()
 
+    private val mockCanvasComplication = mock<CanvasComplication>()
+    private val mockComplication =
+        ComplicationSlot.createRoundRectComplicationSlotBuilder(
+                MOCK_COMPLICATION_ID,
+                { _, _ -> mockCanvasComplication },
+                listOf(
+                    ComplicationType.RANGED_VALUE,
+                    ComplicationType.LONG_TEXT,
+                    ComplicationType.SHORT_TEXT,
+                    ComplicationType.MONOCHROMATIC_IMAGE,
+                    ComplicationType.SMALL_IMAGE
+                ),
+                DefaultComplicationDataSourcePolicy(
+                    SystemDataSources.DATA_SOURCE_DAY_OF_WEEK,
+                    ComplicationType.LONG_TEXT
+                ),
+                ComplicationSlotBounds(
+                    bounds = RectF(0.6f, 0.4f, 0.8f, 0.6f),
+                    margins = RectF(0.1f, 0.1f, 0.1f, 0.1f)
+                )
+            )
+            .build()
+
+    private val mockCanvasComplication2 = mock<CanvasComplication>()
+    private val mockComplication2 =
+        ComplicationSlot.createRoundRectComplicationSlotBuilder(
+                MOCK_COMPLICATION_ID2,
+                { _, _ -> mockCanvasComplication2 },
+                listOf(
+                    ComplicationType.RANGED_VALUE,
+                    ComplicationType.LONG_TEXT,
+                    ComplicationType.SHORT_TEXT,
+                    ComplicationType.MONOCHROMATIC_IMAGE,
+                    ComplicationType.SMALL_IMAGE
+                ),
+                DefaultComplicationDataSourcePolicy(
+                    SystemDataSources.DATA_SOURCE_DAY_OF_WEEK,
+                    ComplicationType.LONG_TEXT
+                ),
+                ComplicationSlotBounds(
+                    bounds = RectF(0.6f, 0.4f, 0.8f, 0.6f),
+                    margins = RectF(0.1f, 0.1f, 0.1f, 0.1f)
+                )
+            )
+            .build()
+
     @Suppress("DEPRECATION") // setDefaultDataSourceType
     private val backgroundComplication =
         ComplicationSlot.createBackgroundComplicationSlotBuilder(
@@ -426,6 +477,38 @@ public class WatchFaceServiceTest {
             icon = null,
             complicationConfig = listOf(leftOnlyComplicationsOption, rightOnlyComplicationsOption),
             affectsWatchFaceLayers = listOf(WatchFaceLayer.COMPLICATIONS)
+        )
+
+    private val leftComplication1 =
+        IdAndComplicationDataWireFormat(
+            LEFT_COMPLICATION_ID,
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("Left1"))
+                .build()
+        )
+
+    private val leftComplication2 =
+        IdAndComplicationDataWireFormat(
+            LEFT_COMPLICATION_ID,
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("Left2"))
+                .build()
+        )
+
+    private val rightComplication1 =
+        IdAndComplicationDataWireFormat(
+            RIGHT_COMPLICATION_ID,
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("Right1"))
+                .build()
+        )
+
+    private val rightComplication2 =
+        IdAndComplicationDataWireFormat(
+            RIGHT_COMPLICATION_ID,
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("Right2"))
+                .build()
         )
 
     private lateinit var renderer: TestRenderer
@@ -617,6 +700,7 @@ public class WatchFaceServiceTest {
                 null
             ),
         complicationCache: MutableMap<String, ByteArray>? = null,
+        requestUpdateScreenshotOnConfigurationChange: Boolean = false
     ) {
         testWatchFaceService =
             TestWatchFaceService(
@@ -639,7 +723,9 @@ public class WatchFaceServiceTest {
                 null,
                 choreographer,
                 mockSystemTimeMillis = looperTimeMillis,
-                complicationCache = complicationCache
+                complicationCache = complicationCache,
+                requestUpdateScreenshotOnConfigurationChange =
+                    requestUpdateScreenshotOnConfigurationChange,
             )
 
         InteractiveInstanceManager
@@ -1368,14 +1454,35 @@ public class WatchFaceServiceTest {
         // The delay should change when battery is low.
         watchFaceImpl.broadcastsReceiver!!
             .receiver
-            .onReceive(context, Intent(Intent.ACTION_BATTERY_LOW))
+            .onReceive(
+                context,
+                Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                    putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
+                    putExtra(
+                        BatteryManager.EXTRA_LEVEL,
+                        (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1).toInt()
+                    )
+                    putExtra(BatteryManager.EXTRA_SCALE, 100)
+                }
+            )
+
         assertThat(watchFaceImpl.computeDelayTillNextFrame(0, 0, Instant.EPOCH))
             .isEqualTo(WatchFaceImpl.MAX_LOW_POWER_INTERACTIVE_UPDATE_RATE_MS)
 
         // And go back to normal when battery is OK.
         watchFaceImpl.broadcastsReceiver!!
             .receiver
-            .onReceive(context, Intent(Intent.ACTION_BATTERY_OKAY))
+            .onReceive(
+                context,
+                Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                    putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING)
+                    putExtra(
+                        BatteryManager.EXTRA_LEVEL,
+                        (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD + 1).toInt()
+                    )
+                    putExtra(BatteryManager.EXTRA_SCALE, 100)
+                }
+            )
         assertThat(watchFaceImpl.computeDelayTillNextFrame(0, 0, Instant.EPOCH))
             .isEqualTo(INTERACTIVE_UPDATE_RATE_MS)
     }
@@ -1395,14 +1502,34 @@ public class WatchFaceServiceTest {
         // The delay should change when battery is low.
         watchFaceImpl.broadcastsReceiver!!
             .receiver
-            .onReceive(context, Intent(Intent.ACTION_BATTERY_LOW))
+            .onReceive(
+                context,
+                Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                    putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
+                    putExtra(
+                        BatteryManager.EXTRA_LEVEL,
+                        (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1).toInt()
+                    )
+                    putExtra(BatteryManager.EXTRA_SCALE, 100)
+                }
+            )
         assertThat(watchFaceImpl.computeDelayTillNextFrame(0, 0, Instant.EPOCH))
             .isEqualTo(WatchFaceImpl.MAX_LOW_POWER_INTERACTIVE_UPDATE_RATE_MS)
 
         // And go back to normal when power is connected.
         watchFaceImpl.broadcastsReceiver!!
             .receiver
-            .onReceive(context, Intent(Intent.ACTION_POWER_CONNECTED))
+            .onReceive(
+                context,
+                Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                    putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING)
+                    putExtra(
+                        BatteryManager.EXTRA_LEVEL,
+                        (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1).toInt()
+                    )
+                    putExtra(BatteryManager.EXTRA_SCALE, 100)
+                }
+            )
         assertThat(watchFaceImpl.computeDelayTillNextFrame(0, 0, Instant.EPOCH))
             .isEqualTo(INTERACTIVE_UPDATE_RATE_MS)
     }
@@ -2215,6 +2342,77 @@ public class WatchFaceServiceTest {
     }
 
     @Test
+    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
+    public fun defaultComplicationDataSourcePolicy_heartRate_preU() {
+        val complication =
+            ComplicationSlot.createRoundRectComplicationSlotBuilder(
+                    LEFT_COMPLICATION_ID,
+                    { watchState, listener ->
+                        CanvasComplicationDrawable(complicationDrawableLeft, watchState, listener)
+                    },
+                    listOf(ComplicationType.SHORT_TEXT),
+                    DefaultComplicationDataSourcePolicy(
+                        SystemDataSources.DATA_SOURCE_HEART_RATE,
+                        ComplicationType.SHORT_TEXT
+                    ),
+                    ComplicationSlotBounds(RectF(0.2f, 0.4f, 0.4f, 0.6f))
+                )
+                .build()
+
+        assertFailsWith<IllegalArgumentException> {
+            initWallpaperInteractiveWatchFaceInstance(
+                WatchFaceType.ANALOG,
+                listOf(complication),
+                UserStyleSchema(emptyList()),
+                WallpaperInteractiveWatchFaceInstanceParams(
+                    INTERACTIVE_INSTANCE_ID,
+                    DeviceConfig(false, false, 0, 0),
+                    WatchUiState(false, 0),
+                    UserStyle(emptyMap()).toWireFormat(),
+                    null,
+                    null,
+                    null
+                )
+            )
+        }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    public fun defaultComplicationDataSourcePolicy_heartRate_U() {
+        val complication =
+            ComplicationSlot.createRoundRectComplicationSlotBuilder(
+                    LEFT_COMPLICATION_ID,
+                    { watchState, listener ->
+                        CanvasComplicationDrawable(complicationDrawableLeft, watchState, listener)
+                    },
+                    listOf(ComplicationType.SHORT_TEXT),
+                    DefaultComplicationDataSourcePolicy(
+                        SystemDataSources.DATA_SOURCE_HEART_RATE,
+                        ComplicationType.SHORT_TEXT
+                    ),
+                    ComplicationSlotBounds(RectF(0.2f, 0.4f, 0.4f, 0.6f))
+                )
+                .build()
+
+        // This shouldn't throw an exception.
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            listOf(complication),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            )
+        )
+    }
+
+    @Test
     @Config(sdk = [Build.VERSION_CODES.R])
     public fun previewReferenceTimeMillisAnalog() {
         val instanceParams =
@@ -2851,6 +3049,245 @@ public class WatchFaceServiceTest {
     }
 
     @Test
+    public fun updateComplicationData_interactive_loadsAsync() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.setWatchUiState(
+            WatchUiState(/* inAmbientMode= */ false, /* interruptionFilter= */ 0)
+        )
+        val data =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("TYPE_LONG_TEXT"))
+                .build()
+
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, data))
+        )
+
+        verify(mockCanvasComplication)
+            .loadData(data.toApiComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
+    public fun updateComplicationData_interactive_loadsSync() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.setWatchUiState(
+            WatchUiState(/* inAmbientMode= */ true, /* interruptionFilter= */ 0)
+        )
+        val data =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("TYPE_LONG_TEXT"))
+                .build()
+
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, data))
+        )
+
+        verify(mockCanvasComplication)
+            .loadData(data.toApiComplicationData(), loadDrawablesAsynchronous = false)
+    }
+
+    @Test
+    public fun clearComplicationSlotAfterEditing_dataSourceChanged() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(
+                    MOCK_COMPLICATION_ID,
+                    WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                        .setLongText(WireComplicationText.plainText("Live complication"))
+                        .setDataSource(ComponentName("one.com", "one"))
+                        .build()
+                )
+            )
+        )
+        val previewData =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview"))
+                .setDataSource(ComponentName("two.com", "two"))
+                .build()
+                .toApiComplicationData()
+
+        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID, previewData)
+        engineWrapper.onEditSessionFinished()
+
+        verify(mockCanvasComplication)
+            .loadData(EmptyComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
+    public fun clearComplicationSlotAfterEditing_doesNothing_dataSourceUnchanged() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(
+                    MOCK_COMPLICATION_ID,
+                    WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                        .setLongText(WireComplicationText.plainText("Live complication"))
+                        .setDataSource(ComponentName("one.com", "one"))
+                        .build()
+                )
+            )
+        )
+        val previewComplication =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+                .toApiComplicationData()
+
+        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID, previewComplication)
+        engineWrapper.onEditSessionFinished()
+
+        verify(mockCanvasComplication, times(0))
+            .loadData(EmptyComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
+    public fun clearComplicationSlotAfterEditing_doesNotBlockOverrideComplicationData() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        val previewData =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setDataSource(ComponentName("one.com", "one"))
+                .setLongText(WireComplicationText.plainText("Preview complication"))
+                .build()
+        interactiveWatchFaceInstance.overrideComplicationData(
+            listOf(IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewData))
+        )
+
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID,
+            previewData.toApiComplicationData()
+        )
+
+        verify(mockCanvasComplication)
+            .loadData(previewData.toApiComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
+    public fun overrideComplicationData() {
+        initWallpaperInteractiveWatchFaceInstance(
+            complicationSlots = listOf(mockComplication, mockComplication2)
+        )
+        // Set initial complications.
+        val liveComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val liveComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, liveComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, liveComplication2)
+            )
+        )
+        reset(mockCanvasComplication)
+        reset(mockCanvasComplication2)
+
+        // Preview complications set by the editor.
+        val previewComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val previewComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.overrideComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, previewComplication2)
+            )
+        )
+
+        // The updates should be synchronous.
+        verify(mockCanvasComplication)
+            .loadData(
+                previewComplication1.toApiComplicationData(),
+                loadDrawablesAsynchronous = false
+            )
+        verify(mockCanvasComplication2)
+            .loadData(
+                previewComplication2.toApiComplicationData(),
+                loadDrawablesAsynchronous = false
+            )
+    }
+
+    @Test
+    public fun overrideComplicationData_onEditSessionFinished() {
+        initWallpaperInteractiveWatchFaceInstance(
+            complicationSlots = listOf(mockComplication, mockComplication2)
+        )
+        // Set initial complications.
+        val liveComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val liveComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, liveComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, liveComplication2)
+            )
+        )
+        // Preview complications set by the editor.
+        val previewComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val previewComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.overrideComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, previewComplication2)
+            )
+        )
+        val previewComplication3 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication3"))
+                .setDataSource(ComponentName("three.com", "one"))
+                .build()
+        // Simulate the user changing MOCK_COMPLICATION_ID to point to the same complication.
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID,
+            previewComplication1.toApiComplicationData()
+        )
+        // Simulate the user changing MOCK_COMPLICATION_ID2 to point to a new complication.
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID2,
+            previewComplication3.toApiComplicationData()
+        )
+        reset(mockCanvasComplication)
+        reset(mockCanvasComplication2)
+
+        engineWrapper.onEditSessionFinished()
+
+        // MOCK_COMPLICATION_ID was unchanged so we should load the origional.
+        verify(mockCanvasComplication)
+            .loadData(liveComplication1.toApiComplicationData(), loadDrawablesAsynchronous = false)
+        // MOCK_COMPLICATION_ID was changed so we should load empty to prevent the user from seeing
+        // a glimpse of the old complication.
+        verify(mockCanvasComplication2)
+            .loadData(EmptyComplicationData(), loadDrawablesAsynchronous = false)
+    }
+
+    @Test
     @Config(sdk = [Build.VERSION_CODES.O_MR1])
     public fun setComplicationDataUpdateForScreenshot_restoresAndDoesNotChangeHistoryOrDirtyFlag() {
         // Arrange
@@ -3324,6 +3761,43 @@ public class WatchFaceServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.O_MR1])
+    public fun timeline_tapAction() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(leftComplication))
+        val basePendingIntent = mock<PendingIntent>()
+        val timelineOverridePendingIntent = mock<PendingIntent>()
+        val baseComplication =
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("A"))
+                .setTapAction(basePendingIntent)
+                .build()
+        val timelineOverride =
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("B"))
+                .setTapAction(timelineOverridePendingIntent)
+                .build()
+        timelineOverride.timelineStartEpochSecond = 2
+        timelineOverride.timelineEndEpochSecond = Long.MAX_VALUE
+        baseComplication.setTimelineEntryCollection(listOf(timelineOverride))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(IdAndComplicationDataWireFormat(LEFT_COMPLICATION_ID, baseComplication))
+        )
+
+        // Tap left complication.
+        tapAt(30, 50)
+
+        // We expect the default intent to have been sent.
+        verify(basePendingIntent).send()
+
+        // Simulate tapping again after 2 seconds.
+        runPostedTasksFor(2000)
+        tapAt(30, 50)
+
+        // We expect the timeline override intent to have been sent.
+        verify(timelineOverridePendingIntent).send()
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.O_MR1])
     public fun complicationsInitialized_with_NoComplicationComplicationData() {
         initEngine(
             WatchFaceType.DIGITAL,
@@ -3583,8 +4057,19 @@ public class WatchFaceServiceTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.R])
-    public fun processBatteryStatus() {
+    @Suppress("deprecation") // sendStickyBroadcast
+    public fun isBatteryLowAndNotCharging_initialValue_LowCharging() {
+        context.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING)
+                putExtra(
+                    BatteryManager.EXTRA_LEVEL,
+                    (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1).toInt()
+                )
+                putExtra(BatteryManager.EXTRA_SCALE, 100)
+            }
+        )
+
         initWallpaperInteractiveWatchFaceInstance(
             WatchFaceType.ANALOG,
             emptyList(),
@@ -3600,38 +4085,115 @@ public class WatchFaceServiceTest {
             )
         )
 
-        watchFaceImpl.broadcastsReceiver!!.processBatteryStatus(
-            Intent().apply {
+        assertFalse(watchState.isBatteryLowAndNotCharging.value!!)
+    }
+
+    @Test
+    @Suppress("deprecation") // sendStickyBroadcast
+    public fun isBatteryLowAndNotCharging_initialValue_LowNotCharging() {
+        context.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED).apply {
                 putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
-                putExtra(BatteryManager.EXTRA_LEVEL, 0)
+                putExtra(
+                    BatteryManager.EXTRA_LEVEL,
+                    (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1).toInt()
+                )
                 putExtra(BatteryManager.EXTRA_SCALE, 100)
             }
         )
+
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            emptyList(),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            )
+        )
+
         assertTrue(watchState.isBatteryLowAndNotCharging.value!!)
+    }
 
-        watchFaceImpl.broadcastsReceiver!!.processBatteryStatus(
-            Intent().apply {
-                putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING)
-                putExtra(BatteryManager.EXTRA_LEVEL, 0)
-                putExtra(BatteryManager.EXTRA_SCALE, 100)
-            }
-        )
-        assertFalse(watchState.isBatteryLowAndNotCharging.value!!)
-
-        watchFaceImpl.broadcastsReceiver!!.processBatteryStatus(
-            Intent().apply {
+    @Test
+    @Suppress("deprecation") // sendStickyBroadcast
+    public fun isBatteryLowAndNotCharging_initialValue_HighNotCharging() {
+        context.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED).apply {
                 putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
-                putExtra(BatteryManager.EXTRA_LEVEL, 80)
+                putExtra(
+                    BatteryManager.EXTRA_LEVEL,
+                    (BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD + 1).toInt()
+                )
                 putExtra(BatteryManager.EXTRA_SCALE, 100)
             }
         )
-        assertFalse(watchState.isBatteryLowAndNotCharging.value!!)
 
-        watchFaceImpl.broadcastsReceiver!!.processBatteryStatus(Intent())
-        assertFalse(watchState.isBatteryLowAndNotCharging.value!!)
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            emptyList(),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            )
+        )
 
-        watchFaceImpl.broadcastsReceiver!!.processBatteryStatus(null)
         assertFalse(watchState.isBatteryLowAndNotCharging.value!!)
+    }
+
+    @Test
+    @Suppress("deprecation") // sendStickyBroadcast
+    public fun isBatteryLowAndNotCharging_changesWhileNotVisible() {
+        context.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
+                putExtra(
+                    BatteryManager.EXTRA_LEVEL,
+                    BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD + 1
+                )
+                putExtra(BatteryManager.EXTRA_SCALE, 100)
+            }
+        )
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            emptyList(),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            )
+        )
+        engineWrapper.onVisibilityChanged(true)
+
+        context.sendStickyBroadcast(
+            Intent(Intent.ACTION_BATTERY_CHANGED).apply {
+                putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING)
+                putExtra(
+                    BatteryManager.EXTRA_LEVEL,
+                    BroadcastsReceiver.INITIAL_LOW_BATTERY_THRESHOLD - 1
+                )
+                putExtra(BatteryManager.EXTRA_SCALE, 100)
+            }
+        )
+        engineWrapper.onVisibilityChanged(true)
+
+        assertTrue(watchState.isBatteryLowAndNotCharging.value!!)
     }
 
     @Test
@@ -4798,6 +5360,43 @@ public class WatchFaceServiceTest {
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
     @RequiresApi(Build.VERSION_CODES.O_MR1)
+    public fun empty_eglConfigAttribListList() {
+        class TestSharedAssets : Renderer.SharedAssets {
+            override fun onDestroy() {}
+        }
+
+        assertThrows(
+            IllegalArgumentException::class.java,
+            {
+                object :
+                    Renderer.GlesRenderer2<TestSharedAssets>(
+                        surfaceHolder,
+                        CurrentUserStyleRepository(UserStyleSchema(emptyList())),
+                        MutableWatchState().asWatchState(),
+                        INTERACTIVE_UPDATE_RATE_MS,
+                        eglConfigAttribListList = emptyList(), // Error this should not be empty.
+                        eglSurfaceAttribList = intArrayOf(EGL14.EGL_NONE),
+                        eglContextAttribList = intArrayOf(EGL14.EGL_NONE)
+                    ) {
+                    override suspend fun createSharedAssets() = TestSharedAssets()
+
+                    override fun renderHighlightLayer(
+                        zonedDateTime: ZonedDateTime,
+                        sharedAssets: TestSharedAssets
+                    ) {}
+
+                    override fun render(
+                        zonedDateTime: ZonedDateTime,
+                        sharedAssets: TestSharedAssets
+                    ) {}
+                }
+            }
+        )
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
+    @RequiresApi(Build.VERSION_CODES.O_MR1)
     public fun assetLifeCycle_GlesRenderer() {
         val eventLog = ArrayList<String>()
         var renderer: Renderer
@@ -5509,6 +6108,44 @@ public class WatchFaceServiceTest {
     }
 
     @Test
+    public fun selectComplicationDataForInstant_withTimelineDoesntUpdateWithNoChange() {
+        val complication =
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("A"))
+                .build()
+        complication.setTimelineEntryCollection(
+            listOf(
+                WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                    .setShortText(WireComplicationText.plainText("B"))
+                    .build()
+                    .apply {
+                        timelineStartEpochSecond = 1000
+                        timelineEndEpochSecond = 4000
+                    },
+                WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                    .setShortText(WireComplicationText.plainText("C"))
+                    .build()
+                    .apply {
+                        timelineStartEpochSecond = 2000
+                        timelineEndEpochSecond = 3000
+                    }
+            )
+        )
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        engineWrapper.setComplicationDataList(
+            listOf(IdAndComplicationDataWireFormat(LEFT_COMPLICATION_ID, complication))
+        )
+        complicationSlotsManager.selectComplicationDataForInstant(Instant.ofEpochSecond(1000))
+        reset(mockCanvasComplication)
+
+        // Calling selectComplicationDataForInstant again with another time inside the same timeline
+        // entry should not result in a call to loadData.
+        complicationSlotsManager.selectComplicationDataForInstant(Instant.ofEpochSecond(1050))
+
+        verifyNoMoreInteractions(mockCanvasComplication)
+    }
+
+    @Test
     @Config(sdk = [Build.VERSION_CODES.R])
     public fun renderParameters_isScreenshot() {
         initWallpaperInteractiveWatchFaceInstance(
@@ -5936,41 +6573,109 @@ public class WatchFaceServiceTest {
             UserStyleSchema(emptyList())
         )
 
-        val left1 =
-            IdAndComplicationDataWireFormat(
-                LEFT_COMPLICATION_ID,
-                WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
-                    .setShortText(WireComplicationText.plainText("Left1"))
-                    .build()
-            )
+        engineWrapper.setComplicationDataList(listOf(leftComplication1))
 
-        val left2 =
-            IdAndComplicationDataWireFormat(
-                LEFT_COMPLICATION_ID,
-                WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
-                    .setShortText(WireComplicationText.plainText("Left2"))
-                    .build()
-            )
-
-        val right =
-            IdAndComplicationDataWireFormat(
-                RIGHT_COMPLICATION_ID,
-                WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
-                    .setShortText(WireComplicationText.plainText("Right"))
-                    .build()
-            )
-
-        engineWrapper.setComplicationDataList(listOf(left1))
         // In initEngine we fill initial complication data using
         // setComplicationViaWallpaperCommand, that's why lastComplications initially is not empty
-        assertThat(engineWrapper.complicationsFlow.value).contains(left1)
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsAtLeast(
+                leftComplication1.id,
+                leftComplication1.complicationData.toApiComplicationData()
+            )
 
         // Check merges are working as expected.
-        engineWrapper.setComplicationDataList(listOf(right))
-        assertThat(engineWrapper.complicationsFlow.value).containsExactly(left1, right)
+        engineWrapper.setComplicationDataList(listOf(rightComplication1))
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication1.id,
+                leftComplication1.complicationData.toApiComplicationData(),
+                rightComplication1.id,
+                rightComplication1.complicationData.toApiComplicationData()
+            )
 
-        engineWrapper.setComplicationDataList(listOf(left2))
-        assertThat(engineWrapper.complicationsFlow.value).containsExactly(left2, right)
+        engineWrapper.setComplicationDataList(listOf(leftComplication2))
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication2.id,
+                leftComplication2.complicationData.toApiComplicationData(),
+                rightComplication1.id,
+                rightComplication1.complicationData.toApiComplicationData()
+            )
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.O_MR1])
+    public fun overrideComplications_then_removeAnyComplicationOverrides() {
+        initEngine(
+            WatchFaceType.ANALOG,
+            listOf(leftComplication, rightComplication),
+            UserStyleSchema(emptyList())
+        )
+
+        engineWrapper.setComplicationDataList(listOf(leftComplication1, rightComplication1))
+
+        engineWrapper.overrideComplicationsForEditing(
+            mapOf(
+                leftComplication2.id to leftComplication2.complicationData.toApiComplicationData(),
+                rightComplication2.id to rightComplication2.complicationData.toApiComplicationData()
+            )
+        )
+
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication2.id,
+                leftComplication2.complicationData.toApiComplicationData(),
+                rightComplication2.id,
+                rightComplication2.complicationData.toApiComplicationData()
+            )
+
+        engineWrapper.onEditSessionFinished()
+
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication1.id,
+                leftComplication1.complicationData.toApiComplicationData(),
+                rightComplication1.id,
+                rightComplication1.complicationData.toApiComplicationData()
+            )
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.O_MR1])
+    public fun setComplicationDataList_afterOverrideAppliedBy_removeAnyComplicationOverrides() {
+        initEngine(
+            WatchFaceType.ANALOG,
+            listOf(leftComplication, rightComplication),
+            UserStyleSchema(emptyList())
+        )
+        engineWrapper.setComplicationDataList(listOf(leftComplication1))
+        engineWrapper.overrideComplicationsForEditing(
+            mapOf(
+                leftComplication2.id to leftComplication2.complicationData.toApiComplicationData(),
+                rightComplication2.id to rightComplication2.complicationData.toApiComplicationData()
+            )
+        )
+
+        // This should not change the value of the complicationsFlow
+        engineWrapper.setComplicationDataList(listOf(rightComplication1))
+
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication2.id,
+                leftComplication2.complicationData.toApiComplicationData(),
+                rightComplication2.id,
+                rightComplication2.complicationData.toApiComplicationData()
+            )
+
+        engineWrapper.onEditSessionFinished()
+
+        assertThat(engineWrapper.complicationsFlow.value)
+            .containsExactly(
+                leftComplication1.id,
+                leftComplication1.complicationData.toApiComplicationData(),
+                rightComplication1.id,
+                rightComplication1.complicationData.toApiComplicationData()
+            )
     }
 
     @Test
@@ -6483,6 +7188,49 @@ public class WatchFaceServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
+    public fun setUpdateScreenshotOnConfigurationChange() {
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            listOf(leftComplication),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            ),
+            requestUpdateScreenshotOnConfigurationChange = true
+        )
+        var lastPreviewImageUpdateRequestedWatchFaceId: String? = null
+        interactiveWatchFaceInstance.addWatchFaceListener(
+            object : IWatchfaceListener.Stub() {
+                override fun getApiVersion() = 1
+
+                override fun onWatchfaceReady() {}
+
+                override fun onWatchfaceColorsChanged(
+                    watchFaceColors: WatchFaceColorsWireFormat?
+                ) {}
+
+                override fun onPreviewImageUpdateRequested(watchFaceId: String) {
+                    lastPreviewImageUpdateRequestedWatchFaceId = watchFaceId
+                }
+
+                override fun onEngineDetached() {}
+            }
+        )
+
+        testWatchFaceService.onConfigurationChanged(mock<Configuration>())
+
+        assertThat(lastPreviewImageUpdateRequestedWatchFaceId)
+            .isEqualTo(SYSTEM_SUPPORTS_CONSISTENT_IDS_PREFIX + "Interactive")
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public fun doNotDisplayComplicationWhenScreenLocked() {
         initWallpaperInteractiveWatchFaceInstance(
@@ -6947,7 +7695,6 @@ class TestNopWatchFaceRuntimeService(testContext: Context) : WatchFaceRuntimeSer
         resourceOnlyWatchFacePackageName: String
     ): WatchFace {
         lastResourceOnlyWatchFacePackageName = resourceOnlyWatchFacePackageName
-        System.out.println("<<< createWatchFace " + resourceOnlyWatchFacePackageName)
         return WatchFace(
             WatchFaceType.DIGITAL,
             @Suppress("deprecation")
@@ -7064,6 +7811,14 @@ class TestNopCanvasWatchFaceServiceWithHandler : WatchFaceService() {
                     zonedDateTime: ZonedDateTime
                 ) {
                     // Intentionally empty.
+                }
+
+                var destroyed: Boolean = false
+
+                override fun onDestroy() {
+                    super.onDestroy()
+                    assert(!destroyed) { "onDestroy already called!!" }
+                    destroyed = true
                 }
             }
         )

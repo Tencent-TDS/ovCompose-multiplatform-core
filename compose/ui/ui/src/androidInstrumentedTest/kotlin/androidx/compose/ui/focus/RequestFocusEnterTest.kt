@@ -17,7 +17,6 @@
 package androidx.compose.ui.focus
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusRequester.Companion.Default
@@ -29,12 +28,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(ExperimentalComposeUiApi::class)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class RequestFocusEnterTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private val focusRequester = FocusRequester()
     private var enterTriggered = false
@@ -45,10 +42,12 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(focusRequester)
+                Modifier.focusRequester(focusRequester)
                     .focusProperties {
-                        enter = { enterTriggered = true; Default }
+                        enter = {
+                            enterTriggered = true
+                            Default
+                        }
                     }
                     .onFocusChanged { focusState = it }
                     .focusTarget()
@@ -56,9 +55,7 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -72,25 +69,24 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(focusRequester)
+                Modifier.focusRequester(focusRequester)
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             ) {
                 Box(
-                    Modifier
-                        .focusProperties {
-                            enter = { enterTriggered = true; Default }
+                    Modifier.focusProperties {
+                            enter = {
+                                enterTriggered = true
+                                Default
+                            }
                         }
                         .focusTarget()
-                    )
-                }
+                )
+            }
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -104,15 +100,16 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusProperties {
-                        enter = { enterTriggered = true; Default }
+                Modifier.focusProperties {
+                        enter = {
+                            enterTriggered = true
+                            Default
+                        }
                     }
                     .focusTarget()
             ) {
                 Box(
-                    Modifier
-                        .focusRequester(focusRequester)
+                    Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
                         .focusTarget()
                 )
@@ -120,9 +117,7 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -136,16 +131,17 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusProperties {
-                        enter = { enterTriggered = true; Default }
+                Modifier.focusProperties {
+                        enter = {
+                            enterTriggered = true
+                            Default
+                        }
                     }
                     .focusTarget()
             ) {
                 Box {
                     Box(
-                        Modifier
-                            .focusRequester(focusRequester)
+                        Modifier.focusRequester(focusRequester)
                             .onFocusChanged { focusState = it }
                             .focusTarget()
                     )
@@ -154,9 +150,7 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -170,8 +164,7 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(focusRequester)
+                Modifier.focusRequester(focusRequester)
                     .focusProperties { enter = { Cancel } }
                     .onFocusChanged { focusState = it }
                     .focusTarget()
@@ -179,14 +172,10 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(focusState.isFocused).isTrue()
-        }
+        rule.runOnIdle { assertThat(focusState.isFocused).isTrue() }
     }
 
     @Test
@@ -194,8 +183,7 @@ class RequestFocusEnterTest {
         // Arrange.
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(focusRequester)
+                Modifier.focusRequester(focusRequester)
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             ) {
@@ -204,28 +192,19 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(focusState.isFocused).isTrue()
-        }
+        rule.runOnIdle { assertThat(focusState.isFocused).isTrue() }
     }
 
     @Test
     fun cancellingFocusGain_usingEnterPropertyOnParent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(
-                Modifier
-                    .focusProperties { enter = { Cancel } }
-                    .focusTarget()
-            ) {
+            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
                 Box(
-                    Modifier
-                        .focusRequester(focusRequester)
+                    Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
                         .focusTarget()
                 )
@@ -233,29 +212,20 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(focusState.isFocused).isFalse()
-        }
+        rule.runOnIdle { assertThat(focusState.isFocused).isFalse() }
     }
 
     @Test
     fun cancellingFocusGain_usingEnterPropertyOnGrandparent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(
-                Modifier
-                    .focusProperties { enter = { Cancel } }
-                    .focusTarget()
-            ) {
+            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
                 Box {
                     Box(
-                        Modifier
-                            .focusRequester(focusRequester)
+                        Modifier.focusRequester(focusRequester)
                             .onFocusChanged { focusState = it }
                             .focusTarget()
                     )
@@ -264,14 +234,10 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(focusState.isFocused).isFalse()
-        }
+        rule.runOnIdle { assertThat(focusState.isFocused).isFalse() }
     }
 
     @Test
@@ -280,22 +246,13 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         rule.setFocusableContent {
             Box(Modifier.focusTarget()) {
-                Box(
-                    Modifier
-                        .focusProperties { enter = { customDestination } }
-                        .focusTarget()
-                ) {
-                    Box(
-                        Modifier
-                            .focusRequester(focusRequester)
-                            .focusTarget()
-                    )
+                Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
+                    Box(Modifier.focusRequester(focusRequester).focusTarget())
                     Box(Modifier.focusTarget())
                 }
                 Box(Modifier.focusTarget()) {
                     Box(
-                        Modifier
-                            .focusRequester(customDestination)
+                        Modifier.focusRequester(customDestination)
                             .onFocusChanged { focusState = it }
                             .focusTarget()
                     )
@@ -304,14 +261,10 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(focusState.isFocused).isTrue()
-        }
+        rule.runOnIdle { assertThat(focusState.isFocused).isTrue() }
     }
 
     @Test
@@ -320,30 +273,22 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         lateinit var destinationFocusState: FocusState
         rule.setFocusableContent {
-            Box(
-                Modifier
-                    .focusProperties { enter = { customDestination } }
-                    .focusTarget()
-            ) {
-                    Box(
-                        Modifier
-                            .focusRequester(focusRequester)
-                            .onFocusChanged { focusState = it }
-                            .focusTarget()
-                    )
-                    Box(
-                        Modifier
-                            .focusRequester(customDestination)
-                            .onFocusChanged { destinationFocusState = it }
-                            .focusTarget()
-                    )
+            Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
+                Box(
+                    Modifier.focusRequester(focusRequester)
+                        .onFocusChanged { focusState = it }
+                        .focusTarget()
+                )
+                Box(
+                    Modifier.focusRequester(customDestination)
+                        .onFocusChanged { destinationFocusState = it }
+                        .focusTarget()
+                )
             }
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -358,30 +303,22 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         lateinit var destinationFocusState: FocusState
         rule.setFocusableContent {
-            Box(
-                Modifier
-                    .focusProperties { enter = { customDestination } }
-                    .focusTarget()
-            ) {
+            Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
                 Box(
-                    Modifier
-                        .focusRequester(focusRequester)
+                    Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
                         .focusTarget()
                 )
             }
             Box(
-                Modifier
-                    .focusRequester(customDestination)
+                Modifier.focusRequester(customDestination)
                     .onFocusChanged { destinationFocusState = it }
                     .focusTarget()
             )
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -397,15 +334,13 @@ class RequestFocusEnterTest {
         lateinit var destinationFocusState: FocusState
         rule.setFocusableContent {
             Box(
-                Modifier
-                    .focusRequester(customDestination)
+                Modifier.focusRequester(customDestination)
                     .focusProperties { enter = { customDestination } }
                     .onFocusChanged { destinationFocusState = it }
                     .focusTarget()
             ) {
                 Box(
-                    Modifier
-                        .focusRequester(focusRequester)
+                    Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
                         .focusTarget()
                 )
@@ -413,9 +348,7 @@ class RequestFocusEnterTest {
         }
 
         // Act.
-        rule.runOnIdle {
-            focusRequester.requestFocus()
-        }
+        rule.runOnIdle { focusRequester.requestFocus() }
 
         // Assert.
         rule.runOnIdle {
@@ -431,14 +364,9 @@ class RequestFocusEnterTest {
         var enterCount = 0
         rule.setFocusableContent {
             Box(Modifier.focusTarget()) {
+                Box(Modifier.focusRequester(initialFocus).focusTarget())
                 Box(
-                    Modifier
-                        .focusRequester(initialFocus)
-                        .focusTarget()
-                )
-                Box(
-                    Modifier
-                        .focusProperties {
+                    Modifier.focusProperties {
                             enter = {
                                 enterCount++
                                 child2
@@ -446,16 +374,8 @@ class RequestFocusEnterTest {
                         }
                         .focusTarget()
                 ) {
-                    Box(
-                        Modifier
-                            .focusRequester(child1)
-                            .focusTarget()
-                    )
-                    Box(
-                        Modifier
-                            .focusRequester(child2)
-                            .focusTarget()
-                    )
+                    Box(Modifier.focusRequester(child1).focusTarget())
+                    Box(Modifier.focusRequester(child2).focusTarget())
                 }
             }
         }

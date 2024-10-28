@@ -15,11 +15,21 @@ public final class androidx/window/core/layout/WindowHeightSizeClass$Companion {
 }
 
 public final class androidx/window/core/layout/WindowSizeClass {
+	public static final field BREAKPOINTS_V1 Ljava/util/Set;
 	public static final field Companion Landroidx/window/core/layout/WindowSizeClass$Companion;
-	public synthetic fun <init> (Landroidx/window/core/layout/WindowWidthSizeClass;Landroidx/window/core/layout/WindowHeightSizeClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public static final field HEIGHT_DP_EXPANDED_LOWER_BOUND I
+	public static final field HEIGHT_DP_MEDIUM_LOWER_BOUND I
+	public static final field WIDTH_DP_EXPANDED_LOWER_BOUND I
+	public static final field WIDTH_DP_MEDIUM_LOWER_BOUND I
+	public fun <init> (FF)V
+	public fun <init> (II)V
 	public static final fun compute (FF)Landroidx/window/core/layout/WindowSizeClass;
-	public static final fun compute (IIF)Landroidx/window/core/layout/WindowSizeClass;
+	public final fun containsHeightDp (I)Z
+	public final fun containsWidthDp (I)Z
+	public final fun containsWindowSizeDp (II)Z
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMinHeightDp ()I
+	public final fun getMinWidthDp ()I
 	public final fun getWindowHeightSizeClass ()Landroidx/window/core/layout/WindowHeightSizeClass;
 	public final fun getWindowWidthSizeClass ()Landroidx/window/core/layout/WindowWidthSizeClass;
 	public fun hashCode ()I
@@ -28,7 +38,12 @@ public final class androidx/window/core/layout/WindowSizeClass {
 
 public final class androidx/window/core/layout/WindowSizeClass$Companion {
 	public final fun compute (FF)Landroidx/window/core/layout/WindowSizeClass;
-	public final fun compute (IIF)Landroidx/window/core/layout/WindowSizeClass;
+}
+
+public final class androidx/window/core/layout/WindowSizeClassSelectors {
+	public static final fun computeWindowSizeClass (Ljava/util/Set;FF)Landroidx/window/core/layout/WindowSizeClass;
+	public static final fun computeWindowSizeClass (Ljava/util/Set;II)Landroidx/window/core/layout/WindowSizeClass;
+	public static final fun computeWindowSizeClassPreferHeight (Ljava/util/Set;II)Landroidx/window/core/layout/WindowSizeClass;
 }
 
 public final class androidx/window/core/layout/WindowWidthSizeClass {

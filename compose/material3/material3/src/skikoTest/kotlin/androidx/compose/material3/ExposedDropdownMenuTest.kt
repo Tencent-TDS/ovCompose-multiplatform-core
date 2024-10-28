@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +64,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.test.Ignore
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -210,7 +210,7 @@ class ExposedDropdownMenuTest {
                     ) {
                         TextField(
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryEditable)
                                 .then(
                                     if (index == testIndex) Modifier
                                         .testTag(TFTag)
@@ -282,7 +282,11 @@ class ExposedDropdownMenuTest {
         setContent {
             scrollState = rememberScrollState()
             scope = rememberCoroutineScope()
-            Column(Modifier.verticalScroll(scrollState)) {
+            Column(
+                modifier = Modifier
+                    .height(500.dp)
+                    .verticalScroll(scrollState)
+            ) {
                 Spacer(Modifier.height(300.dp))
 
                 val expanded = false
@@ -291,7 +295,7 @@ class ExposedDropdownMenuTest {
                     onExpandedChange = {},
                 ) {
                     TextField(
-                        modifier = Modifier.menuAnchor(),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         readOnly = true,
                         value = "",
                         onValueChange = {},
@@ -302,9 +306,7 @@ class ExposedDropdownMenuTest {
                         onDismissRequest = {},
                         content = {},
                     )
-                    SideEffect {
-                        compositionCount++
-                    }
+                    compositionCount++
                 }
 
                 Spacer(Modifier.height(300.dp))
@@ -313,13 +315,13 @@ class ExposedDropdownMenuTest {
 
         assertThat(compositionCount).isEqualTo(1)
 
-        runOnIdle {
-            scope.launch {
-                scrollState.animateScrollBy(500f)
-            }
+        scope.launch {
+            scrollState.animateScrollBy(500f)
         }
+        mainClock.advanceTimeBy(10_000)
         waitForIdle()
 
+        assertTrue(scrollState.value > 0)  // Make sure we did scroll
         assertThat(compositionCount).isEqualTo(1)
     }
 
@@ -344,9 +346,7 @@ class ExposedDropdownMenuTest {
         onNodeWithTag(TFTag).assertIsDisplayed()
         onNodeWithTag(MenuItemTag).assertIsDisplayed()
 
-        runOnIdle {
-            assertThat(menuBounds.width).isEqualTo(textFieldBounds.width)
-        }
+        assertThat(menuBounds.width).isEqualTo(textFieldBounds.width)
     }
 
     @Test
@@ -382,7 +382,7 @@ class ExposedDropdownMenuTest {
                 ) {
                     scrollState = rememberScrollState()
                     TextField(
-                        modifier = Modifier.menuAnchor(),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         value = "",
                         onValueChange = { },
                         label = { Text("Label") },
@@ -403,13 +403,9 @@ class ExposedDropdownMenuTest {
             }
         }
 
-        runOnIdle {
-            CoroutineScope(Dispatchers.Unconfined).launch {
-                scrollState.scrollTo(scrollState.maxValue)
-            }
+        CoroutineScope(Dispatchers.Unconfined).launch {
+            scrollState.scrollTo(scrollState.maxValue)
         }
-
-        waitForIdle()
 
         onNodeWithTag("MenuContent 1").assertIsNotDisplayed()
         onNodeWithTag("MenuContent 100").assertIsDisplayed()
@@ -423,7 +419,7 @@ class ExposedDropdownMenuTest {
                 onExpandedChange = { },
             ) {
                 TextField(
-                    modifier = Modifier.menuAnchor(),
+                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     value = "",
                     onValueChange = { },
                     label = { Text("Label") },
@@ -458,7 +454,7 @@ class ExposedDropdownMenuTest {
             ) {
                 TextField(
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(MenuAnchorType.PrimaryEditable)
                         .testTag(TFTag)
                         .onGloballyPositioned {
                             onTextFieldBoundsChanged?.invoke(it.boundsInRoot())

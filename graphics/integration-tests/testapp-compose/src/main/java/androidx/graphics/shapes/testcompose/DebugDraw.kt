@@ -22,6 +22,20 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.graphics.shapes.Cubic
 
+internal fun Cubic.pointOnCurve(t: Float): Offset {
+    val u = 1 - t
+    return Offset(
+        anchor0X * (u * u * u) +
+            control0X * (3 * t * u * u) +
+            control1X * (3 * t * t * u) +
+            anchor1X * (t * t * t),
+        anchor0Y * (u * u * u) +
+            control0Y * (3 * t * u * u) +
+            control1Y * (3 * t * t * u) +
+            anchor1Y * (t * t * t)
+    )
+}
+
 internal fun DrawScope.debugDraw(bezier: Cubic) {
     // Draw red circles for start and end.
     drawCircle(Color.Red, radius = 6f, center = bezier.anchor0(), style = Stroke(2f))
@@ -36,9 +50,19 @@ internal fun DrawScope.debugDraw(bezier: Cubic) {
     // The curve will end in this direction
     drawLine(Color.Yellow, bezier.control1(), bezier.anchor1(), strokeWidth = 0f)
     drawCircle(Color.Yellow, radius = 4f, center = bezier.control1(), style = Stroke(2f))
+
+    // Draw dots along each curve
+    var t = .1f
+    while (t < 1f) {
+        drawCircle(Color.White, radius = 2f, center = bezier.pointOnCurve(t), style = Stroke(2f))
+        t += .1f
+    }
 }
 
 private fun Cubic.anchor0() = Offset(anchor0X, anchor0Y)
+
 private fun Cubic.control0() = Offset(control0X, control0Y)
+
 private fun Cubic.control1() = Offset(control1X, control1Y)
+
 private fun Cubic.anchor1() = Offset(anchor1X, anchor1Y)

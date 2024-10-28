@@ -20,11 +20,16 @@ import android.os.Build.VERSION_CODES.O
 import android.view.KeyEvent as AndroidKeyEvent
 import android.view.KeyEvent.ACTION_DOWN
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.LinearLayout
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -57,8 +62,7 @@ import org.junit.runners.Parameterized
 @MediumTest
 @RunWith(Parameterized::class)
 class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boolean) {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private lateinit var focusManager: FocusManager
     private lateinit var view: View
@@ -73,9 +77,7 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
     @Test
     fun singleFocusableComposable() {
         // Arrange.
-        setContent {
-            FocusableComponent(composable)
-        }
+        setContent { FocusableComponent(composable) }
 
         // Act.
         rule.focusSearchForward()
@@ -87,17 +89,13 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
     @Test
     fun singleFocusableView() {
         // Arrange.
-        setContent {
-            AndroidView({ FocusableView(it).apply { view = this } })
-        }
+        setContent { AndroidView({ FocusableView(it).apply { view = this } }) }
 
         // Act.
         rule.focusSearchForward()
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(view.isFocused).isTrue()
-        }
+        rule.runOnIdle { assertThat(view.isFocused).isTrue() }
     }
 
     @Test
@@ -105,9 +103,7 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
         // Arrange.
         setContent {
             AndroidView({
-                LinearLayout(it).apply {
-                    addView(FocusableView(it).apply { view = this })
-                }
+                LinearLayout(it).apply { addView(FocusableView(it).apply { view = this }) }
             })
         }
 
@@ -193,18 +189,19 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
         setContent {
             AndroidView({ context ->
                 LinearLayout(context).apply {
-                    addView(ComposeView(context).apply {
-                        setContent {
-                            Row(
-                                Modifier
-                                    .testTag(composable)
-                                    .onFocusChanged { isComposableFocused = it.isFocused }
-                                    .focusable()
-                            ) {
-                                AndroidView({ FocusableView(it).apply { view1 = this } })
+                    addView(
+                        ComposeView(context).apply {
+                            setContent {
+                                Row(
+                                    Modifier.testTag(composable)
+                                        .onFocusChanged { isComposableFocused = it.isFocused }
+                                        .focusable()
+                                ) {
+                                    AndroidView({ FocusableView(it).apply { view1 = this } })
+                                }
                             }
                         }
-                    })
+                    )
                     addView(FocusableView(context).apply { view2 = this })
                 }
             })
@@ -250,11 +247,7 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
             AndroidView({
                 LinearLayout(it).apply {
                     addView(FocusableView(it).apply { view1 = this })
-                    addView(
-                        ComposeView(it).apply {
-                            setContent { FocusableComponent(composable) }
-                        }
-                    )
+                    addView(ComposeView(it).apply { setContent { FocusableComponent(composable) } })
                     addView(FocusableView(it).apply { view2 = this })
                 }
             })
@@ -643,13 +636,52 @@ class FocusSearchForwardInteropTest(private val moveFocusProgrammatically: Boole
         rule.onNodeWithTag(composable).assertIsNotFocused()
     }
 
+    @Test
+    fun focusableInTouchMode() {
+        val tag = "tag"
+        lateinit var editText: EditText
+        lateinit var composeView: ComposeView
+        setContent {
+            AndroidView(
+                {
+                    LinearLayout(it).also { linearLayout ->
+                        linearLayout.orientation = LinearLayout.VERTICAL
+                        linearLayout.addView(EditText(linearLayout.context))
+                        editText = EditText(linearLayout.context)
+                        editText.setSingleLine()
+                        editText.setText("1")
+                        editText.inputType = EditorInfo.TYPE_NUMBER_VARIATION_NORMAL
+                        editText.imeOptions = EditorInfo.IME_FLAG_NAVIGATE_NEXT
+                        linearLayout.addView(editText)
+                        composeView =
+                            ComposeView(linearLayout.context).apply {
+                                setContent {
+                                    Column { TextField("Hello World", {}, Modifier.testTag(tag)) }
+                                }
+                            }
+                        linearLayout.addView(composeView)
+                    }
+                },
+                Modifier.safeContentPadding()
+            )
+        }
+        rule.runOnIdle {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            instrumentation.setInTouchMode(true)
+            editText.requestFocusFromTouch()
+        }
+        rule.waitUntil { rule.runOnUiThread { editText.isFocused } }
+        rule.waitForIdle()
+        rule.runOnIdle { editText.onEditorAction(EditorInfo.IME_ACTION_NEXT) }
+        rule.onNodeWithTag(tag).assertIsFocused()
+    }
+
     private fun ComposeContentTestRule.focusSearchForward(waitForIdle: Boolean = true) {
         if (waitForIdle) waitForIdle()
         if (moveFocusProgrammatically) {
             runOnUiThread { focusManager.moveFocus(FocusDirection.Next) }
         } else {
-            InstrumentationRegistry
-                .getInstrumentation()
+            InstrumentationRegistry.getInstrumentation()
                 .sendKeySync(AndroidKeyEvent(ACTION_DOWN, Key.Tab.nativeKeyCode))
         }
     }

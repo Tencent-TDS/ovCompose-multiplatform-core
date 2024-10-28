@@ -15,8 +15,8 @@
  */
 package kotlinx.test
 
-annotation class DoNothing
+annotation class DoNothing()
 
-expect annotation class IgnoreJsTarget
-expect annotation class IgnoreNativeTarget
-expect annotation class IgnoreJsAndNative
+expect annotation class IgnoreJsTarget()
+expect annotation class IgnoreNativeTarget()
+expect annotation class IgnoreJsAndNative()

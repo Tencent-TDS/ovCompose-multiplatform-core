@@ -29,25 +29,19 @@ import com.squareup.javapoet.ParameterSpec
 import com.squareup.kotlinpoet.javapoet.JTypeName
 import javax.lang.model.element.Modifier
 
-internal class JavaFunSpec(
-    override val name: String,
-    internal val actual: MethodSpec
-) : JavaLang(), XFunSpec {
+internal class JavaFunSpec(override val name: String, internal val actual: MethodSpec) :
+    JavaLang(), XFunSpec {
     override fun toString() = actual.toString()
 
-    internal class Builder(
-        override val name: String,
-        internal val actual: MethodSpec.Builder
-    ) : JavaLang(), XFunSpec.Builder {
+    internal class Builder(override val name: String, internal val actual: MethodSpec.Builder) :
+        JavaLang(), XFunSpec.Builder {
 
         override fun addAnnotation(annotation: XAnnotationSpec) = apply {
             require(annotation is JavaAnnotationSpec)
             actual.addAnnotation(annotation.actual)
         }
 
-        override fun addAbstractModifier() = apply {
-            actual.addModifiers(Modifier.ABSTRACT)
-        }
+        override fun addAbstractModifier() = apply { actual.addModifiers(Modifier.ABSTRACT) }
 
         override fun addCode(code: XCodeBlock) = apply {
             require(code is JavaCodeBlock)
@@ -59,15 +53,19 @@ internal class JavaFunSpec(
             name: String,
             annotations: List<XAnnotationSpec>
         ) = apply {
+            val paramSpec = ParameterSpec.builder(typeName.java, name, Modifier.FINAL)
             actual.addParameter(
-                ParameterSpec.builder(typeName.java, name, Modifier.FINAL)
-                    .apply {
-                        if (typeName.nullability == XNullability.NULLABLE) {
-                            addAnnotation(NULLABLE_ANNOTATION)
-                        } else if (typeName.nullability == XNullability.NONNULL) {
-                            addAnnotation(NONNULL_ANNOTATION)
-                        }
+                // Adding nullability annotation to primitive parameters is redundant as
+                // primitives can never be null.
+                if (typeName.isPrimitive) {
+                    paramSpec.build()
+                } else {
+                    when (typeName.nullability) {
+                        XNullability.NULLABLE -> paramSpec.addAnnotation(NULLABLE_ANNOTATION)
+                        XNullability.NONNULL -> paramSpec.addAnnotation(NONNULL_ANNOTATION)
+                        else -> paramSpec
                     }.build()
+                }
             )
             // TODO(b/247247439): Add other annotations
         }
@@ -104,9 +102,10 @@ internal class JavaFunSpec(
     }
 }
 
-internal fun VisibilityModifier.toJavaVisibilityModifier() = when (this) {
-    VisibilityModifier.PUBLIC -> Modifier.PUBLIC
-    VisibilityModifier.PROTECTED -> Modifier.PROTECTED
-    VisibilityModifier.INTERNAL -> Modifier.PUBLIC
-    VisibilityModifier.PRIVATE -> Modifier.PRIVATE
-}
+internal fun VisibilityModifier.toJavaVisibilityModifier() =
+    when (this) {
+        VisibilityModifier.PUBLIC -> Modifier.PUBLIC
+        VisibilityModifier.PROTECTED -> Modifier.PROTECTED
+        VisibilityModifier.INTERNAL -> Modifier.PUBLIC
+        VisibilityModifier.PRIVATE -> Modifier.PRIVATE
+    }

@@ -48,11 +48,15 @@ android {
         }
     }
     buildTypes {
-        all {
+        configureEach {
             signingConfig signingConfigs.config
         }
         release {
             minifyEnabled true
+            applicationIdSuffix ".release"
+        }
+        debug {
+            applicationIdSuffix ".debug"
         }
     }
     compileOptions {
@@ -93,12 +97,4 @@ tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
         freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
-}
-
-androidx {
-    name = "WM Samples"
-    type = LibraryType.SAMPLES
-    mavenVersion = LibraryVersions.WINDOW
-    inceptionYear = "2023"
-    description = "Samples for the WM Jetpack Library"
 }

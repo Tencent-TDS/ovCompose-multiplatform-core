@@ -117,6 +117,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:ui:ui-geometry"))
 
+                implementation(project(":collection:collection"))
                 implementation(project(":annotation:annotation"))
             }
 
@@ -164,7 +165,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
                 implementation("androidx.core:core:1.7.0")
                 implementation("androidx.emoji2:emoji2:1.2.0")
-                implementation('androidx.collection:collection:1.0.0')
             }
 
             androidMain.kotlin.srcDirs("${supportRootFolder}/text/text/src/main/java")

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.wear.compose.integration.macrobenchmark.test
+package androidx.wear.compose.integration.macrobenchmark
 
 import android.content.Intent
 import android.graphics.Point
@@ -22,10 +22,9 @@ import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
 import androidx.test.filters.LargeTest
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.UiDevice
 import androidx.testutils.createCompilationParams
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -34,18 +33,17 @@ import org.junit.runners.Parameterized
 
 @LargeTest
 @RunWith(Parameterized::class)
-class ScrollBenchmark(
-    private val compilationMode: CompilationMode
-) {
-    @get:Rule
-    val benchmarkRule = MacrobenchmarkRule()
-
-    private lateinit var device: UiDevice
+class ScrollBenchmark(private val compilationMode: CompilationMode) {
+    @get:Rule val benchmarkRule = MacrobenchmarkRule()
 
     @Before
     fun setUp() {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        device = UiDevice.getInstance(instrumentation)
+        disableChargingExperience()
+    }
+
+    @After
+    fun destroy() {
+        enableChargingExperience()
     }
 
     @Test
@@ -57,7 +55,7 @@ class ScrollBenchmark(
             iterations = 10,
             setupBlock = {
                 val intent = Intent()
-                intent.action = ACTION
+                intent.action = SCROLL_ACTIVITY
                 startActivityAndWait(intent)
             }
         ) {
@@ -73,8 +71,7 @@ class ScrollBenchmark(
 
     companion object {
         private const val PACKAGE_NAME = "androidx.wear.compose.integration.macrobenchmark.target"
-        private const val ACTION =
-            "androidx.wear.compose.integration.macrobenchmark.target.SCROLL_ACTIVITY"
+        private const val SCROLL_ACTIVITY = "${PACKAGE_NAME}.SCROLL_ACTIVITY"
 
         @Parameterized.Parameters(name = "compilation={0}")
         @JvmStatic

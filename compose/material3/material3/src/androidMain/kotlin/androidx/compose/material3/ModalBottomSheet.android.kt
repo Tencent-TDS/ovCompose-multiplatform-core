@@ -31,7 +31,6 @@ import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.activity.ComponentDialog
 import androidx.activity.addCallback
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
@@ -42,6 +41,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.SheetValue.Hidden
 import androidx.compose.material3.internal.PredictiveBack
+import androidx.compose.material3.internal.shouldApplySecureFlag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.DisposableEffect
@@ -183,7 +183,6 @@ actual object ModalBottomSheetDefaults {
  * A simple example of a modal bottom sheet looks like this:
  *
  * @sample androidx.compose.material3.samples.ModalBottomSheetSample
- *
  * @param onDismissRequest Executes when the user clicks outside of the bottom sheet, after sheet
  *   animates to [Hidden].
  * @param modifier Optional [Modifier] for the bottom sheet.
@@ -392,7 +391,6 @@ private class ModalBottomSheetDialogLayout(
     @RequiresApi(34)
     private object Api34Impl {
         @JvmStatic
-        @DoNotInline
         fun createBackCallback(
             onDismissRequest: () -> Unit,
             predictiveBackProgress: Animatable<Float, AnimationVector1D>,
@@ -424,12 +422,10 @@ private class ModalBottomSheetDialogLayout(
     @RequiresApi(33)
     private object Api33Impl {
         @JvmStatic
-        @DoNotInline
         fun createBackCallback(onDismissRequest: () -> Unit) =
             OnBackInvokedCallback(onDismissRequest)
 
         @JvmStatic
-        @DoNotInline
         fun maybeRegisterBackCallback(view: View, backCallback: Any?) {
             if (backCallback is OnBackInvokedCallback) {
                 view
@@ -442,7 +438,6 @@ private class ModalBottomSheetDialogLayout(
         }
 
         @JvmStatic
-        @DoNotInline
         fun maybeUnregisterBackCallback(view: View, backCallback: Any?) {
             if (backCallback is OnBackInvokedCallback) {
                 view.findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(backCallback)
@@ -627,13 +622,4 @@ internal fun View.isFlagSecureEnabled(): Boolean {
         return (windowParams.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
     }
     return false
-}
-
-// Taken from AndroidPopup.android.kt
-private fun SecureFlagPolicy.shouldApplySecureFlag(isSecureFlagSetOnParent: Boolean): Boolean {
-    return when (this) {
-        SecureFlagPolicy.SecureOff -> false
-        SecureFlagPolicy.SecureOn -> true
-        SecureFlagPolicy.Inherit -> isSecureFlagSetOnParent
-    }
 }

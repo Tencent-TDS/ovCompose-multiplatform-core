@@ -21,19 +21,44 @@ package androidx.compose.material3.internal
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatorMutex
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventTimeoutCancellationException
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+
 
 /**
  * NOTICE: Fork from androidx.compose.foundation.BasicTooltip box since those are experimental
@@ -58,7 +83,7 @@ import kotlinx.coroutines.withTimeout
  * @param content the composable that the tooltip will anchor to.
  */
 @Composable
-internal expect fun BasicTooltipBox(
+internal fun BasicTooltipBox(
     positionProvider: PopupPositionProvider,
     tooltip: @Composable () -> Unit,
     state: TooltipState,
@@ -66,7 +91,168 @@ internal expect fun BasicTooltipBox(
     focusable: Boolean = true,
     enableUserInput: Boolean = true,
     content: @Composable () -> Unit
-)
+) {
+    val scope = rememberCoroutineScope()
+    Box {
+        if (state.isVisible) {
+            TooltipPopup(
+                positionProvider = positionProvider,
+                state = state,
+                scope = scope,
+                focusable = focusable,
+                content = tooltip
+            )
+        }
+
+        WrappedAnchor(
+            enableUserInput = enableUserInput,
+            state = state,
+            modifier = modifier,
+            content = content
+        )
+    }
+
+    DisposableEffect(state) { onDispose { state.onDispose() } }
+}
+
+@Composable
+private fun WrappedAnchor(
+    enableUserInput: Boolean,
+    state: TooltipState,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val longPressLabel = BasicTooltipStrings.label()
+    Box(
+        modifier =
+            modifier
+                .handleGestures(enableUserInput, state)
+                .anchorSemantics(longPressLabel, enableUserInput, state, scope)
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun TooltipPopup(
+    positionProvider: PopupPositionProvider,
+    state: TooltipState,
+    scope: CoroutineScope,
+    focusable: Boolean,
+    content: @Composable () -> Unit
+) {
+    val tooltipDescription = BasicTooltipStrings.description()
+    Popup(
+        popupPositionProvider = positionProvider,
+        onDismissRequest = {
+            if (state.isVisible) {
+                scope.launch { state.dismiss() }
+            }
+        },
+        // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-963/Discuss-fix-Tooltipfocusable-true-API) Discuss how to support focusable
+        properties = PopupProperties(focusable = false),
+    ) {
+        Box(
+            modifier =
+                Modifier.semantics {
+                    liveRegion = LiveRegionMode.Assertive
+                    paneTitle = tooltipDescription
+                }
+        ) {
+            content()
+        }
+    }
+}
+
+private fun Modifier.handleGestures(enabled: Boolean, state: TooltipState): Modifier =
+    if (enabled) {
+        this.pointerInput(state) {
+            coroutineScope {
+                awaitEachGesture {
+                    // Long press will finish before or after show so keep track of it, in a
+                    // flow to handle both cases
+                    val isLongPressedFlow: MutableStateFlow<Boolean> = MutableStateFlow(false)
+                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                    val pass = PointerEventPass.Initial
+
+                    // wait for the first down press
+                    val inputType = awaitFirstDown(pass = pass).type
+
+                    if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
+                        try {
+                            // listen to if there is up gesture
+                            // within the longPressTimeout limit
+                            withTimeout(longPressTimeout) {
+                                waitForUpOrCancellation(pass = pass)
+                            }
+                        } catch (_: PointerEventTimeoutCancellationException) {
+                            // handle long press - Show the tooltip
+                            launch(start = CoroutineStart.UNDISPATCHED) {
+                                try {
+                                    isLongPressedFlow.tryEmit(true)
+                                    state.show(MutatePriority.PreventUserInput)
+                                } finally {
+                                    isLongPressedFlow.collectLatest { isLongPressed ->
+                                        if (!isLongPressed) {
+                                            state.dismiss()
+                                        }
+                                    }
+                                }
+                            }
+
+                            // consume the children's click handling
+                            // Long press may still be in progress
+                            val upEvent = waitForUpOrCancellation(pass = pass)
+                            upEvent?.consume()
+                        } finally {
+                            isLongPressedFlow.tryEmit(false)
+                        }
+                    }
+                }
+            }
+        }
+            .pointerInput(state) {
+                coroutineScope {
+                    awaitPointerEventScope {
+                        val pass = PointerEventPass.Main
+
+                        while (true) {
+                            val event = awaitPointerEvent(pass)
+                            val inputType = event.changes[0].type
+                            if (inputType == PointerType.Mouse) {
+                                when (event.type) {
+                                    PointerEventType.Enter -> {
+                                        launch { state.show(MutatePriority.UserInput) }
+                                    }
+                                    PointerEventType.Exit -> {
+                                        state.dismiss()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    } else this
+
+private fun Modifier.anchorSemantics(
+    label: String,
+    enabled: Boolean,
+    state: TooltipState,
+    scope: CoroutineScope
+): Modifier =
+    if (enabled) {
+        this.semantics(mergeDescendants = true) {
+            onLongClick(
+                label = label,
+                action = {
+                    scope.launch { state.show() }
+                    true
+                }
+            )
+        }
+    } else this
 
 /**
  * Create and remember the default [BasicTooltipState].
@@ -184,4 +370,12 @@ internal object BasicTooltipDefaults {
      * before dismissing.
      */
     const val TooltipDuration = 1500L
+}
+
+internal expect object BasicTooltipStrings {
+    @Composable
+    fun label(): String
+
+    @Composable
+    fun description(): String
 }

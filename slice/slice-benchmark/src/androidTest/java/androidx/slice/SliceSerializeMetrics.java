@@ -16,11 +16,6 @@
 
 package androidx.slice;
 
-
-import static android.app.slice.SliceItem.FORMAT_ACTION;
-import static android.app.slice.SliceItem.FORMAT_SLICE;
-import static android.app.slice.SliceItem.FORMAT_TEXT;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -40,7 +35,6 @@ import androidx.slice.core.SliceHints;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.junit.Rule;
@@ -58,7 +52,6 @@ import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@SdkSuppress(minSdkVersion = 19)
 @SuppressWarnings("deprecation")
 public class SliceSerializeMetrics {
 
@@ -170,10 +163,10 @@ public class SliceSerializeMetrics {
 
     private void assertEquivalent(SliceItem desired, SliceItem actual) {
         assertEquals(desired.getFormat(), actual.getFormat());
-        boolean isSliceType = FORMAT_SLICE.equals(desired.getFormat())
-                || FORMAT_ACTION.equals(desired.getFormat());
+        boolean isSliceType = android.app.slice.SliceItem.FORMAT_SLICE.equals(desired.getFormat())
+                || android.app.slice.SliceItem.FORMAT_ACTION.equals(desired.getFormat());
         if (!isSliceType) {
-            if (FORMAT_TEXT.equals(desired.getFormat())) {
+            if (android.app.slice.SliceItem.FORMAT_TEXT.equals(desired.getFormat())) {
                 assertEquals(String.valueOf(desired.getText()), String.valueOf(actual.getText()));
             }
         }
