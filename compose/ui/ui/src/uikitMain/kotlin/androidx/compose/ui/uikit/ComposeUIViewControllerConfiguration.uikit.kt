@@ -54,7 +54,7 @@ class ComposeUIViewControllerConfiguration {
      */
     @ExperimentalComposeApi
     var accessibilitySyncOptions: AccessibilitySyncOptions =
-        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices(debugLogger = null)
+        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices
 
     /**
      * Determines whether the Compose view should have an opaque background.
@@ -115,11 +115,11 @@ sealed interface OnFocusBehavior {
     /**
      * The Compose view will stay on the current position.
      */
-    object DoNothing : OnFocusBehavior
+    data object DoNothing : OnFocusBehavior
 
     /**
      * The Compose view will be panned in "y" coordinates.
      * A focusable element should be displayed above the keyboard.
      */
-    object FocusableAboveKeyboard : OnFocusBehavior
+    data object FocusableAboveKeyboard : OnFocusBehavior
 }
