@@ -382,6 +382,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun dispose() {
+        metalView.dispose()
         lifecycleOwner.dispose()
         mediator?.dispose()
         rootView.dispose()
