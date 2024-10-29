@@ -115,8 +115,8 @@ private def configure(target, isDevice, architecture, testTarget) {
     }
 
     target.compilations.main {
-        def libTaskName = "${compileTaskProvider.name}ObjCLib"
-        project.tasks.register(libTaskName, Exec) {
+        def taskName = "${compileTaskProvider.name}ObjCLib"
+        project.tasks.register(taskName, Exec) {
             inputs.dir(frameworkSourcesDir)
                     .withPropertyName("${frameworkName}-${sdkName}")
                     .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -140,16 +140,13 @@ private def configure(target, isDevice, architecture, testTarget) {
             )
         }
 
-        tasks[compileTaskProvider.name].dependsOn(libTaskName)
+        tasks[compileTaskProvider.name].dependsOn(taskName)
 
         cinterops {
             utils {
-                def cinteropTask = tasks[interopProcessingTaskName]
-
                 headersPath.eachFileRecurse {
                     if (it.name.endsWith('.h')) {
                         extraOpts("-header", it.name)
-                        cinteropTask.inputs.file(it)
                     }
                 }
                 compilerOpts("-I${headersPath}")
