@@ -153,10 +153,6 @@ internal abstract class TextFieldKeyEventHandler {
             }
         }
 
-        if (event.type != KeyEventType.KeyDown) {
-            return false
-        }
-
         val command = keyMapping.map(event)
         if (command == null || (command.editsText && !editable)) {
             return false
