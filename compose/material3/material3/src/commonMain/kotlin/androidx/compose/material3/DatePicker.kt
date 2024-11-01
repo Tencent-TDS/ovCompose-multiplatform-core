@@ -367,15 +367,19 @@ fun rememberDatePickerState(
 ): DatePickerState {
     val locale = defaultLocale()
     return rememberSaveable(saver = DatePickerStateImpl.Saver(selectableDates, locale)) {
-        DatePickerStateImpl(
-            initialSelectedDateMillis = initialSelectedDateMillis,
-            initialDisplayedMonthMillis = initialDisplayedMonthMillis,
-            yearRange = yearRange,
-            initialDisplayMode = initialDisplayMode,
-            selectableDates = selectableDates,
-            locale = locale
-        )
-    }
+            DatePickerStateImpl(
+                initialSelectedDateMillis = initialSelectedDateMillis,
+                initialDisplayedMonthMillis = initialDisplayedMonthMillis,
+                yearRange = yearRange,
+                initialDisplayMode = initialDisplayMode,
+                selectableDates = selectableDates,
+                locale = locale
+            )
+        }
+        .apply {
+            // Update the state's selectable dates if they were changed.
+            this.selectableDates = selectableDates
+        }
 }
 
 /**
@@ -1072,11 +1076,13 @@ constructor(
 internal abstract class BaseDatePickerStateImpl(
     @Suppress("AutoBoxing") initialDisplayedMonthMillis: Long?,
     val yearRange: IntRange,
-    val selectableDates: SelectableDates,
+    selectableDates: SelectableDates,
     locale: CalendarLocale
 ) {
 
     val calendarModel = createCalendarModel(locale)
+
+    var selectableDates by mutableStateOf(selectableDates)
 
     private var _displayedMonth =
         mutableStateOf(
@@ -1487,8 +1493,22 @@ private fun DatePickerContent(
     colors: DatePickerColors
 ) {
     val displayedMonth = calendarModel.getMonth(displayedMonthMillis)
-    val monthsListState =
-        rememberLazyListState(initialFirstVisibleItemIndex = displayedMonth.indexIn(yearRange))
+    val monthIndex = displayedMonth.indexIn(yearRange).coerceAtLeast(0)
+    val monthsListState = rememberLazyListState(initialFirstVisibleItemIndex = monthIndex)
+
+    // Scroll to the resolved displayedMonth, if needed.
+    LaunchedEffect(monthIndex) {
+        // The DatePicker has other actions that can trigger a scroll and update the
+        // displayedMonthMillis as they do so, hence we check here for isScrollInProgress and only
+        // scroll to the monthIndex when there is none in progress.
+        if (
+            !monthsListState.isScrollInProgress &&
+                monthsListState.firstVisibleItemIndex != monthIndex
+        ) {
+            monthsListState.scrollToItem(monthIndex)
+        }
+    }
+
     val coroutineScope = rememberCoroutineScope()
     var yearPickerVisible by rememberSaveable { mutableStateOf(false) }
     val defaultLocale = defaultLocale()
@@ -1844,7 +1864,7 @@ internal fun Month(
                             // end-date selection.
                             animateChecked = startDateSelected,
                             enabled =
-                                remember(dateInMillis) {
+                                remember(dateInMillis, selectableDates) {
                                     // Disabled a day in case its year is not selectable, or the
                                     // date itself is specifically not allowed by the state's
                                     // SelectableDates.
