@@ -1472,12 +1472,6 @@ internal class SlotWriter(
      */
     private var deferredSlotWrites: MutableIntObjectMap<MutableObjectList<Any?>>? = null
 
-    /**
-     * Deferred slot writes for open groups to avoid thrashing the slot table when slots are added
-     * to parent group which already has children.
-     */
-    private var deferredSlotWrites: MutableIntObjectMap<MutableObjectList<Any?>>? = null
-
     /** The current group that will be started by [startGroup] or skipped by [skipGroup] */
     var currentGroup = 0
         private set
