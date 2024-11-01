@@ -333,6 +333,90 @@ class VelocityTrackingListParityTest {
         }
     }
 
+    @Test
+    fun equalLists_withEqualFlings_shouldFinishAtTheSameItem_regularGestureOne() = runBlocking {
+        val state = LazyListState()
+
+        // starting with view
+        createActivity(state)
+        checkVisibility(composeView(), View.GONE)
+        checkVisibility(recyclerView(), View.VISIBLE)
+
+        regularGestureOne(R.id.view_list)
+        rule.waitForIdle()
+        recyclerView().awaitScrollIdle()
+
+        val childAtTheTopOfView = layoutManager?.findFirstVisibleItemPosition() ?: 0
+
+        // switch visibilities
+        rule.runOnUiThread {
+            rule.activity.findViewById<RecyclerView>(R.id.view_list).visibility = View.GONE
+            rule.activity.findViewById<ComposeView>(R.id.compose_view).visibility = View.VISIBLE
+        }
+
+        checkVisibility(composeView(), View.VISIBLE)
+        checkVisibility(recyclerView(), View.GONE)
+
+        assertTrue { isValidGesture(recyclerView().motionEvents.filterNotNull()) }
+
+        // Inject the same events in compose view
+        rule.runOnUiThread {
+            for (event in recyclerView().motionEvents) {
+                composeView().dispatchTouchEvent(event)
+            }
+        }
+
+        rule.runOnIdle {
+            val currentTopInCompose = state.firstVisibleItemIndex
+            val diff = (currentTopInCompose - childAtTheTopOfView).absoluteValue
+            val message =
+                "Compose=$currentTopInCompose View=$childAtTheTopOfView " + "Difference was=$diff"
+            assertTrue(message) { diff <= ItemDifferenceThreshold }
+        }
+    }
+
+    @Test
+    fun equalLists_withEqualFlings_shouldFinishAtTheSameItem_regularGestureTwo() = runBlocking {
+        val state = LazyListState()
+
+        // starting with view
+        createActivity(state)
+        checkVisibility(composeView(), View.GONE)
+        checkVisibility(recyclerView(), View.VISIBLE)
+
+        regularGestureTwo(R.id.view_list)
+        rule.waitForIdle()
+        recyclerView().awaitScrollIdle()
+
+        val childAtTheTopOfView = layoutManager?.findFirstVisibleItemPosition() ?: 0
+
+        // switch visibilities
+        rule.runOnUiThread {
+            rule.activity.findViewById<RecyclerView>(R.id.view_list).visibility = View.GONE
+            rule.activity.findViewById<ComposeView>(R.id.compose_view).visibility = View.VISIBLE
+        }
+
+        checkVisibility(composeView(), View.VISIBLE)
+        checkVisibility(recyclerView(), View.GONE)
+
+        assertTrue { isValidGesture(recyclerView().motionEvents.filterNotNull()) }
+
+        // Inject the same events in compose view
+        rule.runOnUiThread {
+            for (event in recyclerView().motionEvents) {
+                composeView().dispatchTouchEvent(event)
+            }
+        }
+
+        rule.runOnIdle {
+            val currentTopInCompose = state.firstVisibleItemIndex
+            val diff = (currentTopInCompose - childAtTheTopOfView).absoluteValue
+            val message =
+                "Compose=$currentTopInCompose View=$childAtTheTopOfView " + "Difference was=$diff"
+            assertTrue(message) { diff <= ItemDifferenceThreshold }
+        }
+    }
+
     private fun createActivity(state: LazyListState) {
         rule
             .activityRule
@@ -388,13 +472,8 @@ class VelocityTrackingListParityTest {
 @Composable
 fun TestComposeList(state: LazyListState) {
     LazyColumn(Modifier.fillMaxSize(), state = state) {
-        items(1000) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp)
-                    .background(Color.Black)
-            ) {
+        items(2000) {
+            Box(modifier = Modifier.fillMaxWidth().height(64.dp).background(Color.Black)) {
                 Text(text = it.toString(), color = Color.White)
             }
         }
@@ -402,7 +481,8 @@ fun TestComposeList(state: LazyListState) {
 }
 
 private class ListAdapter : RecyclerView.Adapter<ListViewHolder>() {
-    val items = (0 until 1000).map { it.toString() }
+    val items = (0 until 2000).map { it.toString() }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListViewHolder {
         return ListViewHolder(
             LayoutInflater.from(parent.context)
@@ -457,4 +537,4 @@ private suspend fun RecyclerView.awaitScrollIdle() {
     }
 }
 
-private const val ItemDifferenceThreshold = 3
+private const val ItemDifferenceThreshold = 1

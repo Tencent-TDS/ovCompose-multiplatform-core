@@ -16,6 +16,7 @@
 package androidx.compose.ui.graphics.layer
 
 import android.graphics.Outline as AndroidOutline
+import android.graphics.RectF
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.CornerRadius
@@ -38,11 +39,14 @@ import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DefaultDensity
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.layer.LayerManager.Companion.isRobolectric
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastRoundToInt
 import org.jetbrains.annotations.TestOnly
@@ -56,6 +60,17 @@ internal constructor(
     private var density = DefaultDensity
     private var layoutDirection = LayoutDirection.Ltr
     private var drawBlock: DrawScope.() -> Unit = {}
+
+    // Wrapper draw lambda used to record path clipping operations within the displaylist of
+    // the layer itself. This is used in cases where an unsupported outline is
+    private val clipDrawBlock: DrawScope.() -> Unit = {
+        val path = outlinePath
+        if (usePathForClip && clip && path != null) {
+            clipPath(path, block = drawBlock)
+        } else {
+            drawBlock()
+        }
+    }
 
     private var androidOutline: AndroidOutline? = null
     private var outlineDirty = true
@@ -71,14 +86,10 @@ internal constructor(
     // Paint used only in Software rendering scenarios for API 21 when rendering to a Bitmap
     private var softwareLayerPaint: Paint? = null
 
-    /**
-     * Tracks the amount of the parent layers currently drawing this layer as a child.
-     */
+    /** Tracks the amount of the parent layers currently drawing this layer as a child. */
     private var parentLayerUsages = 0
 
-    /**
-     * Keeps track of the child layers we currently draw into this layer.
-     */
+    /** Keeps track of the child layers we currently draw into this layer. */
     private val childDependenciesTracker = ChildLayerDependenciesTracker()
 
     init {
@@ -95,10 +106,11 @@ internal constructor(
     /**
      * [CompositingStrategy] determines whether or not the contents of this layer are rendered into
      * an offscreen buffer. This is useful in order to optimize alpha usages with
-     * [CompositingStrategy.ModulateAlpha] which will skip the overhead of an offscreen buffer but can
-     * generate different rendering results depending on whether or not the contents of the layer are
-     * overlapping. Similarly leveraging [CompositingStrategy.Offscreen] is useful in situations where
-     * creating an offscreen buffer is preferred usually in conjunction with [BlendMode] usage.
+     * [CompositingStrategy.ModulateAlpha] which will skip the overhead of an offscreen buffer but
+     * can generate different rendering results depending on whether or not the contents of the
+     * layer are overlapping. Similarly leveraging [CompositingStrategy.Offscreen] is useful in
+     * situations where creating an offscreen buffer is preferred usually in conjunction with
+     * [BlendMode] usage.
      */
     actual var compositingStrategy: CompositingStrategy
         get() = impl.compositingStrategy
@@ -124,9 +136,9 @@ internal constructor(
 
     /**
      * Size in pixels of the [GraphicsLayer]. By default [GraphicsLayer] contents can draw outside
-     * of the bounds specified by [topLeft] and [size], however, rasterization of this layer into
-     * an offscreen buffer will be sized according to the specified size. This is configured
-     * by calling [record]
+     * of the bounds specified by [topLeft] and [size], however, rasterization of this layer into an
+     * offscreen buffer will be sized according to the specified size. This is configured by calling
+     * [record]
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerSizeSample
      */
@@ -137,7 +149,7 @@ internal constructor(
                 setPosition(topLeft, value)
                 if (roundRectOutlineSize.isUnspecified) {
                     outlineDirty = true
-                    configureOutline()
+                    configureOutlineAndClip()
                 }
             }
         }
@@ -158,10 +170,10 @@ internal constructor(
         }
 
     /**
-     * BlendMode to use when drawing this layer to the destination in [drawLayer].
-     * The default is [BlendMode.SrcOver].
-     * Any value other than [BlendMode.SrcOver] will force this [GraphicsLayer] to use an offscreen
-     * compositing layer for rendering and is equivalent to using [CompositingStrategy.Offscreen].
+     * BlendMode to use when drawing this layer to the destination in [drawLayer]. The default is
+     * [BlendMode.SrcOver]. Any value other than [BlendMode.SrcOver] will force this [GraphicsLayer]
+     * to use an offscreen compositing layer for rendering and is equivalent to using
+     * [CompositingStrategy.Offscreen].
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerBlendModeSample
      */
@@ -174,9 +186,9 @@ internal constructor(
         }
 
     /**
-     * ColorFilter applied when drawing this layer to the destination in [drawLayer].
-     * Setting of this to any non-null will force this [GraphicsLayer] to use an offscreen
-     * compositing layer for rendering and is equivalent to using [CompositingStrategy.Offscreen]
+     * ColorFilter applied when drawing this layer to the destination in [drawLayer]. Setting of
+     * this to any non-null will force this [GraphicsLayer] to use an offscreen compositing layer
+     * for rendering and is equivalent to using [CompositingStrategy.Offscreen]
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerColorFilterSample
      */
@@ -256,10 +268,9 @@ internal constructor(
         }
 
     /**
-     * Sets the elevation for the shadow in pixels. With the [shadowElevation] > 0f and
-     * [Outline] set, a shadow is produced. Default value is `0` and the value must not be
-     * negative. Configuring a non-zero [shadowElevation] enables clipping of [GraphicsLayer]
-     * content.
+     * Sets the elevation for the shadow in pixels. With the [shadowElevation] > 0f and [Outline]
+     * set, a shadow is produced. Default value is `0` and the value must not be negative.
+     * Configuring a non-zero [shadowElevation] enables clipping of [GraphicsLayer] content.
      *
      * Note that if you provide a non-zero [shadowElevation] and if the passed [Outline] is concave
      * the shadow will not be drawn on Android versions less than 10.
@@ -271,9 +282,8 @@ internal constructor(
         set(value) {
             if (impl.shadowElevation != value) {
                 impl.shadowElevation = value
-                impl.clip = clip || value > 0f
                 outlineDirty = true
-                configureOutline()
+                configureOutlineAndClip()
             }
         }
 
@@ -292,8 +302,8 @@ internal constructor(
         }
 
     /**
-     * The rotation, in degrees, of the contents around the vertical axis in degrees. Default
-     * value is `0`.
+     * The rotation, in degrees, of the contents around the vertical axis in degrees. Default value
+     * is `0`.
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRotationYWithCameraDistance
      */
@@ -306,8 +316,7 @@ internal constructor(
         }
 
     /**
-     * The rotation, in degrees, of the contents around the Z axis in degrees. Default value is
-     * `0`.
+     * The rotation, in degrees, of the contents around the Z axis in degrees. Default value is `0`.
      */
     actual var rotationZ: Float
         get() = impl.rotationZ
@@ -318,25 +327,23 @@ internal constructor(
         }
 
     /**
-     * Sets the distance along the Z axis (orthogonal to the X/Y plane on which
-     * layers are drawn) from the camera to this layer. The camera's distance
-     * affects 3D transformations, for instance rotations around the X and Y
-     * axis. If the rotationX or rotationY properties are changed and this view is
-     * large (more than half the size of the screen), it is recommended to always
-     * use a camera distance that's greater than the height (X axis rotation) or
-     * the width (Y axis rotation) of this view.
+     * Sets the distance along the Z axis (orthogonal to the X/Y plane on which layers are drawn)
+     * from the camera to this layer. The camera's distance affects 3D transformations, for instance
+     * rotations around the X and Y axis. If the rotationX or rotationY properties are changed and
+     * this view is large (more than half the size of the screen), it is recommended to always use a
+     * camera distance that's greater than the height (X axis rotation) or the width (Y axis
+     * rotation) of this view.
      *
-     * The distance of the camera from the drawing plane can have an affect on the
-     * perspective distortion of the layer when it is rotated around the x or y axis.
-     * For example, a large distance will result in a large viewing angle, and there
-     * will not be much perspective distortion of the view as it rotates. A short
-     * distance may cause much more perspective distortion upon rotation, and can
-     * also result in some drawing artifacts if the rotated view ends up partially
-     * behind the camera (which is why the recommendation is to use a distance at
+     * The distance of the camera from the drawing plane can have an affect on the perspective
+     * distortion of the layer when it is rotated around the x or y axis. For example, a large
+     * distance will result in a large viewing angle, and there will not be much perspective
+     * distortion of the view as it rotates. A short distance may cause much more perspective
+     * distortion upon rotation, and can also result in some drawing artifacts if the rotated view
+     * ends up partially behind the camera (which is why the recommendation is to use a distance at
      * least as far as the size of the view, if the view is to be rotated.)
      *
-     * The distance is expressed in pixels and must always be positive.
-     * Default value is [DefaultCameraDistance]
+     * The distance is expressed in pixels and must always be positive. Default value is
+     * [DefaultCameraDistance]
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRotationYWithCameraDistance
      */
@@ -350,29 +357,28 @@ internal constructor(
 
     /**
      * Determines if the [GraphicsLayer] should be clipped to the rectangular bounds specified by
-     * [topLeft] and [size] or to the Outline if one is provided. The default is false.
-     * Note if elevation is provided then clipping will be enabled.
+     * [topLeft] and [size] or to the Outline if one is provided. The default is false. Note if
+     * elevation is provided then clipping will be enabled.
      */
     @Suppress("GetterSetterNames")
     @get:Suppress("GetterSetterNames")
-    actual var clip: Boolean
-        get() = impl.clip
+    actual var clip: Boolean = false
         set(value) {
-            if (impl.clip != value) {
-                impl.clip = value
+            if (field != value) {
+                field = value
                 outlineDirty = true
-                configureOutline()
+                configureOutlineAndClip()
             }
         }
 
     /**
-     * Configure the [RenderEffect] to apply to this [GraphicsLayer].
-     * This will apply a visual effect to the results of the [GraphicsLayer] before it is
-     * drawn. For example if [BlurEffect] is provided, the contents will be drawn in a separate
-     * layer, then this layer will be blurred when this [GraphicsLayer] is drawn.
+     * Configure the [RenderEffect] to apply to this [GraphicsLayer]. This will apply a visual
+     * effect to the results of the [GraphicsLayer] before it is drawn. For example if [BlurEffect]
+     * is provided, the contents will be drawn in a separate layer, then this layer will be blurred
+     * when this [GraphicsLayer] is drawn.
      *
-     * Note this parameter is only supported on Android 12
-     * and above. Attempts to use this Modifier on older Android versions will be ignored.
+     * Note this parameter is only supported on Android 12 and above. Attempts to use this Modifier
+     * on older Android versions will be ignored.
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRenderEffectSample
      */
@@ -387,24 +393,24 @@ internal constructor(
     /**
      * Configures the [topLeft] and [size] of this [GraphicsLayer]. For covenience in use cases
      *
-     * @param topLeft Offset of the [GraphicsLayer]. For convenience, this is set to [topLeft]
-     * for use cases where only the [size] is desired to be changed.
-     * @param size Size of the [GraphicsLayer]. For convenience, this is set to [size]
-     * for use cases where only the [topLeft] is desired to be changed
+     * @param topLeft Offset of the [GraphicsLayer]. For convenience, this is set to [topLeft] for
+     *   use cases where only the [size] is desired to be changed.
+     * @param size Size of the [GraphicsLayer]. For convenience, this is set to [size] for use cases
+     *   where only the [topLeft] is desired to be changed
      */
     private fun setPosition(topLeft: IntOffset, size: IntSize) {
         impl.setPosition(topLeft.x, topLeft.y, size)
     }
 
     /**
-     * Constructs the display list of drawing commands into this layer that will be rendered
-     * when this [GraphicsLayer] is drawn elsewhere with [drawLayer].
+     * Constructs the display list of drawing commands into this layer that will be rendered when
+     * this [GraphicsLayer] is drawn elsewhere with [drawLayer].
+     *
      * @param density [Density] used to assist in conversions of density independent pixels to raw
-     * pixels to draw.
+     *   pixels to draw.
      * @param layoutDirection [LayoutDirection] of the layout being drawn in.
      * @param size [Size] of the [GraphicsLayer]
      * @param block lambda that is called to issue drawing commands on this [DrawScope]
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerTopLeftSample
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerBlendModeSample
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerTranslateSample
@@ -427,7 +433,7 @@ internal constructor(
         childDependenciesTracker.withTracking(
             onDependencyRemoved = { it.onRemovedFromParentLayer() }
         ) {
-            impl.record(density, layoutDirection, this, drawBlock)
+            impl.record(density, layoutDirection, this, clipDrawBlock)
         }
     }
 
@@ -447,24 +453,19 @@ internal constructor(
         val layerAlpha = alpha
         val layerColorFilter = colorFilter
         val layerBlendMode = blendMode
-        val useSaveLayer = layerAlpha < 1.0f ||
-            layerBlendMode != BlendMode.SrcOver ||
-            layerColorFilter != null ||
-            compositingStrategy == CompositingStrategy.Offscreen
+        val useSaveLayer =
+            layerAlpha < 1.0f ||
+                layerBlendMode != BlendMode.SrcOver ||
+                layerColorFilter != null ||
+                compositingStrategy == CompositingStrategy.Offscreen
         if (useSaveLayer) {
-            val paint = (softwareLayerPaint ?: Paint().also { softwareLayerPaint = it })
-                .apply {
+            val paint =
+                (softwareLayerPaint ?: Paint().also { softwareLayerPaint = it }).apply {
                     alpha = layerAlpha
                     blendMode = layerBlendMode
                     colorFilter = layerColorFilter
                 }
-            androidCanvas.saveLayer(
-                left,
-                top,
-                right,
-                bottom,
-                paint.asFrameworkPaint()
-            )
+            androidCanvas.saveLayer(left, top, right, bottom, paint.asFrameworkPaint())
         } else {
             androidCanvas.save()
         }
@@ -502,17 +503,15 @@ internal constructor(
         }
     }
 
-    /**
-     * Draw the contents of this [GraphicsLayer] into the specified [Canvas]
-     */
+    /** Draw the contents of this [GraphicsLayer] into the specified [Canvas] */
     internal actual fun draw(canvas: Canvas, parentLayer: GraphicsLayer?) {
         if (isReleased) {
             return
         }
 
+        configureOutlineAndClip()
         recreateDisplayListIfNeeded()
 
-        configureOutline()
         val useZ = shadowElevation > 0f
         if (useZ) {
             canvas.enableZ()
@@ -524,7 +523,7 @@ internal constructor(
             transformCanvas(androidCanvas)
         }
 
-        val willClipPath = usePathForClip || (softwareRendered && clip)
+        val willClipPath = softwareRendered && clip
         if (willClipPath) {
             canvas.save()
             when (val tmpOutline = outline) {
@@ -532,8 +531,9 @@ internal constructor(
                     canvas.clipRect(tmpOutline.bounds)
                 }
                 is Outline.Rounded -> {
-                    val rRectPath = roundRectClipPath?.apply { rewind() }
-                        ?: Path().also { roundRectClipPath = it }
+                    val rRectPath =
+                        roundRectClipPath?.apply { rewind() }
+                            ?: Path().also { roundRectClipPath = it }
                     rRectPath.addRoundRect(tmpOutline.roundRect)
                     canvas.clipPath(rRectPath)
                 }
@@ -566,33 +566,56 @@ internal constructor(
         discardContentIfReleasedAndHaveNoParentLayerUsages()
     }
 
-    private fun configureOutline() {
+    private var pathBounds: RectF? = null
+
+    private fun obtainPathBounds(): RectF = pathBounds ?: RectF().also { pathBounds = it }
+
+    // Suppress deprecation for Path#computeBounds(RectF, boolean) as new API is hidden behind
+    // flag currently
+    @Suppress("deprecation")
+    private fun configureOutlineAndClip() {
         if (outlineDirty) {
             val outlineIsNeeded = clip || shadowElevation > 0f
             if (!outlineIsNeeded) {
-                impl.setOutline(null)
+                impl.clip = false
+                impl.setOutline(null, IntSize.Zero)
             } else {
                 val tmpPath = outlinePath
                 if (tmpPath != null) {
-                    val androidOutline = updatePathOutline(tmpPath).apply {
-                        alpha = this@GraphicsLayer.alpha
+                    val bounds = obtainPathBounds()
+                    tmpPath.asAndroidPath().computeBounds(bounds, false)
+                    val androidOutline =
+                        updatePathOutline(tmpPath)?.apply { alpha = this@GraphicsLayer.alpha }
+                    impl.setOutline(
+                        androidOutline,
+                        IntSize(bounds.width().fastRoundToInt(), bounds.height().fastRoundToInt())
+                    )
+                    if (usePathForClip && clip) {
+                        impl.clip = false
+                        // We are clipping manually so we need to re-record the displaylist
+                        impl.discardDisplayList()
+                    } else {
+                        impl.clip = clip
                     }
-                    impl.setOutline(androidOutline)
                 } else {
-                    val roundRectOutline = obtainAndroidOutline().apply {
-                        resolveOutlinePosition { outlineTopLeft, outlineSize ->
-                            setRoundRect(
-                                outlineTopLeft.x.fastRoundToInt(),
-                                outlineTopLeft.y.fastRoundToInt(),
-                                (outlineTopLeft.x + outlineSize.width).fastRoundToInt(),
-                                (outlineTopLeft.y + outlineSize.height).fastRoundToInt(),
-                                roundRectCornerRadius
-                            )
-                        }
-                    }.apply {
-                        alpha = this@GraphicsLayer.alpha
-                    }
-                    impl.setOutline(roundRectOutline)
+                    impl.clip = clip
+                    var tmpOutlineSize = Size.Zero
+                    val roundRectOutline =
+                        obtainAndroidOutline()
+                            .apply {
+                                resolveOutlinePosition { outlineTopLeft, outlineSize ->
+                                    tmpOutlineSize = outlineSize
+                                    val left = outlineTopLeft.x.fastRoundToInt()
+                                    val top = outlineTopLeft.y.fastRoundToInt()
+                                    val right =
+                                        (outlineTopLeft.x + outlineSize.width).fastRoundToInt()
+                                    val bottom =
+                                        (outlineTopLeft.y + outlineSize.height).fastRoundToInt()
+                                    setRoundRect(left, top, right, bottom, roundRectCornerRadius)
+                                }
+                            }
+                            .apply { alpha = this@GraphicsLayer.alpha }
+                    impl.setOutline(roundRectOutline, tmpOutlineSize.roundToIntSize())
                 }
             }
         }
@@ -604,21 +627,23 @@ internal constructor(
         val rRectTopLeft = roundRectOutlineTopLeft
         val rRectSize = roundRectOutlineSize
 
-        val outlineSize = if (rRectSize.isUnspecified) {
-            layerSize
-        } else {
-            rRectSize
-        }
+        val outlineSize =
+            if (rRectSize.isUnspecified) {
+                layerSize
+            } else {
+                rRectSize
+            }
         return block(rRectTopLeft, outlineSize)
     }
 
     // Suppress deprecation for usage of setConvexPath in favor of setPath on API levels that
     // previously only supported convex path outlines
     @Suppress("deprecation")
-    private fun updatePathOutline(path: Path): AndroidOutline {
-        val resultOutline = obtainAndroidOutline()
+    private fun updatePathOutline(path: Path): AndroidOutline? {
+        val resultOutline: AndroidOutline?
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P || path.isConvex) {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) {
+            resultOutline = obtainAndroidOutline()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 OutlineVerificationHelper.setPath(resultOutline, path)
             } else {
                 resultOutline.setConvexPath(path.asAndroidPath())
@@ -626,6 +651,7 @@ internal constructor(
             usePathForClip = !resultOutline.canClip()
         } else { // Concave outlines are not supported on older API levels
             androidOutline?.setEmpty()
+            resultOutline = null
             usePathForClip = true
             impl.isInvalidated = true
         }
@@ -662,14 +688,12 @@ internal constructor(
     }
 
     /**
-     * Discards the displaylist of the GraphicsLayer. Used internally
-     * for management of GraphicsLayer resources
+     * Discards the displaylist of the GraphicsLayer. Used internally for management of
+     * GraphicsLayer resources
      */
     internal fun discardDisplayList() {
         // discarding means we don't draw children layer anymore and need to remove dependencies:
-        childDependenciesTracker.removeDependencies {
-            it.onRemovedFromParentLayer()
-        }
+        childDependenciesTracker.removeDependencies { it.onRemovedFromParentLayer() }
         impl.discardDisplayList()
     }
 
@@ -684,15 +708,14 @@ internal constructor(
     }
 
     /**
-     * The ID of the layer. This is used by tooling to match a layer to the associated
-     * LayoutNode.
+     * The ID of the layer. This is used by tooling to match a layer to the associated LayoutNode.
      */
     val layerId: Long
         get() = impl.layerId
 
     /**
-     * The uniqueDrawingId of the owner view of this graphics layer. This is used by
-     * tooling to match a layer to the associated owner View.
+     * The uniqueDrawingId of the owner view of this graphics layer. This is used by tooling to
+     * match a layer to the associated owner View.
      */
     val ownerViewId: Long
         get() = impl.ownerId
@@ -719,7 +742,8 @@ internal constructor(
                     } else {
                         Outline.Rectangle(Rect(left, top, right, bottom))
                     }
-                }.also { internalOutline = it }
+                }
+                    .also { internalOutline = it }
             }
         }
 
@@ -734,44 +758,42 @@ internal constructor(
     }
 
     /**
-     * Specifies the given path to be configured as the outline for this [GraphicsLayer].
-     * When [shadowElevation] is non-zero a shadow is produced using this [Outline].
+     * Specifies the given path to be configured as the outline for this [GraphicsLayer]. When
+     * [shadowElevation] is non-zero a shadow is produced using this [Outline].
      *
      * @param path Path to be used as the Outline for the [GraphicsLayer]
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerOutlineSample
      */
     actual fun setPathOutline(path: Path) {
         resetOutlineParams()
         this.outlinePath = path
-        configureOutline()
+        configureOutlineAndClip()
     }
 
     /**
      * Configures a rounded rect outline for this [GraphicsLayer]. By default, [topLeft] is set to
-     * [Size.Zero] and [size] is set to [Size.Unspecified] indicating that the outline
-     * should match the size of the [GraphicsLayer]. When [shadowElevation] is non-zero a shadow
-     * is produced using an [Outline] created from the round rect parameters provided. Additionally
-     * if [clip] is true, the contents of this [GraphicsLayer] will be clipped to this geometry.
+     * [Size.Zero] and [size] is set to [Size.Unspecified] indicating that the outline should match
+     * the size of the [GraphicsLayer]. When [shadowElevation] is non-zero a shadow is produced
+     * using an [Outline] created from the round rect parameters provided. Additionally if [clip] is
+     * true, the contents of this [GraphicsLayer] will be clipped to this geometry.
      *
      * @param topLeft The top left of the rounded rect outline
      * @param size The size of the rounded rect outline
      * @param cornerRadius The corner radius of the rounded rect outline
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRoundRectOutline
      */
     actual fun setRoundRectOutline(topLeft: Offset, size: Size, cornerRadius: Float) {
         if (
             this.roundRectOutlineTopLeft != topLeft ||
-                this.roundRectOutlineSize != size ||
-                this.roundRectCornerRadius != cornerRadius ||
-                this.outlinePath != null
+            this.roundRectOutlineSize != size ||
+            this.roundRectCornerRadius != cornerRadius ||
+            this.outlinePath != null
         ) {
             resetOutlineParams()
             this.roundRectOutlineTopLeft = topLeft
             this.roundRectOutlineSize = size
             this.roundRectCornerRadius = cornerRadius
-            configureOutline()
+            configureOutlineAndClip()
         }
     }
 
@@ -784,13 +806,9 @@ internal constructor(
      *
      * @param topLeft The top left of the rounded rect outline
      * @param size The size of the rounded rect outline
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRectOutline
      */
-    actual fun setRectOutline(
-        topLeft: Offset,
-        size: Size
-    ) {
+    actual fun setRectOutline(topLeft: Offset, size: Size) {
         setRoundRectOutline(topLeft, size, 0f)
     }
 
@@ -800,8 +818,8 @@ internal constructor(
      * By default the shadow color is black. Generally, this color will be opaque so the intensity
      * of the shadow is consistent between different graphics layers with different colors.
      *
-     * The opacity of the final ambient shadow is a function of the shadow caster height, the
-     * alpha channel of the [ambientShadowColor] (typically opaque), and the
+     * The opacity of the final ambient shadow is a function of the shadow caster height, the alpha
+     * channel of the [ambientShadowColor] (typically opaque), and the
      * [android.R.attr.ambientShadowAlpha] theme attribute.
      *
      * Note that this parameter is only supported on Android 9 (Pie) and above. On older versions,
@@ -821,9 +839,9 @@ internal constructor(
      * By default the shadow color is black. Generally, this color will be opaque so the intensity
      * of the shadow is consistent between different graphics layers with different colors.
      *
-     * The opacity of the final spot shadow is a function of the shadow caster height, the
-     * alpha channel of the [spotShadowColor] (typically opaque), and the
-     * [android.R.attr.spotShadowAlpha] theme attribute.
+     * The opacity of the final spot shadow is a function of the shadow caster height, the alpha
+     * channel of the [spotShadowColor] (typically opaque), and the [android.R.attr.spotShadowAlpha]
+     * theme attribute.
      *
      * Note that this parameter is only supported on Android 9 (Pie) and above. On older versions,
      * this property always returns [Color.Black] and setting new values is ignored.
@@ -843,27 +861,31 @@ internal constructor(
      *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerToImageBitmap
      */
-    actual suspend fun toImageBitmap(): ImageBitmap =
-        SnapshotImpl.toBitmap(this).asImageBitmap()
+    actual suspend fun toImageBitmap(): ImageBitmap = SnapshotImpl.toBitmap(this).asImageBitmap()
 
     companion object {
 
-        private val SnapshotImpl = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            LayerSnapshotV28
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 &&
-            SurfaceUtils.isLockHardwareCanvasAvailable()) {
-            LayerSnapshotV22
-        } else {
-            LayerSnapshotV21
-        }
+        // See b/340578758, fallback to software rendering for Robolectric tests
+        private val SnapshotImpl =
+            if (isRobolectric) {
+                LayerSnapshotV21
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                LayerSnapshotV28
+            } else if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1 &&
+                SurfaceUtils.isLockHardwareCanvasAvailable()
+            ) {
+                LayerSnapshotV22
+            } else {
+                LayerSnapshotV21
+            }
     }
 }
 
 internal interface GraphicsLayerImpl {
 
     /**
-     * The ID of the layer. This is used by tooling to match a layer to the associated
-     * LayoutNode.
+     * The ID of the layer. This is used by tooling to match a layer to the associated LayoutNode.
      */
     val layerId: Long
 
@@ -873,120 +895,76 @@ internal interface GraphicsLayerImpl {
      */
     val ownerId: Long
 
-    /**
-     * @see GraphicsLayer.compositingStrategy
-     */
+    /** @see GraphicsLayer.compositingStrategy */
     var compositingStrategy: CompositingStrategy
 
-    /**
-     * @see GraphicsLayer.pivotOffset
-     */
+    /** @see GraphicsLayer.pivotOffset */
     var pivotOffset: Offset
 
-    /**
-     * @see GraphicsLayer.alpha
-     */
+    /** @see GraphicsLayer.alpha */
     var alpha: Float
 
-    /**
-     * @see GraphicsLayer.blendMode
-     */
+    /** @see GraphicsLayer.blendMode */
     var blendMode: BlendMode
 
-    /**
-     * @see GraphicsLayer.colorFilter
-     */
+    /** @see GraphicsLayer.colorFilter */
     var colorFilter: ColorFilter?
 
-    /**
-     * @see GraphicsLayer.scaleX
-     */
+    /** @see GraphicsLayer.scaleX */
     var scaleX: Float
 
-    /**
-     * @see GraphicsLayer.scaleY
-     */
+    /** @see GraphicsLayer.scaleY */
     var scaleY: Float
 
-    /**
-     * @see GraphicsLayer.translationX
-     */
+    /** @see GraphicsLayer.translationX */
     var translationX: Float
 
-    /**
-     * @see GraphicsLayer.translationY
-     */
+    /** @see GraphicsLayer.translationY */
     var translationY: Float
 
-    /**
-     * @see GraphicsLayer.shadowElevation
-     */
+    /** @see GraphicsLayer.shadowElevation */
     var shadowElevation: Float
 
-    /**
-     * @see GraphicsLayer.ambientShadowColor
-     */
+    /** @see GraphicsLayer.ambientShadowColor */
     var ambientShadowColor: Color
 
-    /**
-     * @see GraphicsLayer.spotShadowColor
-     */
+    /** @see GraphicsLayer.spotShadowColor */
     var spotShadowColor: Color
 
-    /**
-     * @see GraphicsLayer.rotationX
-     */
+    /** @see GraphicsLayer.rotationX */
     var rotationX: Float
 
-    /**
-     * @see GraphicsLayer.rotationY
-     */
+    /** @see GraphicsLayer.rotationY */
     var rotationY: Float
 
-    /**
-     * @see GraphicsLayer.rotationZ
-     */
+    /** @see GraphicsLayer.rotationZ */
     var rotationZ: Float
 
-    /**
-     * @see GraphicsLayer.cameraDistance
-     */
+    /** @see GraphicsLayer.cameraDistance */
     var cameraDistance: Float
 
-    /**
-     * @see GraphicsLayer.clip
-     */
+    /** @see GraphicsLayer.clip */
     var clip: Boolean
 
-    /**
-     * @see GraphicsLayer.renderEffect
-     */
+    /** @see GraphicsLayer.renderEffect */
     var renderEffect: RenderEffect?
 
-    /**
-     * Determine whether the GraphicsLayer implementation should invalidate itself
-     */
+    /** Determine whether the GraphicsLayer implementation should invalidate itself */
     var isInvalidated: Boolean
 
-    /**
-     * @see GraphicsLayer.setPosition
-     */
+    /** @see GraphicsLayer.setPosition */
     fun setPosition(x: Int, y: Int, size: IntSize)
 
     /**
      * @see GraphicsLayer.setPathOutline
      * @see GraphicsLayer.setRoundRectOutline
      */
-    fun setOutline(outline: AndroidOutline?)
+    fun setOutline(outline: AndroidOutline?, outlineSize: IntSize)
 
-    /**
-     * Draw the GraphicsLayer into the provided canvas
-     */
+    /** Draw the GraphicsLayer into the provided canvas */
     fun draw(canvas: Canvas)
 
-    /**
-     * @see GraphicsLayer.record
-     */
+    /** @see GraphicsLayer.record */
     fun record(
         density: Density,
         layoutDirection: LayoutDirection,
@@ -997,14 +975,10 @@ internal interface GraphicsLayerImpl {
     val hasDisplayList: Boolean
         get() = true
 
-    /**
-     * @see GraphicsLayer.discardDisplayList
-     */
+    /** @see GraphicsLayer.discardDisplayList */
     fun discardDisplayList()
 
-    /**
-     * Calculate the current transformation matrix for the layer implementation
-     */
+    /** Calculate the current transformation matrix for the layer implementation */
     fun calculateMatrix(): android.graphics.Matrix
 
     companion object {

@@ -64,7 +64,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.util.trace
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewFactoryHolder
 
@@ -422,27 +421,29 @@ internal class LayoutNode(
 
     internal val collapsedSemantics: SemanticsConfiguration?
         get() {
-            trace("collapseSemantics") {
-                if (!nodes.has(Nodes.Semantics) || _collapsedSemantics != null) {
-                    return _collapsedSemantics
-                }
+            // TODO: investigate if there's a better way to approach "half attached" state and
+            // whether or not deactivated nodes should be considered removed or not.
+            if (!isAttached || isDeactivated) return null
 
-                var config = SemanticsConfiguration()
-                requireOwner().snapshotObserver.observeSemanticsReads(this) {
-                    nodes.tailToHead(Nodes.Semantics) {
-                        if (it.shouldClearDescendantSemantics) {
-                            config = SemanticsConfiguration()
-                            config.isClearingSemantics = true
-                        }
-                        if (it.shouldMergeDescendantSemantics) {
-                            config.isMergingSemanticsOfDescendants = true
-                        }
-                        with(config) { with(it) { applySemantics() } }
-                    }
-                }
-                _collapsedSemantics = config
-                return config
+            if (!nodes.has(Nodes.Semantics) || _collapsedSemantics != null) {
+                return _collapsedSemantics
             }
+
+            var config = SemanticsConfiguration()
+            requireOwner().snapshotObserver.observeSemanticsReads(this) {
+                nodes.tailToHead(Nodes.Semantics) {
+                    if (it.shouldClearDescendantSemantics) {
+                        config = SemanticsConfiguration()
+                        config.isClearingSemantics = true
+                    }
+                    if (it.shouldMergeDescendantSemantics) {
+                        config.isMergingSemanticsOfDescendants = true
+                    }
+                    with(config) { with(it) { applySemantics() } }
+                }
+            }
+            _collapsedSemantics = config
+            return config
         }
 
     /**

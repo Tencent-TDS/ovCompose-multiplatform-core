@@ -187,6 +187,7 @@ internal class LazyStaggeredGridMeasureResult(
         ) {
             return false
         }
+        val mainAxisMax = viewportEndOffset - afterContentPadding
         visibleItemsInfo.fastForEach {
             // non scrollable items require special handling.
             if (it.nonScrollableItem ||
@@ -208,12 +209,13 @@ internal class LazyStaggeredGridMeasureResult(
                 if (!canApply) return false
             }
             // item is partially visible at the bottom.
-            if (it.mainAxisOffset + it.mainAxisSizeWithSpacings >= viewportEndOffset) {
-                val canApply = if (delta < 0) { // scrolling forward
-                    it.mainAxisOffset + it.mainAxisSizeWithSpacings - viewportEndOffset > -delta
-                } else { // scrolling backward
-                    viewportEndOffset - it.mainAxisOffset > delta
-                }
+            if (it.mainAxisOffset + it.mainAxisSizeWithSpacings >= mainAxisMax) {
+                val canApply =
+                    if (delta < 0) { // scrolling forward
+                        it.mainAxisOffset + it.mainAxisSizeWithSpacings - viewportEndOffset > -delta
+                    } else { // scrolling backward
+                        viewportEndOffset - it.mainAxisOffset > delta
+                    }
                 if (!canApply) return false
             }
         }

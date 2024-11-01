@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import android.os.Build
 import android.view.Choreographer
 import android.view.Display
 import android.view.View
@@ -30,9 +31,11 @@ import kotlin.math.max
 @ExperimentalFoundationApi
 @Composable
 internal actual fun rememberDefaultPrefetchScheduler(): PrefetchScheduler {
-    val view = LocalView.current
-    return remember(view) {
-        AndroidPrefetchScheduler(view)
+    return if (RobolectricImpl != null) {
+        RobolectricImpl
+    } else {
+        val view = LocalView.current
+        remember(view) { AndroidPrefetchScheduler(view) }
     }
 }
 
@@ -216,3 +219,16 @@ internal class AndroidPrefetchScheduler(
         }
     }
 }
+
+@ExperimentalFoundationApi
+private val RobolectricImpl =
+    if (Build.FINGERPRINT.lowercase() == "robolectric") {
+        object : PrefetchScheduler {
+            override fun schedulePrefetch(prefetchRequest: PrefetchRequest) {
+                // Robolectric is reporting incorrect frame start time, so we have to completely
+                // disable prefetch on it.
+            }
+        }
+    } else {
+        null
+    }

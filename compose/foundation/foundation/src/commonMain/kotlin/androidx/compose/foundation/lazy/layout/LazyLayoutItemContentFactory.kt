@@ -19,7 +19,6 @@ package androidx.compose.foundation.lazy.layout
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import kotlin.jvm.JvmInline
@@ -98,7 +97,7 @@ internal class LazyLayoutItemContentFactory(
                 if (index != -1) this.index = index
             }
 
-            ReusableContentHost(active = index != -1) {
+            if (index != -1) {
                 SkippableItem(
                     itemProvider,
                     StableValue(saveableStateHolder),
@@ -108,7 +107,8 @@ internal class LazyLayoutItemContentFactory(
             }
             DisposableEffect(key) {
                 onDispose {
-                    // we clear the cached content lambda when disposed to not leak RecomposeScopes
+                    // we clear the cached content lambda when disposed to not leak
+                    // RecomposeScopes
                     _content = null
                 }
             }

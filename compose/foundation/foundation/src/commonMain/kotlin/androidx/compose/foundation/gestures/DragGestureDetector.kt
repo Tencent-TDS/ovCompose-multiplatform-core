@@ -170,14 +170,15 @@ suspend fun PointerInputScope.detectDragGestures(
     onDragEnd: () -> Unit = { },
     onDragCancel: () -> Unit = { },
     onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit
-) = detectDragGestures(
-    onDragStart = { change, _ -> onDragStart(change.position) },
-    onDragEnd = { onDragEnd.invoke() },
-    onDragCancel = onDragCancel,
-    shouldAwaitTouchSlop = { true },
-    orientationLock = null,
-    onDrag = onDrag
-)
+) =
+    detectDragGestures(
+        onDragStart = { _, slopTriggerChange, _ -> onDragStart(slopTriggerChange.position) },
+        onDragEnd = { onDragEnd.invoke() },
+        onDragCancel = onDragCancel,
+        shouldAwaitTouchSlop = { true },
+        orientationLock = null,
+        onDrag = onDrag
+    )
 
 /**
  * A Gesture detector that waits for pointer down and touch slop in the direction specified by
@@ -201,8 +202,9 @@ suspend fun PointerInputScope.detectDragGestures(
  * canceling this gesture.
  *
  * @param onDragStart A lambda to be called when the drag gesture starts, it contains information
- * about the last known [PointerInputChange] relative to the containing element and the post slop
- * delta.
+ *   about the last known [PointerInputChange] relative to the containing element and the post slop
+ *   delta, slopTriggerChange. It also contains information about the down event where this gesture
+ *   started and the overSlopOffset.
  * @param onDragEnd A lambda to be called when the gesture ends. It contains information about the
  * up [PointerInputChange] that finished the gesture.
  * @param onDragCancel A lambda to be called when the gesture is cancelled either by an error or
@@ -226,13 +228,20 @@ suspend fun PointerInputScope.detectDragGestures(
  * @see detectDragGesturesAfterLongPress to detect gestures after long press
  */
 internal suspend fun PointerInputScope.detectDragGestures(
-    onDragStart: (change: PointerInputChange, initialDelta: Offset) -> Unit,
+    onDragStart: (
+         down: PointerInputChange,
+         slopTriggerChange: PointerInputChange,
+         overSlopOffset: Offset
+    ) -> Unit,
     onDragEnd: (change: PointerInputChange) -> Unit,
     onDragCancel: () -> Unit,
     shouldAwaitTouchSlop: () -> Boolean,
     orientationLock: Orientation?,
     onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit
 ) {
+
+    var overSlop: Offset
+
     awaitEachGesture {
         val initialDown =
             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -243,8 +252,7 @@ internal suspend fun PointerInputScope.detectDragGestures(
         }
         val down = awaitFirstDown(requireUnconsumed = false)
         var drag: PointerInputChange?
-        var overSlop = Offset.Zero
-        var initialDelta = Offset.Zero
+        overSlop = Offset.Zero
 
         if (awaitTouchSlop) {
             do {
@@ -257,13 +265,12 @@ internal suspend fun PointerInputScope.detectDragGestures(
                     overSlop = over
                 }
             } while (drag != null && !drag.isConsumed)
-            initialDelta = overSlop
         } else {
             drag = initialDown
         }
 
         if (drag != null) {
-            onDragStart.invoke(drag, initialDelta)
+            onDragStart.invoke(down, drag, overSlop)
             onDrag(drag, overSlop)
             val upEvent = drag(
                 pointerId = drag.id,

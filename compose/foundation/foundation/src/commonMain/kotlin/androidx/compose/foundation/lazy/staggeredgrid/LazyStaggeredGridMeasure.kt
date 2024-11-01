@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastForEachReversed
+import androidx.compose.ui.util.fastJoinToString
 import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.packInts
@@ -803,35 +804,49 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 it - beforeContentPadding + afterContentPadding
             }
 
-        var extraItemOffset = itemScrollOffsets[0]
-        val extraItemsBefore = calculateExtraItems(
-            position = {
-                extraItemOffset -= it.mainAxisSizeWithSpacings
-                it.position(
-                    mainAxis = extraItemOffset,
-                    crossAxis = 0,
-                    mainAxisLayoutSize = mainAxisLayoutSize
-                )
-            },
-            filter = { itemIndex ->
-                val lane = laneInfo.getLane(itemIndex)
-                when (lane) {
-                    Unset, FullSpan -> {
-                        firstItemIndices.all { it > itemIndex }
-                    }
-                    else -> {
-                        firstItemIndices[lane] > itemIndex
-                    }
-                }
-            },
-            beforeVisibleBounds = true
-        )
+        debugLog { "pinned items: $pinnedItems" }
 
-        val visibleItems = calculateVisibleItems(
-            measuredItems,
-            itemScrollOffsets,
-            mainAxisLayoutSize,
-        )
+        var extraItemOffset = itemScrollOffsets[0]
+
+        val extraItemsBefore =
+            calculateExtraItems(
+                position = {
+                    extraItemOffset -= it.mainAxisSizeWithSpacings
+                    it.position(
+                        mainAxis = extraItemOffset,
+                        crossAxis = 0,
+                        mainAxisLayoutSize = mainAxisLayoutSize
+                    )
+                },
+                filter = { itemIndex ->
+                    val lane = laneInfo.getLane(itemIndex)
+                    when (lane) {
+                        Unset,
+                        FullSpan -> {
+                            measuredItems.all {
+                                val firstIndex = it.firstOrNull()?.index ?: -1
+                                firstIndex > itemIndex
+                            }
+                        }
+                        else -> {
+                            val firstIndex = measuredItems[lane].firstOrNull()?.index ?: -1
+                            firstIndex > itemIndex
+                        }
+                    }
+                },
+                beforeVisibleBounds = true
+            )
+
+        debugLog {
+            "extra items before: ${extraItemsBefore.fastJoinToString { it.index.toString() }}"
+        }
+
+        val visibleItems =
+            calculateVisibleItems(
+                measuredItems,
+                itemScrollOffsets,
+                mainAxisLayoutSize
+            )
 
         extraItemOffset = itemScrollOffsets[0]
         val extraItemsAfter = calculateExtraItems(
@@ -859,6 +874,10 @@ private fun LazyStaggeredGridMeasureContext.measure(
             },
             beforeVisibleBounds = false
         )
+
+        debugLog {
+            "extra items after: ${extraItemsAfter.fastJoinToString { it.index.toString() }}"
+        }
 
         val positionedItems = mutableListOf<LazyStaggeredGridMeasuredItem>()
         positionedItems.addAll(extraItemsBefore)

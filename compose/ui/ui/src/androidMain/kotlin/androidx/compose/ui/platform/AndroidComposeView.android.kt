@@ -868,11 +868,6 @@ internal class AndroidComposeView(
             return super.requestFocus(direction, previouslyFocusedRect)
         }
 
-        // When we clear focus on Pre P devices, request focus is called even when we are
-        // in touch mode. We fix this by assigning initial focus only in non-touch mode.
-        // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
-        if (isInTouchMode) return false
-
         val focusDirection = toFocusDirection(direction) ?: Enter
         return focusOwner.focusSearch(
             focusDirection = focusDirection,
@@ -1356,7 +1351,13 @@ internal class AndroidComposeView(
             val (minWidth, maxWidth) = convertMeasureSpec(widthMeasureSpec)
             val (minHeight, maxHeight) = convertMeasureSpec(heightMeasureSpec)
 
-            val constraints = Constraints(minWidth, maxWidth, minHeight, maxHeight)
+            val constraints =
+                Constraints.fitPrioritizingHeight(
+                    minWidth = minWidth,
+                    maxWidth = maxWidth,
+                    minHeight = minHeight,
+                    maxHeight = maxHeight
+                )
             if (onMeasureConstraints == null) {
                 // first onMeasure after last onLayout
                 onMeasureConstraints = constraints

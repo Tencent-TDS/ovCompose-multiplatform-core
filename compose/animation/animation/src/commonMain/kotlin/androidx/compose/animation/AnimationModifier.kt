@@ -206,12 +206,13 @@ private class SizeAnimationModifierNode(
             }
         }
         return layout(width, height) {
-            val offset = alignment.align(
-                size = measuredSize,
-                space = IntSize(width, height),
-                layoutDirection = this@measure.layoutDirection
-            )
-            placeable.placeRelative(offset)
+            val offset =
+                alignment.align(
+                    size = measuredSize,
+                    space = IntSize(width, height),
+                    layoutDirection = this@measure.layoutDirection
+                )
+            placeable.place(offset)
         }
     }
 

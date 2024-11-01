@@ -20,12 +20,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +45,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -155,47 +154,60 @@ internal class TextLinkScope(internal val initialText: AnnotatedString) {
 
         val links = text.getLinkAnnotations(0, text.length)
         links.fastForEach { range ->
-            val shape = shapeForRange(range)
-            val clipModifier = shape?.let { Modifier.clip(it) } ?: Modifier
-            val interactionSource = remember { MutableInteractionSource() }
+            if (range.start != range.end) {
+                val shape = shapeForRange(range)
+                val clipModifier = shape?.let { Modifier.clip(it) } ?: Modifier
+                val interactionSource = remember { MutableInteractionSource() }
 
-            Box(
-                clipModifier
-                    .textRange(range.start, range.end)
-                    .hoverable(interactionSource)
-                    .pointerHoverIcon(PointerIcon.Hand)
-                    .combinedClickable(
-                        indication = null,
-                        interactionSource = interactionSource,
-                        onClick = { handleLink(range.item, uriHandler) }
-                    )
-            )
-
-            val isHovered by interactionSource.collectIsHoveredAsState()
-            val isFocused by interactionSource.collectIsFocusedAsState()
-            val isPressed by interactionSource.collectIsPressedAsState()
-
-            StyleAnnotation(
-                isHovered,
-                isFocused,
-                isPressed,
-                range.item.styles?.style,
-                range.item.styles?.focusedStyle,
-                range.item.styles?.hoveredStyle,
-                range.item.styles?.pressedStyle,
-            ) {
-                // we calculate the latest style based on the link state and apply it to the
-                // initialText's style. This allows us to merge the style with the original instead
-                // of fully replacing it
-                val mergedStyle = range.item.styles?.style.mergeOrUse(
-                    if (isFocused) range.item.styles?.focusedStyle else null
-                ).mergeOrUse(
-                    if (isHovered) range.item.styles?.hoveredStyle else null
-                ).mergeOrUse(
-                    if (isPressed) range.item.styles?.pressedStyle else null
+                Box(
+                    clipModifier
+                        .textRange(range.start, range.end)
+                        .hoverable(interactionSource)
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .combinedClickable(
+                            indication = null,
+                            interactionSource = interactionSource,
+                            onClick = { handleLink(range.item, uriHandler) }
+                        )
                 )
-                mergedStyle?.let {
-                    replaceStyle(it, range.start, range.end)
+
+                if (!range.item.styles.isNullOrEmpty()) {
+                    val linkStateObserver = remember { LinkStateInteractionSourceObserver() }
+                    LaunchedEffect(interactionSource) {
+                      linkStateObserver.collectInteractionsForLinks(interactionSource)
+                    }
+
+                    StyleAnnotation(
+                        linkStateObserver.isHovered,
+                        linkStateObserver.isFocused,
+                        linkStateObserver.isPressed,
+                        range.item.styles?.style,
+                        range.item.styles?.focusedStyle,
+                        range.item.styles?.hoveredStyle,
+                        range.item.styles?.pressedStyle,
+                    ) {
+                        // we calculate the latest style based on the link state and apply it to the
+                        // initialText's style. This allows us to merge the style with the original
+                        // instead of fully replacing it
+                        val mergedStyle =
+                            range.item.styles
+                                ?.style
+                                .mergeOrUse(
+                                    if (linkStateObserver.isFocused) range.item.styles?.focusedStyle
+                                    else null
+                                )
+                                .mergeOrUse(
+                                    if (linkStateObserver.isHovered) range.item.styles?.hoveredStyle
+                                    else null
+                                )
+                                .mergeOrUse(
+                                    if (linkStateObserver.isPressed) range.item.styles?.pressedStyle
+                                    else null
+                                )
+                        mergedStyle?.let {
+                            replaceStyle(it, range.start, range.end)
+                        }
+                    }
                 }
             }
         }
@@ -243,6 +255,11 @@ internal class TextLinkScope(internal val initialText: AnnotatedString) {
             }
         }
     }
+}
+
+private fun TextLinkStyles?.isNullOrEmpty(): Boolean {
+    return this == null ||
+        (style == null && focusedStyle == null && hoveredStyle == null && pressedStyle == null)
 }
 
 /**

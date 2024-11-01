@@ -23,11 +23,11 @@ import android.view.VelocityTracker
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.annotation.LayoutRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.draggable2D
+import androidx.compose.foundation.gestures.rememberDraggable2DState
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,14 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.background
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChangedIgnoreConsumed
 import androidx.compose.ui.input.pointer.util.VelocityTrackerAddPointsFix
-import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
@@ -70,9 +66,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.errorprone.annotations.CanIgnoreReturnValue
 import kotlin.math.absoluteValue
 import kotlin.test.assertTrue
-import kotlinx.coroutines.coroutineScope
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -273,7 +267,6 @@ class VelocityTrackingParityTest {
     }
 
     @Test
-    @Ignore("b/299092669")
     fun equalDraggable_withEqualSwipes_shouldProduceSimilarVelocity_orthogonal() {
         // Arrange
         createActivity(true)
@@ -304,6 +297,70 @@ class VelocityTrackingParityTest {
 
         // assert
         assertIsWithinTolerance(latestComposeVelocity.x, latestVelocityInViewX)
+        assertIsWithinTolerance(latestComposeVelocity.y, latestVelocityInViewY)
+    }
+
+    @Test
+    fun equalDraggable_withEqualSwipes_shouldProduceSimilarVelocity_regularSituationOne() {
+        // Arrange
+        createActivity()
+        checkVisibility(composeView, View.GONE)
+        checkVisibility(draggableView, View.VISIBLE)
+
+        // Act: Use system to send motion events and collect them.
+        regularGestureOne(R.id.draggable_view)
+
+        val latestVelocityInViewY = draggableView.latestVelocity.y
+
+        // switch visibility
+        rule.runOnUiThread {
+            composeView.visibility = View.VISIBLE
+            draggableView.visibility = View.GONE
+        }
+
+        checkVisibility(composeView, View.VISIBLE)
+        checkVisibility(draggableView, View.GONE)
+
+        assertTrue { isValidGesture(draggableView.motionEvents.filterNotNull()) }
+
+        // Inject the same events in compose view
+        for (event in draggableView.motionEvents) {
+            composeView.dispatchTouchEvent(event)
+        }
+
+        // assert
+        assertIsWithinTolerance(latestComposeVelocity.y, latestVelocityInViewY)
+    }
+
+    @Test
+    fun equalDraggable_withEqualSwipes_shouldProduceSimilarVelocity_regularSituationTwo() {
+        // Arrange
+        createActivity()
+        checkVisibility(composeView, View.GONE)
+        checkVisibility(draggableView, View.VISIBLE)
+
+        // Act: Use system to send motion events and collect them.
+        regularGestureTwo(R.id.draggable_view)
+
+        val latestVelocityInViewY = draggableView.latestVelocity.y
+
+        // switch visibility
+        rule.runOnUiThread {
+            composeView.visibility = View.VISIBLE
+            draggableView.visibility = View.GONE
+        }
+
+        checkVisibility(composeView, View.VISIBLE)
+        checkVisibility(draggableView, View.GONE)
+
+        assertTrue { isValidGesture(draggableView.motionEvents.filterNotNull()) }
+
+        // Inject the same events in compose view
+        for (event in draggableView.motionEvents) {
+            composeView.dispatchTouchEvent(event)
+        }
+
+        // assert
         assertIsWithinTolerance(latestComposeVelocity.y, latestVelocityInViewY)
     }
 
@@ -400,6 +457,24 @@ internal fun orthogonalGesture(id: Int) {
         )
 }
 
+internal fun regularGestureOne(id: Int) {
+    Espresso.onView(withId(id))
+        .perform(
+            espressoSwipe(
+                SwiperWithTime(100),
+                GeneralLocation.CENTER,
+                GeneralLocation.BOTTOM_CENTER
+            )
+        )
+}
+
+internal fun regularGestureTwo(id: Int) {
+    Espresso.onView(withId(id))
+        .perform(
+            espressoSwipe(SwiperWithTime(70), GeneralLocation.CENTER, GeneralLocation.TOP_CENTER)
+        )
+}
+
 private fun espressoSwipe(
     swiper: Swiper,
     start: CoordinatesProvider,
@@ -411,6 +486,7 @@ private fun espressoSwipe(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TestComposeDraggable(
     twoDimensional: Boolean = false,
@@ -426,7 +502,10 @@ fun TestComposeDraggable(
                 .background(Color.Black)
                 .then(
                     if (twoDimensional) {
-                        Modifier.draggable2D(onDragStopped)
+                        Modifier.draggable2D(
+                            rememberDraggable2DState {},
+                            onDragStopped = onDragStopped
+                        )
                     } else {
                         Modifier.draggable(
                             rememberDraggableState(onDelta = { }),
@@ -438,38 +517,6 @@ fun TestComposeDraggable(
         )
     }
 }
-
-fun Modifier.draggable2D(onDragStopped: (Velocity) -> Unit) =
-    this.pointerInput(Unit) {
-        coroutineScope {
-            awaitEachGesture {
-                val tracker = androidx.compose.ui.input.pointer.util.VelocityTracker()
-                val initialDown =
-                    awaitFirstDown(
-                        requireUnconsumed = false,
-                        pass = PointerEventPass.Initial
-                    )
-                tracker.addPointerInputChange(initialDown)
-
-                awaitTouchSlopOrCancellation(initialDown.id) { change, _ ->
-                    tracker.addPointerInputChange(change)
-                    change.consume()
-                }
-
-                val lastEvent = awaitDragOrUp(initialDown.id) {
-                    tracker.addPointerInputChange(it)
-                    it.consume()
-                    it.positionChangedIgnoreConsumed()
-                }
-                lastEvent?.let {
-                    tracker.addPointerInputChange(it)
-                }
-                onDragStopped(
-                    tracker.calculateVelocity()
-                )
-            }
-        }
-    }
 
 private fun ActivityScenario<*>.createActivityWithComposeContent(
     @LayoutRes layout: Int,
@@ -533,8 +580,8 @@ internal fun isValidGesture(events: List<MotionEvent>): Boolean {
     return down.size == 1 && move.isNotEmpty() && up.size == 1
 }
 
-// 1% tolerance
-private const val VelocityDifferenceTolerance = 0.1f
+// 5% tolerance
+private const val VelocityDifferenceTolerance = 0.05f
 
 /**
  * Copied from androidx.test.espresso.action.Swipe
