@@ -19,8 +19,10 @@ package androidx.compose.ui.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
@@ -32,6 +34,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.PlatformInsets
@@ -192,6 +195,12 @@ private fun DialogLayout(
     content: @Composable () -> Unit
 ) {
     val currentContent by rememberUpdatedState(content)
+    val platformInsets = properties.platformInsets
+
+    // HACK: The solution is taken from the popup implementation.
+    // Make the dialogue content reload a second time so that it can be indexed properly for accessibility.
+    var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
+    EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
 
     val layer = rememberComposeSceneLayer(
         focusable = true
@@ -200,13 +209,14 @@ private fun DialogLayout(
     layer.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     layer.setOutsidePointerEventListener(onOutsidePointerEvent)
     layer.Content {
-        val platformInsets = properties.platformInsets
+        val parentBoundsInWindow = layoutParentBoundsInWindow ?: return@Content
         val containerSize = LocalWindowInfo.current.containerSize
         val measurePolicy = rememberDialogMeasurePolicy(
             layer = layer,
             properties = properties,
             containerSize = containerSize,
-            platformInsets = platformInsets
+            platformInsets = platformInsets,
+            parentBoundsInWindow = parentBoundsInWindow
         )
         PlatformInsetsConfig.excludeInsets(
             safeInsets = properties.usePlatformInsets,
@@ -241,8 +251,9 @@ private fun rememberDialogMeasurePolicy(
     layer: ComposeSceneLayer,
     properties: DialogProperties,
     containerSize: IntSize,
-    platformInsets: PlatformInsets
-) = remember(layer, properties, containerSize, platformInsets) {
+    platformInsets: PlatformInsets,
+    parentBoundsInWindow: IntRect
+) = remember(layer, properties, containerSize, platformInsets, parentBoundsInWindow) {
     RootMeasurePolicy(
         platformInsets = platformInsets,
         usePlatformDefaultWidth = properties.usePlatformDefaultWidth
