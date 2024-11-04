@@ -37,6 +37,7 @@ import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
+import platform.UIKit.UIGestureRecognizerDelegateProtocol
 import platform.UIKit.UIGestureRecognizerState
 import platform.UIKit.UIGestureRecognizerStateBegan
 import platform.UIKit.UIGestureRecognizerStateCancelled
@@ -48,7 +49,6 @@ import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
-import platform.UIKit.UIGestureRecognizerDelegateProtocol
 import platform.UIKit.setState
 
 /**
@@ -593,7 +593,7 @@ private class UserInputGestureRecognizer(
  * lightweight generics.
  */
 internal class UserInputView(
-    private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> UIView?,
+    private var hitTestInteropView: (point: CValue<CGPoint>) -> UIView?,
     onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> Unit,
     onGestureEvent: (GestureEvent) -> Unit,
     private var isPointInsideInteractionBounds: (CValue<CGPoint>) -> Boolean,
@@ -636,7 +636,7 @@ internal class UserInputView(
                 null
             } else {
                 // Check if a scene contains an [InteropView] in the given point.
-                val interopView = hitTestInteropView(point, withEvent)
+                val interopView = hitTestInteropView(point)
 
                 if (interopView == null) {
                     // Native [hitTest] happens after [pointInside] is checked. If hit testing
@@ -662,7 +662,7 @@ internal class UserInputView(
         removeGestureRecognizer(gestureRecognizer)
         gestureRecognizer.dispose()
 
-        hitTestInteropView = { _, _ -> null }
+        hitTestInteropView = { _ -> null }
 
         isPointInsideInteractionBounds = { false }
         onKeyboardPresses = {}
