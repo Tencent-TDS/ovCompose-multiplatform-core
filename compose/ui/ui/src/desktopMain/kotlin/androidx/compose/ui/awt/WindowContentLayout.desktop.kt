@@ -55,13 +55,8 @@ internal fun WindowContentLayout(
 
             val contentPlaceables = buildList(measurables.size) {
                 measurables.fastForEach {
-                    if (it != resizerMeasurable) {
-                        val newConstraints = constraints.copy(
-                            minWidth = constraints.maxWidth,
-                            minHeight = constraints.maxHeight
-                        )
-                        add(it.measure(newConstraints))
-                    }
+                    if (it != resizerMeasurable)
+                        add(it.measure(constraints))
                 }
             }
 
