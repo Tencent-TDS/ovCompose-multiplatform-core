@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -36,6 +37,8 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformInsetsConfig
@@ -198,8 +201,8 @@ private fun DialogLayout(
 
     // HACK: The solution is taken from the popup implementation.
     // Make the dialogue content reload a second time so that it can be indexed properly for accessibility.
-    var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
-    EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
+    var layoutParentBoundsInWindow: Rect? by remember { mutableStateOf(null) }
+    EmptyLayout(Modifier.onGloballyPositioned { layoutParentBoundsInWindow = it.boundsInWindow() })
 
     val layer = rememberComposeSceneLayer(
         focusable = true
@@ -252,7 +255,7 @@ private fun rememberDialogMeasurePolicy(
     properties: DialogProperties,
     containerSize: IntSize,
     platformInsets: PlatformInsets,
-    parentBoundsInWindow: IntRect
+    parentBoundsInWindow: Rect
 ) = remember(layer, properties, containerSize, platformInsets, parentBoundsInWindow) {
     RootMeasurePolicy(
         platformInsets = platformInsets,
