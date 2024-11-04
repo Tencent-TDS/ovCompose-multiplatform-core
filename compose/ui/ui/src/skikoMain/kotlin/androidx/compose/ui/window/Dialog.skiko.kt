@@ -195,7 +195,6 @@ private fun DialogLayout(
     content: @Composable () -> Unit
 ) {
     val currentContent by rememberUpdatedState(content)
-    val platformInsets = properties.platformInsets
 
     // HACK: The solution is taken from the popup implementation.
     // Make the dialogue content reload a second time so that it can be indexed properly for accessibility.
@@ -209,6 +208,7 @@ private fun DialogLayout(
     layer.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     layer.setOutsidePointerEventListener(onOutsidePointerEvent)
     layer.Content {
+        val platformInsets = properties.platformInsets
         val parentBoundsInWindow = layoutParentBoundsInWindow ?: return@Content
         val containerSize = LocalWindowInfo.current.containerSize
         val measurePolicy = rememberDialogMeasurePolicy(
