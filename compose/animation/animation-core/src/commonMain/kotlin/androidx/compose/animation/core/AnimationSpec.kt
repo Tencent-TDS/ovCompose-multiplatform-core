@@ -658,9 +658,7 @@ public class KeyframesSpec<T>(public val config: KeyframesSpecConfig<T>) :
             timestamps.add(config.durationMillis)
         }
 
-        //the reason is https://youtrack.jetbrains.com/issue/KT-70005
-        //it was fixed in androidx.collection:collection:1.5.0-alpha01, but we redirect on 1.4.0 yet
-        if (timestamps.isNotEmpty()) timestamps.sort()
+        timestamps.sort()
 
         return VectorizedKeyframesSpec(
             timestamps = timestamps,
@@ -775,9 +773,7 @@ public class KeyframesWithSplineSpec<T>(
             timestamps.add(config.durationMillis)
         }
 
-        //the reason is https://youtrack.jetbrains.com/issue/KT-70005
-        //it was fixed in androidx.collection:collection:1.5.0-alpha01, but we redirect on 1.4.0 yet
-        if (timestamps.isNotEmpty()) timestamps.sort()
+        timestamps.sort()
         return VectorizedMonoSplineKeyframesSpec(
             timestamps = timestamps,
             keyframes = timeToVectorMap,
