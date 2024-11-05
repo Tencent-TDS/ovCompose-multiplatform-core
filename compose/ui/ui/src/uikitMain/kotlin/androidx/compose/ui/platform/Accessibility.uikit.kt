@@ -1093,7 +1093,7 @@ internal class AccessibilityMediator(
 
                 // Wait until all changes in the accessibility tree have been completed
                 // and consume all invalidations
-                delay(1)
+                delay(timeMillis = 1)
                 while (invalidationChannel.tryReceive().isSuccess) {
                     // Workaround for the channel buffering two invalidations despite the capacity of 1
                 }
