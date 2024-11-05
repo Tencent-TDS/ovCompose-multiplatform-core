@@ -1091,10 +1091,8 @@ internal class AccessibilityMediator(
             while (true) {
                 invalidationChannel.receive()
 
-                // Wait until all changes in the accessibility tree have been completed
-                // and consume all invalidations
-                delay(timeMillis = 1)
                 while (invalidationChannel.tryReceive().isSuccess) {
+                    // Do nothing, just consume the channel
                     // Workaround for the channel buffering two invalidations despite the capacity of 1
                 }
 
@@ -1178,9 +1176,13 @@ internal class AccessibilityMediator(
     fun onLayoutChange(nodeId: Int) {
         debugLogger?.log("onLayoutChange (nodeId=$nodeId)")
 
-        invalidatedBoundsNodeIds.add(nodeId)
+        // TODO: Sync invalidated nodes subtree
+        if (accessibilityElementsMap[nodeId] == null) {
+            invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
+        } else {
+            invalidatedBoundsNodeIds.add(nodeId)
+        }
 
-        // unprocessedInvalidationKind will be set to BOUNDS in sync(), it's a strict subset of COMPLETE
         invalidationChannel.trySend(Unit)
     }
 
