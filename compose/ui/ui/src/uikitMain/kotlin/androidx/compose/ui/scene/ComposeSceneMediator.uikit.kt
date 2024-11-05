@@ -336,7 +336,7 @@ internal class ComposeSceneMediator(
     val hasInvalidations: Boolean
         get() = scene.hasInvalidations() || keyboardManager.isAnimating
 
-    private fun hitTestInteropView(point: CValue<CGPoint>): UIView? =
+    private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): UIView? =
         point.useContents {
             val position = asDpOffset().toOffset(density)
             val interopView = scene.hitTestInteropView(position)
