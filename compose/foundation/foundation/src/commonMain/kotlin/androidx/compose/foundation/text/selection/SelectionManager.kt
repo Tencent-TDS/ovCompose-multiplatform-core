@@ -205,8 +205,13 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
         private set
 
     /**
-     * Line height on start handle position
+     * The handle that is currently being dragged, or null when no handle is being dragged. To get
+     * the position of the last drag event, use [currentDragPosition].
      */
+    var draggingHandle: Handle? by mutableStateOf(null)
+        private set
+
+    /** Line height on start handle position */
     val startHandleLineHeight: Float
         get() {
             val selection = this.selection ?: return 0f
@@ -214,22 +219,13 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
             return selectable.getLineHeight(selection.start.offset)
         }
 
-    /**
-     * Line height on end handle position
-     */
+    /** Line height on end handle position */
     val endHandleLineHeight: Float
         get() {
             val selection = this.selection ?: return 0f
             val selectable = selection.end.let(::getAnchorSelectable) ?: return 0f
             return selectable.getLineHeight(selection.end.offset)
         }
-
-    /**
-     * The handle that is currently being dragged, or null when no handle is being dragged. To get
-     * the position of the last drag event, use [currentDragPosition].
-     */
-    var draggingHandle: Handle? by mutableStateOf(null)
-        private set
 
     /**
      * When a handle is being dragged (i.e. [draggingHandle] is non-null), this is the last position

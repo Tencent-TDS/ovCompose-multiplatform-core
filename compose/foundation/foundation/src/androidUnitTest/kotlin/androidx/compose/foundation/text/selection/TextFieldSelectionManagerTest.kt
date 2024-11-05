@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.MultiParagraph
 import androidx.compose.ui.text.TextLayoutInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
@@ -88,6 +89,7 @@ class TextFieldSelectionManagerTest {
     private val textToolbar = mock<TextToolbar>()
     private val hapticFeedback = mock<HapticFeedback>()
     private val focusRequester = mock<FocusRequester>()
+    private val multiParagraph = mock<MultiParagraph>()
 
     @Before
     fun setup() {
@@ -123,6 +125,7 @@ class TextFieldSelectionManagerTest {
             .thenAnswer(TextRangeAnswer(dragTextRange))
         whenever(layoutResult.getBidiRunDirection(any())).thenReturn(ResolvedTextDirection.Ltr)
         whenever(layoutResult.getBoundingBox(any())).thenReturn(Rect.Zero)
+        whenever(layoutResult.multiParagraph).thenReturn(multiParagraph)
         // left or right handle drag
         whenever(layoutResult.getOffsetForPosition(dragBeginPosition)).thenReturn(beginOffset)
         whenever(layoutResult.getOffsetForPosition(dragBeginPosition + dragDistance))
@@ -569,6 +572,46 @@ class TextFieldSelectionManagerTest {
         manager.touchSelectionObserver.onStart(dragBeginPosition)
 
         assertThat(manager.isTextChanged()).isFalse()
+    }
+
+    @Test
+    fun getHandleLineHeight_valid() {
+        val selection = TextRange(1, text.length - 1)
+        manager.value = TextFieldValue(text = text, selection = selection)
+        val selectionStartLineHeight = 10f
+        val selectionEndLineHeight = 20f
+
+        whenever(multiParagraph.getLineForOffset(selection.start)).thenReturn(0)
+        whenever(multiParagraph.getLineForOffset(selection.end)).thenReturn(1)
+        whenever(multiParagraph.getLineHeight(0)).thenReturn(selectionStartLineHeight)
+        whenever(multiParagraph.getLineHeight(1)).thenReturn(selectionEndLineHeight)
+        whenever(multiParagraph.getLineEnd(0)).thenReturn(selection.start + 1)
+        whenever(multiParagraph.getLineEnd(1)).thenReturn(selection.end + 1)
+        whenever(multiParagraph.lineCount).thenReturn(2)
+        whenever(multiParagraph.maxLines).thenReturn(2)
+
+        assertThat(manager.getHandleLineHeight(isStartHandle = true))
+            .isEqualTo(selectionStartLineHeight)
+        assertThat(manager.getHandleLineHeight(isStartHandle = false))
+            .isEqualTo(selectionEndLineHeight)
+    }
+
+    @Test
+    fun getHandleLineHeight_selection_out_of_lines_limit_return_zero() {
+        val selection = TextRange(1, text.length - 1)
+        manager.value = TextFieldValue(text = text, selection = selection)
+        val selectionEndLineHeight = 20f
+
+        whenever(multiParagraph.getLineForOffset(selection.start)).thenReturn(2)
+        whenever(multiParagraph.getLineForOffset(selection.end)).thenReturn(3)
+        whenever(multiParagraph.getLineHeight(any())).thenReturn(selectionEndLineHeight)
+        whenever(multiParagraph.getLineEnd(2)).thenReturn(text.length)
+        whenever(multiParagraph.getLineEnd(3)).thenReturn(text.length)
+        whenever(multiParagraph.lineCount).thenReturn(2)
+        whenever(multiParagraph.maxLines).thenReturn(2)
+
+        assertThat(manager.getHandleLineHeight(isStartHandle = true)).isZero()
+        assertThat(manager.getHandleLineHeight(isStartHandle = false)).isZero()
     }
 }
 

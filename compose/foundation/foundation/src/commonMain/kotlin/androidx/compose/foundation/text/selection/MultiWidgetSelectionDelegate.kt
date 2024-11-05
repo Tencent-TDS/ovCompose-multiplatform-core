@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.compose.foundation.text.getLineHeight
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isUnspecified
@@ -200,11 +201,7 @@ internal class MultiWidgetSelectionDelegate(
     }
 
     override fun getLineHeight(offset: Int): Float {
-        val textLayoutResult = layoutResultCallback() ?: return 0f
-        val textLength = textLayoutResult.layoutInput.text.length
-        if (textLength < 1) return 0f
-        val line = textLayoutResult.getLineForOffset(offset.coerceIn(0, textLength - 1))
-        return textLayoutResult.multiParagraph.getLineHeight(line)
+        return layoutResultCallback()?.getLineHeight(offset) ?: 0f
     }
 }
 

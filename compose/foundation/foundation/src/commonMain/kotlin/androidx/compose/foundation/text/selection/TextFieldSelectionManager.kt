@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.UndoManager
 import androidx.compose.foundation.text.ValidatingEmptyOffsetMappingIdentity
 import androidx.compose.foundation.text.detectDownAndDragGesturesWithObserver
+import androidx.compose.foundation.text.getLineHeight
 import androidx.compose.foundation.text.isPositionInsideSelection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -759,12 +760,8 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
     }
 
     internal fun getHandleLineHeight(isStartHandle: Boolean): Float {
-        val layoutResult = state?.layoutResult ?: return 0f
         val offset = if (isStartHandle) value.selection.start else value.selection.end
-        val line = layoutResult.value.getLineForOffset(
-            offset = offsetMapping.originalToTransformed(offset)
-        )
-        return layoutResult.value.multiParagraph.getLineHeight(line)
+        return state?.layoutResult?.value?.getLineHeight(offset) ?: return 0f
     }
 
     internal fun getCursorPosition(density: Density): Offset {
