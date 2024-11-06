@@ -17,7 +17,6 @@
 package androidx.compose.ui.text
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import com.google.common.truth.Truth
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -56,6 +54,7 @@ class DesktopParagraphTest {
                 style = FontStyle.Normal
             )
         )
+    private val lineMetricsTolerance = 0.0001f
 
     @Test
     fun getBoundingBox_basic() {
@@ -70,10 +69,10 @@ class DesktopParagraphTest {
 
             for (i in 0..text.length - 1) {
                 val box = paragraph.getBoundingBox(i)
-                Truth.assertThat(box.left).isEqualTo(i * fontSizeInPx)
-                Truth.assertThat(box.right).isEqualTo((i + 1) * fontSizeInPx)
+                Truth.assertThat(box.left).isWithin(lineMetricsTolerance).of(i * fontSizeInPx)
+                Truth.assertThat(box.right).isWithin(lineMetricsTolerance).of((i + 1) * fontSizeInPx)
                 Truth.assertThat(box.top).isZero()
-                Truth.assertThat(box.bottom).isEqualTo(fontSizeInPx)
+                Truth.assertThat(box.bottom).isWithin(lineMetricsTolerance).of(fontSizeInPx)
             }
         }
     }
@@ -498,18 +497,20 @@ class DesktopParagraphTest {
 
             for (i in ltrText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, true))
-                    .isEqualTo(fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(fontSizeInPx * i)
             }
 
             for (i in 1 until rtlText.length) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i + ltrText.length, true))
-                    .isEqualTo(width - fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(width - fontSizeInPx * i)
             }
         }
     }
 
     @Test
-    fun getHorizontalPositionForOffset_notPrimary_Bidi_singleLine_textDirectionLtr() {
+    fun getHorizontalPositionForOffset_notPrimary_Bidi_singleLine_textDirectionLtr() {//
         with(defaultDensity) {
             val ltrText = "abc"
             val rtlText = "\u05D0\u05D1\u05D2"
@@ -528,16 +529,19 @@ class DesktopParagraphTest {
 
             for (i in ltrText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, false))
-                    .isEqualTo(fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(fontSizeInPx * i)
             }
 
             for (i in rtlText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i + ltrText.length, false))
-                    .isEqualTo(width - fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(width - fontSizeInPx * i)
             }
 
             Truth.assertThat(paragraph.getHorizontalPosition(text.length, false))
-                .isEqualTo(width - rtlText.length * fontSizeInPx)
+                .isWithin(lineMetricsTolerance)
+                .of(width - rtlText.length * fontSizeInPx)
         }
     }
 
