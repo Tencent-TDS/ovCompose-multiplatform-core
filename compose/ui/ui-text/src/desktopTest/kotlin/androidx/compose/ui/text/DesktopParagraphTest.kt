@@ -510,7 +510,7 @@ class DesktopParagraphTest {
     }
 
     @Test
-    fun getHorizontalPositionForOffset_notPrimary_Bidi_singleLine_textDirectionLtr() {//
+    fun getHorizontalPositionForOffset_notPrimary_Bidi_singleLine_textDirectionLtr() {
         with(defaultDensity) {
             val ltrText = "abc"
             val rtlText = "\u05D0\u05D1\u05D2"
