@@ -18,6 +18,8 @@ package androidx.compose.ui.layout
 
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 
@@ -33,18 +35,28 @@ internal object RootMeasurePolicy :
             }
             1 -> {
                 val placeable = measurables[0].measure(constraints)
-                layout(constraints.maxWidth, constraints.maxHeight) {
+                layout(
+                    constraints.constrainWidth(placeable.width),
+                    constraints.constrainHeight(placeable.height)
+                ) {
                     placeable.placeRelativeWithLayer(0, 0)
                 }
             }
             else -> {
-                val placeables = measurables.fastMap {
-                    it.measure(constraints)
-                }
-                layout(constraints.maxWidth, constraints.maxHeight) {
-                    placeables.fastForEach { placeable ->
-                        placeable.placeRelativeWithLayer(0, 0)
+                var maxWidth = 0
+                var maxHeight = 0
+                val placeables =
+                    measurables.fastMap {
+                        it.measure(constraints).apply {
+                            maxWidth = maxOf(width, maxWidth)
+                            maxHeight = maxOf(height, maxHeight)
+                        }
                     }
+                layout(
+                    constraints.constrainWidth(maxWidth),
+                    constraints.constrainHeight(maxHeight)
+                ) {
+                    placeables.fastForEach { placeable -> placeable.placeRelativeWithLayer(0, 0) }
                 }
             }
         }

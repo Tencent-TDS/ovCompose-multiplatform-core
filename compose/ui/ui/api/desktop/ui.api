@@ -3014,6 +3014,8 @@ public final class androidx/compose/ui/node/CompositionLocalConsumerModifierNode
 
 public abstract interface class androidx/compose/ui/node/DelegatableNode {
 	public abstract fun getNode ()Landroidx/compose/ui/Modifier$Node;
+	public fun onDensityChange ()V
+	public fun onLayoutDirectionChange ()V
 }
 
 public final class androidx/compose/ui/node/DelegatableNodeKt {

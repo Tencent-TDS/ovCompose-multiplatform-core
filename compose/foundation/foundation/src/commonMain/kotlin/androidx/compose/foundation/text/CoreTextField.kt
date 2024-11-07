@@ -212,6 +212,7 @@ internal fun CoreTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     enabled: Boolean = true,
     readOnly: Boolean = false,
+    @Suppress("ComposableLambdaParameterPosition")
     decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit =
         @Composable { innerTextField -> innerTextField() },
     textScrollerPosition: TextFieldScrollerPosition? = null,
@@ -231,18 +232,17 @@ internal fun CoreTextField(
     // Scroll state
     val singleLine = maxLines == 1 && !softWrap && imeOptions.singleLine
     val orientation = if (singleLine) Orientation.Horizontal else Orientation.Vertical
-    val scrollerPosition = textScrollerPosition ?: rememberSaveable(
-        orientation,
-        saver = TextFieldScrollerPosition.Saver
-    ) { TextFieldScrollerPosition(orientation) }
+    val scrollerPosition =
+        textScrollerPosition
+            ?: rememberSaveable(orientation, saver = TextFieldScrollerPosition.Saver) {
+                TextFieldScrollerPosition(orientation)
+            }
     if (scrollerPosition.orientation != orientation) {
         throw IllegalArgumentException(
-            "Mismatching scroller orientation; " + (
-                if (orientation == Orientation.Vertical)
+            "Mismatching scroller orientation; " +
+                (if (orientation == Orientation.Vertical)
                     "only single-line, non-wrap text fields can scroll horizontally"
-                else
-                    "single-line, non-wrap text fields can only scroll horizontally"
-                )
+                else "single-line, non-wrap text fields can only scroll horizontally")
         )
     }
 

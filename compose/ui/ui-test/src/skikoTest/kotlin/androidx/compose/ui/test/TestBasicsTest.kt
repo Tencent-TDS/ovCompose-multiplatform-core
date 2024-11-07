@@ -81,7 +81,7 @@ class TestBasicsTest {
     @Test
     fun inputEventAdvancesClock() = runComposeUiTest {
         setContent {
-            Box(Modifier.testTag("box"))
+            Box(Modifier.testTag("box").size(100.dp))
         }
 
         val clockBefore = mainClock.currentTime
@@ -229,6 +229,22 @@ class TestBasicsTest {
         assertEquals(0, value)
         mainClock.advanceTimeBy(10000)
         assertContentEquals(0..9, compositionValues)
+    }
+
+    @Test
+    fun advancingClockByLessThanFrameDoesNotRecompose() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        var value by mutableIntStateOf(1)
+        var compositionValue = 0
+        setContent {
+            compositionValue = value
+        }
+        assertEquals(1, compositionValue)
+        value = 2
+        mainClock.advanceTimeBy(1, ignoreFrameDuration = true)
+        assertEquals(1, compositionValue)
+        mainClock.advanceTimeByFrame()
+        assertEquals(2, compositionValue)
     }
 
     @Test

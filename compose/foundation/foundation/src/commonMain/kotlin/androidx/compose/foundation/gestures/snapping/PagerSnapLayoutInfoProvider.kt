@@ -205,10 +205,10 @@ private fun PagerState.isLtrDragging() = dragGestureDelta() > 0
 private fun PagerState.isScrollingForward(velocity: Float): Boolean {
     val reverseScrollDirection = layoutInfo.reverseLayout
     val isForward = if (isNotGestureAction()) {
-        velocity
+        velocity < 0
     } else {
-        dragGestureDelta()
-    } < 0
+        isLtrDragging()
+    }
     return (isForward && reverseScrollDirection ||
         !isForward && !reverseScrollDirection)
 }

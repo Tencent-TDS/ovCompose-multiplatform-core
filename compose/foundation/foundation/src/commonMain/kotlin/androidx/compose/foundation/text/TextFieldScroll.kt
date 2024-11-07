@@ -29,6 +29,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
@@ -288,10 +289,8 @@ internal class TextFieldScrollerPosition(
     var maximum by mutableFloatStateOf(0f)
         private set
 
-    /**
-     * Size of the visible part, on the scrollable axis, in pixels.
-     */
-    var viewportSize by mutableStateOf(0)
+    /** Size of the visible part, on the scrollable axis, in pixels. */
+    var viewportSize by mutableIntStateOf(0)
         private set
 
     /**

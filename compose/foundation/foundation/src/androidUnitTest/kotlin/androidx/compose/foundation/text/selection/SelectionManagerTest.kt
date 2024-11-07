@@ -1265,6 +1265,46 @@ class SelectionManagerTest {
         )
     }
 
+    @Test
+    fun startHandleLineHeight_valid() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(startSelectable)
+        whenever(startSelectable.getLineHeight(fakeSelection.start.offset)).thenReturn(lineHeightPx)
+
+        assertThat(selectionManager.startHandleLineHeight).isEqualTo(lineHeightPx)
+    }
+
+    @Test
+    fun startHandleLineHeight_no_selection_return_zero() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(startSelectable)
+        whenever(startSelectable.getLineHeight(fakeSelection.start.offset)).thenReturn(lineHeightPx)
+
+        selectionManager.selection = null
+
+        assertThat(selectionManager.startHandleLineHeight).isZero()
+    }
+
+    @Test
+    fun endHandleLineHeight_valid() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(endSelectable)
+        whenever(endSelectable.getLineHeight(fakeSelection.end.offset)).thenReturn(lineHeightPx)
+
+        assertThat(selectionManager.endHandleLineHeight).isEqualTo(lineHeightPx)
+    }
+
+    @Test
+    fun endHandleLineHeight_no_selection_return_zero() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(endSelectable)
+        whenever(endSelectable.getLineHeight(fakeSelection.end.offset)).thenReturn(lineHeightPx)
+
+        selectionManager.selection = null
+
+        assertThat(selectionManager.endHandleLineHeight).isZero()
+    }
+
     private fun expectedSelection(
         startOffset: Int,
         endOffset: Int,
