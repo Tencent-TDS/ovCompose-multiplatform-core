@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +54,6 @@ import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.UIKit.UIView
 
-@OptIn(ExperimentalComposeApi::class)
 class KeyboardInsetsTest {
     companion object {
         // Maximum duration of a frame that is not considered as a frame drop.
@@ -184,7 +182,6 @@ class KeyboardInsetsTest {
 
             setContent({
                 onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
-                platformLayers = false
             }) {
                 Box(Modifier.imePadding()) {
                     UIKitView(
@@ -273,7 +270,6 @@ class KeyboardInsetsTest {
 
             setContent({
                 onFocusBehavior = OnFocusBehavior.FocusableAboveKeyboard
-                platformLayers = false
             }) {
                 Box(Modifier
                     .fillMaxSize()
