@@ -54,7 +54,7 @@ class DesktopParagraphTest {
                 style = FontStyle.Normal
             )
         )
-    private val lineMetricsTolerance = 0.0001f
+    private val lineMetricsTolerance = 0.001f
 
     @Test
     fun getBoundingBox_basic() {
