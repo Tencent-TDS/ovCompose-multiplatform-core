@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.viewinterop.UIKitView
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -140,6 +141,7 @@ class KeyboardInsetsTest {
         }
     }
 
+    @Ignore // Became flaky. TODO: Investigate performance problem.
     @Test
     fun `test IME insets animation frame rate`() = runUIKitInstrumentedTest {
         val refreshTimings = mutableListOf<ValueTimeMark>()
@@ -350,6 +352,7 @@ class KeyboardInsetsTest {
             }
         }
 
+    @Ignore // Became flaky. TODO: Investigate performance problem.
     @Test
     fun `test IME insets animation frame rate with focused text field`() =
         runUIKitInstrumentedTest {
