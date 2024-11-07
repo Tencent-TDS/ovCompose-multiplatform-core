@@ -20,11 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.draganddrop.UIKitDragAndDropManager
 import androidx.compose.ui.geometry.Offset
@@ -40,9 +38,6 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.OffsetToFocusedRect
-import androidx.compose.ui.layout.OverlayLayout
-import androidx.compose.ui.layout.adjustedToFocusedRectOffset
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.AccessibilityMediator
 import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.CUPERTINO_TOUCH_SLOP
@@ -95,7 +90,6 @@ import androidx.compose.ui.window.UserInputView
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -103,7 +97,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGAffineTransformIdentity
 import platform.CoreGraphics.CGAffineTransformInvert
-import platform.CoreGraphics.CGAffineTransformMakeTranslation
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGSize
@@ -309,17 +302,15 @@ internal class ComposeSceneMediator(
             }
         )
     }
-    @OptIn(ExperimentalComposeApi::class)
+
     private val keyboardManager by lazy {
         ComposeSceneKeyboardOffsetManager(
-            view = viewForKeyboardOffsetTransform,
+            view = view,
             keyboardOverlapHeightChanged = { height ->
-                if (configuration.platformLayers) {
-                    if (keyboardOverlapHeight != height) {
-                        animateKeyboardOffsetChanges = false
-                    }
+                if (keyboardOverlapHeight != height) {
+                    animateKeyboardOffsetChanges = false
+                    keyboardOverlapHeight = height
                 }
-                keyboardOverlapHeight = height
             }
         )
     }
@@ -436,18 +427,6 @@ internal class ComposeSceneMediator(
         }
     }
 
-    private fun updateViewOffset() {
-        val yOffset = density.adjustedToFocusedRectOffset(
-            insets = PlatformInsets(bottom = keyboardOverlapHeight),
-            focusedRect = getFocusedRect(),
-            size = scene.size
-        ).y / density.density
-
-        viewForKeyboardOffsetTransform.layer.setAffineTransform(
-            CGAffineTransformMakeTranslation(0.0, yOffset.toDouble())
-        )
-    }
-
     fun performOrientationChangeAnimation(
         targetSize: CValue<CGSize>,
         coordinator: UIViewControllerTransitionCoordinatorProtocol
@@ -523,50 +502,23 @@ internal class ComposeSceneMediator(
             content = content
         )
 
-    @OptIn(ExperimentalComposeApi::class)
     @Composable
     private fun FocusAboveKeyboardIfNeeded(content: @Composable () -> Unit) {
         if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
-            if (configuration.platformLayers) {
-                OffsetToFocusedRect(
-                    insets = PlatformInsets(bottom = keyboardOverlapHeight),
-                    getFocusedRect = ::getFocusedRect,
-                    size = scene.size,
-                    animationDuration = if (animateKeyboardOffsetChanges) {
-                        FOCUS_CHANGE_ANIMATION_DURATION
-                    } else {
-                        0.seconds
-                    },
-                    animationCompletion = {
-                        animateKeyboardOffsetChanges = false
-                    },
-                    content = content
-                )
-            } else {
-                LaunchedEffect(keyboardOverlapHeight) {
-                    scene.invalidatePositionInWindow()
-                }
-                LaunchedEffect(animateKeyboardOffsetChanges) {
-                    if (animateKeyboardOffsetChanges) {
-                        UIView.animateWithDuration(
-                            duration = FOCUS_CHANGE_ANIMATION_DURATION.toDouble(
-                                DurationUnit.SECONDS
-                            ),
-                            animations = ::updateViewOffset,
-                            completion = {
-                                scene.invalidatePositionInWindow()
-                                animateKeyboardOffsetChanges = false
-                            }
-                        )
-                    }
-                }
-                OverlayLayout(
-                    modifier = Modifier.onGloballyPositioned {
-                        updateViewOffset()
-                    },
-                    content = content
-                )
-            }
+            OffsetToFocusedRect(
+                insets = PlatformInsets(bottom = keyboardOverlapHeight),
+                getFocusedRect = ::getFocusedRect,
+                size = scene.size,
+                animationDuration = if (animateKeyboardOffsetChanges) {
+                    FOCUS_CHANGE_ANIMATION_DURATION
+                } else {
+                    0.seconds
+                },
+                animationCompletion = {
+                    animateKeyboardOffsetChanges = false
+                },
+                content = content
+            )
         } else {
             content()
         }
@@ -647,39 +599,20 @@ internal class ComposeSceneMediator(
             || scene.sendKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
 
-    @OptIn(ExperimentalComposeApi::class)
-    private var viewForKeyboardOffsetTransform = if (configuration.platformLayers) {
-        view
-    } else {
-        parentView
-    }
-
     private inner class PlatformContextImpl : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
 
         override fun convertLocalToWindowPosition(localPosition: Offset): Offset =
-            windowContext.convertLocalToWindowPosition(
-                viewForKeyboardOffsetTransform,
-                localPosition
-            )
+            windowContext.convertLocalToWindowPosition(view, localPosition)
 
         override fun convertWindowToLocalPosition(positionInWindow: Offset): Offset =
-            windowContext.convertWindowToLocalPosition(
-                viewForKeyboardOffsetTransform,
-                positionInWindow
-            )
+            windowContext.convertWindowToLocalPosition(view, positionInWindow)
 
         override fun convertLocalToScreenPosition(localPosition: Offset): Offset =
-            windowContext.convertLocalToScreenPosition(
-                viewForKeyboardOffsetTransform,
-                localPosition
-            )
+            windowContext.convertLocalToScreenPosition(view, localPosition)
 
         override fun convertScreenToLocalPosition(positionOnScreen: Offset): Offset =
-            windowContext.convertScreenToLocalPosition(
-                viewForKeyboardOffsetTransform,
-                positionOnScreen
-            )
+            windowContext.convertScreenToLocalPosition(view, positionOnScreen)
 
         override val viewConfiguration get() = this@ComposeSceneMediator.viewConfiguration
         override val inputModeManager = DefaultInputModeManager(InputMode.Touch)

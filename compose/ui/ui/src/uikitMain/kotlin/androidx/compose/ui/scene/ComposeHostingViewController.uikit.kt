@@ -183,11 +183,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun onDidMoveToWindow(window: UIWindow?) {
-        val windowContainer = if (configuration.platformLayers) {
-            window ?: return
-        } else {
-            view
-        }
+        val windowContainer = window ?: return
 
         updateInterfaceOrientationState()
 
@@ -317,30 +313,19 @@ internal class ComposeHostingViewController(
         }
     }
 
-    @OptIn(ExperimentalComposeApi::class)
     private fun createComposeScene(
         invalidate: () -> Unit,
         platformContext: PlatformContext,
         coroutineContext: CoroutineContext,
-    ): ComposeScene = if (configuration.platformLayers) {
-        PlatformLayersComposeScene(
-            density = view.density,
-            layoutDirection = layoutDirection,
-            coroutineContext = coroutineContext,
-            composeSceneContext = createComposeSceneContext(
-                platformContext = platformContext
-            ),
-            invalidate = invalidate,
-        )
-    } else {
-        CanvasLayersComposeScene(
-            density = view.density,
-            layoutDirection = layoutDirection,
-            coroutineContext = coroutineContext,
-            platformContext = platformContext,
-            invalidate = invalidate,
-        )
-    }
+    ): ComposeScene = PlatformLayersComposeScene(
+        density = view.density,
+        layoutDirection = layoutDirection,
+        coroutineContext = coroutineContext,
+        composeSceneContext = createComposeSceneContext(
+            platformContext = platformContext
+        ),
+        invalidate = invalidate,
+    )
 
     private fun createMediatorIfNeeded() {
         if (mediator == null) {

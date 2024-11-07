@@ -43,9 +43,6 @@ class ComposeUIViewControllerConfiguration {
     @Suppress("DEPRECATION")
     var delegate: ComposeUIViewControllerDelegate = object : ComposeUIViewControllerDelegate {}
 
-    @ExperimentalComposeApi
-    var platformLayers: Boolean = true
-
     /**
      * @see [AccessibilitySyncOptions]
      *
