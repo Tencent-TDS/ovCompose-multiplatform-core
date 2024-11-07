@@ -1828,17 +1828,243 @@ class MultiWidgetSelectionDelegateTest {
         }
     }
 
+    @Test
+    fun getLineHeight_line_in_the_middle() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+        val line2FontSizePx = with(defaultDensity) { line2FontSize.toPx() }
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                1,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        val textOffset = text.indexOf('h')
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(textOffset)
+
+        // Assert.
+        assertThat(lineHeight).isEqualTo(line2FontSizePx)
+    }
+
+    @Test
+    fun getLineHeight_offset_next_after_last_character() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+        val line3FontSizePx = with(defaultDensity) { line3FontSize.toPx() }
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                1,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        val textOffset = text.length
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(textOffset)
+
+        // Assert.
+        assertThat(lineHeight).isEqualTo(line3FontSizePx)
+    }
+
+    @Test
+    fun getLineHeight_offset_next_after_last_visible_character() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+        val line2FontSizePx = with(defaultDensity) { line2FontSize.toPx() }
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity, maxLines = 2)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                1,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        val textOffset = text.indexOf("w")
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(textOffset)
+
+        // Assert.
+        assertThat(lineHeight).isEqualTo(line2FontSizePx)
+    }
+
+    @Test
+    fun getLineHeight_zero_length_text_return_zero() {
+        val fontSize = 10.sp
+        val text = AnnotatedString("", fontSize)
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                0,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(0)
+
+        // Assert.
+        assertThat(lineHeight).isEqualTo(0f)
+    }
+
+    @Test
+    fun getLineHeight_negative_offset_should_return_zero() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                0,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(-2)
+
+        // Assert.
+        assertThat(lineHeight).isZero()
+    }
+
+    @Test
+    fun getLineHeight_offset_larger_than_range_should_return_zero() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                0,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(text.indexOf('d') + 5)
+
+        // Assert.
+        assertThat(lineHeight).isZero()
+    }
+
+    @Test
+    fun getLineHeight_character_out_of_visible_range_return_zero() {
+        val line1FontSize = 10.sp
+        val line2FontSize = 20.sp
+        val line3FontSize = 30.sp
+
+        val text =
+            AnnotatedString("text\n", line1FontSize) +
+                AnnotatedString("hello\n", line2FontSize) +
+                AnnotatedString("world", line3FontSize)
+
+        val layoutResult = annotatedTextLayout(text = text, density = defaultDensity, maxLines = 2)
+
+        val layoutCoordinates = mock<LayoutCoordinates>()
+        whenever(layoutCoordinates.isAttached).thenReturn(true)
+
+        val selectable =
+            MultiWidgetSelectionDelegate(
+                0,
+                coordinatesCallback = { layoutCoordinates },
+                layoutResultCallback = { layoutResult }
+            )
+
+        // Act.
+        val lineHeight = selectable.getLineHeight(text.indexOf('d'))
+
+        // Assert.
+        assertThat(lineHeight).isZero()
+    }
+
+    private fun AnnotatedString(text: String, fontSize: TextUnit) =
+        AnnotatedString(text, SpanStyle(fontSize = fontSize, fontFamily = fontFamily))
+
     private fun simpleTextLayout(
         text: String = "",
         fontSize: TextUnit = TextUnit.Unspecified,
         density: Density,
         maxLines: Int = Int.MAX_VALUE,
         constraints: Constraints = Constraints()
+    ) =
+        annotatedTextLayout(
+            text = AnnotatedString(text, SpanStyle(fontSize = fontSize, fontFamily = fontFamily)),
+            density = density,
+            maxLines = maxLines,
+            constraints = constraints
+        )
+
+    private fun annotatedTextLayout(
+        text: AnnotatedString,
+        density: Density,
+        maxLines: Int = Int.MAX_VALUE,
+        constraints: Constraints = Constraints()
     ): TextLayoutResult {
-        val spanStyle = SpanStyle(fontSize = fontSize, fontFamily = fontFamily)
-        val annotatedString = AnnotatedString(text, spanStyle)
         return TextDelegate(
-                text = annotatedString,
+                text = text,
                 style = TextStyle(),
                 density = density,
                 maxLines = maxLines,
