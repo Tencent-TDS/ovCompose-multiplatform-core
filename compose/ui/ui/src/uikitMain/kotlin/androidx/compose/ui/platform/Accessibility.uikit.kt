@@ -414,6 +414,7 @@ private class AccessibilityElement(
             )
         )
 
+        fun Float.invertIfNeeded() = if (isRTL) -this else this
         // TODO: consider safe areas?
         if (unclippedRect.top < scrollableAncestorRect.top) {
             // The element is above the screen, scroll up
@@ -1488,8 +1489,9 @@ private fun List<SemanticsNode>.sortedByAccessibilityOrder(isRTL: Boolean): List
         val result = lhs.boundsInWindow.topLeft.y.compareTo(rhs.boundsInWindow.topLeft.y)
 
         if (result == 0) {
-            fun Int.invertIfNeeded() = if (isRTL) -this else this
-            lhs.boundsInWindow.topLeft.x.compareTo(rhs.boundsInWindow.topLeft.x).invertIfNeeded()
+            lhs.boundsInWindow.topLeft.x.compareTo(rhs.boundsInWindow.topLeft.x).let {
+                if (isRTL) -it else it
+            }
         } else {
             result
         }
@@ -1507,9 +1509,6 @@ private val SemanticsNode.isValid: Boolean
 
 private val SemanticsNode.isRTL: Boolean
     get() = layoutInfo.layoutDirection == LayoutDirection.Rtl
-
-private val UIAccessibilityScrollDirection.isHorizontal: Boolean
-    get() = this == UIAccessibilityScrollDirectionLeft || this == UIAccessibilityScrollDirectionRight
 
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
