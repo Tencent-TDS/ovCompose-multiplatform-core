@@ -81,7 +81,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)cmp_loadAny:(Class)objectClass onCompletion:(void (^)(id _Nullable result, NSError *_Nullable error))completionHandler {
-    // Check that an object of objectClass can be loaded from UIDragItem
+    // Check that an object of objectClass can be loaded from NSItemProvider
     if (![objectClass conformsToProtocol:@protocol(NSItemProviderReading)]) {
         NSDictionary *userInfo = @{
             @"description" : [NSString stringWithFormat:@"%@ doesn't conform to protocol NSItemProviderReading and thus can't be loaded", objectClass.description]
