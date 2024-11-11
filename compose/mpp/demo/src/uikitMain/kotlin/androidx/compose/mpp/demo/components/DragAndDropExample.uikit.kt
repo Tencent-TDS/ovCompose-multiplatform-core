@@ -38,17 +38,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.decodeEachItem
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 actual fun DragAndDropExample() {
     Column(
@@ -77,15 +79,11 @@ actual fun DragAndDropExample() {
                 .padding(16.dp)
                 .fillMaxWidth(1f)
                 .height(200.dp)
-                .dragAndDropSource(
-                    drawDragDecoration = {
-                        drawRect(Color.Gray, Offset(0f, 0f), size)
-                    },
-                    transferData = { offset ->
-                        // TODO: Implement iOS specific transfer data creation
-                        null
+                .dragAndDropSource {
+                    DragAndDropTransferData {
+                        string(text)
                     }
-                )
+                }
                 .background(Color.DarkGray),
             color = Color.White,
             text = text
@@ -107,16 +105,14 @@ actual fun DragAndDropExample() {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
                             // TODO: finalize event and transferable API
 
-//                            CoroutineScope(Dispatchers.Main).launch {
-//                                for (item in event.session.items) {
-//                                    val dragItem = item as UIDragItem
-//                                    dragItem.decodeString()?.let {
-//                                        dropText = it
-//                                    }
-//                                }
-//                            }
-
-                            addLog("DragAndDropTarget.onDrop with $event")
+                            CoroutineScope(Dispatchers.Main).launch {
+                                event.decodeEachItem {
+                                    string()?.let {
+                                        dropText = it
+                                        addLog("Dropped: $it")
+                                    }
+                                }
+                            }
 
                             return true
                         }

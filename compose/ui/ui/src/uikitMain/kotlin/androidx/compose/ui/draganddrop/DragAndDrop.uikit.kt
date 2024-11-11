@@ -24,6 +24,12 @@ import androidx.compose.ui.unit.toOffset
 import platform.UIKit.UIDragItem
 import platform.UIKit.UIDropSessionProtocol
 import platform.UIKit.UIView
+import androidx.compose.ui.uikit.utils.cmp_itemWithString
+import androidx.compose.ui.uikit.utils.cmp_loadString
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
+import platform.Foundation.NSError
 
 /**
  * A representation of an event sent by the platform during a drag and drop operation.
@@ -39,8 +45,38 @@ actual class DragAndDropEvent internal constructor(
 }
 
 @ExperimentalComposeUiApi
-sealed interface DragAndDropTransferDataItem {
-    class Text(val text: String) : DragAndDropTransferDataItem
+interface DragAndDropTransferDataEncodingScope {
+    fun string(value: String)
+}
+
+@ExperimentalComposeUiApi
+interface DragAndDropTransferDataItemDecodingScope {
+    /**
+     * Returns a String if a String was encoded in the current item. Otherwise returns null.
+     */
+    suspend fun string(): String?
+}
+
+/**
+ * Perform a decoding in the context of each item contained in the [DragAndDropEvent].
+ */
+@ExperimentalComposeUiApi
+suspend fun DragAndDropEvent.decodeEachItem(block: suspend DragAndDropTransferDataItemDecodingScope.() -> Unit) {
+    for (item in session.items) {
+        item as UIDragItem
+        object : DragAndDropTransferDataItemDecodingScope {
+            override suspend fun string(): String? =
+                suspendCoroutine { continuation ->
+                    item.cmp_loadString { string, nsError ->
+                        if (nsError != null) {
+                            continuation.resumeWithException(nsError.asThrowable())
+                        } else {
+                            continuation.resume(string)
+                        }
+                    }
+                }
+        }.block()
+    }
 }
 
 /**
@@ -50,7 +86,29 @@ sealed interface DragAndDropTransferDataItem {
  */
 actual class DragAndDropTransferData internal constructor (
     internal val items: List<UIDragItem>
-)
+) {
+    @ExperimentalComposeUiApi
+    constructor(block: DragAndDropTransferDataEncodingScope.() -> Unit) : this(
+        object : DragAndDropTransferDataEncodingScope {
+            val items = mutableListOf<UIDragItem>()
+
+            override fun string(value: String) {
+                val item = UIDragItem.cmp_itemWithString(value)
+                item.localObject = value
+                items.add(item)
+            }
+        }.apply(block).items
+    )
+}
+
+/**
+ * Adapter allowing [NSError] to participate in the Kotlin exception machinery.
+ */
+internal class ThrowableNSError(val error: NSError): Throwable(error.toString())
+
+internal fun NSError.asThrowable(): Throwable {
+    return ThrowableNSError(this)
+}
 
 /**
  * Returns the position of this [DragAndDropEvent] relative to the root Compose View in the
