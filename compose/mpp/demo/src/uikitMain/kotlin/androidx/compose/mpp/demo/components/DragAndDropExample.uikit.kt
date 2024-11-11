@@ -80,9 +80,13 @@ actual fun DragAndDropExample() {
                 .fillMaxWidth(1f)
                 .height(200.dp)
                 .dragAndDropSource {
-                    DragAndDropTransferData {
+                    val data = DragAndDropTransferData {
                         string(text)
                     }
+
+                    addLog("Sent: $data")
+
+                    data
                 }
                 .background(Color.DarkGray),
             color = Color.White,
@@ -104,7 +108,7 @@ actual fun DragAndDropExample() {
                     target = object : DragAndDropTarget {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
                             // TODO: finalize event and transferable API
-
+                            addLog("Received: $event")
                             CoroutineScope(Dispatchers.Main).launch {
                                 event.decodeEachItem {
                                     string()?.let {

@@ -64,13 +64,17 @@ interface DragAndDropTransferDataItemDecodingScope {
 suspend fun DragAndDropEvent.decodeEachItem(block: suspend DragAndDropTransferDataItemDecodingScope.() -> Unit) {
     for (item in session.items) {
         item as UIDragItem
+        println("Iterated to item $item")
         object : DragAndDropTransferDataItemDecodingScope {
             override suspend fun string(): String? =
                 suspendCoroutine { continuation ->
+                    println("Unwrapping item $item")
                     item.cmp_loadString { string, nsError ->
                         if (nsError != null) {
+                            println("Failure on $item")
                             continuation.resumeWithException(nsError.asThrowable())
                         } else {
+                            println("Success on $item: $string")
                             continuation.resume(string)
                         }
                     }
