@@ -70,11 +70,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@implementation UIDragItem (CMPDecoding)
+@implementation NSItemProvider (CMPDecoding)
 
 - (void)cmp_loadString:(void (^)(NSString  * _Nullable result, NSError *_Nullable error))completionHandler {
-    if ([self.itemProvider canLoadObjectOfClass:NSString.class]) {
-        [self.itemProvider loadObjectOfClass:NSString.class completionHandler:completionHandler];
+    if ([self canLoadObjectOfClass:NSString.class]) {
+        [self loadObjectOfClass:NSString.class completionHandler:completionHandler];
     } else {
         completionHandler(nil, nil);
     }
@@ -91,9 +91,9 @@ NS_ASSUME_NONNULL_BEGIN
                                              code:0
                                          userInfo:userInfo];
         completionHandler(nil, error);
-    } else if ([self.itemProvider canLoadObjectOfClass:objectClass]) {
+    } else if ([self canLoadObjectOfClass:objectClass]) {
         // Try loading the object of this class
-        [self.itemProvider loadObjectOfClass:objectClass completionHandler:completionHandler];
+        [self loadObjectOfClass:objectClass completionHandler:completionHandler];
     } else {
         // This UIDragItem does't contain object of `objectClass`
         completionHandler(nil, nil);

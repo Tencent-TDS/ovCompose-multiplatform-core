@@ -46,7 +46,7 @@ actual class DragAndDropEvent internal constructor(
 
 @ExperimentalComposeUiApi
 interface DragAndDropTransferDataEncodingScope {
-    fun string(value: String)
+    fun encodeString(value: String)
 }
 
 @ExperimentalComposeUiApi
@@ -54,27 +54,29 @@ interface DragAndDropTransferDataItemDecodingScope {
     /**
      * Returns a String if a String was encoded in the current item. Otherwise returns null.
      */
-    suspend fun string(): String?
+    suspend fun decodeString(): String?
 }
 
 /**
  * Perform a decoding in the context of each item contained in the [DragAndDropEvent].
  */
 @ExperimentalComposeUiApi
-suspend fun DragAndDropEvent.decodeEachItem(block: suspend DragAndDropTransferDataItemDecodingScope.() -> Unit) {
-    for (item in session.items) {
-        item as UIDragItem
-        println("Iterated to item $item")
+fun DragAndDropEvent.forEachDataItem(block: DragAndDropTransferDataItemDecodingScope.() -> Unit) {
+    // Session will reset its items and associated providers on next run loop tick, so they need to
+    // be saved before the `block` will start executing decoding operations (which are async)
+    val providers = session.items.map {
+        val item = it as UIDragItem
+        item.itemProvider
+    }
+
+    for (provider in providers) {
         object : DragAndDropTransferDataItemDecodingScope {
-            override suspend fun string(): String? =
+            override suspend fun decodeString(): String? =
                 suspendCoroutine { continuation ->
-                    println("Unwrapping item $item")
-                    item.cmp_loadString { string, nsError ->
+                    provider.cmp_loadString { string, nsError ->
                         if (nsError != null) {
-                            println("Failure on $item")
                             continuation.resumeWithException(nsError.asThrowable())
                         } else {
-                            println("Success on $item: $string")
                             continuation.resume(string)
                         }
                     }
@@ -96,9 +98,8 @@ actual class DragAndDropTransferData internal constructor (
         object : DragAndDropTransferDataEncodingScope {
             val items = mutableListOf<UIDragItem>()
 
-            override fun string(value: String) {
+            override fun encodeString(value: String) {
                 val item = UIDragItem.cmp_itemWithString(value)
-                item.localObject = value
                 items.add(item)
             }
         }.apply(block).items

@@ -37,7 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 /// Helper category for decoding `UIDragItem` into some typed object
-@interface UIDragItem (CMPDecoding)
+@interface NSItemProvider (CMPDecoding)
 
 - (void)cmp_loadString:(void (^)(NSString  * _Nullable result, NSError *error))completionHandler;
 

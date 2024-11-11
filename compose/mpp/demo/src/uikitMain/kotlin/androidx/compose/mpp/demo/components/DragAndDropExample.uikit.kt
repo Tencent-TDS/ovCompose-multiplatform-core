@@ -43,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
-import androidx.compose.ui.draganddrop.decodeEachItem
+import androidx.compose.ui.draganddrop.forEachDataItem
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
@@ -81,7 +81,7 @@ actual fun DragAndDropExample() {
                 .height(200.dp)
                 .dragAndDropSource {
                     val data = DragAndDropTransferData {
-                        string(text)
+                        encodeString(text)
                     }
 
                     addLog("Sent: $data")
@@ -108,12 +108,14 @@ actual fun DragAndDropExample() {
                     target = object : DragAndDropTarget {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
                             // TODO: finalize event and transferable API
-                            addLog("Received: $event")
-                            CoroutineScope(Dispatchers.Main).launch {
-                                event.decodeEachItem {
-                                    string()?.let {
+                            addLog("Dropped")
+                            val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+                            event.forEachDataItem {
+                                coroutineScope.launch {
+                                    decodeString()?.let {
                                         dropText = it
-                                        addLog("Dropped: $it")
+                                        addLog("Received: $it")
                                     }
                                 }
                             }
