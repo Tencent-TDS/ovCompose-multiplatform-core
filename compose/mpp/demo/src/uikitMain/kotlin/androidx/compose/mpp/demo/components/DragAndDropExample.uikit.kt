@@ -82,9 +82,8 @@ actual fun DragAndDropExample() {
                 .dragAndDropSource {
                     val data = DragAndDropTransferData {
                         encodeString(text)
+                        addLog("Sent: $text")
                     }
-
-                    addLog("Sent: $data")
 
                     data
                 }
