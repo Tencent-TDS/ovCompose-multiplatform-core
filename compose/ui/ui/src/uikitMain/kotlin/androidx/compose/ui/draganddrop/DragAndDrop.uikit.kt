@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.draganddrop
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.asDpOffset
@@ -35,6 +36,11 @@ actual class DragAndDropEvent internal constructor(
 
     internal val session: UIDropSessionProtocol
         get() = dropSessionContext.session
+}
+
+@ExperimentalComposeUiApi
+sealed interface DragAndDropTransferDataItem {
+    class Text(val text: String) : DragAndDropTransferDataItem
 }
 
 /**

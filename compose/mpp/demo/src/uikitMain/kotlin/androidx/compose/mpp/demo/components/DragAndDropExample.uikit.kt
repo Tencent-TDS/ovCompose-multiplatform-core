@@ -44,6 +44,9 @@ import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -104,7 +107,6 @@ actual fun DragAndDropExample() {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
                             // TODO: finalize event and transferable API
 
-                            // stubs for `DragAndDropEvent` UIDragItem integration support
 //                            CoroutineScope(Dispatchers.Main).launch {
 //                                for (item in event.session.items) {
 //                                    val dragItem = item as UIDragItem

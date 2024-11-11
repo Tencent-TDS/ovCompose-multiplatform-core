@@ -24,6 +24,7 @@ import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -129,6 +130,7 @@ private sealed interface UserInputViewHitTestResult {
  * [CMPGestureRecognizerDelegateProxy].
  */
 private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDelegateProxy() {
+    @OptIn(BetaInteropApi::class)
     override fun gestureRecognizerShouldRecognizeSimultaneouslyWithGestureRecognizer(
         gestureRecognizer: UIGestureRecognizer,
         otherGestureRecognizer: UIGestureRecognizer
@@ -144,7 +146,9 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
 
         // Only allow simultaneous recognition if the other gesture recognizer is attached to the same view
         // or to a view up in the hierarchy
-        return otherView == view || otherIsAscendant
+        return (otherView == view || otherIsAscendant).also {
+            println("Simultaneously with ${otherGestureRecognizer.`class`().toString()} in ${otherGestureRecognizer.view?.`class`().toString()}: $it")
+        }
     }
 
     override fun gestureRecognizerShouldRequireFailureOfGestureRecognizer(
@@ -155,6 +159,7 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         // Assumption is that we recognize
         // simultaneously with the gesture recognizers of the views up in the hierarchy.
         // And gesture recognizers down the hierarchy require to failure us.
+        println("Requires failure of ${otherGestureRecognizer.`class`().toString()} in ${otherGestureRecognizer.view?.`class`().toString()}: true")
         return false
     }
 
@@ -169,7 +174,9 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         // descendant views (aka interop views).
         // In other cases, it's allowed to recognize simultaneously, so this method will not be
         // called
-        return gestureRecognizer.view != otherGestureRecognizer.view
+        return (gestureRecognizer.view != otherGestureRecognizer.view).also {
+            println("Required to fail by ${otherGestureRecognizer.`class`().toString()} in ${otherGestureRecognizer.view?.`class`().toString()}: $it")
+        }
     }
 }
 
