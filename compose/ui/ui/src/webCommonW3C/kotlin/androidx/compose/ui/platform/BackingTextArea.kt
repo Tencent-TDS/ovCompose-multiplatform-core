@@ -46,20 +46,23 @@ internal class BackingTextArea(
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
-    private fun processEvent(evt: KeyboardEvent) {
-        if (evt.isComposing) return
+    private fun processEvent(evt: KeyboardEvent): Boolean {
+        if (evt.isComposing) return false
         // Unidentified keys is what we get when we press key on a virtual keyboard
         // TODO: In theory nothing stops us from passing Unidentified keys but this yet to be investigated:
         // First, this way we will pass (and attempt to process) "dummy" KeyboardEvents that were designed not to have physical representation at all
         // Second, we need more tests on keyboard in general before doing this anyways
-        if (evt.key == "Unidentified") return
+        if (evt.key == "Unidentified") return false
         processKeyboardEvent(evt)
+        return true
     }
 
     private fun initEvents(htmlInput: EventTarget) {
+        var keyEventPrecedesUpdate = false
+
         DomInputService(htmlInput, object : DomInputListener {
             override fun onKeyDown(evt: KeyboardEvent) {
-                processEvent(evt)
+                keyEventPrecedesUpdate = processEvent(evt)
             }
 
             override fun onKeyUp(evt: KeyboardEvent) {
@@ -67,11 +70,15 @@ internal class BackingTextArea(
             }
 
             override fun onCompositionStart(evt: CompositionEvent) {
-                onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+                // whenever very first time compose happens, corresponding keydown event happens earlier
+                // so we have to manually delete last key entered
+                if (keyEventPrecedesUpdate) {
+                    onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+                    keyEventPrecedesUpdate = false
+                }
             }
 
             override fun onCompositionUpdate(evt: CompositionEvent) {
-                // whenever very first time compose happens, corresponding keydown event happens earlier
                 onEditCommand(listOf(SetComposingTextCommand(evt.data, 1)))
             }
 

@@ -107,9 +107,28 @@ class BackingTextAreaTests {
         textArea.dispatchEvent(CompositionEvent("compositionstart"))
 
         assertEquals(
+            emptyList(),
+            lastEditCommand,
+            "when compositionstart is triggered, last keyboard event should be ignored only if keyboard event happened"
+        )
+
+        textArea.dispatchEvent(keyEvent("Unidentified"))
+        textArea.dispatchEvent(CompositionEvent("compositionstart"))
+
+        assertEquals(
+            listOf(),
+            lastEditCommand,
+            "when compositionstart is triggered, last keyboard event should be ignored only if meaningful keyboard event happened"
+        )
+
+
+        textArea.dispatchEvent(keyEvent("w"))
+        textArea.dispatchEvent(CompositionEvent("compositionstart"))
+
+        assertEquals(
             listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)),
             lastEditCommand,
-            "when compositionstart is triggered, last keyboard event should ignored"
+            "when compositionstart is triggered, last keyboard event should be ignored only if meaningful keyboard event happened"
         )
 
         textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "r")))
