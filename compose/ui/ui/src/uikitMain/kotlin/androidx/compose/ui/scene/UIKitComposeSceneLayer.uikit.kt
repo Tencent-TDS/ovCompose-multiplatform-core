@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpOffset
-import androidx.compose.ui.unit.asDpSize
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
@@ -40,7 +39,6 @@ import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
 
 internal class UIKitComposeSceneLayer(
@@ -64,7 +62,7 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
-    private val mediator = ComposeSceneMediator(
+    val mediator = ComposeSceneMediator(
         view,
         configuration,
         focusStack,
@@ -115,21 +113,16 @@ internal class UIKitComposeSceneLayer(
 
     fun render(canvas: Canvas, nanoTime: Long) {
         if (scrimColor != null) {
-            val size = view.bounds.useContents { with(density) { size.asDpSize().toSize() } }
-
             canvas.drawRect(
                 left = 0f,
                 top = 0f,
-                right = size.width,
-                bottom = size.height,
+                right = Float.MAX_VALUE,
+                bottom = Float.MAX_VALUE,
                 paint = scrimPaint
             )
         }
-
         mediator.render(canvas, nanoTime)
     }
-
-    fun retrieveInteropTransaction() = mediator.retrieveInteropTransaction()
 
     override fun close() {
         onClosed(this)

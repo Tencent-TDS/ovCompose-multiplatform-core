@@ -24,9 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.SessionMutex
+import androidx.compose.ui.animation.withAnimationProgress
 import androidx.compose.ui.draganddrop.UIKitDragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -53,28 +56,27 @@ import androidx.compose.ui.platform.PlatformWindowContext
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
-import androidx.compose.ui.uikit.ExclusiveLayoutConstraints
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
-import androidx.compose.ui.uikit.layoutConstraintsToCenterInParent
-import androidx.compose.ui.uikit.layoutConstraintsToMatch
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpOffset
-import androidx.compose.ui.unit.asDpRect
+import androidx.compose.ui.unit.asDpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toPlatformInsets
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.LocalInteropContainer
 import androidx.compose.ui.viewinterop.TrackInteropPlacementContainer
 import androidx.compose.ui.viewinterop.UIKitInteropContainer
@@ -88,27 +90,21 @@ import androidx.compose.ui.window.MetalRedrawer
 import androidx.compose.ui.window.TouchesEventKind
 import androidx.compose.ui.window.UserInputView
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
-import platform.CoreGraphics.CGAffineTransformIdentity
-import platform.CoreGraphics.CGAffineTransformInvert
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
-import platform.CoreGraphics.CGSize
 import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
-import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIEvent
 import platform.UIKit.UIPress
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
-import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 
 /**
@@ -167,13 +163,8 @@ private class SemanticsOwnerListenerImpl(
     }
 }
 
-internal sealed interface ComposeSceneMediatorLayout {
-    data object Fill : ComposeSceneMediatorLayout
-    class Center(val size: CValue<CGSize>) : ComposeSceneMediatorLayout
-}
-
 internal class ComposeSceneMediator(
-    private val parentView: UIView,
+    parentView: UIView,
     private val configuration: ComposeUIViewControllerConfiguration,
     private val focusStack: FocusStack?,
     private val windowContext: PlatformWindowContext,
@@ -228,8 +219,6 @@ internal class ComposeSceneMediator(
             scene.compositionLocalContext = value
         }
 
-    private val userInputViewConstraints = ExclusiveLayoutConstraints()
-
     private val applicationForegroundStateListener =
         ApplicationForegroundStateListener { _ ->
             // Sometimes the application can trigger animation and go background before the animation is
@@ -243,7 +232,7 @@ internal class ComposeSceneMediator(
     /**
      * View wrapping the hierarchy managed by this Mediator.
      */
-    private val view = ComposeSceneMediatorView(
+    val view = ComposeSceneMediatorView(
         onLayoutSubviews = ::updateLayout
     )
 
@@ -333,8 +322,8 @@ internal class ComposeSceneMediator(
         }
     }
 
-    val hasInvalidations: Boolean
-        get() = scene.hasInvalidations() || keyboardManager.isAnimating
+    val hasInvalidations: Boolean get() =
+        scene.hasInvalidations() || keyboardManager.isAnimating || isLayoutTransitionAnimating
 
     private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): UIView? =
         point.useContents {
@@ -399,10 +388,7 @@ internal class ComposeSceneMediator(
     }
 
     init {
-        view.translatesAutoresizingMaskIntoConstraints = false
-        parentView.addSubview(view)
-        setLayout(ComposeSceneMediatorLayout.Fill)
-
+        parentView.embedSubview(view)
         view.embedSubview(userInputView)
     }
 
@@ -427,42 +413,40 @@ internal class ComposeSceneMediator(
         }
     }
 
-    fun performOrientationChangeAnimation(
-        targetSize: CValue<CGSize>,
-        coordinator: UIViewControllerTransitionCoordinatorProtocol
-    ) {
-        val startSnapshotView = view.snapshotViewAfterScreenUpdates(false) ?: return
-        startSnapshotView.translatesAutoresizingMaskIntoConstraints = false
-        parentView.addSubview(startSnapshotView)
-        targetSize.useContents {
-            NSLayoutConstraint.activateConstraints(
-                listOf(
-                    startSnapshotView.widthAnchor.constraintEqualToConstant(height),
-                    startSnapshotView.heightAnchor.constraintEqualToConstant(width),
-                    startSnapshotView.centerXAnchor.constraintEqualToAnchor(parentView.centerXAnchor),
-                    startSnapshotView.centerYAnchor.constraintEqualToAnchor(parentView.centerYAnchor)
-                )
-            )
-        }
-        redrawer.isForcedToPresentWithTransactionEveryFrame = true
-        setLayout(ComposeSceneMediatorLayout.Center(targetSize))
-        userInputView.transform = coordinator.targetTransform
+    private var isLayoutTransitionAnimating = false
+    fun prepareAndGetSizeTransitionAnimation(): suspend (Duration) -> Unit {
+        isLayoutTransitionAnimating = true
 
-        coordinator.animateAlongsideTransition(
-            animation = {
-                startSnapshotView.alpha = 0.0
-                startSnapshotView.transform = CGAffineTransformInvert(coordinator.targetTransform)
-                userInputView.transform = CGAffineTransformIdentity.readValue()
-            },
-            completion = {
-                startSnapshotView.removeFromSuperview()
-                setLayout(ComposeSceneMediatorLayout.Fill)
-                redrawer.isForcedToPresentWithTransactionEveryFrame = false
+        val initialLayoutMargins = layoutMargins
+        val initialSafeArea = safeArea
+        val initialSize = scene.size?.toSize() ?: return {}
+
+        return { duration ->
+            try {
+                if (initialSize != currentViewSize) {
+                    withAnimationProgress(duration) { progress ->
+                        layoutMargins = lerp(
+                            start = initialLayoutMargins,
+                            stop = view.layoutMargins.toPlatformInsets(),
+                            fraction = progress
+                        )
+                        safeArea = lerp(
+                            start = initialSafeArea,
+                            stop = view.safeAreaInsets.toPlatformInsets(),
+                            fraction = progress
+                        )
+                        scene.size = lerp(
+                            start = initialSize,
+                            stop = currentViewSize,
+                            fraction = progress
+                        ).roundToIntSize()
+                    }
+                }
+            } finally {
+                isLayoutTransitionAnimating = false
+                updateLayout()
             }
-        )
-
-        userInputView.setNeedsLayout()
-        view.layoutIfNeeded()
+        }
     }
 
     fun render(canvas: Canvas, nanoTime: Long) {
@@ -471,22 +455,6 @@ internal class ComposeSceneMediator(
 
     fun retrieveInteropTransaction(): UIKitInteropTransaction =
         interopContainer.retrieveTransaction()
-
-    private fun setLayout(value: ComposeSceneMediatorLayout) {
-        when (value) {
-            ComposeSceneMediatorLayout.Fill -> {
-                userInputViewConstraints.set(
-                    view.layoutConstraintsToMatch(parentView)
-                )
-            }
-
-            is ComposeSceneMediatorLayout.Center -> {
-                userInputViewConstraints.set(
-                    view.layoutConstraintsToCenterInParent(parentView, value.size)
-                )
-            }
-        }
-    }
 
     private var safeArea by mutableStateOf(PlatformInsets.Zero)
 
@@ -552,18 +520,19 @@ internal class ComposeSceneMediator(
     private fun updateLayout() {
         density = view.density
 
+        if (isLayoutTransitionAnimating) {
+            return
+        }
         layoutMargins = view.layoutMargins.toPlatformInsets()
         safeArea = view.safeAreaInsets.toPlatformInsets()
 
-        val boundsInPx = view.bounds.useContents {
-            with(density) {
-                asDpRect().toRect()
-            }
+        scene.size = currentViewSize.roundToIntSize()
+    }
+
+    private val currentViewSize: Size get() {
+        return with(density) {
+            view.frame.useContents { size.asDpSize() }.toSize()
         }
-        scene.size = IntSize(
-            width = boundsInPx.width.roundToInt(),
-            height = boundsInPx.height.roundToInt()
-        )
     }
 
     fun sceneDidAppear() {

@@ -22,7 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.animation.withAnimationProgress
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
@@ -36,7 +36,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.nanoseconds
 
 @Composable
 internal fun OffsetToFocusedRect(
@@ -154,30 +153,5 @@ private fun directionalFocusOffset(
         max(0f, min(hiddenFromPart, -hiddenToPart)).roundToInt()
     } else {
         min(0f, max(hiddenFromPart, -hiddenToPart)).roundToInt()
-    }
-}
-
-private suspend fun withAnimationProgress(duration: Duration, update: (Float) -> Unit) {
-    fun easeInOutProgress(progress: Float) = if (progress < 0.5) {
-        2 * progress * progress
-    } else {
-        (-2 * progress * progress) + (4 * progress) - 1
-    }
-
-    update(0f)
-
-    var firstFrameTime = 0L
-    var progressDuration = Duration.ZERO
-    while (progressDuration < duration) {
-        withFrameNanos { frameTime ->
-            if (firstFrameTime == 0L) {
-                firstFrameTime = frameTime
-            }
-            progressDuration = (frameTime - firstFrameTime).nanoseconds
-            val progress = easeInOutProgress(
-                min(1.0, progressDuration / duration).toFloat()
-            )
-            update(progress)
-        }
     }
 }

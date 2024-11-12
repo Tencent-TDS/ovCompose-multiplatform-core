@@ -36,7 +36,6 @@ import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -45,6 +44,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.viewinterop.UIKitInteropAction
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ComposeView
+import androidx.compose.ui.window.DisplayLinkListener
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
@@ -53,18 +53,19 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.coroutines.CoroutineContext
 import kotlin.native.runtime.GC
 import kotlin.native.runtime.NativeRuntimeApi
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
-import platform.CoreGraphics.CGSizeEqualToSize
-import platform.Foundation.NSStringFromClass
 import platform.UIKit.UIApplication
 import platform.UIKit.UIEvent
 import platform.UIKit.UIStatusBarAnimation
@@ -72,7 +73,6 @@ import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
-import platform.UIKit.UIViewController
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 import platform.darwin.dispatch_async
@@ -88,14 +88,29 @@ internal class ComposeHostingViewController(
     private val lifecycleOwner = ViewControllerBasedLifecycleOwner()
     private val hapticFeedback = CupertinoHapticFeedback()
 
+    private val metalView = MetalView(
+        retrieveInteropTransaction = {
+            mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
+                override val actions = emptyList<UIKitInteropAction>()
+                override val isInteropActive = false
+            }
+        },
+        render = { canvas, nanoTime ->
+            mediator?.render(canvas.asComposeCanvas(), nanoTime)
+        }
+    ).apply {
+        canBeOpaque = configuration.opaque
+    }
     private val rootView = ComposeView(
         onDidMoveToWindow = ::onDidMoveToWindow,
-        onLayoutSubviews = ::onLayoutSubviews,
-        useOpaqueConfiguration = configuration.opaque
+        onLayoutSubviews = {},
+        metalView = metalView,
+        transparentForTouches = false,
+        useOpaqueConfiguration = configuration.opaque,
     )
-    private var isInsideSwiftUI = false
     private var mediator: ComposeSceneMediator? = null
-    private val layers = UIKitComposeSceneLayersHolder()
+    private val windowContext = PlatformWindowContext()
+    private val layers = UIKitComposeSceneLayersHolder(windowContext)
     private val layoutDirection get() = getLayoutDirection()
     private var hasViewAppeared: Boolean = false
 
@@ -113,9 +128,6 @@ internal class ComposeHostingViewController(
     private val systemThemeState: MutableState<SystemTheme> = mutableStateOf(SystemTheme.Unknown)
 
     var focusStack: FocusStack? = FocusStack()
-    private val windowContext = PlatformWindowContext().apply {
-        isWindowFocused = true
-    }
 
     /*
      * On iOS >= 13.0 interfaceOrientation will be deduced from [UIWindowScene] of [UIWindow]
@@ -160,8 +172,6 @@ internal class ComposeHostingViewController(
     override fun viewDidLoad() {
         super.viewDidLoad()
 
-        view.embedSubview(metalView)
-
         if (configuration.enforceStrictPlistSanityCheck) {
             PlistSanityCheck.performIfNeeded()
         }
@@ -170,16 +180,18 @@ internal class ComposeHostingViewController(
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
     }
 
+    override fun viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        mediator?.updateInteractionRect()
+
+        windowContext.updateWindowContainerSize()
+    }
+
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
 
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
-    }
-
-    private fun onLayoutSubviews() {
-        windowContext.updateWindowContainerSize()
-
-        mediator?.updateInteractionRect()
     }
 
     private fun onDidMoveToWindow(window: UIWindow?) {
@@ -203,35 +215,13 @@ internal class ComposeHostingViewController(
         super.viewWillTransitionToSize(size, withTransitionCoordinator)
 
         updateInterfaceOrientationState()
-
-        if (isInsideSwiftUI || presentingViewController != null) {
-            // SwiftUI will do full layout and scene constraints update on each frame of orientation change animation
-            // This logic is not needed
-
-            // When presented modally, UIKit performs non-trivial hierarchy update during orientation change,
-            // its logic is not feasible to integrate into
-            return
-        }
-
-        // Happens during orientation change from LandscapeLeft to LandscapeRight, for example
-        val isSameSizeTransition = view.frame.useContents {
-            CGSizeEqualToSize(size, this.size.readValue())
-        }
-        if (isSameSizeTransition) {
-            return
-        }
-
-        mediator?.performOrientationChangeAnimation(
-            targetSize = size,
-            coordinator = withTransitionCoordinator,
-        )
+        animateSizeTransition(withTransitionCoordinator)
     }
 
     @Suppress("DEPRECATION")
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
 
-        isInsideSwiftUI = checkIfInsideSwiftUI()
         createMediatorIfNeeded()
 
         lifecycleOwner.handleViewWillAppear()
@@ -280,6 +270,45 @@ internal class ComposeHostingViewController(
         println("didReceiveMemoryWarning")
         GC.collect()
         super.didReceiveMemoryWarning()
+    }
+
+    /**
+     * Animates the layout transition of root view as well as all layers.
+     * The animation consists of the following steps
+     * - Before the actual animation starts, all initial parameters should be stored in the
+     * corresponding lambdas. See [ComposeSceneMediator.prepareAndGetSizeTransitionAnimation].
+     * - At the time of the animation phase, the drawing canvas expands to fit the animated scene
+     * throughout the animation cycle. See [ComposeView.animateSizeTransition].
+     * - The animation phase consists of changing scene and window sizes frame by frame.
+     * See [ComposeSceneMediator.prepareAndGetSizeTransitionAnimation] and
+     * [PlatformWindowContext.prepareAndGetSizeTransitionAnimation].
+     *
+     * Known issue: Because per-frame updates between UIKit and Compose are not synchronised,
+     * native views can be misaligned with Compose content during animation.
+     *
+     * @param transitionCoordinator The coordinator that mediates the transition animations.
+     */
+    private fun animateSizeTransition(
+        transitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
+    ) {
+        val displayLinkListener = DisplayLinkListener()
+        val sizeTransitionScope = CoroutineScope(coroutineContext + displayLinkListener.frameClock)
+        val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
+        displayLinkListener.start()
+
+        val animations = mediator?.prepareAndGetSizeTransitionAnimation()
+        layers.animateSizeTransition(sizeTransitionScope, duration)
+        rootView.animateSizeTransition(sizeTransitionScope) {
+            animations?.invoke(duration)
+        }
+
+        transitionCoordinator.animateAlongsideTransition(
+            animation = {},
+            completion = {
+                sizeTransitionScope.cancel()
+                displayLinkListener.invalidate()
+            }
+        )
     }
 
     private fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext {
@@ -334,7 +363,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun createMediator() = ComposeSceneMediator(
-        parentView = view,
+        parentView = rootView,
         configuration = configuration,
         focusStack = focusStack,
         windowContext = windowContext,
@@ -348,23 +377,7 @@ internal class ComposeHostingViewController(
             ProvideContainerCompositionLocals(content)
         }
 
-        view.bringSubviewToFront(metalView)
-    }
-
-    private val metalView by lazy {
-        MetalView(
-            retrieveInteropTransaction = {
-                mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
-                    override val actions = emptyList<UIKitInteropAction>()
-                    override val isInteropActive = false
-                }
-            },
-            render = { canvas, nanoTime ->
-                mediator?.render(canvas.asComposeCanvas(), nanoTime)
-            }
-        ).apply {
-            canBeOpaque = configuration.opaque
-        }
+        rootView.bringSubviewToFront(metalView)
     }
 
     /**
@@ -420,28 +433,6 @@ internal class ComposeHostingViewController(
             view.bounds.useContents { asDpRect() }.toRect().roundToIntRect()
         }
     }
-}
-
-@OptIn(BetaInteropApi::class)
-private fun UIViewController.checkIfInsideSwiftUI(): Boolean {
-    var parent = parentViewController
-
-    while (parent != null) {
-        val isUIHostingController = parent.`class`()?.let {
-            val className = NSStringFromClass(it)
-            // SwiftUI UIHostingController has mangled name depending on generic instantiation type,
-            // It always contains UIHostingController substring though
-            return className.contains("UIHostingController")
-        } ?: false
-
-        if (isUIHostingController) {
-            return true
-        }
-
-        parent = parent.parentViewController
-    }
-
-    return false
 }
 
 private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
