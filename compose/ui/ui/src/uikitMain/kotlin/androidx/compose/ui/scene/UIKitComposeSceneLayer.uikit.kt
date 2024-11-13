@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpOffset
+import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
@@ -39,13 +40,14 @@ import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
 
 internal class UIKitComposeSceneLayer(
     private val onClosed: (UIKitComposeSceneLayer) -> Unit,
     private val createComposeSceneContext: (PlatformContext) -> ComposeSceneContext,
     private val providingCompositionLocals: @Composable (@Composable () -> Unit) -> Unit,
-    metalView: MetalView,
+    private val metalView: MetalView,
     onGestureEvent: (GestureEvent) -> Unit,
     private val initDensity: Density,
     private val initLayoutDirection: LayoutDirection,
@@ -62,7 +64,7 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
-    val mediator = ComposeSceneMediator(
+    private val mediator = ComposeSceneMediator(
         view,
         configuration,
         focusStack,
@@ -113,16 +115,17 @@ internal class UIKitComposeSceneLayer(
 
     fun render(canvas: Canvas, nanoTime: Long) {
         if (scrimColor != null) {
-            canvas.drawRect(
-                left = 0f,
-                top = 0f,
-                right = Float.MAX_VALUE,
-                bottom = Float.MAX_VALUE,
-                paint = scrimPaint
-            )
+            val rect = metalView.bounds.useContents { with(density) { asDpRect().toRect() } }
+
+            canvas.drawRect(rect, scrimPaint)
         }
+
         mediator.render(canvas, nanoTime)
     }
+
+    fun retrieveInteropTransaction() = mediator.retrieveInteropTransaction()
+
+    fun prepareAndGetSizeTransitionAnimation() = mediator.prepareAndGetSizeTransitionAnimation()
 
     override fun close() {
         onClosed(this)

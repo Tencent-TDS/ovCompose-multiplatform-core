@@ -47,6 +47,7 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
+import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
@@ -66,7 +67,6 @@ import platform.UIKit.UITextRange
 import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UIView
-import platform.UIKit.UIPress
 import platform.darwin.NSInteger
 
 private val NoOpOnKeyboardPresses: (Set<*>) -> Unit = {}

@@ -232,7 +232,7 @@ internal class ComposeSceneMediator(
     /**
      * View wrapping the hierarchy managed by this Mediator.
      */
-    val view = ComposeSceneMediatorView(
+    private val view = ComposeSceneMediatorView(
         onLayoutSubviews = ::updateLayout
     )
 

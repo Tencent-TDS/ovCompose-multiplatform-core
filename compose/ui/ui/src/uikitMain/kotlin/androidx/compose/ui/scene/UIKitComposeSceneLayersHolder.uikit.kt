@@ -74,7 +74,7 @@ internal class UIKitComposeSceneLayersHolder(
         val animations = listOf(
             windowContext.prepareAndGetSizeTransitionAnimation()
         ) + layers.map {
-            it.mediator.prepareAndGetSizeTransitionAnimation()
+            it.prepareAndGetSizeTransitionAnimation()
         }
 
         view.animateSizeTransition(scope) {
@@ -162,7 +162,7 @@ internal class UIKitComposeSceneLayersHolder(
         layers.remove(layer)
 
         // Intercept the actions UIKitInteropTransaction from the layer
-        val transaction = layer.mediator.retrieveInteropTransaction()
+        val transaction = layer.retrieveInteropTransaction()
 
         if (layers.isEmpty()) {
             // It was the last layer, remove the view and executed the actions immediately
@@ -201,7 +201,7 @@ internal class UIKitComposeSceneLayersHolder(
         removedLayersTransactions.clear()
 
         val transactions = layers.map {
-            it.mediator.retrieveInteropTransaction()
+            it.retrieveInteropTransaction()
         } + removedLayersTransactionsCopy
         return UIKitInteropTransaction.merge(
             transactions = transactions

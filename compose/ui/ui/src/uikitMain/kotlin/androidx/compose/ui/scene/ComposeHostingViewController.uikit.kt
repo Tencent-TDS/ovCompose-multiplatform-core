@@ -88,7 +88,7 @@ internal class ComposeHostingViewController(
     private val lifecycleOwner = ViewControllerBasedLifecycleOwner()
     private val hapticFeedback = CupertinoHapticFeedback()
 
-    private val metalView = MetalView(
+    private val rootMetalView = MetalView(
         retrieveInteropTransaction = {
             mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
                 override val actions = emptyList<UIKitInteropAction>()
@@ -104,7 +104,7 @@ internal class ComposeHostingViewController(
     private val rootView = ComposeView(
         onDidMoveToWindow = ::onDidMoveToWindow,
         onLayoutSubviews = {},
-        metalView = metalView,
+        metalView = rootMetalView,
         transparentForTouches = false,
         useOpaqueConfiguration = configuration.opaque,
     )
@@ -368,7 +368,7 @@ internal class ComposeHostingViewController(
         focusStack = focusStack,
         windowContext = windowContext,
         coroutineContext = coroutineContext,
-        redrawer = metalView.redrawer,
+        redrawer = rootMetalView.redrawer,
         onGestureEvent = ::onGestureEvent,
         composeSceneFactory = ::createComposeScene,
     ).also { mediator ->
@@ -377,7 +377,7 @@ internal class ComposeHostingViewController(
             ProvideContainerCompositionLocals(content)
         }
 
-        rootView.bringSubviewToFront(metalView)
+        rootView.bringSubviewToFront(rootMetalView)
     }
 
     /**
@@ -388,14 +388,14 @@ internal class ComposeHostingViewController(
      * Otherwise [UIEvent]s will be dispatched with the 60hz frequency.
      */
     private fun onGestureEvent(gestureEvent: GestureEvent) {
-        metalView.needsProactiveDisplayLink = when (gestureEvent) {
+        rootMetalView.needsProactiveDisplayLink = when (gestureEvent) {
             GestureEvent.BEGAN -> true
             GestureEvent.ENDED -> false
         }
     }
 
     private fun dispose() {
-        metalView.dispose()
+        rootMetalView.dispose()
         lifecycleOwner.dispose()
         mediator?.dispose()
         rootView.dispose()

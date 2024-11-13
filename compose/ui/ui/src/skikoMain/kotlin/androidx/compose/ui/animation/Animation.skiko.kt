@@ -21,10 +21,10 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.nanoseconds
 
-internal fun easeInOutTimingFunction(progress: Float) = if (progress < 0.5) {
-    2 * progress * progress
+internal fun easeInOutTimingFunction(progress: Float): Float = if (progress < 0.5f) {
+    2f * progress * progress
 } else {
-    (-2 * progress * progress) + (4 * progress) - 1
+    (-2f * progress * progress) + (4f * progress) - 1f
 }
 
 internal suspend fun withAnimationProgress(
