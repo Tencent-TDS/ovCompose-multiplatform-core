@@ -29,6 +29,8 @@ import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
@@ -47,6 +49,7 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
+import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
@@ -66,7 +69,6 @@ import platform.UIKit.UITextRange
 import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UIView
-import platform.UIKit.UIPress
 import platform.darwin.NSInteger
 
 private val NoOpOnKeyboardPresses: (Set<*>) -> Unit = {}
@@ -87,6 +89,8 @@ internal class IntermediateTextInputUIView(
                 hideEditMenu()
             }
         }
+
+    private val mainScope = MainScope()
 
     /**
      * Callback to handle keyboard presses. The parameter is a [Set] of [UIPress] objects.
@@ -233,7 +237,12 @@ internal class IntermediateTextInputUIView(
             location.toInt() to length.toInt()
         }
         val relativeTextRange = locationRelative until locationRelative + lengthRelative
-        input?.setMarkedText(markedText, relativeTextRange)
+
+        // Due to iOS specifics, [setMarkedText] can be called several times in a row. Batching
+        // helps to avoid text input problems caused by too frequent dispaltching of input commands.
+        input?.withBatch {
+            input?.setMarkedText(markedText, relativeTextRange)
+        }
     }
 
     /**
@@ -495,6 +504,14 @@ internal class IntermediateTextInputUIView(
 
     fun resetOnKeyboardPressesCallback() {
         onKeyboardPresses = NoOpOnKeyboardPresses
+    }
+
+    private fun IOSSkikoInput.withBatch(update: () -> Unit) {
+        beginEditBatch()
+        update()
+        mainScope.launch {
+            endEditBatch()
+        }
     }
 }
 
