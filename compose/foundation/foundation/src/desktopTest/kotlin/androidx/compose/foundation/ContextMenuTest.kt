@@ -25,6 +25,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalLocalization
 import androidx.compose.ui.platform.PlatformLocalization
 import androidx.compose.ui.platform.testTag
@@ -39,6 +41,7 @@ import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import kotlin.test.assertEquals
 import org.junit.Test
@@ -96,8 +99,15 @@ class ContextMenuTest {
             override val paste = "paste"
             override val selectAll = "selectAll"
         }
+        val clipboardManager = object : ClipboardManager {
+            override fun setText(annotatedString: AnnotatedString) = Unit
+            override fun getText() = AnnotatedString("text")
+        }
         setContent {
-            CompositionLocalProvider(LocalLocalization provides localization) {
+            CompositionLocalProvider(
+                LocalLocalization provides localization,
+                LocalClipboardManager provides clipboardManager,
+            ) {
                 BasicTextField("Text", {}, Modifier.testTag("textfield"))
             }
         }
