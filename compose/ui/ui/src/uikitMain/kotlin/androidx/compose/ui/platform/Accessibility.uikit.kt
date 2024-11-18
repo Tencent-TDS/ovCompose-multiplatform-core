@@ -447,18 +447,18 @@ private class AccessibilityElement(
         }
     }
 
-    private fun scrollByIfPossible(dx: Float, dy: Float): Boolean {
+    private fun scrollByIfPossible(dx: Float, dy: Float) {
         if (!isAlive) {
-            return false
+            return
         }
 
         // if it has scrollBy action, invoke it, otherwise try to scroll the parent
         val action = cachedConfig.getOrNull(SemanticsActions.ScrollBy)?.action
 
-        return if (action != null) {
+        if (action != null) {
             action(dx, dy)
         } else {
-            parent?.scrollByIfPossible(dx, dy) ?: false
+            parent?.scrollByIfPossible(dx, dy)
         }
     }
 
@@ -478,26 +478,27 @@ private class AccessibilityElement(
         }
 
         val axisRange = config.getOrNull(rangeProperty)
+        val isReverse = axisRange?.reverseScrolling == true
         val normalisedDirection = when (direction) {
-            UIAccessibilityScrollDirectionUp -> if (axisRange?.reverseScrolling == true) {
+            UIAccessibilityScrollDirectionUp -> if (isReverse) {
                 UIAccessibilityScrollDirectionDown
             } else {
                 UIAccessibilityScrollDirectionUp
             }
 
-            UIAccessibilityScrollDirectionDown -> if (axisRange?.reverseScrolling == true) {
+            UIAccessibilityScrollDirectionDown -> if (isReverse) {
                 UIAccessibilityScrollDirectionUp
             } else {
                 UIAccessibilityScrollDirectionDown
             }
 
-            UIAccessibilityScrollDirectionRight -> if (isRTL) {
+            UIAccessibilityScrollDirectionRight -> if (isRTL xor isReverse) {
                 UIAccessibilityScrollDirectionLeft
             } else {
                 UIAccessibilityScrollDirectionRight
             }
 
-            UIAccessibilityScrollDirectionLeft -> if (isRTL) {
+            UIAccessibilityScrollDirectionLeft -> if (isRTL xor isReverse) {
                 UIAccessibilityScrollDirectionRight
             } else {
                 UIAccessibilityScrollDirectionLeft
