@@ -66,6 +66,15 @@ class ComposeUIViewControllerConfiguration {
      * explanation on how to fix the issue.
      */
     var enforceStrictPlistSanityCheck: Boolean = true
+
+    /**
+     * If set to true, the Compose will encoder the rendering commands on a dedicated render thread.
+     * This can improve the performance when no interop UIKit is used.
+     *
+     * Changing this setting outside of `ComposeUIViewController` `configure` argument scope has no effect.
+     */
+    @ExperimentalComposeApi
+    var useSeparateRenderThreadWhenPossible: Boolean = false
 }
 
 /**

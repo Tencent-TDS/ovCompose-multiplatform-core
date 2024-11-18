@@ -4,6 +4,7 @@ package androidx.compose.mpp.demo
 import androidx.compose.mpp.demo.bugs.IosBugs
 import androidx.compose.mpp.demo.bugs.StartRecompositionCheck
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeUIViewController
@@ -31,13 +32,17 @@ import platform.UIKit.UIWindow
  * - XCode will open this project automatically
  * - press the Run (Cmd+R) button in the XCode
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalComposeApi::class)
 fun main(vararg args: String) {
     androidx.compose.ui.util.enableTraceOSLog()
 
     val arg = args.firstOrNull() ?: ""
     UIKitMain {
-        ComposeUIViewController {
+        ComposeUIViewController(
+            configure = {
+                useSeparateRenderThreadWhenPossible = true
+            }
+        ) {
             IosDemo(arg)
         }
     }

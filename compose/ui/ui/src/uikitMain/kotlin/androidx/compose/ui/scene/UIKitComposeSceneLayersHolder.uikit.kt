@@ -30,7 +30,9 @@ import platform.UIKit.UIWindow
 /**
  * A class responsible for managing and rendering [UIKitComposeSceneLayer]s.
  */
-internal class UIKitComposeSceneLayersHolder {
+internal class UIKitComposeSceneLayersHolder(
+    useSeparateRenderThreadWhenPossible: Boolean
+) {
     val hasInvalidations: Boolean
         get() = layers.any { it.hasInvalidations }
 
@@ -49,6 +51,7 @@ internal class UIKitComposeSceneLayersHolder {
 
     val metalView: MetalView = MetalView(
         ::retrieveAndMergeInteropTransactions,
+        useSeparateRenderThreadWhenPossible,
         ::render
     ).apply {
         canBeOpaque = false
