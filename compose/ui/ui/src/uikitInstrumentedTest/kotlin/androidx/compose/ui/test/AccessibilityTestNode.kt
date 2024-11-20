@@ -19,6 +19,7 @@ package androidx.compose.ui.test
 import androidx.compose.ui.uikit.toDpRect
 import androidx.compose.ui.unit.DpRect
 import kotlin.test.assertEquals
+import kotlin.test.fail
 import kotlinx.cinterop.ExperimentalForeignApi
 import platform.UIKit.UIAccessibilityElement
 import platform.UIKit.UIAccessibilityTraitAdjustable
@@ -280,6 +281,35 @@ internal fun UIKitInstrumentedTest.assertAccessibilityTree(
     val validator = AccessibilityTestNode()
     with(validator, expected)
     assertAccessibilityTree(validator)
+}
+
+internal fun UIKitInstrumentedTest.findNode(identifier: String) = findNodeOrNull {
+    it.identifier == identifier
+} ?: fail("Unable to find node with identifier: $identifier")
+
+internal fun UIKitInstrumentedTest.findNodeWithLabel(label: String) = findNodeOrNull {
+    it.label == label
+} ?: fail("Unable to find node with label: $label")
+
+internal fun UIKitInstrumentedTest.firstAccessibleNode() =
+    findNodeOrNull { it.isAccessibilityElement == true }
+        ?: fail("Unable to find accessibility element")
+
+internal fun UIKitInstrumentedTest.findNodeOrNull(
+    isValid: (AccessibilityTestNode) -> Boolean
+): AccessibilityTestNode? {
+    waitForIdle()
+    val actualTreeRoot = getAccessibilityTree()
+
+    fun check(node: AccessibilityTestNode): AccessibilityTestNode? {
+        return if (isValid(node)) {
+            node
+        } else {
+            node.children?.firstNotNullOfOrNull(::check)
+        }
+    }
+
+    return check(node = actualTreeRoot)
 }
 
 /**

@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
+import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.roundToInt
 import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
@@ -53,6 +55,9 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
@@ -77,8 +82,11 @@ import platform.UIKit.UIAccessibilityTraitImage
 import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraitNotEnabled
 import platform.UIKit.UIAccessibilityTraitSelected
+import platform.UIKit.UIAccessibilityTraitStaticText
+import platform.UIKit.UIAccessibilityTraitToggleButton
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
+import platform.UIKit.UITextInputProtocol
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityCustomActions
@@ -117,6 +125,10 @@ private object CachedAccessibilityPropertyKeys {
     val accessibilityFrame = CachedAccessibilityPropertyKey<CValue<CGRect>>()
     val nativeAccessibilityView = CachedAccessibilityPropertyKey<InteropWrappingView?>()
 }
+
+// Private accessibility trait for text fields
+internal var CMPAccessibilityTraitTextField: UIAccessibilityTraits = 1UL shl 18
+internal var CMPAccessibilityTraitIsEditing: UIAccessibilityTraits = 1UL shl 21
 
 /**
  * Represents a projection of the Compose semantics node to the iOS world.
@@ -343,6 +355,22 @@ private class AccessibilityElement(
         val action = onClick.action ?: return false
 
         return action()
+    }
+
+    override fun accessibilityIncrement() {
+        updateProgress(increment = true)
+    }
+
+    override fun accessibilityDecrement() {
+        updateProgress(increment = false)
+    }
+
+    private fun updateProgress(increment: Boolean) {
+        val progress = cachedConfig.getOrNull(SemanticsProperties.ProgressBarRangeInfo) ?: return
+        val setProgress = cachedConfig.getOrNull(SemanticsActions.SetProgress) ?: return
+        val step = (progress.range.endInclusive - progress.range.start) / progress.steps
+        val value = progress.current + if (increment) step else -step
+        setProgress.action?.invoke(value)
     }
 
     /**
@@ -647,6 +675,12 @@ private class AccessibilityElement(
                 result = result or UIAccessibilityTraitNotEnabled
             }
 
+            config.getOrNull(SemanticsProperties.Selected)?.let { selected ->
+                if (selected) {
+                    result = result or UIAccessibilityTraitSelected
+                }
+            }
+
             if (config.contains(SemanticsProperties.Heading)) {
                 result = result or UIAccessibilityTraitHeader
             }
@@ -663,17 +697,23 @@ private class AccessibilityElement(
                 }
             }
 
-            config.getOrNull(SemanticsProperties.LiveRegion)?.let {
-                result = result or UIAccessibilityTraitUpdatesFrequently
+            if (config.contains(SemanticsProperties.ProgressBarRangeInfo)) {
+                if (config.contains(SemanticsActions.SetProgress)) {
+                    result = result or UIAccessibilityTraitAdjustable
+                }
             }
 
-            config.getOrNull(SemanticsActions.OnClick)?.let {
+            if (config.contains(SemanticsProperties.EditableText) &&
+                config.contains(SemanticsActions.SetText)
+            ) {
+                result = result or CMPAccessibilityTraitTextField
+            } else if (config.contains(SemanticsActions.OnClick)) {
                 result = result or UIAccessibilityTraitButton
             }
 
             config.getOrNull(SemanticsProperties.Role)?.let { role ->
                 when (role) {
-                    Role.Button, Role.RadioButton, Role.Checkbox, Role.Switch -> {
+                    Role.Button -> {
                         result = result or UIAccessibilityTraitButton
                     }
 
@@ -684,16 +724,45 @@ private class AccessibilityElement(
                     Role.Image -> {
                         result = result or UIAccessibilityTraitImage
                     }
+
+                    Role.Switch -> {
+                        if (available(OS.Ios to OSVersion(major = 17))) {
+                            result = result or UIAccessibilityTraitToggleButton
+                        }
+                    }
                 }
+            }
+
+            if (result == UIAccessibilityTraitNone &&
+                config.contains(SemanticsProperties.Text) &&
+                config.contains(SemanticsActions.GetTextLayoutResult) &&
+                config.contains(SemanticsActions.ShowTextSubstitution)
+            ) {
+                result = result or UIAccessibilityTraitStaticText
             }
 
             result
         }
 
+    override fun accessibilityTextInputResponder(): UITextInputProtocol? {
+        return null
+    }
 
     override fun accessibilityValue(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityValue) {
-            cachedConfig.getOrNull(SemanticsProperties.StateDescription)
+            cachedConfig.getOrNull(SemanticsProperties.StateDescription)?.let {
+                return@getOrElse it
+            }
+
+            cachedConfig.getOrNull(SemanticsProperties.ProgressBarRangeInfo)?.let {
+                return@getOrElse if (!it.range.isEmpty()) {
+                    val fraction = (it.current - it.range.start) /
+                        (it.range.endInclusive - it.range.start)
+                    "${(fraction * 100f).roundToInt()}%"
+                } else {
+                    null
+                }
+            }
         }
 
     override fun accessibilityFrame(): CValue<CGRect> =
@@ -703,7 +772,6 @@ private class AccessibilityElement(
             // which can be different from the root UIWindow space.
             mediator.convertToAppWindowCGRect(semanticsNode.boundsInWindow)
         }
-
 
     override fun accessibilityPerformEscape(): Boolean {
         if (!isAlive) {

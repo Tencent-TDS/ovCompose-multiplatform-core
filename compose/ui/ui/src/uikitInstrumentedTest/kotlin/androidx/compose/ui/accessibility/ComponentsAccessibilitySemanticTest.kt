@@ -1,0 +1,468 @@
+/*
+ * Copyright 2024 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package androidx.compose.ui.accessibility
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.Button
+import androidx.compose.material.Checkbox
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.LinearProgressIndicator
+import androidx.compose.material.RadioButton
+import androidx.compose.material.RangeSlider
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Slider
+import androidx.compose.material.Switch
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TopAppBar
+import androidx.compose.material.TriStateCheckbox
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.test.assertAccessibilityTree
+import androidx.compose.ui.test.findNode
+import androidx.compose.ui.test.firstAccessibleNode
+import androidx.compose.ui.test.runUIKitInstrumentedTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
+import platform.UIKit.UIAccessibilityTraitAdjustable
+import platform.UIKit.UIAccessibilityTraitButton
+import platform.UIKit.UIAccessibilityTraitHeader
+import platform.UIKit.UIAccessibilityTraitImage
+import platform.UIKit.UIAccessibilityTraitNotEnabled
+import platform.UIKit.UIAccessibilityTraitSelected
+import platform.UIKit.UIAccessibilityTraitStaticText
+import platform.UIKit.UIAccessibilityTraitToggleButton
+import platform.UIKit.accessibilityActivate
+import platform.UIKit.accessibilityDecrement
+import platform.UIKit.accessibilityIncrement
+
+class ComponentsAccessibilitySemanticTest {
+
+    @Test
+    fun testButtonNodeActionAndSemantic() = runUIKitInstrumentedTest {
+        var tapped = false
+        setContentWithAccessibilityEnabled {
+            Button({ tapped = true }) {
+                Text("Content")
+            }
+        }
+
+        assertAccessibilityTree {
+            isAccessibilityElement = true
+            traits(UIAccessibilityTraitButton)
+        }
+
+        val node = firstAccessibleNode()
+        node.element?.accessibilityActivate()
+        assertTrue(tapped)
+    }
+
+    @OptIn(ExperimentalMaterialApi::class)
+    @Test
+    fun testProgressNodesSemantic() = runUIKitInstrumentedTest {
+        var sliderValue = 0.4f
+        setContentWithAccessibilityEnabled {
+            Column {
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { sliderValue = it }
+                )
+                LinearProgressIndicator(progress = 0.7f)
+                RangeSlider(
+                    value = 30f..70f,
+                    onValueChange = {},
+                    valueRange = 0f..100f
+                )
+            }
+        }
+
+        assertAccessibilityTree {
+            // Slider
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitAdjustable)
+                value = "40%"
+            }
+
+            // LinearProgressIndicator
+            node {
+                isAccessibilityElement = true
+                value = "70%"
+                traits()
+            }
+
+            // Range Slider
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitAdjustable)
+                value = "43%"
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitAdjustable)
+                value = "57%"
+            }
+        }
+    }
+
+    @Test
+    fun testSliderAction() = runUIKitInstrumentedTest {
+        var sliderValue = 0.4f
+        setContentWithAccessibilityEnabled {
+            Slider(
+                value = sliderValue,
+                onValueChange = { sliderValue = it },
+                modifier = Modifier.testTag("Slider")
+            )
+        }
+
+        var oldValue = sliderValue
+        val sliderNode = findNode("Slider")
+        sliderNode.element?.accessibilityIncrement()
+        assertTrue(oldValue < sliderValue)
+
+        oldValue = sliderValue
+        sliderNode.element?.accessibilityDecrement()
+        assertTrue(oldValue > sliderValue)
+    }
+
+    @Test
+    fun testToggleAndCheckboxSemantic() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column {
+                Switch(false, {})
+                Checkbox(false, {})
+                TriStateCheckbox(ToggleableState.On, {})
+                TriStateCheckbox(ToggleableState.Off, {})
+                TriStateCheckbox(ToggleableState.Indeterminate, {})
+            }
+        }
+
+        assertAccessibilityTree {
+            // Switch
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+                if (available(OS.Ios to OSVersion(major = 17))) {
+                    traits(UIAccessibilityTraitToggleButton)
+                }
+            }
+            // Checkbox
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            // ToggleableState
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitSelected
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+        }
+    }
+
+    @Test
+    fun testToggleAndCheckboxAction() = runUIKitInstrumentedTest {
+        var switch by mutableStateOf(false)
+        var checkbox by mutableStateOf(false)
+        var triStateCheckbox by mutableStateOf(ToggleableState.Off)
+
+        setContentWithAccessibilityEnabled {
+            Column {
+                Switch(
+                    checked = switch,
+                    onCheckedChange = { switch = it },
+                    modifier = Modifier.testTag("Switch")
+                )
+                Checkbox(
+                    checked = checkbox,
+                    onCheckedChange = { checkbox = it },
+                    modifier = Modifier.testTag("Checkbox")
+                )
+                TriStateCheckbox(
+                    state = triStateCheckbox,
+                    onClick = { triStateCheckbox = ToggleableState.On },
+                    modifier = Modifier.testTag("TriStateCheckbox")
+                )
+            }
+        }
+
+        findNode("Switch").element?.accessibilityActivate()
+        assertTrue(switch)
+        waitForIdle()
+        findNode("Switch").element?.accessibilityActivate()
+        assertFalse(switch)
+
+        findNode("Checkbox").element?.accessibilityActivate()
+        assertTrue(checkbox)
+        waitForIdle()
+        findNode("Checkbox").element?.accessibilityActivate()
+        assertFalse(checkbox)
+
+        findNode("TriStateCheckbox").element?.accessibilityActivate()
+        assertEquals(ToggleableState.On, triStateCheckbox)
+    }
+
+    @Test
+    fun testRadioButtonSelection() = runUIKitInstrumentedTest {
+        var selectedIndex by mutableStateOf(0)
+
+        setContentWithAccessibilityEnabled {
+            Column {
+                RadioButton(selected = selectedIndex == 0, onClick = { selectedIndex = 0 })
+                RadioButton(selected = selectedIndex == 1, onClick = { selectedIndex = 1 })
+                RadioButton(
+                    selected = selectedIndex == 2,
+                    onClick = { selectedIndex = 2 },
+                    Modifier.testTag("RadioButton")
+                )
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitSelected
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+        }
+
+        findNode("RadioButton").element?.accessibilityActivate()
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitSelected
+                )
+            }
+        }
+
+        selectedIndex = 0
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitSelected
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+        }
+    }
+
+    @Test
+    fun testImageSemantics() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column {
+                Image(
+                    ImageBitmap(10, 10),
+                    contentDescription = null,
+                    modifier = Modifier.testTag("Image 1")
+                )
+                Image(
+                    ImageBitmap(10, 10),
+                    contentDescription = null,
+                    modifier = Modifier.testTag("Image 2").semantics { role = Role.Image }
+                )
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = false
+                identifier = "Image 1"
+            }
+            node {
+                isAccessibilityElement = true
+                identifier = "Image 2"
+                traits(UIAccessibilityTraitImage)
+            }
+        }
+    }
+
+    @Test
+    fun testTextSemantics() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column {
+                Text("Static Text", modifier = Modifier.testTag("Text 1"))
+                Text("Custom Button", modifier = Modifier.testTag("Text 2").clickable {  })
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = true
+                identifier = "Text 1"
+                label = "Static Text"
+                traits(UIAccessibilityTraitStaticText)
+            }
+            node {
+                isAccessibilityElement = true
+                identifier = "Text 2"
+                label = "Custom Button"
+                traits(UIAccessibilityTraitButton)
+            }
+        }
+    }
+
+    @Test
+    fun testDisabledSemantics() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column {
+                Button({}, enabled = false) {}
+                TextField("", {}, enabled = false)
+                Slider(value = 0f, onValueChange = {}, enabled = false)
+                Switch(checked = false, onCheckedChange = {}, enabled = false)
+                Checkbox(checked = false, onCheckedChange = {}, enabled = false)
+                TriStateCheckbox(state = ToggleableState.Off, onClick = {}, enabled = false)
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitNotEnabled
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitNotEnabled
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitAdjustable,
+                    UIAccessibilityTraitNotEnabled
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                if (available(OS.Ios to OSVersion(major = 17))) {
+                    traits(
+                        UIAccessibilityTraitButton,
+                        UIAccessibilityTraitToggleButton,
+                        UIAccessibilityTraitNotEnabled
+                    )
+                } else {
+                    traits(
+                        UIAccessibilityTraitButton,
+                        UIAccessibilityTraitNotEnabled
+                    )
+                }
+            }
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitNotEnabled
+                )
+            }
+            node {
+                isAccessibilityElement = true
+                traits(
+                    UIAccessibilityTraitButton,
+                    UIAccessibilityTraitNotEnabled
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testHeadingSemantics() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Scaffold(topBar = {
+                TopAppBar {
+                    Text("Header", modifier = Modifier.semantics { heading() })
+                }
+            }) {
+                Column {
+                    Text("Content")
+                }
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                label = "Header"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitHeader)
+            }
+            node {
+                label = "Content"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitStaticText)
+            }
+        }
+    }
+}

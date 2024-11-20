@@ -41,11 +41,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *__nullable)accessibilityValue CMP_ABSTRACT_FUNCTION;
 
+- (__nullable id<UITextInput>)accessibilityTextInputResponder CMP_ABSTRACT_FUNCTION;
+
 - (CGRect)accessibilityFrame CMP_ABSTRACT_FUNCTION;
 
 - (BOOL)isAccessibilityElement CMP_ABSTRACT_FUNCTION;
 
 - (BOOL)accessibilityActivate CMP_ABSTRACT_FUNCTION;
+
+- (void)accessibilityIncrement CMP_ABSTRACT_FUNCTION;
+
+- (void)accessibilityDecrement CMP_ABSTRACT_FUNCTION;
 
 // Private SDK method. Calls when the item is swipe-to-focused in VoiceOver.
 - (BOOL)accessibilityScrollToVisible;

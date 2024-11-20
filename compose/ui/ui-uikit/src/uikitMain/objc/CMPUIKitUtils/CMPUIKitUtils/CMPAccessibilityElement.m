@@ -80,6 +80,10 @@ NS_ASSUME_NONNULL_BEGIN
     CMP_ABSTRACT_FUNCTION_CALLED
 }
 
+- (__nullable id<UITextInput>)accessibilityTextInputResponder {
+    CMP_ABSTRACT_FUNCTION_CALLED
+}
+
 - (NSString *__nullable)accessibilityValue {
     CMP_ABSTRACT_FUNCTION_CALLED
 }
@@ -93,6 +97,14 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityActivate {
+    CMP_ABSTRACT_FUNCTION_CALLED
+}
+
+- (void)accessibilityIncrement {
+    CMP_ABSTRACT_FUNCTION_CALLED
+}
+
+- (void)accessibilityDecrement {
     CMP_ABSTRACT_FUNCTION_CALLED
 }
 

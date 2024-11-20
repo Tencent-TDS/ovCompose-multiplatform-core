@@ -193,7 +193,10 @@ internal class UIKitInstrumentedTest {
 
     fun waitForIdle(timeoutMillis: Long = 5_000) {
         waitUntil(
-            conditionDescription = "waitForIdle: timeout ${timeoutMillis}ms reached.",
+            conditionDescription = "waitForIdle: timeout ${timeoutMillis}ms reached.\n" +
+                "hasPendingChanges = ${Snapshot.current.hasPendingChanges()}\n" +
+                "isApplyObserverNotificationPending = ${Snapshot.isApplyObserverNotificationPending}\n" +
+                "hasInvalidations = ${hostingViewController.hasInvalidations()}",
             timeoutMillis = timeoutMillis
         ) { isIdle }
     }
