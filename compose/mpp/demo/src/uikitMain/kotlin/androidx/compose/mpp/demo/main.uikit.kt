@@ -32,7 +32,7 @@ import platform.UIKit.UIWindow
  * - XCode will open this project automatically
  * - press the Run (Cmd+R) button in the XCode
  */
-@OptIn(ExperimentalComposeUiApi::class, ExperimentalComposeApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 fun main(vararg args: String) {
     androidx.compose.ui.util.enableTraceOSLog()
 
@@ -40,7 +40,7 @@ fun main(vararg args: String) {
     UIKitMain {
         ComposeUIViewController(
             configure = {
-                useSeparateRenderThreadWhenPossible = true
+                parallelRendering = true
             }
         ) {
             IosDemo(arg)

@@ -17,6 +17,7 @@
 package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.AccessibilitySyncOptions
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
@@ -76,8 +77,8 @@ class ComposeUIViewControllerConfiguration {
      *
      * Changing this setting outside of `ComposeUIViewController` `configure` argument scope has no effect.
      */
-    @ExperimentalComposeApi
-    var useSeparateRenderThreadWhenPossible: Boolean = false
+    @ExperimentalComposeUiApi
+    var parallelRendering: Boolean = false
 }
 
 /**
