@@ -68,8 +68,11 @@ class ComposeUIViewControllerConfiguration {
     var enforceStrictPlistSanityCheck: Boolean = true
 
     /**
-     * If set to true, the Compose will encoder the rendering commands on a dedicated render thread.
+     * If set to true, the Compose will encode the rendering commands on a dedicated render thread,
+     * when possible.
      * This can improve the performance when no interop UIKit is used.
+     *
+     * It's an experimental API, and the effects of enabling it are not considered stable.
      *
      * Changing this setting outside of `ComposeUIViewController` `configure` argument scope has no effect.
      */
