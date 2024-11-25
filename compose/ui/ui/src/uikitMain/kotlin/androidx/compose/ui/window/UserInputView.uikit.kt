@@ -38,6 +38,7 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UITapGestureRecognizer
+import platform.UIKit.UIScreenEdgePanGestureRecognizer
 import platform.UIKit.UIGestureRecognizerDelegateProtocol
 import platform.UIKit.UIGestureRecognizerState
 import platform.UIKit.UIGestureRecognizerStateBegan
@@ -136,12 +137,18 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
     ): Boolean {
         // We should recognize simultaneously only with the gesture recognizers
         // belonging to itself or to the views up in the hierarchy.
+        // An exception: UIScreenEdgePanGestureRecognizer, this always has precedence over us and is
+        // not allowed to recognize simultaneously
 
-        // Can't check if either view is null
+        // Can't proceed if either view is null
         val view = gestureRecognizer.view ?: return false
         val otherView = otherGestureRecognizer.view ?: return false
 
         val otherIsAscendant = !otherView.isDescendantOfView(view)
+
+        if (otherIsAscendant && otherGestureRecognizer is UIScreenEdgePanGestureRecognizer) {
+            return false
+        }
 
         // Only allow simultaneous recognition if the other gesture recognizer is attached to the same view
         // or to a view up in the hierarchy
@@ -158,12 +165,13 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         // if it's a UITapGestureRecognizer.
         //
         // 2. It's a gesture recognizer of the view itself, or it's an ascendant view.
-        // We don't require failure of it.
+        // We don't require failure of it, unless it's a `UIScreenEdgePanGestureRecognizer`.
 
         val view = gestureRecognizer.view ?: return false
         val otherView = otherGestureRecognizer.view ?: return false
 
         val otherIsDescendant = otherView.isDescendantOfView(view)
+        val otherIsAscendantOrSameView = !otherIsDescendant
 
         // (1)
         if (otherIsDescendant && otherGestureRecognizer is UITapGestureRecognizer) {
@@ -171,6 +179,10 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         }
 
         // (2)
+        if (otherIsAscendantOrSameView && otherGestureRecognizer is UIScreenEdgePanGestureRecognizer) {
+            return true
+        }
+
         return false
     }
 
@@ -178,18 +190,20 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         gestureRecognizer: UIGestureRecognizer,
         otherGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        // Other gesture recognizers,
-        // except the case where it belongs to the same view,
-        // are required to wait until we fail,
-        // unless otherGestureRecognizer is UITapGestureRecognizer.
-        // In practice, it can only happen when other gesture recognizers are attached to the
-        // descendant views (aka interop views).
-        // In other cases, it's allowed to recognize simultaneously, so this method will not be
-        // called
 
-
-        // Is UITapGestureRecognizer, it must not wait till we fail and has priority
+        // otherGestureRecognizer is UITapGestureRecognizer,
+        // it must not wait till we fail and has priority
         if (otherGestureRecognizer is UITapGestureRecognizer) {
+            return false
+        }
+
+        val view = gestureRecognizer.view ?: return false
+        val otherView = otherGestureRecognizer.view ?: return false
+
+        val otherIsDescendant = otherView.isDescendantOfView(view)
+        val otherIsAscendantOrSameView = !otherIsDescendant
+
+        if (otherIsAscendantOrSameView && otherGestureRecognizer is UIScreenEdgePanGestureRecognizer) {
             return false
         }
 
