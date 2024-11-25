@@ -37,6 +37,7 @@ import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
+import platform.UIKit.UITapGestureRecognizer
 import platform.UIKit.UIGestureRecognizerDelegateProtocol
 import platform.UIKit.UIGestureRecognizerState
 import platform.UIKit.UIGestureRecognizerStateBegan
@@ -151,10 +152,25 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
         gestureRecognizer: UIGestureRecognizer,
         otherGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        // We don't require other gesture recognizers to fail.
-        // Assumption is that we recognize
-        // simultaneously with the gesture recognizers of the views up in the hierarchy.
-        // And gesture recognizers down the hierarchy require to failure us.
+        // Two situations are possible here.
+        // 1. If it's a gesture recognizer of a descendant (interop) view,
+        // we should wait until it fails,
+        // if it's a UITapGestureRecognizer.
+        //
+        // 2. It's a gesture recognizer of the view itself, or it's an ascendant view.
+        // We don't require failure of it.
+
+        val view = gestureRecognizer.view ?: return false
+        val otherView = otherGestureRecognizer.view ?: return false
+
+        val otherIsDescendant = otherView.isDescendantOfView(view)
+
+        // (1)
+        if (otherIsDescendant && otherGestureRecognizer is UITapGestureRecognizer) {
+            return true
+        }
+
+        // (2)
         return false
     }
 
@@ -164,11 +180,20 @@ private class UserInputGestureRecognizerDelegateProxy : CMPGestureRecognizerDele
     ): Boolean {
         // Other gesture recognizers,
         // except the case where it belongs to the same view,
-        // are required to wait until we fail.
+        // are required to wait until we fail,
+        // unless otherGestureRecognizer is UITapGestureRecognizer.
         // In practice, it can only happen when other gesture recognizers are attached to the
         // descendant views (aka interop views).
         // In other cases, it's allowed to recognize simultaneously, so this method will not be
         // called
+
+
+        // Is UITapGestureRecognizer, it must not wait till we fail and has priority
+        if (otherGestureRecognizer is UITapGestureRecognizer) {
+            return false
+        }
+
+        // Otherwise it is required to fail (aka other kind of gesture recognizer on interop view)
         return gestureRecognizer.view != otherGestureRecognizer.view
     }
 }
