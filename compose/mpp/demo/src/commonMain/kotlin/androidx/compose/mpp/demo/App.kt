@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
@@ -16,11 +17,10 @@ import androidx.navigation.compose.rememberNavController
 
 class App(
     private val initialScreenName: String? = null,
-    private val extraScreens: List<Screen> = listOf()
+    private val extraScreens: List<Screen> = listOf(),
 ) {
     @Composable
-    fun Content() {
-        val navController = rememberNavController()
+    fun Content(navController: NavHostController = rememberNavController()) {
         val animationSpec = tween<IntOffset>(500)
         NavHost(
             navController = navController,

@@ -18,7 +18,6 @@ package androidx.compose.mpp.demo.components.text
 
 import androidx.compose.mpp.demo.loadRes
 import androidx.compose.mpp.demo.toByteArray
-import kotlin.js.js
 
 actual suspend fun loadResource(file: String): ByteArray? {
     return loadRes(file).toByteArray()
