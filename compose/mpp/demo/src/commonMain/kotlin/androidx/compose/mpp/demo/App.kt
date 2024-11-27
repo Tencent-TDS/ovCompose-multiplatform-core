@@ -17,7 +17,7 @@ import androidx.navigation.compose.rememberNavController
 
 class App(
     private val initialScreenName: String? = null,
-    private val extraScreens: List<Screen> = listOf(),
+    private val extraScreens: List<Screen> = listOf()
 ) {
     @Composable
     fun Content(navController: NavHostController = rememberNavController()) {
