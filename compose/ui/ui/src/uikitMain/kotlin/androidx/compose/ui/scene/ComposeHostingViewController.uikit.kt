@@ -36,6 +36,7 @@ import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
+import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -44,7 +45,6 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.viewinterop.UIKitInteropAction
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ComposeView
-import androidx.compose.ui.window.DisplayLinkListener
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
@@ -53,15 +53,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.coroutines.CoroutineContext
 import kotlin.native.runtime.GC
 import kotlin.native.runtime.NativeRuntimeApi
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
@@ -95,6 +92,7 @@ internal class ComposeHostingViewController(
                 override val isInteropActive = false
             }
         },
+        useSeparateRenderThreadWhenPossible = configuration.parallelRendering,
         render = { canvas, nanoTime ->
             mediator?.render(canvas.asComposeCanvas(), nanoTime)
         }
@@ -110,7 +108,7 @@ internal class ComposeHostingViewController(
     )
     private var mediator: ComposeSceneMediator? = null
     private val windowContext = PlatformWindowContext()
-    private val layers = UIKitComposeSceneLayersHolder(windowContext)
+    private val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
     private val layoutDirection get() = getLayoutDirection()
     private var hasViewAppeared: Boolean = false
 

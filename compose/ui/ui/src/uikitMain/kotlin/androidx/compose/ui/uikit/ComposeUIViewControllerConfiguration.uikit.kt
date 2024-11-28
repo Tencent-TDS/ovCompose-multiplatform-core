@@ -17,6 +17,7 @@
 package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.AccessibilitySyncOptions
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
@@ -66,6 +67,18 @@ class ComposeUIViewControllerConfiguration {
      * explanation on how to fix the issue.
      */
     var enforceStrictPlistSanityCheck: Boolean = true
+
+    /**
+     * If set to true, the Compose will encode the rendering commands on a dedicated render thread,
+     * when possible.
+     * This can improve the performance when no interop UIKit is used.
+     *
+     * It's an experimental API, and the effects of enabling it are not considered stable.
+     *
+     * Changing this setting outside of `ComposeUIViewController` `configure` argument scope has no effect.
+     */
+    @ExperimentalComposeUiApi
+    var parallelRendering: Boolean = false
 }
 
 /**

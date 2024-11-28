@@ -80,7 +80,7 @@ internal fun Modifier.cursor(
                                     // When cursor width is odd, draw it in the middle of a pixel,
                                     // to avoid blurring due to antialiasing.
                                     if (cursorWidth.toInt() % 2 == 1) {
-                                        floor(it) + 0.5f  // round to nearest n+0.5
+                                        floor(it) + 0.5f // round to nearest n+0.5
                                     } else round(it)
                                 }
 

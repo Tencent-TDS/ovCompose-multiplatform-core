@@ -25,6 +25,9 @@ import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.window.ComposeViewport
+import androidx.navigation.ExperimentalBrowserHistoryApi
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.bindToNavigation
 import kotlin.wasm.unsafe.UnsafeWasmMemoryApi
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import kotlinx.browser.window
@@ -36,14 +39,21 @@ import org.w3c.fetch.Response
 private val notoColorEmoji = "./NotoColorEmoji.ttf"
 
 @OptIn(ExperimentalComposeUiApi::class)
+@ExperimentalBrowserHistoryApi
 fun main() {
     ComposeViewport(viewportContainerId = "composeApplication") {
+        val navController = rememberNavController()
         val fontFamilyResolver = LocalFontFamilyResolver.current
         val fontsLoaded = remember { mutableStateOf(false) }
         val app = remember { App() }
 
         if (fontsLoaded.value) {
-            app.Content()
+            app.Content(navController)
+
+            // TODO: possibly suboptimal workaround for https://youtrack.jetbrains.com/issue/CMP-7136/web-Its-non-trivial-to-bind-to-navigation-if-NavHost-is-called-asynchronously
+            LaunchedEffect(Unit) {
+                window.bindToNavigation(navController)
+            }
         }
 
         LaunchedEffect(Unit) {

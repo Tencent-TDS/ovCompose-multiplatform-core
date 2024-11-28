@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.uikit.utils.CMPAccessibilityContainer
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
@@ -413,30 +414,34 @@ private class AccessibilityElement(
             )
         )
 
+        fun Float.invertIfNeeded() = if (isRTL) -this else this
         // TODO: consider safe areas?
-        // TODO: is RTL working properly?
         if (unclippedRect.top < scrollableAncestorRect.top) {
             // The element is above the screen, scroll up
             parent?.scrollByIfPossible(
                 0f,
-                unclippedRect.top - scrollableAncestorRect.top - scrollableAncestor.size.height / 2
+                unclippedRect.top - scrollableAncestorRect.top -
+                    (scrollableAncestor.size.height - unclippedRect.size.height) / 2
             )
         } else if (unclippedRect.bottom > scrollableAncestorRect.bottom) {
             // The element is below the screen, scroll down
             parent?.scrollByIfPossible(
                 0f,
-                unclippedRect.bottom - scrollableAncestorRect.bottom + scrollableAncestor.size.height / 2
+                unclippedRect.bottom - scrollableAncestorRect.bottom +
+                    (scrollableAncestor.size.height - unclippedRect.size.height) / 2
             )
         } else if (unclippedRect.left < scrollableAncestorRect.left) {
             // The element is to the left of the screen, scroll left
             parent?.scrollByIfPossible(
-                unclippedRect.left - scrollableAncestorRect.left - scrollableAncestor.size.width / 2,
+                (unclippedRect.left - scrollableAncestorRect.left -
+                    (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
                 0f
             )
         } else if (unclippedRect.right > scrollableAncestorRect.right) {
             // The element is to the right of the screen, scroll right
             parent?.scrollByIfPossible(
-                unclippedRect.right - scrollableAncestorRect.right + scrollableAncestor.size.width / 2,
+                (unclippedRect.right - scrollableAncestorRect.right +
+                    (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
                 0f
             )
         }
@@ -472,18 +477,34 @@ private class AccessibilityElement(
             SemanticsProperties.VerticalScrollAxisRange
         }
 
-        // TODO: is RTL working properly?
         val axisRange = config.getOrNull(rangeProperty)
-        val normalisedDirection = if (axisRange?.reverseScrolling == true) {
-            when (direction) {
-                UIAccessibilityScrollDirectionUp -> UIAccessibilityScrollDirectionDown
-                UIAccessibilityScrollDirectionDown -> UIAccessibilityScrollDirectionUp
-                UIAccessibilityScrollDirectionRight -> UIAccessibilityScrollDirectionLeft
-                UIAccessibilityScrollDirectionLeft -> UIAccessibilityScrollDirectionRight
-                else -> return null
+        val isReverse = axisRange?.reverseScrolling == true
+        val normalisedDirection = when (direction) {
+            UIAccessibilityScrollDirectionUp -> if (isReverse) {
+                UIAccessibilityScrollDirectionDown
+            } else {
+                UIAccessibilityScrollDirectionUp
             }
-        } else {
-            direction
+
+            UIAccessibilityScrollDirectionDown -> if (isReverse) {
+                UIAccessibilityScrollDirectionUp
+            } else {
+                UIAccessibilityScrollDirectionDown
+            }
+
+            UIAccessibilityScrollDirectionRight -> if (isRTL xor isReverse) {
+                UIAccessibilityScrollDirectionLeft
+            } else {
+                UIAccessibilityScrollDirectionRight
+            }
+
+            UIAccessibilityScrollDirectionLeft -> if (isRTL xor isReverse) {
+                UIAccessibilityScrollDirectionRight
+            } else {
+                UIAccessibilityScrollDirectionLeft
+            }
+
+            else -> return null
         }
 
         when (normalisedDirection) {
@@ -822,6 +843,8 @@ private class AccessibilityElement(
         }
         return this.takeIf { containsPoint }
     }
+
+    private val isRTL get() = semanticsNode.isRTL
 }
 
 /**
@@ -860,6 +883,7 @@ private class AccessibilityElement(
  * https://github.com/flutter/engine/blob/main/shell/platform/darwin/ios/framework/Source/SemanticsObject.h
  *
  */
+@OptIn(BetaInteropApi::class)
 @ExportObjCClass
 private class AccessibilityContainer(
     /**
@@ -1255,7 +1279,7 @@ internal class AccessibilityMediator(
                 .filter {
                     it.isValid
                 }
-                .sortedByAccessibilityOrder()
+                .sortedByAccessibilityOrder(node.isRTL)
 
             for (childNode in childSemanticsNodesInAccessibilityOrder) {
                 val childElement = traverseSemanticsNode(childNode)
@@ -1454,19 +1478,21 @@ private fun debugContainmentChain(accessibilityObject: Any): String {
 /**
  * Sort the elements in their visual order using their bounds:
  * - from top to bottom,
- * - from left to right // TODO: consider RTL layout
+ * - from left to right or from right to left, depending on language direction
  *
  * The sort is needed because [SemanticsNode.replacedChildren] order doesn't match the
  * expected order of the children in the accessibility tree.
  *
  * TODO: investigate if it's a bug, or some assumptions about the order are wrong.
  */
-private fun List<SemanticsNode>.sortedByAccessibilityOrder(): List<SemanticsNode> {
+private fun List<SemanticsNode>.sortedByAccessibilityOrder(isRTL: Boolean): List<SemanticsNode> {
     return sortedWith { lhs, rhs ->
         val result = lhs.boundsInWindow.topLeft.y.compareTo(rhs.boundsInWindow.topLeft.y)
 
         if (result == 0) {
-            lhs.boundsInWindow.topLeft.x.compareTo(rhs.boundsInWindow.topLeft.x)
+            lhs.boundsInWindow.topLeft.x.compareTo(rhs.boundsInWindow.topLeft.x).let {
+                if (isRTL) -it else it
+            }
         } else {
             result
         }
@@ -1481,6 +1507,9 @@ private val SemanticsNode.unclippedBoundsInWindow: Rect
  */
 private val SemanticsNode.isValid: Boolean
     get() = layoutNode.isPlaced && layoutNode.isAttached
+
+private val SemanticsNode.isRTL: Boolean
+    get() = layoutInfo.layoutDirection == LayoutDirection.Rtl
 
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
