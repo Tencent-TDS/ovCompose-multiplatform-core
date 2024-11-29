@@ -405,9 +405,11 @@ internal class ComposeHostingViewController(
     private fun onAccessibilityChanged() {
         var isAccessibilityEnabled =
             configuration.accessibilitySyncOptions.isGlobalAccessibilityEnabled
-        layers.layers.fastForEachReversed {
-            it.isAccessibilityEnabled = isAccessibilityEnabled
-            isAccessibilityEnabled = isAccessibilityEnabled && !it.focusable
+        layers.withLayers {
+            it.fastForEachReversed { layer ->
+                layer.isAccessibilityEnabled = isAccessibilityEnabled
+                isAccessibilityEnabled = isAccessibilityEnabled && !layer.focusable
+            }
         }
         mediator?.isAccessibilityEnabled = isAccessibilityEnabled
     }

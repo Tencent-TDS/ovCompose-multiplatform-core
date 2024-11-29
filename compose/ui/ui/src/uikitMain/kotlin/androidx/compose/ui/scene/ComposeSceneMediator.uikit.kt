@@ -118,17 +118,17 @@ private class SemanticsOwnerListenerImpl(
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
 
-    private var mediator: AccessibilityMediator? = null
+    private var accessibilityMediator: AccessibilityMediator? = null
 
     var isEnabled: Boolean = false
         set(value) {
             field = value
-            mediator?.isEnabled = value
+            accessibilityMediator?.isEnabled = value
         }
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
-        if (mediator == null) {
-            mediator = AccessibilityMediator(
+        if (accessibilityMediator == null) {
+            accessibilityMediator = AccessibilityMediator(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
@@ -141,29 +141,29 @@ private class SemanticsOwnerListenerImpl(
     }
 
     override fun onSemanticsOwnerRemoved(semanticsOwner: SemanticsOwner) {
-        if (mediator?.owner == semanticsOwner) {
-            mediator?.dispose()
-            mediator = null
+        if (accessibilityMediator?.owner == semanticsOwner) {
+            accessibilityMediator?.dispose()
+            accessibilityMediator = null
         }
     }
 
     override fun onSemanticsChange(semanticsOwner: SemanticsOwner) {
-        if (mediator?.owner == semanticsOwner) {
-            mediator?.onSemanticsChange()
+        if (accessibilityMediator?.owner == semanticsOwner) {
+            accessibilityMediator?.onSemanticsChange()
         }
     }
 
     override fun onLayoutChange(semanticsOwner: SemanticsOwner, semanticsNodeId: Int) {
-        if (mediator?.owner == semanticsOwner) {
-            mediator?.onLayoutChange(nodeId = semanticsNodeId)
+        if (accessibilityMediator?.owner == semanticsOwner) {
+            accessibilityMediator?.onLayoutChange(nodeId = semanticsNodeId)
         }
     }
 
-    val hasInvalidations: Boolean get() = mediator?.hasPendingInvalidations ?: false
+    val hasInvalidations: Boolean get() = accessibilityMediator?.hasPendingInvalidations ?: false
 
     fun dispose() {
-        mediator?.dispose()
-        mediator = null
+        accessibilityMediator?.dispose()
+        accessibilityMediator = null
     }
 }
 
