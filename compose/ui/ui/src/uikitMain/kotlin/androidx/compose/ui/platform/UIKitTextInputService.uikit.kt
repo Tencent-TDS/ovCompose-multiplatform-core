@@ -162,6 +162,7 @@ internal class UIKitTextInputService(
     }
 
     override fun stopInput() {
+        flushEditCommandsIfNeeded()
         currentInput = null
         _tempCurrentInputSession = null
         currentImeOptions = null
@@ -277,8 +278,8 @@ internal class UIKitTextInputService(
         flushEditCommandsIfNeeded()
     }
 
-    private fun flushEditCommandsIfNeeded() {
-        if (editBatchDepth == 0 && editCommandsBatch.isNotEmpty()) {
+    fun flushEditCommandsIfNeeded(force: Boolean = false) {
+        if ((force || editBatchDepth == 0) && editCommandsBatch.isNotEmpty()) {
             val commandList = editCommandsBatch.toList()
             editCommandsBatch.clear()
 

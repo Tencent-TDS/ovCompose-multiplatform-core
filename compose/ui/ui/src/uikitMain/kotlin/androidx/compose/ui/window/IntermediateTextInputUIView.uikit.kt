@@ -239,7 +239,8 @@ internal class IntermediateTextInputUIView(
         val relativeTextRange = locationRelative until locationRelative + lengthRelative
 
         // Due to iOS specifics, [setMarkedText] can be called several times in a row. Batching
-        // helps to avoid text input problems caused by too frequent dispaltching of input commands.
+        // helps to avoid text input problems, when Composables use parameters set during
+        // recomposition instead of the current ones.
         input?.withBatch {
             input?.setMarkedText(markedText, relativeTextRange)
         }
