@@ -162,7 +162,7 @@ internal class UIKitTextInputService(
     }
 
     override fun stopInput() {
-        flushEditCommandsIfNeeded()
+        flushEditCommandsIfNeeded(force = true)
         currentInput = null
         _tempCurrentInputSession = null
         currentImeOptions = null
