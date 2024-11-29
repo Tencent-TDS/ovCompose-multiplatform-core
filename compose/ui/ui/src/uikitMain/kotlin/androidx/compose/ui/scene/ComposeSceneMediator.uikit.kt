@@ -19,7 +19,6 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -42,7 +41,6 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.OffsetToFocusedRect
 import androidx.compose.ui.platform.AccessibilityMediator
-import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.CUPERTINO_TOUCH_SLOP
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.EmptyViewConfiguration
@@ -59,7 +57,6 @@ import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
@@ -112,18 +109,22 @@ import platform.UIKit.UIWindow
  *
  * @property rootView The UI container associated with the semantics owner.
  * @property coroutineContext The coroutine context to use for handling semantics changes.
- * @property getAccessibilitySyncOptions A lambda function to retrieve the latest accessibility synchronization options.
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
-@OptIn(ExperimentalComposeApi::class)
 private class SemanticsOwnerListenerImpl(
     private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
-    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
     private val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
+
     private var mediator: AccessibilityMediator? = null
+
+    var isEnabled: Boolean = false
+        set(value) {
+            field = value
+            mediator?.isEnabled = value
+        }
 
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (mediator == null) {
@@ -131,10 +132,11 @@ private class SemanticsOwnerListenerImpl(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
-                getAccessibilitySyncOptions,
                 convertToAppWindowCGRect,
                 performEscape
-            )
+            ).also {
+                it.isEnabled = isEnabled
+            }
         }
     }
 
@@ -157,6 +159,8 @@ private class SemanticsOwnerListenerImpl(
         }
     }
 
+    val hasInvalidations: Boolean get() = mediator?.hasPendingInvalidations ?: false
+
     fun dispose() {
         mediator?.dispose()
         mediator = null
@@ -165,7 +169,7 @@ private class SemanticsOwnerListenerImpl(
 
 internal class ComposeSceneMediator(
     parentView: UIView,
-    private val configuration: ComposeUIViewControllerConfiguration,
+    private val onFocusBehavior: OnFocusBehavior,
     private val focusStack: FocusStack?,
     private val windowContext: PlatformWindowContext,
     private val coroutineContext: CoroutineContext,
@@ -270,14 +274,10 @@ internal class ComposeSceneMediator(
     private fun isPointInsideInteractionBounds(point: CValue<CGPoint>) =
         interactionBounds.contains(point.asDpOffset().toOffset(view.density).round())
 
-    @OptIn(ExperimentalComposeApi::class)
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
             rootView = view,
             coroutineContext = coroutineContext,
-            getAccessibilitySyncOptions = {
-                configuration.accessibilitySyncOptions
-            },
             convertToAppWindowCGRect = { rect, window ->
                 windowContext.convertWindowRect(rect, window)
                     .toDpRect(Density(window.screen.scale.toFloat()))
@@ -291,6 +291,8 @@ internal class ComposeSceneMediator(
             }
         )
     }
+
+    var isAccessibilityEnabled by semanticsOwnerListener::isEnabled
 
     private val keyboardManager by lazy {
         ComposeSceneKeyboardOffsetManager(
@@ -322,8 +324,11 @@ internal class ComposeSceneMediator(
         }
     }
 
-    val hasInvalidations: Boolean get() =
-        scene.hasInvalidations() || keyboardManager.isAnimating || isLayoutTransitionAnimating
+    val hasInvalidations: Boolean
+        get() = scene.hasInvalidations() ||
+            keyboardManager.isAnimating ||
+            isLayoutTransitionAnimating ||
+            semanticsOwnerListener.hasInvalidations
 
     private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): UIView? =
         point.useContents {
@@ -472,7 +477,7 @@ internal class ComposeSceneMediator(
 
     @Composable
     private fun FocusAboveKeyboardIfNeeded(content: @Composable () -> Unit) {
-        if (configuration.onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
+        if (onFocusBehavior == OnFocusBehavior.FocusableAboveKeyboard) {
             OffsetToFocusedRect(
                 insets = PlatformInsets(bottom = keyboardOverlapHeight),
                 getFocusedRect = ::getFocusedRect,

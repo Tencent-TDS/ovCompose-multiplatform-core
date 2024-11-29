@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.LayoutNode
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsProperties.HideFromAccessibility
+import androidx.compose.ui.semantics.SemanticsProperties.InvisibleToUser
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
@@ -43,9 +45,9 @@ import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -55,8 +57,6 @@ import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNotFound
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSSelectorFromString
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityFocusedElement
@@ -79,8 +79,6 @@ import platform.UIKit.UIAccessibilityTraitNotEnabled
 import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
-import platform.UIKit.UIAccessibilityVoiceOverStatusChanged
-import platform.UIKit.UIAccessibilityVoiceOverStatusDidChangeNotification
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityCustomActions
@@ -111,7 +109,7 @@ private class CachedAccessibilityPropertyKey<V>
 private object CachedAccessibilityPropertyKeys {
     val accessibilityLabel = CachedAccessibilityPropertyKey<String?>()
     val isAccessibilityElement = CachedAccessibilityPropertyKey<Boolean>()
-    val accessibilityIdentifier = CachedAccessibilityPropertyKey<String>()
+    val accessibilityIdentifier = CachedAccessibilityPropertyKey<String?>()
     val accessibilityHint = CachedAccessibilityPropertyKey<String?>()
     val accessibilityCustomActions = CachedAccessibilityPropertyKey<List<UIAccessibilityCustomAction>>()
     val accessibilityTraits = CachedAccessibilityPropertyKey<UIAccessibilityTraits>()
@@ -597,30 +595,12 @@ private class AccessibilityElement(
 
     override fun isAccessibilityElement(): Boolean =
         getOrElse(CachedAccessibilityPropertyKeys.isAccessibilityElement) {
-            val config = cachedConfig
-
-            if (config.contains(SemanticsProperties.InvisibleToUser) ||
-                config.contains(HideFromAccessibility)
-            ) {
-                false
-            } else {
-                // TODO: investigate if it can it be one of those _and_ contain properties that should
-                //  be communicated to iOS?
-                if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true
-                    || config.contains(SemanticsProperties.IsPopup)
-                    || config.contains(SemanticsProperties.IsDialog)
-                ) {
-                    false
-                } else {
-                    config.containsImportantForAccessibility()
-                }
-            }
+            semanticsNode.isAccessibilityElement
         }
 
-    override fun accessibilityIdentifier(): String =
+    override fun accessibilityIdentifier(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityIdentifier) {
             cachedConfig.getOrNull(SemanticsProperties.TestTag)
-                ?: "AccessibilityElement for SemanticsNode(id=$semanticsNodeId)"
         }
 
     override fun accessibilityHint(): String? =
@@ -1029,7 +1009,7 @@ private val accessibilityDebugLogger: AccessibilityDebugLogger? = null
 // }
 
 @OptIn(ExperimentalComposeApi::class)
-private val AccessibilitySyncOptions.shouldPerformSync
+internal val AccessibilitySyncOptions.isGlobalAccessibilityEnabled
     get() =
         when (this) {
             AccessibilitySyncOptions.Never -> false
@@ -1040,13 +1020,10 @@ private val AccessibilitySyncOptions.shouldPerformSync
 /**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
-@OptIn(ExperimentalComposeApi::class)
 internal class AccessibilityMediator(
     val view: UIView,
     val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
-    private val getAccessibilitySyncOptions: () -> AccessibilitySyncOptions,
-
     /**
      * A function that converts the given [Rect] from the semantics tree coordinate space (window container for layers)
      * to the [CGRect] in coordinate space of the app window.
@@ -1064,8 +1041,6 @@ internal class AccessibilityMediator(
     private var inflightScrollsCount = 0
     private val needsRedundantRefocusingOnSameElement: Boolean
         get() = inflightScrollsCount > 0
-
-    private val notificationCenter = NSNotificationCenter.defaultCenter
 
     /**
      * The kind of invalidation that determines what kind of logic will be executed in the next sync.
@@ -1108,16 +1083,18 @@ internal class AccessibilityMediator(
      */
     private val accessibilityElementsMap = mutableMapOf<Int, AccessibilityElement>()
 
+    var isEnabled: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                onSemanticsChange()
+            }
+        }
+
     init {
         accessibilityDebugLogger?.log("AccessibilityMediator for $view created")
 
-        notificationCenter.addObserver(
-            observer = this,
-            selector = NSSelectorFromString(::voiceOverStatusDidChange.name),
-            name = UIAccessibilityVoiceOverStatusDidChangeNotification,
-            `object` = null
-        )
-
+        view.accessibilityElements = listOf<NSObject>()
         coroutineScope.launch {
             // The main loop that listens for invalidations and performs the tree syncing
             // Will exit on CancellationException from within await on `invalidationChannel.receive()`
@@ -1130,13 +1107,9 @@ internal class AccessibilityMediator(
                     // Workaround for the channel buffering two invalidations despite the capacity of 1
                 }
 
-                val syncOptions = getAccessibilitySyncOptions()
+                debugLogger = accessibilityDebugLogger.takeIf { isEnabled }
 
-                val shouldPerformSync = syncOptions.shouldPerformSync
-
-                debugLogger = accessibilityDebugLogger.takeIf { shouldPerformSync }
-
-                if (shouldPerformSync) {
+                if (isEnabled) {
                     var result: NodesSyncResult
 
                     val time = measureTime {
@@ -1147,6 +1120,11 @@ internal class AccessibilityMediator(
                     debugLogger?.log("LayoutChanged, newElementToFocus: ${result.newElementToFocus}")
 
                     UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, result.newElementToFocus)
+                } else {
+                    if (view.accessibilityElements?.isEmpty() != true) {
+                        view.accessibilityElements = listOf<NSObject>()
+                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
+                    }
                 }
 
                 invalidationKind = SemanticsTreeInvalidationKind.BOUNDS
@@ -1155,12 +1133,8 @@ internal class AccessibilityMediator(
         }
     }
 
-    @OptIn(BetaInteropApi::class)
-    @ObjCAction
-    private fun voiceOverStatusDidChange() {
-        invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
-        invalidationChannel.trySend(Unit)
-    }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val hasPendingInvalidations: Boolean get() = !invalidationChannel.isEmpty
 
     fun convertToAppWindowCGRect(rect: Rect): CValue<CGRect> {
         val window = view.window ?: return CGRectZero.readValue()
@@ -1228,17 +1202,11 @@ internal class AccessibilityMediator(
 
         job.cancel()
         isAlive = false
-        view.accessibilityElements = null
+        view.accessibilityElements = listOf<NSObject>()
 
         for (element in accessibilityElementsMap.values) {
             element.dispose()
         }
-
-        notificationCenter.removeObserver(
-            observer = this,
-            name = UIAccessibilityVoiceOverStatusChanged,
-            `object` = null
-        )
     }
 
     private fun createOrUpdateAccessibilityElementForSemanticsNode(node: SemanticsNode): AccessibilityElement {
@@ -1510,6 +1478,39 @@ private val SemanticsNode.isValid: Boolean
 
 private val SemanticsNode.isRTL: Boolean
     get() = layoutInfo.layoutDirection == LayoutDirection.Rtl
+
+private val SemanticsNode.isAccessibilityElement: Boolean get() {
+    val config = this.config
+
+    @Suppress("DEPRECATION")
+    return if (isHidden) {
+        false
+    } else {
+        if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true
+            || config.contains(SemanticsProperties.IsPopup)
+            || config.contains(SemanticsProperties.IsDialog)
+        ) {
+            false
+        } else if (config.getOrNull(SemanticsProperties.IsContainer) == true &&
+            config.props.size == 1
+        ) {
+            false
+        } else {
+            config.containsImportantForAccessibility()
+        }
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Suppress("DEPRECATION")
+internal val SemanticsNode.isHidden: Boolean
+    // A node is considered hidden if it is transparent, or explicitly is hidden from accessibility.
+    // This also checks if the node has been marked as `invisibleToUser`, which is what the
+    // `hiddenFromAccessibility` API used to  be named.
+    get() =
+        isTransparent ||
+            (unmergedConfig.contains(HideFromAccessibility) ||
+                unmergedConfig.contains(InvisibleToUser))
 
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action

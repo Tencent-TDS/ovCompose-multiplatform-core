@@ -17,7 +17,9 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.scene.ComposeHostingViewController
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
@@ -93,6 +95,11 @@ internal class UIKitInstrumentedTest {
     }
 
     private val coroutineContext = Dispatchers.Main + infiniteAnimationPolicy
+
+    @OptIn(ExperimentalComposeApi::class)
+    fun setContentWithAccessibilityEnabled(content: @Composable () -> Unit) {
+        setContent({ accessibilitySyncOptions = AccessibilitySyncOptions.Always }, content)
+    }
 
     fun setContent(
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
