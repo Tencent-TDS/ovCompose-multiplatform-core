@@ -167,10 +167,10 @@ private class ComposeWindow(
             onMouseEvent(event, PointerEventType.Release, PointerButton.Secondary)
         }
         override fun otherMouseDown(event: NSEvent) {
-            onMouseEvent(event, PointerEventType.Release, PointerButton(event.buttonNumber.toInt()))
+            onMouseEvent(event, PointerEventType.Press, PointerButton(event.buttonNumber.toInt()))
         }
         override fun otherMouseUp(event: NSEvent) {
-            onMouseEvent(event, PointerEventType.Press, PointerButton(event.buttonNumber.toInt()))
+            onMouseEvent(event, PointerEventType.Release, PointerButton(event.buttonNumber.toInt()))
         }
         override fun mouseMoved(event: NSEvent) {
             onMouseEvent(event, PointerEventType.Move)
