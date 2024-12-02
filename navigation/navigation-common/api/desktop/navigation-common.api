@@ -477,6 +477,7 @@ public final class androidx/navigation/serialization/RouteDeserializerKt {
 public final class androidx/navigation/serialization/RouteEncoder : kotlinx/serialization/encoding/AbstractEncoder {
 	public fun <init> (Lkotlinx/serialization/KSerializer;Ljava/util/Map;)V
 	public fun encodeElement (Lkotlinx/serialization/descriptors/SerialDescriptor;I)Z
+	public fun encodeInline (Lkotlinx/serialization/descriptors/SerialDescriptor;)Lkotlinx/serialization/encoding/Encoder;
 	public fun encodeNull ()V
 	public fun encodeSerializableValue (Lkotlinx/serialization/SerializationStrategy;Ljava/lang/Object;)V
 	public final fun encodeToArgMap (Ljava/lang/Object;)Ljava/util/Map;

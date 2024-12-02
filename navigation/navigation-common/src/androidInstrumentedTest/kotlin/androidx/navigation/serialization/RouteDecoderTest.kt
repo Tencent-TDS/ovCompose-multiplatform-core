@@ -74,6 +74,40 @@ abstract class RouteDecoderTest(val source: ArgumentSource) {
     }
 
     @Test
+    fun decodeDouble() {
+        @Serializable class TestClass(val arg: Double)
+
+        val values = mapOf("arg" to 11E123)
+        val result =
+            decode<TestClass>(
+                values,
+                listOf(navArgument("arg") { type = InternalNavType.DoubleType })
+            )
+        assertThat(result.arg).isEqualTo(11E123)
+    }
+
+    @Test
+    fun decodeDoubleNullable() {
+        @Serializable class TestClass(val arg: Double?)
+
+        val values = mapOf("arg" to 11E123)
+        val result =
+            decode<TestClass>(
+                values,
+                listOf(navArgument("arg") { type = InternalNavType.DoubleNullableType })
+            )
+        assertThat(result.arg).isEqualTo(11E123)
+
+        val values2 = mapOf("arg" to null)
+        val result2 =
+            decode<TestClass>(
+                values2,
+                listOf(navArgument("arg") { type = InternalNavType.DoubleNullableType })
+            )
+        assertThat(result2.arg).isNull()
+    }
+
+    @Test
     fun decodeLong() {
         @Serializable class TestClass(val arg: Long)
 
@@ -132,6 +166,19 @@ abstract class RouteDecoderTest(val source: ArgumentSource) {
     }
 
     @Test
+    fun decodeDoubleArray() {
+        @Serializable class TestClass(val arg: DoubleArray)
+
+        val map = mapOf("arg" to doubleArrayOf(11E123, 11.11))
+        val result =
+            decode<TestClass>(
+                map,
+                listOf(navArgument("arg") { type = InternalNavType.DoubleArrayType })
+            )
+        assertThat(result.arg).isEqualTo(doubleArrayOf(11E123, 11.11))
+    }
+
+    @Test
     fun decodeLongArray() {
         @Serializable class TestClass(val arg: LongArray)
 
@@ -159,6 +206,39 @@ abstract class RouteDecoderTest(val source: ArgumentSource) {
         val result = decode<TestClass>(map, listOf(stringArgument("arg2"), intArgument("arg")))
         assertThat(result.arg).isEqualTo(15)
         assertThat(result.arg2).isEqualTo("theArg")
+    }
+
+    @Test
+    fun decodeValueClass() {
+        val values = mapOf("arg" to 13)
+        val result = decode<TestValueClass>(values, listOf(intArgument("arg")))
+        assertThat(result).isEqualTo(TestValueClass(13))
+
+        @Serializable class TestClass(val arg: TestValueClass)
+        val navType =
+            object : NavType<TestValueClass>(false) {
+                override fun put(bundle: Bundle, key: String, value: TestValueClass) {
+                    bundle.putInt(key, value.arg)
+                }
+
+                override fun get(bundle: Bundle, key: String): TestValueClass =
+                    TestValueClass(bundle.getInt(key))
+
+                override fun parseValue(value: String): TestValueClass =
+                    TestValueClass(value.toInt())
+
+                override fun serializeAsValue(value: TestValueClass): String = value.arg.toString()
+            }
+        val values2 = mapOf("arg" to TestValueClass(12))
+        val navArg =
+            navArgument("arg") {
+                type = navType
+                nullable = false
+                unknownDefaultValuePresent = false
+            }
+        val result2 = decode<TestClass>(values2, listOf(navArg))
+        assertThat(result2).isInstanceOf(TestClass::class.java)
+        assertThat(result2.arg).isEqualTo(TestValueClass(12))
     }
 
     @Test
