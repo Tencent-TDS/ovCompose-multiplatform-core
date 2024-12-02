@@ -70,8 +70,8 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlibCommon)
-                implementation(project(":collection:collection"))
-                implementation(project(":annotation:annotation"))
+                implementation("org.jetbrains.compose.collection-internal:collection:1.7.1")
+                implementation("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
             }
         }
 

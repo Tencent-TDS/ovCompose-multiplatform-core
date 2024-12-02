@@ -53,15 +53,15 @@ androidXMultiplatform {
     sourceSets {
         commonMain {
             dependencies {
-                api project(":annotation:annotation")
-                api project(":collection:collection")
+                api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
+                api "org.jetbrains.compose.collection-internal:collection:1.7.1"
                 api project(":core:core-bundle")
                 api project(":core:core-uri")
                 api project(":lifecycle:lifecycle-common")
                 api project(":lifecycle:lifecycle-runtime")
                 api project(":lifecycle:lifecycle-viewmodel")
                 api project(":lifecycle:lifecycle-viewmodel-savedstate")
-                api project(":savedstate:savedstate")
+                api "org.jetbrains.androidx.savedstate:savedstate:1.2.2"
 
                 api(libs.kotlinStdlib)
                 implementation(libs.kotlinSerializationCore)

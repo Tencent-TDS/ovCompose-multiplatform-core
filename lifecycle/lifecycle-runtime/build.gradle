@@ -58,7 +58,7 @@ kotlin {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(project(":lifecycle:lifecycle-common"))
-                api(project(":annotation:annotation"))
+                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
             }
         }
 

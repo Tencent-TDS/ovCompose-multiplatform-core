@@ -98,7 +98,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-util"))
                 implementation(libs.kotlinStdlibCommon)
                 api(libs.kotlinCoroutinesCore)
-                implementation(project(":annotation:annotation"))
+                implementation("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
             }
 
             commonTest {
