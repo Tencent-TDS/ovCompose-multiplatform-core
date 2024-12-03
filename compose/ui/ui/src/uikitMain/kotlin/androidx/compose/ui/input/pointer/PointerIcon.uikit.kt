@@ -17,7 +17,6 @@
 package androidx.compose.ui.input.pointer
 
 // uikit doesn't seem to have NSCursor.
-object DummyPointerIcon : PointerIcon
 private data class UIKitCursor(val id: String): PointerIcon
 
 internal actual val pointerIconDefault: PointerIcon = UIKitCursor("default")
