@@ -16,12 +16,11 @@
 
 package androidx.compose.ui.input.pointer
 
-// uikit doesn't seem to have NSCursor.
-// TODO: consider having it for macos though.
-object DummyPointerIcon : PointerIcon
-private data class DarwinCursor(val id: String): PointerIcon
+import platform.AppKit.NSCursor
 
-internal actual val pointerIconDefault: PointerIcon = DarwinCursor("default")
-internal actual val pointerIconCrosshair: PointerIcon = DarwinCursor("crosshair")
-internal actual val pointerIconText: PointerIcon = DarwinCursor("text")
-internal actual val pointerIconHand: PointerIcon = DarwinCursor("hand")
+internal data class MacosCursor(val cursor: NSCursor): PointerIcon
+
+internal actual val pointerIconDefault: PointerIcon = MacosCursor(NSCursor.arrowCursor)
+internal actual val pointerIconCrosshair: PointerIcon = MacosCursor(NSCursor.crosshairCursor)
+internal actual val pointerIconText: PointerIcon = MacosCursor(NSCursor.IBeamCursor)
+internal actual val pointerIconHand: PointerIcon = MacosCursor(NSCursor.pointingHandCursor)

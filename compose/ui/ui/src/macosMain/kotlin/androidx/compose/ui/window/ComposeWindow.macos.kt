@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
+import androidx.compose.ui.input.pointer.MacosCursor
 import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -96,12 +97,8 @@ private class ComposeWindow(
             override val windowInfo get() = _windowInfo
             override val textInputService get() = macosTextInputService
             override fun setPointerIcon(pointerIcon: PointerIcon) {
-                when (pointerIcon) {
-                    PointerIcon.Default -> NSCursor.arrowCursor.set()
-                    PointerIcon.Crosshair -> NSCursor.crosshairCursor.set()
-                    PointerIcon.Text -> NSCursor.IBeamCursor.set()
-                    PointerIcon.Hand -> NSCursor.pointingHandCursor.set()
-                }
+                val cursor = (pointerIcon as? MacosCursor)?.cursor ?: NSCursor.arrowCursor
+                cursor.set()
             }
         }
     private val skiaLayer = SkiaLayer()
