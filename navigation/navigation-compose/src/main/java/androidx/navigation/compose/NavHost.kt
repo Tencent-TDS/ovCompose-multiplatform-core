@@ -707,27 +707,16 @@ public fun NavHost(
             }
         }
         LaunchedEffect(transition.currentState, transition.targetState) {
-            if (transition.currentState == transition.targetState) {
-                visibleEntries.forEach { entry ->
-                    // TODO: remove the check once b/353294030 is fixed
-                    if (
-                        // immediately complete if this is a none interrupt case
-                        visibleEntries.size < 3 ||
-                            // complete if AnimatedContent already knows about this entry and the
-                            // entry
-                            // is not the target state. This would happen if we got a navigate call
-                            // right before this LaunchedEffect was triggered. The navigate call
-                            // will
-                            // do a pushWithTransition and add the current target and a new entry to
-                            // visibleEntries and we don't want to actually complete those until
-                            // AnimatedContent has had the chance to actually compose them.
-
-                            (zIndices.keys.contains(entry.id) &&
-                                entry.id != transition.targetState.id)
-                    ) {
-                        composeNavigator.onTransitionComplete(entry)
-                    }
-                }
+            if (
+                transition.currentState == transition.targetState &&
+                    // There is a race condition where previous animation has completed the new
+                    // animation has yet to start and there is a navigate call before this effect.
+                    // We need to make sure we are completing only when the start is settled on the
+                    // actual entry.
+                    (navController.currentBackStackEntry == null ||
+                        transition.targetState == navController.currentBackStackEntry)
+            ) {
+                visibleEntries.forEach { entry -> composeNavigator.onTransitionComplete(entry) }
                 zIndices
                     .filter { it.key != transition.targetState.id }
                     .forEach { zIndices.remove(it.key) }
