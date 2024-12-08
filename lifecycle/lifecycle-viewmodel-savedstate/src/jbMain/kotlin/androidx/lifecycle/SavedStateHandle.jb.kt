@@ -310,6 +310,16 @@ actual class SavedStateHandle {
                 is ShortArray -> true
 
                 // Reference arrays
+                is Array<*> -> {
+                    // Unlike JVM, there is no reflection available to check component type
+                    when (value.firstOrNull()) {
+                        is String,
+                        is CharSequence -> true
+                        // Narrowed alternative of Android's [putParcelableArray]
+                        is Bundle -> true
+                        else -> value.isEmpty()
+                    }
+                }
                 // [bundleOf] might support [List] instead of [ArrayList] in some cases.
                 is List<*> -> {
                     // Unlike JVM, there is no reflection available to check component type

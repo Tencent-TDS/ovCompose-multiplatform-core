@@ -215,12 +215,31 @@ actual fun bundleOf(vararg pairs: Pair<String, Any?>): Bundle = Bundle(pairs.siz
             is ShortArray -> putShortArray(key, value)
 
             // Reference arrays
+            is Array<*> -> putArray(key, value)
             is ArrayList<*> -> putArrayList(key, value)
             // Perform extra round (with copy) because of compatibility purposes.
             // Unlike Android, `listOf` result might be not castable to `ArrayList`.
             is List<*> -> putArrayList(key, ArrayList(value))
 
             else -> throwIllegalValueType(key, value)
+        }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private inline fun Bundle.putArray(key: String?, value: Array<*>) {
+    // Unlike JVM, there is no reflection available to check component type
+    when (value.firstOrNull()) {
+        is String -> putStringArray(key, value as Array<String?>?)
+        is CharSequence -> putCharSequenceArray(key, value as Array<CharSequence?>?)
+        // Narrowed alternative of Android's [putParcelableArray]
+        is Bundle -> putBundleArray(key, value as Array<Bundle?>?)
+        else -> {
+            if (value.isEmpty()) {
+                putStringArray(key, value as Array<String?>?)
+            } else {
+                throwIllegalValueType(key, value)
+            }
         }
     }
 }
