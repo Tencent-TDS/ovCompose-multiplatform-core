@@ -20,7 +20,6 @@ CARDVIEW = "1.1.0-alpha01"
 CAR_APP = "1.7.0-beta02"
 COLLECTION = "1.5.0-alpha03"
 COMPOSE = "1.8.0-alpha06"
-COMPOSE_COMPILER = "1.5.14"  # Update when preparing for a release
 COMPOSE_MATERIAL3 = "1.4.0-alpha04"
 COMPOSE_MATERIAL3_ADAPTIVE = "1.1.0-alpha04"
 COMPOSE_MATERIAL3_COMMON = "1.0.0-alpha01"
@@ -34,8 +33,6 @@ CORE = "1.15.0-alpha03"
 CORE_ANIMATION = "1.0.0"
 CORE_ANIMATION_TESTING = "1.0.0"
 CORE_APPDIGEST = "1.0.0-alpha01"
-CORE_BUNDLE = "1.0.0-alpha01"
-CORE_URI = "1.0.0-alpha01"
 CORE_GOOGLE_SHORTCUTS = "1.2.0-alpha02"
 CORE_HAPTICS = "1.0.0-alpha01"
 CORE_I18N = "1.0.0-alpha02"
@@ -178,6 +175,11 @@ WINDOW_SIDECAR = "1.0.0-rc01"
 WORK = "2.10.0-alpha04"
 XR = "1.0.0-alpha01"
 
+# JetBrains overrides
+COMPOSE_COMPILER = "1.5.14"  # Update when preparing for a release
+CORE_BUNDLE = "1.0.0-alpha01"
+CORE_URI = "1.0.0-alpha01"
+
 [groups]
 ACTIVITY = { group = "androidx.activity", atomicGroupVersion = "versions.ACTIVITY" }
 ANNOTATION = { group = "androidx.annotation" }
@@ -200,12 +202,9 @@ CARDVIEW = { group = "androidx.cardview", atomicGroupVersion = "versions.CARDVIE
 CAR_APP = { group = "androidx.car.app", atomicGroupVersion = "versions.CAR_APP" }
 COLLECTION = { group = "androidx.collection", atomicGroupVersion = "versions.COLLECTION" }
 COMPOSE_ANIMATION = { group = "org.jetbrains.compose.animation", atomicGroupVersion = "versions.COMPOSE" }
-COMPOSE_COMPILER = { group = "org.jetbrains.compose.compiler", atomicGroupVersion = "versions.COMPOSE" }
-COMPOSE_DESKTOP = { group = "org.jetbrains.compose.desktop", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_FOUNDATION = { group = "org.jetbrains.compose.foundation", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_MATERIAL = { group = "org.jetbrains.compose.material", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_MATERIAL3 = { group = "org.jetbrains.compose.material3", atomicGroupVersion = "versions.COMPOSE" }
-COMPOSE_MATERIAL3_COMMON = { group = "org.jetbrains.compose.material3.common", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_COMMON", overrideInclude = [ ":compose:material3:material3-common" ] }
 COMPOSE_MATERIAL3_ADAPTIVE = { group = "org.jetbrains.compose.material3.adaptive", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_ADAPTIVE" }
 COMPOSE_MATERIAL3_ADAPTIVE_NAVIGATION_SUITE = { group = "org.jetbrains.androidx.compose.material3", atomicGroupVersion = "versions.COMPOSE_MATERIAL3", overrideInclude = [ ":compose:material3:material3-adaptive-navigation-suite" ] }
 COMPOSE_RUNTIME = { group = "org.jetbrains.compose.runtime", atomicGroupVersion = "versions.COMPOSE" }
@@ -314,6 +313,9 @@ XR = { group = "androidx.xr", atomicGroupVersion = "versions.XR" }
 # JetBrains overrides
 ANNOTATION_JETBRAINS = { group = "org.jetbrains.compose.annotation-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":annotation:annotation" ] }
 COLLECTION_JETBRAINS = { group = "org.jetbrains.compose.collection-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":collection:collection" ] }
+COMPOSE_COMPILER = { group = "org.jetbrains.compose.compiler", atomicGroupVersion = "versions.COMPOSE" }
+COMPOSE_DESKTOP = { group = "org.jetbrains.compose.desktop", atomicGroupVersion = "versions.COMPOSE" }
+COMPOSE_MATERIAL3_COMMON = { group = "org.jetbrains.compose.material3.common", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_COMMON", overrideInclude = [ ":compose:material3:material3-common" ] }
 
 CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
 CORE_URI_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_URI", overrideInclude = [ ":core:core-uri" ] }
