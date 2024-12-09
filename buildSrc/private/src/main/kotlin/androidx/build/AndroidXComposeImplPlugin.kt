@@ -58,9 +58,9 @@ const val composeReportsOption =
 const val enableMetricsArg = "androidx.enableComposeCompilerMetrics"
 const val enableReportsArg = "androidx.enableComposeCompilerReports"
 const val composeStrongSkippingOption =
-    "plugin:androidx.compose.compiler.plugins.kotlin:strongSkipping"
+    "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=StrongSkipping"
 const val composeNonSkippingGroupOptimizationOption =
-    "plugin:androidx.compose.compiler.plugins.kotlin:nonSkippingGroupOptimization"
+    "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=OptimizeNonSkippingGroups"
 
 /**
  * Plugin to apply common configuration for Compose projects.
@@ -416,10 +416,10 @@ private fun configureComposeCompilerPlugin(
 
                 // Enable Compose strong skipping mode
                 compile.compilerOptions.freeCompilerArgs.addAll(
-                    listOf("-P", "$composeStrongSkippingOption=true")
+                    listOf("-P", composeStrongSkippingOption)
                 )
                 compile.compilerOptions.freeCompilerArgs.addAll(
-                    listOf("-P", "$composeNonSkippingGroupOptimizationOption=true")
+                    listOf("-P", composeNonSkippingGroupOptimizationOption)
                 )
 
                 if (enableMetricsProvider.orNull == "true") {
