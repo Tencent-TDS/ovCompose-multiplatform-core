@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.DpOffset
 
 internal interface IOSSkikoInput {
@@ -26,6 +25,16 @@ internal interface IOSSkikoInput {
     fun updateFloatingCursor(offset: DpOffset)
 
     fun endFloatingCursor()
+
+    /**
+     * Delays all edit commands until [endEditBatch] is being called.
+     */
+    fun beginEditBatch()
+
+    /**
+     * Performs all editing commands, starting from the [beginEditBatch] call.
+     */
+    fun endEditBatch()
 
     /**
      * A Boolean value that indicates whether the text-entry object has any text.
@@ -116,23 +125,4 @@ internal interface IOSSkikoInput {
      * Returned value must be in range between 0 and length of text (inclusive).
      */
     fun positionFromPosition(position: Long, offset: Long): Long
-
-    object Empty : IOSSkikoInput {
-        override fun beginFloatingCursor(offset: DpOffset) = Unit
-        override fun updateFloatingCursor(offset: DpOffset)  = Unit
-        override fun endFloatingCursor()  = Unit
-        override fun hasText(): Boolean = false
-        override fun insertText(text: String) = Unit
-        override fun deleteBackward() = Unit
-        override fun endOfDocument(): Long = 0L
-        override fun getSelectedTextRange(): IntRange? = null
-        override fun setSelectedTextRange(range: IntRange?) = Unit
-        override fun selectAll() = Unit
-        override fun textInRange(range: IntRange): String = ""
-        override fun replaceRange(range: IntRange, text: String) = Unit
-        override fun setMarkedText(markedText: String?, selectedRange: IntRange) = Unit
-        override fun markedTextRange(): IntRange? = null
-        override fun unmarkText() = Unit
-        override fun positionFromPosition(position: Long, offset: Long): Long = 0
-    }
 }

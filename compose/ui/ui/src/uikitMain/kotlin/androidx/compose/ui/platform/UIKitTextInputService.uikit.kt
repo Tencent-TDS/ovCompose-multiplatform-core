@@ -162,6 +162,7 @@ internal class UIKitTextInputService(
     }
 
     override fun stopInput() {
+        flushEditCommandsIfNeeded(force = true)
         currentInput = null
         _tempCurrentInputSession = null
         currentImeOptions = null
@@ -263,10 +264,27 @@ internal class UIKitTextInputService(
         return event.type == KeyEventType.KeyDown
     }
 
+    private val editCommandsBatch = mutableListOf<EditCommand>()
+    private var editBatchDepth: Int = 0
+        set(value) {
+            field = value
+            flushEditCommandsIfNeeded()
+        }
+
     private fun sendEditCommand(vararg commands: EditCommand) {
-        val commandList = commands.toList()
-        _tempCurrentInputSession?.apply(commandList)
-        currentInput?.onEditCommand?.invoke(commandList)
+        _tempCurrentInputSession?.apply(commands.toList())
+
+        editCommandsBatch.addAll(commands)
+        flushEditCommandsIfNeeded()
+    }
+
+    fun flushEditCommandsIfNeeded(force: Boolean = false) {
+        if ((force || editBatchDepth == 0) && editCommandsBatch.isNotEmpty()) {
+            val commandList = editCommandsBatch.toList()
+            editCommandsBatch.clear()
+
+            currentInput?.onEditCommand?.invoke(commandList)
+        }
     }
 
     private fun getCursorPos(): Int? {
@@ -393,6 +411,14 @@ internal class UIKitTextInputService(
 
         override fun endFloatingCursor() {
             floatingCursorTranslation = null
+        }
+
+        override fun beginEditBatch() {
+            editBatchDepth++
+        }
+
+        override fun endEditBatch() {
+            editBatchDepth--
         }
 
         /**

@@ -40,12 +40,16 @@ internal class UIKitComposeSceneLayersHolder(
     useSeparateRenderThreadWhenPossible: Boolean
 ) {
     val hasInvalidations: Boolean
-        get() = layers.any { it.hasInvalidations }
+        get() = this.layers.any { it.hasInvalidations }
 
     private val layers = mutableListOf<UIKitComposeSceneLayer>()
+
     private val layersCache = CopiedList {
-        it.addAll(layers)
+        it.addAll(this.layers)
     }
+
+    fun withLayers(block: (List<UIKitComposeSceneLayer>) -> Unit) = layersCache.withCopy(block)
+
     private var ongoingGesturesCount = 0
 
     /**
@@ -70,12 +74,12 @@ internal class UIKitComposeSceneLayersHolder(
     )
 
     fun animateSizeTransition(scope: CoroutineScope, duration: Duration) {
-        if (layers.isEmpty()) {
+        if (this.layers.isEmpty()) {
             return
         }
         val animations = listOf(
             windowContext.prepareAndGetSizeTransitionAnimation()
-        ) + layers.map {
+        ) + this.layers.map {
             it.prepareAndGetSizeTransitionAnimation()
         }
 
@@ -119,8 +123,8 @@ internal class UIKitComposeSceneLayersHolder(
 
         // `dispose` is called instead of `close`, because `close` is also used imperatively
         // to remove the layer from the array based on user interaction.
-        while (layers.isNotEmpty()) {
-            val layer = layers.removeLast()
+        while (this.layers.isNotEmpty()) {
+            val layer = this.layers.removeLast()
 
             if (hasViewAppeared) {
                 layer.sceneWillDisappear()
@@ -134,9 +138,9 @@ internal class UIKitComposeSceneLayersHolder(
     }
 
     fun attach(window: UIWindow, layer: UIKitComposeSceneLayer, hasViewAppeared: Boolean) {
-        val isFirstLayer = layers.isEmpty()
+        val isFirstLayer = this.layers.isEmpty()
 
-        layers.add(layer)
+        this.layers.add(layer)
 
         view.embedSubview(layer.view)
         view.bringSubviewToFront(metalView)
@@ -161,12 +165,12 @@ internal class UIKitComposeSceneLayersHolder(
             layer.sceneWillDisappear()
         }
 
-        layers.remove(layer)
+        this.layers.remove(layer)
 
         // Intercept the actions UIKitInteropTransaction from the layer
         val transaction = layer.retrieveInteropTransaction()
 
-        if (layers.isEmpty()) {
+        if (this.layers.isEmpty()) {
             // It was the last layer, remove the view and executed the actions immediately
             view.removeFromSuperview()
 
@@ -182,13 +186,13 @@ internal class UIKitComposeSceneLayersHolder(
     }
 
     fun viewDidAppear() {
-        layers.fastForEach {
+        this.layers.fastForEach {
             it.sceneDidAppear()
         }
     }
 
     fun viewWillDisappear() {
-        layers.fastForEach {
+        this.layers.fastForEach {
             it.sceneWillDisappear()
         }
     }
@@ -202,7 +206,7 @@ internal class UIKitComposeSceneLayersHolder(
         val removedLayersTransactionsCopy = removedLayersTransactions.toList()
         removedLayersTransactions.clear()
 
-        val transactions = layers.map {
+        val transactions = this.layers.map {
             it.retrieveInteropTransaction()
         } + removedLayersTransactionsCopy
         return UIKitInteropTransaction.merge(
