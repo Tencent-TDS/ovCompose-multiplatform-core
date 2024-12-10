@@ -102,6 +102,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(libs.kotlinCoroutinesTest)
                 api(libs.kotlinStdlib)
 
+                implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
                 implementation(project(":compose:ui:ui-util"))
             }
@@ -111,8 +112,6 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(libs.kotlinCoroutinesCore)
                 api(libs.kotlinCoroutinesTest)
                 api(libs.kotlinStdlibCommon)
-
-                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {
@@ -150,6 +149,9 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoMain {
                 dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
             }
 
             desktopMain.dependsOn(skikoMain)

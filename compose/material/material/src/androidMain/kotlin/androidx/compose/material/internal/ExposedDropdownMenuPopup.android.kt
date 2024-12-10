@@ -73,12 +73,9 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import java.util.UUID
 import kotlin.math.roundToInt
 
-/**
- * Popup specific for exposed dropdown menus. b/202810604. Should not be used in other components.
- */
 @Composable
-internal fun ExposedDropdownMenuPopup(
-    onDismissRequest: (() -> Unit)? = null,
+internal actual fun ExposedDropdownMenuPopup(
+    onDismissRequest: (() -> Unit)?,
     popupPositionProvider: PopupPositionProvider,
     content: @Composable () -> Unit
 ) {

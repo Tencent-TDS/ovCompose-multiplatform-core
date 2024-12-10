@@ -16,10 +16,13 @@
 
 package androidx.compose.foundation.text.selection
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.text.HandleState
 import androidx.compose.foundation.text.LegacyTextFieldState
 import androidx.compose.foundation.text.TextDelegate
 import androidx.compose.foundation.text.TextLayoutResultProxy
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -29,6 +32,7 @@ import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.MultiParagraph
 import androidx.compose.ui.text.TextLayoutInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
@@ -88,6 +92,8 @@ class TextFieldSelectionManagerTest {
     private val textToolbar = mock<TextToolbar>()
     private val hapticFeedback = mock<HapticFeedback>()
     private val focusRequester = mock<FocusRequester>()
+    private val multiParagraph = mock<MultiParagraph>()
+    private val autofillManager = mock<AutofillManager>()
 
     @Before
     fun setup() {
@@ -99,6 +105,7 @@ class TextFieldSelectionManagerTest {
         manager.textToolbar = textToolbar
         manager.hapticFeedBack = hapticFeedback
         manager.focusRequester = focusRequester
+        manager.autofillManager = autofillManager
 
         whenever(layoutResult.layoutInput)
             .thenReturn(
@@ -123,6 +130,7 @@ class TextFieldSelectionManagerTest {
             .thenAnswer(TextRangeAnswer(dragTextRange))
         whenever(layoutResult.getBidiRunDirection(any())).thenReturn(ResolvedTextDirection.Ltr)
         whenever(layoutResult.getBoundingBox(any())).thenReturn(Rect.Zero)
+        whenever(layoutResult.multiParagraph).thenReturn(multiParagraph)
         // left or right handle drag
         whenever(layoutResult.getOffsetForPosition(dragBeginPosition)).thenReturn(beginOffset)
         whenever(layoutResult.getOffsetForPosition(dragBeginPosition + dragDistance))
@@ -352,6 +360,17 @@ class TextFieldSelectionManagerTest {
         assertThat(state.handleState).isEqualTo(HandleState.None)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
+    fun autofill_selection_collapse() {
+        manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
+
+        manager.autofill()
+
+        verify(autofillManager, times(1)).requestAutofillForActiveElement()
+        assertThat(state.handleState).isEqualTo(HandleState.None)
+    }
+
     @Test
     fun copy_selection_collapse() {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
@@ -497,7 +516,7 @@ class TextFieldSelectionManagerTest {
 
         manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), any(), anyOrNull())
+        verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), any(), anyOrNull(), isNull())
     }
 
     @Test
@@ -509,7 +528,7 @@ class TextFieldSelectionManagerTest {
         manager.showSelectionToolbar()
 
         verify(textToolbar, times(1))
-            .showMenu(anyOrNull(), anyOrNull(), any(), anyOrNull(), anyOrNull())
+            .showMenu(anyOrNull(), anyOrNull(), any(), anyOrNull(), anyOrNull(), isNull())
     }
 
     @Test
@@ -520,7 +539,7 @@ class TextFieldSelectionManagerTest {
 
         manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), anyOrNull())
+        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), anyOrNull(), any())
     }
 
     @Test
@@ -530,7 +549,7 @@ class TextFieldSelectionManagerTest {
 
         manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), isNull())
+        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), isNull(), any())
     }
 
     @Test
@@ -541,7 +560,7 @@ class TextFieldSelectionManagerTest {
 
         manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), isNull(), isNull(), isNull())
+        verify(textToolbar, times(1)).showMenu(any(), isNull(), isNull(), isNull(), isNull(), any())
     }
 
     @Test
@@ -553,7 +572,8 @@ class TextFieldSelectionManagerTest {
 
         manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), anyOrNull())
+        verify(textToolbar, times(1))
+            .showMenu(any(), isNull(), any(), isNull(), anyOrNull(), isNull())
     }
 
     @Test
@@ -569,6 +589,46 @@ class TextFieldSelectionManagerTest {
         manager.touchSelectionObserver.onStart(dragBeginPosition)
 
         assertThat(manager.isTextChanged()).isFalse()
+    }
+
+    @Test
+    fun getHandleLineHeight_valid() {
+        val selection = TextRange(1, text.length - 1)
+        manager.value = TextFieldValue(text = text, selection = selection)
+        val selectionStartLineHeight = 10f
+        val selectionEndLineHeight = 20f
+
+        whenever(multiParagraph.getLineForOffset(selection.start)).thenReturn(0)
+        whenever(multiParagraph.getLineForOffset(selection.end)).thenReturn(1)
+        whenever(multiParagraph.getLineHeight(0)).thenReturn(selectionStartLineHeight)
+        whenever(multiParagraph.getLineHeight(1)).thenReturn(selectionEndLineHeight)
+        whenever(multiParagraph.getLineEnd(0)).thenReturn(selection.start + 1)
+        whenever(multiParagraph.getLineEnd(1)).thenReturn(selection.end + 1)
+        whenever(multiParagraph.lineCount).thenReturn(2)
+        whenever(multiParagraph.maxLines).thenReturn(2)
+
+        assertThat(manager.getHandleLineHeight(isStartHandle = true))
+            .isEqualTo(selectionStartLineHeight)
+        assertThat(manager.getHandleLineHeight(isStartHandle = false))
+            .isEqualTo(selectionEndLineHeight)
+    }
+
+    @Test
+    fun getHandleLineHeight_selection_out_of_lines_limit_return_zero() {
+        val selection = TextRange(1, text.length - 1)
+        manager.value = TextFieldValue(text = text, selection = selection)
+        val selectionEndLineHeight = 20f
+
+        whenever(multiParagraph.getLineForOffset(selection.start)).thenReturn(2)
+        whenever(multiParagraph.getLineForOffset(selection.end)).thenReturn(3)
+        whenever(multiParagraph.getLineHeight(any())).thenReturn(selectionEndLineHeight)
+        whenever(multiParagraph.getLineEnd(2)).thenReturn(text.length)
+        whenever(multiParagraph.getLineEnd(3)).thenReturn(text.length)
+        whenever(multiParagraph.lineCount).thenReturn(2)
+        whenever(multiParagraph.maxLines).thenReturn(2)
+
+        assertThat(manager.getHandleLineHeight(isStartHandle = true)).isZero()
+        assertThat(manager.getHandleLineHeight(isStartHandle = false)).isZero()
     }
 }
 

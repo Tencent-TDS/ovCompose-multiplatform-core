@@ -24,7 +24,9 @@ import androidx.compose.ui.focus.FocusDirection.Companion.Next
 import androidx.compose.ui.focus.FocusDirection.Companion.Previous
 import androidx.compose.ui.focus.FocusDirection.Companion.Right
 import androidx.compose.ui.focus.FocusDirection.Companion.Up
+import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusRequester.Companion.Default
+import androidx.compose.ui.focus.FocusRequester.Companion.Redirect
 import androidx.compose.ui.focus.FocusStateImpl.Active
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Captured
@@ -72,11 +74,26 @@ internal fun FocusTargetNode.customFocusSearch(
         //  the user presses dPad center. (They can also redirect the "In" to some other item).
         //  Developers can specify a custom "Out" to specify which composable should take focus
         //  when the user presses the back button.
-        Enter -> {
-            focusProperties.enter(focusDirection)
-        }
+        Enter,
         Exit -> {
-            focusProperties.exit(focusDirection)
+            val scope = CancelIndicatingFocusBoundaryScope(focusDirection)
+            with(focusProperties) {
+                val focusTransactionManager = focusTransactionManager
+                val generationBefore = focusTransactionManager?.generation ?: 0
+                if (focusDirection == Enter) {
+                    scope.onEnter()
+                } else {
+                    scope.onExit()
+                }
+                val generationAfter = focusTransactionManager?.generation ?: 0
+                if (scope.isCanceled) {
+                    Cancel
+                } else if (generationBefore != generationAfter) {
+                    Redirect
+                } else {
+                    Default
+                }
+            }
         }
         else -> error("invalid FocusDirection")
     }

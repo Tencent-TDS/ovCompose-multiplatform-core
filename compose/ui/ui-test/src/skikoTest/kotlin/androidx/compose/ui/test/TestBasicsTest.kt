@@ -81,7 +81,7 @@ class TestBasicsTest {
     @Test
     fun inputEventAdvancesClock() = runComposeUiTest {
         setContent {
-            Box(Modifier.testTag("box"))
+            Box(Modifier.testTag("box").size(100.dp))
         }
 
         val clockBefore = mainClock.currentTime

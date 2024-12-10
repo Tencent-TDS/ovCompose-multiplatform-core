@@ -215,6 +215,7 @@ package androidx.compose.material {
     property public final float IconSpacing;
     property public final float MinHeight;
     property public final float MinWidth;
+    property public static final float OutlinedBorderOpacity;
     property public final float OutlinedBorderSize;
     property public final androidx.compose.foundation.layout.PaddingValues TextButtonContentPadding;
     property @androidx.compose.runtime.Composable public final androidx.compose.foundation.BorderStroke outlinedBorder;
@@ -269,8 +270,11 @@ package androidx.compose.material {
     method public float getSelectedIconSize();
     method @androidx.compose.runtime.Composable public androidx.compose.material.ChipColors outlinedChipColors(optional long backgroundColor, optional long contentColor, optional long leadingIconContentColor, optional long disabledBackgroundColor, optional long disabledContentColor, optional long disabledLeadingIconContentColor);
     method @androidx.compose.runtime.Composable public androidx.compose.material.SelectableChipColors outlinedFilterChipColors(optional long backgroundColor, optional long contentColor, optional long leadingIconColor, optional long disabledBackgroundColor, optional long disabledContentColor, optional long disabledLeadingIconColor, optional long selectedBackgroundColor, optional long selectedContentColor, optional long selectedLeadingIconColor);
+    property public static final float ContentOpacity;
+    property public static final float LeadingIconOpacity;
     property public final float LeadingIconSize;
     property public final float MinHeight;
+    property public static final float OutlinedBorderOpacity;
     property public final float OutlinedBorderSize;
     property public final float SelectedIconSize;
     property @androidx.compose.runtime.Composable public final androidx.compose.foundation.BorderStroke outlinedBorder;
@@ -381,6 +385,7 @@ package androidx.compose.material {
     method @androidx.compose.runtime.Composable public androidx.compose.ui.graphics.Shape getShape();
     property public final androidx.compose.animation.core.TweenSpec<java.lang.Float> AnimationSpec;
     property public final float Elevation;
+    property public static final float ScrimOpacity;
     property @androidx.compose.runtime.Composable public final long backgroundColor;
     property @androidx.compose.runtime.Composable public final long scrimColor;
     property @androidx.compose.runtime.Composable public final androidx.compose.ui.graphics.Shape shape;
@@ -452,7 +457,7 @@ package androidx.compose.material {
     field public static final androidx.compose.material.ExposedDropdownMenuDefaults INSTANCE;
   }
 
-  public final class ExposedDropdownMenu_androidKt {
+  public final class ExposedDropdownMenuKt {
     method @SuppressCompatibility @androidx.compose.material.ExperimentalMaterialApi @androidx.compose.runtime.Composable public static void ExposedDropdownMenuBox(boolean expanded, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onExpandedChange, optional androidx.compose.ui.Modifier modifier, kotlin.jvm.functions.Function1<? super androidx.compose.material.ExposedDropdownMenuBoxScope,kotlin.Unit> content);
   }
 
@@ -605,6 +610,7 @@ package androidx.compose.material {
   public final class ProgressIndicatorDefaults {
     method public androidx.compose.animation.core.SpringSpec<java.lang.Float> getProgressAnimationSpec();
     method public float getStrokeWidth();
+    property public static final float IndicatorBackgroundOpacity;
     property public final androidx.compose.animation.core.SpringSpec<java.lang.Float> ProgressAnimationSpec;
     property public final float StrokeWidth;
     field public static final androidx.compose.material.ProgressIndicatorDefaults INSTANCE;
@@ -689,8 +695,8 @@ package androidx.compose.material {
   }
 
   public final class SecureTextFieldKt {
-    method @androidx.compose.runtime.Composable public static void OutlinedSecureTextField(androidx.compose.foundation.text.input.TextFieldState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional boolean readOnly, optional androidx.compose.ui.text.TextStyle textStyle, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional kotlin.jvm.functions.Function0<kotlin.Unit>? placeholder, optional kotlin.jvm.functions.Function0<kotlin.Unit>? leadingIcon, optional kotlin.jvm.functions.Function0<kotlin.Unit>? trailingIcon, optional boolean isError, optional androidx.compose.foundation.text.input.InputTransformation? inputTransformation, optional int textObfuscationMode, optional char textObfuscationCharacter, optional androidx.compose.foundation.text.KeyboardOptions keyboardOptions, optional androidx.compose.foundation.text.input.KeyboardActionHandler? onKeyboardAction, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material.TextFieldColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
-    method @androidx.compose.runtime.Composable public static void SecureTextField(androidx.compose.foundation.text.input.TextFieldState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional boolean readOnly, optional androidx.compose.ui.text.TextStyle textStyle, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional kotlin.jvm.functions.Function0<kotlin.Unit>? placeholder, optional kotlin.jvm.functions.Function0<kotlin.Unit>? leadingIcon, optional kotlin.jvm.functions.Function0<kotlin.Unit>? trailingIcon, optional boolean isError, optional androidx.compose.foundation.text.input.InputTransformation? inputTransformation, optional int textObfuscationMode, optional char textObfuscationCharacter, optional androidx.compose.foundation.text.KeyboardOptions keyboardOptions, optional androidx.compose.foundation.text.input.KeyboardActionHandler? onKeyboardAction, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material.TextFieldColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
+    method @androidx.compose.runtime.Composable public static void OutlinedSecureTextField(androidx.compose.foundation.text.input.TextFieldState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.text.TextStyle textStyle, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional kotlin.jvm.functions.Function0<kotlin.Unit>? placeholder, optional kotlin.jvm.functions.Function0<kotlin.Unit>? leadingIcon, optional kotlin.jvm.functions.Function0<kotlin.Unit>? trailingIcon, optional boolean isError, optional androidx.compose.foundation.text.input.InputTransformation? inputTransformation, optional int textObfuscationMode, optional char textObfuscationCharacter, optional androidx.compose.foundation.text.KeyboardOptions keyboardOptions, optional androidx.compose.foundation.text.input.KeyboardActionHandler? onKeyboardAction, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material.TextFieldColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
+    method @androidx.compose.runtime.Composable public static void SecureTextField(androidx.compose.foundation.text.input.TextFieldState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.text.TextStyle textStyle, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional kotlin.jvm.functions.Function0<kotlin.Unit>? placeholder, optional kotlin.jvm.functions.Function0<kotlin.Unit>? leadingIcon, optional kotlin.jvm.functions.Function0<kotlin.Unit>? trailingIcon, optional boolean isError, optional androidx.compose.foundation.text.input.InputTransformation? inputTransformation, optional int textObfuscationMode, optional char textObfuscationCharacter, optional androidx.compose.foundation.text.KeyboardOptions keyboardOptions, optional androidx.compose.foundation.text.input.KeyboardActionHandler? onKeyboardAction, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material.TextFieldColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
   }
 
   @SuppressCompatibility @androidx.compose.material.ExperimentalMaterialApi public interface SelectableChipColors {
@@ -719,6 +725,11 @@ package androidx.compose.material {
 
   public final class SliderDefaults {
     method @androidx.compose.runtime.Composable public androidx.compose.material.SliderColors colors(optional long thumbColor, optional long disabledThumbColor, optional long activeTrackColor, optional long inactiveTrackColor, optional long disabledActiveTrackColor, optional long disabledInactiveTrackColor, optional long activeTickColor, optional long inactiveTickColor, optional long disabledActiveTickColor, optional long disabledInactiveTickColor);
+    property public static final float DisabledActiveTrackAlpha;
+    property public static final float DisabledInactiveTrackAlpha;
+    property public static final float DisabledTickAlpha;
+    property public static final float InactiveTrackAlpha;
+    property public static final float TickAlpha;
     field public static final float DisabledActiveTrackAlpha = 0.32f;
     field public static final float DisabledInactiveTrackAlpha = 0.12f;
     field public static final float DisabledTickAlpha = 0.12f;
@@ -805,6 +816,8 @@ package androidx.compose.material {
     method @Deprecated public float getVelocityThreshold();
     method @Deprecated public androidx.compose.material.ResistanceConfig? resistanceConfig(java.util.Set<java.lang.Float> anchors, optional float factorAtMin, optional float factorAtMax);
     property @Deprecated public final androidx.compose.animation.core.SpringSpec<java.lang.Float> AnimationSpec;
+    property @Deprecated public static final float StandardResistanceFactor;
+    property @Deprecated public static final float StiffResistanceFactor;
     property @Deprecated public final float VelocityThreshold;
     field @Deprecated public static final androidx.compose.material.SwipeableDefaults INSTANCE;
     field @Deprecated public static final float StandardResistanceFactor = 10.0f;
@@ -879,6 +892,7 @@ package androidx.compose.material {
     method public float getIndicatorHeight();
     method public float getScrollableTabRowPadding();
     method public androidx.compose.ui.Modifier tabIndicatorOffset(androidx.compose.ui.Modifier, androidx.compose.material.TabPosition currentTabPosition);
+    property public static final float DividerOpacity;
     property public final float DividerThickness;
     property public final float IndicatorHeight;
     property public final float ScrollableTabRowPadding;
@@ -925,12 +939,15 @@ package androidx.compose.material {
     method @androidx.compose.runtime.Composable public androidx.compose.material.TextFieldColors textFieldColors(optional long textColor, optional long disabledTextColor, optional long backgroundColor, optional long cursorColor, optional long errorCursorColor, optional long focusedIndicatorColor, optional long unfocusedIndicatorColor, optional long disabledIndicatorColor, optional long errorIndicatorColor, optional long leadingIconColor, optional long disabledLeadingIconColor, optional long errorLeadingIconColor, optional long trailingIconColor, optional long disabledTrailingIconColor, optional long errorTrailingIconColor, optional long focusedLabelColor, optional long unfocusedLabelColor, optional long disabledLabelColor, optional long errorLabelColor, optional long placeholderColor, optional long disabledPlaceholderColor);
     method @SuppressCompatibility @androidx.compose.material.ExperimentalMaterialApi public androidx.compose.foundation.layout.PaddingValues textFieldWithLabelPadding(optional float start, optional float end, optional float top, optional float bottom);
     method @SuppressCompatibility @androidx.compose.material.ExperimentalMaterialApi public androidx.compose.foundation.layout.PaddingValues textFieldWithoutLabelPadding(optional float start, optional float top, optional float end, optional float bottom);
+    property public static final float BackgroundOpacity;
     property public final float FocusedBorderThickness;
+    property public static final float IconOpacity;
     property public final float MinHeight;
     property public final float MinWidth;
     property @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public final androidx.compose.ui.graphics.Shape OutlinedTextFieldShape;
     property @androidx.compose.runtime.Composable @androidx.compose.runtime.ReadOnlyComposable public final androidx.compose.ui.graphics.Shape TextFieldShape;
     property public final float UnfocusedBorderThickness;
+    property public static final float UnfocusedIndicatorLineOpacity;
     field public static final float BackgroundOpacity = 0.12f;
     field public static final androidx.compose.material.TextFieldDefaults INSTANCE;
     field public static final float IconOpacity = 0.54f;

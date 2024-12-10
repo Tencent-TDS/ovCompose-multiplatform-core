@@ -17,11 +17,16 @@
 package androidx.compose.material3.adaptive.layout
 
 import androidx.compose.animation.core.Transition
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.unit.Dp
 
 /** Scope for the panes of [ThreePaneScaffold]. */
 @ExperimentalMaterial3AdaptiveApi
@@ -44,7 +49,28 @@ internal class ThreePaneScaffoldScopeImpl(
     PaneScaffoldMotionScope by motionScope,
     PaneScaffoldTransitionScope<ThreePaneScaffoldRole, ThreePaneScaffoldValue> by transitionScope,
     LookaheadScope by lookaheadScope,
-    PaneScaffoldScopeImpl()
+    PaneScaffoldScopeImpl() {
+
+    @ExperimentalMaterial3AdaptiveApi
+    override fun Modifier.paneExpansionDraggable(
+        state: PaneExpansionState,
+        minTouchTargetSize: Dp,
+        interactionSource: MutableInteractionSource
+    ): Modifier =
+        this.draggable(
+                state = state.draggableState,
+                orientation = Orientation.Horizontal,
+                interactionSource = interactionSource,
+                onDragStopped = { velocity -> state.settleToAnchorIfNeeded(velocity) }
+            )
+            .systemGestureExclusion()
+            .animateWithFading(
+                enabled = true,
+                animateFraction = { motionProgress },
+                lookaheadScope = this@ThreePaneScaffoldScopeImpl
+            )
+            .then(MinTouchTargetSizeElement(minTouchTargetSize))
+}
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal class ThreePaneScaffoldPaneScopeImpl(

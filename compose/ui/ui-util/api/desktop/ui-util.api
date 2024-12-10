@@ -28,6 +28,7 @@ public final class androidx/compose/ui/util/ListUtilsKt {
 	public static final fun fastDistinctBy (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/util/List;
 	public static final fun fastFilter (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/util/List;
 	public static final fun fastFilterNotNull (Ljava/util/List;)Ljava/util/List;
+	public static final fun fastFilteredMap (Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Ljava/util/List;
 	public static final fun fastFirst (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 	public static final fun fastFirstOrNull (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 	public static final fun fastFlatMap (Ljava/util/List;Lkotlin/jvm/functions/Function1;)Ljava/util/List;

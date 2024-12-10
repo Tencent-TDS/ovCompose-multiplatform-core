@@ -26,13 +26,13 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
-import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
+import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpOffset
-import androidx.compose.ui.unit.asDpSize
+import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
@@ -47,17 +47,24 @@ internal class UIKitComposeSceneLayer(
     private val onClosed: (UIKitComposeSceneLayer) -> Unit,
     private val createComposeSceneContext: (PlatformContext) -> ComposeSceneContext,
     private val providingCompositionLocals: @Composable (@Composable () -> Unit) -> Unit,
-    metalView: MetalView,
+    private val metalView: MetalView,
     onGestureEvent: (GestureEvent) -> Unit,
     private val initDensity: Density,
     private val initLayoutDirection: LayoutDirection,
-    configuration: ComposeUIViewControllerConfiguration,
+    private val onAccessibilityChanged: () -> Unit,
+    onFocusBehavior: OnFocusBehavior,
     focusStack: FocusStack?,
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
+        set(value) {
+            if (field != value) {
+                field = value
+                onAccessibilityChanged()
+            }
+        }
 
     val view = UIKitComposeSceneLayerView(
         ::isInsideInteractionBounds,
@@ -65,12 +72,12 @@ internal class UIKitComposeSceneLayer(
     )
 
     private val mediator = ComposeSceneMediator(
-        view,
-        configuration,
-        focusStack,
-        windowContext,
+        parentView = view,
+        onFocusBehavior = onFocusBehavior,
+        focusStack = focusStack,
+        windowContext = windowContext,
         coroutineContext = compositionContext.effectCoroutineContext,
-        metalView.redrawer,
+        redrawer = metalView.redrawer,
         onGestureEvent = onGestureEvent,
         composeSceneFactory = ::createComposeScene
     )
@@ -92,6 +99,8 @@ internal class UIKitComposeSceneLayer(
         )
 
     val hasInvalidations by mediator::hasInvalidations
+
+    var isAccessibilityEnabled by mediator::isAccessibilityEnabled
 
     override var density by mediator::density
 
@@ -115,21 +124,17 @@ internal class UIKitComposeSceneLayer(
 
     fun render(canvas: Canvas, nanoTime: Long) {
         if (scrimColor != null) {
-            val size = view.bounds.useContents { with(density) { size.asDpSize().toSize() } }
+            val rect = metalView.bounds.useContents { with(density) { asDpRect().toRect() } }
 
-            canvas.drawRect(
-                left = 0f,
-                top = 0f,
-                right = size.width,
-                bottom = size.height,
-                paint = scrimPaint
-            )
+            canvas.drawRect(rect, scrimPaint)
         }
 
         mediator.render(canvas, nanoTime)
     }
 
     fun retrieveInteropTransaction() = mediator.retrieveInteropTransaction()
+
+    fun prepareAndGetSizeTransitionAnimation() = mediator.prepareAndGetSizeTransitionAnimation()
 
     override fun close() {
         onClosed(this)

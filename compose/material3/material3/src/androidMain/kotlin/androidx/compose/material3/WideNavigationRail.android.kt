@@ -75,7 +75,7 @@ import java.util.UUID
 // Logic forked from androidx.compose.ui.window.DialogProperties. Removed dismissOnClickOutside
 // and usePlatformDefaultWidth as they are not relevant for fullscreen experience.
 /**
- * Properties used to customize the behavior of a [DismissibleModalWideNavigationRail].
+ * Properties used to customize the behavior of a [ModalWideNavigationRail].
  *
  * @param securePolicy Policy for setting [WindowManager.LayoutParams.FLAG_SECURE] on the modal
  *   navigation rail's window.
@@ -112,9 +112,9 @@ actual class ModalWideNavigationRailProperties(
 
 @Immutable
 @ExperimentalMaterial3ExpressiveApi
-actual object DismissibleModalWideNavigationRailDefaults {
+actual object ModalWideNavigationRailDefaults {
 
-    /** Properties used to customize the behavior of a [DismissibleModalWideNavigationRail]. */
+    /** Properties used to customize the window behavior of a [ModalWideNavigationRail]. */
     actual val Properties = ModalWideNavigationRailProperties()
 }
 

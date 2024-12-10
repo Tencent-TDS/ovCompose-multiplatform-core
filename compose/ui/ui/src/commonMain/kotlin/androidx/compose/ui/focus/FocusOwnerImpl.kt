@@ -27,6 +27,7 @@ import androidx.compose.ui.focus.FocusDirection.Companion.Next
 import androidx.compose.ui.focus.FocusDirection.Companion.Previous
 import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusRequester.Companion.Default
+import androidx.compose.ui.focus.FocusRequester.Companion.Redirect
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
@@ -239,10 +240,11 @@ internal class FocusOwnerImpl(
         onFound: (FocusTargetNode) -> Boolean
     ): Boolean? {
         val source =
-            rootFocusNode.findActiveFocusNode()?.also {
+            findFocusTargetNode()?.also {
                 // Check if a custom focus traversal order is specified.
                 when (val customDest = it.customFocusSearch(focusDirection, onLayoutDirection())) {
                     Cancel -> return null
+                    Redirect -> return findFocusTargetNode()?.let(onFound)
                     Default -> {
                         /* Do Nothing */
                     }
@@ -269,7 +271,7 @@ internal class FocusOwnerImpl(
             }
             if (!validateKeyEvent(keyEvent)) return false
 
-            val activeFocusTarget = rootFocusNode.findActiveFocusNode()
+            val activeFocusTarget = findFocusTargetNode()
             val focusedKeyInputNode =
                 activeFocusTarget?.lastLocalKeyInputNode()
                     ?: activeFocusTarget?.nearestAncestorIncludingSelf(Nodes.KeyInput)?.node
@@ -310,18 +312,21 @@ internal class FocusOwnerImpl(
     }
 
     /** Dispatches a rotary scroll event through the compose hierarchy. */
-    override fun dispatchRotaryEvent(event: RotaryScrollEvent): Boolean {
+    override fun dispatchRotaryEvent(
+        event: RotaryScrollEvent,
+        onFocusedItem: () -> Boolean
+    ): Boolean {
         check(!focusInvalidationManager.hasPendingInvalidation()) {
             "Dispatching rotary event while focus system is invalidated."
         }
 
         val focusedRotaryInputNode =
-            rootFocusNode.findActiveFocusNode()?.nearestAncestorIncludingSelf(Nodes.RotaryInput)
+            findFocusTargetNode()?.nearestAncestorIncludingSelf(Nodes.RotaryInput)
 
         focusedRotaryInputNode?.traverseAncestorsIncludingSelf(
             type = Nodes.RotaryInput,
             onPreVisit = { if (it.onPreRotaryScrollEvent(event)) return true },
-            onVisit = { /* TODO(b/320510084): dispatch rotary events to embedded views. */ },
+            onVisit = { if (onFocusedItem()) return true },
             onPostVisit = { if (it.onRotaryScrollEvent(event)) return true }
         )
 
@@ -377,7 +382,11 @@ internal class FocusOwnerImpl(
 
     /** Searches for the currently focused item, and returns its coordinates as a rect. */
     override fun getFocusRect(): Rect? {
-        return rootFocusNode.findActiveFocusNode()?.focusRect()
+        return findFocusTargetNode()?.focusRect()
+    }
+
+    private fun findFocusTargetNode(): FocusTargetNode? {
+        return rootFocusNode.findActiveFocusNode()
     }
 
     override val rootState: FocusState

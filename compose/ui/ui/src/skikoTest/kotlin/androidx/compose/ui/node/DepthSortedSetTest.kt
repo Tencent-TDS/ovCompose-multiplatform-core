@@ -16,18 +16,18 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.IntObjectMap
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
@@ -40,10 +40,10 @@ import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runSkikoComposeUiTest
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -190,6 +190,7 @@ class DepthSortedSetTest {
 
     // TODO Is there a way to mock it in K/N?
     internal class DepthTestOwner : Owner {
+        override val layoutNodes: IntObjectMap<LayoutNode> get() = throw IllegalStateException()
         override val rootForTest: RootForTest get() = throw IllegalStateException()
         override val hapticFeedBack: HapticFeedback get() = throw IllegalStateException()
         override val inputModeManager: InputModeManager get() = throw IllegalStateException()
@@ -201,7 +202,7 @@ class DepthSortedSetTest {
         override val autofillTree: AutofillTree get() = throw IllegalStateException()
         @ExperimentalComposeUiApi
         override val autofill: Autofill? get() = throw IllegalStateException()
-        override val semanticAutofill: SemanticAutofill? get() = throw IllegalStateException()
+        override val autofillManager: AutofillManager? get() = throw IllegalStateException()
         override val density: Density get() = throw IllegalStateException()
         override val textInputService: TextInputService get() = throw IllegalStateException()
         override val softwareKeyboardController get() = throw IllegalStateException()
@@ -212,6 +213,7 @@ class DepthSortedSetTest {
         override fun localToScreen(localPosition: Offset): Offset = throw IllegalStateException()
         override val dragAndDropManager: DragAndDropManager get() = throw IllegalStateException()
         override val pointerIconService: PointerIconService get() = throw IllegalStateException()
+        override val semanticsOwner: SemanticsOwner get() = throw IllegalStateException()
         override val focusOwner: FocusOwner get() = throw IllegalStateException()
         override val windowInfo: WindowInfo get() = throw IllegalStateException()
         override val rectManager: RectManager get() = throw IllegalStateException()

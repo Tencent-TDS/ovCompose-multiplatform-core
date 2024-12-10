@@ -29,13 +29,17 @@ import androidx.compose.material3.internal.MutableWindowInsets
 import androidx.compose.material3.internal.systemBarsForVisualComponents
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
@@ -136,6 +140,26 @@ private fun ScaffoldLayout(
     contentWindowInsets: WindowInsets,
     bottomBar: @Composable () -> Unit
 ) {
+    // Create the backing value for the content padding
+    // These values will be updated during measurement, but before subcomposing the body content
+    // Remembering and updating a single PaddingValues avoids needing to recompose when the values
+    // change
+    val contentPadding = remember {
+        object : PaddingValues {
+            var paddingHolder by mutableStateOf(PaddingValues(0.dp))
+
+            override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+                paddingHolder.calculateLeftPadding(layoutDirection)
+
+            override fun calculateTopPadding(): Dp = paddingHolder.calculateTopPadding()
+
+            override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+                paddingHolder.calculateRightPadding(layoutDirection)
+
+            override fun calculateBottomPadding(): Dp = paddingHolder.calculateBottomPadding()
+        }
+    }
+
     SubcomposeLayout(modifier = Modifier.semantics { isTraversalGroup = true }) { constraints ->
         val layoutWidth = constraints.maxWidth
         val layoutHeight = constraints.maxHeight
@@ -264,30 +288,28 @@ private fun ScaffoldLayout(
                 0
             }
 
+        // Update the backing state for the content padding before subcomposing the body
+        val insets = contentWindowInsets.asPaddingValues(this)
+        contentPadding.paddingHolder =
+            PaddingValues(
+                top =
+                    if (topBarPlaceable.width == 0 && topBarPlaceable.height == 0) {
+                        insets.calculateTopPadding()
+                    } else {
+                        topBarPlaceable.height.toDp()
+                    },
+                bottom =
+                    if (isBottomBarEmpty) {
+                        insets.calculateBottomPadding()
+                    } else {
+                        bottomBarPlaceable.height.toDp()
+                    },
+                start = insets.calculateStartPadding(layoutDirection),
+                end = insets.calculateEndPadding(layoutDirection)
+            )
+
         val bodyContentPlaceable =
             subcompose(ScaffoldLayoutContent.MainContent) {
-                    val insets = contentWindowInsets.asPaddingValues(this@SubcomposeLayout)
-                    val innerPadding =
-                        PaddingValues(
-                            top =
-                                if (topBarPlaceable.width == 0 && topBarPlaceable.height == 0) {
-                                    insets.calculateTopPadding()
-                                } else {
-                                    topBarPlaceable.height.toDp()
-                                },
-                            bottom =
-                                if (isBottomBarEmpty) {
-                                    insets.calculateBottomPadding()
-                                } else {
-                                    bottomBarPlaceable.height.toDp()
-                                },
-                            start =
-                                insets.calculateStartPadding(
-                                    (this@SubcomposeLayout).layoutDirection
-                                ),
-                            end =
-                                insets.calculateEndPadding((this@SubcomposeLayout).layoutDirection)
-                        )
                     Box(
                         modifier =
                             Modifier.semantics {
@@ -295,7 +317,7 @@ private fun ScaffoldLayout(
                                 traversalIndex = 3f
                             }
                     ) {
-                        content(innerPadding)
+                        content(contentPadding)
                     }
                 }
                 .first()

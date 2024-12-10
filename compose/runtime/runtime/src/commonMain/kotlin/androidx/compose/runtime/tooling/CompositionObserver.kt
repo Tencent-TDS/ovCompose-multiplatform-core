@@ -21,7 +21,50 @@ import androidx.compose.runtime.CompositionImplServiceKey
 import androidx.compose.runtime.ExperimentalComposeRuntimeApi
 import androidx.compose.runtime.RecomposeScope
 import androidx.compose.runtime.RecomposeScopeImpl
+import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.getCompositionService
+
+/**
+ * Observe when new compositions are added to a recomposer. This, combined with,
+ * [CompositionObserver], allows observing when any composition is being performed.
+ *
+ * This observer is registered with a [Recomposer] by calling [Recomposer.observe].
+ */
+@ExperimentalComposeRuntimeApi
+@Suppress("CallbackName")
+interface CompositionRegistrationObserver {
+
+    /**
+     * Called whenever a [Composition] is registered with a [Recomposer] for which this is an
+     * observer. A Composition is registered with its Recomposer when it begins its initial
+     * composition, before any content is added. When a [CompositionRegistrationObserver] is
+     * registered, this method will be called for all the [Recomposer]'s currently known
+     * composition.
+     *
+     * This method is called on the same thread that the [Composition] being registered is being
+     * composed on. During the initial dispatch, it is invoked on the same thread that the callback
+     * is being registered on. Implementations of this method should be thread safe as they might be
+     * called on an arbitrary thread.
+     *
+     * @param recomposer The [Recomposer] the [composition] was registered with. This is always the
+     *   instance of the [Recomposer] that `observe` was called.
+     * @param composition The [Composition] instance that is being registered with the recomposer.
+     */
+    fun onCompositionRegistered(recomposer: Recomposer, composition: Composition)
+
+    /**
+     * Called whenever a [Composition] is unregistered with a [Recomposer] for which this is an
+     * observer. A Composition is unregistered from its Recomposer when the composition is
+     * [disposed][Composition.dispose]. This method is called on the same thread that the
+     * [Composition] being unregistered was composed on. Implementations of this method should be
+     * thread safe as they might be called on an arbitrary thread.
+     *
+     * @param recomposer The [Recomposer] the [composition] was registered with. This is always the
+     *   instance of the [Recomposer] that `observe` was called.
+     * @param composition The [Composition] instance that is being unregistered with the recomposer.
+     */
+    fun onCompositionUnregistered(recomposer: Recomposer, composition: Composition)
+}
 
 /** Observe when the composition begins and ends. */
 @ExperimentalComposeRuntimeApi
@@ -73,6 +116,21 @@ interface RecomposeScopeObserver {
 interface CompositionObserverHandle {
     /** Unregister the observer. */
     fun dispose()
+}
+
+/**
+ * Register an observer to be notified when a composition is added to or removed from the given
+ * [Recomposer]. When this method is called, the observer will be notified of all currently
+ * registered compositions per the documentation in
+ * [CompositionRegistrationObserver.onCompositionRegistered].
+ *
+ * @param observer the observer that will be informed of new compositions registered with this
+ *   [Recomposer].
+ * @return a handle that allows the observer to be disposed and detached from the [Recomposer].
+ */
+@ExperimentalComposeRuntimeApi
+fun Recomposer.observe(observer: CompositionRegistrationObserver): CompositionObserverHandle {
+    return addCompositionRegistrationObserver(observer)
 }
 
 /**

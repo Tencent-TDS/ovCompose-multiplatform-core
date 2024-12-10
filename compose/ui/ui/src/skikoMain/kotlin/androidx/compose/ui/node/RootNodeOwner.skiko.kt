@@ -16,18 +16,20 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.MutableIntObjectMap
+import androidx.collection.mutableIntObjectMapOf
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
-import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.focus.FocusOwnerImpl
@@ -36,8 +38,6 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.InputMode
@@ -151,7 +151,7 @@ internal class RootNodeOwner(
             isTraversalGroup = true
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
-    val semanticsOwner = SemanticsOwner(owner.root, rootSemanticsNode)
+    val semanticsOwner = SemanticsOwner(owner.root, rootSemanticsNode, owner.layoutNodes)
     var size: IntSize? = size
         set(value) {
             field = value
@@ -281,7 +281,7 @@ internal class RootNodeOwner(
      */
     fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
-        owner.root.hitTest(position, result, true)
+        owner.root.hitTest(position, result, isInLayer = true)
 
         val last = result.lastOrNull() as? BackwardsCompatNode
         val node = last?.element as? InteropPointerInputModifier
@@ -317,6 +317,7 @@ internal class RootNodeOwner(
         }
 
         override val sharedDrawScope = LayoutNodeDrawScope()
+        override val layoutNodes: MutableIntObjectMap<LayoutNode> = mutableIntObjectMapOf()
         override val rootForTest get() = this@RootNodeOwner.rootForTest
         override val hapticFeedBack = DefaultHapticFeedback()
         override val inputModeManager get() = platformContext.inputModeManager
@@ -326,8 +327,8 @@ internal class RootNodeOwner(
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
-        // TODO https://youtrack.jetbrains.com/issue/CMP-1572/Support-SemanticAutofill
-        override val semanticAutofill: SemanticAutofill? get() = null
+        // TODO https://youtrack.jetbrains.com/issue/CMP-1572
+        override val autofillManager: AutofillManager? get() = null
         override val density get() = this@RootNodeOwner.density
         override val textInputService =
             TextInputService(platformContext.textInputService)
@@ -340,9 +341,11 @@ internal class RootNodeOwner(
 
         override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
         override val pointerIconService = PointerIconServiceImpl()
+        override val semanticsOwner get() = this@RootNodeOwner.semanticsOwner
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo
         // TODO: 1.8.0-alpha02 Implement ComposeUiFlags.isRectTrackingEnabled
+        //  https://youtrack.jetbrains.com/issue/CMP-6715/Support-ComposeUiFlags.isRectTrackingEnabled
         override val rectManager = RectManager()
 
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
@@ -359,8 +362,13 @@ internal class RootNodeOwner(
         override val measureIteration: Long get() = measureAndLayoutDelegate.measureIteration
 
         override fun requestFocus() = platformContext.requestFocus()
-        override fun onAttach(node: LayoutNode) = Unit
+
+        override fun onAttach(node: LayoutNode) {
+            layoutNodes[node.semanticsId] = node
+        }
+
         override fun onDetach(node: LayoutNode) {
+            layoutNodes.remove(node.semanticsId)
             measureAndLayoutDelegate.onNodeDetached(node)
             snapshotObserver.clear(node)
             needClearObservations = true
@@ -657,6 +665,10 @@ internal class RootNodeOwner(
             desiredPointerIcon = value
             platformContext.setPointerIcon(desiredPointerIcon ?: PointerIcon.Default)
         }
+
+        // TODO https://youtrack.jetbrains.com/issue/CMP-7145/Properly-adopt-stylus-handwriting-hover-icon
+        override fun getStylusHoverIcon(): PointerIcon? = null
+        override fun setStylusHoverIcon(value: PointerIcon?) {}
     }
 }
 

@@ -55,13 +55,13 @@ abstract class CompositionContext internal constructor() {
 
     internal abstract fun composeInitialPaused(
         composition: ControlledComposition,
-        shouldPause: () -> Boolean,
+        shouldPause: ShouldPauseCallback,
         content: @Composable () -> Unit
     ): ScatterSet<RecomposeScopeImpl>
 
     internal abstract fun recomposePaused(
         composition: ControlledComposition,
-        shouldPause: () -> Boolean,
+        shouldPause: ShouldPauseCallback,
         invalidScopes: ScatterSet<RecomposeScopeImpl>
     ): ScatterSet<RecomposeScopeImpl>
 
@@ -94,7 +94,8 @@ abstract class CompositionContext internal constructor() {
 
     internal abstract fun movableContentStateReleased(
         reference: MovableContentStateReference,
-        data: MovableContentState
+        data: MovableContentState,
+        applier: Applier<*>
     )
 
     internal open fun movableContentStateResolve(

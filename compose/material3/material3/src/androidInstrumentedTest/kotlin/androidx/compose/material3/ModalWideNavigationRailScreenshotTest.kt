@@ -17,9 +17,7 @@
 package androidx.compose.material3
 
 import android.os.Build
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -41,7 +39,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Tests for [ModalWideNavigationRail] and [DismissibleModalWideNavigationRail]. */
+/** Tests for [ModalWideNavigationRail]. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -50,30 +48,6 @@ class ModalWideNavigationRailScreenshotTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     @get:Rule val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL3)
-
-    @Test
-    fun modalExpandedNavigationRail_lightTheme_defaultColors() {
-        composeTestRule.setMaterialContent(lightColorScheme()) {
-            DefaultDismissibleModalWideNavigationRail()
-        }
-
-        assertModalExpandedNavigationRailMatches(
-            goldenIdentifier =
-                "wideNavigationRail_dismissibleModalWideNavigationRail_lightTheme_defaultColors"
-        )
-    }
-
-    @Test
-    fun modalExpandedNavigationRail_darkTheme_defaultColors() {
-        composeTestRule.setMaterialContent(darkColorScheme()) {
-            DefaultDismissibleModalWideNavigationRail()
-        }
-
-        assertModalExpandedNavigationRailMatches(
-            goldenIdentifier =
-                "wideNavigationRail_dismissibleModalWideNavigationRail_darkTheme_defaultColors"
-        )
-    }
 
     @Test
     fun wideNavigationRail_modalWideNavigationRail_lightTheme() {
@@ -110,42 +84,9 @@ class ModalWideNavigationRailScreenshotTest {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun DefaultDismissibleModalWideNavigationRail() {
-    Box(Modifier.fillMaxSize()) {
-        DismissibleModalWideNavigationRail(
-            onDismissRequest = {},
-        ) {
-            WideNavigationRailItem(
-                railExpanded = true,
-                icon = { Icon(Icons.Filled.Favorite, null) },
-                label = { Text("Favorites") },
-                selected = true,
-                onClick = {},
-            )
-            WideNavigationRailItem(
-                railExpanded = true,
-                icon = { Icon(Icons.Filled.Home, null) },
-                label = { Text("Home") },
-                selected = false,
-                onClick = {}
-            )
-            WideNavigationRailItem(
-                railExpanded = true,
-                icon = { Icon(Icons.Filled.Search, null) },
-                label = { Text("Search") },
-                selected = false,
-                onClick = {}
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
 private fun DefaultModalWideNavigationRail() {
     ModalWideNavigationRail(
-        expanded = true,
-        scrimOnClick = {},
+        state = rememberWideNavigationRailState(WideNavigationRailValue.Expanded),
         expandedHeaderTopPadding = 64.dp,
         header = {
             Column {

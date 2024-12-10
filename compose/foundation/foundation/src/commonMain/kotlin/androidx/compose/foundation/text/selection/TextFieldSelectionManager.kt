@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.UndoManager
 import androidx.compose.foundation.text.ValidatingEmptyOffsetMappingIdentity
 import androidx.compose.foundation.text.detectDownAndDragGesturesWithObserver
+import androidx.compose.foundation.text.getLineHeight
 import androidx.compose.foundation.text.isPositionInsideSelection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -90,6 +92,9 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
      * permitted. For example, 'cut' will not be available is it is password transformation.
      */
     internal var visualTransformation: VisualTransformation = VisualTransformation.None
+
+    /** [AutofillManager] to perform clipboard features. */
+    internal var autofillManager: AutofillManager? = null
 
     /** [ClipboardManager] to perform clipboard features. */
     internal var clipboardManager: ClipboardManager? = null
@@ -740,6 +745,10 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
         enterSelectionMode(showFloatingToolbar = true)
     }
 
+    internal fun autofill() {
+        autofillManager?.requestAutofillForActiveElement()
+    }
+
     internal fun getHandlePosition(isStartHandle: Boolean): Offset {
         val textLayoutResult = state?.layoutResult?.value ?: return Offset.Unspecified
 
@@ -759,12 +768,8 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
     }
 
     internal fun getHandleLineHeight(isStartHandle: Boolean): Float {
-        val layoutResult = state?.layoutResult ?: return 0f
         val offset = if (isStartHandle) value.selection.start else value.selection.end
-        val line = layoutResult.value.getLineForOffset(
-            offset = offsetMapping.originalToTransformed(offset)
-        )
-        return layoutResult.value.multiParagraph.getLineHeight(line)
+        return state?.layoutResult?.value?.getLineHeight(offset) ?: return 0f
     }
 
     internal fun getCursorPosition(density: Density): Offset {
@@ -826,12 +831,18 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
                 { selectAll() }
             } else null
 
+        val autofill: (() -> Unit)? =
+            if (editable && value.selection.collapsed) {
+                { autofill() }
+            } else null
+
         textToolbar?.showMenu(
             rect = getContentRect(),
             onCopyRequested = copy,
             onPasteRequested = paste,
             onCutRequested = cut,
-            onSelectAllRequested = selectAll
+            onSelectAllRequested = selectAll,
+            onAutofillRequested = autofill
         )
     }
 

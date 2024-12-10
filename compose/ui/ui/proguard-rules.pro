@@ -37,8 +37,13 @@
 # reduce the amount of code generated at the call site.
 -keep,allowshrinking,allowobfuscation class androidx.compose.**.* {
     static void throw*Exception(...);
+    static void throw*ExceptionForNullCheck(...);
     # For methods returning Nothing
     static java.lang.Void throw*Exception(...);
+    static java.lang.Void throw*ExceptionForNullCheck(...);
+    # For functions generating error messages
+    static java.lang.String exceptionMessage*(...);
+    java.lang.String exceptionMessage*(...);
 }
 
 # When pointer input modifier nodes are added dynamically and have the same keys (common when

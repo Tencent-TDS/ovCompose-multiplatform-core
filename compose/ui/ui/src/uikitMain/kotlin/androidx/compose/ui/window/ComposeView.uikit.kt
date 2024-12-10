@@ -16,20 +16,34 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.unit.asDpSize
+import kotlin.math.max
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGRectEqualToRect
+import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIColor
+import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 
 internal class ComposeView(
     private var onDidMoveToWindow: (UIWindow?) -> Unit,
     private var onLayoutSubviews: () -> Unit,
-    useOpaqueConfiguration: Boolean
+    useOpaqueConfiguration: Boolean,
+    private val transparentForTouches: Boolean,
+    private val metalView: MetalView,
 ): UIView(frame = CGRectZero.readValue()) {
     init {
         setClipsToBounds(true)
         setOpaque(useOpaqueConfiguration)
+        addSubview(metalView)
         backgroundColor = if (useOpaqueConfiguration) UIColor.whiteColor else UIColor.clearColor
     }
 
@@ -44,16 +58,68 @@ internal class ComposeView(
         setNeedsLayout()
     }
 
+    private var isAnimating: Boolean = false
+
     override fun layoutSubviews() {
         super.layoutSubviews()
 
         onLayoutSubviews()
+        updateLayout()
     }
 
     override fun safeAreaInsetsDidChange() {
         super.safeAreaInsetsDidChange()
 
         setNeedsLayout()
+    }
+
+    private fun updateLayout() {
+        if (isAnimating) {
+            val oldSize = metalView.frame.useContents { size.asDpSize() }
+            val newSize = bounds.useContents { size.asDpSize() }
+            val targetRect = CGRectMake(
+                0.0,
+                0.0,
+                max(oldSize.width.value, newSize.width.value).toDouble(),
+                max(oldSize.height.value, newSize.height.value).toDouble()
+            )
+            if (!CGRectEqualToRect(metalView.frame, targetRect)) {
+                UIView.performWithoutAnimation {
+                    metalView.setFrame(targetRect)
+                    metalView.setNeedsSynchronousDrawOnNextLayout()
+                }
+            }
+        } else {
+            if (!CGRectEqualToRect(metalView.frame, bounds)) {
+                UIView.performWithoutAnimation {
+                    metalView.setFrame(bounds)
+                    metalView.setNeedsSynchronousDrawOnNextLayout()
+                }
+            }
+        }
+    }
+
+    fun animateSizeTransition(scope: CoroutineScope, animations: suspend () -> Unit) {
+        isAnimating = true
+        updateLayout()
+        metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
+        metalView.needsProactiveDisplayLink = true
+        scope.launch {
+            try {
+                animations()
+            } finally {
+                // Delay mitigates rendering glitches that can occur at the end of the animation.
+                delay(50)
+                isAnimating = false
+                updateLayout()
+                metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
+                metalView.needsProactiveDisplayLink = true
+            }
+        }
+    }
+
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        return super.hitTest(point, withEvent).takeUnless { transparentForTouches && it == this }
     }
 
     fun dispose() {

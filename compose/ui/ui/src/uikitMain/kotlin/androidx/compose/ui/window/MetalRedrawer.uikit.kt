@@ -127,7 +127,8 @@ internal class InflightCommandBuffers(
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
     private var retrieveInteropTransaction: () -> UIKitInteropTransaction,
-    private var render: (Canvas, targetTimestamp: NSTimeInterval) -> Unit
+    private val useSeparateRenderThreadWhenPossible: Boolean,
+    private var render: (Canvas, targetTimestamp: NSTimeInterval) -> Unit,
 ) {
     /**
      * A wrapper around CAMetalLayer that allows to perform operations on its drawables without
@@ -383,8 +384,7 @@ internal class MetalRedrawer(
             // TODO: encoding on separate thread requires investigation for reported crashes
             //  https://github.com/JetBrains/compose-multiplatform/issues/3862
             //  https://youtrack.jetbrains.com/issue/COMPOSE-608/iOS-reproduce-and-investigate-parallel-rendering-encoding-crash
-            // val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion
-            val mustEncodeAndPresentOnMainThread = true
+            val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion || !useSeparateRenderThreadWhenPossible
 
             val encodeAndPresentBlock = {
                 trace("MetalRedrawer:draw:encodeAndPresent") {

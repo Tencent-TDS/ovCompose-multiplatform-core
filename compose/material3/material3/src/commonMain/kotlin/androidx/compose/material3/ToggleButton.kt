@@ -31,7 +31,11 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.internal.ProvideContentColorTextStyle
 import androidx.compose.material3.internal.rememberAnimatedShape
+import androidx.compose.material3.tokens.ButtonLargeTokens
+import androidx.compose.material3.tokens.ButtonMediumTokens
 import androidx.compose.material3.tokens.ButtonSmallTokens
+import androidx.compose.material3.tokens.ButtonXLargeTokens
+import androidx.compose.material3.tokens.ButtonXSmallTokens
 import androidx.compose.material3.tokens.ElevatedButtonTokens
 import androidx.compose.material3.tokens.FilledButtonTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
@@ -72,6 +76,13 @@ import androidx.compose.ui.unit.dp
  *
  * For a [ToggleButton] that uses a round unchecked shape and morphs into a square checked shape:
  *
+ * [ToggleButton] uses the small button design as default. For a [ToggleButton] that uses the design
+ * for extra small, medium, large, or extra large buttons:
+ *
+ * @sample androidx.compose.material3.samples.XSmallToggleButtonWithIconSample
+ * @sample androidx.compose.material3.samples.MediumToggleButtonWithIconSample
+ * @sample androidx.compose.material3.samples.LargeToggleButtonWithIconSample
+ * @sample androidx.compose.material3.samples.XLargeToggleButtonWithIconSample
  * @sample androidx.compose.material3.samples.RoundToggleButtonSample
  * @param checked whether the toggle button is toggled on or off.
  * @param onCheckedChange called when the toggle button is clicked.
@@ -103,12 +114,7 @@ fun ToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes =
-        ToggleButtonDefaults.shapes(
-            ToggleButtonDefaults.shape,
-            ToggleButtonDefaults.pressedShape,
-            ToggleButtonDefaults.checkedShape
-        ),
+    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
@@ -222,12 +228,7 @@ fun ElevatedToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes =
-        ToggleButtonDefaults.shapes(
-            ToggleButtonDefaults.elevatedShape,
-            ToggleButtonDefaults.elevatedPressedShape,
-            ToggleButtonDefaults.elevatedCheckedShape
-        ),
+    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.elevatedToggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.elevatedButtonElevation(),
     border: BorderStroke? = null,
@@ -300,12 +301,7 @@ fun TonalToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes =
-        ToggleButtonDefaults.shapes(
-            ToggleButtonDefaults.tonalShape,
-            ToggleButtonDefaults.tonalPressedShape,
-            ToggleButtonDefaults.tonalCheckedShape
-        ),
+    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.tonalToggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.filledTonalButtonElevation(),
     border: BorderStroke? = null,
@@ -376,12 +372,7 @@ fun OutlinedToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes =
-        ToggleButtonDefaults.shapes(
-            ToggleButtonDefaults.outlinedShape,
-            ToggleButtonDefaults.outlinedPressedShape,
-            ToggleButtonDefaults.outlinedCheckedShape
-        ),
+    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.outlinedToggleButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
@@ -438,18 +429,41 @@ object ToggleButtonDefaults {
         )
 
     /**
-     * Creates a [ButtonShapes] that correspond to the shapes in the default, pressed, and checked
-     * states. Toggle button will morph between these shapes as long as the shapes are all
-     * [CornerBasedShape]s.
+     * Creates a [ButtonShapes] that represents the default shape, pressedShape, and checkedShape
+     * used in a [ToggleButton].
+     */
+    @Composable fun shapes() = MaterialTheme.shapes.defaultShapes
+
+    /**
+     * Creates a [ButtonShapes] that represents the default shape, pressedShape, and checkedShape
+     * used in a [ToggleButton] and its variants.
      *
      * @param shape the unchecked shape for [ButtonShapes]
      * @param pressedShape the unchecked shape for [ButtonShapes]
      * @param checkedShape the unchecked shape for [ButtonShapes]
      */
     @Composable
-    fun shapes(shape: Shape, pressedShape: Shape, checkedShape: Shape): ButtonShapes =
-        remember(shape, pressedShape, checkedShape) {
-            ButtonShapes(shape, pressedShape, checkedShape)
+    fun shapes(
+        shape: Shape? = null,
+        pressedShape: Shape? = null,
+        checkedShape: Shape? = null
+    ): ButtonShapes =
+        MaterialTheme.shapes.defaultShapes.copy(
+            shape = shape,
+            pressedShape = pressedShape,
+            checkedShape = checkedShape
+        )
+
+    internal val Shapes.defaultShapes: ButtonShapes
+        @Composable
+        get() {
+            return defaultToggleButtonShapesCached
+                ?: ButtonShapes(
+                        shape = shape,
+                        pressedShape = pressedShape,
+                        checkedShape = checkedShape
+                    )
+                    .also { defaultToggleButtonShapesCached = it }
         }
 
     /** A round shape that can be used for all [ToggleButton]s and its variants */
@@ -464,45 +478,61 @@ object ToggleButtonDefaults {
     val shape: Shape
         @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
 
-    /** The default unchecked shape for [ElevatedToggleButton] */
-    val elevatedShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
-
-    /** The default unchecked shape for [TonalToggleButton] */
-    val tonalShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
-
-    /** The default unchecked shape for [OutlinedToggleButton] */
-    val outlinedShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
-
     /** The default pressed shape for [ToggleButton] */
-    val pressedShape: Shape = RoundedCornerShape(6.dp)
-
-    /** The default pressed shape for [ElevatedToggleButton] */
-    val elevatedPressedShape: Shape = RoundedCornerShape(6.dp)
-
-    /** The default pressed shape for [TonalToggleButton] */
-    val tonalPressedShape: Shape = RoundedCornerShape(6.dp)
-
-    /** The default pressed shape for [OutlinedToggleButton] */
-    val outlinedPressedShape: Shape = RoundedCornerShape(6.dp)
+    val pressedShape: Shape
+        @Composable get() = RoundedCornerShape(6.dp)
 
     /** The default checked shape for [ToggleButton] */
     val checkedShape: Shape
         @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
 
-    /** The default checked shape for [ElevatedToggleButton] */
-    val elevatedCheckedShape: Shape
-        @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
+    /** The default square shape for a extra small toggle button */
+    val XSmallSquareShape: Shape
+        @Composable get() = ButtonXSmallTokens.ContainerShapeSquare.value
 
-    /** The default checked shape for [TonalToggleButton] */
-    val tonalCheckedShape: Shape
-        @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
+    /** The default square shape for a medium toggle button */
+    val MediumSquareShape: Shape
+        @Composable get() = ButtonMediumTokens.ContainerShapeSquare.value
 
-    /** The default checked shape for [OutlinedToggleButton] */
-    val outlinedCheckedShape: Shape
-        @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
+    /** The default square shape for a large toggle button */
+    val LargeSquareShape: Shape
+        @Composable get() = ButtonLargeTokens.ContainerShapeSquare.value
+
+    /** The default square shape for a extra large toggle button */
+    val XLargeSquareShape: Shape
+        @Composable get() = ButtonXLargeTokens.ContainerShapeSquare.value
+
+    /** The default pressed shape for a extra small toggle button */
+    val XSmallPressedShape: Shape
+        @Composable get() = ButtonXSmallTokens.PressedContainerShape.value
+
+    /** The default pressed shape for a medium toggle button */
+    val MediumPressedShape: Shape
+        @Composable get() = ButtonMediumTokens.PressedContainerShape.value
+
+    /** The default pressed shape for a large toggle button */
+    val LargePressedShape: Shape
+        @Composable get() = ButtonLargeTokens.PressedContainerShape.value
+
+    /** The default pressed shape for a extra large toggle button */
+    val XLargePressedShape: Shape
+        @Composable get() = ButtonXLargeTokens.PressedContainerShape.value
+
+    /** The default checked square shape for a extra small toggle button */
+    val XSmallCheckedSquareShape: Shape
+        @Composable get() = ButtonXSmallTokens.ContainerShapeSquare.value
+
+    /** The default checked square shape for a medium toggle button */
+    val MediumCheckedSquareShape: Shape
+        @Composable get() = ButtonMediumTokens.ContainerShapeSquare.value
+
+    /** The default checked square shape for a large toggle button */
+    val LargeCheckedSquareShape: Shape
+        @Composable get() = ButtonLargeTokens.ContainerShapeSquare.value
+
+    /** The default checked square shape for a extra large toggle button */
+    val XLargeCheckedSquareShape: Shape
+        @Composable get() = ButtonXLargeTokens.ContainerShapeSquare.value
 
     /**
      * Creates a [ToggleButtonColors] that represents the default container and content colors used
@@ -847,6 +877,20 @@ class ToggleButtonColors(
  * @property checkedShape is the checked shape.
  */
 class ButtonShapes(val shape: Shape, val pressedShape: Shape, val checkedShape: Shape) {
+    /** Returns a copy of this ButtonShapes, optionally overriding some of the values. */
+    fun copy(
+        shape: Shape? = this.shape,
+        pressedShape: Shape? = this.pressedShape,
+        checkedShape: Shape? = this.checkedShape
+    ) =
+        ButtonShapes(
+            shape = shape.takeOrElse { this.shape },
+            pressedShape = pressedShape.takeOrElse { this.pressedShape },
+            checkedShape = checkedShape.takeOrElse { this.checkedShape }
+        )
+
+    internal fun Shape?.takeOrElse(block: () -> Shape): Shape = this ?: block()
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || other !is ButtonShapes) return false

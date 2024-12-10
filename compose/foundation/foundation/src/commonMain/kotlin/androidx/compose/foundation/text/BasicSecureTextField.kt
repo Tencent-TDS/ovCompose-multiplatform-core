@@ -303,14 +303,16 @@ private fun DisableCutCopy(content: @Composable () -> Unit) {
                     onCopyRequested: (() -> Unit)?,
                     onPasteRequested: (() -> Unit)?,
                     onCutRequested: (() -> Unit)?,
-                    onSelectAllRequested: (() -> Unit)?
+                    onSelectAllRequested: (() -> Unit)?,
+                    onAutofillRequested: (() -> Unit)?
                 ) {
                     currentToolbar.showMenu(
                         rect = rect,
                         onPasteRequested = onPasteRequested,
                         onSelectAllRequested = onSelectAllRequested,
                         onCopyRequested = null,
-                        onCutRequested = null
+                        onCutRequested = null,
+                        onAutofillRequested = onAutofillRequested
                     )
                 }
             }

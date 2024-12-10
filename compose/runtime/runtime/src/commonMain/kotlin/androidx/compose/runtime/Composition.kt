@@ -25,6 +25,8 @@ import androidx.compose.runtime.collection.fastForEach
 import androidx.compose.runtime.internal.AtomicReference
 import androidx.compose.runtime.internal.RememberEventDispatcher
 import androidx.compose.runtime.internal.trace
+import androidx.compose.runtime.platform.makeSynchronizedObject
+import androidx.compose.runtime.platform.synchronized
 import androidx.compose.runtime.snapshots.ReaderKind
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.fastAll
@@ -297,19 +299,20 @@ sealed interface ControlledComposition : Composition {
      *   longer needed.
      * @see PausableComposition
      */
-    fun setShouldPauseCallback(shouldPause: (() -> Boolean)?): (() -> Boolean)?
+    @Suppress("ExecutorRegistration")
+    fun getAndSetShouldPauseCallback(shouldPause: ShouldPauseCallback?): ShouldPauseCallback?
 }
 
 /** Utility function to set and restore a should pause callback. */
 internal inline fun <R> ControlledComposition.pausable(
-    noinline shouldPause: () -> Boolean,
+    shouldPause: ShouldPauseCallback,
     block: () -> R
 ): R {
-    val previous = setShouldPauseCallback(shouldPause)
+    val previous = getAndSetShouldPauseCallback(shouldPause)
     return try {
         block()
     } finally {
-        setShouldPauseCallback(previous)
+        getAndSetShouldPauseCallback(previous)
     }
 }
 
@@ -426,7 +429,7 @@ internal class CompositionImpl(
      * The parent composition from [rememberCompositionContext], for sub-compositions, or the an
      * instance of [Recomposer] for root compositions.
      */
-    private val parent: CompositionContext,
+    @get:TestOnly val parent: CompositionContext,
 
     /** The applier to use to update the tree managed by the composition. */
     private val applier: Applier<*>,
@@ -446,7 +449,7 @@ internal class CompositionImpl(
     private val pendingModifications = AtomicReference<Any?>(null)
 
     // Held when making changes to self or composer
-    private val lock = SynchronizedObject()
+    private val lock = makeSynchronizedObject()
 
     /**
      * A set of remember observers that were potentially abandoned between [composeContent] or
@@ -551,7 +554,7 @@ internal class CompositionImpl(
      * If the [shouldPause] callback is set the composition is pausable and should pause whenever
      * the [shouldPause] callback returns `true`.
      */
-    private var shouldPause: (() -> Boolean)? = null
+    private var shouldPause: ShouldPauseCallback? = null
 
     private var pendingPausedComposition: PausedCompositionImpl? = null
 
@@ -1152,7 +1155,9 @@ internal class CompositionImpl(
         } else block()
     }
 
-    override fun setShouldPauseCallback(shouldPause: (() -> Boolean)?): (() -> Boolean)? {
+    override fun getAndSetShouldPauseCallback(
+        shouldPause: ShouldPauseCallback?
+    ): ShouldPauseCallback? {
         val previous = this.shouldPause
         this.shouldPause = shouldPause
         return previous

@@ -21,6 +21,7 @@ import androidx.compose.ui.focus.CustomDestinationResult.None
 import androidx.compose.ui.focus.CustomDestinationResult.RedirectCancelled
 import androidx.compose.ui.focus.CustomDestinationResult.Redirected
 import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
+import androidx.compose.ui.focus.FocusRequester.Companion.Redirect
 import androidx.compose.ui.focus.FocusStateImpl.Active
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Captured
@@ -51,7 +52,7 @@ internal fun FocusTargetNode.requestFocus(focusDirection: FocusDirection): Boole
  * This function performs the request focus action.
  *
  * Note: Do not call this directly, consider using [requestFocus], which will check if any custom
- * focus [enter][FocusProperties.enter] and [exit][FocusProperties.exit]
+ * focus [enter][FocusProperties.onEnter] and [exit][FocusProperties.onExit]
  * [properties][FocusProperties] have been specified.
  */
 internal fun FocusTargetNode.performRequestFocus(): Boolean {
@@ -296,7 +297,7 @@ private fun FocusTargetNode.performCustomEnter(
     focusDirection: FocusDirection
 ): CustomDestinationResult {
     fetchCustomEnter(focusDirection) {
-        if (it === Cancel) return Cancelled
+        if (it === Cancel) return Cancelled else if (it === Redirect) return Redirected
         return if (it.focus()) Redirected else RedirectCancelled
     }
     return None
@@ -306,7 +307,7 @@ private fun FocusTargetNode.performCustomExit(
     focusDirection: FocusDirection
 ): CustomDestinationResult {
     fetchCustomExit(focusDirection) {
-        if (it === Cancel) return Cancelled
+        if (it === Cancel) return Cancelled else if (it === Redirect) return Redirected
         return if (it.focus()) Redirected else RedirectCancelled
     }
     return None

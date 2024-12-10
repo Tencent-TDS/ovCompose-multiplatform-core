@@ -16,13 +16,19 @@
 
 package androidx.compose.material3
 
+import android.content.res.Configuration
 import android.os.Build
+import android.os.LocaleList
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isDialog
@@ -30,6 +36,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.screenshot.AndroidXScreenshotTestRule
@@ -240,6 +248,65 @@ class DatePickerScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 rule = screenshotRule,
                 goldenIdentifier = "datePicker_inDialog_${scheme.name}"
             )
+    }
+
+    @Test
+    fun datePicker_noMinimumInteractiveSize() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            val monthInUtcMillis = dayInUtcMilliseconds(year = 2021, month = 3, dayOfMonth = 1)
+            val selectedDayMillis = dayInUtcMilliseconds(year = 2021, month = 3, dayOfMonth = 6)
+            CompositionLocalProvider(
+                // Removes the min 48dp requirement clickable components.
+                value = LocalMinimumInteractiveComponentSize provides Dp.Unspecified
+            ) {
+                DatePickerDialog(
+                    onDismissRequest = {},
+                    confirmButton = { TextButton(onClick = {}) { Text("OK") } },
+                    dismissButton = { TextButton(onClick = {}) { Text("Cancel") } }
+                ) {
+                    DatePicker(
+                        state =
+                            rememberDatePickerState(
+                                initialDisplayedMonthMillis = monthInUtcMillis,
+                                initialSelectedDateMillis = selectedDayMillis
+                            ),
+                        showModeToggle = false
+                    )
+                }
+            }
+        }
+        rule
+            .onNode(isDialog())
+            .captureToImage()
+            .assertAgainstGolden(
+                rule = screenshotRule,
+                goldenIdentifier = "datePicker_noMinimumInteractiveSize_${scheme.name}"
+            )
+    }
+
+    @Test
+    fun datePicker_customLocale() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            val preferredLocales = LocaleList.forLanguageTags("HE")
+            val config = Configuration()
+            config.setLocales(preferredLocales)
+            val newContext = LocalContext.current.createConfigurationContext(config)
+            CompositionLocalProvider(
+                LocalContext provides newContext,
+                LocalConfiguration provides config,
+                LocalLayoutDirection provides LayoutDirection.Rtl
+            ) {
+                Box(wrap.testTag(wrapperTestTag)) {
+                    val monthInUtcMillis =
+                        dayInUtcMilliseconds(year = 2021, month = 1, dayOfMonth = 1)
+                    val state =
+                        rememberDatePickerState(initialDisplayedMonthMillis = monthInUtcMillis)
+                    DatePicker(state = state, showModeToggle = false)
+                }
+            }
+        }
+        // Expecting the content of the DatePicker to be in Hebrew.
+        assertAgainstGolden("datePicker_customLocale_${scheme.name}")
     }
 
     // Returns the given date's day as milliseconds from epoch. The returned value is for the day's

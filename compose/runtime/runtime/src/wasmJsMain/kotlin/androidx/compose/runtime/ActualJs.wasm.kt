@@ -16,13 +16,6 @@
 
 package androidx.compose.runtime
 
-import kotlinx.browser.window
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
-import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
-import kotlin.time.toDuration
-
 @JsFun("(obj, index) => obj[index]")
 private external fun dynamicGetInt(obj: JsAny, index: String): Int?
 

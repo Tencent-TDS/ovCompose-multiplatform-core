@@ -6,6 +6,43 @@ package androidx.compose.ui.tooling.preview {
     method @Deprecated public String getWEAR_OS_RECT();
     method @Deprecated public String getWEAR_OS_SMALL_ROUND();
     method @Deprecated public String getWEAR_OS_SQUARE();
+    property public static final String AUTOMOTIVE_1024p;
+    property public static final String DEFAULT;
+    property public static final String DESKTOP;
+    property public static final String FOLDABLE;
+    property public static final String NEXUS_10;
+    property public static final String NEXUS_5;
+    property public static final String NEXUS_5X;
+    property public static final String NEXUS_6;
+    property public static final String NEXUS_6P;
+    property public static final String NEXUS_7;
+    property public static final String NEXUS_7_2013;
+    property public static final String NEXUS_9;
+    property public static final String PHONE;
+    property public static final String PIXEL;
+    property public static final String PIXEL_2;
+    property public static final String PIXEL_2_XL;
+    property public static final String PIXEL_3;
+    property public static final String PIXEL_3A;
+    property public static final String PIXEL_3A_XL;
+    property public static final String PIXEL_3_XL;
+    property public static final String PIXEL_4;
+    property public static final String PIXEL_4A;
+    property public static final String PIXEL_4_XL;
+    property public static final String PIXEL_5;
+    property public static final String PIXEL_6;
+    property public static final String PIXEL_6A;
+    property public static final String PIXEL_6_PRO;
+    property public static final String PIXEL_7;
+    property public static final String PIXEL_7A;
+    property public static final String PIXEL_7_PRO;
+    property public static final String PIXEL_C;
+    property public static final String PIXEL_FOLD;
+    property public static final String PIXEL_TABLET;
+    property public static final String PIXEL_XL;
+    property public static final String TABLET;
+    property public static final String TV_1080p;
+    property public static final String TV_720p;
     property @Deprecated public String WEAR_OS_LARGE_ROUND;
     property @Deprecated public String WEAR_OS_RECT;
     property @Deprecated public String WEAR_OS_SMALL_ROUND;
@@ -68,10 +105,10 @@ package androidx.compose.ui.tooling.preview {
     method public abstract int uiMode() default 0;
     method public abstract int wallpaper() default androidx.compose.ui.tooling.preview.Wallpapers.NONE;
     method public abstract int widthDp() default -1;
-    property public abstract int apiLevel;
+    property @IntRange(from=1L) public abstract int apiLevel;
     property public abstract long backgroundColor;
     property public abstract String device;
-    property public abstract float fontScale;
+    property @FloatRange(from=0.01) public abstract float fontScale;
     property public abstract String group;
     property public abstract int heightDp;
     property public abstract String locale;
@@ -85,6 +122,19 @@ package androidx.compose.ui.tooling.preview {
 
   @kotlin.annotation.MustBeDocumented @kotlin.annotation.Repeatable @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets={kotlin.annotation.AnnotationTarget.ANNOTATION_CLASS, kotlin.annotation.AnnotationTarget.FUNCTION}) public static @interface Preview.Container {
     method public abstract androidx.compose.ui.tooling.preview.Preview[] value();
+    property @IntRange(from=1L) public abstract int apiLevel;
+    property public abstract long backgroundColor;
+    property public abstract String device;
+    property @FloatRange(from=0.01) public abstract float fontScale;
+    property public abstract String group;
+    property public abstract int heightDp;
+    property public abstract String locale;
+    property public abstract String name;
+    property public abstract boolean showBackground;
+    property public abstract boolean showSystemUi;
+    property public abstract int uiMode;
+    property public abstract int wallpaper;
+    property public abstract int widthDp;
   }
 
   @androidx.compose.ui.tooling.preview.Preview(name="Red", wallpaper=androidx.compose.ui.tooling.preview.Wallpapers.RED_DOMINATED_EXAMPLE) @androidx.compose.ui.tooling.preview.Preview(name="Blue", wallpaper=androidx.compose.ui.tooling.preview.Wallpapers.BLUE_DOMINATED_EXAMPLE) @androidx.compose.ui.tooling.preview.Preview(name="Green", wallpaper=androidx.compose.ui.tooling.preview.Wallpapers.GREEN_DOMINATED_EXAMPLE) @androidx.compose.ui.tooling.preview.Preview(name="Yellow", wallpaper=androidx.compose.ui.tooling.preview.Wallpapers.YELLOW_DOMINATED_EXAMPLE) @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets={kotlin.annotation.AnnotationTarget.ANNOTATION_CLASS, kotlin.annotation.AnnotationTarget.FUNCTION}) public @interface PreviewDynamicColors {
@@ -114,6 +164,11 @@ package androidx.compose.ui.tooling.preview {
   }
 
   public final class Wallpapers {
+    property public static final int BLUE_DOMINATED_EXAMPLE;
+    property public static final int GREEN_DOMINATED_EXAMPLE;
+    property public static final int NONE;
+    property public static final int RED_DOMINATED_EXAMPLE;
+    property public static final int YELLOW_DOMINATED_EXAMPLE;
     field public static final int BLUE_DOMINATED_EXAMPLE = 2; // 0x2
     field public static final int GREEN_DOMINATED_EXAMPLE = 1; // 0x1
     field public static final androidx.compose.ui.tooling.preview.Wallpapers INSTANCE;

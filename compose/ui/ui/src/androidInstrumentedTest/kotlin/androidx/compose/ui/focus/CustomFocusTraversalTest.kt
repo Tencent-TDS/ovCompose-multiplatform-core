@@ -427,9 +427,9 @@ class CustomFocusTraversalTest(
             Row(
                 Modifier.focusRequester(parent)
                     .focusProperties {
-                        enter = {
-                            directionThatTriggeredEnter = it
-                            item2
+                        onEnter = {
+                            directionThatTriggeredEnter = requestedFocusDirection
+                            item2.requestFocus()
                         }
                     }
                     .focusTarget()
@@ -479,9 +479,9 @@ class CustomFocusTraversalTest(
                     Modifier.focusRequester(item1)
                         .onFocusChanged { item1Focused = it.isFocused }
                         .focusProperties {
-                            enter = {
-                                directionThatTriggeredEnter = it
-                                item3
+                            onEnter = {
+                                directionThatTriggeredEnter = requestedFocusDirection
+                                item3.requestFocus()
                             }
                         }
                         .focusTarget()

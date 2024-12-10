@@ -101,11 +101,7 @@ class FocusViewInteropTest {
         lateinit var view: View
         rule.setContent {
             view = LocalView.current
-            Box(
-                Modifier.size(10.dp)
-                    .focusProperties { enter = { FocusRequester.Cancel } }
-                    .focusGroup()
-            ) {
+            Box(Modifier.size(10.dp).focusProperties { onEnter = { cancelFocus() } }.focusGroup()) {
                 Box(Modifier.size(10.dp).focusable())
             }
         }

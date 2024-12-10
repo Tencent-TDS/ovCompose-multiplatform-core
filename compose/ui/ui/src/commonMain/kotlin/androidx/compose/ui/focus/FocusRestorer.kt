@@ -17,6 +17,7 @@
 package androidx.compose.ui.focus
 
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusRequester.Companion.Default
@@ -75,39 +76,54 @@ internal fun FocusTargetNode.pinFocusedChild(): PinnedHandle? {
  * group, it stores a reference to the item that was previously focused. Then when focus re-enters
  * this focus group, it restores focus to the previously focused item.
  *
- * @param onRestoreFailed callback provides a lambda that is invoked if focus restoration fails.
- *   This lambda can be used to return a custom fallback item by providing a [FocusRequester]
- *   attached to that item. This can be used to customize the initially focused item.
+ * @param fallback A [FocusRequester] that is used when focus restoration fails to allow customizing
+ *   the initially focused item. The default value of [FocusRequester.Default] chooses the default
+ *   focusable item.
  * @sample androidx.compose.ui.samples.FocusRestorerSample
  * @sample androidx.compose.ui.samples.FocusRestorerCustomFallbackSample
  */
-fun Modifier.focusRestorer(onRestoreFailed: (() -> FocusRequester)? = null): Modifier =
-    this then FocusRestorerElement(onRestoreFailed)
+fun Modifier.focusRestorer(fallback: FocusRequester = Default): Modifier =
+    this then FocusRestorerElement(fallback)
 
-internal class FocusRestorerNode(var onRestoreFailed: (() -> FocusRequester)?) :
+/**
+ * Deprecated focusRestorer API. Use the version accepting [FocusRequester] instead of the lambda.
+ * This method will be removed soon after submitting.
+ */
+@ExperimentalComposeUiApi
+@Deprecated(
+    "Use focusRestorer(FocusRequester) instead",
+    ReplaceWith("this.focusRestorer(onRestoreFailed())"),
+    DeprecationLevel.WARNING
+)
+fun Modifier.focusRestorer(onRestoreFailed: (() -> FocusRequester)?): Modifier =
+    focusRestorer(fallback = onRestoreFailed?.invoke() ?: Default)
+
+internal class FocusRestorerNode(var fallback: FocusRequester) :
     CompositionLocalConsumerModifierNode,
     FocusPropertiesModifierNode,
     FocusRequesterModifierNode,
     Modifier.Node() {
 
     private var pinnedHandle: PinnedHandle? = null
-    private val onExit: (FocusDirection) -> FocusRequester = {
+    private val onExit: FocusEnterExitScope.() -> Unit = {
         saveFocusedChild()
         pinnedHandle?.release()
         pinnedHandle = pinFocusedChild()
-        Default
     }
 
-    private val onEnter: (FocusDirection) -> FocusRequester = {
-        val result = if (restoreFocusedChild()) Cancel else onRestoreFailed?.invoke()
+    private val onEnter: FocusEnterExitScope.() -> Unit = {
         pinnedHandle?.release()
         pinnedHandle = null
-        result ?: Default
+        if (restoreFocusedChild() || fallback == Cancel) {
+            cancelFocus()
+        } else if (fallback != Default) {
+            fallback.requestFocus()
+        }
     }
 
     override fun applyFocusProperties(focusProperties: FocusProperties) {
-        focusProperties.enter = onEnter
-        focusProperties.exit = onExit
+        focusProperties.onEnter = onEnter
+        focusProperties.onExit = onExit
     }
 
     override fun onDetach() {
@@ -117,16 +133,16 @@ internal class FocusRestorerNode(var onRestoreFailed: (() -> FocusRequester)?) :
     }
 }
 
-private data class FocusRestorerElement(val onRestoreFailed: (() -> FocusRequester)?) :
+private data class FocusRestorerElement(val fallback: FocusRequester) :
     ModifierNodeElement<FocusRestorerNode>() {
-    override fun create() = FocusRestorerNode(onRestoreFailed)
+    override fun create() = FocusRestorerNode(fallback)
 
     override fun update(node: FocusRestorerNode) {
-        node.onRestoreFailed = onRestoreFailed
+        node.fallback = fallback
     }
 
     override fun InspectorInfo.inspectableProperties() {
         name = "focusRestorer"
-        properties["onRestoreFailed"] = onRestoreFailed
+        properties["fallback"] = fallback
     }
 }

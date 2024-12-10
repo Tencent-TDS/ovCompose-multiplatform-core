@@ -250,6 +250,7 @@ class SelectionHandlePopupPositionTest {
                             isStartHandle = isStartHandle,
                             direction = ResolvedTextDirection.Ltr,
                             handlesCrossed = false,
+                            lineHeight = 0f,
                             modifier = Modifier.onGloballyPositioned { measureLatch.countDown() },
                         )
                     }

@@ -41,9 +41,9 @@ class RequestFocusExitTest {
                 Box(Modifier.focusRequester(destination).focusTarget())
                 Box(
                     Modifier.focusProperties {
-                            exit = {
+                            onExit = {
                                 exitCount++
-                                child2
+                                child2.requestFocus()
                             }
                         }
                         .focusTarget()

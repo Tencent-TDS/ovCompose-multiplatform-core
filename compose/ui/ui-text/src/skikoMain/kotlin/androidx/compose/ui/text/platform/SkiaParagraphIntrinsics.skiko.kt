@@ -29,15 +29,15 @@ import kotlin.math.ceil
 internal actual fun ActualParagraphIntrinsics(
     text: String,
     style: TextStyle,
-    spanStyles: List<Range<SpanStyle>>,
-    placeholders: List<Range<Placeholder>>,
+    annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
+    placeholders: List<AnnotatedString.Range<Placeholder>>,
     density: Density,
     fontFamilyResolver: FontFamily.Resolver
 ): ParagraphIntrinsics =
     SkiaParagraphIntrinsics(
         text,
         style,
-        spanStyles,
+        annotations,
         placeholders,
         density,
         fontFamilyResolver
@@ -46,7 +46,7 @@ internal actual fun ActualParagraphIntrinsics(
 internal class SkiaParagraphIntrinsics(
     val text: String,
     private val style: TextStyle,
-    private val spanStyles: List<Range<SpanStyle>>,
+    private val annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
     private val placeholders: List<Range<Placeholder>>,
     private val density: Density,
     private val fontFamilyResolver: FontFamily.Resolver
@@ -65,7 +65,7 @@ internal class SkiaParagraphIntrinsics(
         text = text,
         textDirection = textDirection,
         style = style,
-        spanStyles = spanStyles,
+        annotations = annotations,
         placeholders = placeholders,
         density = density,
         fontFamilyResolver = fontFamilyResolver

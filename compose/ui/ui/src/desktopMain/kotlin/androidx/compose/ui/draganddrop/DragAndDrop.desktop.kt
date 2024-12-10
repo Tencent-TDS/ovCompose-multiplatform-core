@@ -54,7 +54,13 @@ actual class DragAndDropTransferData(
      */
     @property:ExperimentalComposeUiApi
     val onTransferCompleted: ((userAction: DragAndDropTransferAction?) -> Unit)? = null,
-)
+) {
+
+    init {
+        require(supportedActions.firstOrNull() != null) { "supportedActions may not be empty" }
+    }
+
+}
 
 /**
  * Represents the actual object transferred during a drag-and-drop.

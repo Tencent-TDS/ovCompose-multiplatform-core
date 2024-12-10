@@ -171,6 +171,9 @@ class FocusRequester {
          */
         val Cancel = FocusRequester()
 
+        /** Used to indicate that the focus has been redirected during an enter/exit lambda. */
+        internal val Redirect = FocusRequester()
+
         /**
          * Convenient way to create multiple [FocusRequester] instances.
          *

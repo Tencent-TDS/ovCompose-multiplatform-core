@@ -526,8 +526,7 @@ internal val SemanticsNode.ancestors: Iterable<SemanticsNode>
         object : Iterable<SemanticsNode> {
             override fun iterator(): Iterator<SemanticsNode> {
                 return object : Iterator<SemanticsNode> {
-                    @JsName("nextVar")
-                    var next = parent
+                    @JsName("nextVar") var next = parent
 
                     override fun hasNext(): Boolean {
                         return next != null

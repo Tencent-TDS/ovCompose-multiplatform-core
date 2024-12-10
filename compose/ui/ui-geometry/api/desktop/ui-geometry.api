@@ -40,6 +40,7 @@ public final class androidx/compose/ui/geometry/InlineClassHelperKt {
 	public static final field DualFirstNaN J
 	public static final field DualFloatInfinityBase J
 	public static final field DualFloatSignBit J
+	public static final field DualLoadedSignificand J
 	public static final field DualUnsignedFloatMask J
 	public static final field FloatInfinityBase I
 	public static final field Uint64High32 J

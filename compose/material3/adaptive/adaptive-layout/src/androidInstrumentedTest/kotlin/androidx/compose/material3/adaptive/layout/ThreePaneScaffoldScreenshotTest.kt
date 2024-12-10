@@ -17,11 +17,16 @@
 package androidx.compose.material3.adaptive.layout
 
 import android.os.Build
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.VerticalDragHandle
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.testutils.assertAgainstGolden
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -110,6 +115,64 @@ class ThreePaneScaffoldScreenshotTest {
             .onNodeWithTag(ThreePaneScaffoldTestTag)
             .captureToImage()
             .assertAgainstGolden(screenshotRule, "threePaneScaffold_listDetail_dense_expanded")
+    }
+
+    @Test
+    fun threePaneScaffold_scaffoldStateTransitionFraction_0percent() {
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            val detailExtraExpanded =
+                ThreePaneScaffoldValue(
+                    primary = PaneAdaptedValue.Expanded,
+                    secondary = PaneAdaptedValue.Hidden,
+                    tertiary = PaneAdaptedValue.Expanded,
+                )
+            val listDetailExpanded =
+                ThreePaneScaffoldValue(
+                    primary = PaneAdaptedValue.Expanded,
+                    secondary = PaneAdaptedValue.Expanded,
+                    tertiary = PaneAdaptedValue.Hidden,
+                )
+            val scaffoldState = remember { MutableThreePaneScaffoldState(detailExtraExpanded) }
+            LaunchedEffect(Unit) { scaffoldState.seekTo(0f, listDetailExpanded) }
+            SampleThreePaneScaffoldWithScaffoldState(scaffoldState)
+        }
+
+        rule
+            .onNodeWithTag(ThreePaneScaffoldTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "threePaneScaffold_scaffoldStateTransitionFraction_0percent"
+            )
+    }
+
+    @Test
+    fun threePaneScaffold_scaffoldStateTransitionFraction_10percent() {
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            val detailExtraExpanded =
+                ThreePaneScaffoldValue(
+                    primary = PaneAdaptedValue.Expanded,
+                    secondary = PaneAdaptedValue.Hidden,
+                    tertiary = PaneAdaptedValue.Expanded,
+                )
+            val listDetailExpanded =
+                ThreePaneScaffoldValue(
+                    primary = PaneAdaptedValue.Expanded,
+                    secondary = PaneAdaptedValue.Expanded,
+                    tertiary = PaneAdaptedValue.Hidden,
+                )
+            val scaffoldState = remember { MutableThreePaneScaffoldState(detailExtraExpanded) }
+            LaunchedEffect(Unit) { scaffoldState.seekTo(0.1f, listDetailExpanded) }
+            SampleThreePaneScaffoldWithScaffoldState(scaffoldState)
+        }
+
+        rule
+            .onNodeWithTag(ThreePaneScaffoldTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "threePaneScaffold_scaffoldStateTransitionFraction_10percent"
+            )
     }
 
     @Test
@@ -332,7 +395,7 @@ class ThreePaneScaffoldScreenshotTest {
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
-        rule.runOnIdle { mockPaneExpansionState.dispatchRawDelta(mockDraggingDp) }
+        rule.runOnIdle { mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingDp) }
 
         rule
             .onNodeWithTag(ThreePaneScaffoldTestTag)
@@ -353,7 +416,7 @@ class ThreePaneScaffoldScreenshotTest {
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
-        rule.runOnIdle { mockPaneExpansionState.dispatchRawDelta(mockDraggingDp) }
+        rule.runOnIdle { mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingDp) }
 
         rule
             .onNodeWithTag(ThreePaneScaffoldTestTag)
@@ -374,7 +437,7 @@ class ThreePaneScaffoldScreenshotTest {
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
-        rule.runOnIdle { mockPaneExpansionState.dispatchRawDelta(mockDraggingDp) }
+        rule.runOnIdle { mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingDp) }
 
         rule
             .onNodeWithTag(ThreePaneScaffoldTestTag)
@@ -423,6 +486,18 @@ private fun SampleThreePaneScaffoldDenseMode() {
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
+private fun SampleThreePaneScaffoldWithScaffoldState(scaffoldState: ThreePaneScaffoldState) {
+    val scaffoldDirective =
+        calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(currentWindowAdaptiveInfo())
+    SampleThreePaneScaffold(
+        scaffoldDirective,
+        scaffoldState,
+        ListDetailPaneScaffoldDefaults.PaneOrder
+    )
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
 internal fun SampleThreePaneScaffoldWithPaneExpansion(
     paneExpansionState: PaneExpansionState,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
@@ -447,5 +522,14 @@ internal fun SampleThreePaneScaffoldWithPaneExpansion(
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun ThreePaneScaffoldScope.MockDragHandle(state: PaneExpansionState) {
-    PaneExpansionDragHandle(state, MaterialTheme.colorScheme.outline)
+    val interactionSource = remember { MutableInteractionSource() }
+    VerticalDragHandle(
+        modifier =
+            Modifier.paneExpansionDraggable(
+                state,
+                LocalMinimumInteractiveComponentSize.current,
+                interactionSource
+            ),
+        interactionSource = interactionSource
+    )
 }

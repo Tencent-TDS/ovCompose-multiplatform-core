@@ -19,15 +19,18 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.pointer.EmptyPointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
-import androidx.compose.ui.internal.JvmDefaultWithCompatibility
+import androidx.compose.ui.unit.IntSize
 
 /** Provides information about the Window that is hosting this compose hierarchy. */
 @Stable
-@JvmDefaultWithCompatibility
-expect interface WindowInfo {
+interface WindowInfo {
     /**
      * Indicates whether the window hosting this compose hierarchy is in focus.
      *
@@ -39,7 +42,17 @@ expect interface WindowInfo {
 
     /** Indicates the state of keyboard modifiers (pressed or not). */
     @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    open val keyboardModifiers: PointerKeyboardModifiers
+    val keyboardModifiers: PointerKeyboardModifiers
+        get() = WindowInfoImpl.GlobalKeyboardModifiers.value
+
+    /**
+     * Size of the window. This size excludes insets, such as any system bars, so it is not safe to
+     * assume that this size matches the available space of the compose hierarchy hosted inside this
+     * window. Instead this size should be used as a breakpoint when changing between UI
+     * configurations, or similar window-dependent configuration.
+     */
+    val containerSize: IntSize
+        get() = IntSize(Int.MIN_VALUE, Int.MIN_VALUE)
 }
 
 @Composable
@@ -48,5 +61,29 @@ internal fun WindowFocusObserver(onWindowFocusChanged: (isWindowFocused: Boolean
     val callback = rememberUpdatedState(onWindowFocusChanged)
     LaunchedEffect(windowInfo) {
         snapshotFlow { windowInfo.isWindowFocused }.collect { callback.value(it) }
+    }
+}
+
+internal class WindowInfoImpl : WindowInfo {
+    private val _containerSize = mutableStateOf(IntSize.Zero)
+
+    override var isWindowFocused: Boolean by mutableStateOf(false)
+
+    override var keyboardModifiers: PointerKeyboardModifiers
+        get() = GlobalKeyboardModifiers.value
+        set(value) {
+            GlobalKeyboardModifiers.value = value
+        }
+
+    override var containerSize: IntSize
+        get() = _containerSize.value
+        set(value) {
+            _containerSize.value = value
+        }
+
+    companion object {
+        // One instance across all windows makes sense, since the state of KeyboardModifiers is
+        // common for all windows.
+        internal val GlobalKeyboardModifiers = mutableStateOf(EmptyPointerKeyboardModifiers())
     }
 }

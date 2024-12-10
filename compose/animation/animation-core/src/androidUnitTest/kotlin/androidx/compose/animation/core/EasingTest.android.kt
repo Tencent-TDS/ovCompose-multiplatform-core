@@ -17,6 +17,7 @@
 package androidx.compose.animation.core
 
 import androidx.compose.ui.util.floatFromBits
+import kotlin.math.max
 import kotlin.math.ulp
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -24,11 +25,11 @@ import kotlin.test.assertTrue
 // This test can't be in commonTest because
 // Float.ulp is jvm only: https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.math/ulp.html
 class EasingTestAndroid {
-    private val ZeroEpsilon = -(1.0f.ulp * 2.0f)
+    private val ZeroEpsilon = 1.0f.ulp * 2.0f
     private val OneEpsilon = 1.0f + 1.0f.ulp * 2.0f
 
     @Test
-    fun canSolveCubicForFractionsCloseToOne() {
+    fun canSolveCubicForFractionsCloseToZeroOrOne() {
         // Only test curves defined in [0..1]
         // For instance, EaseInOutBack is defined in a larger domain, so exclude it from the list
         val curves =
@@ -53,6 +54,9 @@ class EasingTestAndroid {
                 EaseInOutQuint,
                 EaseInSine,
                 EaseOut,
+                // Not included because it overshoots 1.0f on purpose, so it can't be tested the
+                // same way as the other curves. See canSolveOvershootingCurve()
+                // EaseOutBack,
                 EaseOutCirc,
                 EaseOutCubic,
                 EaseOutExpo,
@@ -63,8 +67,7 @@ class EasingTestAndroid {
             )
 
         for (curve in curves) {
-            // Test the last 16 ulps until 1.0f
-            for (i in 0x3f7ffff0..0x3f7fffff) {
+            for (i in 0x3f7f9d99..0x3f7fffff) {
                 val fraction = floatFromBits(i)
                 val t = curve.transform(fraction)
                 assertTrue(
@@ -72,6 +75,34 @@ class EasingTestAndroid {
                     "f($fraction) = $t out of range for $curve | ${-ZeroEpsilon}..${OneEpsilon}"
                 )
             }
+
+            for (i in 0x0..0x6266) {
+                val fraction = floatFromBits(i)
+                val t = curve.transform(fraction)
+                assertTrue(
+                    t in -ZeroEpsilon..OneEpsilon,
+                    "f($fraction) = $t out of range for $curve | ${-ZeroEpsilon}..${OneEpsilon}"
+                )
+            }
+
+            // Test at 1.5058824E-7, small value but not too close to 0.0 either
+            val fraction = floatFromBits(0x3421b161)
+            val t = curve.transform(fraction)
+            assertTrue(
+                t in -ZeroEpsilon..OneEpsilon,
+                "f($fraction) = $t out of range for $curve | ${-ZeroEpsilon}..${OneEpsilon}"
+            )
         }
+    }
+
+    @Test
+    fun canSolveOvershootingCurve() {
+        // We only really care that we don't throw an exception
+        var t = Float.MIN_VALUE
+        for (i in 0x3f7f9d99..0x3f7fffff) {
+            val fraction = floatFromBits(i)
+            t = max(t, EaseOutBack.transform(fraction))
+        }
+        assertTrue(t > Float.MIN_VALUE)
     }
 }

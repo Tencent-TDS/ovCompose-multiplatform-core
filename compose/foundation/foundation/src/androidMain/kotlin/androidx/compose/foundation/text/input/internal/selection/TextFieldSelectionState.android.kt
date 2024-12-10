@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text.input.internal.selection
 
+import android.os.Build
 import androidx.compose.foundation.contextmenu.ContextMenuScope
 import androidx.compose.foundation.contextmenu.ContextMenuState
 import androidx.compose.foundation.text.TextContextMenuItems
@@ -30,4 +31,7 @@ internal fun TextFieldSelectionState.contextMenuBuilder(
     }
     TextItem(state, TextContextMenuItems.Paste, enabled = canPaste()) { paste() }
     TextItem(state, TextContextMenuItems.SelectAll, enabled = canSelectAll()) { selectAll() }
+    if (Build.VERSION.SDK_INT >= 26) {
+        TextItem(state, TextContextMenuItems.Autofill, enabled = canAutofill()) { autofill() }
+    }
 }

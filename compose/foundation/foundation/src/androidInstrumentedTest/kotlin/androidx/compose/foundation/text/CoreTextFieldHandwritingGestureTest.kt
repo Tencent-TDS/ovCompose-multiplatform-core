@@ -1736,6 +1736,17 @@ class CoreTextFieldHandwritingGestureTest {
                 onCopyRequested: (() -> Unit)?,
                 onPasteRequested: (() -> Unit)?,
                 onCutRequested: (() -> Unit)?,
+                onSelectAllRequested: (() -> Unit)?,
+                onAutofillRequested: (() -> Unit)?
+            ) {
+                _status = TextToolbarStatus.Shown
+            }
+
+            override fun showMenu(
+                rect: Rect,
+                onCopyRequested: (() -> Unit)?,
+                onPasteRequested: (() -> Unit)?,
+                onCutRequested: (() -> Unit)?,
                 onSelectAllRequested: (() -> Unit)?
             ) {
                 _status = TextToolbarStatus.Shown

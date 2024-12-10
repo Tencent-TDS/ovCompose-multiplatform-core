@@ -23,5 +23,5 @@ ParameterNameChange: androidx.compose.foundation.gestures.DraggableAnchors#posit
     Attempted to change parameter name from value to anchor in method androidx.compose.foundation.gestures.DraggableAnchors.positionOf
 
 
-RemovedClass: androidx.compose.foundation.draganddrop.AndroidDragAndDropSource_androidKt:
-    Removed class androidx.compose.foundation.draganddrop.AndroidDragAndDropSource_androidKt
+RemovedMethod: androidx.compose.foundation.lazy.grid.GridItemSpan#getCurrentLineSpan():
+    Removed method androidx.compose.foundation.lazy.grid.GridItemSpan.getCurrentLineSpan()

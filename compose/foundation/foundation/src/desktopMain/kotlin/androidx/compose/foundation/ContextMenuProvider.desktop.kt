@@ -224,14 +224,13 @@ class ContextMenuData(
     val next: ContextMenuData?
 ) {
 
-    internal val allItems: List<ContextMenuItem> by lazy {
-        allItemsSeq.toList()
-    }
-
-    internal val allItemsSeq: Sequence<ContextMenuItem>
-        get() = sequence {
-            yieldAll(items())
-            next?.let { yieldAll(it.allItemsSeq) }
+    internal val allItems: List<ContextMenuItem>
+        get() = buildList {
+            var current: ContextMenuData? = this@ContextMenuData
+            while (current != null) {
+                addAll(current.items())
+                current = current.next
+            }
         }
 
     override fun equals(other: Any?): Boolean {

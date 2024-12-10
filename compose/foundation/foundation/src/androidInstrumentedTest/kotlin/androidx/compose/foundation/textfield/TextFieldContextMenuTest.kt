@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.lerp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -230,7 +231,8 @@ class TextFieldContextMenuTest : FocusedWindowTest {
 
     // region BTF1 Context Menu Correct Item Tests
     @Test
-    fun btf1_contextMenu_emptyClipboard_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf1_contextMenu_emptyClipboard_noSelection_itemsMatch_beforeApi26() =
         runBtf1CorrectItemsTest(
             isEmptyClipboard = true,
             selectionAmount = SelectionAmount.NONE,
@@ -240,6 +242,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf1_contextMenu_emptyClipboard_noSelection_itemsMatch_afterApi26() =
+        runBtf1CorrectItemsTest(
+            isEmptyClipboard = true,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.DOES_NOT_EXIST,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -254,6 +273,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -268,11 +288,13 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
     @Test
-    fun btf1_contextMenu_nonEmptyClipboard_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf1_contextMenu_nonEmptyClipboard_noSelection_itemsMatch_beforeApi26() =
         runBtf1CorrectItemsTest(
             isEmptyClipboard = false,
             selectionAmount = SelectionAmount.NONE,
@@ -282,6 +304,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf1_contextMenu_nonEmptyClipboard_noSelection_itemsMatch_afterApi26() =
+        runBtf1CorrectItemsTest(
+            isEmptyClipboard = false,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.ENABLED,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -298,6 +337,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -312,11 +352,13 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
     @Test
-    fun btf1_contextMenu_password_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf1_contextMenu_password_noSelection_itemsMatch_beforeApi26() =
         runBtf1CorrectItemsTest(
             isPassword = true,
             selectionAmount = SelectionAmount.NONE,
@@ -326,6 +368,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf1_contextMenu_password_noSelection_itemsMatch_afterApi26() =
+        runBtf1CorrectItemsTest(
+            isPassword = true,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.ENABLED,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -340,6 +399,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -354,6 +414,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -369,6 +430,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -384,6 +446,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -399,6 +462,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -597,7 +661,8 @@ class TextFieldContextMenuTest : FocusedWindowTest {
 
     // region BTF2 Context Menu Correct Item Tests
     @Test
-    fun btf2_contextMenu_emptyClipboard_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf2_contextMenu_emptyClipboard_noSelection_itemsMatch_beforeApi26() =
         runBtf2CorrectItemsTest(
             isEmptyClipboard = true,
             selectionAmount = SelectionAmount.NONE,
@@ -607,6 +672,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf2_contextMenu_emptyClipboard_noSelection_itemsMatch_afterApi26() =
+        runBtf2CorrectItemsTest(
+            isEmptyClipboard = true,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.DOES_NOT_EXIST,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -621,6 +703,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -635,11 +718,13 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
     @Test
-    fun btf2_contextMenu_nonEmptyClipboard_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf2_contextMenu_nonEmptyClipboard_noSelection_itemsMatch_beforeApi26() =
         runBtf2CorrectItemsTest(
             isEmptyClipboard = false,
             selectionAmount = SelectionAmount.NONE,
@@ -649,6 +734,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf2_contextMenu_nonEmptyClipboard_noSelection_itemsMatch_afterApi26() =
+        runBtf2CorrectItemsTest(
+            isEmptyClipboard = false,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.ENABLED,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -663,6 +765,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -677,11 +780,13 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
     @Test
-    fun btf2_contextMenu_password_noSelection_itemsMatch() =
+    @SdkSuppress(maxSdkVersion = 25)
+    fun btf2_contextMenu_password_noSelection_itemsMatch_beforeApi26() =
         runBtf2CorrectItemsTest(
             isPassword = true,
             selectionAmount = SelectionAmount.NONE,
@@ -691,6 +796,23 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 26)
+    fun btf2_contextMenu_password_noSelection_itemsMatch_afterApi26() =
+        runBtf2CorrectItemsTest(
+            isPassword = true,
+            selectionAmount = SelectionAmount.NONE,
+        ) {
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.ENABLED,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.ENABLED,
             )
         }
 
@@ -705,6 +827,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -719,6 +842,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.ENABLED,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -734,6 +858,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -749,6 +874,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -764,6 +890,7 @@ class TextFieldContextMenuTest : FocusedWindowTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 

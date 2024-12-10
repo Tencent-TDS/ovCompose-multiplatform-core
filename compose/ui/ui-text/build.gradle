@@ -38,7 +38,6 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         implementation(libs.kotlinStdlibCommon)
         implementation(libs.kotlinCoroutinesCore)
-        implementation(libs.atomicFu)
 
         api(project(":compose:ui:ui-graphics"))
         api(project(":compose:ui:ui-unit"))
@@ -105,7 +104,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
 
                 api(project(":compose:ui:ui-graphics"))
                 api(project(":compose:ui:ui-unit"))
@@ -117,8 +115,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:ui:ui-geometry"))
 
-                implementation(project(":collection:collection"))
                 implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
             }
 
             jvmMain.dependencies {
@@ -129,6 +127,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonMain)
                 dependencies {
                     api(libs.skikoCommon)
+                    implementation(libs.atomicFu)
                 }
             }
 

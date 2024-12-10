@@ -34,7 +34,6 @@ import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -92,37 +91,54 @@ import kotlinx.coroutines.launch
  *   sheet's window.
  * @param shouldDismissOnBackPress Whether the modal bottom sheet can be dismissed by pressing the
  *   back button. If true, pressing the back button will call onDismissRequest.
+ * @param isAppearanceLightStatusBars If true, changes the foreground color of the status bars to
+ *   light so that the items on the bar can be read clearly. If false, reverts to the default
+ *   appearance.
+ * @param isAppearanceLightNavigationBars If true, changes the foreground color of the navigation
+ *   bars to light so that the items on the bar can be read clearly. If false, reverts to the
+ *   default appearance.
  */
 @Immutable
 @ExperimentalMaterial3Api
 actual class ModalBottomSheetProperties(
     val securePolicy: SecureFlagPolicy = SecureFlagPolicy.Inherit,
     actual val shouldDismissOnBackPress: Boolean = true,
+    actual val isAppearanceLightStatusBars: Boolean = true,
+    actual val isAppearanceLightNavigationBars: Boolean = true,
 ) {
     actual constructor(
         shouldDismissOnBackPress: Boolean,
+        isAppearanceLightStatusBars: Boolean,
+        isAppearanceLightNavigationBars: Boolean,
     ) : this(
         securePolicy = SecureFlagPolicy.Inherit,
-        shouldDismissOnBackPress = shouldDismissOnBackPress
+        shouldDismissOnBackPress = shouldDismissOnBackPress,
+        isAppearanceLightStatusBars = isAppearanceLightNavigationBars,
+        isAppearanceLightNavigationBars = isAppearanceLightNavigationBars
     )
 
     @Deprecated(
         message = "'isFocusable' param is no longer used. Use constructor without this parameter.",
         level = DeprecationLevel.WARNING,
         replaceWith =
-        ReplaceWith("ModalBottomSheetProperties(securePolicy, shouldDismissOnBackPress)")
+            ReplaceWith("ModalBottomSheetProperties(securePolicy, shouldDismissOnBackPress)")
     )
     @Suppress("UNUSED_PARAMETER")
     constructor(
         securePolicy: SecureFlagPolicy,
         isFocusable: Boolean,
         shouldDismissOnBackPress: Boolean,
-    ) : this(securePolicy, shouldDismissOnBackPress)
+    ) : this(
+        securePolicy = securePolicy,
+        shouldDismissOnBackPress = shouldDismissOnBackPress,
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ModalBottomSheetProperties) return false
         if (securePolicy != other.securePolicy) return false
+        if (isAppearanceLightStatusBars != other.isAppearanceLightStatusBars) return false
+        if (isAppearanceLightNavigationBars != other.isAppearanceLightNavigationBars) return false
 
         return true
     }
@@ -130,6 +146,8 @@ actual class ModalBottomSheetProperties(
     override fun hashCode(): Int {
         var result = securePolicy.hashCode()
         result = 31 * result + shouldDismissOnBackPress.hashCode()
+        result = 31 * result + isAppearanceLightStatusBars.hashCode()
+        result = 31 * result + isAppearanceLightNavigationBars.hashCode()
         return result
     }
 }
@@ -211,23 +229,23 @@ actual object ModalBottomSheetDefaults {
     level = DeprecationLevel.HIDDEN,
     message = "Use constructor with contentWindowInsets parameter.",
     replaceWith =
-    ReplaceWith(
-        "ModalBottomSheet(" +
-            "onDismissRequest," +
-            "modifier," +
-            "sheetState," +
-            "sheetMaxWidth," +
-            "shape," +
-            "containerColor," +
-            "contentColor," +
-            "tonalElevation," +
-            "scrimColor," +
-            "dragHandle," +
-            "{ windowInsets }," +
-            "properties," +
-            "content," +
-            ")"
-    )
+        ReplaceWith(
+            "ModalBottomSheet(" +
+                "onDismissRequest," +
+                "modifier," +
+                "sheetState," +
+                "sheetMaxWidth," +
+                "shape," +
+                "containerColor," +
+                "contentColor," +
+                "tonalElevation," +
+                "scrimColor," +
+                "dragHandle," +
+                "{ windowInsets }," +
+                "properties," +
+                "content," +
+                ")"
+        )
 )
 fun ModalBottomSheet(
     onDismissRequest: () -> Unit,
@@ -277,20 +295,18 @@ internal actual fun ModalBottomSheetDialog(
     val currentContent by rememberUpdatedState(content)
     val dialogId = rememberSaveable { UUID.randomUUID() }
     val scope = rememberCoroutineScope()
-    val darkThemeEnabled = isSystemInDarkTheme()
     val dialog =
         remember(view, density) {
             ModalBottomSheetDialogWrapper(
-                onDismissRequest,
-                properties,
-                view,
-                layoutDirection,
-                density,
-                dialogId,
-                predictiveBackProgress,
-                scope,
-                darkThemeEnabled,
-            )
+                    onDismissRequest,
+                    properties,
+                    view,
+                    layoutDirection,
+                    density,
+                    dialogId,
+                    predictiveBackProgress,
+                    scope,
+                )
                 .apply {
                     setContent(composition) {
                         Box(
@@ -431,7 +447,7 @@ private class ModalBottomSheetDialogLayout(
                 view
                     .findOnBackInvokedDispatcher()
                     ?.registerOnBackInvokedCallback(
-                        OnBackInvokedDispatcher.PRIORITY_OVERLAY,
+                        OnBackInvokedDispatcher.PRIORITY_DEFAULT,
                         backCallback
                     )
             }
@@ -459,7 +475,6 @@ private class ModalBottomSheetDialogWrapper(
     dialogId: UUID,
     predictiveBackProgress: Animatable<Float, AnimationVector1D>,
     scope: CoroutineScope,
-    darkThemeEnabled: Boolean,
 ) :
     ComponentDialog(
         ContextThemeWrapper(
@@ -485,13 +500,13 @@ private class ModalBottomSheetDialogWrapper(
         WindowCompat.setDecorFitsSystemWindows(window, false)
         dialogLayout =
             ModalBottomSheetDialogLayout(
-                context,
-                window,
-                properties.shouldDismissOnBackPress,
-                onDismissRequest,
-                predictiveBackProgress,
-                scope,
-            )
+                    context,
+                    window,
+                    properties.shouldDismissOnBackPress,
+                    onDismissRequest,
+                    predictiveBackProgress,
+                    scope,
+                )
                 .apply {
                     // Set unique id for AbstractComposeView. This allows state restoration for the
                     // state
@@ -533,8 +548,8 @@ private class ModalBottomSheetDialogWrapper(
         updateParameters(onDismissRequest, properties, layoutDirection)
 
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = !darkThemeEnabled
-            isAppearanceLightNavigationBars = !darkThemeEnabled
+            isAppearanceLightStatusBars = properties.isAppearanceLightStatusBars
+            isAppearanceLightNavigationBars = properties.isAppearanceLightNavigationBars
         }
         // Due to how the onDismissRequest callback works
         // (it enforces a just-in-time decision on whether to update the state to hide the dialog)

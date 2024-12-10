@@ -147,6 +147,116 @@ import kotlinx.coroutines.launch
  * @param state state of the date picker. See [rememberDatePickerState].
  * @param modifier the [Modifier] to be applied to this date picker
  * @param dateFormatter a [DatePickerFormatter] that provides formatting skeletons for dates display
+ * @param colors [DatePickerColors] that will be used to resolve the colors used for this date
+ *   picker in different states. See [DatePickerDefaults.colors].
+ * @param title the title to be displayed in the date picker
+ * @param headline the headline to be displayed in the date picker
+ * @param showModeToggle indicates if this DatePicker should show a mode toggle action that
+ *   transforms it into a date input
+ * @param requestFocus have a focus request be sent to the text field when the date picker is in an
+ *   input mode
+ */
+@ExperimentalMaterial3Api
+@Composable
+fun DatePicker(
+    state: DatePickerState,
+    modifier: Modifier = Modifier,
+    dateFormatter: DatePickerFormatter = remember { DatePickerDefaults.dateFormatter() },
+    colors: DatePickerColors = DatePickerDefaults.colors(),
+    title: (@Composable () -> Unit)? = {
+        DatePickerDefaults.DatePickerTitle(
+            displayMode = state.displayMode,
+            modifier = Modifier.padding(DatePickerTitlePadding),
+            contentColor = colors.titleContentColor
+        )
+    },
+    headline: (@Composable () -> Unit)? = {
+        DatePickerDefaults.DatePickerHeadline(
+            selectedDateMillis = state.selectedDateMillis,
+            displayMode = state.displayMode,
+            dateFormatter = dateFormatter,
+            modifier = Modifier.padding(DatePickerHeadlinePadding),
+            contentColor = colors.headlineContentColor
+        )
+    },
+    showModeToggle: Boolean = true,
+    requestFocus: Boolean = true
+) {
+    val calendarModel =
+        remember(state.locale) {
+            if (state is BaseDatePickerStateImpl) {
+                state.calendarModel
+            } else {
+                createCalendarModel(state.locale)
+            }
+        }
+    DateEntryContainer(
+        modifier = modifier,
+        title = title,
+        headline = headline,
+        modeToggleButton =
+            if (showModeToggle) {
+                {
+                    DisplayModeToggleButton(
+                        modifier = Modifier.padding(DatePickerModeTogglePadding),
+                        displayMode = state.displayMode,
+                        onDisplayModeChange = { displayMode -> state.displayMode = displayMode },
+                        colors = colors
+                    )
+                }
+            } else {
+                null
+            },
+        headlineTextStyle = DatePickerModalTokens.HeaderHeadlineFont.value,
+        headerMinHeight = DatePickerModalTokens.HeaderContainerHeight,
+        colors = colors,
+    ) {
+        SwitchableDateEntryContent(
+            selectedDateMillis = state.selectedDateMillis,
+            displayedMonthMillis = state.displayedMonthMillis,
+            displayMode = state.displayMode,
+            onDateSelectionChange = { dateInMillis -> state.selectedDateMillis = dateInMillis },
+            onDisplayedMonthChange = { monthInMillis ->
+                state.displayedMonthMillis = monthInMillis
+            },
+            calendarModel = calendarModel,
+            yearRange = state.yearRange,
+            dateFormatter = dateFormatter,
+            selectableDates = state.selectableDates,
+            colors = colors,
+            requestFocus = requestFocus
+        )
+    }
+}
+
+/**
+ * <a href="https://m3.material.io/components/date-pickers/overview" class="external"
+ * target="_blank">Material Design date picker</a>.
+ *
+ * Date pickers let people select a date and preferably should be embedded into Dialogs. See
+ * [DatePickerDialog].
+ *
+ * By default, a date picker lets you pick a date via a calendar UI. However, it also allows
+ * switching into a date input mode for a manual entry of dates using the numbers on a keyboard.
+ *
+ * ![Date picker
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/date-picker.png)
+ *
+ * A simple DatePicker looks like:
+ *
+ * @sample androidx.compose.material3.samples.DatePickerSample
+ *
+ * A DatePicker with an initial UI of a date input mode looks like:
+ *
+ * @sample androidx.compose.material3.samples.DateInputSample
+ *
+ * A DatePicker with a provided [SelectableDates] that blocks certain days from being selected looks
+ * like:
+ *
+ * @sample androidx.compose.material3.samples.DatePickerWithDateSelectableDatesSample
+ * @param state state of the date picker. See [rememberDatePickerState].
+ * @param modifier the [Modifier] to be applied to this date picker
+ * @param dateFormatter a [DatePickerFormatter] that provides formatting skeletons for dates display
  * @param title the title to be displayed in the date picker
  * @param headline the headline to be displayed in the date picker
  * @param showModeToggle indicates if this DatePicker should show a mode toggle action that
@@ -154,6 +264,12 @@ import kotlinx.coroutines.launch
  * @param colors [DatePickerColors] that will be used to resolve the colors used for this date
  *   picker in different states. See [DatePickerDefaults.colors].
  */
+@Deprecated(
+    message =
+        "Maintained for binary compatibility. Use the DatePicker with the different" +
+            " order of parameters.",
+    level = DeprecationLevel.HIDDEN
+)
 @ExperimentalMaterial3Api
 @Composable
 fun DatePicker(
@@ -176,45 +292,7 @@ fun DatePicker(
     },
     showModeToggle: Boolean = true,
     colors: DatePickerColors = DatePickerDefaults.colors()
-) {
-    val defaultLocale = defaultLocale()
-    val calendarModel = remember(defaultLocale) { createCalendarModel(defaultLocale) }
-    DateEntryContainer(
-        modifier = modifier,
-        title = title,
-        headline = headline,
-        modeToggleButton =
-            if (showModeToggle) {
-                {
-                    DisplayModeToggleButton(
-                        modifier = Modifier.padding(DatePickerModeTogglePadding),
-                        displayMode = state.displayMode,
-                        onDisplayModeChange = { displayMode -> state.displayMode = displayMode },
-                    )
-                }
-            } else {
-                null
-            },
-        headlineTextStyle = DatePickerModalTokens.HeaderHeadlineFont.value,
-        headerMinHeight = DatePickerModalTokens.HeaderContainerHeight,
-        colors = colors,
-    ) {
-        SwitchableDateEntryContent(
-            selectedDateMillis = state.selectedDateMillis,
-            displayedMonthMillis = state.displayedMonthMillis,
-            displayMode = state.displayMode,
-            onDateSelectionChange = { dateInMillis -> state.selectedDateMillis = dateInMillis },
-            onDisplayedMonthChange = { monthInMillis ->
-                state.displayedMonthMillis = monthInMillis
-            },
-            calendarModel = calendarModel,
-            yearRange = state.yearRange,
-            dateFormatter = dateFormatter,
-            selectableDates = state.selectableDates,
-            colors = colors
-        )
-    }
-}
+) = DatePicker(state, modifier, dateFormatter, colors, title, headline, showModeToggle)
 
 /**
  * A state object that can be hoisted to observe the date picker state. See
@@ -254,6 +332,12 @@ interface DatePickerState {
      * In case a date is not allowed to be selected, it will appear disabled in the UI.
      */
     val selectableDates: SelectableDates
+
+    /**
+     * A locale that will be used when formatting dates, determining the input format, week-days,
+     * and more.
+     */
+    val locale: CalendarLocale
 }
 
 /** An interface that controls the selectable dates and years in the date pickers UI. */
@@ -284,7 +368,6 @@ interface DatePickerFormatter {
      *
      * @param monthMillis timestamp in _UTC_ milliseconds from the epoch that represents the month
      * @param locale a [CalendarLocale] to use when formatting the month and year
-     * @see defaultLocale
      */
     fun formatMonthYear(@Suppress("AutoBoxing") monthMillis: Long?, locale: CalendarLocale): String?
 
@@ -296,7 +379,6 @@ interface DatePickerFormatter {
      * @param forContentDescription indicates that the requested formatting is for content
      *   description. In these cases, the output may include a more descriptive wording that will be
      *   passed to a screen readers.
-     * @see defaultLocale
      */
     fun formatDate(
         @Suppress("AutoBoxing") dateMillis: Long?,
@@ -355,25 +437,37 @@ fun rememberDatePickerState(
 ): DatePickerState {
     val locale = defaultLocale()
     return rememberSaveable(saver = DatePickerStateImpl.Saver(selectableDates, locale)) {
-        DatePickerStateImpl(
-            initialSelectedDateMillis = initialSelectedDateMillis,
-            initialDisplayedMonthMillis = initialDisplayedMonthMillis,
-            yearRange = yearRange,
-            initialDisplayMode = initialDisplayMode,
-            selectableDates = selectableDates,
-            locale = locale
-        )
-    }
+            DatePickerStateImpl(
+                initialSelectedDateMillis = initialSelectedDateMillis,
+                initialDisplayedMonthMillis = initialDisplayedMonthMillis,
+                yearRange = yearRange,
+                initialDisplayMode = initialDisplayMode,
+                selectableDates = selectableDates,
+                locale = locale
+            )
+        }
+        .apply {
+            // Update the state's selectable dates if they were changed.
+            this.selectableDates = selectableDates
+        }
 }
 
 /**
  * Creates a [DatePickerState].
  *
- * Note that in most cases, you are advised to use the [rememberDatePickerState] when in a
- * composition.
+ * For most cases, you are advised to use the [rememberDatePickerState] when in a composition.
  *
- * @param locale a [CalendarLocale] to be used when formatting dates, determining the input format,
- *   and more
+ * Note that in case you provide a [locale] that is different than the default platform locale, you
+ * may need to ensure that the picker's title and headline localized correctly. The following sample
+ * shows one possible way of doing so by applying a local composition of a `LocalContext` and
+ * `LocaleConfiguration`.
+ *
+ * @sample androidx.compose.material3.samples.DatePickerCustomLocaleSample
+ * @param locale the [CalendarLocale] that will be used when formatting dates, determining the input
+ *   format, displaying the week-day, determining the first day of the week, and more. Note that in
+ *   case the provided [CalendarLocale] differs from the platform's default Locale, you may need to
+ *   ensure that the picker's title and headline localized correctly, and in some cases, you may
+ *   need to apply an RTL layout.
  * @param initialSelectedDateMillis timestamp in _UTC_ milliseconds from the epoch that represents
  *   an initial selection of a date. Provide a `null` to indicate no selection. Note that the
  *   state's [DatePickerState.selectedDateMillis] will provide a timestamp that represents the
@@ -611,16 +705,47 @@ object DatePickerDefaults {
      *
      * @param displayMode the current [DisplayMode]
      * @param modifier a [Modifier] to be applied for the title
+     * @param contentColor the content color of this title
      */
     @Composable
-    fun DatePickerTitle(displayMode: DisplayMode, modifier: Modifier = Modifier) {
+    fun DatePickerTitle(
+        displayMode: DisplayMode,
+        modifier: Modifier = Modifier,
+        contentColor: Color = colors().titleContentColor
+    ) {
         when (displayMode) {
             DisplayMode.Picker ->
-                Text(text = getString(string = Strings.DatePickerTitle), modifier = modifier)
+                Text(
+                    text = getString(string = Strings.DatePickerTitle),
+                    modifier = modifier,
+                    color = contentColor
+                )
             DisplayMode.Input ->
-                Text(text = getString(string = Strings.DateInputTitle), modifier = modifier)
+                Text(
+                    text = getString(string = Strings.DateInputTitle),
+                    modifier = modifier,
+                    color = contentColor
+                )
         }
     }
+
+    /**
+     * A default date picker title composable.
+     *
+     * @param displayMode the current [DisplayMode]
+     * @param modifier a [Modifier] to be applied for the title
+     */
+    @Deprecated(
+        message = "Maintained for binary compatibility. Use the DatePickerTitle with contentColor.",
+        level = DeprecationLevel.HIDDEN
+    )
+    @Composable
+    fun DatePickerTitle(displayMode: DisplayMode, modifier: Modifier = Modifier) =
+        DatePickerTitle(
+            displayMode = displayMode,
+            modifier = modifier,
+            contentColor = colors().titleContentColor
+        )
 
     /**
      * A default date picker headline composable that displays a default headline text when there is
@@ -631,21 +756,23 @@ object DatePickerDefaults {
      * @param displayMode the current [DisplayMode]
      * @param dateFormatter a [DatePickerFormatter]
      * @param modifier a [Modifier] to be applied for the headline
+     * @param contentColor the content color of this headline
      */
     @Composable
     fun DatePickerHeadline(
         @Suppress("AutoBoxing") selectedDateMillis: Long?,
         displayMode: DisplayMode,
         dateFormatter: DatePickerFormatter,
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        contentColor: Color = colors().headlineContentColor
     ) {
-        val defaultLocale = defaultLocale()
+        val locale = defaultLocale()
         val formattedDate =
-            dateFormatter.formatDate(dateMillis = selectedDateMillis, locale = defaultLocale)
+            dateFormatter.formatDate(dateMillis = selectedDateMillis, locale = locale)
         val verboseDateDescription =
             dateFormatter.formatDate(
                 dateMillis = selectedDateMillis,
-                locale = defaultLocale,
+                locale = locale,
                 forContentDescription = true
             )
                 ?: when (displayMode) {
@@ -679,9 +806,41 @@ object DatePickerDefaults {
                     liveRegion = LiveRegionMode.Polite
                     contentDescription = headlineDescription
                 },
+            color = contentColor,
             maxLines = 1
         )
     }
+
+    /**
+     * A default date picker headline composable that displays a default headline text when there is
+     * no date selection, and an actual date string when there is.
+     *
+     * @param selectedDateMillis a timestamp that represents the selected date _start_ of the day in
+     *   _UTC_ milliseconds from the epoch
+     * @param displayMode the current [DisplayMode]
+     * @param dateFormatter a [DatePickerFormatter]
+     * @param modifier a [Modifier] to be applied for the headline
+     */
+    @Deprecated(
+        message =
+            "Maintained for binary compatibility. Use the DatePickerHeadline with " +
+                "contentColor.",
+        level = DeprecationLevel.HIDDEN
+    )
+    @Composable
+    fun DatePickerHeadline(
+        @Suppress("AutoBoxing") selectedDateMillis: Long?,
+        displayMode: DisplayMode,
+        dateFormatter: DatePickerFormatter,
+        modifier: Modifier = Modifier,
+    ) =
+        DatePickerHeadline(
+            selectedDateMillis = selectedDateMillis,
+            displayMode = displayMode,
+            dateFormatter = dateFormatter,
+            modifier = modifier,
+            contentColor = colors().headlineContentColor
+        )
 
     /**
      * Creates and remembers a [FlingBehavior] that will represent natural fling curve with snap to
@@ -966,7 +1125,7 @@ constructor(
             when {
                 selected && enabled -> selectedYearContentColor
                 selected && !enabled -> disabledSelectedYearContentColor
-                currentYear -> currentYearContentColor
+                currentYear && enabled -> currentYearContentColor
                 enabled -> yearContentColor
                 else -> disabledYearContentColor
             }
@@ -1071,6 +1230,8 @@ constructor(
  * @param yearRange an [IntRange] that holds the year range that the date picker will be limited to
  * @param selectableDates a [SelectableDates] that is consulted to check if a date is allowed. In
  *   case a date is not allowed to be selected, it will appear disabled in the UI.
+ * @param locale a locale that will be used when formatting dates, determining the input format,
+ *   week-days, and more.
  * @throws [IllegalArgumentException] if the initial selected date or displayed month represent a
  *   year that is out of the year range.
  * @see rememberDatePickerState
@@ -1080,19 +1241,22 @@ constructor(
 internal abstract class BaseDatePickerStateImpl(
     @Suppress("AutoBoxing") initialDisplayedMonthMillis: Long?,
     val yearRange: IntRange,
-    val selectableDates: SelectableDates,
-    locale: CalendarLocale
+    selectableDates: SelectableDates,
+    val locale: CalendarLocale
 ) {
 
     val calendarModel = createCalendarModel(locale)
 
-    private var _displayedMonth =
+    var selectableDates by mutableStateOf(selectableDates)
+
+    private val _displayedMonth =
         mutableStateOf(
             if (initialDisplayedMonthMillis != null) {
-                val month = calendarModel.getMonth(initialDisplayedMonthMillis)
-                require(yearRange.contains(month.year)) {
-                    "The initial display month's year (${month.year}) is out of the years range of " +
-                        "$yearRange."
+                var month = calendarModel.getMonth(initialDisplayedMonthMillis)
+                if (!yearRange.contains(month.year)) {
+                    // The initial display month's year is out of the years range, so just set the
+                    // displayed month to the current one.
+                    month = calendarModel.getMonth(calendarModel.today)
                 }
                 month
             } else {
@@ -1105,10 +1269,10 @@ internal abstract class BaseDatePickerStateImpl(
         get() = _displayedMonth.value.startUtcTimeMillis
         set(monthMillis) {
             val month = calendarModel.getMonth(monthMillis)
-            require(yearRange.contains(month.year)) {
-                "The display month's year (${month.year}) is out of the years range of $yearRange."
+            // Set the displayed month only if the month's year is within the years range.
+            if (yearRange.contains(month.year)) {
+                _displayedMonth.value = month
             }
-            _displayedMonth.value = month
         }
 }
 
@@ -1150,11 +1314,9 @@ private class DatePickerStateImpl(
         mutableStateOf(
             if (initialSelectedDateMillis != null) {
                 val date = calendarModel.getCanonicalDate(initialSelectedDateMillis)
-                require(yearRange.contains(date.year)) {
-                    "The provided initial date's year (${date.year}) is out of the years range " +
-                        "of $yearRange."
-                }
-                date
+                // If the provided initial date's year is out of the years range, return null.
+                // Otherwise, return the date.
+                if (yearRange.contains(date.year)) date else null
             } else {
                 null
             }
@@ -1165,12 +1327,9 @@ private class DatePickerStateImpl(
         set(@Suppress("AutoBoxing") dateMillis) {
             if (dateMillis != null) {
                 val date = calendarModel.getCanonicalDate(dateMillis)
-                // Validate that the give date is within the valid years range.
-                require(yearRange.contains(date.year)) {
-                    "The provided date's year (${date.year}) is out of the years range of " +
-                        "$yearRange."
-                }
-                _selectedDate.value = date
+                // Validate that the give date is within the valid years range. In not, set the
+                // selected date to null.
+                _selectedDate.value = if (yearRange.contains(date.year)) date else null
             } else {
                 _selectedDate.value = null
             }
@@ -1364,21 +1523,24 @@ internal fun DateEntryContainer(
 internal fun DisplayModeToggleButton(
     modifier: Modifier,
     displayMode: DisplayMode,
-    onDisplayModeChange: (DisplayMode) -> Unit
+    onDisplayModeChange: (DisplayMode) -> Unit,
+    colors: DatePickerColors
 ) {
-    if (displayMode == DisplayMode.Picker) {
-        IconButton(onClick = { onDisplayModeChange(DisplayMode.Input) }, modifier = modifier) {
-            Icon(
-                imageVector = Icons.Filled.Edit,
-                contentDescription = getString(Strings.DatePickerSwitchToInputMode)
-            )
-        }
-    } else {
-        IconButton(onClick = { onDisplayModeChange(DisplayMode.Picker) }, modifier = modifier) {
-            Icon(
-                imageVector = Icons.Filled.DateRange,
-                contentDescription = getString(Strings.DatePickerSwitchToCalendarMode)
-            )
+    CompositionLocalProvider(LocalContentColor provides colors.headlineContentColor) {
+        if (displayMode == DisplayMode.Picker) {
+            IconButton(onClick = { onDisplayModeChange(DisplayMode.Input) }, modifier = modifier) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = getString(Strings.DatePickerSwitchToInputMode)
+                )
+            }
+        } else {
+            IconButton(onClick = { onDisplayModeChange(DisplayMode.Picker) }, modifier = modifier) {
+                Icon(
+                    imageVector = Icons.Filled.DateRange,
+                    contentDescription = getString(Strings.DatePickerSwitchToCalendarMode)
+                )
+            }
         }
     }
 }
@@ -1387,7 +1549,7 @@ internal fun DisplayModeToggleButton(
  * Date entry content that displays a [DatePickerContent] or a [DateInputContent] according to the
  * state's display mode.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwitchableDateEntryContent(
     selectedDateMillis: Long?,
@@ -1399,7 +1561,8 @@ private fun SwitchableDateEntryContent(
     yearRange: IntRange,
     dateFormatter: DatePickerFormatter,
     selectableDates: SelectableDates,
-    colors: DatePickerColors
+    colors: DatePickerColors,
+    requestFocus: Boolean
 ) {
     // Parallax effect offset that will slightly scroll in and out the navigation part of the picker
     // when the display mode changes.
@@ -1476,13 +1639,14 @@ private fun SwitchableDateEntryContent(
                     yearRange = yearRange,
                     dateFormatter = dateFormatter,
                     selectableDates = selectableDates,
-                    colors = colors
+                    colors = colors,
+                    requestFocus = requestFocus
                 )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DatePickerContent(
     selectedDateMillis: Long?,
@@ -1496,11 +1660,24 @@ private fun DatePickerContent(
     colors: DatePickerColors
 ) {
     val displayedMonth = calendarModel.getMonth(displayedMonthMillis)
-    val monthsListState =
-        rememberLazyListState(initialFirstVisibleItemIndex = displayedMonth.indexIn(yearRange))
+    val monthIndex = displayedMonth.indexIn(yearRange).coerceAtLeast(0)
+    val monthsListState = rememberLazyListState(initialFirstVisibleItemIndex = monthIndex)
+
+    // Scroll to the resolved displayedMonth, if needed.
+    LaunchedEffect(monthIndex) {
+        // The DatePicker has other actions that can trigger a scroll and update the
+        // displayedMonthMillis as they do so, hence we check here for isScrollInProgress and only
+        // scroll to the monthIndex when there is none in progress.
+        if (
+            !monthsListState.isScrollInProgress &&
+                monthsListState.firstVisibleItemIndex != monthIndex
+        ) {
+            monthsListState.scrollToItem(monthIndex)
+        }
+    }
+
     val coroutineScope = rememberCoroutineScope()
     var yearPickerVisible by rememberSaveable { mutableStateOf(false) }
-    val defaultLocale = defaultLocale()
     Column {
         MonthsNavigation(
             modifier = Modifier.padding(horizontal = DatePickerHorizontalPadding),
@@ -1510,7 +1687,7 @@ private fun DatePickerContent(
             yearPickerText =
                 dateFormatter.formatMonthYear(
                     monthMillis = displayedMonthMillis,
-                    locale = defaultLocale
+                    locale = calendarModel.locale
                 ) ?: "-",
             onNextClicked = {
                 coroutineScope.launch {
@@ -1689,7 +1866,8 @@ private fun HorizontalMonthsList(
                         rangeSelectionInfo = null,
                         dateFormatter = dateFormatter,
                         selectableDates = selectableDates,
-                        colors = colors
+                        colors = colors,
+                        locale = calendarModel.locale
                     )
                 }
             }
@@ -1751,9 +1929,17 @@ internal fun WeekDays(colors: DatePickerColors, calendarModel: CalendarModel) {
             Box(
                 modifier =
                     Modifier.clearAndSetSemantics { contentDescription = it.first }
+                        // Match the minimum size to the Day's required size. This will ensure an
+                        // aligned layout for the weekday letters to the days below, even when
+                        // the LocalMinimumInteractiveComponentSize is set to a lower value than the
+                        // recommended 48.dp.
+                        .sizeIn(
+                            minWidth = DatePickerModalTokens.DateContainerWidth,
+                            minHeight = DatePickerModalTokens.DateContainerHeight
+                        )
                         .size(
-                            width = RecommendedSizeForAccessibility,
-                            height = RecommendedSizeForAccessibility
+                            width = LocalMinimumInteractiveComponentSize.current,
+                            height = LocalMinimumInteractiveComponentSize.current
                         ),
                 contentAlignment = Alignment.Center
             ) {
@@ -1781,7 +1967,8 @@ internal fun Month(
     rangeSelectionInfo: SelectedRangeInfo?,
     dateFormatter: DatePickerFormatter,
     selectableDates: SelectableDates,
-    colors: DatePickerColors
+    colors: DatePickerColors,
+    locale: CalendarLocale
 ) {
     val rangeSelectionDrawModifier =
         if (rangeSelectionInfo != null) {
@@ -1793,7 +1980,6 @@ internal fun Month(
             Modifier
         }
 
-    val defaultLocale = defaultLocale()
     var cellIndex = 0
     Column(
         modifier =
@@ -1813,13 +1999,21 @@ internal fun Month(
                             cellIndex >=
                                 (month.daysFromStartOfWeekToFirstOfMonth + month.numberOfDays)
                     ) {
-                        // Empty cell
+                        // Empty cell.
+                        // Match the spacer's minimum size to the Day's required size. This will
+                        // ensure an aligned layout, even when a
+                        // LocalMinimumInteractiveComponentSize is set to a lower value than the
+                        // recommended 48.dp.
                         Spacer(
                             modifier =
-                                Modifier.requiredSize(
-                                    width = RecommendedSizeForAccessibility,
-                                    height = RecommendedSizeForAccessibility
-                                )
+                                Modifier.sizeIn(
+                                        minWidth = DatePickerModalTokens.DateContainerWidth,
+                                        minHeight = DatePickerModalTokens.DateContainerHeight
+                                    )
+                                    .size(
+                                        width = LocalMinimumInteractiveComponentSize.current,
+                                        height = LocalMinimumInteractiveComponentSize.current
+                                    )
                         )
                     } else {
                         val dayNumber = cellIndex - month.daysFromStartOfWeekToFirstOfMonth
@@ -1852,10 +2046,11 @@ internal fun Month(
                         val formattedDateDescription =
                             dateFormatter.formatDate(
                                 dateInMillis,
-                                defaultLocale,
+                                locale,
                                 forContentDescription = true
                             ) ?: ""
                         Day(
+                            text = (dayNumber + 1).toLocalString(),
                             modifier = Modifier,
                             selected = startDateSelected || endDateSelected,
                             onClick = { onDateSelectionChange(dateInMillis) },
@@ -1864,7 +2059,7 @@ internal fun Month(
                             // end-date selection.
                             animateChecked = startDateSelected,
                             enabled =
-                                remember(dateInMillis) {
+                                remember(dateInMillis, selectableDates) {
                                     // Disabled a day in case its year is not selectable, or the
                                     // date itself is specifically not allowed by the state's
                                     // SelectableDates.
@@ -1882,14 +2077,7 @@ internal fun Month(
                                     formattedDateDescription
                                 },
                             colors = colors
-                        ) {
-                            Text(
-                                text = (dayNumber + 1).toLocalString(),
-                                // The semantics are set at the Day level.
-                                modifier = Modifier.clearAndSetSemantics {},
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                        )
                     }
                     cellIndex++
                 }
@@ -1931,6 +2119,7 @@ private fun dayContentDescription(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Day(
+    text: String,
     modifier: Modifier,
     selected: Boolean,
     onClick: () -> Unit,
@@ -1939,8 +2128,7 @@ private fun Day(
     today: Boolean,
     inRange: Boolean,
     description: String,
-    colors: DatePickerColors,
-    content: @Composable () -> Unit
+    colors: DatePickerColors
 ) {
     Surface(
         selected = selected,
@@ -1949,26 +2137,16 @@ private fun Day(
             modifier
                 // Apply and merge semantics here. This will ensure that when scrolling the list the
                 // entire Day surface is treated as one unit and holds the date semantics even when
-                // it's
-                // not completely visible atm.
+                // it's not completely visible atm.
                 .semantics(mergeDescendants = true) {
-                    text = AnnotatedString(description)
-                    role = Role.Button
+                    this.text = AnnotatedString(description)
+                    this.role = Role.Button
                 },
         enabled = enabled,
         shape = DatePickerModalTokens.DateContainerShape.value,
         color =
             colors
                 .dayContainerColor(selected = selected, enabled = enabled, animate = animateChecked)
-                .value,
-        contentColor =
-            colors
-                .dayContentColor(
-                    isToday = today,
-                    selected = selected,
-                    inRange = inRange,
-                    enabled = enabled,
-                )
                 .value,
         border =
             if (today && !selected) {
@@ -1983,12 +2161,26 @@ private fun Day(
         Box(
             modifier =
                 Modifier.requiredSize(
-                    DatePickerModalTokens.DateStateLayerWidth,
-                    DatePickerModalTokens.DateStateLayerHeight
+                    DatePickerModalTokens.DateContainerWidth,
+                    DatePickerModalTokens.DateContainerHeight
                 ),
             contentAlignment = Alignment.Center
         ) {
-            content()
+            Text(
+                text = text,
+                // The semantics are set at the Surface level.
+                modifier = Modifier.clearAndSetSemantics {},
+                color =
+                    colors
+                        .dayContentColor(
+                            isToday = today,
+                            selected = selected,
+                            inRange = inRange,
+                            enabled = enabled,
+                        )
+                        .value,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -2026,6 +2218,7 @@ private fun YearPicker(
                 val selectedYear = it + yearRange.first
                 val localizedYear = selectedYear.toLocalString()
                 Year(
+                    text = localizedYear,
                     modifier =
                         Modifier.requiredSize(
                             width = DatePickerModalTokens.SelectionYearContainerWidth,
@@ -2041,14 +2234,7 @@ private fun YearPicker(
                             localizedYear
                         ),
                     colors = colors
-                ) {
-                    Text(
-                        text = localizedYear,
-                        // The semantics are set at the Year level.
-                        modifier = Modifier.clearAndSetSemantics {},
-                        textAlign = TextAlign.Center
-                    )
-                }
+                )
             }
         }
     }
@@ -2062,14 +2248,14 @@ internal expect inline fun formatDatePickerNavigateToYearString(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Year(
+    text: String,
     modifier: Modifier,
     selected: Boolean,
     currentYear: Boolean,
     onClick: () -> Unit,
     enabled: Boolean,
     description: String,
-    colors: DatePickerColors,
-    content: @Composable () -> Unit
+    colors: DatePickerColors
 ) {
     val border =
         remember(currentYear, selected) {
@@ -2091,19 +2277,30 @@ private fun Year(
         // completely visible atm.
         modifier =
             modifier.semantics(mergeDescendants = true) {
-                text = AnnotatedString(description)
-                role = Role.Button
+                this.text = AnnotatedString(description)
+                this.role = Role.Button
             },
         enabled = enabled,
         shape = DatePickerModalTokens.SelectionYearStateLayerShape.value,
         color = colors.yearContainerColor(selected = selected, enabled = enabled).value,
-        contentColor =
-            colors
-                .yearContentColor(currentYear = currentYear, selected = selected, enabled = enabled)
-                .value,
         border = border,
     ) {
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                // The semantics are set at the Surface level.
+                modifier = Modifier.clearAndSetSemantics {},
+                color =
+                    colors
+                        .yearContentColor(
+                            currentYear = currentYear,
+                            selected = selected,
+                            enabled = enabled
+                        )
+                        .value,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -2134,26 +2331,24 @@ private fun MonthsNavigation(
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CompositionLocalProvider(LocalContentColor provides colors.navigationContentColor) {
-            // A menu button for selecting a year.
-            YearPickerMenuButton(
-                onClick = onYearPickerButtonClicked,
-                expanded = yearPickerVisible
-            ) {
-                Text(
-                    text = yearPickerText,
-                    modifier =
-                        Modifier.semantics {
-                            // Make the screen reader read out updates to the menu button text as
-                            // the user navigates the arrows or scrolls to change the displayed
-                            // month.
-                            liveRegion = LiveRegionMode.Polite
-                            contentDescription = yearPickerText
-                        }
-                )
-            }
-            // Show arrows for traversing months (only visible when the year selection is off)
-            if (!yearPickerVisible) {
+        // A menu button for selecting a year.
+        YearPickerMenuButton(onClick = onYearPickerButtonClicked, expanded = yearPickerVisible) {
+            Text(
+                text = yearPickerText,
+                modifier =
+                    Modifier.semantics {
+                        // Make the screen reader read out updates to the menu button text as
+                        // the user navigates the arrows or scrolls to change the displayed
+                        // month.
+                        liveRegion = LiveRegionMode.Polite
+                        contentDescription = yearPickerText
+                    },
+                color = colors.navigationContentColor
+            )
+        }
+        // Show arrows for traversing months (only visible when the year selection is off)
+        if (!yearPickerVisible) {
+            CompositionLocalProvider(LocalContentColor provides colors.navigationContentColor) {
                 Row {
                     IconButton(onClick = onPreviousClicked, enabled = previousAvailable) {
                         Icon(

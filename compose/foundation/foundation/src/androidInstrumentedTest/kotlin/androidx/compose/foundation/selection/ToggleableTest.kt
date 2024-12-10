@@ -94,6 +94,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalTestApi::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class ToggleableTest {
@@ -800,6 +801,40 @@ class ToggleableTest {
         rule.runOnIdle { assertThat(toggled).isFalse() }
 
         toggleableNode.performKeyInput { keyUp(Key.Enter) }
+        rule.runOnIdle { assertThat(toggled).isTrue() }
+    }
+
+    @Test
+    @OptIn(ExperimentalTestApi::class)
+    fun toggleableTest_clickWithSpaceKey() {
+        val focusRequester = FocusRequester()
+        lateinit var inputModeManager: InputModeManager
+        var toggled by mutableStateOf(false)
+        rule.setContent {
+            inputModeManager = LocalInputModeManager.current
+            BasicText(
+                "ToggleableText",
+                modifier =
+                    Modifier.testTag("toggleable").focusRequester(focusRequester).toggleable(
+                        value = toggled
+                    ) {
+                        toggled = it
+                    }
+            )
+        }
+
+        rule.runOnIdle {
+            inputModeManager.requestInputMode(Keyboard)
+            focusRequester.requestFocus()
+        }
+
+        val toggleableNode = rule.onNodeWithTag("toggleable")
+        rule.runOnIdle { assertThat(toggled).isFalse() }
+
+        toggleableNode.performKeyInput { keyDown(Key.Spacebar) }
+        rule.runOnIdle { assertThat(toggled).isFalse() }
+
+        toggleableNode.performKeyInput { keyUp(Key.Spacebar) }
         rule.runOnIdle { assertThat(toggled).isTrue() }
     }
 

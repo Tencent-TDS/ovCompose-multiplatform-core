@@ -19,7 +19,6 @@ package androidx.compose.animation.graphics.res
 import android.content.res.Resources
 import android.util.Xml
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.animation.graphics.vector.compat.parseAnimatedImageVector
 import androidx.compose.animation.graphics.vector.compat.seekToStartTag
@@ -35,7 +34,6 @@ import org.xmlpull.v1.XmlPullParserException
  * @return an animated vector drawable resource.
  * @sample androidx.compose.animation.graphics.samples.AnimatedVectorSample
  */
-@ExperimentalAnimationGraphicsApi
 @Composable
 public fun AnimatedImageVector.Companion.animatedVectorResource(
     @DrawableRes id: Int
@@ -46,7 +44,6 @@ public fun AnimatedImageVector.Companion.animatedVectorResource(
     return remember(id) { loadAnimatedVectorResource(theme, res, id) }
 }
 
-@ExperimentalAnimationGraphicsApi
 @Throws(XmlPullParserException::class)
 internal fun loadAnimatedVectorResource(
     theme: Resources.Theme? = null,

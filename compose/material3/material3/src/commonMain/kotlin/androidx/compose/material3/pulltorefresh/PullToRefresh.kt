@@ -256,6 +256,7 @@ internal class PullToRefreshModifierNode(
     override fun onAttach() {
         delegate(nestedScrollNode)
         coroutineScope.launch { state.snapTo(if (isRefreshing) 1f else 0f) }
+        verticalOffset = if (isRefreshing) thresholdPx.toFloat() else 0f
     }
 
     override fun onPreScroll(
@@ -665,7 +666,8 @@ fun rememberPullToRefreshState(): PullToRefreshState {
  * Note that in most cases, you are advised to use [rememberPullToRefreshState] when in composition.
  */
 @JsName("funPullToRefreshState")
-@ExperimentalMaterial3Api fun PullToRefreshState(): PullToRefreshState = PullToRefreshStateImpl()
+@ExperimentalMaterial3Api
+fun PullToRefreshState(): PullToRefreshState = PullToRefreshStateImpl()
 
 /**
  * Creates a [PullToRefreshState].

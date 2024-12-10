@@ -396,7 +396,7 @@ internal class BasicSecureTextFieldTest {
         var showMenuRequested = false
         val textToolbar =
             FakeTextToolbar(
-                onShowMenu = { _, onCopyRequested, _, onCutRequested, _ ->
+                onShowMenu = { _, onCopyRequested, _, onCutRequested, _, _ ->
                     showMenuRequested = true
                     copyOptionAvailable = onCopyRequested != null
                     cutOptionAvailable = onCutRequested != null

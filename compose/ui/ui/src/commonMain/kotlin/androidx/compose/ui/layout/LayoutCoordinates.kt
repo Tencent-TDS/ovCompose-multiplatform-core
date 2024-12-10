@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-@file:JvmName("LayoutCoordinatesKt")
-@file:JvmMultifileClass
-
 package androidx.compose.ui.layout
 
 import androidx.compose.ui.geometry.Offset
@@ -29,8 +26,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastMaxOf
 import androidx.compose.ui.util.fastMinOf
-import kotlin.jvm.JvmMultifileClass
-import kotlin.jvm.JvmName
 
 /** A holder of the measured bounds for the [Layout]. */
 @JvmDefaultWithCompatibility
@@ -162,6 +157,17 @@ interface LayoutCoordinates {
     }
 
     /**
+     * Takes a [matrix] which transforms some coordinate system `C` to local coordinates, and
+     * updates the matrix to transform from `C` to screen coordinates instead.
+     */
+    @Suppress("DocumentExceptions")
+    fun transformToScreen(matrix: Matrix) {
+        throw UnsupportedOperationException(
+            "transformToScreen is not implemented on this LayoutCoordinates"
+        )
+    }
+
+    /**
      * Returns the position in pixels of an [alignment line][AlignmentLine], or
      * [AlignmentLine.Unspecified] if the line is not provided.
      */
@@ -189,7 +195,7 @@ fun LayoutCoordinates.boundsInWindow(): Rect {
     val rootWidth = root.size.width.toFloat()
     val rootHeight = root.size.height.toFloat()
 
-    val bounds = boundsInRoot()
+    val bounds = root.localBoundingBoxOf(this)
     val boundsLeft = bounds.left.fastCoerceIn(0f, rootWidth)
     val boundsTop = bounds.top.fastCoerceIn(0f, rootHeight)
     val boundsRight = bounds.right.fastCoerceIn(0f, rootWidth)

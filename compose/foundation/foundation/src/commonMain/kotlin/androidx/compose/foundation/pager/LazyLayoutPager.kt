@@ -19,12 +19,12 @@
 package androidx.compose.foundation.pager
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollScope
-import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -58,7 +58,6 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastAll
@@ -82,6 +81,8 @@ internal fun Pager(
     flingBehavior: TargetedFlingBehavior,
     /** Whether scrolling via the user gestures is allowed. */
     userScrollEnabled: Boolean,
+    /** The overscroll effect to render and dispatch events to */
+    overscrollEffect: OverscrollEffect?,
     /** Number of pages to compose and layout before and after the visible pages */
     beyondViewportPageCount: Int = PagerDefaults.BeyondViewportPageCount,
     /** Space between pages */
@@ -141,12 +142,21 @@ internal fun Pager(
             PagerBringIntoViewSpec(state, defaultBringIntoViewSpec)
         }
 
-    val reverseDirection =
-        ScrollableDefaults.reverseDirection(
-            LocalLayoutDirection.current,
-            orientation,
-            reverseLayout
-        )
+    val beyondBoundsModifier =
+        if (userScrollEnabled) {
+            Modifier.lazyLayoutBeyondBoundsModifier(
+                state =
+                    rememberPagerBeyondBoundsState(
+                        state = state,
+                        beyondViewportPageCount = beyondViewportPageCount
+                    ),
+                beyondBoundsInfo = state.beyondBoundsInfo,
+                reverseLayout = reverseLayout,
+                orientation = orientation,
+            )
+        } else {
+            Modifier
+        }
 
     LazyLayout(
         modifier =
@@ -166,27 +176,16 @@ internal fun Pager(
                     coroutineScope,
                     userScrollEnabled
                 )
-                .lazyLayoutBeyondBoundsModifier(
-                    state =
-                        rememberPagerBeyondBoundsState(
-                            state = state,
-                            beyondViewportPageCount = beyondViewportPageCount
-                        ),
-                    beyondBoundsInfo = state.beyondBoundsInfo,
-                    reverseLayout = reverseLayout,
-                    layoutDirection = LocalLayoutDirection.current,
-                    orientation = orientation,
-                    enabled = userScrollEnabled
-                )
+                .then(beyondBoundsModifier)
                 .scrollingContainer(
                     state = state,
                     orientation = orientation,
                     enabled = userScrollEnabled,
-                    reverseDirection = reverseDirection,
+                    reverseScrolling = reverseLayout,
                     flingBehavior = resolvedFlingBehavior,
                     interactionSource = state.internalInteractionSource,
-                    bringIntoViewSpec = pagerBringIntoViewSpec,
-                    overscrollEffect = ScrollableDefaults.overscrollEffect()
+                    overscrollEffect = overscrollEffect,
+                    bringIntoViewSpec = pagerBringIntoViewSpec
                 )
                 .dragDirectionDetector(state)
                 .nestedScroll(pageNestedScrollConnection),

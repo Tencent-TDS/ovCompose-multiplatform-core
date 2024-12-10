@@ -152,7 +152,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
         val state = TextFieldState("abc")
         var showMenuCalled = 0
         val textToolbar =
-            FakeTextToolbar(onShowMenu = { _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
+            FakeTextToolbar(onShowMenu = { _, _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
         val clipboardManager = FakeClipboardManager("hello")
         rule.setTextFieldTestContent {
             CompositionLocalProvider(

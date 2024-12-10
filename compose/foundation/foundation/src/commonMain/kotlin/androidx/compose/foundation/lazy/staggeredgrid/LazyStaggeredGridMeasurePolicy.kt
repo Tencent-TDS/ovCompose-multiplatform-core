@@ -62,6 +62,8 @@ internal fun rememberStaggeredGridMeasurePolicy(
     ) {
         { constraints ->
             state.measurementScopeInvalidator.attachToScope()
+            // Tracks if the lookahead pass has occurred
+            val isInLookaheadScope = state.hasLookaheadOccurred || isLookingAhead
             checkScrollableContainerConstraints(constraints, orientation)
             val resolvedSlots = slots.invoke(density = this, constraints = constraints)
             val isVertical = orientation == Orientation.Vertical
@@ -122,9 +124,12 @@ internal fun rememberStaggeredGridMeasurePolicy(
                     beforeContentPadding = beforeContentPadding,
                     afterContentPadding = afterContentPadding,
                     coroutineScope = coroutineScope,
+                    isInLookaheadScope = isInLookaheadScope,
+                    isLookingAhead = isLookingAhead,
+                    approachLayoutInfo = state.approachLayoutInfo,
                     graphicsContext = graphicsContext
                 )
-            state.applyMeasureResult(measureResult)
+            state.applyMeasureResult(measureResult, isLookingAhead = isLookingAhead)
             measureResult
         }
     }

@@ -16,29 +16,34 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.animation.withAnimationProgress
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.asCGPoint
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpRect
+import androidx.compose.ui.unit.asDpSize
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toDpOffset
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toRect
-import kotlin.math.roundToInt
+import androidx.compose.ui.unit.toSize
+import kotlin.time.Duration
 import kotlinx.cinterop.useContents
 import platform.UIKit.UIView
-
-private const val LayerFrameKeyPath = "layer.frame"
 
 /**
  * Tracking a state of window.
  */
 internal class PlatformWindowContext {
-    private val _windowInfo = WindowInfoImpl()
+    private val _windowInfo = WindowInfoImpl().apply {
+        isWindowFocused = true
+    }
 
     val windowInfo: WindowInfo get() = _windowInfo
 
@@ -47,26 +52,47 @@ internal class PlatformWindowContext {
      */
     private var windowContainer: UIView? = null
 
-    var isWindowFocused by _windowInfo::isWindowFocused
-
     fun setWindowContainer(windowContainer: UIView) {
         this.windowContainer = windowContainer
 
         updateWindowContainerSize()
     }
 
-    fun updateWindowContainerSize() {
-        val windowContainer = windowContainer ?: return
+    private var isAnimating = false
+    fun prepareAndGetSizeTransitionAnimation(): suspend (Duration) -> Unit {
+        isAnimating = true
+        val initialSize = _windowInfo.containerSize.toSize()
 
-        val scale = windowContainer.density.density
-        val size = windowContainer.frame.useContents {
-            IntSize(
-                width = (size.width * scale).roundToInt(),
-                height = (size.height * scale).roundToInt()
-            )
+        return { duration ->
+            try {
+                if (initialSize != currentWindowContainerSize) {
+                    withAnimationProgress(duration) { progress ->
+                        val size = currentWindowContainerSize ?: initialSize
+                        _windowInfo.containerSize =
+                            lerp(initialSize, size, progress).roundToIntSize()
+                    }
+                }
+            } finally {
+                isAnimating = false
+                updateWindowContainerSize()
+            }
         }
+    }
 
-        _windowInfo.containerSize = size
+    fun updateWindowContainerSize() {
+        if (isAnimating) return
+
+        _windowInfo.containerSize = currentWindowContainerSize?.roundToIntSize() ?: return
+    }
+
+    private val currentWindowContainerSize: Size? get() {
+        val windowContainer = windowContainer ?: return null
+
+        return windowContainer.bounds.useContents {
+            with(windowContainer.density) {
+                size.asDpSize().toSize()
+            }
+        }
     }
 
     fun convertLocalToWindowPosition(container: UIView, localPosition: Offset): Offset {

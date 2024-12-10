@@ -18,7 +18,7 @@ public final class androidx/compose/runtime/ActualDesktop_desktopKt {
 
 public final class androidx/compose/runtime/ActualJvm_jvmKt {
 	public static final fun identityHashCode (Ljava/lang/Object;)I
-	public static final fun synchronized (Landroidx/compose/runtime/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+	public static final synthetic fun synchronized (Landroidx/compose/runtime/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
 public abstract interface class androidx/compose/runtime/Applier {
@@ -118,6 +118,12 @@ public abstract interface class androidx/compose/runtime/ComposeNodeLifecycleCal
 	public abstract fun onDeactivate ()V
 	public abstract fun onRelease ()V
 	public abstract fun onReuse ()V
+}
+
+public final class androidx/compose/runtime/ComposeRuntimeFlags {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/runtime/ComposeRuntimeFlags;
+	public static field isMovingNestedMovableContentEnabled Z
 }
 
 public abstract interface class androidx/compose/runtime/Composer {
@@ -302,6 +308,7 @@ public abstract interface class androidx/compose/runtime/ControlledComposition :
 	public abstract fun composeContent (Lkotlin/jvm/functions/Function2;)V
 	public abstract fun delegateInvalidations (Landroidx/compose/runtime/ControlledComposition;ILkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public abstract fun disposeUnusedMovableContent (Landroidx/compose/runtime/MovableContentState;)V
+	public abstract fun getAndSetShouldPauseCallback (Landroidx/compose/runtime/ShouldPauseCallback;)Landroidx/compose/runtime/ShouldPauseCallback;
 	public abstract fun getHasPendingChanges ()Z
 	public abstract fun insertMovableContent (Ljava/util/List;)V
 	public abstract fun invalidateAll ()V
@@ -312,7 +319,6 @@ public abstract interface class androidx/compose/runtime/ControlledComposition :
 	public abstract fun recordModificationsOf (Ljava/util/Set;)V
 	public abstract fun recordReadOf (Ljava/lang/Object;)V
 	public abstract fun recordWriteOf (Ljava/lang/Object;)V
-	public abstract fun setShouldPauseCallback (Lkotlin/jvm/functions/Function0;)Lkotlin/jvm/functions/Function0;
 	public abstract fun verifyConsistent ()V
 }
 
@@ -561,7 +567,7 @@ public abstract interface class androidx/compose/runtime/PausedComposition {
 	public abstract fun apply ()V
 	public abstract fun cancel ()V
 	public abstract fun isComplete ()Z
-	public abstract fun resume (Lkotlin/jvm/functions/Function0;)Z
+	public abstract fun resume (Landroidx/compose/runtime/ShouldPauseCallback;)Z
 }
 
 public final class androidx/compose/runtime/PrimitiveSnapshotStateKt {
@@ -658,6 +664,10 @@ public abstract interface class androidx/compose/runtime/ReusableComposition : a
 
 public abstract interface class androidx/compose/runtime/ScopeUpdateScope {
 	public abstract fun updateScope (Lkotlin/jvm/functions/Function2;)V
+}
+
+public abstract interface class androidx/compose/runtime/ShouldPauseCallback {
+	public abstract fun shouldPause ()Z
 }
 
 public final class androidx/compose/runtime/SkippableUpdater {
@@ -772,6 +782,7 @@ public final class androidx/compose/runtime/Updater {
 
 public final class androidx/compose/runtime/collection/MutableVector : java/util/RandomAccess {
 	public static final field $stable I
+	public field content [Ljava/lang/Object;
 	public fun <init> ([Ljava/lang/Object;I)V
 	public final fun add (ILjava/lang/Object;)V
 	public final fun add (Ljava/lang/Object;)Z
@@ -827,10 +838,10 @@ public final class androidx/compose/runtime/collection/MutableVector : java/util
 	public final fun removeAt (I)Ljava/lang/Object;
 	public final fun removeIf (Lkotlin/jvm/functions/Function1;)V
 	public final fun removeRange (II)V
+	public final fun resizeStorage (I)V
 	public final fun retainAll (Ljava/util/Collection;)Z
 	public final fun reversedAny (Lkotlin/jvm/functions/Function1;)Z
 	public final fun set (ILjava/lang/Object;)Ljava/lang/Object;
-	public final fun setContent ([Ljava/lang/Object;)V
 	public final fun setSize (I)V
 	public final fun sortWith (Ljava/util/Comparator;)V
 	public final fun sumBy (Lkotlin/jvm/functions/Function1;)I
@@ -904,6 +915,10 @@ public abstract interface annotation class androidx/compose/runtime/internal/Sta
 	public abstract fun parameters ()I
 }
 
+public final class androidx/compose/runtime/platform/Synchronization_desktopKt {
+	public static final fun synchronized (Landroidx/compose/runtime/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
+}
+
 public final class androidx/compose/runtime/reflect/ComposableMethod {
 	public static final field $stable I
 	public final fun asMethod ()Ljava/lang/reflect/Method;
@@ -947,12 +962,14 @@ public abstract class androidx/compose/runtime/snapshots/Snapshot {
 	public static final field Companion Landroidx/compose/runtime/snapshots/Snapshot$Companion;
 	public static final field PreexistingSnapshotId I
 	public synthetic fun <init> (ILandroidx/compose/runtime/snapshots/SnapshotIdSet;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (JLandroidx/compose/runtime/snapshots/SnapshotIdSet;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun dispose ()V
 	public final fun enter (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public fun getId ()I
 	public abstract fun getReadObserver ()Lkotlin/jvm/functions/Function1;
 	public abstract fun getReadOnly ()Z
 	public abstract fun getRoot ()Landroidx/compose/runtime/snapshots/Snapshot;
+	public fun getSnapshotId ()J
 	public abstract fun hasPendingChanges ()Z
 	public fun makeCurrent ()Landroidx/compose/runtime/snapshots/Snapshot;
 	public fun restoreCurrent (Landroidx/compose/runtime/snapshots/Snapshot;)V
@@ -1031,6 +1048,21 @@ public final class androidx/compose/runtime/snapshots/SnapshotContextElement$Key
 
 public final class androidx/compose/runtime/snapshots/SnapshotContextElementKt {
 	public static final fun asContextElement (Landroidx/compose/runtime/snapshots/Snapshot;)Landroidx/compose/runtime/snapshots/SnapshotContextElement;
+}
+
+public final class androidx/compose/runtime/snapshots/SnapshotId_jvmKt {
+	public static final field SnapshotIdInvalidValue J
+	public static final field SnapshotIdMax J
+	public static final field SnapshotIdSize I
+	public static final field SnapshotIdZero J
+	public static final fun compareTo (JI)I
+	public static final fun compareTo (JJ)I
+	public static final fun div (JI)J
+	public static final fun minus (JI)J
+	public static final fun minus (JJ)J
+	public static final fun plus (JI)J
+	public static final fun times (JI)J
+	public static final fun toInt (J)I
 }
 
 public final class androidx/compose/runtime/snapshots/SnapshotKt {
@@ -1168,8 +1200,12 @@ public final class androidx/compose/runtime/snapshots/StateObject$DefaultImpls {
 public abstract class androidx/compose/runtime/snapshots/StateRecord {
 	public static final field $stable I
 	public fun <init> ()V
+	public fun <init> (I)V
+	public fun <init> (J)V
 	public abstract fun assign (Landroidx/compose/runtime/snapshots/StateRecord;)V
 	public abstract fun create ()Landroidx/compose/runtime/snapshots/StateRecord;
+	public synthetic fun create (I)Landroidx/compose/runtime/snapshots/StateRecord;
+	public fun create (J)Landroidx/compose/runtime/snapshots/StateRecord;
 }
 
 public final class androidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers {
@@ -1227,6 +1263,12 @@ public abstract interface class androidx/compose/runtime/tooling/CompositionObse
 public final class androidx/compose/runtime/tooling/CompositionObserverKt {
 	public static final fun observe (Landroidx/compose/runtime/Composition;Landroidx/compose/runtime/tooling/CompositionObserver;)Landroidx/compose/runtime/tooling/CompositionObserverHandle;
 	public static final fun observe (Landroidx/compose/runtime/RecomposeScope;Landroidx/compose/runtime/tooling/RecomposeScopeObserver;)Landroidx/compose/runtime/tooling/CompositionObserverHandle;
+	public static final fun observe (Landroidx/compose/runtime/Recomposer;Landroidx/compose/runtime/tooling/CompositionRegistrationObserver;)Landroidx/compose/runtime/tooling/CompositionObserverHandle;
+}
+
+public abstract interface class androidx/compose/runtime/tooling/CompositionRegistrationObserver {
+	public abstract fun onCompositionRegistered (Landroidx/compose/runtime/Recomposer;Landroidx/compose/runtime/Composition;)V
+	public abstract fun onCompositionUnregistered (Landroidx/compose/runtime/Recomposer;Landroidx/compose/runtime/Composition;)V
 }
 
 public final class androidx/compose/runtime/tooling/InspectionTablesKt {

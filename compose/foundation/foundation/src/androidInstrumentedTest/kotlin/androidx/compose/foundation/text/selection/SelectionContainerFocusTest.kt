@@ -140,7 +140,7 @@ class SelectionContainerFocusTest {
         var lastShowCalled: Boolean? = null
         val fakeTextToolbar =
             FakeTextToolbar(
-                onShowMenu = { _, _, _, _, _ -> lastShowCalled = true },
+                onShowMenu = { _, _, _, _, _, _ -> lastShowCalled = true },
                 onHideMenu = { lastShowCalled = false }
             )
 
@@ -242,7 +242,8 @@ internal fun FakeTextToolbar(
             onCopyRequested: (() -> Unit)?,
             onPasteRequested: (() -> Unit)?,
             onCutRequested: (() -> Unit)?,
-            onSelectAllRequested: (() -> Unit)?
+            onSelectAllRequested: (() -> Unit)?,
+            onAutofillRequested: (() -> Unit)?
         ) -> Unit,
     onHideMenu: () -> Unit
 ): TextToolbar {
@@ -254,15 +255,27 @@ internal fun FakeTextToolbar(
             onCopyRequested: (() -> Unit)?,
             onPasteRequested: (() -> Unit)?,
             onCutRequested: (() -> Unit)?,
-            onSelectAllRequested: (() -> Unit)?
+            onSelectAllRequested: (() -> Unit)?,
+            onAutofillRequested: (() -> Unit)?
         ) {
             onShowMenu(
                 rect,
                 onCopyRequested,
                 onPasteRequested,
                 onCutRequested,
-                onSelectAllRequested
+                onSelectAllRequested,
+                onAutofillRequested
             )
+            _status = TextToolbarStatus.Shown
+        }
+
+        override fun showMenu(
+            rect: Rect,
+            onCopyRequested: (() -> Unit)?,
+            onPasteRequested: (() -> Unit)?,
+            onCutRequested: (() -> Unit)?,
+            onSelectAllRequested: (() -> Unit)?
+        ) {
             _status = TextToolbarStatus.Shown
         }
 

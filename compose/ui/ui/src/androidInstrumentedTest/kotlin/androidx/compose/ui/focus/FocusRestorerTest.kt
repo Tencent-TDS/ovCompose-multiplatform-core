@@ -196,7 +196,7 @@ class FocusRestorerTest {
         lateinit var child1State: FocusState
         lateinit var child2State: FocusState
         rule.setFocusableContent {
-            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer { child2 }.focusGroup()) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer(child2).focusGroup()) {
                 key(1) {
                     Box(Modifier.size(10.dp).onFocusChanged { child1State = it }.focusTarget())
                 }

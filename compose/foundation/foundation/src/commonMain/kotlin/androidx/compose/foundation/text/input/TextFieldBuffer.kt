@@ -26,6 +26,7 @@ import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.coerceIn
 import androidx.compose.ui.util.fastForEach
 import kotlin.jvm.JvmName
 
@@ -310,7 +311,7 @@ internal constructor(
         buffer.replace(start, end, text, textStart, textEnd)
 
         commitComposition()
-        highlight = null
+        clearHighlight()
     }
 
     /**
@@ -446,9 +447,16 @@ internal constructor(
      */
     internal fun toTextFieldCharSequence(
         selection: TextRange = this.selection,
-        composition: TextRange? = this.composition
+        composition: TextRange? = this.composition,
+        composingAnnotations: List<PlacedAnnotation>? =
+            this.composingAnnotations?.asMutableList()?.takeIf { it.isNotEmpty() },
     ): TextFieldCharSequence =
-        TextFieldCharSequence(buffer.toString(), selection = selection, composition = composition)
+        TextFieldCharSequence(
+            text = buffer.toString(),
+            selection = selection,
+            composition = composition,
+            composingAnnotations = composingAnnotations
+        )
 
     private fun requireValidIndex(index: Int, startExclusive: Boolean, endExclusive: Boolean) {
         val start = if (startExclusive) 0 else -1
@@ -699,4 +707,14 @@ internal inline fun findCommonPrefixAndSuffix(
     }
 
     onFound(aStart, aEnd, bStart, bEnd)
+}
+
+/**
+ * Normally [TextFieldBuffer] throws an [IllegalArgumentException] when an invalid selection change
+ * is attempted. However internally and especially for selection ranges coming from the IME we
+ * coerce the given numbers to a valid range to not crash. Also, IMEs sometimes send values like
+ * `Int.MAX_VALUE` to move selection to end.
+ */
+internal fun TextFieldBuffer.setSelectionCoerced(start: Int, end: Int = start) {
+    selection = TextRange(start.coerceIn(0, length), end.coerceIn(0, length))
 }

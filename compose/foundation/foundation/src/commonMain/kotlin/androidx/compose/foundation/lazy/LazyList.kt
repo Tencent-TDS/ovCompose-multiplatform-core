@@ -17,10 +17,10 @@
 package androidx.compose.foundation.lazy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.checkScrollableContainerConstraints
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.internal.requirePreconditionNotNull
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalGraphicsContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
@@ -69,6 +68,8 @@ internal fun LazyList(
     flingBehavior: FlingBehavior,
     /** Whether scrolling via the user gestures is allowed. */
     userScrollEnabled: Boolean,
+    /** The overscroll effect to render and dispatch events to */
+    overscrollEffect: OverscrollEffect?,
     /** Number of items to layout before and after the visible items */
     beyondBoundsItemCount: Int = 0,
     /** The alignment to align items horizontally. Required when isVertical is true */
@@ -107,12 +108,23 @@ internal fun LazyList(
         )
 
     val orientation = if (isVertical) Orientation.Vertical else Orientation.Horizontal
-    val reverseDirection =
-        ScrollableDefaults.reverseDirection(
-            LocalLayoutDirection.current,
-            orientation,
-            reverseLayout
-        )
+
+    val beyondBoundsModifier =
+        if (userScrollEnabled) {
+            Modifier.lazyLayoutBeyondBoundsModifier(
+                state =
+                    rememberLazyListBeyondBoundsState(
+                        state = state,
+                        beyondBoundsItemCount = beyondBoundsItemCount
+                    ),
+                beyondBoundsInfo = state.beyondBoundsInfo,
+                reverseLayout = reverseLayout,
+                orientation = orientation
+            )
+        } else {
+            Modifier
+        }
+
     LazyLayout(
         modifier =
             modifier
@@ -125,27 +137,16 @@ internal fun LazyList(
                     userScrollEnabled = userScrollEnabled,
                     reverseScrolling = reverseLayout,
                 )
-                .lazyLayoutBeyondBoundsModifier(
-                    state =
-                        rememberLazyListBeyondBoundsState(
-                            state = state,
-                            beyondBoundsItemCount = beyondBoundsItemCount
-                        ),
-                    beyondBoundsInfo = state.beyondBoundsInfo,
-                    reverseLayout = reverseLayout,
-                    layoutDirection = LocalLayoutDirection.current,
-                    orientation = orientation,
-                    enabled = userScrollEnabled
-                )
+                .then(beyondBoundsModifier)
                 .then(state.itemAnimator.modifier)
                 .scrollingContainer(
                     state = state,
                     orientation = orientation,
                     enabled = userScrollEnabled,
-                    reverseDirection = reverseDirection,
+                    reverseScrolling = reverseLayout,
                     flingBehavior = flingBehavior,
                     interactionSource = state.internalInteractionSource,
-                    overscrollEffect = ScrollableDefaults.overscrollEffect()
+                    overscrollEffect = overscrollEffect
                 ),
         prefetchState = state.prefetchState,
         measurePolicy = measurePolicy,
@@ -198,7 +199,7 @@ private fun rememberLazyListMeasurePolicy(
         { containerConstraints ->
             state.measurementScopeInvalidator.attachToScope()
             // Tracks if the lookahead pass has occurred
-            val hasLookaheadPassOccurred = state.hasLookaheadPassOccurred || isLookingAhead
+            val hasLookaheadOccurred = state.hasLookaheadOccurred || isLookingAhead
             checkScrollableContainerConstraints(
                 containerConstraints,
                 if (isVertical) Orientation.Vertical else Orientation.Horizontal
@@ -339,7 +340,7 @@ private fun rememberLazyListMeasurePolicy(
                 )
 
             val scrollToBeConsumed =
-                if (isLookingAhead || !hasLookaheadPassOccurred) {
+                if (isLookingAhead || !hasLookaheadOccurred) {
                     state.scrollToBeConsumed
                 } else {
                     state.scrollDeltaBetweenPasses
@@ -366,9 +367,9 @@ private fun rememberLazyListMeasurePolicy(
                     itemAnimator = state.itemAnimator,
                     beyondBoundsItemCount = beyondBoundsItemCount,
                     pinnedItems = pinnedItems,
-                    hasLookaheadPassOccurred = hasLookaheadPassOccurred,
+                    hasLookaheadOccurred = hasLookaheadOccurred,
                     isLookingAhead = isLookingAhead,
-                    postLookaheadLayoutInfo = state.postLookaheadLayoutInfo,
+                    approachLayoutInfo = state.approachLayoutInfo,
                     coroutineScope = coroutineScope,
                     placementScopeInvalidator = state.placementScopeInvalidator,
                     graphicsContext = graphicsContext,

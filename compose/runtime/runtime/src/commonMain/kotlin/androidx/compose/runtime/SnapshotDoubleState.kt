@@ -22,13 +22,17 @@ package androidx.compose.runtime
 import androidx.compose.runtime.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.internal.equalsWithNanFix
 import androidx.compose.runtime.snapshots.AutoboxingStateValueProperty
+import androidx.compose.runtime.snapshots.GlobalSnapshot
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotId
 import androidx.compose.runtime.snapshots.SnapshotMutableState
 import androidx.compose.runtime.snapshots.StateFactoryMarker
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.StateRecord
+import androidx.compose.runtime.snapshots.currentSnapshot
 import androidx.compose.runtime.snapshots.overwritable
 import androidx.compose.runtime.snapshots.readable
+import androidx.compose.runtime.snapshots.toSnapshotId
 import androidx.compose.runtime.snapshots.withCurrent
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
@@ -124,12 +128,12 @@ internal open class SnapshotMutableDoubleStateImpl(value: Double) :
     StateObjectImpl(), MutableDoubleState, SnapshotMutableState<Double> {
 
     private var next =
-        DoubleStateStateRecord(value).also {
-            if (Snapshot.isInSnapshot) {
-                it.next =
-                    DoubleStateStateRecord(value).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+        currentSnapshot().let { snapshot ->
+            DoubleStateStateRecord(snapshot.snapshotId, value).also {
+                if (snapshot !is GlobalSnapshot) {
+                    it.next =
+                        DoubleStateStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), value)
+                }
             }
         }
 
@@ -175,11 +179,15 @@ internal open class SnapshotMutableDoubleStateImpl(value: Double) :
     override fun toString(): String =
         next.withCurrent { "MutableDoubleState(value=${it.value})@${hashCode()}" }
 
-    private class DoubleStateStateRecord(var value: Double) : StateRecord() {
+    private class DoubleStateStateRecord(snapshotId: SnapshotId, var value: Double) :
+        StateRecord(snapshotId) {
         override fun assign(value: StateRecord) {
             this.value = (value as DoubleStateStateRecord).value
         }
 
-        override fun create(): StateRecord = DoubleStateStateRecord(value)
+        override fun create(): StateRecord = create(snapshotId)
+
+        override fun create(snapshotId: SnapshotId): StateRecord =
+            DoubleStateStateRecord(snapshotId, value)
     }
 }

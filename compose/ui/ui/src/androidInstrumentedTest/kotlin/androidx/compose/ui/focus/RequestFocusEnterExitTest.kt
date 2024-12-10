@@ -88,11 +88,11 @@ class RequestFocusEnterExitTest {
                     Box(
                         Modifier.focusRequester(source)
                             .focusProperties {
-                                enter = {
+                                onEnter = {
                                     child1.enter = counter++
                                     Default
                                 }
-                                exit = {
+                                onExit = {
                                     child1.exit = counter++
                                     Cancel
                                 }
@@ -134,13 +134,10 @@ class RequestFocusEnterExitTest {
             Box(Modifier.focusTarget(grandParent)) {
                 Box(
                     Modifier.focusProperties {
-                            enter = {
-                                parent1.enter = counter++
-                                Default
-                            }
-                            exit = {
+                            onEnter = { parent1.enter = counter++ }
+                            onExit = {
                                 parent1.exit = counter++
-                                Cancel
+                                cancelFocus()
                             }
                         }
                         .focusTarget()
@@ -180,11 +177,11 @@ class RequestFocusEnterExitTest {
         rule.setFocusableContent {
             Box(
                 Modifier.focusProperties {
-                        enter = {
+                        onEnter = {
                             grandParent.enter = counter++
                             Default
                         }
-                        exit = {
+                        onExit = {
                             grandParent.exit = counter++
                             Cancel
                         }
@@ -228,11 +225,11 @@ class RequestFocusEnterExitTest {
         rule.setFocusableContent {
             Box(
                 Modifier.focusProperties {
-                        enter = {
+                        onEnter = {
                             grandParent.enter = counter++
                             if (init) Default else Cancel
                         }
-                        exit = {
+                        onExit = {
                             grandParent.exit = counter++
                             Default
                         }
@@ -281,11 +278,11 @@ class RequestFocusEnterExitTest {
                 }
                 Box(
                     Modifier.focusProperties {
-                            enter = {
+                            onEnter = {
                                 parent2.enter = counter++
                                 Cancel
                             }
-                            exit = {
+                            onExit = {
                                 parent2.exit = counter++
                                 Default
                             }
@@ -331,11 +328,11 @@ class RequestFocusEnterExitTest {
                     Box(
                         Modifier.focusRequester(destination)
                             .focusProperties {
-                                enter = {
+                                onEnter = {
                                     child4.enter = counter++
                                     Cancel
                                 }
-                                exit = {
+                                onExit = {
                                     child4.exit = counter++
                                     Default
                                 }
@@ -377,11 +374,11 @@ class RequestFocusEnterExitTest {
 
     private fun Modifier.focusTarget(enterExitCounter: EnterExitCounter): Modifier =
         this.focusProperties {
-                enter = {
+                onEnter = {
                     enterExitCounter.enter = counter++
                     Default
                 }
-                exit = {
+                onExit = {
                     enterExitCounter.exit = counter++
                     Default
                 }

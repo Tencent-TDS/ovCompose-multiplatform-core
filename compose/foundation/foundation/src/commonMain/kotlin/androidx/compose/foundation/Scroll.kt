@@ -48,7 +48,6 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -202,6 +201,8 @@ class ScrollState(initial: Int) : ScrollableState {
  *
  * In order to use this modifier, you need to create and own [ScrollState]
  *
+ * See the other overload in order to provide a custom [OverscrollEffect]
+ *
  * @param state state of the scroll
  * @param enabled whether or not scrolling via touch input is enabled
  * @param flingBehavior logic describing fling behavior when drag has finished with velocity. If
@@ -216,12 +217,59 @@ fun Modifier.verticalScroll(
     flingBehavior: FlingBehavior? = null,
     reverseScrolling: Boolean = false
 ) =
+    composed(
+        factory = {
+            verticalScroll(
+                state = state,
+                enabled = enabled,
+                flingBehavior = flingBehavior,
+                reverseScrolling = reverseScrolling,
+                overscrollEffect = rememberOverscrollEffect(),
+            )
+        },
+        inspectorInfo =
+            debugInspectorInfo {
+                name = "verticalScroll"
+                properties["state"] = state
+                properties["enabled"] = enabled
+                properties["flingBehavior"] = flingBehavior
+                properties["reverseScrolling"] = reverseScrolling
+            }
+    )
+
+/**
+ * Modify element to allow to scroll vertically when height of the content is bigger than max
+ * constraints allow.
+ *
+ * @sample androidx.compose.foundation.samples.VerticalScrollExample
+ *
+ * In order to use this modifier, you need to create and own [ScrollState]
+ *
+ * @param state state of the scroll
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   modifier. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
+ * @param enabled whether or not scrolling via touch input is enabled
+ * @param flingBehavior logic describing fling behavior when drag has finished with velocity. If
+ *   `null`, default from [ScrollableDefaults.flingBehavior] will be used.
+ * @param reverseScrolling reverse the direction of scrolling, when `true`, 0 [ScrollState.value]
+ *   will mean bottom, when `false`, 0 [ScrollState.value] will mean top
+ * @see [rememberScrollState]
+ */
+fun Modifier.verticalScroll(
+    state: ScrollState,
+    overscrollEffect: OverscrollEffect?,
+    enabled: Boolean = true,
+    flingBehavior: FlingBehavior? = null,
+    reverseScrolling: Boolean = false
+) =
     scroll(
         state = state,
         isScrollable = enabled,
         reverseScrolling = reverseScrolling,
         flingBehavior = flingBehavior,
-        isVertical = true
+        isVertical = true,
+        overscrollEffect = overscrollEffect
     )
 
 /**
@@ -231,6 +279,8 @@ fun Modifier.verticalScroll(
  * @sample androidx.compose.foundation.samples.HorizontalScrollSample
  *
  * In order to use this modifier, you need to create and own [ScrollState]
+ *
+ * See the other overload in order to provide a custom [OverscrollEffect]
  *
  * @param state state of the scroll
  * @param enabled whether or not scrolling via touch input is enabled
@@ -246,12 +296,59 @@ fun Modifier.horizontalScroll(
     flingBehavior: FlingBehavior? = null,
     reverseScrolling: Boolean = false
 ) =
+    composed(
+        factory = {
+            horizontalScroll(
+                state = state,
+                enabled = enabled,
+                flingBehavior = flingBehavior,
+                reverseScrolling = reverseScrolling,
+                overscrollEffect = rememberOverscrollEffect(),
+            )
+        },
+        inspectorInfo =
+            debugInspectorInfo {
+                name = "horizontalScroll"
+                properties["state"] = state
+                properties["enabled"] = enabled
+                properties["flingBehavior"] = flingBehavior
+                properties["reverseScrolling"] = reverseScrolling
+            }
+    )
+
+/**
+ * Modify element to allow to scroll horizontally when width of the content is bigger than max
+ * constraints allow.
+ *
+ * @sample androidx.compose.foundation.samples.HorizontalScrollSample
+ *
+ * In order to use this modifier, you need to create and own [ScrollState]
+ *
+ * @param state state of the scroll
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   modifier. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
+ * @param enabled whether or not scrolling via touch input is enabled
+ * @param flingBehavior logic describing fling behavior when drag has finished with velocity. If
+ *   `null`, default from [ScrollableDefaults.flingBehavior] will be used.
+ * @param reverseScrolling reverse the direction of scrolling, when `true`, 0 [ScrollState.value]
+ *   will mean right, when `false`, 0 [ScrollState.value] will mean left
+ * @see [rememberScrollState]
+ */
+fun Modifier.horizontalScroll(
+    state: ScrollState,
+    overscrollEffect: OverscrollEffect?,
+    enabled: Boolean = true,
+    flingBehavior: FlingBehavior? = null,
+    reverseScrolling: Boolean = false
+) =
     scroll(
         state = state,
         isScrollable = enabled,
         reverseScrolling = reverseScrolling,
         flingBehavior = flingBehavior,
-        isVertical = false
+        isVertical = false,
+        overscrollEffect = overscrollEffect
     )
 
 private fun Modifier.scroll(
@@ -259,38 +356,21 @@ private fun Modifier.scroll(
     reverseScrolling: Boolean,
     flingBehavior: FlingBehavior?,
     isScrollable: Boolean,
-    isVertical: Boolean
-) =
-    composed(
-        factory = {
-            val orientation = if (isVertical) Orientation.Vertical else Orientation.Horizontal
-            val reverseDirection =
-                ScrollableDefaults.reverseDirection(
-                    LocalLayoutDirection.current,
-                    orientation,
-                    reverseScrolling
-                )
-            Modifier.scrollingContainer(
-                    state = state,
-                    orientation = orientation,
-                    enabled = isScrollable,
-                    reverseDirection = reverseDirection,
-                    flingBehavior = flingBehavior,
-                    interactionSource = state.internalInteractionSource,
-                    overscrollEffect = ScrollableDefaults.overscrollEffect()
-                )
-                .then(ScrollingLayoutElement(state, reverseScrolling, isVertical))
-        },
-        inspectorInfo =
-            debugInspectorInfo {
-                name = "scroll"
-                properties["state"] = state
-                properties["reverseScrolling"] = reverseScrolling
-                properties["flingBehavior"] = flingBehavior
-                properties["isScrollable"] = isScrollable
-                properties["isVertical"] = isVertical
-            }
-    )
+    isVertical: Boolean,
+    overscrollEffect: OverscrollEffect?
+): Modifier {
+    val orientation = if (isVertical) Orientation.Vertical else Orientation.Horizontal
+    return scrollingContainer(
+            state = state,
+            orientation = orientation,
+            enabled = isScrollable,
+            reverseScrolling = reverseScrolling,
+            flingBehavior = flingBehavior,
+            interactionSource = state.internalInteractionSource,
+            overscrollEffect = overscrollEffect
+        )
+        .then(ScrollingLayoutElement(state, reverseScrolling, isVertical))
+}
 
 internal class ScrollingLayoutElement(
     val scrollState: ScrollState,

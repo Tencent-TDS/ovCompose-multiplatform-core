@@ -17,12 +17,14 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.IntObjectMap
+import androidx.collection.intObjectMapOf
 import androidx.compose.testutils.TestViewConfiguration
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.draw.DrawModifier
 import androidx.compose.ui.draw.drawBehind
@@ -46,6 +48,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerIconService
 import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.input.pointer.PointerInputModifier
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.LayoutModifier
 import androidx.compose.ui.layout.LayoutModifierImpl
@@ -64,8 +67,10 @@ import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.invertTo
+import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsModifier
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
@@ -1076,7 +1081,7 @@ class LayoutNodeTest {
                 .apply { attach(MockOwner()) }
         val hit = mutableListOf<Modifier.Node>()
 
-        layoutNode.hitTest(Offset(-3f, 3f), hit, true)
+        layoutNode.hitTest(Offset(-3f, 3f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter))
     }
@@ -1096,7 +1101,7 @@ class LayoutNodeTest {
                 .apply { attach(MockOwner()) }
         val hit = mutableListOf<Modifier.Node>()
 
-        layoutNode.hitTest(Offset(0f, 3f), hit, true)
+        layoutNode.hitTest(Offset(0f, 3f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter))
     }
@@ -1116,7 +1121,7 @@ class LayoutNodeTest {
                 .apply { attach(MockOwner()) }
         val hit = mutableListOf<Modifier.Node>()
 
-        layoutNode.hitTest(Offset(3f, 0f), hit, true)
+        layoutNode.hitTest(Offset(3f, 0f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter))
     }
@@ -1138,7 +1143,7 @@ class LayoutNodeTest {
         layoutNode.onNodePlaced()
         val hit = mutableListOf<Modifier.Node>()
 
-        outerNode.hitTest(Offset(-3f, 3f), hit, true)
+        outerNode.hitTest(Offset(-3f, 3f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter))
     }
@@ -1212,42 +1217,42 @@ class LayoutNodeTest {
         val hit = mutableListOf<Modifier.Node>()
 
         // Hit closer to layoutNode1
-        outerNode.hitTest(Offset(5.1f, 5.5f), hit, true)
+        outerNode.hitTest(Offset(5.1f, 5.5f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter1))
 
         hit.clear()
 
         // Hit closer to layoutNode2
-        outerNode.hitTest(Offset(5.9f, 5.5f), hit, true)
+        outerNode.hitTest(Offset(5.9f, 5.5f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter2))
 
         hit.clear()
 
         // Hit closer to layoutNode1
-        outerNode.hitTest(Offset(5.5f, 5.1f), hit, true)
+        outerNode.hitTest(Offset(5.5f, 5.1f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter1))
 
         hit.clear()
 
         // Hit closer to layoutNode2
-        outerNode.hitTest(Offset(5.5f, 5.9f), hit, true)
+        outerNode.hitTest(Offset(5.5f, 5.9f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter2))
 
         hit.clear()
 
         // Hit inside layoutNode1
-        outerNode.hitTest(Offset(4.9f, 4.9f), hit, true)
+        outerNode.hitTest(Offset(4.9f, 4.9f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter1))
 
         hit.clear()
 
         // Hit inside layoutNode2
-        outerNode.hitTest(Offset(6.1f, 6.1f), hit, true)
+        outerNode.hitTest(Offset(6.1f, 6.1f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter2))
     }
@@ -1326,14 +1331,14 @@ class LayoutNodeTest {
         val hit = mutableListOf<Modifier.Node>()
 
         // Hit outside of layoutNode2, but near layoutNode1
-        outerNode.hitTest(Offset(10.1f, 10.1f), hit, true)
+        outerNode.hitTest(Offset(10.1f, 10.1f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter2, pointerInputFilter1))
 
         hit.clear()
 
         // Hit closer to layoutNode3
-        outerNode.hitTest(Offset(11.9f, 11.9f), hit, true)
+        outerNode.hitTest(Offset(11.9f, 11.9f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter3))
     }
@@ -1370,14 +1375,14 @@ class LayoutNodeTest {
         val hit = mutableListOf<Modifier.Node>()
 
         // Hit layoutNode1
-        outerNode.hitTest(Offset(3.95f, 3.95f), hit, true)
+        outerNode.hitTest(Offset(3.95f, 3.95f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter1))
 
         hit.clear()
 
         // Hit layoutNode2
-        outerNode.hitTest(Offset(4.05f, 4.05f), hit, true)
+        outerNode.hitTest(Offset(4.05f, 4.05f), hit, PointerType.Touch)
 
         assertThat(hit.toFilters()).isEqualTo(listOf(pointerInputFilter2))
     }
@@ -1448,42 +1453,42 @@ class LayoutNodeTest {
 
         // Hit closer to layoutNode1
         val hit1 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(5.1f, 5.5f), hit1, true)
+        outerNode.hitTestSemantics(Offset(5.1f, 5.5f), hit1, PointerType.Touch)
 
         assertThat(hit1).hasSize(1)
         assertThat(hit1[0]).isEqualTo(semanticsNode1)
 
         // Hit closer to layoutNode2
         val hit2 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(5.9f, 5.5f), hit2, true)
+        outerNode.hitTestSemantics(Offset(5.9f, 5.5f), hit2, PointerType.Touch)
 
         assertThat(hit2).hasSize(1)
         assertThat(hit2[0]).isEqualTo(semanticsNode2)
 
         // Hit closer to layoutNode1
         val hit3 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(5.5f, 5.1f), hit3, true)
+        outerNode.hitTestSemantics(Offset(5.5f, 5.1f), hit3, PointerType.Touch)
 
         assertThat(hit3).hasSize(1)
         assertThat(hit3[0]).isEqualTo(semanticsNode1)
 
         // Hit closer to layoutNode2
         val hit4 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(5.5f, 5.9f), hit4, true)
+        outerNode.hitTestSemantics(Offset(5.5f, 5.9f), hit4, PointerType.Touch)
 
         assertThat(hit4).hasSize(1)
         assertThat(hit4[0]).isEqualTo(semanticsNode2)
 
         // Hit inside layoutNode1
         val hit5 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(4.9f, 4.9f), hit5, true)
+        outerNode.hitTestSemantics(Offset(4.9f, 4.9f), hit5, PointerType.Touch)
 
         assertThat(hit5).hasSize(1)
         assertThat(hit5[0]).isEqualTo(semanticsNode1)
 
         // Hit inside layoutNode2
         val hit6 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(6.1f, 6.1f), hit6, true)
+        outerNode.hitTestSemantics(Offset(6.1f, 6.1f), hit6, PointerType.Touch)
 
         assertThat(hit6).hasSize(1)
         assertThat(hit6[0]).isEqualTo(semanticsNode2)
@@ -1510,14 +1515,14 @@ class LayoutNodeTest {
 
         // Hit layoutNode1
         val hit1 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(3.95f, 3.95f), hit1, true)
+        outerNode.hitTestSemantics(Offset(3.95f, 3.95f), hit1, PointerType.Touch)
 
         assertThat(hit1).hasSize(1)
         assertThat(hit1[0].toModifier()).isEqualTo(semanticsModifier1)
 
         // Hit layoutNode2
         val hit2 = HitTestResult()
-        outerNode.hitTestSemantics(Offset(4.05f, 4.05f), hit2, true)
+        outerNode.hitTestSemantics(Offset(4.05f, 4.05f), hit2, PointerType.Touch)
 
         assertThat(hit2).hasSize(1)
         assertThat(hit2[0].toModifier()).isEqualTo(semanticsModifier2)
@@ -2312,6 +2317,8 @@ private class EmptyLayoutModifier : LayoutModifier {
 internal class MockOwner(
     private val position: IntOffset = IntOffset.Zero,
     override val root: LayoutNode = LayoutNode(),
+    override val semanticsOwner: SemanticsOwner =
+        SemanticsOwner(root, EmptySemanticsModifier(), intObjectMapOf()),
     override val coroutineContext: CoroutineContext =
         Executors.newFixedThreadPool(3).asCoroutineDispatcher()
 ) : Owner {
@@ -2347,7 +2354,7 @@ internal class MockOwner(
     override val autofill: Autofill?
         get() = TODO("Not yet implemented")
 
-    override val semanticAutofill: SemanticAutofill
+    override val autofillManager: AutofillManager
         get() = TODO("Not yet implemented")
 
     override val density: Density
@@ -2544,16 +2551,19 @@ internal class MockOwner(
     override val viewConfiguration: ViewConfiguration
         get() = TODO("Not yet implemented")
 
+    override val layoutNodes: IntObjectMap<LayoutNode>
+        get() = TODO("Not yet implemented")
+
     override val sharedDrawScope = LayoutNodeDrawScope()
 }
 
 private fun LayoutNode.hitTest(
     pointerPosition: Offset,
     hitPointerInputFilters: MutableList<Modifier.Node>,
-    isTouchEvent: Boolean = false
+    pointerType: PointerType = PointerType.Unknown
 ) {
     val hitTestResult = HitTestResult()
-    hitTest(pointerPosition, hitTestResult, isTouchEvent)
+    hitTest(pointerPosition, hitTestResult, pointerType)
     hitPointerInputFilters.addAll(hitTestResult)
 }
 
@@ -2563,12 +2573,14 @@ internal fun LayoutNode(
     x2: Int,
     y2: Int,
     modifier: Modifier = Modifier,
-    minimumTouchTargetSize: DpSize = DpSize.Zero
+    minimumTouchTargetSize: DpSize = DpSize.Zero,
+    layoutDirection: LayoutDirection = LayoutDirection.Ltr
 ) =
     LayoutNode().apply {
         this.viewConfiguration =
             TestViewConfiguration(minimumTouchTargetSize = minimumTouchTargetSize)
         this.modifier = modifier
+        this.layoutDirection = layoutDirection
         measurePolicy =
             object : LayoutNode.NoIntrinsicsMeasurePolicy("not supported") {
                 override fun MeasureScope.measure(

@@ -16,9 +16,8 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.uikit.toNanoSeconds
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
-import kotlin.math.floor
-import kotlin.math.roundToLong
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -26,7 +25,6 @@ import org.jetbrains.skia.Canvas
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSizeMake
-import platform.Foundation.NSTimeInterval
 import platform.Metal.MTLCreateSystemDefaultDevice
 import platform.Metal.MTLDeviceProtocol
 import platform.Metal.MTLPixelFormatBGRA8Unorm
@@ -37,6 +35,7 @@ import platform.UIKit.UIViewMeta
 
 internal class MetalView(
     retrieveInteropTransaction: () -> UIKitInteropTransaction,
+    useSeparateRenderThreadWhenPossible: Boolean,
     render: (Canvas, nanoTime: Long) -> Unit,
 ) : UIView(frame = CGRectZero.readValue()) {
     companion object : UIViewMeta() {
@@ -53,6 +52,7 @@ internal class MetalView(
     val redrawer = MetalRedrawer(
         metalLayer,
         retrieveInteropTransaction,
+        useSeparateRenderThreadWhenPossible
     ) { canvas, targetTimestamp ->
         render(canvas, targetTimestamp.toNanoSeconds())
     }
@@ -136,15 +136,4 @@ internal class MetalView(
     }
 
     override fun canBecomeFirstResponder() = false
-}
-
-private fun NSTimeInterval.toNanoSeconds(): Long {
-    // The calculation is split in two instead of
-    // `(targetTimestamp * 1e9).toLong()`
-    // to avoid losing precision for fractional part
-    val integral = floor(this)
-    val fractional = this - integral
-    val secondsToNanos = 1_000_000_000L
-    val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
-    return nanos
 }

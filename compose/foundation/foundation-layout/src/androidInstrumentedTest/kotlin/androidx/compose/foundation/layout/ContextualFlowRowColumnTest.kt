@@ -545,7 +545,7 @@ class ContextualFlowRowColumnTest {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     maxItemsInEachRow = 3,
-                ) {
+                ) { index ->
                     Box(
                         Modifier.onSizeChanged { listOfHeights.add(it.height) }
                             .width(100.dp)
@@ -553,7 +553,7 @@ class ContextualFlowRowColumnTest {
                             .background(Color.Green)
                             .fillMaxRowHeight()
                     ) {
-                        val height = Random.Default.nextInt(1, 200) - it
+                        val height = 200 - index
                         Box(modifier = Modifier.height(height.dp))
                     }
                 }

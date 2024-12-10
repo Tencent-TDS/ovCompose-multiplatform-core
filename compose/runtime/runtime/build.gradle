@@ -116,7 +116,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
             }
@@ -149,7 +148,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             nonAndroidMain.dependsOn(commonMain)
-            nonJvmMain.dependsOn(commonMain)
+            nonJvmMain {
+                dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
+            }
             webMain.dependsOn(nonAndroidMain)
             webMain.dependsOn(nonJvmMain)
 

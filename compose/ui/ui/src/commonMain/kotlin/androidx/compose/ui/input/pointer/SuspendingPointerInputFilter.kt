@@ -27,7 +27,7 @@ import androidx.compose.ui.node.requireLayoutNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.platform.createSynchronizedObject
+import androidx.compose.ui.platform.makeSynchronizedObject
 import androidx.compose.ui.platform.synchronized
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -463,6 +463,9 @@ sealed interface SuspendingPointerInputModifierNode : PointerInputModifierNode {
     fun resetPointerInputHandler()
 }
 
+// Used for multi-sleep solution within [PointerEventHandlerCoroutine.withTimeout()].
+internal const val WITH_TIMEOUT_MICRO_DELAY_MILLIS = 8L
+
 /**
  * Implementation notes: This class does a lot of lifting. [PointerInputModifierNode] receives,
  * interprets, and, consumes [PointerInputChange]s while the state (and the coroutineScope used to
@@ -546,7 +549,7 @@ internal class SuspendingPointerInputModifierNodeImpl(
     private val pointerHandlers =
         mutableVectorOf<SuspendingPointerInputModifierNodeImpl.PointerEventHandlerCoroutine<*>>()
 
-    private val pointerHandlersLock = createSynchronizedObject()
+    private val pointerHandlersLock = makeSynchronizedObject(pointerHandlers)
 
     /**
      * Scratch list for dispatching to handlers for a particular phase. Used to hold a copy of the
@@ -880,8 +883,8 @@ internal class SuspendingPointerInputModifierNodeImpl(
                     // input events, not treated fairly in FIFO order. The second
                     // micro-delay reposts it to the back of the queue, after any input events
                     // that were posted but not processed during the first delay.
-                    delay(timeMillis - 1)
-                    delay(1)
+                    delay(timeMillis - WITH_TIMEOUT_MICRO_DELAY_MILLIS)
+                    delay(WITH_TIMEOUT_MICRO_DELAY_MILLIS)
 
                     pointerAwaiter?.resumeWithException(
                         PointerEventTimeoutCancellationException(timeMillis)

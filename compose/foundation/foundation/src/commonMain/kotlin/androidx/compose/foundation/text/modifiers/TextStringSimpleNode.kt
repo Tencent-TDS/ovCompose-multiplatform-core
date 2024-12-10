@@ -17,8 +17,8 @@
 package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.internal.requirePreconditionNotNull
-import androidx.compose.foundation.text.AutoSize
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
@@ -58,8 +58,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Constraints.Companion.fitPrioritizingWidth
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastRoundToInt
+import kotlin.jvm.JvmName
 
 /**
  * Node that implements Text for [String].
@@ -77,7 +77,7 @@ internal class TextStringSimpleNode(
     private var maxLines: Int = Int.MAX_VALUE,
     private var minLines: Int = DefaultMinLines,
     private var overrideColor: ColorProducer? = null,
-    private var autoSize: AutoSize? = null
+    private var autoSize: TextAutoSize? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
     @Suppress("PrimitiveInCollection") // Map required for use in public API.
     // Usages of this collection are so few that the gains of using
@@ -105,20 +105,36 @@ internal class TextStringSimpleNode(
         }
 
     /**
-     * Get the layout cache for the current state of the node.
+     * Get the layout cache for the current state of the node during layout.
+     *
+     * If text substitution is active, this will return the layout cache for the substitution.
+     * Otherwise, it will return the layout cache for the original text.
+     *
+     * @receiver Current measure scope that requests the layout cache. This scope is used to update
+     *   the density value of the returned cache.
+     */
+    private fun IntrinsicMeasureScope.getLayoutCacheForMeasure(): ParagraphLayoutCache {
+        val activeCache = getLayoutCache()
+        activeCache.density = this@getLayoutCacheForMeasure
+        return activeCache
+    }
+
+    /**
+     * Get the layout cache for the current state of the node without updating the density.
+     *
+     * Warning; DO NOT USE this function from a MeasureScope. Instead please use
+     * [getLayoutCacheForMeasure].
+     *
+     * The reason this function does not update the density value is because the density should not
+     * change between layout and draw phases. This is a micro optimization to skip the unnecessary
+     * density comparison.
      *
      * If text substitution is active, this will return the layout cache for the substitution.
      * Otherwise, it will return the layout cache for the original text.
      */
-    private fun getLayoutCache(density: Density): ParagraphLayoutCache {
-        textSubstitution?.let { textSubstitutionValue ->
-            if (textSubstitutionValue.isShowingSubstitution) {
-                textSubstitutionValue.layoutCache?.let { cache ->
-                    return cache.also { it.density = density }
-                }
-            }
-        }
-        return layoutCache.also { it.density = density }
+    @JvmName("getLayoutCacheOrSubstitute")
+    private fun getLayoutCache(): ParagraphLayoutCache {
+        return textSubstitution?.takeIf { it.isShowingSubstitution }?.layoutCache ?: layoutCache
     }
 
     fun updateDraw(color: ColorProducer?, style: TextStyle): Boolean {
@@ -147,7 +163,7 @@ internal class TextStringSimpleNode(
         softWrap: Boolean,
         fontFamilyResolver: FontFamily.Resolver,
         overflow: TextOverflow,
-        autoSize: AutoSize?
+        autoSize: TextAutoSize?
     ): Boolean {
         var changed: Boolean
 
@@ -343,7 +359,7 @@ internal class TextStringSimpleNode(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        val layoutCache = getLayoutCache(this)
+        val layoutCache = getLayoutCacheForMeasure()
 
         val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
         // ensure measure restarts when hasStaleResolvedFonts by reading in measure
@@ -383,23 +399,23 @@ internal class TextStringSimpleNode(
         measurable: IntrinsicMeasurable,
         height: Int
     ): Int {
-        return getLayoutCache(this).minIntrinsicWidth(layoutDirection)
+        return getLayoutCacheForMeasure().minIntrinsicWidth(layoutDirection)
     }
 
     override fun IntrinsicMeasureScope.minIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int = getLayoutCacheForMeasure().intrinsicHeight(width, layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicWidth(
         measurable: IntrinsicMeasurable,
         height: Int
-    ): Int = getLayoutCache(this).maxIntrinsicWidth(layoutDirection)
+    ): Int = getLayoutCacheForMeasure().maxIntrinsicWidth(layoutDirection)
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
-    ): Int = getLayoutCache(this).intrinsicHeight(width, layoutDirection)
+    ): Int = getLayoutCacheForMeasure().intrinsicHeight(width, layoutDirection)
 
     /** Optimized Text draw. */
     override fun ContentDrawScope.draw() {
@@ -408,7 +424,7 @@ internal class TextStringSimpleNode(
             return
         }
 
-        val layoutCache = getLayoutCache(this)
+        val layoutCache = getLayoutCache()
         val localParagraph =
             requirePreconditionNotNull(layoutCache.paragraph) {
                 "no paragraph (layoutCache=$_layoutCache, textSubstitution=$textSubstitution)"

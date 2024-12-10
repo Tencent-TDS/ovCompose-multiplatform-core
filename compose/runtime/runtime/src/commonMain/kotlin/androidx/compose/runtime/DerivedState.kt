@@ -27,11 +27,14 @@ import androidx.compose.runtime.internal.IntRef
 import androidx.compose.runtime.internal.SnapshotThreadLocal
 import androidx.compose.runtime.internal.identityHashCode
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotId
+import androidx.compose.runtime.snapshots.SnapshotIdZero
 import androidx.compose.runtime.snapshots.StateFactoryMarker
 import androidx.compose.runtime.snapshots.StateObject
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.StateRecord
 import androidx.compose.runtime.snapshots.current
+import androidx.compose.runtime.snapshots.currentSnapshot
 import androidx.compose.runtime.snapshots.newWritableRecord
 import androidx.compose.runtime.snapshots.sync
 import androidx.compose.runtime.snapshots.withCurrent
@@ -84,14 +87,15 @@ private class DerivedSnapshotState<T>(
     private val calculation: () -> T,
     override val policy: SnapshotMutationPolicy<T>?
 ) : StateObjectImpl(), DerivedState<T> {
-    private var first: ResultRecord<T> = ResultRecord()
+    private var first: ResultRecord<T> = ResultRecord(currentSnapshot().snapshotId)
 
-    class ResultRecord<T> : StateRecord(), DerivedState.Record<T> {
+    class ResultRecord<T>(snapshotId: SnapshotId) :
+        StateRecord(snapshotId), DerivedState.Record<T> {
         companion object {
             val Unset = Any()
         }
 
-        var validSnapshotId: Int = 0
+        var validSnapshotId: SnapshotId = SnapshotIdZero
         var validSnapshotWriteCount: Int = 0
 
         override var dependencies: ObjectIntMap<StateObject> = emptyObjectIntMap()
@@ -105,11 +109,14 @@ private class DerivedSnapshotState<T>(
             resultHash = other.resultHash
         }
 
-        override fun create(): StateRecord = ResultRecord<T>()
+        override fun create(): StateRecord = create(currentSnapshot().snapshotId)
+
+        override fun create(snapshotId: SnapshotId): StateRecord = ResultRecord<T>(snapshotId)
 
         fun isValid(derivedState: DerivedState<*>, snapshot: Snapshot): Boolean {
             val snapshotChanged = sync {
-                validSnapshotId != snapshot.id || validSnapshotWriteCount != snapshot.writeCount
+                validSnapshotId != snapshot.snapshotId ||
+                    validSnapshotWriteCount != snapshot.writeCount
             }
             val isValid =
                 result !== Unset &&
@@ -117,7 +124,7 @@ private class DerivedSnapshotState<T>(
 
             if (isValid && snapshotChanged) {
                 sync {
-                    validSnapshotId = snapshot.id
+                    validSnapshotId = snapshot.snapshotId
                     validSnapshotWriteCount = snapshot.writeCount
                 }
             }
@@ -148,7 +155,7 @@ private class DerivedSnapshotState<T>(
                             }
 
                         hash = 31 * hash + identityHashCode(record)
-                        hash = 31 * hash + record.snapshotId
+                        hash = 31 * hash + record.snapshotId.hashCode()
                     }
                 }
             }
@@ -246,7 +253,7 @@ private class DerivedSnapshotState<T>(
 
             sync {
                 val currentSnapshot = Snapshot.current
-                record.validSnapshotId = currentSnapshot.id
+                record.validSnapshotId = currentSnapshot.snapshotId
                 record.validSnapshotWriteCount = currentSnapshot.writeCount
             }
         }

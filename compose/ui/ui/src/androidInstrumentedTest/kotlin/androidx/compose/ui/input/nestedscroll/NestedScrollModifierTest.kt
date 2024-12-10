@@ -1579,7 +1579,7 @@ class NestedScrollModifierTest {
         }
 
         rule.runOnIdle {
-            assertThat(innerDispatcher.lastKnownValidParentNode).isNull()
+            assertThat(innerDispatcher.lastKnownParentNode).isNull()
             assertThat(innerDispatcher.nestedScrollNode?.parentNestedScrollNode)
                 .isEqualTo(outerDispatcher.nestedScrollNode)
         }
@@ -1590,7 +1590,7 @@ class NestedScrollModifierTest {
 
         rule.runOnIdle {
             // the inner node's parent is the outer node
-            assertThat(innerDispatcher.lastKnownValidParentNode)
+            assertThat(innerDispatcher.lastKnownParentNode)
                 .isEqualTo(outerDispatcher.nestedScrollNode)
             assertThat(innerDispatcher.nestedScrollNode?.parentNestedScrollNode).isNull()
         }

@@ -22,12 +22,12 @@ import kotlin.test.BeforeTest
 import kotlinx.browser.document
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.events.Event
+import org.w3c.dom.events.EventTarget
 
 /**
  * An interface with helper functions to initialise the tests
@@ -67,10 +67,13 @@ internal interface OnCanvasTests {
         ComposeViewport(containerId, content = content)
     }
 
-    fun dispatchEvents(vararg events: Any) {
-        val canvas = getCanvas()
+    fun dispatchEvents(vararg events: Event) {
+        dispatchEvents(getCanvas(), *events)
+    }
+
+    fun dispatchEvents(element: EventTarget = getCanvas(), vararg events: Event) {
         for (event in events) {
-            canvas.dispatchEvent(event as Event)
+            element.dispatchEvent(event)
         }
     }
 }

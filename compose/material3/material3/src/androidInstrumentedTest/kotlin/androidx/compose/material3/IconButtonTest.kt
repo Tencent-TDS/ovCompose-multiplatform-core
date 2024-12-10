@@ -16,6 +16,7 @@
 package androidx.compose.material3
 
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.tokens.FilledIconButtonTokens
 import androidx.compose.material3.tokens.FilledTonalIconButtonTokens
 import androidx.compose.material3.tokens.OutlinedIconButtonTokens
+import androidx.compose.material3.tokens.SmallIconButtonTokens
 import androidx.compose.material3.tokens.StandardIconButtonTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -309,7 +311,7 @@ class IconButtonTest {
     fun iconButton_defaultLocalContentColors() {
         rule.setMaterialContent(lightColorScheme()) {
             CompositionLocalProvider(LocalContentColor provides Color.Blue) {
-                Truth.assertThat(IconButtonDefaults.iconButtonLocalContentColors())
+                Truth.assertThat(IconButtonDefaults.iconButtonColors())
                     .isEqualTo(
                         IconButtonColors(
                             containerColor = Color.Transparent,
@@ -324,9 +326,9 @@ class IconButtonTest {
     }
 
     @Test
-    fun iconButton_defaultColors() {
+    fun iconButton_defaultVibrantColors() {
         rule.setMaterialContent(lightColorScheme()) {
-            Truth.assertThat(IconButtonDefaults.iconButtonColors())
+            Truth.assertThat(IconButtonDefaults.iconButtonVibrantColors())
                 .isEqualTo(
                     IconButtonColors(
                         containerColor = Color.Transparent,
@@ -342,38 +344,32 @@ class IconButtonTest {
     }
 
     @Test
-    fun iconButtonColors_localContentColor() {
+    fun iconButtonColors_useLocalContentColor() {
         rule.setMaterialContent(lightColorScheme()) {
             CompositionLocalProvider(LocalContentColor provides Color.Blue) {
-                val colors = IconButtonDefaults.iconButtonLocalContentColors()
+                val colors = IconButtonDefaults.iconButtonColors()
                 assert(colors.contentColor == Color.Blue)
             }
 
             CompositionLocalProvider(LocalContentColor provides Color.Red) {
                 val colors =
-                    IconButtonDefaults.iconButtonLocalContentColors()
-                        .copy(containerColor = Color.Green)
+                    IconButtonDefaults.iconButtonColors().copy(containerColor = Color.Green)
                 assert(colors.containerColor == Color.Green)
                 assert(colors.contentColor == Color.Red)
+                assert(
+                    colors.disabledContentColor ==
+                        Color.Red.copy(StandardIconButtonTokens.DisabledOpacity)
+                )
             }
         }
     }
 
     @Test
-    fun iconButtonColors_customValues_useLocalContentColor() {
+    fun iconButtonVibrantColors_ignoreLocalContentColor() {
         rule.setMaterialContent(lightColorScheme()) {
-            CompositionLocalProvider(LocalContentColor provides Color.Blue) {
-                val colors = IconButtonDefaults.iconButtonLocalContentColors()
-                assert(colors.contentColor == Color.Blue)
-                assert(
-                    colors.disabledContentColor ==
-                        Color.Blue.copy(StandardIconButtonTokens.DisabledOpacity)
-                )
-            }
-
             CompositionLocalProvider(LocalContentColor provides Color.Red) {
                 val colors =
-                    IconButtonDefaults.iconButtonColors(
+                    IconButtonDefaults.iconButtonVibrantColors(
                         containerColor = Color.Blue,
                         contentColor = Color.Green
                     )
@@ -392,7 +388,7 @@ class IconButtonTest {
         rule.setMaterialContent(lightColorScheme()) {
             CompositionLocalProvider(LocalContentColor provides Color.Red) {
                 val colors =
-                    IconButtonDefaults.iconButtonColors(
+                    IconButtonDefaults.iconButtonVibrantColors(
                         containerColor = Color.Blue,
                         contentColor = Color.Green
                     )
@@ -409,8 +405,8 @@ class IconButtonTest {
     @Test
     fun iconButtonColors_copy() {
         rule.setMaterialContent(lightColorScheme()) {
-            val colors = IconButtonDefaults.iconButtonColors().copy()
-            assert(colors == IconButtonDefaults.iconButtonColors())
+            val colors = IconButtonDefaults.iconButtonVibrantColors().copy()
+            assert(colors == IconButtonDefaults.iconButtonVibrantColors())
         }
     }
 
@@ -543,7 +539,7 @@ class IconButtonTest {
     fun iconToggleButton_defaultLocalContentColors() {
         rule.setMaterialContent(lightColorScheme()) {
             val localContentColor = LocalContentColor.current
-            Truth.assertThat(IconButtonDefaults.iconToggleButtonLocalContentColors())
+            Truth.assertThat(IconButtonDefaults.iconToggleButtonColors())
                 .isEqualTo(
                     IconToggleButtonColors(
                         containerColor = Color.Transparent,
@@ -561,9 +557,9 @@ class IconButtonTest {
     }
 
     @Test
-    fun iconToggleButton_defaultColors() {
+    fun iconToggleButton_defaultVibrantColors() {
         rule.setMaterialContent(lightColorScheme()) {
-            Truth.assertThat(IconButtonDefaults.iconToggleButtonColors())
+            Truth.assertThat(IconButtonDefaults.iconToggleButtonVibrantColors())
                 .isEqualTo(
                     IconToggleButtonColors(
                         containerColor = Color.Transparent,
@@ -741,7 +737,9 @@ class IconButtonTest {
                                 .size(IconButtonDefaults.mediumContainerSize()),
                         shape = shape,
                         colors =
-                            IconButtonDefaults.iconButtonColors(containerColor = iconButtonColor)
+                            IconButtonDefaults.iconButtonVibrantColors(
+                                containerColor = iconButtonColor
+                            )
                     ) {}
                 }
             }
@@ -1051,7 +1049,7 @@ class IconButtonTest {
                                 .testTag(IconTestTag)
                                 .size(IconButtonDefaults.mediumContainerSize()),
                         colors =
-                            IconButtonDefaults.iconToggleButtonColors(
+                            IconButtonDefaults.iconToggleButtonVibrantColors(
                                 checkedContainerColor = iconButtonColor
                             )
                     ) {}
@@ -1305,7 +1303,7 @@ class IconButtonTest {
     fun outlinedIconButton_defaultLocalContentColors() {
         rule.setMaterialContent(lightColorScheme()) {
             val localContentColor = LocalContentColor.current
-            Truth.assertThat(IconButtonDefaults.outlinedIconButtonLocalContentColors())
+            Truth.assertThat(IconButtonDefaults.outlinedIconButtonColors())
                 .isEqualTo(
                     IconButtonColors(
                         containerColor = Color.Transparent,
@@ -1319,9 +1317,9 @@ class IconButtonTest {
     }
 
     @Test
-    fun outlinedIconButton_defaultColors() {
+    fun outlinedIconButton_defaultVibrantColors() {
         rule.setMaterialContent(lightColorScheme()) {
-            Truth.assertThat(IconButtonDefaults.outlinedIconButtonColors())
+            Truth.assertThat(IconButtonDefaults.outlinedIconButtonVibrantColors())
                 .isEqualTo(
                     IconButtonColors(
                         containerColor = Color.Transparent,
@@ -1337,9 +1335,30 @@ class IconButtonTest {
     }
 
     @Test
-    fun outlinedIconToggleButton_defaultColors() {
+    fun outlinedIconToggleButton_useLocalContentColors() {
         rule.setMaterialContent(lightColorScheme()) {
-            Truth.assertThat(IconButtonDefaults.outlinedIconToggleButtonColors())
+            CompositionLocalProvider(LocalContentColor provides Color.Blue) {
+                val colors = IconButtonDefaults.outlinedIconButtonColors()
+                assert(colors.contentColor == Color.Blue)
+            }
+
+            CompositionLocalProvider(LocalContentColor provides Color.Red) {
+                val colors =
+                    IconButtonDefaults.outlinedIconButtonColors().copy(containerColor = Color.Green)
+                assert(colors.containerColor == Color.Green)
+                assert(colors.contentColor == Color.Red)
+                assert(
+                    colors.disabledContentColor ==
+                        Color.Red.copy(OutlinedIconButtonTokens.DisabledOpacity)
+                )
+            }
+        }
+    }
+
+    @Test
+    fun outlinedIconToggleButton_defaultVibrantColors() {
+        rule.setMaterialContent(lightColorScheme()) {
+            Truth.assertThat(IconButtonDefaults.outlinedIconToggleButtonVibrantColors())
                 .isEqualTo(
                     IconToggleButtonColors(
                         containerColor = Color.Transparent,
@@ -1358,55 +1377,29 @@ class IconButtonTest {
     }
 
     @Test
-    fun outlinedIconToggleButton_defaultLocalContentColors_reuse() {
+    fun outlinedIconButton_borderStroke_defaultLocalContentColor() {
         rule.setMaterialContent(lightColorScheme()) {
-            val localContentColor = LocalContentColor.current
-            Truth.assertThat(MaterialTheme.colorScheme.defaultOutlinedIconToggleButtonColorsCached)
-                .isNull()
-            val colors = IconButtonDefaults.outlinedIconToggleButtonLocalContentColors()
-            Truth.assertThat(MaterialTheme.colorScheme.defaultOutlinedIconToggleButtonColorsCached)
-                .isNotNull()
-            Truth.assertThat(colors)
-                .isEqualTo(
-                    IconToggleButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = localContentColor,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor =
-                            localContentColor.copy(
-                                alpha = OutlinedIconButtonTokens.DisabledOpacity
-                            ),
-                        checkedContainerColor =
-                            OutlinedIconButtonTokens.SelectedContainerColor.value,
-                        checkedContentColor =
-                            contentColorFor(OutlinedIconButtonTokens.SelectedContainerColor.value)
-                    )
-                )
+            CompositionLocalProvider(LocalContentColor provides Color.Blue) {
+                Truth.assertThat(IconButtonDefaults.outlinedIconButtonBorder(enabled = true))
+                    .isEqualTo(BorderStroke(SmallIconButtonTokens.OutlinedOutlineWidth, Color.Blue))
+            }
         }
     }
 
     @Test
-    fun outlinedIconToggleButton_defaultColors_reuse() {
+    fun outlinedIconToggleButton_borderStroke_defaultVibrantColor() {
         rule.setMaterialContent(lightColorScheme()) {
-            val localContentColor = LocalContentColor.current
-            Truth.assertThat(MaterialTheme.colorScheme.defaultOutlinedIconToggleButtonColorsCached)
-                .isNull()
-            val colors = IconButtonDefaults.outlinedIconToggleButtonColors()
-            Truth.assertThat(MaterialTheme.colorScheme.defaultOutlinedIconToggleButtonColorsCached)
-                .isNotNull()
-            Truth.assertThat(colors)
+            val outlineColor = OutlinedIconButtonTokens.OutlineColor.value
+            Truth.assertThat(
+                    IconButtonDefaults.outlinedIconToggleButtonVibrantBorder(
+                        enabled = false,
+                        checked = false
+                    )
+                )
                 .isEqualTo(
-                    IconToggleButtonColors(
-                        containerColor = Color.Transparent,
-                        contentColor = OutlinedIconButtonTokens.UnselectedColor.value,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor =
-                            localContentColor.copy(
-                                alpha = OutlinedIconButtonTokens.DisabledOpacity
-                            ),
-                        checkedContainerColor =
-                            OutlinedIconButtonTokens.SelectedContainerColor.value,
-                        checkedContentColor = OutlinedIconButtonTokens.SelectedColor.value
+                    BorderStroke(
+                        SmallIconButtonTokens.OutlinedOutlineWidth,
+                        outlineColor.copy(alpha = OutlinedIconButtonTokens.DisabledContainerOpacity)
                     )
                 )
         }

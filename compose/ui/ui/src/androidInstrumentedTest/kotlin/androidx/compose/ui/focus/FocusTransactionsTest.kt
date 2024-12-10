@@ -21,7 +21,6 @@ import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Inactive
 import androidx.compose.ui.input.InputMode.Companion.Keyboard
@@ -186,7 +185,7 @@ class FocusTransactionsTest {
         val focusRequester = FocusRequester()
         rule.setFocusableContent {
             view = LocalView.current
-            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
+            Box(Modifier.focusProperties { onEnter = { cancelFocus() } }.focusTarget()) {
                 Box(Modifier.focusRequester(focusRequester).focusTarget())
             }
         }

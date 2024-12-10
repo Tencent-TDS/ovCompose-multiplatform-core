@@ -108,10 +108,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:ui:ui"))
                 api(project(":compose:ui:ui-text"))
 
+                implementation(project(":annotation:annotation"))
                 implementation(project(":compose:animation:animation"))
                 implementation(project(":compose:foundation:foundation-layout"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {

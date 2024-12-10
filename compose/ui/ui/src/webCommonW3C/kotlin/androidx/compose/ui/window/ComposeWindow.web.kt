@@ -73,6 +73,7 @@ import org.w3c.dom.AddEventListenerOptions
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
+import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.HTMLTitleElement
 import org.w3c.dom.MediaQueryListEvent
 import org.w3c.dom.TouchEvent
@@ -182,7 +183,6 @@ internal class ComposeWindow(
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 
         override val textInputService = object : WebTextInputService() {
-            override fun isVirtualKeyboard() = keyboardModeState == KeyboardModeState.Virtual
 
             override fun getOffset(rect: Rect): Offset {
                 val viewportRect = canvas.getBoundingClientRect()

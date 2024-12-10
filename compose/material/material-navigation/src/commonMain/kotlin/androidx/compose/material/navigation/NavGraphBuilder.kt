@@ -25,6 +25,7 @@ import androidx.navigation.NavDeepLink
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.get
+import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
@@ -73,10 +74,21 @@ public inline fun <reified T : Any> NavGraphBuilder.bottomSheet(
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline content: @Composable ColumnScope.(backstackEntry: NavBackStackEntry) -> Unit
 ) {
+    bottomSheet(T::class, typeMap, arguments, deepLinks, content)
+}
+
+@PublishedApi
+internal fun NavGraphBuilder.bottomSheet(
+    route: KClass<*>,
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>>,
+    arguments: List<NamedNavArgument>,
+    deepLinks: List<NavDeepLink> = emptyList(),
+    content: @Composable ColumnScope.(backstackEntry: NavBackStackEntry) -> Unit
+) {
     destination(
         BottomSheetNavigatorDestinationBuilder(
                 provider[BottomSheetNavigator::class],
-                T::class,
+                route,
                 typeMap,
                 content
             )

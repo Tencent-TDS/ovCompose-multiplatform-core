@@ -34,6 +34,8 @@ import androidx.compose.ui.layout.LayoutInfo
 import androidx.compose.ui.node.InteroperableComposeUiNode
 import androidx.compose.ui.node.Ref
 import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.platform.AbstractComposeView
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewRootForInspector
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.tooling.data.ContextCache
@@ -774,6 +776,12 @@ class LayoutInspectorTree {
             group.data.filterIsInstance<ViewRootForInspector>().singleOrNull()?.let {
                 return it
             }
+            group.data.filterIsInstance<ComposeView>().singleOrNull()?.let {
+                return object : ViewRootForInspector {
+                    override val subCompositionView: AbstractComposeView
+                        get() = it
+                }
+            }
             val refs = group.data.filterIsInstance<Ref<*>>().map { it.value }
             return refs.filterIsInstance<ViewRootForInspector>().singleOrNull()
         }
@@ -818,12 +826,32 @@ class LayoutInspectorTree {
          * If a root is not found for this [owner] or if the stitching fails just return [nodes].
          */
         fun addRoot(owner: View, nodes: List<InspectorNode>): List<InspectorNode> {
-            val root = found[owner.uniqueDrawingId] ?: return nodes
+            val root = found[owner.uniqueDrawingId]?.let { skipEmptyRoot(it) } ?: return nodes
             val box = IntRect(0, 0, owner.width, owner.height)
             val info = StitchInfo(nodes, box)
             val result = listOf(stitch(root, info))
             return if (info.added) result else nodes
         }
+
+        /**
+         * The root of a sub-composition often has a root with an empty name. If the root has a
+         * single child: skip the empty node. Otherwise: select an arbitrary child node name and use
+         * for the root (prefer functions with an uppercase name).
+         */
+        private fun skipEmptyRoot(node: InspectorNode): InspectorNode =
+            when {
+                node.name.isNotEmpty() -> node
+                node.children.isEmpty() -> node // This should not happen
+                node.children.size == 1 -> node.children.single()
+                else -> {
+                    val newNode = newNode()
+                    newNode.shallowCopy(node)
+                    val firstUpperCaseNamedChild =
+                        node.children.firstOrNull { it.name.firstOrNull()?.isUpperCase() ?: false }
+                    newNode.name = firstUpperCaseNamedChild?.name ?: node.children.first().name
+                    buildAndRelease(newNode)
+                }
+            }
 
         private fun stitch(node: InspectorNode, info: StitchInfo): InspectorNode {
             val children = node.children.map { stitch(it, info) }

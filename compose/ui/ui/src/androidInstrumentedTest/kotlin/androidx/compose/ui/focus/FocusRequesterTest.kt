@@ -350,7 +350,7 @@ class FocusRequesterTest(private val modifierNodeVersion: Boolean) {
                     Modifier.focusRequester(focusRequester)
                         .focusProperties {
                             canFocus = false
-                            enter = { FocusRequester.Cancel }
+                            onEnter = { cancelFocus() }
                         }
                         .focusTarget()
             ) {
@@ -392,7 +392,7 @@ class FocusRequesterTest(private val modifierNodeVersion: Boolean) {
                         Modifier.size(10.dp)
                             .focusProperties {
                                 canFocus = false
-                                enter = { FocusRequester.Cancel }
+                                onEnter = { FocusRequester.Cancel }
                             }
                             .focusTarget()
                 ) {
@@ -493,7 +493,7 @@ class FocusRequesterTest(private val modifierNodeVersion: Boolean) {
             Column(
                 modifier =
                     Modifier.focusRequester(focusRequester)
-                        .focusProperties { enter = { child2 } }
+                        .focusProperties { onEnter = { child2.requestFocus() } }
                         .focusProperties { canFocus = false }
                         .focusTarget()
             ) {

@@ -23,4 +23,4 @@ jobs:
       - name: install Android SDK
         run: ./jbdeps/android-sdk/downloadAndroidSdk
       - name: Run CfW tests
-        run: xvfb-run -a ./gradlew :mpp:testWeb --no-parallel -Pandroidx.ignoreTestFailures
+        run: xvfb-run -a ./gradlew :mpp:testWeb --no-parallel

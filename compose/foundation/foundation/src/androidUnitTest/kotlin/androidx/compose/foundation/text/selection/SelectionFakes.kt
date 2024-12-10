@@ -376,6 +376,10 @@ internal class FakeSelectable : Selectable {
         return 0
     }
 
+    override fun getLineHeight(offset: Int): Float {
+        return 0f
+    }
+
     fun clear() {
         getTextCalledTimes = 0
         textToReturn = null

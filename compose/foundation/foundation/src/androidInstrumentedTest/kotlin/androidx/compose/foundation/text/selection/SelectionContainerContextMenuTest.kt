@@ -182,6 +182,7 @@ class SelectionContainerContextMenuTest {
                 copyState = ContextMenuItemState.DOES_NOT_EXIST,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -197,6 +198,7 @@ class SelectionContainerContextMenuTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 
@@ -212,6 +214,7 @@ class SelectionContainerContextMenuTest {
                 copyState = ContextMenuItemState.ENABLED,
                 pasteState = ContextMenuItemState.DOES_NOT_EXIST,
                 selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
             )
         }
 

@@ -30,7 +30,6 @@ import androidx.compose.ui.focus.FocusDirection.Companion.Left
 import androidx.compose.ui.focus.FocusDirection.Companion.Right
 import androidx.compose.ui.focus.FocusDirection.Companion.Up
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusRequester.Companion.Default
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.InputMode
@@ -69,19 +68,17 @@ fun ExplicitEnterExitWithCustomFocusEnterExitDemo() {
         Row(
             Modifier.focusRequester(row)
                 .focusProperties {
-                    enter = {
-                        when (it) {
-                            Down -> item1
-                            Enter -> item2
-                            Up -> item3
-                            else -> Default
+                    onEnter = {
+                        when (requestedFocusDirection) {
+                            Down -> item1.requestFocus()
+                            Enter -> item2.requestFocus()
+                            Up -> item3.requestFocus()
                         }
                     }
-                    exit = {
-                        when (it) {
-                            Left -> top
-                            Right -> bottom
-                            else -> Default
+                    onExit = {
+                        when (requestedFocusDirection) {
+                            Left -> top.requestFocus()
+                            Right -> bottom.requestFocus()
                         }
                     }
                 }

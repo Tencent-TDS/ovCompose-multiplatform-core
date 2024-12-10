@@ -17,7 +17,7 @@
 package androidx.compose.foundation.pager
 
 import android.view.View
-import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
@@ -112,7 +112,7 @@ open class SingleParamBasePagerTest {
 
         CompositionLocalProvider(
             LocalLayoutDirection provides layoutDirection,
-            LocalOverscrollConfiguration provides null
+            LocalOverscrollFactory provides null
         ) {
             val resolvedFlingBehavior =
                 flingBehavior

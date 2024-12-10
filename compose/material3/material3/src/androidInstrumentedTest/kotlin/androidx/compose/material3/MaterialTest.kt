@@ -16,12 +16,17 @@
 
 package androidx.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.LastBaseline
@@ -29,8 +34,10 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getAlignmentLinePosition
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -39,6 +46,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -112,6 +120,38 @@ fun ComposeContentTestRule.setMaterialContentForSizeAssertions(
     }
 
     return onNodeWithTag("containerForSizeAssertion")
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun ComposeContentTestRule.assertContentShape(
+    expectedShape: @Composable () -> Shape,
+    expectedSize: @Composable () -> DpSize,
+    expectedColor: @Composable () -> Color,
+    interaction: SemanticsNodeInteraction.() -> Unit = {},
+    matcher: SemanticsNodeInteractionsProvider.() -> SemanticsNodeInteraction = { onRoot() },
+    content: @Composable () -> Unit
+) {
+    var expectedShapeValue: Shape? = null
+    var expectedSizeValue: Size? = null
+    var expectedColorValue: Color? = null
+
+    setContent {
+        expectedColorValue = expectedColor()
+        expectedShapeValue = expectedShape()
+        expectedSizeValue = with(density) { expectedSize().toSize() }
+        content()
+    }
+
+    matcher().interaction()
+    matcher()
+        .captureToImage()
+        .assertShape(
+            density = density,
+            backgroundColor = null,
+            shape = expectedShapeValue!!,
+            shapeSize = expectedSizeValue!!,
+            shapeColor = expectedColorValue!!
+        )
 }
 
 /**

@@ -16,12 +16,6 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
-import androidx.compose.ui.input.key.KeyEventType.Companion.KeyUp
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.node.DelegatableNode
 
 // TODO(https://github.com/JetBrains/compose-multiplatform/issues/3341): support isComposeRootInScrollableContainer
@@ -29,9 +23,3 @@ internal actual fun DelegatableNode
     .isComposeRootInScrollableContainer(): Boolean {
     return false
 }
-
-internal actual val KeyEvent.isPress: Boolean
-    get() = type == KeyDown && (key == Key.Enter || key == Key.NumPadEnter || key == Key.Spacebar)
-
-internal actual val KeyEvent.isClick: Boolean
-    get() = type == KeyUp && (key == Key.Enter || key == Key.NumPadEnter || key == Key.Spacebar)

@@ -21,6 +21,7 @@ package androidx.compose.foundation.lazy.list
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.AutoTestFrameClock
 import androidx.compose.foundation.BaseLazyLayoutTestWithOrientation
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.composeViewSwipeDown
 import androidx.compose.foundation.composeViewSwipeLeft
 import androidx.compose.foundation.composeViewSwipeRight
@@ -40,6 +41,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,6 +122,7 @@ open class BaseLazyListTestWithOrientation(private val orientation: Orientation)
         reverseArrangement: Boolean = false,
         flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
         userScrollEnabled: Boolean = true,
+        overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
         spacedBy: Dp = 0.dp,
         isCrossAxis: Boolean = false,
         content: LazyListScope.() -> Unit
@@ -138,6 +141,7 @@ open class BaseLazyListTestWithOrientation(private val orientation: Orientation)
                 reverseLayout = reverseLayout,
                 flingBehavior = flingBehavior,
                 userScrollEnabled = userScrollEnabled,
+                overscrollEffect = overscrollEffect,
                 verticalArrangement = verticalArrangement,
                 content = content
             )
@@ -155,6 +159,7 @@ open class BaseLazyListTestWithOrientation(private val orientation: Orientation)
                 reverseLayout = reverseLayout,
                 flingBehavior = flingBehavior,
                 userScrollEnabled = userScrollEnabled,
+                overscrollEffect = overscrollEffect,
                 horizontalArrangement = horizontalArrangement,
                 content = content
             )
@@ -238,6 +243,7 @@ private fun LazyColumn(
         isVertical = true,
         reverseLayout = reverseLayout,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = rememberOverscrollEffect(),
         beyondBoundsItemCount = beyondBoundsItemCount,
         content = content
     )
@@ -267,6 +273,7 @@ private fun LazyRow(
         flingBehavior = flingBehavior,
         reverseLayout = reverseLayout,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = rememberOverscrollEffect(),
         beyondBoundsItemCount = beyondBoundsItemCount,
         content = content
     )

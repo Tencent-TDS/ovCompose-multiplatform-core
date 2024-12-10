@@ -79,6 +79,12 @@ class PointerIconTest {
                 override fun setIcon(value: PointerIcon?) {
                     currentIcon = value ?: PointerIcon.Default
                 }
+
+                override fun getStylusHoverIcon(): PointerIcon? {
+                    return null
+                }
+
+                override fun setStylusHoverIcon(value: PointerIcon?) {}
             }
     }
 

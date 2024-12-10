@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsInfo
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.compose.foundation.lazy.layout.LazyLayoutPinnedItemList
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
+import androidx.compose.foundation.lazy.layout.LazyLayoutScrollDeltaBetweenPasses
 import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
 import androidx.compose.foundation.lazy.layout.animateScrollToItem
 import androidx.compose.runtime.Composable
@@ -135,6 +136,12 @@ constructor(
         firstVisibleItemIndex: Int = 0,
         firstVisibleItemScrollOffset: Int = 0
     ) : this(firstVisibleItemIndex, firstVisibleItemScrollOffset, LazyGridPrefetchStrategy())
+
+    internal var hasLookaheadOccurred: Boolean = false
+        private set
+
+    internal var approachLayoutInfo: LazyGridMeasureResult? = null
+        private set
 
     /** The holder class for the current scroll position. */
     private val scrollPosition =
@@ -397,10 +404,33 @@ constructor(
         if (abs(scrollToBeConsumed) > 0.5f) {
             val preScrollToBeConsumed = scrollToBeConsumed
             val intDelta = scrollToBeConsumed.roundToInt()
-            val scrolledLayoutInfo =
-                layoutInfoState.value.copyWithScrollDeltaWithoutRemeasure(delta = intDelta)
+            var scrolledLayoutInfo =
+                layoutInfoState.value.copyWithScrollDeltaWithoutRemeasure(
+                    delta = intDelta,
+                    updateAnimations = !hasLookaheadOccurred
+                )
+            if (scrolledLayoutInfo != null && this.approachLayoutInfo != null) {
+                // if we were able to scroll the lookahead layout info without remeasure, lets
+                // try to do the same for post lookahead layout info (sometimes they diverge).
+                val scrolledApproachLayoutInfo =
+                    approachLayoutInfo?.copyWithScrollDeltaWithoutRemeasure(
+                        delta = intDelta,
+                        updateAnimations = true
+                    )
+                if (scrolledApproachLayoutInfo != null) {
+                    // we can apply scroll delta for both phases without remeasure
+                    approachLayoutInfo = scrolledApproachLayoutInfo
+                } else {
+                    // we can't apply scroll delta for post lookahead, so we have to remeasure
+                    scrolledLayoutInfo = null
+                }
+            }
             if (scrolledLayoutInfo != null) {
-                applyMeasureResult(result = scrolledLayoutInfo, visibleItemsStayedTheSame = true)
+                applyMeasureResult(
+                    result = scrolledLayoutInfo,
+                    isLookingAhead = hasLookaheadOccurred,
+                    visibleItemsStayedTheSame = true
+                )
                 // we don't need to remeasure, so we only trigger re-placement:
                 placementScopeInvalidator.invalidateScope()
 
@@ -448,32 +478,53 @@ constructor(
     suspend fun animateScrollToItem(@AndroidXIntRange(from = 0) index: Int, scrollOffset: Int = 0) {
         scroll {
             LazyLayoutScrollScope(this@LazyGridState, this)
-                .animateScrollToItem(index, scrollOffset, numOfItemsToTeleport, density, this)
+                .animateScrollToItem(index, scrollOffset, numOfItemsToTeleport, density)
         }
     }
 
     /** Updates the state with the new calculated scroll position and consumed scroll. */
     internal fun applyMeasureResult(
         result: LazyGridMeasureResult,
+        isLookingAhead: Boolean,
         visibleItemsStayedTheSame: Boolean = false
     ) {
-        scrollToBeConsumed -= result.consumedScroll
-        layoutInfoState.value = result
-
-        canScrollBackward = result.canScrollBackward
-        canScrollForward = result.canScrollForward
-
-        if (visibleItemsStayedTheSame) {
-            scrollPosition.updateScrollOffset(result.firstVisibleLineScrollOffset)
+        if (!isLookingAhead && hasLookaheadOccurred) {
+            // If there was already a lookahead pass, record this result as Approach result
+            approachLayoutInfo = result
         } else {
-            scrollPosition.updateFromMeasureResult(result)
-            if (prefetchingEnabled) {
-                with(prefetchStrategy) { prefetchScope.onVisibleItemsUpdated(result) }
+            if (isLookingAhead) {
+                hasLookaheadOccurred = true
             }
-        }
+            scrollToBeConsumed -= result.consumedScroll
+            layoutInfoState.value = result
 
-        numMeasurePasses++
+            canScrollBackward = result.canScrollBackward
+            canScrollForward = result.canScrollForward
+
+            if (visibleItemsStayedTheSame) {
+                scrollPosition.updateScrollOffset(result.firstVisibleLineScrollOffset)
+            } else {
+                scrollPosition.updateFromMeasureResult(result)
+                if (prefetchingEnabled) {
+                    with(prefetchStrategy) { prefetchScope.onVisibleItemsUpdated(result) }
+                }
+            }
+
+            if (isLookingAhead) {
+                _lazyLayoutScrollDeltaBetweenPasses.updateScrollDeltaForApproach(
+                    result.scrollBackAmount,
+                    result.density,
+                    result.coroutineScope
+                )
+            }
+            numMeasurePasses++
+        }
     }
+
+    private val _lazyLayoutScrollDeltaBetweenPasses = LazyLayoutScrollDeltaBetweenPasses()
+
+    internal val scrollDeltaBetweenPasses
+        get() = _lazyLayoutScrollDeltaBetweenPasses.scrollDeltaBetweenPasses
 
     /**
      * When the user provided custom keys for the items we can try to detect when there were items
@@ -533,6 +584,7 @@ private val EmptyLazyGridLayoutInfo =
 
                 override fun placeChildren() {}
             },
+        scrollBackAmount = 0f,
         visibleItemsInfo = emptyList(),
         viewportStartOffset = 0,
         viewportEndOffset = 0,

@@ -96,14 +96,13 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":annotation:annotation"))
             }
 
             jvmMain.dependencies {
                 api(libs.junit)
                 api(libs.kotlinStdlib)
                 api(libs.kotlinStdlibCommon)
-
-                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {

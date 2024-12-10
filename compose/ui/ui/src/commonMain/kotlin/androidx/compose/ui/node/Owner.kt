@@ -18,11 +18,12 @@
 package androidx.compose.ui.node
 
 import androidx.annotation.RestrictTo
+import androidx.collection.IntObjectMap
 import androidx.compose.runtime.Applier
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
@@ -46,6 +47,7 @@ import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -66,6 +68,9 @@ internal interface Owner : PositionCalculator {
 
     /** The root layout node in the component tree. */
     val root: LayoutNode
+
+    /** A mapping of semantic id to LayoutNode. */
+    val layoutNodes: IntObjectMap<LayoutNode>
 
     /** Draw scope reused for drawing speed up. */
     val sharedDrawScope: LayoutNodeDrawScope
@@ -115,10 +120,10 @@ internal interface Owner : PositionCalculator {
     val autofill: Autofill?
 
     /**
-     * The [SemanticAutofill] class can be used to perform autofill operations. It is used as a
+     * The [AutofillManager] class can be used to perform autofill operations. It is used as a
      * CompositionLocal.
      */
-    val semanticAutofill: SemanticAutofill?
+    val autofillManager: AutofillManager?
 
     val density: Density
 
@@ -127,6 +132,8 @@ internal interface Owner : PositionCalculator {
     val softwareKeyboardController: SoftwareKeyboardController
 
     val pointerIconService: PointerIconService
+
+    val semanticsOwner: SemanticsOwner
 
     /** Provide a focus owner that controls focus within Compose. */
     val focusOwner: FocusOwner

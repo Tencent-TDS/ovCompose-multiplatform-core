@@ -274,7 +274,7 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @return Returns the value associated with the given key, or `null` if there is no such key.
      */
     public open operator fun get(key: K): V? {
-        // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+        // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
         return getOrDefaultInternal<V?>(key, null)
     }
 
@@ -290,7 +290,7 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
     // Java's Map interface, which is necessary since ArrayMap is written in Java and implements
     // both Map and SimpleArrayMap.
     public open fun getOrDefault(key: Any?, defaultValue: V): V {
-        // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+        // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
         return getOrDefaultInternal<V>(key, defaultValue)
     }
 

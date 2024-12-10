@@ -380,9 +380,9 @@ public interface SharedTransitionScope : LookaheadScope {
     public interface OverlayClip {
         /**
          * Creates a clip path based using current animated [bounds] of the [sharedBounds] or
-         * [sharedElement], their [state] (to query parent state's bounds if needed), and
-         * [layoutDirection] and [density]. The topLeft of the [bounds] is the local position of the
-         * sharedElement/sharedBounds in the [SharedTransitionScope].
+         * [sharedElement], their [sharedContentState] (to query parent state's bounds if needed),
+         * and [layoutDirection] and [density]. The topLeft of the [bounds] is the local position of
+         * the sharedElement/sharedBounds in the [SharedTransitionScope].
          *
          * **Important**: The returned [Path] needs to be offset-ed as needed such that it is in
          * [SharedTransitionScope.lookaheadScopeCoordinates]'s coordinate space. For example, if the
@@ -392,7 +392,7 @@ public interface SharedTransitionScope : LookaheadScope {
          * creating new [Path]s.
          */
         public fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
@@ -456,9 +456,8 @@ public interface SharedTransitionScope : LookaheadScope {
      * @sample androidx.compose.animation.samples.SharedElementInAnimatedContentSample
      * @see [sharedBounds]
      */
-    @OptIn(ExperimentalAnimationApi::class)
     public fun Modifier.sharedElement(
-        state: SharedContentState,
+        sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
         boundsTransform: BoundsTransform = DefaultBoundsTransform,
         placeHolderSize: PlaceHolderSize = contentSize,
@@ -536,7 +535,6 @@ public interface SharedTransitionScope : LookaheadScope {
      * @sample androidx.compose.animation.samples.NestedSharedBoundsSample
      * @see [sharedBounds]
      */
-    @OptIn(ExperimentalAnimationApi::class)
     public fun Modifier.sharedBounds(
         sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
@@ -705,7 +703,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         )
 
     override fun Modifier.sharedElement(
-        state: SharedContentState,
+        sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
         boundsTransform: BoundsTransform,
         placeHolderSize: PlaceHolderSize,
@@ -714,7 +712,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         clipInOverlayDuringTransition: OverlayClip
     ) =
         this.sharedBoundsImpl(
-            state,
+            sharedContentState,
             parentTransition = animatedVisibilityScope.transition,
             visible = { it == EnterExitState.Visible },
             boundsTransform = boundsTransform,
@@ -725,7 +723,6 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
             clipInOverlayDuringTransition = clipInOverlayDuringTransition
         )
 
-    @OptIn(ExperimentalAnimationApi::class)
     override fun Modifier.sharedBounds(
         sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
@@ -1140,7 +1137,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         private val path = Path()
 
         override fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
@@ -1253,12 +1250,12 @@ private val DefaultSpring =
 private val ParentClip: OverlayClip =
     object : OverlayClip {
         override fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
         ): Path? {
-            return state.parentSharedContentState?.clipPathInOverlay
+            return sharedContentState.parentSharedContentState?.clipPathInOverlay
         }
     }
 

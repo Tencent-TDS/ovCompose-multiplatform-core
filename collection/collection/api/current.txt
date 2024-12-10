@@ -221,9 +221,8 @@ package androidx.collection {
     ctor public FloatFloatPair(float first, float second);
     method public inline operator float component1();
     method public inline operator float component2();
-    method public inline float getFirst();
-    method public inline float getSecond();
     property public final inline float first;
+    property public final long packedValue;
     property public final inline float second;
     field public final long packedValue;
   }
@@ -618,9 +617,8 @@ package androidx.collection {
     ctor public IntIntPair(int first, int second);
     method public inline operator int component1();
     method public inline operator int component2();
-    method public int getFirst();
-    method public int getSecond();
     property public final int first;
+    property public final long packedValue;
     property public final int second;
     field public final long packedValue;
   }
@@ -1739,7 +1737,7 @@ package androidx.collection {
     method public java.util.List<E> asList();
     method public java.util.List<E> asMutableList();
     method public void clear();
-    method public void ensureCapacity(int capacity);
+    method public inline void ensureCapacity(int capacity);
     method public inline int getCapacity();
     method public operator void minusAssign(androidx.collection.ObjectList<E> elements);
     method public operator void minusAssign(androidx.collection.ScatterSet<E> elements);

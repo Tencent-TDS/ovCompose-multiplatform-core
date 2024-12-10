@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
+import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
@@ -37,6 +38,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     imeOptions: ImeOptions,
     receiveContentConfiguration: ReceiveContentConfiguration?,
     onImeAction: ((ImeAction) -> Unit)?,
+    updateSelectionState: (() -> Unit)?,
     stylusHandwritingTrigger: MutableSharedFlow<Unit>?,
     viewConfiguration: ViewConfiguration?
 ): Nothing {
@@ -58,7 +60,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
             val untransformedSelection = state.mapFromTransformed(newValue.selection)
-            setSelection(untransformedSelection.start, untransformedSelection.end)
+            setSelectionCoerced(untransformedSelection.start, untransformedSelection.end)
 
             val composition = newValue.composition
             if (composition == null) {

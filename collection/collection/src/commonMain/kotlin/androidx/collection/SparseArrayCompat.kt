@@ -227,13 +227,13 @@ private inline fun <E, T : E?> SparseArrayCompat<E>.internalGet(key: Int, defaul
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int): E? {
-    // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+    // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
     return internalGet<E, E?>(key, null)
 }
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int, defaultValue: E): E {
-    // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+    // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
     return internalGet<E, E>(key, defaultValue)
 }
 
@@ -397,9 +397,9 @@ internal inline fun <E> SparseArrayCompat<E>.commonValueAt(index: Int): E {
     if (garbage) {
         gc()
     }
-
-    // TODO(b/219834506): Check for OOB and throw instead of potentially casting a null value to
-    //  a non-null type.
+    if (index >= values.size) {
+        throw CollectionPlatformUtils.createIndexOutOfBoundsException()
+    }
     @Suppress("UNCHECKED_CAST") return values[index] as E
 }
 

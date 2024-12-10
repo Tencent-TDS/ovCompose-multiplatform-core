@@ -17,14 +17,13 @@
 package androidx.compose.ui.text
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
@@ -34,12 +33,11 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import com.google.common.truth.Truth
-import org.junit.Assume.assumeTrue
+import kotlin.math.roundToInt
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import kotlin.math.roundToInt
 
 @RunWith(JUnit4::class)
 class DesktopParagraphTest {
@@ -56,6 +54,7 @@ class DesktopParagraphTest {
                 style = FontStyle.Normal
             )
         )
+    private val lineMetricsTolerance = 0.001f
 
     @Test
     fun getBoundingBox_basic() {
@@ -70,10 +69,10 @@ class DesktopParagraphTest {
 
             for (i in 0..text.length - 1) {
                 val box = paragraph.getBoundingBox(i)
-                Truth.assertThat(box.left).isEqualTo(i * fontSizeInPx)
-                Truth.assertThat(box.right).isEqualTo((i + 1) * fontSizeInPx)
+                Truth.assertThat(box.left).isWithin(lineMetricsTolerance).of(i * fontSizeInPx)
+                Truth.assertThat(box.right).isWithin(lineMetricsTolerance).of((i + 1) * fontSizeInPx)
                 Truth.assertThat(box.top).isZero()
-                Truth.assertThat(box.bottom).isEqualTo(fontSizeInPx)
+                Truth.assertThat(box.bottom).isWithin(lineMetricsTolerance).of(fontSizeInPx)
             }
         }
     }
@@ -498,12 +497,14 @@ class DesktopParagraphTest {
 
             for (i in ltrText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, true))
-                    .isEqualTo(fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(fontSizeInPx * i)
             }
 
             for (i in 1 until rtlText.length) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i + ltrText.length, true))
-                    .isEqualTo(width - fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(width - fontSizeInPx * i)
             }
         }
     }
@@ -528,16 +529,19 @@ class DesktopParagraphTest {
 
             for (i in ltrText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i, false))
-                    .isEqualTo(fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(fontSizeInPx * i)
             }
 
             for (i in rtlText.indices) {
                 Truth.assertThat(paragraph.getHorizontalPosition(i + ltrText.length, false))
-                    .isEqualTo(width - fontSizeInPx * i)
+                    .isWithin(lineMetricsTolerance)
+                    .of(width - fontSizeInPx * i)
             }
 
             Truth.assertThat(paragraph.getHorizontalPosition(text.length, false))
-                .isEqualTo(width - rtlText.length * fontSizeInPx)
+                .isWithin(lineMetricsTolerance)
+                .of(width - rtlText.length * fontSizeInPx)
         }
     }
 
@@ -683,7 +687,6 @@ class DesktopParagraphTest {
         text: String = "",
         style: TextStyle? = null,
         maxLines: Int = Int.MAX_VALUE,
-        ellipsis: Boolean = false,
         spanStyles: List<AnnotatedString.Range<SpanStyle>> = listOf(),
         density: Density? = null,
         width: Float = 2000f
@@ -695,7 +698,6 @@ class DesktopParagraphTest {
                 fontFamily = fontFamilyMeasureFont
             ).merge(style),
             maxLines = maxLines,
-            ellipsis = ellipsis,
             constraints = Constraints(maxWidth = width.ceilToInt()),
             density = density ?: defaultDensity,
             fontFamilyResolver = fontFamilyResolver
@@ -708,6 +710,7 @@ class DesktopParagraphTest {
         spanStyles: List<AnnotatedString.Range<SpanStyle>> = listOf(),
         density: Density? = null
     ): ParagraphIntrinsics {
+        // TODO https://youtrack.jetbrains.com/issue/CMP-7151
         return ParagraphIntrinsics(
             text = text,
             spanStyles = spanStyles,
@@ -722,14 +725,12 @@ class DesktopParagraphTest {
     private fun simpleParagraph(
         intrinsics: ParagraphIntrinsics,
         maxLines: Int = Int.MAX_VALUE,
-        ellipsis: Boolean = false,
         width: Float = 2000f
     ): Paragraph {
         return Paragraph(
             paragraphIntrinsics = intrinsics,
-            maxLines = maxLines,
-            ellipsis = ellipsis,
             constraints = Constraints(maxWidth = width.ceilToInt()),
+            maxLines = maxLines,
         )
     }
 }

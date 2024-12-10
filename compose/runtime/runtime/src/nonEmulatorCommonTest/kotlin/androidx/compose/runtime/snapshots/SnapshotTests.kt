@@ -716,7 +716,7 @@ class SnapshotTests {
         parent.apply().check()
         parent.dispose()
         snapshot.enter {
-            // Should se the change of state1
+            // Should see the change of state1
             assertEquals(1, state1)
 
             // But not the state change of state2

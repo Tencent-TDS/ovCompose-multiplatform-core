@@ -403,8 +403,12 @@ internal class DefaultThreePaneScaffoldNavigator<T>(
     }
 
     override suspend fun seekBack(backNavigationBehavior: BackNavigationBehavior, fraction: Float) {
-        val previousScaffoldValue = peekPreviousScaffoldValue(backNavigationBehavior)
-        scaffoldState.seekTo(fraction, previousScaffoldValue)
+        if (fraction == 0f) {
+            animateStateToCurrentScaffoldValue()
+        } else {
+            val previousScaffoldValue = peekPreviousScaffoldValue(backNavigationBehavior)
+            scaffoldState.seekTo(fraction, previousScaffoldValue)
+        }
     }
 
     private suspend fun animateStateToCurrentScaffoldValue() {

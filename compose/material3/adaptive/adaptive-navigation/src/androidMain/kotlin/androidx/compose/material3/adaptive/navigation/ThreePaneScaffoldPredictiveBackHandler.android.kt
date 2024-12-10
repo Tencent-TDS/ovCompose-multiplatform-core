@@ -28,11 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.util.lerp
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-internal fun ThreePaneScaffoldPredictiveBackHandler(
-    navigator: ThreePaneScaffoldNavigator<Any>,
+internal fun <T> ThreePaneScaffoldPredictiveBackHandler(
+    navigator: ThreePaneScaffoldNavigator<T>,
     backBehavior: BackNavigationBehavior,
     scale: Animatable<Float, AnimationVector1D>,
 ) {
@@ -62,8 +64,10 @@ internal fun ThreePaneScaffoldPredictiveBackHandler(
                 navigator.navigateBack(backBehavior)
             } catch (e: CancellationException) {
                 // code for cancellation
-                scale.animateTo(1f)
-                navigator.seekBack(backBehavior, fraction = 0f)
+                withContext(NonCancellable) {
+                    scale.animateTo(1f)
+                    navigator.seekBack(backBehavior, fraction = 0f)
+                }
             }
         }
     }

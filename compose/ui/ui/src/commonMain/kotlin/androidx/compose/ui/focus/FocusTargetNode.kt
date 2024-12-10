@@ -18,7 +18,8 @@ package androidx.compose.ui.focus
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection.Companion.Exit
-import androidx.compose.ui.focus.FocusRequester.Companion.Default
+import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
+import androidx.compose.ui.focus.FocusRequester.Companion.Redirect
 import androidx.compose.ui.focus.FocusStateImpl.Active
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Captured
@@ -40,7 +41,8 @@ import androidx.compose.ui.platform.InspectorInfo
 
 internal class FocusTargetNode(
     focusability: Focusability = Focusability.Always,
-    private val onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null
+    private val onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null,
+    private val onDispatchEventsCompleted: ((FocusTargetNode) -> Unit)? = null
 ) :
     CompositionLocalConsumerModifierNode,
     FocusTargetModifierNode,
@@ -145,6 +147,24 @@ internal class FocusTargetNode(
         return properties
     }
 
+    private inline fun fetchCustomEnterOrExit(
+        focusDirection: FocusDirection,
+        block: (FocusRequester) -> Unit,
+        enterOrExit: FocusProperties.(FocusEnterExitScope) -> Unit
+    ) {
+        val focusProperties = fetchFocusProperties()
+        val scope = CancelIndicatingFocusBoundaryScope(focusDirection)
+        val focusTransactionManager = focusTransactionManager
+        val generationBefore = focusTransactionManager?.generation ?: 0
+        focusProperties.enterOrExit(scope)
+        val generationAfter = focusTransactionManager?.generation ?: 0
+        if (scope.isCanceled) {
+            block(Cancel)
+        } else if (generationBefore != generationAfter) {
+            block(Redirect)
+        }
+    }
+
     /**
      * Fetch custom enter destination associated with this [focusTarget].
      *
@@ -162,7 +182,7 @@ internal class FocusTargetNode(
         if (!isProcessingCustomEnter) {
             isProcessingCustomEnter = true
             try {
-                fetchFocusProperties().enter(focusDirection).also { if (it !== Default) block(it) }
+                fetchCustomEnterOrExit(focusDirection, block) { it.onEnter() }
             } finally {
                 isProcessingCustomEnter = false
             }
@@ -186,7 +206,7 @@ internal class FocusTargetNode(
         if (!isProcessingCustomExit) {
             isProcessingCustomExit = true
             try {
-                fetchFocusProperties().exit(focusDirection).also { if (it !== Default) block(it) }
+                fetchCustomEnterOrExit(focusDirection, block) { it.onExit() }
             } finally {
                 isProcessingCustomExit = false
             }
@@ -230,7 +250,7 @@ internal class FocusTargetNode(
         val focusState = focusState
         // Avoid invoking callback when we initialize the state (from `null` to Inactive) or
         // if we are detached and go from Inactive to `null` - there isn't a conceptual focus
-        // state change here
+        // state change here.
         if (previousOrInactive != focusState) {
             onFocusChange?.invoke(previousOrInactive, focusState)
         }
@@ -238,6 +258,8 @@ internal class FocusTargetNode(
             // TODO(251833873): Consider caching it.getFocusState().
             it.onFocusEvent(it.getFocusState())
         }
+
+        onDispatchEventsCompleted?.invoke(this)
     }
 
     internal object FocusTargetElement : ModifierNodeElement<FocusTargetNode>() {
@@ -301,7 +323,7 @@ internal fun FocusTargetNode.requireTransactionManager(): FocusTransactionManage
     return requireOwner().focusOwner.focusTransactionManager
 }
 
-private val FocusTargetNode.focusTransactionManager: FocusTransactionManager?
+internal val FocusTargetNode.focusTransactionManager: FocusTransactionManager?
     get() = node.coordinator?.layoutNode?.owner?.focusOwner?.focusTransactionManager
 
 internal fun FocusTargetNode.invalidateFocusTarget() {

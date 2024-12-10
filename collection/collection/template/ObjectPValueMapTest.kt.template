@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -630,6 +631,7 @@ internal class ObjectPValueTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableObjectPValueMap<String?>()
         map["Hello"] = 1ValueSuffix

@@ -17,20 +17,21 @@
 package androidx.compose.foundation
 
 import androidx.compose.foundation.cupertino.CupertinoOverscrollEffect
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.UiKitScrollConfig
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalAccessorScope
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect =
+internal actual fun rememberPlatformOverscrollEffect(): OverscrollEffect? =
     rememberOverscrollEffect(applyClip = false)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
+internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect? =
     if (UiKitScrollConfig.isRubberBandingOverscrollEnabled) {
         val density = LocalDensity.current.density
         val layoutDirection = LocalLayoutDirection.current
@@ -39,5 +40,9 @@ internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
             CupertinoOverscrollEffect(density, layoutDirection, applyClip)
         }
     } else {
-        NoOpOverscrollEffect
+        null
     }
+
+internal actual fun CompositionLocalAccessorScope.defaultOverscrollFactory(): OverscrollFactory? =
+    // TODO https://youtrack.jetbrains.com/issue/CMP-7143/Support-OverscrollFactory-and-LocalOverscrollFactory
+    null

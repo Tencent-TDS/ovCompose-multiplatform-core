@@ -17,6 +17,8 @@
 package androidx.compose.ui.focus
 
 import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.invalidateSemantics
 import kotlin.js.JsName
 
 /**
@@ -50,6 +52,18 @@ sealed interface FocusTargetModifierNode : DelegatableNode {
     var focusability: Focusability
 }
 
+// Before aosp/3296711 we would calculate semantics configuration lazily. The focusable
+// implementation used to call invalidateSemantics() and then change focus state. However, now that
+// we are calculating semantics configuration eagerly, the old implementation of focusable would
+// end up calculating semantics configuration before the local copy of focus state is updated.
+// To fix this, we added an extra invalidateSemantics() call for the deprecated
+// [FocusTargetModifierNode].
+private object InvalidateSemantics {
+    fun onDispatchEventsCompleted(focusTargetNode: FocusTargetNode) {
+        (focusTargetNode.node as? SemanticsModifierNode)?.invalidateSemantics()
+    }
+}
+
 /**
  * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that
  * makes a component focusable. Use a different instance of [FocusTargetModifierNode] for each
@@ -60,7 +74,8 @@ sealed interface FocusTargetModifierNode : DelegatableNode {
     level = DeprecationLevel.HIDDEN
 )
 @JsName("funFocusTargetModifierNode")
-fun FocusTargetModifierNode(): FocusTargetModifierNode = FocusTargetNode()
+fun FocusTargetModifierNode(): FocusTargetModifierNode =
+    FocusTargetNode(onDispatchEventsCompleted = InvalidateSemantics::onDispatchEventsCompleted)
 
 /**
  * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that

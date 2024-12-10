@@ -45,8 +45,10 @@ import androidx.compose.material3.tokens.NavigationBarVerticalItemTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -107,6 +109,7 @@ import kotlin.math.roundToInt
  * @param windowInsets a window insets of the navigation bar.
  * @param content the content of this navigation bar, typically 3-5 [NavigationBarItem]s
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationBar(
     modifier: Modifier = Modifier,
@@ -116,23 +119,16 @@ fun NavigationBar(
     windowInsets: WindowInsets = NavigationBarDefaults.windowInsets,
     content: @Composable RowScope.() -> Unit
 ) {
-    Surface(
-        color = containerColor,
-        contentColor = contentColor,
-        tonalElevation = tonalElevation,
-        modifier = modifier
-    ) {
-        Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .windowInsetsPadding(windowInsets)
-                    .defaultMinSize(minHeight = NavigationBarHeight)
-                    .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(NavigationBarItemHorizontalPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content
+    val context =
+        NavigationBarComponentOverrideContext(
+            modifier = modifier,
+            containerColor = containerColor,
+            contentColor = contentColor,
+            tonalElevation = tonalElevation,
+            windowInsets = windowInsets,
+            content = content,
         )
-    }
+    with(LocalNavigationBarComponentOverride.current) { context.NavigationBar() }
 }
 
 /**
@@ -736,3 +732,71 @@ internal val IndicatorVerticalPadding: Dp =
         NavigationBarVerticalItemTokens.IconSize) / 2
 
 private val IndicatorVerticalOffset: Dp = 12.dp
+
+/** Interface that allows libraries to override the behavior of the [NavigationBar] component. */
+@ExperimentalMaterial3Api
+interface NavigationBarComponentOverride {
+    /** Behavior function that is called by the [NavigationBar] component. */
+    @Composable fun NavigationBarComponentOverrideContext.NavigationBar()
+}
+
+/**
+ * Parameters available to NavigationBar.
+ *
+ * @param modifier the [Modifier] to be applied to this navigation bar
+ * @param containerColor the color used for the background of this navigation bar. Use
+ *   [Color.Transparent] to have no color.
+ * @param contentColor the preferred color for content inside this navigation bar. Defaults to
+ *   either the matching content color for [containerColor], or to the current [LocalContentColor]
+ *   if [containerColor] is not a color from the theme.
+ * @param tonalElevation when [containerColor] is [ColorScheme.surface], a translucent primary color
+ *   overlay is applied on top of the container. A higher tonal elevation value will result in a
+ *   darker color in light theme and lighter color in dark theme. See also: [Surface].
+ * @param windowInsets a window insets of the navigation bar.
+ * @param content the content of this navigation bar, typically 3-5 [NavigationBarItem]s
+ */
+@ExperimentalMaterial3Api
+class NavigationBarComponentOverrideContext
+internal constructor(
+    val modifier: Modifier = Modifier,
+    val containerColor: Color,
+    val contentColor: Color,
+    val tonalElevation: Dp,
+    val windowInsets: WindowInsets,
+    val content: @Composable RowScope.() -> Unit,
+)
+
+/** [NavigationBarComponentOverride] used when no override is specified. */
+@ExperimentalMaterial3Api
+object DefaultNavigationBarComponentOverride : NavigationBarComponentOverride {
+    @Composable
+    override fun NavigationBarComponentOverrideContext.NavigationBar() {
+        Surface(
+            color = containerColor,
+            contentColor = contentColor,
+            tonalElevation = tonalElevation,
+            modifier = modifier
+        ) {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .windowInsetsPadding(windowInsets)
+                        .defaultMinSize(minHeight = NavigationBarHeight)
+                        .selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(NavigationBarItemHorizontalPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                content = content
+            )
+        }
+    }
+}
+
+/** CompositionLocal containing the currently-selected [NavigationBarComponentOverride]. */
+@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:ExperimentalMaterial3Api
+@ExperimentalMaterial3Api
+val LocalNavigationBarComponentOverride:
+    ProvidableCompositionLocal<NavigationBarComponentOverride> =
+    compositionLocalOf {
+        DefaultNavigationBarComponentOverride
+    }

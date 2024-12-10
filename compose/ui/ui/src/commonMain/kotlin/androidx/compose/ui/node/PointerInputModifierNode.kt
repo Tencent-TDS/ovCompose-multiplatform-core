@@ -114,6 +114,18 @@ interface PointerInputModifierNode : DelegatableNode {
     fun onViewConfigurationChange() {
         onCancelPointerInput()
     }
+
+    /**
+     * Override this value to expand the touch bounds of this [PointerInputModifierNode] by the
+     * given value in align each edge. It only applies to this pointer input modifier and won't
+     * impact other pointer input modifiers on the same [LayoutNode]. Also note that a pointer in
+     * expanded touch bounds can't be intercepted by its parents and ancestors even if their
+     * [interceptOutOfBoundsChildEvents] returns true.
+     *
+     * @see TouchBoundsExpansion
+     */
+    val touchBoundsExpansion: TouchBoundsExpansion
+        get() = TouchBoundsExpansion.None
 }
 
 internal val PointerInputModifierNode.isAttached: Boolean

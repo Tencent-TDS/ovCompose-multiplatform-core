@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.internal.requirePrecondition
 import androidx.compose.ui.text.platform.drawMultiParagraph
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextDecoration
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastFlatMap
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastJoinToString
 import androidx.compose.ui.util.fastMap
 
 /**
@@ -71,12 +73,15 @@ class MultiParagraph(
      * @param maxLines the maximum number of lines that the text can have
      * @param ellipsis whether to ellipsize text, applied only when [maxLines] is set
      */
-    @Deprecated("Constructor with `ellipsis: Boolean` is deprecated, pass TextOverflow instead ")
+    @Deprecated(
+        "Constructor with `ellipsis: Boolean` is deprecated, pass TextOverflow instead",
+        level = DeprecationLevel.HIDDEN
+    )
     constructor(
         intrinsics: MultiParagraphIntrinsics,
         constraints: Constraints,
         maxLines: Int = DefaultMaxLines,
-        ellipsis: Boolean,
+        ellipsis: Boolean = false,
     ) : this(
         intrinsics = intrinsics,
         constraints = constraints,
@@ -161,7 +166,7 @@ class MultiParagraph(
                 fontFamilyResolver = createFontFamilyResolver(resourceLoader)
             ),
         maxLines = maxLines,
-        ellipsis = ellipsis,
+        overflow = if (ellipsis) TextOverflow.Ellipsis else TextOverflow.Clip,
         constraints = Constraints(maxWidth = width.ceilToInt())
     )
 
@@ -238,7 +243,10 @@ class MultiParagraph(
      *   [placeholders] crosses paragraph boundary.
      * @see Placeholder
      */
-    @Deprecated("Constructor with `ellipsis: Boolean` is deprecated, pass TextOverflow instead")
+    @Deprecated(
+        "Constructor with `ellipsis: Boolean` is deprecated, pass TextOverflow instead",
+        level = DeprecationLevel.HIDDEN
+    )
     constructor(
         annotatedString: AnnotatedString,
         style: TextStyle,
@@ -247,7 +255,7 @@ class MultiParagraph(
         fontFamilyResolver: FontFamily.Resolver,
         placeholders: List<AnnotatedString.Range<Placeholder>> = listOf(),
         maxLines: Int = Int.MAX_VALUE,
-        ellipsis: Boolean
+        ellipsis: Boolean = false
     ) : this(
         intrinsics =
             MultiParagraphIntrinsics(
@@ -378,7 +386,7 @@ class MultiParagraph(
     internal val paragraphInfoList: List<ParagraphInfo>
 
     init {
-        require(constraints.minWidth == 0 && constraints.minHeight == 0) {
+        requirePrecondition(constraints.minWidth == 0 && constraints.minHeight == 0) {
             "Setting Constraints.minWidth and Constraints.minHeight is not supported, " +
                 "these should be the default zero values instead."
         }
@@ -511,7 +519,7 @@ class MultiParagraph(
 
     /** Returns path that enclose the given text range. */
     fun getPathForRange(start: Int, end: Int): Path {
-        require(start in 0..end && end <= annotatedString.text.length) {
+        requirePrecondition(start in 0..end && end <= annotatedString.text.length) {
             "Start($start) or End($end) is out of range [0..${annotatedString.text.length})," +
                 " or start > end!"
         }
@@ -977,19 +985,19 @@ class MultiParagraph(
     }
 
     private fun requireIndexInRange(offset: Int) {
-        require(offset in annotatedString.text.indices) {
+        requirePrecondition(offset in annotatedString.text.indices) {
             "offset($offset) is out of bounds [0, ${annotatedString.length})"
         }
     }
 
     private fun requireIndexInRangeInclusiveEnd(offset: Int) {
-        require(offset in 0..annotatedString.text.length) {
+        requirePrecondition(offset in 0..annotatedString.text.length) {
             "offset($offset) is out of bounds [0, ${annotatedString.length}]"
         }
     }
 
     private fun requireLineIndexInRange(lineIndex: Int) {
-        require(lineIndex in 0 until lineCount) {
+        requirePrecondition(lineIndex in 0 until lineCount) {
             "lineIndex($lineIndex) is out of bounds [0, $lineCount)"
         }
     }
@@ -1006,13 +1014,19 @@ class MultiParagraph(
  * @return The index of the target [ParagraphInfo] in [paragraphInfoList].
  */
 internal fun findParagraphByIndex(paragraphInfoList: List<ParagraphInfo>, index: Int): Int {
-    return paragraphInfoList.fastBinarySearch { paragraphInfo ->
-        when {
-            paragraphInfo.startIndex > index -> 1
-            paragraphInfo.endIndex <= index -> -1
-            else -> 0
+    val paragraphIndex =
+        paragraphInfoList.fastBinarySearch { paragraphInfo ->
+            when {
+                paragraphInfo.startIndex > index -> 1
+                paragraphInfo.endIndex <= index -> -1
+                else -> 0
+            }
         }
+    requirePrecondition(paragraphIndex in paragraphInfoList.indices) {
+        "Found paragraph index $paragraphIndex should be in range [0, ${paragraphInfoList.size}).\n" +
+            "Debug info: index=$index, paragraphs=[${paragraphInfoList.fastJoinToString { "[${it.startIndex}, ${it.endIndex})" }}]"
     }
+    return paragraphIndex
 }
 
 /**

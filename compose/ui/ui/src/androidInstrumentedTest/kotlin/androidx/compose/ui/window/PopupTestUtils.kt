@@ -61,6 +61,7 @@ internal class PopupLayoutMatcher(val testTag: String) : TypeSafeMatcher<Root>()
     override fun matchesSafely(item: Root?): Boolean {
         val matches = item != null && isPopupLayout(item.decorView, testTag)
         if (matches) {
+            @Suppress("DEPRECATION")
             lastSeenWindowParams = item!!.windowLayoutParams.get()
         }
         return matches

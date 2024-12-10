@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.areObjectsOfSameType
 import androidx.compose.ui.internal.checkPrecondition
 import androidx.compose.ui.internal.checkPreconditionNotNull
+import androidx.compose.ui.internal.throwIllegalStateException
 import androidx.compose.ui.layout.ModifierInfo
 
 private val SentinelHead =
@@ -39,8 +40,8 @@ internal class NodeChain(val layoutNode: LayoutNode) {
     internal var head: Modifier.Node = tail
         private set
 
-    private val isUpdating: Boolean
-        get() = head === SentinelHead
+    internal val isUpdating: Boolean
+        get() = head.parent != null
 
     private val aggregateChildKindSet: Int
         get() = head.aggregateChildKindSet
@@ -289,6 +290,15 @@ internal class NodeChain(val layoutNode: LayoutNode) {
      * invalidations as a result of the attach, if needed.
      */
     fun runAttachLifecycle() {
+        // Assign layers that have been recycled in onDetach() in case the node has been reused
+        var coordinator: NodeCoordinator = outerCoordinator
+        val innerCoordinator = innerCoordinator
+        while (coordinator !== innerCoordinator) {
+            coordinator.onAttach()
+            coordinator = coordinator.wrapped!!
+        }
+        innerCoordinator.onAttach()
+
         headToTail {
             it.runAttachLifecycle()
             if (it.insertedNodeAwaitingAttachForInvalidation) {
@@ -358,6 +368,15 @@ internal class NodeChain(val layoutNode: LayoutNode) {
 
     internal fun runDetachLifecycle() {
         tailToHead { if (it.isAttached) it.runDetachLifecycle() }
+
+        // Recycle layers
+        var coordinator: NodeCoordinator = innerCoordinator
+        val outerCoordinator = outerCoordinator
+        while (coordinator !== outerCoordinator) {
+            coordinator.onDetach()
+            coordinator = coordinator.wrappedBy!!
+        }
+        outerCoordinator.onDetach()
     }
 
     private fun getDiffer(
@@ -565,47 +584,6 @@ internal class NodeChain(val layoutNode: LayoutNode) {
         return parent!!
     }
 
-    private fun createAndInsertNodeAsParent(
-        element: Modifier.Element,
-        child: Modifier.Node,
-    ): Modifier.Node {
-        val node =
-            when (element) {
-                is ModifierNodeElement<*> ->
-                    element.create().also {
-                        it.kindSet = calculateNodeKindSetFromIncludingDelegates(it)
-                    }
-                else -> BackwardsCompatNode(element)
-            }
-        checkPrecondition(!node.isAttached) {
-            "createAndInsertNodeAsParent called on an attached node"
-        }
-        node.insertedNodeAwaitingAttachForInvalidation = true
-        return insertParent(node, child)
-    }
-
-    /**
-     * This inserts [node] as the parent of [child] in the current linked list. For example:
-     *
-     *      Head... -> child -> ...Tail
-     *
-     * gets transformed into a list of the following shape:
-     *
-     *      Head... -> node -> child -> ...Tail
-     *
-     * @return The inserted [node]
-     */
-    private fun insertParent(node: Modifier.Node, child: Modifier.Node): Modifier.Node {
-        val theParent = child.parent
-        if (theParent != null) {
-            theParent.child = node
-            node.parent = theParent
-        }
-        child.parent = node
-        node.child = child
-        return node
-    }
-
     private fun createAndInsertNodeAsChild(
         element: Modifier.Element,
         parent: Modifier.Node,
@@ -669,7 +647,7 @@ internal class NodeChain(val layoutNode: LayoutNode) {
                     node.updatedNodeAwaitingAttachForInvalidation = true
                 }
             }
-            else -> error("Unknown Modifier.Node type")
+            else -> throwIllegalStateException("Unknown Modifier.Node type")
         }
     }
 

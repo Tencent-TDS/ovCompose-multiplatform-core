@@ -18,18 +18,17 @@ package androidx.compose.ui.autofill
 
 import kotlin.jvm.JvmInline
 
+// TODO https://youtrack.jetbrains.com/issue/CMP-7154/Adopt-Autofill-semantic-properties
+
+actual typealias NativeContentDataType = Int
+
 @JvmInline
-internal actual value class ContentDataType actual constructor(actual val dataType: Int) {
-    internal actual companion object {
-        actual val Text: ContentDataType
-            get() = TODO("Not yet implemented")
-        actual val List: ContentDataType
-            get() = TODO("Not yet implemented")
-        actual val Date: ContentDataType
-            get() = TODO("Not yet implemented")
-        actual val Toggle: ContentDataType
-            get() = TODO("Not yet implemented")
-        actual val None: ContentDataType
-            get() = TODO("Not yet implemented")
+actual value class ContentDataType actual constructor(val dataType: Int) {
+    actual companion object {
+        actual val Text = ContentDataType(1)
+        actual val List = ContentDataType(2)
+        actual val Date = ContentDataType(3)
+        actual val Toggle = ContentDataType(4)
+        actual val None = ContentDataType(0)
     }
 }

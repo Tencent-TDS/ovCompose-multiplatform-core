@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.rememberPopupPositionProviderAtPosition
 import java.awt.Component
 import java.awt.MouseInfo
@@ -107,7 +108,7 @@ class DefaultContextMenuRepresentation(
             var inputModeManager: InputModeManager? by mutableStateOf(null)
 
             Popup(
-                focusable = true,
+                properties = PopupProperties(focusable = true),
                 onDismissRequest = { state.status = ContextMenuState.Status.Closed },
                 popupPositionProvider = rememberPopupPositionProviderAtPosition(
                     positionPx = status.rect.center

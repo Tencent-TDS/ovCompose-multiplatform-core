@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation.text
 
+import android.os.Build
+import androidx.compose.foundation.R
 import androidx.compose.foundation.contextmenu.ContextMenuScope
 import androidx.compose.foundation.contextmenu.ContextMenuState
 import androidx.compose.foundation.contextmenu.close
@@ -80,7 +82,14 @@ internal enum class TextContextMenuItems(private val stringId: Int) {
     Cut(android.R.string.cut),
     Copy(android.R.string.copy),
     Paste(android.R.string.paste),
-    SelectAll(android.R.string.selectAll);
+    SelectAll(android.R.string.selectAll),
+    Autofill(
+        if (Build.VERSION.SDK_INT <= 26) {
+            R.string.autofill
+        } else {
+            android.R.string.autofill
+        }
+    );
 
     @ReadOnlyComposable @Composable fun resolvedString(): String = stringResource(stringId)
 }

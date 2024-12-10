@@ -18,8 +18,6 @@ package androidx.compose.ui.focus
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
-import androidx.compose.ui.focus.FocusRequester.Companion.Default
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
@@ -43,12 +41,7 @@ class RequestFocusEnterTest {
         rule.setFocusableContent {
             Box(
                 Modifier.focusRequester(focusRequester)
-                    .focusProperties {
-                        enter = {
-                            enterTriggered = true
-                            Default
-                        }
-                    }
+                    .focusProperties { onEnter = { enterTriggered = true } }
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             )
@@ -73,15 +66,7 @@ class RequestFocusEnterTest {
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             ) {
-                Box(
-                    Modifier.focusProperties {
-                            enter = {
-                                enterTriggered = true
-                                Default
-                            }
-                        }
-                        .focusTarget()
-                )
+                Box(Modifier.focusProperties { onEnter = { enterTriggered = true } }.focusTarget())
             }
         }
 
@@ -99,15 +84,7 @@ class RequestFocusEnterTest {
     fun gainingFocus_triggersEnterForParent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(
-                Modifier.focusProperties {
-                        enter = {
-                            enterTriggered = true
-                            Default
-                        }
-                    }
-                    .focusTarget()
-            ) {
+            Box(Modifier.focusProperties { onEnter = { enterTriggered = true } }.focusTarget()) {
                 Box(
                     Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
@@ -130,15 +107,7 @@ class RequestFocusEnterTest {
     fun gainingFocus_triggersEnterForGrandparent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(
-                Modifier.focusProperties {
-                        enter = {
-                            enterTriggered = true
-                            Default
-                        }
-                    }
-                    .focusTarget()
-            ) {
+            Box(Modifier.focusProperties { onEnter = { enterTriggered = true } }.focusTarget()) {
                 Box {
                     Box(
                         Modifier.focusRequester(focusRequester)
@@ -165,7 +134,7 @@ class RequestFocusEnterTest {
         rule.setFocusableContent {
             Box(
                 Modifier.focusRequester(focusRequester)
-                    .focusProperties { enter = { Cancel } }
+                    .focusProperties { onEnter = { cancelFocus() } }
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             )
@@ -187,7 +156,7 @@ class RequestFocusEnterTest {
                     .onFocusChanged { focusState = it }
                     .focusTarget()
             ) {
-                Box(Modifier.focusProperties { enter = { Cancel } })
+                Box(Modifier.focusProperties { onEnter = { cancelFocus() } })
             }
         }
 
@@ -202,7 +171,7 @@ class RequestFocusEnterTest {
     fun cancellingFocusGain_usingEnterPropertyOnParent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
+            Box(Modifier.focusProperties { onEnter = { cancelFocus() } }.focusTarget()) {
                 Box(
                     Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
@@ -222,7 +191,7 @@ class RequestFocusEnterTest {
     fun cancellingFocusGain_usingEnterPropertyOnGrandparent() {
         // Arrange.
         rule.setFocusableContent {
-            Box(Modifier.focusProperties { enter = { Cancel } }.focusTarget()) {
+            Box(Modifier.focusProperties { onEnter = { cancelFocus() } }.focusTarget()) {
                 Box {
                     Box(
                         Modifier.focusRequester(focusRequester)
@@ -246,7 +215,10 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         rule.setFocusableContent {
             Box(Modifier.focusTarget()) {
-                Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
+                Box(
+                    Modifier.focusProperties { onEnter = { customDestination.requestFocus() } }
+                        .focusTarget()
+                ) {
                     Box(Modifier.focusRequester(focusRequester).focusTarget())
                     Box(Modifier.focusTarget())
                 }
@@ -273,7 +245,10 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         lateinit var destinationFocusState: FocusState
         rule.setFocusableContent {
-            Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
+            Box(
+                Modifier.focusProperties { onEnter = { customDestination.requestFocus() } }
+                    .focusTarget()
+            ) {
                 Box(
                     Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
@@ -303,7 +278,10 @@ class RequestFocusEnterTest {
         val customDestination = FocusRequester()
         lateinit var destinationFocusState: FocusState
         rule.setFocusableContent {
-            Box(Modifier.focusProperties { enter = { customDestination } }.focusTarget()) {
+            Box(
+                Modifier.focusProperties { onEnter = { customDestination.requestFocus() } }
+                    .focusTarget()
+            ) {
                 Box(
                     Modifier.focusRequester(focusRequester)
                         .onFocusChanged { focusState = it }
@@ -335,7 +313,7 @@ class RequestFocusEnterTest {
         rule.setFocusableContent {
             Box(
                 Modifier.focusRequester(customDestination)
-                    .focusProperties { enter = { customDestination } }
+                    .focusProperties { onEnter = { customDestination.requestFocus() } }
                     .onFocusChanged { destinationFocusState = it }
                     .focusTarget()
             ) {
@@ -367,9 +345,9 @@ class RequestFocusEnterTest {
                 Box(Modifier.focusRequester(initialFocus).focusTarget())
                 Box(
                     Modifier.focusProperties {
-                            enter = {
+                            onEnter = {
                                 enterCount++
-                                child2
+                                child2.requestFocus()
                             }
                         }
                         .focusTarget()

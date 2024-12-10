@@ -406,6 +406,26 @@ private class TextToolbarWrapper(private val delegate: TextToolbar) : TextToolba
         onCopyRequested: (() -> Unit)?,
         onPasteRequested: (() -> Unit)?,
         onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?,
+        onAutofillRequested: (() -> Unit)?
+    ) {
+        _shown = true
+        _mostRecentRect = rect
+        delegate.showMenu(
+            rect,
+            onCopyRequested,
+            onPasteRequested,
+            onCutRequested,
+            onSelectAllRequested,
+            onAutofillRequested
+        )
+    }
+
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
         onSelectAllRequested: (() -> Unit)?
     ) {
         _shown = true

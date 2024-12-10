@@ -17,10 +17,11 @@
 package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.SynchronizedObject
 import androidx.compose.runtime.external.kotlinx.collections.immutable.PersistentSet
 import androidx.compose.runtime.external.kotlinx.collections.immutable.persistentSetOf
-import androidx.compose.runtime.synchronized
+import androidx.compose.runtime.platform.makeSynchronizedObject
+import androidx.compose.runtime.platform.synchronized
+import kotlin.js.JsName
 import kotlin.jvm.JvmName
 
 /**
@@ -65,8 +66,9 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
         get() = (firstStateRecord as StateSetStateRecord<T>).readable(this)
 
     /** This is an internal implementation class of [SnapshotStateSet]. Do not use. */
-    internal class StateSetStateRecord<T> internal constructor(internal var set: PersistentSet<T>) :
-        StateRecord() {
+    internal class StateSetStateRecord<T>
+    internal constructor(snapshotId: SnapshotId, internal var set: PersistentSet<T>) :
+        StateRecord(snapshotId) {
         internal var modification = 0
 
         override fun assign(value: StateRecord) {
@@ -77,7 +79,10 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
             }
         }
 
-        override fun create(): StateRecord = StateSetStateRecord(set)
+        override fun create(): StateRecord = StateSetStateRecord(currentSnapshot().snapshotId, set)
+
+        override fun create(snapshotId: SnapshotId): StateRecord =
+            StateSetStateRecord(snapshotId, set)
     }
 
     override val size: Int
@@ -148,19 +153,7 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
             val builder = oldSet?.builder() ?: error("No set to mutate")
             result = block(builder)
             val newSet = builder.build()
-            if (
-                newSet == oldSet ||
-                    writable {
-                        synchronized(sync) {
-                            if (modification == currentModification) {
-                                set = newSet
-                                modification++
-                                true
-                            } else false
-                        }
-                    }
-            )
-                break
+            if (newSet == oldSet || writable { attemptUpdate(currentModification, newSet) }) break
         }
         return result
     }
@@ -180,17 +173,7 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
                 result = false
                 break
             }
-            if (
-                writable {
-                    synchronized(sync) {
-                        if (modification == currentModification) {
-                            set = newSet
-                            modification++
-                            true
-                        } else false
-                    }
-                }
-            ) {
+            if (writable { attemptUpdate(currentModification, newSet) }) {
                 result = true
                 break
             }
@@ -198,13 +181,23 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
         result
     }
 
+    // NOTE: do not inline this method to avoid class verification failures, see b/369909868
+    private fun StateSetStateRecord<T>.attemptUpdate(
+        currentModification: Int,
+        newSet: PersistentSet<T>
+    ): Boolean =
+        synchronized(sync) {
+            if (modification == currentModification) {
+                set = newSet
+                modification++
+                true
+            } else false
+        }
+
     private fun stateRecordWith(set: PersistentSet<T>): StateRecord {
-        return StateSetStateRecord(set).also {
+        return StateSetStateRecord(currentSnapshot().snapshotId, set).also {
             if (Snapshot.isInSnapshot) {
-                it.next =
-                    StateSetStateRecord(set).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+                it.next = StateSetStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), set)
             }
         }
     }
@@ -219,17 +212,16 @@ class SnapshotStateSet<T> : StateObject, MutableSet<T>, RandomAccess {
  * between sets. As there is already contention on the global snapshot lock to write so the
  * additional contention introduced by this lock is nominal.
  *
- * In code that requires this lock and calls `writable` (or other operation that acquires the
- * snapshot global lock), this lock *MUST* be acquired first to avoid deadlocks.
+ * In code the requires this lock and calls `writable` (or other operation that acquires the
+ * snapshot global lock), this lock *MUST* be acquired last to avoid deadlocks. In other words, the
+ * lock must be taken in the `writable` lambda, if `writable` is used.
  */
-private val sync = SynchronizedObject()
+private val sync = makeSynchronizedObject()
 
 private class StateSetIterator<T>(val set: SnapshotStateSet<T>, val iterator: Iterator<T>) :
     MutableIterator<T> {
     var current: T? = null
-    @Suppress("OPTIONAL_DECLARATION_USAGE_IN_NON_COMMON_SOURCE")
-    @kotlin.js.JsName("_hasNext")
-    var next: T? = null
+    @JsName("var_next") var next: T? = null
     var modification = set.modification
 
     init {

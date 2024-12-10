@@ -77,9 +77,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinStdlibCommon)
                 api(project(":compose:ui:ui-geometry"))
 
+                implementation(project(":annotation:annotation"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation(project(":annotation:annotation"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)

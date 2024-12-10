@@ -26,6 +26,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.AutoTestFrameClock
 import androidx.compose.foundation.VelocityTrackerCalculationThreshold
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
@@ -79,6 +80,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -102,12 +104,14 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeWithVelocity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -2019,6 +2023,79 @@ class LazyListTest(orientation: Orientation) : BaseLazyListTestWithOrientation(o
     }
 
     @Test
+    fun testLookaheadItemPlacementAnimatorTarget() {
+        var mutableSize by mutableStateOf(80)
+        var lastItemOffset by mutableStateOf(Offset.Zero)
+        val initialSize = IntSize(200, 200)
+        val largerCrossAxisSize = if (vertical) IntSize(300, 200) else IntSize(200, 300)
+        var containerSize by mutableStateOf(initialSize)
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                LookaheadScope {
+                    LazyColumnOrRow(
+                        modifier =
+                            Modifier.requiredSize(containerSize.width.dp, containerSize.height.dp),
+                        beyondBoundsItemCount = 1
+                    ) {
+                        item { // item 0
+                            Box(Modifier.requiredSize(40.dp))
+                        }
+                        item { // item 1. Will change size from 80.dp to 160.dp
+                            Box(Modifier.requiredSize(mutableSize.dp))
+                        }
+                        item { // item 2
+                            Box(Modifier.requiredSize(40.dp))
+                        }
+                        item { // item 3
+                            Box(
+                                Modifier.animateItem(
+                                        fadeInSpec = null,
+                                        fadeOutSpec = null,
+                                        placementSpec = tween(160, easing = LinearEasing)
+                                    )
+                                    .onGloballyPositioned { lastItemOffset = it.positionInRoot() }
+                                    .requiredSize(80.dp)
+                            )
+                        }
+                        item { // item 4
+                            Box(Modifier.requiredSize(1.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+
+        containerSize = largerCrossAxisSize
+        mutableSize = 160
+        rule.waitForIdle()
+        rule.mainClock.advanceTimeByFrame()
+
+        containerSize = initialSize
+        rule.waitForIdle()
+
+        // Expect last item to move from 160 to 240 within 10 frames
+        while (lastItemOffset.mainAxisPosition == 160) {
+            rule.waitForIdle()
+            rule.mainClock.advanceTimeByFrame()
+        }
+
+        repeat(9) {
+            val expected = (it + 1) * (240 - 160) / 10 + 160
+            if (expected <= 200) { // within the viewport
+                assertEquals((it + 1) * 8 + 160, lastItemOffset.mainAxisPosition)
+            } else {
+                // Once the item moves out of the viewport, we don't enforce the exact offset
+                assertTrue(lastItemOffset.mainAxisPosition >= 200)
+            }
+            rule.waitForIdle()
+            rule.mainClock.advanceTimeByFrame()
+        }
+    }
+
+    @Test
     fun testLookaheadPositionWithTwoInBoundTwoOutBound() {
         testLookaheadPositionWithPlacementAnimator(
             initialList = listOf(0, 1, 2, 3, 4, 5),
@@ -2817,6 +2894,172 @@ class LazyListTest(orientation: Orientation) : BaseLazyListTestWithOrientation(o
             rule.runOnUiThread {
                 Snapshot.sendApplyNotifications()
                 rule.mainClock.advanceTimeByFrame()
+            }
+        }
+    }
+
+    @Test // b/371168883
+    fun whenInnerListIsReused_makeSureFlingUsesCorrectStateForCancellation() {
+        val state = LazyListState()
+        lateinit var scope: CoroutineScope
+        rule.setContent {
+            scope = rememberCoroutineScope()
+            LazyColumnOrRow(state = state, modifier = Modifier.size(50.dp)) {
+                items(20) { main ->
+                    LazyColumnOrRow(modifier = Modifier.testTag("main=$main"), isCrossAxis = true) {
+                        items(100) { item ->
+                            Box(Modifier.size(10.dp).testTag("main=$main item=$item")) {
+                                BasicText("main=$main item=$item")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        rule.runOnIdle {
+            scope.launch {
+                state.animateScrollToItem(3) // make sure item 0 is out of view
+            }
+        }
+
+        rule.runOnIdle { assertThat(state.firstVisibleItemIndex).isEqualTo(3) }
+
+        // trying to fling the last 3 items
+        (5..7).forEach {
+            rule.onNodeWithTag("main=$it").performTouchInput {
+                if (vertical) {
+                    swipeLeft()
+                } else {
+                    swipeUp()
+                }
+            }
+
+            rule.onNodeWithTag("main=$it item=0").assertIsNotDisplayed()
+            // we should go back
+            rule.onNodeWithTag("main=$it").performTouchInput {
+                if (vertical) {
+                    swipeRight()
+                } else {
+                    swipeDown()
+                }
+            }
+            // make sure we came back to the start so the fling happened correctly
+            rule.onNodeWithTag("main=$it item=0").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun nestedLists_flingOnInnerListIsCancelled_doesNotStopOuterListFling() {
+        val state = LazyListState()
+        var onPreFlingReceived = false
+        var onListRemoved = false
+        rule.setContent {
+            LazyColumnOrRow(
+                state = state,
+                modifier =
+                    Modifier.size(100.dp)
+                        .testTag(LazyListTag)
+                        .nestedScroll(
+                            connection =
+                                object : NestedScrollConnection {
+                                    override suspend fun onPreFling(available: Velocity): Velocity {
+                                        onPreFlingReceived = true
+                                        return super.onPreFling(available)
+                                    }
+                                }
+                        )
+            ) {
+                items(100) { main ->
+                    if (main == 4) {
+                        DisposableEffect(Unit) { onDispose { onListRemoved = true } }
+                    }
+                    LazyColumnOrRow(
+                        isCrossAxis = true,
+                        modifier = Modifier.testTag(main.toString())
+                    ) {
+                        items(100) { item ->
+                            Box(
+                                Modifier.size(20.dp).testTag("$main $item").border(1.dp, Color.Red)
+                            ) {
+                                BasicText("$main $item")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.mainClock.autoAdvance = false
+
+        // swipe right/up on inner list
+        rule.onNodeWithTag("4").performTouchInput {
+            if (vertical) {
+                swipeLeft()
+            } else {
+                swipeUp()
+            }
+        }
+
+        // advance time until inner fling is about to begin and let fling play a bit
+        rule.mainClock.advanceTimeUntil { onPreFlingReceived }
+        rule.mainClock.advanceTimeBy(100L)
+
+        // swipe outer list
+        rule.onNodeWithTag(LazyListTag).performTouchInput {
+            if (vertical) {
+                swipeWithVelocity(center, topCenter, 5000f)
+            } else {
+                swipeWithVelocity(center, centerLeft, 5000f)
+            }
+        }
+
+        rule.mainClock.advanceTimeUntil { onListRemoved } // move time more so inner list disappears
+        rule.onNodeWithTag("4").assertDoesNotExist() // check if inner list was removed
+
+        rule.mainClock.autoAdvance = true
+        val firstVisibleItemOnOuterList = state.firstVisibleItemIndex
+        // outer list continued flinging
+        rule.runOnIdle {
+            assertThat(state.firstVisibleItemIndex)
+                .isNotIn(firstVisibleItemOnOuterList - 1..firstVisibleItemOnOuterList + 1)
+        }
+    }
+
+    @Test
+    fun customOverscroll() {
+        val overscroll = TestOverscrollEffect()
+        val items = (1..4).map { it.toString() }
+
+        rule.setContentWithTestViewConfiguration {
+            Box(Modifier.mainAxisSize(200.dp)) {
+                LazyColumnOrRow(Modifier.testTag(LazyListTag), overscrollEffect = overscroll) {
+                    items(items) {
+                        Spacer(
+                            Modifier.mainAxisSize(101.dp).then(fillParentMaxCrossAxis()).testTag(it)
+                        )
+                    }
+                }
+            }
+        }
+
+        // The overscroll modifier should be added / drawn
+        rule.runOnIdle { assertThat(overscroll.drawCalled).isTrue() }
+
+        // Swipe backwards to trigger overscroll
+        rule.onNodeWithTag(LazyListTag).performTouchInput {
+            if (vertical) swipeDown() else swipeRight()
+        }
+
+        rule.runOnIdle {
+            // The swipe will result in multiple scroll deltas
+            assertThat(overscroll.applyToScrollCalledCount).isGreaterThan(1)
+            assertThat(overscroll.applyToFlingCalledCount).isEqualTo(1)
+            if (vertical) {
+                assertThat(overscroll.scrollOverscrollDelta.y).isGreaterThan(0)
+                assertThat(overscroll.flingOverscrollVelocity.y).isGreaterThan(0)
+            } else {
+                assertThat(overscroll.scrollOverscrollDelta.x).isGreaterThan(0)
+                assertThat(overscroll.flingOverscrollVelocity.x).isGreaterThan(0)
             }
         }
     }

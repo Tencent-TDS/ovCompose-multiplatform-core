@@ -46,6 +46,8 @@ public final class androidx/compose/material/navigation/ComposableSingletons$Bot
 
 public final class androidx/compose/material/navigation/NavGraphBuilderKt {
 	public static final fun bottomSheet (Landroidx/navigation/NavGraphBuilder;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;)V
+	public static final fun bottomSheet (Landroidx/navigation/NavGraphBuilder;Lkotlin/reflect/KClass;Ljava/util/Map;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun bottomSheet$default (Landroidx/navigation/NavGraphBuilder;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+	public static synthetic fun bottomSheet$default (Landroidx/navigation/NavGraphBuilder;Lkotlin/reflect/KClass;Ljava/util/Map;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 }
 

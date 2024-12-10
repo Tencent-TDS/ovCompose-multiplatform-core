@@ -31,6 +31,12 @@ internal class FocusTransactionManager {
     private var ongoingTransaction = false
 
     /**
+     * An indicator of changes to the transaction. When any state changes, the generation changes.
+     */
+    var generation = 0
+        private set
+
+    /**
      * Stars a new transaction, which allows you to change the focus state. Calling this function
      * causes any ongoing focus transaction to be cancelled. If an [onCancelled] lambda is
      * specified, it will be called if this transaction is cancelled by a new invocation to
@@ -78,6 +84,10 @@ internal class FocusTransactionManager {
     var FocusTargetNode.uncommittedFocusState: FocusStateImpl?
         get() = states[this]
         set(value) {
+            val currentFocusState = states[this] ?: FocusStateImpl.Inactive
+            if (currentFocusState != value) {
+                generation++
+            }
             states[this] = checkPreconditionNotNull(value) { "requires a non-null focus state" }
         }
 

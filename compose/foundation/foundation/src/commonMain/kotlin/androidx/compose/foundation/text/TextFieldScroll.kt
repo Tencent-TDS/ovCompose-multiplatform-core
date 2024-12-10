@@ -115,6 +115,7 @@ internal fun Modifier.textFieldScrollable(
 }
 
 // Layout
+// Expect/actual is needed due to a different implementation in uikit
 internal expect fun Modifier.textFieldScroll(
     scrollerPosition: TextFieldScrollerPosition,
     textFieldValue: TextFieldValue,

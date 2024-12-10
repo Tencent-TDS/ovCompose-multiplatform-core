@@ -7,6 +7,8 @@ AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#setFocusa
     Added method androidx.compose.ui.focus.FocusTargetModifierNode.setFocusability(int)
 
 
+BecameUnchecked: androidx.compose.ui.platform.AbstractComposeView#showLayoutBounds:
+    Removed property AbstractComposeView.showLayoutBounds from compatibility checked API surface
 BecameUnchecked: androidx.compose.ui.semantics.SemanticsProperties#InvisibleToUser:
     Removed property SemanticsProperties.InvisibleToUser from compatibility checked API surface
 BecameUnchecked: androidx.compose.ui.semantics.SemanticsProperties#getInvisibleToUser():
@@ -17,5 +19,11 @@ ChangedType: androidx.compose.ui.layout.MeasureResult#getAlignmentLines():
     Method androidx.compose.ui.layout.MeasureResult.getAlignmentLines has changed return type from java.util.Map<androidx.compose.ui.layout.AlignmentLine,java.lang.Integer> to java.util.Map<? extends androidx.compose.ui.layout.AlignmentLine,java.lang.Integer>
 
 
-RemovedMethod: androidx.compose.ui.layout.LayoutCoordinates#transformToScreen(float[]):
-    Removed method androidx.compose.ui.layout.LayoutCoordinates.transformToScreen(float[])
+RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionX():
+    Removed method androidx.compose.ui.graphics.TransformOrigin.getPivotFractionX()
+RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionY():
+    Removed method androidx.compose.ui.graphics.TransformOrigin.getPivotFractionY()
+RemovedMethod: androidx.compose.ui.layout.ScaleFactor#getScaleX():
+    Removed method androidx.compose.ui.layout.ScaleFactor.getScaleX()
+RemovedMethod: androidx.compose.ui.layout.ScaleFactor#getScaleY():
+    Removed method androidx.compose.ui.layout.ScaleFactor.getScaleY()

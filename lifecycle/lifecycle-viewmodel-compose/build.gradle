@@ -52,10 +52,10 @@ kotlin {
                 api project(":lifecycle:lifecycle-common")
                 api project(":lifecycle:lifecycle-viewmodel")
                 api project(":lifecycle:lifecycle-viewmodel-savedstate")
-                api project(":savedstate:savedstate")
-                api project(":compose:runtime:runtime")
-                api project(":compose:runtime:runtime-saveable")
-                api project(":compose:ui:ui")
+                api "org.jetbrains.androidx.savedstate:savedstate:1.2.2"
+                api "org.jetbrains.compose.runtime:runtime:1.7.1"
+                api "org.jetbrains.compose.runtime:runtime-saveable:1.7.1"
+                api "org.jetbrains.compose.ui:ui:1.7.1"
 
                 implementation(libs.kotlinStdlib)
                 implementation project(":core:core-bundle")

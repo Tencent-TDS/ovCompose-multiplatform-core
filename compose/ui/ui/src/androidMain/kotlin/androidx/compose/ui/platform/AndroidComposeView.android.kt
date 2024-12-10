@@ -34,6 +34,7 @@ import android.os.SystemClock
 import android.util.LongSparseArray
 import android.util.SparseArray
 import android.view.FocusFinder
+import android.view.InputDevice
 import android.view.KeyEvent as AndroidKeyEvent
 import android.view.MotionEvent
 import android.view.MotionEvent.ACTION_CANCEL
@@ -63,6 +64,8 @@ import android.view.translation.ViewTranslationResponse
 import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
+import androidx.collection.MutableIntObjectMap
+import androidx.collection.mutableIntObjectMapOf
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -71,14 +74,16 @@ import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ComposeUiFlags.isSemanticAutofillEnabled
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.autofill.AndroidAutofill
-import androidx.compose.ui.autofill.AndroidSemanticAutofill
+import androidx.compose.ui.autofill.AndroidAutofillManager
 import androidx.compose.ui.autofill.Autofill
 import androidx.compose.ui.autofill.AutofillCallback
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.autofill.performAutofill
 import androidx.compose.ui.autofill.populateViewStructure
@@ -189,6 +194,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
 import androidx.compose.ui.util.fastIsFinite
 import androidx.compose.ui.util.fastLastOrNull
 import androidx.compose.ui.util.fastRoundToInt
@@ -296,7 +302,7 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
 
     override val dragAndDropManager = AndroidDragAndDropManager(::startDrag)
 
-    private val _windowInfo: WindowInfoImpl = WindowInfoImpl()
+    private val _windowInfo: LazyWindowInfo = LazyWindowInfo()
     override val windowInfo: WindowInfo
         get() = _windowInfo
 
@@ -426,9 +432,12 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
                     .then(dragAndDropManager.modifier)
         }
 
+    override val layoutNodes: MutableIntObjectMap<LayoutNode> = mutableIntObjectMapOf()
+
     override val rootForTest: RootForTest = this
 
-    override val semanticsOwner: SemanticsOwner = SemanticsOwner(root, rootSemanticsNode)
+    override val semanticsOwner: SemanticsOwner =
+        SemanticsOwner(root, rootSemanticsNode, layoutNodes)
     private val composeAccessibilityDelegate = AndroidComposeViewAccessibilityDelegateCompat(this)
     internal var contentCaptureManager =
         AndroidContentCaptureManager(
@@ -476,12 +485,15 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
 
     private val _autofill = if (autofillSupported()) AndroidAutofill(this, autofillTree) else null
 
+    internal val _autofillManager = if (autofillSupported()) AndroidAutofillManager(this) else null
+
     // Used as a CompositionLocal for performing autofill.
     override val autofill: Autofill?
         get() = _autofill
 
     // Used as a CompositionLocal for performing semantic autofill.
-    override val semanticAutofill = if (autofillSupported()) AndroidSemanticAutofill(this) else null
+    override val autofillManager: AutofillManager?
+        get() = _autofillManager
 
     private var observationClearRequested = false
 
@@ -1017,17 +1029,14 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
      */
     override fun setAccessibilityEventBatchIntervalMillis(intervalMillis: Long) {
         composeAccessibilityDelegate.SendRecurringAccessibilityEventsIntervalMillis = intervalMillis
-
-        if (SDK_INT >= 26) {
-            // TODO(333102566): add a setAutofillEventBatchIntervalMillis instead of using the
-            // accessibility interval here.
-            semanticAutofill?.SendRecurringAutofillEventsIntervalMillis = intervalMillis
-        }
     }
 
-    override fun onAttach(node: LayoutNode) {}
+    override fun onAttach(node: LayoutNode) {
+        layoutNodes[node.semanticsId] = node
+    }
 
     override fun onDetach(node: LayoutNode) {
+        layoutNodes.remove(node.semanticsId)
         measureAndLayoutDelegate.onNodeDetached(node)
         requestClearInvalidObservations()
         @OptIn(ExperimentalComposeUiApi::class)
@@ -1062,10 +1071,6 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
             // Remove all the items that were visited. Removing items shifts all items after
             // to the front of the list, so removing in a chunk is cheaper than removing one-by-one
             endApplyChangesListeners.removeRange(0, size)
-        }
-        @OptIn(ExperimentalComposeUiApi::class)
-        if (ComposeUiFlags.isRectTrackingEnabled) {
-            rectManager.dispatchCallbacks()
         }
     }
 
@@ -1485,22 +1490,29 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         var positionChanged = false
         getLocationOnScreen(tmpPositionArray)
         val (globalX, globalY) = globalPosition
-        if (globalX != tmpPositionArray[0] || globalY != tmpPositionArray[1]) {
+        if (
+            globalX != tmpPositionArray[0] ||
+                globalY != tmpPositionArray[1] ||
+                // -1 means it has never been set, 0 means it has been "reset". We only want to
+                // catch the "never been set" case
+                lastMatrixRecalculationAnimationTime < 0L
+        ) {
             globalPosition = IntOffset(tmpPositionArray[0], tmpPositionArray[1])
             if (globalX != Int.MAX_VALUE && globalY != Int.MAX_VALUE) {
                 positionChanged = true
                 root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
             }
         }
+        recalculateWindowPosition()
+        rectManager.updateOffsets(globalPosition, windowPosition.round(), viewToWindowMatrix)
         measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = positionChanged)
-    }
-
-    override fun onDraw(canvas: android.graphics.Canvas) {
         @OptIn(ExperimentalComposeUiApi::class)
         if (ComposeUiFlags.isRectTrackingEnabled) {
             rectManager.dispatchCallbacks()
         }
     }
+
+    override fun onDraw(canvas: android.graphics.Canvas) {}
 
     override fun createLayer(
         drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
@@ -1577,27 +1589,22 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         if (cacheValue) {
             layerCache.push(layer)
         }
+        dirtyLayers -= layer
         return cacheValue
     }
 
     override fun onSemanticsChange() {
         composeAccessibilityDelegate.onSemanticsChange()
         contentCaptureManager.onSemanticsChange()
-        // TODO(b/333102566): Use _semanticAutofill's `onSemanticsChange` after semantic autofill
-        // goes live.
-        if (SDK_INT >= 26 && semanticAutofill?._TEMP_AUTOFILL_FLAG == true) {
-            semanticAutofill.onSemanticsChange()
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (SDK_INT >= 26 && isSemanticAutofillEnabled) {
+            _autofillManager?.onSemanticsChange()
         }
     }
 
     override fun onLayoutChange(layoutNode: LayoutNode) {
         composeAccessibilityDelegate.onLayoutChange(layoutNode)
         contentCaptureManager.onLayoutChange(layoutNode)
-        // TODO(b/333102566): Use _semanticAutofill's `onLayoutChange` after semantic autofill
-        // goes live.
-        if (SDK_INT >= 26 && semanticAutofill?._TEMP_AUTOFILL_FLAG == true) {
-            semanticAutofill.onLayoutChange(layoutNode)
-        }
     }
 
     override val rectManager = RectManager()
@@ -1750,6 +1757,8 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         _windowInfo.isWindowFocused = hasWindowFocus()
+        _windowInfo.setOnInitializeContainerSize { calculateWindowSize(this) }
+        updateWindowMetrics()
         invalidateLayoutNodeMeasurement(root)
         invalidateLayers(root)
         snapshotObserver.startObserving()
@@ -1816,6 +1825,7 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         snapshotObserver.stopObserving()
+        _windowInfo.setOnInitializeContainerSize(null)
         val lifecycle =
             checkPreconditionNotNull(viewTreeOwners?.lifecycleOwner?.lifecycle) {
                 "No lifecycle owner exists"
@@ -1836,20 +1846,22 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         if (SDK_INT >= S) AndroidComposeViewTranslationCallbackS.clearViewTranslationCallback(this)
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onProvideAutofillVirtualStructure(structure: ViewStructure?, flags: Int) {
         if (autofillSupported() && structure != null) {
-            if (semanticAutofill?._TEMP_AUTOFILL_FLAG == true) {
-                semanticAutofill.populateViewStructure(structure)
+            if (isSemanticAutofillEnabled) {
+                _autofillManager?.populateViewStructure(structure)
             } else {
                 _autofill?.populateViewStructure(structure)
             }
         }
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun autofill(values: SparseArray<AutofillValue>) {
         if (autofillSupported()) {
-            if (semanticAutofill?._TEMP_AUTOFILL_FLAG == true) {
-                semanticAutofill.performAutofill(values)
+            if (isSemanticAutofillEnabled) {
+                _autofillManager?.performAutofill(values)
             } else {
                 _autofill?.performAutofill(values)
             }
@@ -1949,7 +1961,9 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
                 uptimeMillis = event.eventTime,
                 inputDeviceId = event.deviceId
             )
-        return focusOwner.dispatchRotaryEvent(rotaryEvent)
+        return focusOwner.dispatchRotaryEvent(rotaryEvent) {
+            super.dispatchGenericMotionEvent(event)
+        }
     }
 
     private fun handleMotionEvent(motionEvent: MotionEvent): ProcessResult {
@@ -2269,6 +2283,10 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         viewToWindowMatrix.invertTo(windowToViewMatrix)
     }
 
+    private fun updateWindowMetrics() {
+        _windowInfo.updateContainerSizeIfObserved { calculateWindowSize(this) }
+    }
+
     override fun onCheckIsTextEditor(): Boolean {
         val parentSession =
             textInputSessionMutex.currentSession
@@ -2301,6 +2319,7 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         density = Density(context)
+        updateWindowMetrics()
         if (newConfig.fontWeightAdjustmentCompat != currentFontWeightAdjustment) {
             currentFontWeightAdjustment = newConfig.fontWeightAdjustmentCompat
             fontFamilyResolver = createFontFamilyResolver(context)
@@ -2426,22 +2445,54 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         return null
     }
 
+    @RequiresApi(N)
+    override fun onResolvePointerIcon(
+        event: MotionEvent,
+        pointerIndex: Int
+    ): android.view.PointerIcon {
+        val toolType = event.getToolType(pointerIndex)
+        if (
+            !event.isFromSource(InputDevice.SOURCE_MOUSE) &&
+                event.isFromSource(InputDevice.SOURCE_STYLUS) &&
+                (toolType == MotionEvent.TOOL_TYPE_STYLUS ||
+                    toolType == MotionEvent.TOOL_TYPE_ERASER)
+        ) {
+            val icon = pointerIconService.getStylusHoverIcon()
+            if (icon != null) {
+                return AndroidComposeViewVerificationHelperMethodsN.toAndroidPointerIcon(
+                    context,
+                    icon
+                )
+            }
+        }
+        return super.onResolvePointerIcon(event, pointerIndex)
+    }
+
     override val pointerIconService: PointerIconService =
         object : PointerIconService {
-            private var currentIcon: PointerIcon = PointerIcon.Default
+            private var currentMouseCursorIcon: PointerIcon = PointerIcon.Default
+            private var currentStylusHoverIcon: PointerIcon? = null
 
             override fun getIcon(): PointerIcon {
-                return currentIcon
+                return currentMouseCursorIcon
             }
 
             override fun setIcon(value: PointerIcon?) {
-                currentIcon = value ?: PointerIcon.Default
+                currentMouseCursorIcon = value ?: PointerIcon.Default
                 if (SDK_INT >= N) {
                     AndroidComposeViewVerificationHelperMethodsN.setPointerIcon(
                         this@AndroidComposeView,
-                        currentIcon
+                        currentMouseCursorIcon
                     )
                 }
+            }
+
+            override fun getStylusHoverIcon(): PointerIcon? {
+                return currentStylusHoverIcon
+            }
+
+            override fun setStylusHoverIcon(value: PointerIcon?) {
+                currentStylusHoverIcon = value
             }
         }
 
@@ -2583,20 +2634,22 @@ private object AndroidComposeViewAssistHelperMethodsO {
 
 @RequiresApi(N)
 private object AndroidComposeViewVerificationHelperMethodsN {
+    @RequiresApi(N)
+    fun toAndroidPointerIcon(context: Context, icon: PointerIcon?): android.view.PointerIcon =
+        when (icon) {
+            is AndroidPointerIcon -> icon.pointerIcon
+            is AndroidPointerIconType -> android.view.PointerIcon.getSystemIcon(context, icon.type)
+            else ->
+                android.view.PointerIcon.getSystemIcon(
+                    context,
+                    android.view.PointerIcon.TYPE_DEFAULT
+                )
+        }
+
     @DoNotInline
     @RequiresApi(N)
     fun setPointerIcon(view: View, icon: PointerIcon?) {
-        val iconToSet =
-            when (icon) {
-                is AndroidPointerIcon -> icon.pointerIcon
-                is AndroidPointerIconType ->
-                    android.view.PointerIcon.getSystemIcon(view.context, icon.type)
-                else ->
-                    android.view.PointerIcon.getSystemIcon(
-                        view.context,
-                        android.view.PointerIcon.TYPE_DEFAULT
-                    )
-            }
+        val iconToSet = toAndroidPointerIcon(view.context, icon)
 
         if (view.pointerIcon != iconToSet) {
             view.pointerIcon = iconToSet

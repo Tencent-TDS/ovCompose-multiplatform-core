@@ -168,13 +168,14 @@ class ThreePaneScaffoldTest {
 
     @Test
     fun threePaneScaffold_paneExpansionWithDragHandle_slowDraggingAndSettling() {
-        val mockPaneExpansionState = PaneExpansionState(anchors = MockPaneExpansionAnchors)
         var mockDraggingPx = 0f
         var expectedSettledOffsetPx = 0
+        lateinit var mockPaneExpansionState: PaneExpansionState
         lateinit var scope: CoroutineScope
 
         rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
             scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
             mockDraggingPx = with(LocalDensity.current) { 200.dp.toPx() }
             expectedSettledOffsetPx =
                 with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.toPx().toInt() }
@@ -182,7 +183,7 @@ class ThreePaneScaffoldTest {
         }
 
         rule.runOnIdle {
-            mockPaneExpansionState.dispatchRawDelta(mockDraggingPx)
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingPx)
             scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(0F) }
         }
 
@@ -194,18 +195,19 @@ class ThreePaneScaffoldTest {
 
     @Test
     fun threePaneScaffold_paneExpansionWithDragHandle_fastDraggingAndSettling() {
-        val mockPaneExpansionState = PaneExpansionState(anchors = MockPaneExpansionAnchors)
         var mockDraggingPx = 0f
+        lateinit var mockPaneExpansionState: PaneExpansionState
         lateinit var scope: CoroutineScope
 
         rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
             scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
             mockDraggingPx = with(LocalDensity.current) { 200.dp.toPx() }
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
         rule.runOnIdle {
-            mockPaneExpansionState.dispatchRawDelta(mockDraggingPx)
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingPx)
             scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(400F) }
         }
 
@@ -216,19 +218,44 @@ class ThreePaneScaffoldTest {
     }
 
     @Test
-    fun threePaneScaffold_paneExpansionWithDragHandle_draggingAndSettlingCloseToLeftEdge() {
-        val mockPaneExpansionState = PaneExpansionState(anchors = MockPaneExpansionAnchors)
-        var mockDraggingDp = 0f
+    fun threePaneScaffold_paneExpansionWithDragHandle_flingOverAnchorAndSettling() {
+        var mockDraggingPx = 0f
+        lateinit var mockPaneExpansionState: PaneExpansionState
         lateinit var scope: CoroutineScope
 
         rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
             scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
+            mockDraggingPx = with(LocalDensity.current) { 100.dp.toPx() }
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule.runOnIdle {
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingPx)
+            scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(800F) }
+        }
+
+        rule.runOnIdle {
+            assertThat(mockPaneExpansionState.currentMeasuredDraggingOffset)
+                .isEqualTo(mockPaneExpansionState.maxExpansionWidth)
+        }
+    }
+
+    @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_draggingAndSettlingCloseToLeftEdge() {
+        var mockDraggingDp = 0f
+        lateinit var mockPaneExpansionState: PaneExpansionState
+        lateinit var scope: CoroutineScope
+
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
             mockDraggingDp = with(LocalDensity.current) { -360.dp.toPx() }
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
         rule.runOnIdle {
-            mockPaneExpansionState.dispatchRawDelta(mockDraggingDp)
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingDp)
             scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(-200F) }
         }
 
@@ -239,18 +266,19 @@ class ThreePaneScaffoldTest {
 
     @Test
     fun threePaneScaffold_paneExpansionWithDragHandle_draggingAndSettlingCloseToRightEdge() {
-        val mockPaneExpansionState = PaneExpansionState(anchors = MockPaneExpansionAnchors)
         var mockDraggingDp = 0f
+        lateinit var mockPaneExpansionState: PaneExpansionState
         lateinit var scope: CoroutineScope
 
         rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
             scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
             mockDraggingDp = with(LocalDensity.current) { 640.dp.toPx() }
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
         rule.runOnIdle {
-            mockPaneExpansionState.dispatchRawDelta(mockDraggingDp)
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingDp)
             scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(200F) }
         }
 
@@ -302,6 +330,41 @@ internal fun SampleThreePaneScaffold(
         paneOrder = paneOrder,
         paneExpansionState = paneExpansionState,
         paneExpansionDragHandle = paneExpansionDragHandle,
+        secondaryPane = {
+            AnimatedPane(modifier = Modifier.testTag(tag = "SecondaryPane")) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.secondary
+                ) {}
+            }
+        },
+        tertiaryPane = {
+            AnimatedPane(modifier = Modifier.testTag(tag = "TertiaryPane")) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.tertiary
+                ) {}
+            }
+        }
+    ) {
+        AnimatedPane(modifier = Modifier.testTag(tag = "PrimaryPane")) {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.primary) {}
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+internal fun SampleThreePaneScaffold(
+    scaffoldDirective: PaneScaffoldDirective,
+    scaffoldState: ThreePaneScaffoldState,
+    paneOrder: ThreePaneScaffoldHorizontalOrder,
+) {
+    ThreePaneScaffold(
+        modifier = Modifier.fillMaxSize().testTag(ThreePaneScaffoldTestTag),
+        scaffoldDirective = scaffoldDirective,
+        scaffoldState = scaffoldState,
+        paneOrder = paneOrder,
         secondaryPane = {
             AnimatedPane(modifier = Modifier.testTag(tag = "SecondaryPane")) {
                 Surface(

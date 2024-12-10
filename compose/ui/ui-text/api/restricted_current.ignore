@@ -1,9 +1,21 @@
 // Baseline format: 1.0
-DefaultValueChange: androidx.compose.ui.text.MultiParagraph#MultiParagraph(androidx.compose.ui.text.AnnotatedString, androidx.compose.ui.text.TextStyle, long, androidx.compose.ui.unit.Density, androidx.compose.ui.text.font.FontFamily.Resolver, java.util.List<androidx.compose.ui.text.AnnotatedString.Range<androidx.compose.ui.text.Placeholder>>, int, boolean) parameter #7:
-    Attempted to remove default value from parameter ellipsis in androidx.compose.ui.text.MultiParagraph
-DefaultValueChange: androidx.compose.ui.text.MultiParagraph#MultiParagraph(androidx.compose.ui.text.MultiParagraphIntrinsics, long, int, boolean) parameter #3:
-    Attempted to remove default value from parameter ellipsis in androidx.compose.ui.text.MultiParagraph
-DefaultValueChange: androidx.compose.ui.text.ParagraphKt#Paragraph(String, androidx.compose.ui.text.TextStyle, long, androidx.compose.ui.unit.Density, androidx.compose.ui.text.font.FontFamily.Resolver, java.util.List<androidx.compose.ui.text.AnnotatedString.Range<androidx.compose.ui.text.SpanStyle>>, java.util.List<androidx.compose.ui.text.AnnotatedString.Range<androidx.compose.ui.text.Placeholder>>, int, boolean) parameter #8:
-    Attempted to remove default value from parameter ellipsis in androidx.compose.ui.text.ParagraphKt.Paragraph
-DefaultValueChange: androidx.compose.ui.text.ParagraphKt#Paragraph(androidx.compose.ui.text.ParagraphIntrinsics, long, int, boolean) parameter #3:
-    Attempted to remove default value from parameter ellipsis in androidx.compose.ui.text.ParagraphKt.Paragraph
+RemovedMethod: androidx.compose.ui.text.TextRange#getCollapsed():
+    Removed method androidx.compose.ui.text.TextRange.getCollapsed()
+RemovedMethod: androidx.compose.ui.text.TextRange#getEnd():
+    Removed method androidx.compose.ui.text.TextRange.getEnd()
+RemovedMethod: androidx.compose.ui.text.TextRange#getLength():
+    Removed method androidx.compose.ui.text.TextRange.getLength()
+RemovedMethod: androidx.compose.ui.text.TextRange#getMax():
+    Removed method androidx.compose.ui.text.TextRange.getMax()
+RemovedMethod: androidx.compose.ui.text.TextRange#getMin():
+    Removed method androidx.compose.ui.text.TextRange.getMin()
+RemovedMethod: androidx.compose.ui.text.TextRange#getReversed():
+    Removed method androidx.compose.ui.text.TextRange.getReversed()
+RemovedMethod: androidx.compose.ui.text.TextRange#getStart():
+    Removed method androidx.compose.ui.text.TextRange.getStart()
+RemovedMethod: androidx.compose.ui.text.style.LineBreak#getStrategy():
+    Removed method androidx.compose.ui.text.style.LineBreak.getStrategy()
+RemovedMethod: androidx.compose.ui.text.style.LineBreak#getStrictness():
+    Removed method androidx.compose.ui.text.style.LineBreak.getStrictness()
+RemovedMethod: androidx.compose.ui.text.style.LineBreak#getWordBreak():
+    Removed method androidx.compose.ui.text.style.LineBreak.getWordBreak()

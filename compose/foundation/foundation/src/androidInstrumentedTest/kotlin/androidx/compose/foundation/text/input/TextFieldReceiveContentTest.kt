@@ -400,7 +400,7 @@ class TextFieldReceiveContentTest {
         var pasteOption: (() -> Unit)? = null
         val textToolbar =
             FakeTextToolbar(
-                onShowMenu = { _, _, onPasteRequested, _, _ -> pasteOption = onPasteRequested },
+                onShowMenu = { _, _, onPasteRequested, _, _, _ -> pasteOption = onPasteRequested },
                 onHideMenu = {}
             )
         lateinit var transferableContent: TransferableContent

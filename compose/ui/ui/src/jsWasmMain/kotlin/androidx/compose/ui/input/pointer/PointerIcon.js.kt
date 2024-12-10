@@ -16,9 +16,21 @@
 
 package androidx.compose.ui.input.pointer
 
+import androidx.compose.ui.ExperimentalComposeUiApi
+
 object DummyPointerIcon : PointerIcon
 
 internal data class BrowserCursor(val id: String): PointerIcon
+
+/**
+ * Creates [PointerIcon] from provided cursor keyword.
+ * @param keyword one of the values representing the cursor appearance in a browser.
+ * @see <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/cursor">https://developer.mozilla.org/en-US/docs/Web/CSS/cursor</a>
+ */
+@ExperimentalComposeUiApi
+fun PointerIcon.Companion.fromKeyword(keyword: String): PointerIcon {
+    return BrowserCursor(keyword)
+}
 
 internal actual val pointerIconDefault: PointerIcon = BrowserCursor("default")
 internal actual val pointerIconCrosshair: PointerIcon = BrowserCursor("crosshair")

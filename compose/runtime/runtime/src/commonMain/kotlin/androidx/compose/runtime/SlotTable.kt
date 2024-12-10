@@ -16,15 +16,20 @@
 
 package androidx.compose.runtime
 
+import androidx.collection.MutableIntList
 import androidx.collection.MutableIntObjectMap
 import androidx.collection.MutableIntSet
 import androidx.collection.MutableObjectList
+import androidx.collection.mutableIntListOf
+import androidx.compose.runtime.platform.makeSynchronizedObject
+import androidx.compose.runtime.platform.synchronized
 import androidx.compose.runtime.snapshots.fastAny
 import androidx.compose.runtime.snapshots.fastFilterIndexed
 import androidx.compose.runtime.snapshots.fastForEach
 import androidx.compose.runtime.snapshots.fastMap
 import androidx.compose.runtime.tooling.CompositionData
 import androidx.compose.runtime.tooling.CompositionGroup
+import kotlin.jvm.JvmInline
 import kotlin.math.max
 import kotlin.math.min
 
@@ -112,7 +117,7 @@ internal class SlotTable : CompositionData, Iterable<CompositionGroup> {
      */
     private var readers = 0
 
-    private val lock = SynchronizedObject()
+    private val lock = makeSynchronizedObject()
 
     /** Tracks whether there is an active writer. */
     internal var writer = false
@@ -1600,7 +1605,8 @@ internal class SlotWriter(
     }
 
     /** Set the group's slot at [index] to [value]. Returns the previous value. */
-    fun set(index: Int, value: Any?): Any? = set(currentGroup, index, value)
+    @Suppress("NOTHING_TO_INLINE")
+    inline fun set(index: Int, value: Any?): Any? = set(currentGroup, index, value)
 
     /** Convert a slot group index into a global slot index. */
     fun slotIndexOfGroupSlotIndex(group: Int, index: Int): Int {
@@ -3798,7 +3804,8 @@ private fun ArrayList<Anchor>.locationOf(index: Int, effectiveSize: Int) =
  * that ensures that adding or removing a value is O(log N) operation even if values are repeatedly
  * added and removed.
  */
-internal class PrioritySet(private val list: MutableList<Int> = mutableListOf()) {
+@JvmInline
+internal value class PrioritySet(private val list: MutableIntList = mutableIntListOf()) {
     // Add a value to the heap
     fun add(value: Int) {
         // Filter trivial duplicates

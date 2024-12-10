@@ -28,7 +28,6 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -41,7 +40,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.WideNavigationRailItemDefaults.defaultWideNavigationRailItemColors
 import androidx.compose.material3.internal.DraggableAnchors
 import androidx.compose.material3.internal.Strings
 import androidx.compose.material3.internal.draggableAnchors
@@ -58,6 +56,7 @@ import androidx.compose.material3.tokens.ScrimTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentOf
@@ -82,6 +81,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -100,6 +100,7 @@ import androidx.compose.ui.util.fastSumBy
 import androidx.compose.ui.util.lerp
 import kotlin.jvm.JvmInline
 import kotlin.math.min
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
 /**
@@ -113,9 +114,9 @@ import kotlinx.coroutines.launch
  * [FloatingActionButton], and/or a logo. Each destination is typically represented by an icon and a
  * text label.
  *
- * The [WideNavigationRail] is collapsed by default, but it also supports being expanded via the
- * value of [expanded]. When collapsed, the rail should display three to seven navigation items. A
- * simple example looks like:
+ * The [WideNavigationRail] is collapsed by default, but it also supports being expanded via a
+ * [WideNavigationRailState]. When collapsed, the rail should display three to seven navigation
+ * items. A simple example looks like:
  *
  * @sample androidx.compose.material3.samples.WideNavigationRailCollapsedSample
  *
@@ -129,8 +130,7 @@ import kotlinx.coroutines.launch
  *
  * @sample androidx.compose.material3.samples.WideNavigationRailResponsiveSample
  *
- * For modal variations of the wide navigation rail, see [ModalWideNavigationRail] and
- * [DismissibleModalWideNavigationRail].
+ * For a modal variation of the wide navigation rail, see [ModalWideNavigationRail].
  *
  * Finally, the [WideNavigationRail] supports setting a [WideNavigationRailArrangement] for the
  * items, so that the items can be grouped at the top (the default), at the middle, or at the bottom
@@ -140,7 +140,7 @@ import kotlinx.coroutines.launch
  * [WideNavigationRail] component.
  *
  * @param modifier the [Modifier] to be applied to this wide navigation rail
- * @param expanded whether this wide navigation rail is expanded or collapsed (default).
+ * @param state the [WideNavigationRailState] of this wide navigation rail
  * @param shape defines the shape of this wide navigation rail's container.
  * @param colors [WideNavigationRailColors] that will be used to resolve the colors used for this
  *   wide navigation rail. See [WideNavigationRailDefaults.colors]
@@ -153,7 +153,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun WideNavigationRail(
     modifier: Modifier = Modifier,
-    expanded: Boolean = false,
+    state: WideNavigationRailState = rememberWideNavigationRailState(),
     shape: Shape = WideNavigationRailDefaults.containerShape,
     colors: WideNavigationRailColors = WideNavigationRailDefaults.colors(),
     header: @Composable (() -> Unit)? = null,
@@ -164,7 +164,7 @@ fun WideNavigationRail(
     WideNavigationRailLayout(
         modifier = modifier,
         isModal = false,
-        expanded = expanded,
+        expanded = state.isExpanded,
         colors = colors,
         shape = shape,
         header = header,
@@ -212,11 +212,6 @@ private fun WideNavigationRailLayout(
     val itemVerticalSpacedBy by
         animateDpAsState(
             targetValue = if (!expanded) NavigationRailCollapsedTokens.ItemVerticalSpace else 0.dp,
-            animationSpec = animationSpec
-        )
-    val itemMarginStart by
-        animateDpAsState(
-            targetValue = if (!expanded) 0.dp else ExpandedRailHorizontalItemPadding,
             animationSpec = animationSpec
         )
 
@@ -292,11 +287,7 @@ private fun WideNavigationRailLayout(
                                             .offset(vertical = -constraintsOffset)
                                             .constrain(
                                                 Constraints.fitPrioritizingWidth(
-                                                    minWidth =
-                                                        min(
-                                                            ItemMinWidth.roundToPx(),
-                                                            itemMaxWidthConstraint
-                                                        ),
+                                                    minWidth = minimumA11ySize.roundToPx(),
                                                     minHeight =
                                                         if (!expanded)
                                                             TopIconItemMinHeight.roundToPx()
@@ -309,8 +300,7 @@ private fun WideNavigationRailLayout(
                                 val maxItemWidth = measuredItem.measuredWidth
                                 if (expanded && expandedItemMaxWidth < maxItemWidth) {
                                     expandedItemMaxWidth =
-                                        maxItemWidth +
-                                            (ExpandedRailHorizontalItemPadding * 2).roundToPx()
+                                        maxItemWidth + ItemHorizontalPadding.roundToPx()
                                 }
                                 constraintsOffset = measuredItem.height
                                 itemsPlaceables.add(measuredItem)
@@ -379,8 +369,7 @@ private fun WideNavigationRailLayout(
                                 y = y.coerceAtLeast(headerHeight)
                             }
                             itemsPlaceables?.fastForEach { item ->
-                                val x = itemMarginStart.roundToPx()
-                                item.placeRelative(x, y)
+                                item.placeRelative(0, y)
                                 y += item.height + verticalPadding
                             }
                         }
@@ -402,24 +391,26 @@ private fun WideNavigationRailLayout(
  * text label.
  *
  * The [ModalWideNavigationRail] when collapsed behaves like a collapsed [WideNavigationRail]. When
- * [expanded], the modal wide navigation rail blocks interaction with the rest of an app’s content
+ * expanded, the modal wide navigation rail blocks interaction with the rest of an app’s content
  * with a scrim. It is elevated above the app’s UI and doesn't affect the screen’s layout grid. That
  * can be achieved like so:
  *
  * @sample androidx.compose.material3.samples.ModalWideNavigationRailSample
  *
- * For a dismissible modal wide rail, that enters from offscreen instead of expanding from the
- * collapsed rail, see [DismissibleModalWideNavigationRail].
+ * For a dismissible [ModalWideNavigationRail], that enters from offscreen instead of expanding from
+ * the collapsed rail, set [hideOnCollapse] to true. That can be achieved like so:
+ *
+ * @sample androidx.compose.material3.samples.DismissibleModalWideNavigationRailSample
  *
  * See [WideNavigationRailItem] for configuration specific to each item, and not the overall
  * [ModalWideNavigationRail] component.
  *
- * @param scrimOnClick executes when the scrim is clicked. Usually it should be a function that
- *   instructs the rail to collapse
  * @param modifier the [Modifier] to be applied to this wide navigation rail
- * @param expanded whether this wide navigation rail is expanded or collapsed (default).
- * @param collapsedShape the shape of this wide navigation rail's container when it's collapsed.
- * @param expandedShape the shape of this wide navigation rail's container when it's [expanded]
+ * @param state the [WideNavigationRailState] of this wide navigation rail
+ * @param hideOnCollapse whether this wide navigation rail should slide offscreen when it collapses
+ *   and be hidden, or stay on screen as a collapsed wide navigation rail (default)
+ * @param collapsedShape the shape of this wide navigation rail's container when it's collapsed
+ * @param expandedShape the shape of this wide navigation rail's container when it's expanded
  * @param colors [WideNavigationRailColors] that will be used to resolve the colors used for this
  *   wide navigation rail. See [WideNavigationRailDefaults.colors]
  * @param header optional header that may hold a [FloatingActionButton] or a logo
@@ -434,9 +425,9 @@ private fun WideNavigationRailLayout(
 @ExperimentalMaterial3ExpressiveApi
 @Composable
 fun ModalWideNavigationRail(
-    scrimOnClick: (() -> Unit),
     modifier: Modifier = Modifier,
-    expanded: Boolean = false,
+    state: WideNavigationRailState = rememberWideNavigationRailState(),
+    hideOnCollapse: Boolean = false,
     collapsedShape: Shape = WideNavigationRailDefaults.containerShape,
     expandedShape: Shape = WideNavigationRailDefaults.modalContainerShape,
     colors: WideNavigationRailColors = WideNavigationRailDefaults.colors(),
@@ -445,23 +436,49 @@ fun ModalWideNavigationRail(
     windowInsets: WindowInsets = WideNavigationRailDefaults.windowInsets,
     arrangement: WideNavigationRailArrangement = WideNavigationRailDefaults.Arrangement,
     expandedProperties: ModalWideNavigationRailProperties =
-        DismissibleModalWideNavigationRailDefaults.Properties,
+        ModalWideNavigationRailDefaults.Properties,
     content: @Composable () -> Unit
 ) {
-    val rememberContent = remember(content) { movableContentOf(content) }
-    val railState = rememberDismissibleModalWideNavigationRailState()
+    val rememberContent =
+        if (hideOnCollapse) {
+            content
+        } else remember(content) { movableContentOf(content) }
+
+    val density = LocalDensity.current
+    // TODO: Load the motionScheme tokens from the component tokens file.
+    val modalStateAnimationSpec = MotionSchemeKeyTokens.DefaultSpatial.value<Float>()
+    val modalState =
+        remember(state) {
+            ModalWideNavigationRailState(
+                state = state,
+                density = density,
+                animationSpec = modalStateAnimationSpec,
+            )
+        }
     val positionProgress =
         animateFloatAsState(
-            targetValue = if (!expanded) 0f else 1f,
+            targetValue = if (!state.isExpanded) 0f else 1f,
             // TODO: Load the motionScheme tokens from the component tokens file.
             animationSpec = MotionSchemeKeyTokens.DefaultEffects.value()
         )
-    val isCollapsed by remember { derivedStateOf { positionProgress.value == 0f } }
-    val modalExpanded by remember { derivedStateOf { positionProgress.value >= 0.3f } }
-    val onDismissRequest: suspend () -> Unit = { scrimOnClick() }
+    val isCollapsed: Boolean by remember { derivedStateOf { positionProgress.value == 0f } }
+    val modalExpanded: Boolean by remember { derivedStateOf { positionProgress.value >= 0.3f } }
+    val animateToDismiss: suspend () -> Unit = {
+        if (hideOnCollapse) {
+            modalState.collapse()
+        }
+        state.collapse()
+    }
+
+    val settleToDismiss: suspend (velocity: Float) -> Unit = {
+        if (hideOnCollapse) {
+            modalState.settle(it)
+            if (!modalState.isExpanded) state.collapse()
+        }
+    }
 
     // Display a non modal rail when collapsed.
-    if (isCollapsed) {
+    if (!hideOnCollapse && isCollapsed) {
         WideNavigationRailLayout(
             modifier = modifier,
             isModal = false,
@@ -474,19 +491,41 @@ fun ModalWideNavigationRail(
             content = rememberContent
         )
     }
+
+    val channel = remember { Channel<Boolean>(Channel.CONFLATED) }
+    if (hideOnCollapse) {
+        LaunchedEffect(channel) {
+            for (target in channel) {
+                val newTarget = channel.tryReceive().getOrNull() ?: target
+                launch {
+                    if (newTarget) {
+                        modalState.expand()
+                    } else {
+                        modalState.collapse()
+                    }
+                }
+            }
+        }
+    }
+
     // Display a modal container when expanded.
     if (!isCollapsed) {
-        // Have a spacer the size of the collapsed rail so that screen content doesn't shift.
-        Box(modifier = Modifier.background(color = colors.containerColor, shape = collapsedShape)) {
-            Spacer(modifier = modifier.widthIn(min = CollapsedRailWidth).fillMaxHeight())
+        if (!hideOnCollapse) {
+            // Have a spacer the size of the collapsed rail so that screen content doesn't shift.
+            Box(Modifier.background(color = colors.containerColor, shape = collapsedShape)) {
+                Spacer(modifier = modifier.widthIn(min = CollapsedRailWidth).fillMaxHeight())
+            }
         }
+
         val scope = rememberCoroutineScope()
         val predictiveBackProgress = remember { Animatable(initialValue = 0f) }
         val predictiveBackState = remember { RailPredictiveBackState() }
 
+        SideEffect { channel.trySend(state.isExpanded) }
+
         ModalWideNavigationRailDialog(
             properties = expandedProperties,
-            onDismissRequest = { scope.launch { onDismissRequest() } },
+            onDismissRequest = { scope.launch { state.collapse() } },
             onPredictiveBack = { backEvent ->
                 scope.launch { predictiveBackProgress.snapTo(backEvent) }
             },
@@ -494,159 +533,45 @@ fun ModalWideNavigationRail(
             predictiveBackState = predictiveBackState
         ) {
             Box(modifier = Modifier.fillMaxSize().imePadding()) {
+                val isScrimVisible =
+                    if (hideOnCollapse) {
+                        (modalState.targetValue != WideNavigationRailValue.Collapsed)
+                    } else {
+                        modalExpanded
+                    }
+
                 Scrim(
                     color = colors.modalScrimColor,
-                    onDismissRequest = onDismissRequest,
-                    visible = modalExpanded
+                    onDismissRequest = animateToDismiss,
+                    visible = isScrimVisible
                 )
+
                 ModalWideNavigationRailContent(
-                    expanded = modalExpanded,
-                    isStandaloneModal = false,
+                    expanded = hideOnCollapse || modalExpanded,
+                    isStandaloneModal = hideOnCollapse,
                     predictiveBackProgress = predictiveBackProgress,
                     predictiveBackState = predictiveBackState,
-                    settleToDismiss = {},
+                    settleToDismiss = settleToDismiss,
                     modifier = modifier,
-                    railState = railState,
+                    railState = modalState,
                     colors = colors,
                     shape = expandedShape,
                     openModalRailMaxWidth = ExpandedRailMaxWidth,
                     header = {
-                        Column {
-                            Spacer(Modifier.height(expandedHeaderTopPadding))
+                        Box(
+                            modifier = Modifier.padding(top = expandedHeaderTopPadding),
+                        ) {
                             header?.invoke()
                         }
                     },
                     windowInsets = windowInsets,
-                    gesturesEnabled = false,
+                    gesturesEnabled = hideOnCollapse,
                     arrangement = arrangement,
                     content = rememberContent
                 )
             }
         }
     }
-
-    LaunchedEffect(isCollapsed) {
-        if (isCollapsed) {
-            railState.close()
-        } else {
-            railState.open()
-        }
-    }
-}
-
-/**
- * A dismissible modal wide navigation rail.
- *
- * Wide navigation rails provide access to primary destinations in apps when using tablet and
- * desktop screens.
- *
- * The dismissible modal wide navigation rail blocks interaction with the rest of an app’s content
- * with a scrim when expanded. It is elevated above most of the app’s UI and doesn't affect the
- * screen’s layout grid. When collapsed, the rail is hidden.
- *
- * The dismissible modal wide navigation rai should be used to display at least three
- * [WideNavigationRailItem]s with their icon position set to [NavigationItemIconPosition.Start],
- * each representing a singular app destination, and, optionally, a header containing a menu button,
- * a [FloatingActionButton], and/or a logo. Each destination is typically represented by an icon and
- * a text label. A simple example looks like:
- *
- * @sample androidx.compose.material3.samples.DismissibleModalWideNavigationRailSample
- *
- * For a modal rail that expands from a collapsed rail, instead of entering from offscreen, see
- * [ModalWideNavigationRail].
- *
- * See [WideNavigationRailItem] for configuration specific to each item, and not the overall
- * [DismissibleModalWideNavigationRail] component.
- *
- * @param onDismissRequest executes when the user closes the rail, after it animates to
- *   [DismissibleModalWideNavigationRailValue.Closed]
- * @param modifier the [Modifier] to be applied to this dismissible modal wide navigation rail
- * @param railState state of the dismissible modal wide navigation rail
- * @param shape defines the shape of this dismissible modal wide navigation rail's container
- * @param colors [WideNavigationRailColors] that will be used to resolve the colors used for this
- *   dismissible modal wide navigation rail. See [WideNavigationRailDefaults.colors]
- * @param header optional header that may hold a [FloatingActionButton] or a logo
- * @param windowInsets a window insets of this dismissible modal wide navigation rail
- * @param arrangement the [WideNavigationRailArrangement] of this dismissible modal wide navigation
- *   rail
- * @param gesturesEnabled whether the dismissible modal wide navigation rail can be interacted by
- *   gestures
- * @param properties [ModalWideNavigationRailProperties] for further customization of this modal
- *   expanded navigation rail's window behavior
- * @param content the content of this dismissible modal wide navigation rail, typically
- *   [WideNavigationRailItem]s with [NavigationItemIconPosition.Start] icon position
- */
-@ExperimentalMaterial3ExpressiveApi
-@Composable
-fun DismissibleModalWideNavigationRail(
-    onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier,
-    railState: DismissibleModalWideNavigationRailState =
-        rememberDismissibleModalWideNavigationRailState(),
-    shape: Shape = WideNavigationRailDefaults.modalContainerShape,
-    colors: WideNavigationRailColors = WideNavigationRailDefaults.colors(),
-    header: @Composable (() -> Unit)? = null,
-    windowInsets: WindowInsets = WideNavigationRailDefaults.windowInsets,
-    arrangement: WideNavigationRailArrangement = WideNavigationRailDefaults.Arrangement,
-    gesturesEnabled: Boolean = true,
-    properties: ModalWideNavigationRailProperties =
-        DismissibleModalWideNavigationRailDefaults.Properties,
-    content: @Composable () -> Unit
-) {
-    val animateToDismiss: suspend () -> Unit = {
-        if (
-            railState.anchoredDraggableState.confirmValueChange(
-                DismissibleModalWideNavigationRailValue.Closed
-            )
-        ) {
-            railState.close()
-            if (!railState.isOpen) onDismissRequest()
-        }
-    }
-    val settleToDismiss: suspend (velocity: Float) -> Unit = {
-        railState.settle(it)
-        if (!railState.isOpen) onDismissRequest()
-    }
-    val scope = rememberCoroutineScope()
-    val predictiveBackProgress = remember { Animatable(initialValue = 0f) }
-    val predictiveBackState = remember { RailPredictiveBackState() }
-
-    ModalWideNavigationRailDialog(
-        properties = properties,
-        onDismissRequest = { scope.launch { animateToDismiss() } },
-        onPredictiveBack = { backEvent ->
-            scope.launch { predictiveBackProgress.snapTo(backEvent) }
-        },
-        onPredictiveBackCancelled = { scope.launch { predictiveBackProgress.animateTo(0f) } },
-        predictiveBackState = predictiveBackState
-    ) {
-        Box(modifier = Modifier.fillMaxSize().imePadding()) {
-            Scrim(
-                color = colors.modalScrimColor,
-                onDismissRequest = animateToDismiss,
-                visible = railState.targetValue != DismissibleModalWideNavigationRailValue.Closed
-            )
-            ModalWideNavigationRailContent(
-                expanded = true,
-                isStandaloneModal = true,
-                predictiveBackProgress = predictiveBackProgress,
-                predictiveBackState = predictiveBackState,
-                settleToDismiss = settleToDismiss,
-                modifier = modifier,
-                railState = railState,
-                colors = colors,
-                shape = shape,
-                openModalRailMaxWidth = ExpandedRailMaxWidth,
-                header = header,
-                windowInsets = windowInsets,
-                gesturesEnabled = gesturesEnabled,
-                arrangement = arrangement,
-                content = content
-            )
-        }
-    }
-
-    LaunchedEffect(railState) { railState.open() }
 }
 
 /**
@@ -663,8 +588,8 @@ fun DismissibleModalWideNavigationRail(
  *   start of the label. This configuration should be used with expanded wide navigation rails.
  *
  * However, if an animated item is desired, the [iconPosition] can be controlled via the expanded
- * value of the associated [WideNavigationRail]. By default, it'll use the [railExpanded] to follow
- * the configuration described above.
+ * value of the associated [WideNavigationRail] or [ModalWideNavigationRail]. By default, it'll use
+ * the [railExpanded] to follow the configuration described above.
  *
  * @param selected whether this item is selected
  * @param onClick called when this item is clicked
@@ -701,53 +626,30 @@ fun WideNavigationRailItem(
     @Suppress("NAME_SHADOWING")
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
 
-    if (label != null) {
-        AnimatedNavigationItem(
-            selected = selected,
-            onClick = onClick,
-            icon = icon,
-            indicatorShape = NavigationRailBaselineItemTokens.ActiveIndicatorShape.value,
-            topIconIndicatorWidth = NavigationRailVerticalItemTokens.ActiveIndicatorWidth,
-            topIconLabelTextStyle = NavigationRailVerticalItemTokens.LabelTextFont.value,
-            startIconLabelTextStyle = NavigationRailHorizontalItemTokens.LabelTextFont.value,
-            topIconIndicatorHorizontalPadding = ItemTopIconIndicatorHorizontalPadding,
-            topIconIndicatorVerticalPadding = ItemTopIconIndicatorVerticalPadding,
-            topIconIndicatorToLabelVerticalPadding =
-                NavigationRailVerticalItemTokens.IconLabelSpace,
-            startIconIndicatorHorizontalPadding =
-                NavigationRailHorizontalItemTokens.FullWidthLeadingSpace,
-            startIconIndicatorVerticalPadding = ItemStartIconIndicatorVerticalPadding,
-            startIconToLabelHorizontalPadding = NavigationRailHorizontalItemTokens.IconLabelSpace,
-            startIconItemPadding = ExpandedRailHorizontalItemPadding,
-            colors = colors,
-            modifier = modifier,
-            enabled = enabled,
-            label = label,
-            iconPosition = iconPosition,
-            interactionSource = interactionSource,
-        )
-    } else {
-        // If no label, default to circular indicator for the item.
-        NavigationItem(
-            selected = selected,
-            onClick = onClick,
-            icon = icon,
-            labelTextStyle = NavigationRailVerticalItemTokens.LabelTextFont.value,
-            indicatorShape = NavigationRailBaselineItemTokens.ActiveIndicatorShape.value,
-            indicatorWidth = NavigationRailVerticalItemTokens.ActiveIndicatorWidth,
-            indicatorHorizontalPadding = WNRItemNoLabelIndicatorPadding,
-            indicatorVerticalPadding = WNRItemNoLabelIndicatorPadding,
-            indicatorToLabelVerticalPadding = 0.dp,
-            startIconToLabelHorizontalPadding = 0.dp,
-            topIconItemVerticalPadding = 0.dp,
-            colors = colors,
-            modifier = modifier,
-            enabled = enabled,
-            label = label,
-            iconPosition = iconPosition,
-            interactionSource = interactionSource,
-        )
-    }
+    AnimatedNavigationItem(
+        selected = selected,
+        onClick = onClick,
+        icon = icon,
+        indicatorShape = NavigationRailBaselineItemTokens.ActiveIndicatorShape.value,
+        topIconIndicatorWidth = NavigationRailVerticalItemTokens.ActiveIndicatorWidth,
+        topIconLabelTextStyle = NavigationRailVerticalItemTokens.LabelTextFont.value,
+        startIconLabelTextStyle = NavigationRailHorizontalItemTokens.LabelTextFont.value,
+        topIconIndicatorHorizontalPadding = ItemTopIconIndicatorHorizontalPadding,
+        topIconIndicatorVerticalPadding = ItemTopIconIndicatorVerticalPadding,
+        topIconIndicatorToLabelVerticalPadding = NavigationRailVerticalItemTokens.IconLabelSpace,
+        startIconIndicatorHorizontalPadding =
+            NavigationRailHorizontalItemTokens.FullWidthLeadingSpace,
+        startIconIndicatorVerticalPadding = ItemStartIconIndicatorVerticalPadding,
+        noLabelIndicatorPadding = WNRItemNoLabelIndicatorPadding,
+        startIconToLabelHorizontalPadding = NavigationRailHorizontalItemTokens.IconLabelSpace,
+        itemHorizontalPadding = ItemHorizontalPadding,
+        colors = colors,
+        modifier = modifier,
+        enabled = enabled,
+        label = label,
+        iconPosition = iconPosition,
+        interactionSource = interactionSource,
+    )
 }
 
 /** Class that describes the different supported item arrangements of the [WideNavigationRail]. */
@@ -979,15 +881,12 @@ object WideNavigationRailItemDefaults {
         }
 }
 
-/** Default values for [DismissibleModalWideNavigationRail] */
+/** Default values for [ModalWideNavigationRail]. */
 @Immutable
 @ExperimentalMaterial3ExpressiveApi
-expect object DismissibleModalWideNavigationRailDefaults {
+expect object ModalWideNavigationRailDefaults {
 
-    /**
-     * Properties used to customize the behavior of a [ModalWideNavigationRail] or of a
-     * [DismissibleModalWideNavigationRail].
-     */
+    /** Properties used to customize the window behavior of a [ModalWideNavigationRail]. */
     val Properties: ModalWideNavigationRailProperties
 }
 
@@ -1019,7 +918,7 @@ private fun ModalWideNavigationRailContent(
     predictiveBackState: RailPredictiveBackState,
     settleToDismiss: suspend (velocity: Float) -> Unit,
     modifier: Modifier,
-    railState: DismissibleModalWideNavigationRailState,
+    railState: ModalWideNavigationRailState,
     colors: WideNavigationRailColors,
     shape: Shape,
     openModalRailMaxWidth: Dp,
@@ -1071,8 +970,8 @@ private fun ModalWideNavigationRailContent(
                         }
                     val maxValue = 0f
                     return@draggableAnchors DraggableAnchors {
-                        DismissibleModalWideNavigationRailValue.Closed at minValue
-                        DismissibleModalWideNavigationRailValue.Open at maxValue
+                        WideNavigationRailValue.Collapsed at minValue
+                        WideNavigationRailValue.Expanded at maxValue
                     } to railState.targetValue
                 }
                 .draggable(
@@ -1179,7 +1078,7 @@ internal val WNRItemNoLabelIndicatorPadding =
     (NavigationRailVerticalItemTokens.ActiveIndicatorWidth -
         NavigationRailBaselineItemTokens.IconSize) / 2
 
-private val ExpandedRailHorizontalItemPadding = 20.dp
+private val ItemHorizontalPadding = 20.dp
 // Vertical padding between the contents of the wide navigation rail and its top/bottom.
 private val WNRVerticalPadding = NavigationRailCollapsedTokens.TopSpace
 // Padding at the bottom of the rail's header. This padding will only be added when the header is

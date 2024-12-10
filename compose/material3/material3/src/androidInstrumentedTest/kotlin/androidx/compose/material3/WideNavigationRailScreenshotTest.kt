@@ -288,7 +288,11 @@ private fun DefaultWideNavigationRail(
 ) {
     Box(Modifier.semantics(mergeDescendants = true) {}.testTag(Tag)) {
         WideNavigationRail(
-            expanded = expanded,
+            state =
+                rememberWideNavigationRailState(
+                    if (expanded) WideNavigationRailValue.Expanded
+                    else WideNavigationRailValue.Collapsed
+                ),
             arrangement = arrangement,
             header =
                 if (withHeader) {

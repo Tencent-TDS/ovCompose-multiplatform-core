@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composition
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.ControlledComposition
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.InvalidationResult
 import androidx.compose.runtime.MovableContentState
 import androidx.compose.runtime.MovableContentStateReference
 import androidx.compose.runtime.OffsetApplier
@@ -36,17 +35,18 @@ import androidx.compose.runtime.SlotWriter
 import androidx.compose.runtime.TestOnly
 import androidx.compose.runtime.composeRuntimeError
 import androidx.compose.runtime.deactivateCurrentGroup
+import androidx.compose.runtime.extractMovableContentAtCurrent
 import androidx.compose.runtime.internal.IntRef
 import androidx.compose.runtime.internal.identityHashCode
-import androidx.compose.runtime.movableContentKey
 import androidx.compose.runtime.removeCurrentGroup
 import androidx.compose.runtime.runtimeCheck
 import androidx.compose.runtime.snapshots.fastForEachIndexed
 import androidx.compose.runtime.withAfterAnchorInfo
 import kotlin.jvm.JvmInline
 
-internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
+internal typealias IntParameter = Int
 
+internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
     val name: String
         get() = this::class.simpleName.orEmpty()
 
@@ -56,21 +56,19 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
         rememberManager: RememberManager
     )
 
-    open fun intParamName(parameter: IntParameter): String = "IntParameter(${parameter.offset})"
+    open fun intParamName(parameter: IntParameter): String = "IntParameter(${parameter})"
 
     open fun objectParamName(parameter: ObjectParameter<*>): String =
         "ObjectParameter(${parameter.offset})"
 
     override fun toString() = name
 
-    @JvmInline value class IntParameter(val offset: Int)
-
     @JvmInline value class ObjectParameter<T>(val offset: Int)
 
     // region traversal operations
     object Ups : Operation(ints = 1) {
         inline val Count
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -112,7 +110,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object AdvanceSlotsBy : Operation(ints = 1) {
         inline val Distance
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -260,7 +258,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object TrimParentValues : Operation(ints = 1) {
         inline val Count
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter): String =
             when (parameter) {
@@ -302,7 +300,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
             get() = ObjectParameter<Any?>(0)
 
         inline val GroupSlotIndex
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -348,18 +346,18 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
             get() = ObjectParameter<Anchor>(1)
 
         inline val GroupSlotIndex
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
-                UpdateAnchoredValue.GroupSlotIndex -> "groupSlotIndex"
+                GroupSlotIndex -> "groupSlotIndex"
                 else -> super.intParamName(parameter)
             }
 
         override fun objectParamName(parameter: ObjectParameter<*>) =
             when (parameter) {
-                UpdateAnchoredValue.Value -> "value"
-                UpdateAnchoredValue.Anchor -> "anchor"
+                Value -> "value"
+                Anchor -> "anchor"
                 else -> super.objectParamName(parameter)
             }
 
@@ -368,9 +366,9 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
             slots: SlotWriter,
             rememberManager: RememberManager
         ) {
-            val value = getObject(UpdateAnchoredValue.Value)
-            val anchor = getObject(UpdateAnchoredValue.Anchor)
-            val groupSlotIndex = getInt(UpdateAnchoredValue.GroupSlotIndex)
+            val value = getObject(Value)
+            val anchor = getObject(Anchor)
+            val groupSlotIndex = getInt(GroupSlotIndex)
             if (value is RememberObserverHolder) {
                 rememberManager.remembering(value.wrapped)
             }
@@ -457,7 +455,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object MoveCurrentGroup : Operation(ints = 1) {
         inline val Offset
-            get() = IntParameter(0)
+            get() = 0
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -557,10 +555,10 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object RemoveNode : Operation(ints = 2) {
         inline val RemoveIndex
-            get() = IntParameter(0)
+            get() = 0
 
         inline val Count
-            get() = IntParameter(1)
+            get() = 1
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -580,13 +578,13 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object MoveNode : Operation(ints = 3) {
         inline val From
-            get() = IntParameter(0)
+            get() = 0
 
         inline val To
-            get() = IntParameter(1)
+            get() = 1
 
         inline val Count
-            get() = IntParameter(2)
+            get() = 2
 
         override fun intParamName(parameter: IntParameter) =
             when (parameter) {
@@ -682,7 +680,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
             get() = ObjectParameter<() -> Any?>(0)
 
         inline val InsertIndex
-            get() = IntParameter(0)
+            get() = 0
 
         inline val GroupAnchor
             get() = ObjectParameter<Anchor>(1)
@@ -718,7 +716,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
 
     object PostInsertNodeFixup : Operation(ints = 1, objects = 1) {
         inline val InsertIndex
-            get() = IntParameter(0)
+            get() = 0
 
         inline val GroupAnchor
             get() = ObjectParameter<Anchor>(0)
@@ -928,12 +926,17 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
             slots: SlotWriter,
             rememberManager: RememberManager
         ) {
-            releaseMovableGroupAtCurrent(
-                composition = getObject(Composition),
-                parentContext = getObject(ParentCompositionContext),
-                reference = getObject(Reference),
-                slots = slots
-            )
+            val composition = getObject(Composition)
+            val reference = getObject(Reference)
+            val parentContext = getObject(ParentCompositionContext)
+            val state =
+                extractMovableContentAtCurrent(
+                    composition = composition,
+                    reference = reference,
+                    slots = slots,
+                    applier = null,
+                )
+            parentContext.movableContentStateReleased(reference, state, applier)
         }
     }
 
@@ -986,7 +989,7 @@ internal sealed class Operation(val ints: Int = 0, val objects: Int = 0) {
         objects: Int = 0,
         val block: (Applier<*>, SlotWriter, RememberManager) -> Unit = { _, _, _ -> }
     ) : Operation(ints, objects) {
-        val intParams = List(ints) { index -> IntParameter(index) }
+        @Suppress("PrimitiveInCollection") val intParams = List(ints) { it }
         val objParams = List(objects) { index -> ObjectParameter<Any?>(index) }
 
         override fun OperationArgContainer.execute(
@@ -1051,100 +1054,4 @@ private fun positionToInsert(slots: SlotWriter, anchor: Anchor, applier: Applier
 
     runtimeCheck(slots.currentGroup == destination)
     return nodeIndex
-}
-
-/**
- * Release the movable group stored in [slots] to the recomposer to be used to insert in another
- * location if needed.
- */
-@OptIn(InternalComposeApi::class)
-private fun releaseMovableGroupAtCurrent(
-    composition: ControlledComposition,
-    parentContext: CompositionContext,
-    reference: MovableContentStateReference,
-    slots: SlotWriter
-) {
-    val slotTable = SlotTable()
-    if (slots.collectingSourceInformation) {
-        slotTable.collectSourceInformation()
-    }
-    if (slots.collectingCalledInformation) {
-        slotTable.collectCalledByInformation()
-    }
-
-    // Write a table that as if it was written by a calling
-    // invokeMovableContentLambda because this might be removed from the
-    // composition before the new composition can be composed to receive it. When
-    // the new composition receives the state it must recompose over the state by
-    // calling invokeMovableContentLambda.
-    val anchors =
-        slotTable.write { writer ->
-            writer.beginInsert()
-
-            // This is the prefix created by invokeMovableContentLambda
-            writer.startGroup(movableContentKey, reference.content)
-            writer.markGroup()
-            writer.update(reference.parameter)
-
-            // Move the content into current location
-            val anchors = slots.moveTo(reference.anchor, 1, writer)
-
-            // skip the group that was just inserted.
-            writer.skipGroup()
-
-            // End the group that represents the call to invokeMovableContentLambda
-            writer.endGroup()
-
-            writer.endInsert()
-
-            anchors
-        }
-
-    val state = MovableContentState(slotTable)
-    if (RecomposeScopeImpl.hasAnchoredRecomposeScopes(slotTable, anchors)) {
-        // If any recompose scopes are invalidated while the movable content is outside
-        // a composition, ensure the reference is updated to contain the invalidation.
-        val movableContentRecomposeScopeOwner =
-            object : RecomposeScopeOwner {
-                override fun invalidate(
-                    scope: RecomposeScopeImpl,
-                    instance: Any?
-                ): InvalidationResult {
-                    // Try sending this to the original owner first.
-                    val result =
-                        (composition as? RecomposeScopeOwner)?.invalidate(scope, instance)
-                            ?: InvalidationResult.IGNORED
-
-                    // If the original owner ignores this then we need to record it in the
-                    // reference
-                    if (result == InvalidationResult.IGNORED) {
-                        reference.invalidations += scope to instance
-                        return InvalidationResult.SCHEDULED
-                    }
-                    return result
-                }
-
-                // The only reason [recomposeScopeReleased] is called is when the recompose scope is
-                // removed from the table. First, this never happens for content that is moving, and
-                // 2) even if it did the only reason we tell the composer is to clear tracking
-                // tables that contain this information which is not relevant here.
-                override fun recomposeScopeReleased(scope: RecomposeScopeImpl) {
-                    // Nothing to do
-                }
-
-                // [recordReadOf] this is also something that would happen only during active
-                // recomposition which doesn't happened to a slot table that is moving.
-                override fun recordReadOf(value: Any) {
-                    // Nothing to do
-                }
-            }
-        slotTable.write { writer ->
-            RecomposeScopeImpl.adoptAnchoredScopes(
-                slots = writer,
-                anchors = anchors,
-                newOwner = movableContentRecomposeScopeOwner
-            )
-        }
-    }
-    parentContext.movableContentStateReleased(reference, state)
 }

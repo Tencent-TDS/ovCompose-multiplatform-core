@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.input.nestedscroll
 
+import androidx.compose.ui.ComposeUiFlags.NewNestedScrollFlingDispatchingEnabled
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.node.DelegatableNode
@@ -50,7 +52,7 @@ internal class NestedScrollNode(
         resolvedDispatcher = dispatcher ?: NestedScrollDispatcher() // Resolve null dispatcher
     }
 
-    internal var lastKnownValidParentNode: NestedScrollNode? = null
+    internal var lastKnownParentNode: NestedScrollNode? = null
 
     internal val parentNestedScrollNode: NestedScrollNode?
         get() = if (isAttached) findNearestAncestor() else null
@@ -96,11 +98,17 @@ internal class NestedScrollNode(
         return parentPreConsumed + selfPreConsumed
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
         val selfConsumed = connection.onPostFling(consumed, available)
         // if we receive an onPostFling after detaching this node, use the last known parent
         // if this parent is also detached it will send the signal through the detached parents
-        val parent = if (isAttached) parentConnection else lastKnownValidParentNode
+        val parent =
+            if (NewNestedScrollFlingDispatchingEnabled) {
+                if (isAttached) parentConnection else lastKnownParentNode
+            } else {
+                parentConnection
+            }
         val parentConsumed =
             parent?.onPostFling(consumed + selfConsumed, available - selfConsumed) ?: Velocity.Zero
         return selfConsumed + parentConsumed
@@ -131,10 +139,13 @@ internal class NestedScrollNode(
         updateDispatcherFields()
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onDetach() {
         // cache parent for detached clean up access in the dispatcher and in this node.
-        lastKnownValidParentNode = findNearestAttachedAncestor()
-        resolvedDispatcher.lastKnownValidParentNode = lastKnownValidParentNode
+        if (NewNestedScrollFlingDispatchingEnabled) {
+            lastKnownParentNode = findNearestAttachedAncestor()
+            resolvedDispatcher.lastKnownParentNode = lastKnownParentNode
+        }
         resetDispatcherFields()
     }
 
@@ -142,11 +153,14 @@ internal class NestedScrollNode(
      * If the node changes (onAttach) or if the dispatcher changes (node.update). We'll need to
      * reset the dispatcher properties accordingly.
      */
+    @OptIn(ExperimentalComposeUiApi::class)
     private fun updateDispatcherFields() {
         resolvedDispatcher.nestedScrollNode = this
-        // reset lastKnownValidParentNodes
-        resolvedDispatcher.lastKnownValidParentNode = null
-        lastKnownValidParentNode = null
+        if (NewNestedScrollFlingDispatchingEnabled) {
+            // reset lastKnownParentNodes
+            resolvedDispatcher.lastKnownParentNode = null
+            lastKnownParentNode = null
+        }
         resolvedDispatcher.calculateNestedScrollScope = { nestedCoroutineScope }
         resolvedDispatcher.scope = coroutineScope
     }

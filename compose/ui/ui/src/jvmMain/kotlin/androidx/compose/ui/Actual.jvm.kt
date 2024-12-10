@@ -29,6 +29,8 @@ internal actual fun classKeyForObject(a: Any): Any {
     return a.javaClass
 }
 
+internal actual fun currentTimeMillis(): Long = System.currentTimeMillis()
+
 // TODO: For non-JVM platforms, you can revive the kotlin-reflect implementation from
 //  https://android-review.googlesource.com/c/platform/frameworks/support/+/2441379
 internal actual fun InspectorInfo.tryPopulateReflectively(element: ModifierNodeElement<*>) {

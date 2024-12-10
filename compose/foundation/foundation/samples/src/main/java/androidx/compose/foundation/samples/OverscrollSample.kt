@@ -22,15 +22,18 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.foundation.withoutDrawing
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,10 +43,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -116,9 +128,20 @@ fun OverscrollSample() {
         override val isInProgress: Boolean
             get() = overscrollOffset.value != 0f
 
-        // as we're building an offset modifiers, let's offset of our value we calculated
-        override val effectModifier: Modifier =
-            Modifier.offset { IntOffset(x = 0, y = overscrollOffset.value.roundToInt()) }
+        // Create a LayoutModifierNode that offsets by overscrollOffset.value
+        override val node: DelegatableNode =
+            object : Modifier.Node(), LayoutModifierNode {
+                override fun MeasureScope.measure(
+                    measurable: Measurable,
+                    constraints: Constraints
+                ): MeasureResult {
+                    val placeable = measurable.measure(constraints)
+                    return layout(placeable.width, placeable.height) {
+                        val offsetValue = IntOffset(x = 0, y = overscrollOffset.value.roundToInt())
+                        placeable.placeRelativeWithLayer(offsetValue.x, offsetValue.y)
+                    }
+                }
+            }
     }
 
     val offset = remember { mutableStateOf(0f) }
@@ -184,14 +207,13 @@ fun OverscrollWithDraggable_After() {
     val minPosition = -1000f
     val maxPosition = 1000f
 
-    val overscrollEffect = ScrollableDefaults.overscrollEffect()
+    val overscrollEffect = rememberOverscrollEffect()
 
     val draggableState = rememberDraggableState { delta ->
         // Horizontal, so convert the delta to a horizontal offset
         val deltaAsOffset = Offset(delta, 0f)
-        // Wrap the original logic inside applyToScroll
-        overscrollEffect.applyToScroll(deltaAsOffset, NestedScrollSource.UserInput) {
-            remainingOffset ->
+
+        val performDrag: (Offset) -> Offset = { remainingOffset ->
             val remainingDelta = remainingOffset.x
             val newPosition = (dragPosition + remainingDelta).coerceIn(minPosition, maxPosition)
             // Calculate how much delta we have consumed
@@ -199,6 +221,13 @@ fun OverscrollWithDraggable_After() {
             dragPosition = newPosition
             // Return how much offset we consumed, so that we can show overscroll for what is left
             Offset(consumed, 0f)
+        }
+
+        if (overscrollEffect != null) {
+            // Wrap the original logic inside applyToScroll
+            overscrollEffect.applyToScroll(deltaAsOffset, NestedScrollSource.UserInput, performDrag)
+        } else {
+            performDrag(deltaAsOffset)
         }
     }
 
@@ -211,7 +240,7 @@ fun OverscrollWithDraggable_After() {
                 draggableState,
                 orientation = Orientation.Horizontal,
                 onDragStopped = {
-                    overscrollEffect.applyToFling(Velocity(it, 0f)) { velocity ->
+                    overscrollEffect?.applyToFling(Velocity(it, 0f)) { velocity ->
                         if (dragPosition == minPosition || dragPosition == maxPosition) {
                             // If we are at the min / max bound, give overscroll all of the velocity
                             Velocity.Zero
@@ -229,4 +258,41 @@ fun OverscrollWithDraggable_After() {
     ) {
         Text("Drag position $dragPosition")
     }
+}
+
+@Sampled
+@Composable
+fun OverscrollRenderedOnTopOfLazyListDecorations() {
+    val items = remember { (1..100).toList() }
+    val state = rememberLazyListState()
+    val overscroll = rememberOverscrollEffect()
+    // Create a wrapped version of the above overscroll effect that does not draw. This will be
+    // used inside LazyColumn to provide events to overscroll, without letting LazyColumn draw the
+    // overscroll effect internally.
+    val overscrollWithoutDrawing = overscroll?.withoutDrawing()
+    LazyColumn(
+        content = { items(items) { Text("Item $it") } },
+        state = state,
+        modifier =
+            Modifier.size(300.dp)
+                .clip(RectangleShape)
+                // Manually render the overscroll on top of the lazy list _and_ the 'decorations' we
+                // are
+                // manually drawing, to make sure they will also be included in the overscroll
+                // effect.
+                .overscroll(overscroll)
+                .drawBehind {
+                    state.layoutInfo.visibleItemsInfo.drop(1).forEach { info ->
+                        val verticalOffset = info.offset.toFloat()
+                        drawLine(
+                            color = Color.Red,
+                            start = Offset(0f, verticalOffset),
+                            end = Offset(size.width, verticalOffset)
+                        )
+                    }
+                },
+        // Pass the overscroll effect that does not draw inside the LazyList to receive overscroll
+        // events
+        overscrollEffect = overscrollWithoutDrawing
+    )
 }
