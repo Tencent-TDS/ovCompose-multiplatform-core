@@ -16,7 +16,6 @@
 
 package androidx.compose.mpp.demo.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -43,14 +42,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
-import androidx.compose.ui.draganddrop.forEachDataItem
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.uikit.fromString
+import androidx.compose.ui.uikit.loadString
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import platform.UIKit.UIDragItem
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun DragAndDropExample() {
     Column(
@@ -80,12 +78,8 @@ actual fun DragAndDropExample() {
                 .fillMaxWidth(1f)
                 .height(200.dp)
                 .dragAndDropSource {
-                    val data = DragAndDropTransferData {
-                        encodeString(text)
-                        addLog("Sent: $text")
-                    }
-
-                    data
+                    addLog("Sent: $text")
+                    DragAndDropTransferData(listOf(UIDragItem.fromString(text)))
                 }
                 .background(Color.DarkGray),
             color = Color.White,
@@ -106,19 +100,11 @@ actual fun DragAndDropExample() {
                     shouldStartDragAndDrop = { true },
                     target = object : DragAndDropTarget {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
-                            // TODO: finalize event and transferable API
                             addLog("Dropped")
-                            val coroutineScope = CoroutineScope(Dispatchers.Main)
-
-                            event.forEachDataItem {
-                                coroutineScope.launch {
-                                    decodeString()?.let {
-                                        dropText = it
-                                        addLog("Received: $it")
-                                    }
-                                }
+                            event.forEachString {
+                                dropText = it
+                                addLog("Received: $it")
                             }
-
                             return true
                         }
                     }
@@ -132,6 +118,15 @@ actual fun DragAndDropExample() {
             items(logs) { log ->
                 Text(log)
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun DragAndDropEvent.forEachString(block: (String) -> Unit) {
+    items.forEach {
+        it.loadString { s, _ ->
+            s?.let(block)
         }
     }
 }
