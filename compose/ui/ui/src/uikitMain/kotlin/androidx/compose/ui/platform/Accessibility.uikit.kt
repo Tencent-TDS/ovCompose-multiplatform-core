@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
-import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlin.time.measureTime
@@ -1547,26 +1546,23 @@ private val SemanticsNode.isValid: Boolean
 private val SemanticsNode.isRTL: Boolean
     get() = layoutInfo.layoutDirection == LayoutDirection.Rtl
 
-private val SemanticsNode.isAccessibilityElement: Boolean get() {
-    val config = this.config
+private val SemanticsNode.isAccessibilityElement: Boolean
+    get() = isScreenReaderFocusable()
 
-    @Suppress("DEPRECATION")
-    return if (isHidden) {
-        false
-    } else {
-        if (config.getOrNull(SemanticsProperties.IsTraversalGroup) == true
-            || config.contains(SemanticsProperties.IsPopup)
-            || config.contains(SemanticsProperties.IsDialog)
-        ) {
-            false
-        } else if (config.getOrNull(SemanticsProperties.IsContainer) == true &&
-            config.props.size == 1
-        ) {
-            false
-        } else {
-            config.containsImportantForAccessibility()
-        }
-    }
+// Simplified version of the isScreenReaderFocusable() from the
+// AndroidComposeViewAccessibilityDelegateCompat.android.kt
+private fun SemanticsNode.isScreenReaderFocusable(): Boolean {
+    val isSpeakingNode = unmergedConfig.contains(SemanticsProperties.ContentDescription) ||
+        unmergedConfig.contains(SemanticsProperties.EditableText) ||
+        unmergedConfig.contains(SemanticsProperties.Text) ||
+        unmergedConfig.contains(SemanticsProperties.StateDescription) ||
+        unmergedConfig.contains(SemanticsProperties.ToggleableState) ||
+        unmergedConfig.contains(SemanticsProperties.Selected) ||
+        unmergedConfig.contains(SemanticsProperties.ProgressBarRangeInfo)
+
+    return !isHidden &&
+        (unmergedConfig.isMergingSemanticsOfDescendants ||
+            isUnmergedLeafNode && isSpeakingNode)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)

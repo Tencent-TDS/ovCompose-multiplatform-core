@@ -19,6 +19,7 @@ package androidx.compose.ui.accessibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.Checkbox
 import androidx.compose.material.ExperimentalMaterialApi
@@ -32,6 +33,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.TriStateCheckbox
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -47,6 +49,7 @@ import androidx.compose.ui.test.assertAccessibilityTree
 import androidx.compose.ui.test.findNode
 import androidx.compose.ui.test.firstAccessibleNode
 import androidx.compose.ui.test.runUIKitInstrumentedTest
+import androidx.compose.ui.text.buildAnnotatedString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -75,11 +78,19 @@ class ComponentsAccessibilitySemanticTest {
             Button({ tapped = true }) {
                 Text("Content")
             }
+            Button({ }) {}
         }
 
         assertAccessibilityTree {
-            isAccessibilityElement = true
-            traits(UIAccessibilityTraitButton)
+            node {
+                isAccessibilityElement = true
+                label = "Content"
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
         }
 
         val node = firstAccessibleNode()
@@ -330,6 +341,11 @@ class ComponentsAccessibilitySemanticTest {
                     contentDescription = null,
                     modifier = Modifier.testTag("Image 2").semantics { role = Role.Image }
                 )
+                Image(
+                    ImageBitmap(10, 10),
+                    contentDescription = "Abstract Picture",
+                    modifier = Modifier.testTag("Image 3")
+                )
             }
         }
 
@@ -337,10 +353,17 @@ class ComponentsAccessibilitySemanticTest {
             node {
                 isAccessibilityElement = false
                 identifier = "Image 1"
+                traits()
+            }
+            node {
+                isAccessibilityElement = false
+                identifier = "Image 2"
+                traits(UIAccessibilityTraitImage)
             }
             node {
                 isAccessibilityElement = true
-                identifier = "Image 2"
+                identifier = "Image 3"
+                label = "Abstract Picture"
                 traits(UIAccessibilityTraitImage)
             }
         }
@@ -351,7 +374,7 @@ class ComponentsAccessibilitySemanticTest {
         setContentWithAccessibilityEnabled {
             Column {
                 Text("Static Text", modifier = Modifier.testTag("Text 1"))
-                Text("Custom Button", modifier = Modifier.testTag("Text 2").clickable {  })
+                Text("Custom Button", modifier = Modifier.testTag("Text 2").clickable { })
             }
         }
 
@@ -460,6 +483,47 @@ class ComponentsAccessibilitySemanticTest {
             }
             node {
                 label = "Content"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitStaticText)
+            }
+        }
+    }
+
+    @Test
+    fun testSelectionContainer() = runUIKitInstrumentedTest {
+        @Composable
+        fun LabeledInfo(label: String, data: String) {
+            Text(
+                buildAnnotatedString {
+                    append("$label: ")
+                    append(data)
+                }
+            )
+        }
+
+        setContentWithAccessibilityEnabled {
+            SelectionContainer {
+                Column {
+                    Text("Title")
+                    LabeledInfo("Subtitle", "subtitle")
+                    LabeledInfo("Details", "details")
+                }
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                label = "Title"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitStaticText)
+            }
+            node {
+                label = "Subtitle: subtitle"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitStaticText)
+            }
+            node {
+                label = "Details: details"
                 isAccessibilityElement = true
                 traits(UIAccessibilityTraitStaticText)
             }
