@@ -57,7 +57,6 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:foundation:foundation-layout"),
         ComposeComponent(":compose:material:material"),
         ComposeComponent(":compose:material3:material3"),
-        ComposeComponent(":compose:material3:material3-common"),
         //ComposeComponent(":compose:material:material-icons-core"),
         ComposeComponent(":compose:material:material-ripple"),
         ComposeComponent(":compose:material:material-navigation"),
@@ -89,6 +88,9 @@ val libraryToComponents = mapOf(
         ),
         ComposeComponent(":compose:ui:ui-unit"),
         ComposeComponent(":compose:ui:ui-util"),
+    ),
+    "COMPOSE_MATERIAL3_COMMON" to listOf(
+        ComposeComponent(":compose:material3:material3-common"),
     ),
     "COMPOSE_MATERIAL3_ADAPTIVE" to listOf(
         ComposeComponent(":compose:material3:adaptive:adaptive"),
