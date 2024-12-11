@@ -115,7 +115,6 @@ private class CachedAccessibilityPropertyKey<V>
 
 private object CachedAccessibilityPropertyKeys {
     val accessibilityLabel = CachedAccessibilityPropertyKey<String?>()
-    val isAccessibilityElement = CachedAccessibilityPropertyKey<Boolean>()
     val accessibilityIdentifier = CachedAccessibilityPropertyKey<String?>()
     val accessibilityHint = CachedAccessibilityPropertyKey<String?>()
     val accessibilityCustomActions = CachedAccessibilityPropertyKey<List<UIAccessibilityCustomAction>>()
@@ -620,10 +619,11 @@ private class AccessibilityElement(
         }
     }
 
-    override fun isAccessibilityElement(): Boolean =
-        getOrElse(CachedAccessibilityPropertyKeys.isAccessibilityElement) {
-            semanticsNode.isAccessibilityElement
-        }
+    override fun isAccessibilityElement(): Boolean {
+        // Node visibility changes don't trigger accessibility semantic recalculation.
+        // This value should not be cached. See [SemanticsNode.isHidden]
+        return semanticsNode.isAccessibilityElement
+    }
 
     override fun accessibilityIdentifier(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityIdentifier) {
@@ -863,7 +863,6 @@ private class AccessibilityElement(
         logger.apply {
             log("${indent}AccessibilityElement_$semanticsNodeId")
             log("$indent  containmentChain: ${debugContainmentChain()}")
-            log("$indent  isAccessibilityElement: $isAccessibilityElement")
             log("$indent  accessibilityLabel: $accessibilityLabel")
             log("$indent  accessibilityValue: $accessibilityValue")
             log("$indent  accessibilityTraits: $accessibilityTraits")
@@ -879,7 +878,7 @@ private class AccessibilityElement(
         }
 
         val containsPoint = semanticsNode.boundsInWindow.contains(offsetInWindow)
-        if (containsPoint && isAccessibilityElement) {
+        if (containsPoint && semanticsNode.isAccessibilityElement) {
             return this
         }
 
@@ -1162,6 +1161,7 @@ internal class AccessibilityMediator(
         accessibilityDebugLogger?.log("AccessibilityMediator for $view created")
 
         view.accessibilityElements = listOf<NSObject>()
+        var notificationName = UIAccessibilityScreenChangedNotification
         coroutineScope.launch {
             // The main loop that listens for invalidations and performs the tree syncing
             // Will exit on CancellationException from within await on `invalidationChannel.receive()`
@@ -1185,8 +1185,10 @@ internal class AccessibilityMediator(
 
                     debugLogger?.log("AccessibilityMediator.sync took $time")
                     debugLogger?.log("LayoutChanged, newElementToFocus: ${result.newElementToFocus}")
+                    UIAccessibilityPostNotification(notificationName, result.newElementToFocus)
 
-                    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, result.newElementToFocus)
+                    // Post screen change notification only once
+                    notificationName = UIAccessibilityLayoutChangedNotification
                 } else {
                     if (view.accessibilityElements?.isEmpty() != true) {
                         view.accessibilityElements = listOf<NSObject>()
@@ -1552,17 +1554,19 @@ private val SemanticsNode.isAccessibilityElement: Boolean
 // Simplified version of the isScreenReaderFocusable() from the
 // AndroidComposeViewAccessibilityDelegateCompat.android.kt
 private fun SemanticsNode.isScreenReaderFocusable(): Boolean {
-    val isSpeakingNode = unmergedConfig.contains(SemanticsProperties.ContentDescription) ||
+    return !isHidden &&
+        (unmergedConfig.isMergingSemanticsOfDescendants ||
+            isUnmergedLeafNode && isSpeakingNode)
+}
+
+private val SemanticsNode.isSpeakingNode: Boolean get() {
+    return unmergedConfig.contains(SemanticsProperties.ContentDescription) ||
         unmergedConfig.contains(SemanticsProperties.EditableText) ||
         unmergedConfig.contains(SemanticsProperties.Text) ||
         unmergedConfig.contains(SemanticsProperties.StateDescription) ||
         unmergedConfig.contains(SemanticsProperties.ToggleableState) ||
         unmergedConfig.contains(SemanticsProperties.Selected) ||
         unmergedConfig.contains(SemanticsProperties.ProgressBarRangeInfo)
-
-    return !isHidden &&
-        (unmergedConfig.isMergingSemanticsOfDescendants ||
-            isUnmergedLeafNode && isSpeakingNode)
 }
 
 @OptIn(ExperimentalComposeUiApi::class)

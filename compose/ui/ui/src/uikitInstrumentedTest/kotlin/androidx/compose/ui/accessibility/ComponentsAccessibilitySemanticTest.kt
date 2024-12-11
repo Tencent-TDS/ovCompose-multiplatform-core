@@ -19,6 +19,7 @@ package androidx.compose.ui.accessibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.Checkbox
@@ -39,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -526,6 +528,76 @@ class ComponentsAccessibilitySemanticTest {
                 label = "Details: details"
                 isAccessibilityElement = true
                 traits(UIAccessibilityTraitStaticText)
+            }
+        }
+    }
+
+    @Test
+    fun testVisibleNodes() = runUIKitInstrumentedTest {
+        var alpha by mutableStateOf(0f)
+
+        setContentWithAccessibilityEnabled {
+            Text("Hidden", modifier = Modifier.graphicsLayer {
+                this.alpha = alpha
+            })
+        }
+
+        assertAccessibilityTree {
+            label = "Hidden"
+            isAccessibilityElement = false
+        }
+
+        alpha = 1f
+        assertAccessibilityTree {
+            label = "Hidden"
+            isAccessibilityElement = true
+        }
+    }
+
+    @Test
+    fun testVisibleNodeContainers() = runUIKitInstrumentedTest {
+        var alpha by mutableStateOf(0f)
+
+        setContentWithAccessibilityEnabled {
+            Column {
+                Text("Text 1")
+                Row(modifier = Modifier.graphicsLayer {
+                    this.alpha = alpha
+                }) {
+                    Text("Text 2")
+                    Text("Text 3")
+                }
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                label = "Text 1"
+                isAccessibilityElement = true
+            }
+            node {
+                label = "Text 2"
+                isAccessibilityElement = false
+            }
+            node {
+                label = "Text 3"
+                isAccessibilityElement = false
+            }
+        }
+
+        alpha = 1f
+        assertAccessibilityTree {
+            node {
+                label = "Text 1"
+                isAccessibilityElement = true
+            }
+            node {
+                label = "Text 2"
+                isAccessibilityElement = true
+            }
+            node {
+                label = "Text 3"
+                isAccessibilityElement = true
             }
         }
     }
