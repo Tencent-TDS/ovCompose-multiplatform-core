@@ -35,6 +35,12 @@
 }
 
 - (BOOL)shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    // We should recognize simultaneously only with the gesture recognizers
+    // belonging to itself or to the views up in the hierarchy.
+    // An exception: UIScreenEdgePanGestureRecognizer, this always has precedence over us and is
+    // not allowed to recognize simultaneously
+
+    // Can't proceed if either view is null
     UIView *view = self.view;
     UIView *otherView = otherGestureRecognizer.view;
     
@@ -42,16 +48,69 @@
         return NO;
     }
     
-    // Allow simultaneous recognition only if otherGestureRecognizer is attached to the view up in the hierarchy
-    return ![otherView isDescendantOfView:view];
+    BOOL otherIsAscendant = ![otherView isDescendantOfView:view];
+    
+    if (otherIsAscendant && [otherGestureRecognizer isKindOfClass:[UIScreenEdgePanGestureRecognizer class]]) {
+        return NO;
+    }
+
+    return otherView == view || otherIsAscendant;
 }
 
 - (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    // Two situations are possible here.
+    // 1. If it's a gesture recognizer of a descendant (interop) view,
+    // we should wait until it fails,
+    // if it's a UITapGestureRecognizer.
+    //
+    // 2. It's a gesture recognizer of the view itself, or it's an ascendant view.
+    // We don't require failure of it, unless it's a `UIScreenEdgePanGestureRecognizer`.
+    UIView *view = self.view;
+    UIView *otherView = otherGestureRecognizer.view;
+    
+    if (view == nil || otherView == nil) {
+        return NO;
+    }
+
+    BOOL otherIsDescendant = [otherView isDescendantOfView:view];
+    BOOL otherIsAscendantOrSameView = !otherIsDescendant;
+
+    // (1)
+    if (otherIsDescendant && [otherGestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]) {
+        return YES;
+    }
+    
+    // (2)
+    if (otherIsAscendantOrSameView && [otherGestureRecognizer isKindOfClass:[UIScreenEdgePanGestureRecognizer class]]) {
+        return YES;
+    }
+
     return NO;
 }
 
 - (BOOL)shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return YES;
+    
+    // otherGestureRecognizer is UITapGestureRecognizer,
+    // it must not wait till we fail and has priority
+    if ([otherGestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]) {
+        return NO;
+    }
+    
+    UIView *view = self.view;
+    UIView *otherView = otherGestureRecognizer.view;
+
+    if (view == nil || otherView == nil) {
+        return NO;
+    }
+
+    BOOL otherIsDescendant = [otherView isDescendantOfView:view];
+    BOOL otherIsAscendantOrSameView = !otherIsDescendant;
+    
+    if (otherIsAscendantOrSameView && [otherGestureRecognizer isKindOfClass:[UIScreenEdgePanGestureRecognizer class]]) {
+        return NO;
+    }
+    // Otherwise it is required to fail (aka other kind of gesture recognizer on interop view)
+    return view != otherView;
 }
 
 - (void)cancelFailure {
