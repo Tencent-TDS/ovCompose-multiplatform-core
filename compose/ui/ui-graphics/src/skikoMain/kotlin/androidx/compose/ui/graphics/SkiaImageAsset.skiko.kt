@@ -71,6 +71,12 @@ fun ImageBitmap.asSkiaBitmap(): Bitmap =
         else -> throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Image")
     }
 
+fun ImageBitmap.asByteArray(): ByteArray =
+    when (this) {
+        is SkiaBackedImageBitmap -> readPixelsAsByteArray(0, 0, this.width, this.height, 0, this.width)
+        else -> throw UnsupportedOperationException("Unable to obtain org.jetbrains.skia.Image")
+    }
+
 private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
     override val colorSpace = bitmap.colorSpace.toComposeColorSpace()
     override val config = bitmap.colorType.toComposeConfig()
@@ -78,6 +84,33 @@ private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
     override val height get() = bitmap.height
     override val width get() = bitmap.width
     override fun prepareToDraw() = Unit
+
+    fun readPixelsAsByteArray(
+        startX: Int,
+        startY: Int,
+        width: Int,
+        height: Int,
+        bufferOffset: Int,
+        stride: Int
+    ): ByteArray {
+        // similar to https://cs.android.com/android/platform/superproject/+/42c50042d1f05d92ecc57baebe3326a57aeecf77:frameworks/base/graphics/java/android/graphics/Bitmap.java;l=2007
+        val lastScanline: Int = bufferOffset + (height - 1) * stride
+        require(startX >= 0 && startY >= 0)
+        require(width > 0 && startX + width <= this.width)
+        require(height > 0 && startY + height <= this.height)
+        require(abs(stride) >= width)
+
+        // similar to https://cs.android.com/android/platform/superproject/+/9054ca2b342b2ea902839f629e820546d8a2458b:frameworks/base/libs/hwui/jni/Bitmap.cpp;l=898;bpv=1
+        val colorInfo = ColorInfo(
+            ColorType.BGRA_8888,
+            ColorAlphaType.UNPREMUL,
+            org.jetbrains.skia.ColorSpace.sRGB
+        )
+        val imageInfo = ImageInfo(colorInfo, width, height)
+        val bytesPerPixel = 4
+        return bitmap.readPixels(imageInfo, stride * bytesPerPixel, startX, startY)!!
+    }
+
 
     override fun readPixels(
         buffer: IntArray,
@@ -88,24 +121,10 @@ private class SkiaBackedImageBitmap(val bitmap: Bitmap) : ImageBitmap {
         bufferOffset: Int,
         stride: Int
     ) {
-        // similar to https://cs.android.com/android/platform/superproject/+/42c50042d1f05d92ecc57baebe3326a57aeecf77:frameworks/base/graphics/java/android/graphics/Bitmap.java;l=2007
-        val lastScanline: Int = bufferOffset + (height - 1) * stride
-        require(startX >= 0 && startY >= 0)
-        require(width > 0 && startX + width <= this.width)
-        require(height > 0 && startY + height <= this.height)
-        require(abs(stride) >= width)
-        require(bufferOffset >= 0 && bufferOffset + width <= buffer.size)
-        require(lastScanline >= 0 && lastScanline + width <= buffer.size)
+        val bytes = readPixelsAsByteArray(
+        startX, startY, width, height, bufferOffset, stride)
 
-        // similar to https://cs.android.com/android/platform/superproject/+/9054ca2b342b2ea902839f629e820546d8a2458b:frameworks/base/libs/hwui/jni/Bitmap.cpp;l=898;bpv=1
-        val colorInfo = ColorInfo(
-            ColorType.BGRA_8888,
-            ColorAlphaType.UNPREMUL,
-            org.jetbrains.skia.ColorSpace.sRGB
-        )
-        val imageInfo = ImageInfo(colorInfo, width, height)
         val bytesPerPixel = 4
-        val bytes = bitmap.readPixels(imageInfo, stride * bytesPerPixel, startX, startY)!!
         bytes.putBytesInto(buffer, bufferOffset, bytes.size / bytesPerPixel)
     }
 }
