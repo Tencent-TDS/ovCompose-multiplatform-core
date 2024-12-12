@@ -256,14 +256,14 @@ fun TooltipScope.PlainTooltip(
             val density = LocalDensity.current
             val windowContainerWidthInPx = windowContainerWidthInPx()
             Modifier.drawCaret { anchorLayoutCoordinates ->
-                drawCaretWithPath(
-                    density,
-                    windowContainerWidthInPx,
-                    containerColor,
-                    caretSize,
-                    anchorLayoutCoordinates
-                )
-            }
+                    drawCaretWithPath(
+                        density,
+                        windowContainerWidthInPx,
+                        containerColor,
+                        caretSize,
+                        anchorLayoutCoordinates
+                    )
+                }
                 .then(modifier)
         } else modifier
     Surface(
@@ -276,10 +276,10 @@ fun TooltipScope.PlainTooltip(
         Box(
             modifier =
                 Modifier.sizeIn(
-                    minWidth = TooltipMinWidth,
-                    maxWidth = maxWidth,
-                    minHeight = TooltipMinHeight
-                )
+                        minWidth = TooltipMinWidth,
+                        maxWidth = maxWidth,
+                        minHeight = TooltipMinHeight
+                    )
                     .padding(PlainTooltipContentPadding)
         ) {
             val textStyle = PlainTooltipTokens.SupportingTextFont.value
@@ -383,14 +383,14 @@ fun TooltipScope.RichTooltip(
             val density = LocalDensity.current
             val windowContainerWidthInPx = windowContainerWidthInPx()
             Modifier.drawCaret { anchorLayoutCoordinates ->
-                drawCaretWithPath(
-                    density,
-                    windowContainerWidthInPx,
-                    elevatedColor,
-                    caretSize,
-                    anchorLayoutCoordinates
-                )
-            }
+                    drawCaretWithPath(
+                        density,
+                        windowContainerWidthInPx,
+                        elevatedColor,
+                        caretSize,
+                        anchorLayoutCoordinates
+                    )
+                }
                 .then(modifier)
         } else modifier
     Surface(
@@ -966,8 +966,7 @@ private fun CacheDrawScope.drawCaretWithPath(
     }
 }
 
-@Composable
-internal expect fun windowContainerWidthInPx(): Int
+@Composable internal expect fun windowContainerWidthInPx(): Int
 
 internal val SpacingBetweenTooltipAndAnchor = 4.dp
 internal val TooltipMinHeight = 24.dp

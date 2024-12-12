@@ -79,7 +79,7 @@ fun BasicTooltipBox(
     focusable: Boolean = true,
     enableUserInput: Boolean = true,
     content: @Composable () -> Unit
-){
+) {
     val scope = rememberCoroutineScope()
     Box {
         if (state.isVisible) {
@@ -159,29 +159,29 @@ private fun TooltipPopup(
 private fun Modifier.handleGestures(enabled: Boolean, state: BasicTooltipState): Modifier =
     if (enabled) {
         this.pointerInput(state) {
-            coroutineScope {
-                awaitEachGesture {
-                    val pass = PointerEventPass.Initial
+                coroutineScope {
+                    awaitEachGesture {
+                        val pass = PointerEventPass.Initial
 
-                    // wait for the first down press
-                    val inputType = awaitFirstDown(pass = pass).type
+                        // wait for the first down press
+                        val inputType = awaitFirstDown(pass = pass).type
 
-                    if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
-                        val longPress = waitForLongPress(pass = pass)
-                        if (longPress is LongPressResult.Success) {
-                            // handle long press - Show the tooltip
-                            launch { state.show(MutatePriority.UserInput) }
+                        if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
+                            val longPress = waitForLongPress(pass = pass)
+                            if (longPress is LongPressResult.Success) {
+                                // handle long press - Show the tooltip
+                                launch { state.show(MutatePriority.UserInput) }
 
-                            // consume the children's click handling
-                            val changes = awaitPointerEvent(pass = pass).changes
-                            for (i in 0 until changes.size) {
-                                changes[i].consume()
+                                // consume the children's click handling
+                                val changes = awaitPointerEvent(pass = pass).changes
+                                for (i in 0 until changes.size) {
+                                    changes[i].consume()
+                                }
                             }
                         }
                     }
                 }
             }
-        }
             .pointerInput(state) {
                 coroutineScope {
                     awaitPointerEventScope {
@@ -382,10 +382,9 @@ object BasicTooltipDefaults {
     const val TooltipDuration = 1500L
 }
 
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 internal expect object BasicTooltipStrings {
-    @Composable
-    fun label(): String
+    @Composable fun label(): String
 
-    @Composable
-    fun description(): String
+    @Composable fun description(): String
 }
