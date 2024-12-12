@@ -125,8 +125,8 @@ private object CachedAccessibilityPropertyKeys {
 }
 
 // Private accessibility trait for text fields
-internal var CMPAccessibilityTraitTextField: UIAccessibilityTraits = 1UL shl 18
-internal var CMPAccessibilityTraitIsEditing: UIAccessibilityTraits = 1UL shl 21
+internal val CMPAccessibilityTraitTextField: UIAccessibilityTraits = 1UL shl 18
+internal val CMPAccessibilityTraitIsEditing: UIAccessibilityTraits = 1UL shl 21
 
 /**
  * Represents a projection of the Compose semantics node to the iOS world.
