@@ -17,31 +17,29 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.LayoutNode
-import androidx.compose.ui.semantics.AccessibilityAction
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.ScrollAxisRange
+import androidx.compose.ui.platform.accessibility.AccessibilityScrollEventResult
+import androidx.compose.ui.platform.accessibility.accessibilityCustomActions
+import androidx.compose.ui.platform.accessibility.accessibilityLabel
+import androidx.compose.ui.platform.accessibility.accessibilityTraits
+import androidx.compose.ui.platform.accessibility.accessibilityValue
+import androidx.compose.ui.platform.accessibility.isRTL
+import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
+import androidx.compose.ui.platform.accessibility.scrollIfPossible
+import androidx.compose.ui.platform.accessibility.scrollToIfPossible
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.SemanticsProperties.HideFromAccessibility
-import androidx.compose.ui.semantics.SemanticsProperties.InvisibleToUser
-import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.uikit.utils.CMPAccessibilityContainer
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
 import kotlin.coroutines.CoroutineContext
-import kotlin.math.roundToInt
 import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
@@ -54,9 +52,6 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.jetbrains.skiko.OS
-import org.jetbrains.skiko.OSVersion
-import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
@@ -70,20 +65,6 @@ import platform.UIKit.UIAccessibilityPageScrolledNotification
 import platform.UIKit.UIAccessibilityPostNotification
 import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
-import platform.UIKit.UIAccessibilityScrollDirectionDown
-import platform.UIKit.UIAccessibilityScrollDirectionLeft
-import platform.UIKit.UIAccessibilityScrollDirectionRight
-import platform.UIKit.UIAccessibilityScrollDirectionUp
-import platform.UIKit.UIAccessibilityTraitAdjustable
-import platform.UIKit.UIAccessibilityTraitButton
-import platform.UIKit.UIAccessibilityTraitHeader
-import platform.UIKit.UIAccessibilityTraitImage
-import platform.UIKit.UIAccessibilityTraitNone
-import platform.UIKit.UIAccessibilityTraitNotEnabled
-import platform.UIKit.UIAccessibilityTraitSelected
-import platform.UIKit.UIAccessibilityTraitStaticText
-import platform.UIKit.UIAccessibilityTraitToggleButton
-import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UITextInputProtocol
 import platform.UIKit.UIView
@@ -323,19 +304,7 @@ private class AccessibilityElement(
 
     override fun accessibilityLabel(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityLabel) {
-            val config = cachedConfig
-
-            val contentDescription =
-                config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("\n")
-
-            if (contentDescription != null) {
-                contentDescription
-            } else {
-                val editableText = config.getOrNull(SemanticsProperties.EditableText)?.text
-
-                editableText ?: config.getOrNull(SemanticsProperties.Text)
-                    ?.joinToString("\n") { it.text }
-            }
+            cachedConfig.accessibilityLabel()
         }
 
     override fun accessibilityActivate(): Boolean {
@@ -404,7 +373,7 @@ private class AccessibilityElement(
             return false
         }
 
-        scrollToIfPossible()
+        semanticsNode.scrollToIfPossible()
 
         return true
     }
@@ -415,182 +384,11 @@ private class AccessibilityElement(
         }
 
         if (child is AccessibilityElement && child.isAlive) {
-            child.scrollToIfPossible()
+            child.semanticsNode.scrollToIfPossible()
             return true
         }
 
         return false
-    }
-
-    /**
-     * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
-     */
-    private fun scrollToIfPossible() {
-        val scrollableAncestor = semanticsNode.scrollableByAncestor ?: return
-        val scrollableAncestorRect = scrollableAncestor.boundsInWindow
-
-        val unclippedRect = semanticsNode.unclippedBoundsInWindow
-
-        mediator.debugLogger?.log(
-            listOf(
-                "scrollableAncestorRect: $scrollableAncestorRect",
-                "unclippedRect: $unclippedRect"
-            )
-        )
-
-        fun Float.invertIfNeeded() = if (isRTL) -this else this
-        // TODO: consider safe areas?
-        if (unclippedRect.top < scrollableAncestorRect.top) {
-            // The element is above the screen, scroll up
-            parent?.scrollByIfPossible(
-                0f,
-                unclippedRect.top - scrollableAncestorRect.top -
-                    (scrollableAncestor.size.height - unclippedRect.size.height) / 2
-            )
-        } else if (unclippedRect.bottom > scrollableAncestorRect.bottom) {
-            // The element is below the screen, scroll down
-            parent?.scrollByIfPossible(
-                0f,
-                unclippedRect.bottom - scrollableAncestorRect.bottom +
-                    (scrollableAncestor.size.height - unclippedRect.size.height) / 2
-            )
-        } else if (unclippedRect.left < scrollableAncestorRect.left) {
-            // The element is to the left of the screen, scroll left
-            parent?.scrollByIfPossible(
-                (unclippedRect.left - scrollableAncestorRect.left -
-                    (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
-                0f
-            )
-        } else if (unclippedRect.right > scrollableAncestorRect.right) {
-            // The element is to the right of the screen, scroll right
-            parent?.scrollByIfPossible(
-                (unclippedRect.right - scrollableAncestorRect.right +
-                    (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
-                0f
-            )
-        }
-    }
-
-    private fun scrollByIfPossible(dx: Float, dy: Float) {
-        if (!isAlive) {
-            return
-        }
-
-        // if it has scrollBy action, invoke it, otherwise try to scroll the parent
-        val action = cachedConfig.getOrNull(SemanticsActions.ScrollBy)?.action
-
-        if (action != null) {
-            action(dx, dy)
-        } else {
-            parent?.scrollByIfPossible(dx, dy)
-        }
-    }
-
-    private fun scrollIfPossible(
-        direction: UIAccessibilityScrollDirection
-    ): AccessibilityScrollEventResult? {
-        val config = cachedConfig
-
-        val deltaX: Int
-        val deltaY: Int
-        val isForward: Boolean
-        val pageAction: SemanticsPropertyKey<AccessibilityAction<() -> Boolean>>
-        val rangeProperty = if (direction.isHorizontal) {
-            SemanticsProperties.HorizontalScrollAxisRange
-        } else {
-            SemanticsProperties.VerticalScrollAxisRange
-        }
-
-        val axisRange = config.getOrNull(rangeProperty)
-        val isReverse = axisRange?.reverseScrolling == true
-        val normalisedDirection = when (direction) {
-            UIAccessibilityScrollDirectionUp -> if (isReverse) {
-                UIAccessibilityScrollDirectionDown
-            } else {
-                UIAccessibilityScrollDirectionUp
-            }
-
-            UIAccessibilityScrollDirectionDown -> if (isReverse) {
-                UIAccessibilityScrollDirectionUp
-            } else {
-                UIAccessibilityScrollDirectionDown
-            }
-
-            UIAccessibilityScrollDirectionRight -> if (isRTL xor isReverse) {
-                UIAccessibilityScrollDirectionLeft
-            } else {
-                UIAccessibilityScrollDirectionRight
-            }
-
-            UIAccessibilityScrollDirectionLeft -> if (isRTL xor isReverse) {
-                UIAccessibilityScrollDirectionRight
-            } else {
-                UIAccessibilityScrollDirectionLeft
-            }
-
-            else -> return null
-        }
-
-        when (normalisedDirection) {
-            UIAccessibilityScrollDirectionUp -> {
-                deltaX = 0
-                deltaY = -semanticsNode.size.height
-                isForward = false
-                pageAction = SemanticsActions.PageUp
-            }
-
-            UIAccessibilityScrollDirectionDown -> {
-                deltaX = 0
-                deltaY = semanticsNode.size.height
-                isForward = true
-                pageAction = SemanticsActions.PageDown
-            }
-
-            UIAccessibilityScrollDirectionRight -> {
-                deltaX = -semanticsNode.size.width
-                deltaY = 0
-                isForward = false
-                pageAction = SemanticsActions.PageLeft
-            }
-
-            UIAccessibilityScrollDirectionLeft -> {
-                deltaX = semanticsNode.size.width
-                deltaY = 0
-                isForward = true
-                pageAction = SemanticsActions.PageRight
-            }
-
-            else -> return null
-        }
-
-        val succeeded = config.getOrNull(pageAction)?.action?.invoke()
-            ?: config.getOrNull(SemanticsActions.ScrollBy)
-                ?.action
-                ?.invoke(deltaX.toFloat(), deltaY.toFloat())
-
-        return when (succeeded) {
-            true -> AccessibilityScrollEventResult(
-                announceMessage = {
-                    announceMessage(isForward, cachedConfig.getOrNull(rangeProperty))
-                }
-            )
-
-            false -> null
-            null -> parent?.scrollIfPossible(direction)
-        }
-    }
-
-    private fun announceMessage(isForward: Boolean, range: ScrollAxisRange?): String? {
-        range ?: return null
-        return if (range.value() == 0f) {
-            getString(Strings.FirstPage)
-        } else if (range.value() == range.maxValue()) {
-            getString(Strings.LastPage)
-        } else if (isForward) {
-            getString(Strings.NextPage)
-        } else {
-            getString(Strings.PreviousPage)
-        }
     }
 
     override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
@@ -605,7 +403,7 @@ private class AccessibilityElement(
         val frame = semanticsNode.boundsInWindow
         val approximateScrollAnimationDuration = 350L
 
-        val result = scrollIfPossible(direction)
+        val result = semanticsNode.scrollIfPossible(direction)
         return if (result != null) {
             mediator.notifyScrollCompleted(
                 scrollResult = result,
@@ -622,7 +420,7 @@ private class AccessibilityElement(
     override fun isAccessibilityElement(): Boolean {
         // Node visibility changes don't trigger accessibility semantic recalculation.
         // This value should not be cached. See [SemanticsNode.isHidden]
-        return semanticsNode.isAccessibilityElement
+        return semanticsNode.isScreenReaderFocusable()
     }
 
     override fun accessibilityIdentifier(): String? =
@@ -635,112 +433,14 @@ private class AccessibilityElement(
             cachedConfig.getOrNull(SemanticsActions.OnClick)?.label
         }
 
-    override fun accessibilityCustomActions(): List<UIAccessibilityCustomAction> {
-        val config = cachedConfig
-
-        return getOrElse(CachedAccessibilityPropertyKeys.accessibilityCustomActions) {
-            config.getOrNull(SemanticsActions.CustomActions)?.let { actions ->
-                actions.map {
-                    UIAccessibilityCustomAction(
-                        name = it.label,
-                        actionHandler = { _ ->
-                            if (config.contains(SemanticsProperties.Disabled)) {
-                                false
-                            } else {
-                                it.action.invoke()
-                            }
-                        }
-                    )
-                }
-            } ?: emptyList()
+    override fun accessibilityCustomActions(): List<UIAccessibilityCustomAction> =
+        getOrElse(CachedAccessibilityPropertyKeys.accessibilityCustomActions) {
+            cachedConfig.accessibilityCustomActions()
         }
-    }
 
     override fun accessibilityTraits(): UIAccessibilityTraits =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityTraits) {
-            var result = UIAccessibilityTraitNone
-
-            val config = cachedConfig
-
-            if (config.contains(SemanticsProperties.LiveRegion)) {
-                // TODO: LiveRegionMode in the config is currently ignored.
-                //  the default behavior due this flag set will actually do `Polite` announcements
-                //  to do `Assertive` announcements, we need to post a notification explicitly on each change
-                //  which we need to track manually
-                result = result or UIAccessibilityTraitUpdatesFrequently
-            }
-
-            if (config.contains(SemanticsProperties.Disabled)) {
-                result = result or UIAccessibilityTraitNotEnabled
-            }
-
-            config.getOrNull(SemanticsProperties.Selected)?.let { selected ->
-                if (selected) {
-                    result = result or UIAccessibilityTraitSelected
-                }
-            }
-
-            if (config.contains(SemanticsProperties.Heading)) {
-                result = result or UIAccessibilityTraitHeader
-            }
-
-            config.getOrNull(SemanticsProperties.ToggleableState)?.let { state ->
-                when (state) {
-                    ToggleableState.On -> {
-                        result = result or UIAccessibilityTraitSelected
-                    }
-
-                    ToggleableState.Off, ToggleableState.Indeterminate -> {
-                        // Do nothing
-                    }
-                }
-            }
-
-            if (config.contains(SemanticsProperties.ProgressBarRangeInfo)) {
-                if (config.contains(SemanticsActions.SetProgress)) {
-                    result = result or UIAccessibilityTraitAdjustable
-                }
-            }
-
-            if (config.contains(SemanticsProperties.EditableText) &&
-                config.contains(SemanticsActions.SetText)
-            ) {
-                result = result or CMPAccessibilityTraitTextField
-            } else if (config.contains(SemanticsActions.OnClick)) {
-                result = result or UIAccessibilityTraitButton
-            }
-
-            config.getOrNull(SemanticsProperties.Role)?.let { role ->
-                when (role) {
-                    Role.Button -> {
-                        result = result or UIAccessibilityTraitButton
-                    }
-
-                    Role.DropdownList -> {
-                        result = result or UIAccessibilityTraitAdjustable
-                    }
-
-                    Role.Image -> {
-                        result = result or UIAccessibilityTraitImage
-                    }
-
-                    Role.Switch -> {
-                        if (available(OS.Ios to OSVersion(major = 17))) {
-                            result = result or UIAccessibilityTraitToggleButton
-                        }
-                    }
-                }
-            }
-
-            if (result == UIAccessibilityTraitNone &&
-                config.contains(SemanticsProperties.Text) &&
-                config.contains(SemanticsActions.GetTextLayoutResult) &&
-                config.contains(SemanticsActions.ShowTextSubstitution)
-            ) {
-                result = result or UIAccessibilityTraitStaticText
-            }
-
-            result
+            cachedConfig.accessibilityTraits()
         }
 
     override fun accessibilityTextInputResponder(): UITextInputProtocol? {
@@ -749,19 +449,7 @@ private class AccessibilityElement(
 
     override fun accessibilityValue(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityValue) {
-            cachedConfig.getOrNull(SemanticsProperties.StateDescription)?.let {
-                return@getOrElse it
-            }
-
-            cachedConfig.getOrNull(SemanticsProperties.ProgressBarRangeInfo)?.let {
-                return@getOrElse if (!it.range.isEmpty()) {
-                    val fraction = (it.current - it.range.start) /
-                        (it.range.endInclusive - it.range.start)
-                    "${(fraction * 100f).roundToInt()}%"
-                } else {
-                    null
-                }
-            }
+            cachedConfig.accessibilityValue()
         }
 
     override fun accessibilityFrame(): CValue<CGRect> =
@@ -804,7 +492,7 @@ private class AccessibilityElement(
         //  following the element with `Heading` trait
         check(isAlive)
 
-        if (isAccessibilityElement) {
+        if (semanticsNode.isScreenReaderFocusable()) {
             return this
         }
 
@@ -878,7 +566,7 @@ private class AccessibilityElement(
         }
 
         val containsPoint = semanticsNode.boundsInWindow.contains(offsetInWindow)
-        if (containsPoint && semanticsNode.isAccessibilityElement) {
+        if (containsPoint && semanticsNode.isScreenReaderFocusable()) {
             return this
         }
 
@@ -889,8 +577,6 @@ private class AccessibilityElement(
         }
         return this.takeIf { containsPoint }
     }
-
-    private val isRTL get() = semanticsNode.isRTL
 }
 
 /**
@@ -1017,6 +703,10 @@ private class AccessibilityContainer(
         } else {
             wrappedElement.parent?.accessibilityContainer
         }
+    }
+
+    override fun isAccessibilityElement(): Boolean {
+        return false
     }
 
     fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
@@ -1375,7 +1065,6 @@ internal class AccessibilityMediator(
      * TODO: Does a full tree traversal on every sync, expect changes from Google, they are also aware
      *  of the issue and associated performance overhead.
      */
-
     private fun completeSync(): NodesSyncResult {
         // TODO: investigate what needs to be done to reflect that this hierarchy is probably covered
         //   by sibling overlay or another UIView hierarchy represented by other mediator
@@ -1536,71 +1225,8 @@ private fun List<SemanticsNode>.sortedByAccessibilityOrder(isRTL: Boolean): List
     }
 }
 
-private val SemanticsNode.unclippedBoundsInWindow: Rect
-    get() = Rect(positionInWindow, size.toSize())
-
 /**
  * Returns true if corresponding [LayoutNode] is placed and attached, false otherwise.
  */
 private val SemanticsNode.isValid: Boolean
     get() = layoutNode.isPlaced && layoutNode.isAttached
-
-private val SemanticsNode.isRTL: Boolean
-    get() = layoutInfo.layoutDirection == LayoutDirection.Rtl
-
-private val SemanticsNode.isAccessibilityElement: Boolean
-    get() = isScreenReaderFocusable()
-
-// Simplified version of the isScreenReaderFocusable() from the
-// AndroidComposeViewAccessibilityDelegateCompat.android.kt
-private fun SemanticsNode.isScreenReaderFocusable(): Boolean {
-    return !isHidden &&
-        (unmergedConfig.isMergingSemanticsOfDescendants ||
-            isUnmergedLeafNode && isSpeakingNode)
-}
-
-private val SemanticsNode.isSpeakingNode: Boolean get() {
-    return unmergedConfig.contains(SemanticsProperties.ContentDescription) ||
-        unmergedConfig.contains(SemanticsProperties.EditableText) ||
-        unmergedConfig.contains(SemanticsProperties.Text) ||
-        unmergedConfig.contains(SemanticsProperties.StateDescription) ||
-        unmergedConfig.contains(SemanticsProperties.ToggleableState) ||
-        unmergedConfig.contains(SemanticsProperties.Selected) ||
-        unmergedConfig.contains(SemanticsProperties.ProgressBarRangeInfo)
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Suppress("DEPRECATION")
-internal val SemanticsNode.isHidden: Boolean
-    // A node is considered hidden if it is transparent, or explicitly is hidden from accessibility.
-    // This also checks if the node has been marked as `invisibleToUser`, which is what the
-    // `hiddenFromAccessibility` API used to  be named.
-    get() =
-        isTransparent ||
-            (unmergedConfig.contains(HideFromAccessibility) ||
-                unmergedConfig.contains(InvisibleToUser))
-
-/**
- * Closest ancestor that has [SemanticsActions.ScrollBy] action
- */
-private val SemanticsNode.scrollableByAncestor: SemanticsNode?
-    get() {
-        var current = parent
-
-        while (current != null) {
-            if (current.config.getOrNull(SemanticsActions.ScrollBy) != null) {
-                return current
-            }
-
-            current = current.parent
-        }
-
-        return null
-    }
-
-private val UIAccessibilityScrollDirection.isHorizontal get() =
-    this == UIAccessibilityScrollDirectionRight || this == UIAccessibilityScrollDirectionLeft
-
-internal data class AccessibilityScrollEventResult(
-    val announceMessage: () -> String?,
-)

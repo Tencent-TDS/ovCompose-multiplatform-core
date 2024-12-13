@@ -52,6 +52,8 @@ import androidx.compose.ui.test.findNode
 import androidx.compose.ui.test.firstAccessibleNode
 import androidx.compose.ui.test.runUIKitInstrumentedTest
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import androidx.compose.ui.viewinterop.UIKitView
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,9 +69,12 @@ import platform.UIKit.UIAccessibilityTraitNotEnabled
 import platform.UIKit.UIAccessibilityTraitSelected
 import platform.UIKit.UIAccessibilityTraitStaticText
 import platform.UIKit.UIAccessibilityTraitToggleButton
+import platform.UIKit.UIView
 import platform.UIKit.accessibilityActivate
 import platform.UIKit.accessibilityDecrement
 import platform.UIKit.accessibilityIncrement
+import platform.UIKit.setAccessibilityLabel
+import platform.UIKit.setIsAccessibilityElement
 
 class ComponentsAccessibilitySemanticTest {
 
@@ -597,6 +602,85 @@ class ComponentsAccessibilitySemanticTest {
             }
             node {
                 label = "Text 3"
+                isAccessibilityElement = true
+            }
+        }
+    }
+
+    @Test
+    fun testAccessibilityContainer() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column(modifier = Modifier.testTag("Container")) {
+                Text("Text 1")
+                Text("Text 2")
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                identifier = "Container"
+                isAccessibilityElement = false
+            }
+            node {
+                label = "Text 1"
+                isAccessibilityElement = true
+            }
+            node {
+                label = "Text 2"
+                isAccessibilityElement = true
+            }
+        }
+    }
+
+    @Test
+    fun testAccessibilityInterop() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column(modifier = Modifier.testTag("Container")) {
+                UIKitView(
+                    factory = {
+                        val view = UIView()
+                        view.setIsAccessibilityElement(true)
+                        view.setAccessibilityLabel("Disabled")
+                        view
+                    },
+                    properties = UIKitInteropProperties(isNativeAccessibilityEnabled = false)
+                )
+                UIKitView(
+                    factory = {
+                        val view = UIView()
+                        view.setIsAccessibilityElement(true)
+                        view.setAccessibilityLabel("Enabled")
+                        view
+                    },
+                    properties = UIKitInteropProperties(isNativeAccessibilityEnabled = true)
+                )
+                UIKitView(
+                    factory = {
+                        val view = UIView()
+                        view.setIsAccessibilityElement(true)
+                        view.setAccessibilityLabel("Enabled With Tag")
+                        view
+                    },
+                    properties = UIKitInteropProperties(isNativeAccessibilityEnabled = true),
+                    modifier = Modifier.testTag("Container Tag")
+                )
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                identifier = "Container"
+                isAccessibilityElement = false
+            }
+            node {
+                label = "Enabled"
+                isAccessibilityElement = true
+            }
+            node {
+                // Test tag current ignored for UIKitView nodes
+                // identifier = "Container Tag"
+                // isAccessibilityElement = false
+                label = "Enabled With Tag"
                 isAccessibilityElement = true
             }
         }
