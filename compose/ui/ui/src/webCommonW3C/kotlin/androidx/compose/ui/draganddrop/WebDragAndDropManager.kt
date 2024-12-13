@@ -20,7 +20,6 @@ import org.w3c.dom.CanvasRenderingContext2D
 import org.w3c.dom.DragEvent
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.ImageData
-import androidx.compose.ui.graphics.asByteArray
 import org.w3c.dom.HTMLElement
 
 internal abstract class WebDragAndDropManager(eventListener: EventTargetListener, globalEventsListener: EventTargetListener, private val density: Density) :
