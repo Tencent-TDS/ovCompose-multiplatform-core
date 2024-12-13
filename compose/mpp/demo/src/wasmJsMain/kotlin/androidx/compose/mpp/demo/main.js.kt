@@ -16,7 +16,6 @@
 
 package androidx.compose.mpp.demo
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,7 +27,6 @@ import androidx.compose.ui.window.ComposeViewport
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.bindToNavigation
-import kotlin.js.Promise
 import kotlin.wasm.unsafe.UnsafeWasmMemoryApi
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import kotlinx.browser.window
