@@ -21,7 +21,7 @@ import androidx.compose.ui.geometry.Offset
 /**
  * A representation of an event sent by the platform during a drag and drop operation.
  */
-actual class DragAndDropEvent internal constructor(val offset: Offset)
+actual class DragAndDropEvent internal constructor(internal val offset: Offset)
 
 /**
  * Returns the position of this [DragAndDropEvent] relative to the root Compose View in the
