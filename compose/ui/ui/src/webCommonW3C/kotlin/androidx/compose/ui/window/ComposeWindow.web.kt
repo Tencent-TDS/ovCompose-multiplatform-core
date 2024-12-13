@@ -185,7 +185,7 @@ internal class ComposeWindow(
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 
-        override val dragAndDropManager: PlatformDragAndDropManager = object : WebDragAndDropManager(canvasEvents, density) {
+        override val dragAndDropManager: PlatformDragAndDropManager = object : WebDragAndDropManager(canvasEvents, state.globalEvents, density) {
             override val rootDragAndDropNode: ComposeSceneDragAndDropNode
                 get() = scene.rootDragAndDropNode
         }
@@ -310,13 +310,6 @@ internal class ComposeWindow(
 
         addTypedEvent<KeyboardEvent>("keyup") { event ->
             processKeyboardEvent(event)
-        }
-
-
-        state.globalEvents.addDisposableEvent("dragover") { event ->
-            event as DragEvent
-            event.preventDefault()
-            event.dataTransfer?.dropEffect = "move"
         }
 
         state.globalEvents.addDisposableEvent("focus") {

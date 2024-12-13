@@ -23,7 +23,7 @@ import org.w3c.dom.ImageData
 import androidx.compose.ui.graphics.asByteArray
 import org.w3c.dom.HTMLElement
 
-internal abstract class WebDragAndDropManager(eventListener: EventTargetListener, private val density: Density) :
+internal abstract class WebDragAndDropManager(eventListener: EventTargetListener, globalEventsListener: EventTargetListener, private val density: Density) :
     PlatformDragAndDropManager {
     override val isRequestDragAndDropTransferRequired: Boolean
         get() = false
@@ -49,39 +49,24 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
                 height = decorationSize.height.roundToInt()
             )
 
-            // This results in blurry text for some reason.
             val canvas = Canvas(imageBitmap)
             val canvasScope = CanvasDrawScope()
+
             canvasScope.draw(density, LayoutDirection.Ltr, canvas, decorationSize, drawDragDecoration)
 
-            val byteArray = imageBitmap.asByteArray()
+            val intArray = IntArray(imageBitmap.width * imageBitmap.height)
+            imageBitmap.readPixels(intArray)
 
-            val uint8ClampedArray = Uint8ClampedArray(byteArray.size)
+            val uint8ClampedArray = intArray.toUint8ClampedArray()
 
-            (0 until byteArray.size / 4).forEachIndexed { index, _ ->
-                val offset = index * 4
-
-                // red
-                uint8ClampedArray.set(offset, byteArray[offset + 2].toInt() and 0xFF)
-
-                // green
-                uint8ClampedArray.set(offset + 1, byteArray[offset + 1].toInt() and 0xFF)
-
-                // blue
-                uint8ClampedArray.set(offset + 2, byteArray[offset].toInt() and 0xFF)
-
-                // alpha
-                uint8ClampedArray.set(offset + 3, byteArray[offset + 3].toInt() and 0xFF)
-            }
-
-            val imageData = ImageData(uint8ClampedArray, decorationSize.width.toInt(), decorationSize.height.toInt())
+            val imageData = ImageData(uint8ClampedArray, imageBitmap.width, imageBitmap.height)
 
             val canvasConverter = document.createElement("canvas") as HTMLCanvasElement
 
             val scale = density.density
 
-            canvasConverter.width = decorationSize.width.toInt()
-            canvasConverter.height = decorationSize.height.toInt()
+            canvasConverter.width = imageBitmap.width
+            canvasConverter.height = imageBitmap.height
 
             require(scale > 0f)
 
@@ -102,11 +87,10 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
 
 
     init {
-        initEvents(eventListener)
+        initEvents(eventListener, globalEventsListener)
     }
 
     private fun DragEvent.setAsDragImage(ghostImage: HTMLElement) {
-        // TODO: Investigate best options to hide the element visually
         with (ghostImage.style) {
             position = "absolute"
 
@@ -129,7 +113,7 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
         }
     }
 
-    private fun initEvents(eventListener: EventTargetListener) {
+    private fun initEvents(eventListener: EventTargetListener, globalEventsListener: EventTargetListener) {
         eventListener.addDisposableEvent("dragstart") { event ->
             event as DragEvent
 
@@ -169,6 +153,12 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
 
             startTransferScope.dragSessionContext = null
         }
+
+        globalEventsListener.addDisposableEvent("dragover") { event ->
+            event as DragEvent
+            event.preventDefault()
+            event.dataTransfer?.dropEffect = "move"
+        }
     }
 
     private val DragEvent.offset get() = Offset(
@@ -185,3 +175,24 @@ private class DragSessionContext(
 private fun setMethodImplForUint8ClampedArray(obj: Uint8ClampedArray, index: Int, value: Int) { js("obj[index] = value;") }
 private operator fun Uint8ClampedArray.set(index: Int, value: Int) = setMethodImplForUint8ClampedArray(this, index, value)
 
+private fun IntArray.toUint8ClampedArray(): Uint8ClampedArray {
+    val uint8ClampedArray = Uint8ClampedArray(size * 4)
+
+    forEachIndexed { index, intValue ->
+        val offset = index * 4
+
+        // red
+        uint8ClampedArray[offset] = (intValue shr 16) and 0xFF
+
+        // green
+        uint8ClampedArray[offset + 1] = (intValue shr 8) and 0xFF
+
+        // blue
+        uint8ClampedArray[offset + 2] = intValue and 0xFF
+
+        // alpha
+        uint8ClampedArray[offset + 3] = (intValue shr 24) and 0xFF
+    }
+
+    return uint8ClampedArray
+}
