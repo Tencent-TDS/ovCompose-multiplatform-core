@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform.accessibility
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.getString
@@ -211,7 +210,11 @@ internal val SemanticsNode.isRTL: Boolean
 // Simplified version of the isScreenReaderFocusable() from the
 // AndroidComposeViewAccessibilityDelegateCompat.android.kt
 internal fun SemanticsNode.isScreenReaderFocusable(): Boolean {
-    return !isHidden &&
+    return !isTransparent && canBeAccessibilityElement()
+}
+
+internal fun SemanticsNode.canBeAccessibilityElement(): Boolean {
+    return !isHiddenFromAccessibility &&
         (unmergedConfig.isMergingSemanticsOfDescendants ||
             isUnmergedLeafNode && isSpeakingNode)
 }
@@ -226,16 +229,10 @@ private val SemanticsNode.isSpeakingNode: Boolean get() {
         unmergedConfig.contains(SemanticsProperties.ProgressBarRangeInfo)
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("DEPRECATION")
-private val SemanticsNode.isHidden: Boolean
-    // A node is considered hidden if it is transparent, or explicitly is hidden from accessibility.
-    // This also checks if the node has been marked as `invisibleToUser`, which is what the
-    // `hiddenFromAccessibility` API used to  be named.
-    get() =
-        isTransparent ||
-            (unmergedConfig.contains(HideFromAccessibility) ||
-                unmergedConfig.contains(InvisibleToUser))
+private val SemanticsNode.isHiddenFromAccessibility: Boolean
+    get() = unmergedConfig.contains(HideFromAccessibility) ||
+        unmergedConfig.contains(InvisibleToUser)
 
 /**
  * Closest ancestor that has [SemanticsActions.ScrollBy] action
