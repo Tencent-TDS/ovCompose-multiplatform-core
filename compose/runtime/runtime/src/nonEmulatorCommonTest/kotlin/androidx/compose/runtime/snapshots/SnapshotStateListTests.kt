@@ -31,7 +31,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import androidx.compose.runtime.runTest
-import kotlinx.test.IgnoreJsTarget
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SnapshotStateListTests {
@@ -550,7 +549,6 @@ class SnapshotStateListTests {
     }
 
     @Test
-    @IgnoreJsTarget // TODO(karpovich): Fix? timeout on node.js
     fun concurrentGlobalModification_add() = runTest(UnconfinedTestDispatcher()) {
         repeat(100) {
             val list = mutableStateListOf<Int>()
@@ -564,7 +562,6 @@ class SnapshotStateListTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentGlobalModifications_addAll() = runTest(
         UnconfinedTestDispatcher(), timeoutMs = 10_000
     ) {
@@ -588,7 +585,6 @@ class SnapshotStateListTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentMixingWriteApply_add() = runTest(timeoutMs = 30_000) {
         repeat(10) {
             val lists = Array(100) { mutableStateListOf<Int>() }.toList()
@@ -616,7 +612,6 @@ class SnapshotStateListTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentMixingWriteApply_addAll_clear() = runTest(
         UnconfinedTestDispatcher(), timeoutMs = 30_000
     ) {
@@ -649,7 +644,6 @@ class SnapshotStateListTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentMixingWriteApply_addAll_removeRange() = runTest(
         UnconfinedTestDispatcher(), timeoutMs = 30_000
     ) {
