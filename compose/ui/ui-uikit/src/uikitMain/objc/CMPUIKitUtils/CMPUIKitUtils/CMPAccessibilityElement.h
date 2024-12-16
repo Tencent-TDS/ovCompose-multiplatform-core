@@ -39,8 +39,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *__nullable)accessibilityValue;
 
-- (__nullable id<UITextInput>)accessibilityTextInputResponder;
-
 - (CGRect)accessibilityFrame;
 
 - (BOOL)isAccessibilityElement;

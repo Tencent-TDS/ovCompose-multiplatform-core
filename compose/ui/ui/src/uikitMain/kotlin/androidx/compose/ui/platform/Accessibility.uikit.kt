@@ -118,7 +118,6 @@ private sealed interface AccessibilityNode {
     val accessibilityIdentifier: String? get() = null
     val accessibilityInteropView: InteropWrappingView? get() = null
     val accessibilityCustomActions: List<UIAccessibilityCustomAction> get() = emptyList()
-    val accessibilityTextInputResponder: UITextInputProtocol? get() = null
 
     fun accessibilityActivate(): Boolean = false
     fun accessibilityIncrement() {}
@@ -164,9 +163,6 @@ private sealed interface AccessibilityNode {
 
         override val accessibilityTraits: UIAccessibilityTraits
             get() = cachedConfig.accessibilityTraits()
-
-        override val accessibilityTextInputResponder: UITextInputProtocol?
-            get() = null
 
         override val accessibilityValue: String?
             get() = cachedConfig.accessibilityValue()
@@ -454,9 +450,6 @@ private class AccessibilityElement(
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityTraits) {
             node.accessibilityTraits
         }
-
-    override fun accessibilityTextInputResponder(): UITextInputProtocol? =
-        node.accessibilityTextInputResponder
 
     override fun accessibilityValue(): String? =
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityValue) {

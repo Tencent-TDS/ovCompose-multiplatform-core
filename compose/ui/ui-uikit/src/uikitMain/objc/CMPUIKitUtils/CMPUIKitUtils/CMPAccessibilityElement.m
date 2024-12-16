@@ -53,14 +53,6 @@ NS_ASSUME_NONNULL_BEGIN
     return [super accessibilityLabel];
 }
 
-- (__nullable id<UITextInput>)accessibilityTextInputResponder {
-    if (@available(iOS 18.1, *)) {
-        return [super accessibilityTextInputResponder];
-    } else {
-        return NULL;
-    }
-}
-
 - (NSString *__nullable)accessibilityValue {
     return [super accessibilityValue];
 }
