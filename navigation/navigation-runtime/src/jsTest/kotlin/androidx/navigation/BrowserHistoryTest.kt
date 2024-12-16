@@ -95,7 +95,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5", "screen_2", "screen_6/123?q=456")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_6/123?q=456")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#${encodeURIComponent("screen_6/123?q=456")}")
 
         bind.cancel()
     }
@@ -137,7 +137,7 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_5", "screen_2", "screen_6/123?q=")
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress#screen_6/123?q=")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#${encodeURIComponent("screen_6/123?q=")}")
 
         browserBack()
 
@@ -293,7 +293,7 @@ class BrowserHistoryTest {
         assertThat(window.location.toString()).isEqualTo(initAddress)
         assertThat(navController.currentDestination?.route.orEmpty()).isEqualTo("screen_4")
 
-        val nextAddress = "screen_6/123?q=456"
+        val nextAddress = "screen_6/123?q=4 5 6"
         window.open("$appAddress#$nextAddress", "_self") //like a manual new url loading
         advanceUntilIdle()
 
@@ -301,7 +301,8 @@ class BrowserHistoryTest {
         assertThat(window.history.state.toString().lines())
             .containsExactly("screen_1", "screen_4", nextAddress)
             .inOrder()
-        assertThat(window.location.toString()).isEqualTo("$appAddress#$nextAddress")
+        println("window.location.toString(): ${window.location}")
+        assertThat(window.location.toString()).isEqualTo("$appAddress#${encodeURIComponent(nextAddress)}")
         assertThat(navController.currentDestination?.route.orEmpty()).isEqualTo("screen_6/{pathId}?q={queryId}")
 
         bind.cancel()

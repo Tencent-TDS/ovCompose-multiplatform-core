@@ -178,10 +178,10 @@ private fun NavBackStackEntry.getRouteWithArgs(): String? {
 }
 
 private fun NavBackStackEntry.getRouteAsUrlFragment() =
-    getRouteWithArgs()?.let { r -> "#$r" }.orEmpty()
+    getRouteWithArgs()?.let { r -> "#${encodeURIComponent(r)}" }.orEmpty()
 
 private fun NavController.tryToNavigateToUrlFragment(localWindow: BrowserWindow) {
-    val route = localWindow.location.hash.substringAfter('#', "")
+    val route = decodeURIComponent(localWindow.location.hash.substringAfter('#', ""))
     if (route.isNotEmpty()) {
         try {
             navigate(route)
@@ -222,3 +222,6 @@ internal external interface BrowserWindow : BrowserEventTarget {
 internal external interface BrowserConsole {
     fun warn(msg: String)
 }
+
+external fun decodeURIComponent(str: String): String
+external fun encodeURIComponent(str: String): String
