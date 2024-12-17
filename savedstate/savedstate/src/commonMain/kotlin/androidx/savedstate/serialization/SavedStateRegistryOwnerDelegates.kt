@@ -18,6 +18,7 @@ package androidx.savedstate.serialization
 
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.internal.commonQualifiedName
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlinx.serialization.KSerializer
@@ -132,7 +133,7 @@ private class SavedStateRegistryOwnerDelegate<T : Any>(
     }
 
     private fun createDefaultKey(thisRef: Any?, property: KProperty<*>): String {
-        val classNamePrefix = if (thisRef != null) thisRef::class.qualifiedName + "." else ""
+        val classNamePrefix = if (thisRef != null) thisRef::class.commonQualifiedName + "." else ""
         return classNamePrefix + property.name
     }
 
