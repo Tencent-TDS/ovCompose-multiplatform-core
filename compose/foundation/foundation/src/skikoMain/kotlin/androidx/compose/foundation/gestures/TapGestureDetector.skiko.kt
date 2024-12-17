@@ -16,7 +16,11 @@
 
 package androidx.compose.foundation.gestures
 
+import androidx.compose.foundation.implementedInJetBrainsFork
 import androidx.compose.ui.input.pointer.PointerEvent
 
 actual val PointerEvent.isDeepPress: Boolean
     get() = false // TODO: Support PointerEvent.isDeepPress
+
+internal actual fun firstDownRefersToPrimaryMouseButtonOnly(): Boolean =
+    implementedInJetBrainsFork()
