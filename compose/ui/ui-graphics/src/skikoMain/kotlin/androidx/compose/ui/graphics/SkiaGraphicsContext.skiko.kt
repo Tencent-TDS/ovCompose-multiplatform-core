@@ -21,14 +21,12 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 
 @InternalComposeUiApi
-class SkiaGraphicsContext() : GraphicsContext {
+class SkiaGraphicsContext(
+    private val measureDrawBounds: Boolean,
+) : GraphicsContext {
     private val snapshotObserver = SnapshotStateObserver { command ->
         command()
     }
-
-    // Temporary workaround to disable state tracking workaround inside old internal layers
-    var activeGraphicsLayersCount = 0
-        private set
 
     init {
         snapshotObserver.start()
@@ -40,14 +38,10 @@ class SkiaGraphicsContext() : GraphicsContext {
     }
 
     override fun createGraphicsLayer(): GraphicsLayer {
-        activeGraphicsLayersCount++
-        return GraphicsLayer(snapshotObserver)
+        return GraphicsLayer(snapshotObserver, measureDrawBounds)
     }
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
-        if (!layer.isReleased) {
-            activeGraphicsLayersCount--
-            layer.release()
-        }
+        layer.release()
     }
 }

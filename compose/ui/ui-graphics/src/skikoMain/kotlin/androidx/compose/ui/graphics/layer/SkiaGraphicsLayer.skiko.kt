@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics.layer
 
+import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
@@ -58,13 +59,17 @@ import androidx.compose.ui.unit.toSize
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
+import org.jetbrains.skia.RTreeFactory
 
 actual class GraphicsLayer internal constructor(
-    private val snapshotObserver: SnapshotStateObserver
+    private val snapshotObserver: SnapshotStateObserver,
+    measureDrawBounds: Boolean,
 ) {
     private val pictureDrawScope = CanvasDrawScope()
     private val pictureRecorder = PictureRecorder()
     private var picture: Picture? = null
+    // Use factory for BBoxHierarchy to track real bounds of drawn content
+    private val bbhFactory = if (measureDrawBounds) RTreeFactory() else null
 
     // Composable state marker for tracking drawing invalidations.
     private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
@@ -194,8 +199,12 @@ actual class GraphicsLayer internal constructor(
             // It's designed to be handled externally.
             requestDraw = false
         )
-        val bounds = size.toSize().toRect().toSkiaRect()
-        val canvas = pictureRecorder.beginRecording(bounds)
+        val measureDrawBounds = !clip || shadowElevation > 0
+        val bounds = size.toSize().toRect()
+        val canvas = pictureRecorder.beginRecording(
+            bounds = if (measureDrawBounds) PICTURE_BOUNDS else bounds.toSkiaRect(),
+            bbh = if (measureDrawBounds) bbhFactory else null
+        )
         val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
         skiaCanvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
             this@GraphicsLayer.alpha
@@ -527,3 +536,21 @@ actual class GraphicsLayer internal constructor(
     actual suspend fun toImageBitmap(): ImageBitmap =
         ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 }
+
+// The goal with selecting the size of the rectangle here is to avoid limiting the
+// drawable area as much as possible.
+// Due to https://partnerissuetracker.corp.google.com/issues/324465764 we have to
+// leave room for scale between the values we specify here and Float.MAX_VALUE.
+// The maximum possible scale that can be applied to the canvas will be
+// Float.MAX_VALUE divided by the largest value below.
+// 2^30 was chosen because it's big enough, leaves quite a lot of room between it
+// and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
+// case).
+private const val PICTURE_MIN_VALUE = -(1 shl 30).toFloat()
+private const val PICTURE_MAX_VALUE = ((1 shl 30)-1).toFloat()
+private val PICTURE_BOUNDS = SkRect.makeLTRB(
+    l = PICTURE_MIN_VALUE,
+    t = PICTURE_MIN_VALUE,
+    r = PICTURE_MAX_VALUE,
+    b = PICTURE_MAX_VALUE
+)
