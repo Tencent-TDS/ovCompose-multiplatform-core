@@ -22,8 +22,6 @@ import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -67,7 +65,6 @@ import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
-import androidx.compose.ui.platform.RenderNodeLayer
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -451,46 +448,16 @@ internal class RootNodeOwner(
             invalidateParentLayer: () -> Unit,
             explicitLayer: GraphicsLayer?,
             forceUseOldLayers: Boolean
-        ) = if (explicitLayer != null) {
-                GraphicsLayerOwnerLayer(
-                    graphicsLayer = explicitLayer,
-                    context = null,
-                    drawBlock = drawBlock,
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                )
-            } else {
-                /*
-                TODO: Use GraphicsLayerOwnerLayer instead of RenderNodeLayer
-                GraphicsLayerOwnerLayer(
-                    graphicsLayer = graphicsContext.createGraphicsLayer(),
-                    context = graphicsContext,
-                    drawBlock = drawBlock,
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                )
-                */
-                RenderNodeLayer(
-                    density = Snapshot.withoutReadObservation {
-                        // density is a mutable state that is observed whenever layer is created. the layer
-                        // is updated manually on draw, so not observing the density changes here helps with
-                        // performance in layout.
-                        density
-                    },
-                    measureDrawBounds = platformContext.measureDrawLayerBounds,
-                    requiresStateWorkaround = { graphicsContext.activeGraphicsLayersCount > 0 },
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                    drawBlock = drawBlock,
-                    onDestroy = { needClearObservations = true }
-                )
-            }
+        ) = GraphicsLayerOwnerLayer(
+            graphicsLayer = explicitLayer ?: graphicsContext.createGraphicsLayer(),
+            context = if (explicitLayer != null) graphicsContext else null,
+            drawBlock = drawBlock,
+            // TODO onDestroy = { needClearObservations = true }
+            invalidateParentLayer = {
+                invalidateParentLayer()
+                snapshotInvalidationTracker.requestDraw()
+            },
+        )
 
         override fun onSemanticsChange() {
             platformContext.semanticsOwnerListener?.onSemanticsChange(semanticsOwner)
