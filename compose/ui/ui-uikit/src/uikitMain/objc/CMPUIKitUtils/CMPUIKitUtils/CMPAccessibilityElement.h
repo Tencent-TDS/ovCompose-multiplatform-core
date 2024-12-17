@@ -21,37 +21,33 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPAccessibilityElement : UIAccessibilityElement
 
-- (__nullable id)resolveAccessibilityContainer CMP_ABSTRACT_FUNCTION;
-
-+ (__nullable id)accessibilityContainerOfObject:(id)object;
-
 // MARK: Unexported methods redeclaration block
 // Redeclared to make it visible to Kotlin for override purposes, workaround for the following issue:
 // https://youtrack.jetbrains.com/issue/KT-56001/Kotlin-Native-import-Objective-C-category-members-as-class-members-if-the-category-is-located-in-the-same-file
 
-- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions CMP_ABSTRACT_FUNCTION;
+- (__nullable id)accessibilityContainer;
 
-- (UIAccessibilityTraits)accessibilityTraits CMP_ABSTRACT_FUNCTION;
+- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions;
 
-- (NSString *__nullable)accessibilityIdentifier CMP_ABSTRACT_FUNCTION;
+- (UIAccessibilityTraits)accessibilityTraits;
 
-- (NSString *__nullable)accessibilityHint CMP_ABSTRACT_FUNCTION;
+- (NSString *__nullable)accessibilityIdentifier;
 
-- (NSString *__nullable)accessibilityLabel CMP_ABSTRACT_FUNCTION;
+- (NSString *__nullable)accessibilityHint;
 
-- (NSString *__nullable)accessibilityValue CMP_ABSTRACT_FUNCTION;
+- (NSString *__nullable)accessibilityLabel;
 
-- (__nullable id<UITextInput>)accessibilityTextInputResponder CMP_ABSTRACT_FUNCTION;
+- (NSString *__nullable)accessibilityValue;
 
-- (CGRect)accessibilityFrame CMP_ABSTRACT_FUNCTION;
+- (CGRect)accessibilityFrame;
 
-- (BOOL)isAccessibilityElement CMP_ABSTRACT_FUNCTION;
+- (BOOL)isAccessibilityElement;
 
-- (BOOL)accessibilityActivate CMP_ABSTRACT_FUNCTION;
+- (BOOL)accessibilityActivate;
 
-- (void)accessibilityIncrement CMP_ABSTRACT_FUNCTION;
+- (void)accessibilityIncrement;
 
-- (void)accessibilityDecrement CMP_ABSTRACT_FUNCTION;
+- (void)accessibilityDecrement;
 
 // Private SDK method. Calls when the item is swipe-to-focused in VoiceOver.
 - (BOOL)accessibilityScrollToVisible;
@@ -63,9 +59,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)accessibilityElementDidLoseFocus;
 
-- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_ABSTRACT_FUNCTION;
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction;
 
 - (BOOL)accessibilityPerformEscape;
+
+- (__nullable id)accessibilityElementAtIndex:(NSInteger)index;
+
+- (NSInteger)accessibilityElementCount;
+
+- (NSInteger)indexOfAccessibilityElement:(id)element;
 
 @end
 

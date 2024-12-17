@@ -617,10 +617,8 @@ class ComponentsAccessibilitySemanticTest {
         }
 
         assertAccessibilityTree {
-            node {
-                identifier = "Container"
-                isAccessibilityElement = false
-            }
+            identifier = "Container"
+            isAccessibilityElement = false
             node {
                 label = "Text 1"
                 isAccessibilityElement = true
@@ -668,20 +666,19 @@ class ComponentsAccessibilitySemanticTest {
         }
 
         assertAccessibilityTree {
-            node {
-                identifier = "Container"
-                isAccessibilityElement = false
-            }
+            identifier = "Container"
+            isAccessibilityElement = false
             node {
                 label = "Enabled"
                 isAccessibilityElement = true
             }
             node {
-                // Test tag current ignored for UIKitView nodes
-                // identifier = "Container Tag"
-                // isAccessibilityElement = false
-                label = "Enabled With Tag"
-                isAccessibilityElement = true
+                identifier = "Container Tag"
+                isAccessibilityElement = false
+                node {
+                    label = "Enabled With Tag"
+                    isAccessibilityElement = true
+                }
             }
         }
     }

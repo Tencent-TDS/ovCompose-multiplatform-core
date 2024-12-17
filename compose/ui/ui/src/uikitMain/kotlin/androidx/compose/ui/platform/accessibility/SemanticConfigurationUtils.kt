@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform.accessibility
 
-import androidx.compose.ui.platform.CMPAccessibilityTraitTextField
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
@@ -39,6 +38,10 @@ import platform.UIKit.UIAccessibilityTraitStaticText
 import platform.UIKit.UIAccessibilityTraitToggleButton
 import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
+
+// Private accessibility trait for text fields
+internal val CMPAccessibilityTraitTextField: UIAccessibilityTraits = 1UL shl 18
+internal val CMPAccessibilityTraitIsEditing: UIAccessibilityTraits = 1UL shl 21
 
 internal fun SemanticsConfiguration.accessibilityTraits(): UIAccessibilityTraits {
     var result = UIAccessibilityTraitNone
