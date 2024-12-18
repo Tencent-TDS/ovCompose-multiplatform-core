@@ -235,6 +235,7 @@ private sealed interface AccessibilityNode {
 
             val result = semanticsNode.scrollIfPossible(direction)
             return if (result != null) {
+                mediator.clearFocusTargetIfNeeded(key)
                 mediator.notifyScrollCompleted(
                     scrollResult = result,
                     delay = approximateScrollAnimationDuration,
