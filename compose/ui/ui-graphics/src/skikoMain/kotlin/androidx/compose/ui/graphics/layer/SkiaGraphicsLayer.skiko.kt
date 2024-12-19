@@ -16,10 +16,8 @@
 
 package androidx.compose.ui.graphics.layer
 
-import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -56,13 +54,17 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import kotlin.math.min
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
 import org.jetbrains.skia.RTreeFactory
+import org.jetbrains.skia.Rect as SkRect
+import org.jetbrains.skia.ShadowUtils
 
 actual class GraphicsLayer internal constructor(
     private val snapshotObserver: SnapshotStateObserver,
+    private val containerSize: () -> IntSize,
     measureDrawBounds: Boolean,
 ) {
     private val pictureDrawScope = CanvasDrawScope()
@@ -515,21 +517,22 @@ actual class GraphicsLayer internal constructor(
             else -> return
         }
 
-        val zParams = Point3(0f, 0f, shadowElevation)
+        val translationZ = 0f
+        val zParams = Point3(0f, 0f, shadowElevation + translationZ)
+        val lightPos = getLightCenter(containerSize())
+        val ambientColor = ambientShadowColor.copy(alpha = AMBIENT_SHADOW_ALPHA * alpha)
+        val spotColor = spotShadowColor.copy(alpha = SPOT_SHADOW_ALPHA * alpha)
 
-        val lightPos = Point3(0f, -300.dp.toPx(), 600.dp.toPx())
-        val lightRad = 800.dp.toPx()
-
-        val ambientAlpha = 0.039f * alpha
-        val spotAlpha = 0.19f * alpha
-        val ambientColor = ambientShadowColor.copy(alpha = ambientAlpha)
-        val spotColor = spotShadowColor.copy(alpha = spotAlpha)
-
-        org.jetbrains.skia.ShadowUtils.drawShadow(
-            canvas.nativeCanvas, path.asSkiaPath(), zParams, lightPos,
-            lightRad,
-            ambientColor.toArgb(),
-            spotColor.toArgb(), alpha < 1f, false
+        ShadowUtils.drawShadow(
+            canvas = canvas.nativeCanvas,
+            path = path.asSkiaPath(),
+            zPlaneParams = zParams,
+            lightPos = lightPos,
+            lightRadius = LIGHT_RADIUS.toPx(),
+            ambientColor = ambientColor.toArgb(),
+            spotColor = spotColor.toArgb(),
+            transparentOccluder = alpha < 1f,
+            geometricOnly = false
         )
     }
 
@@ -554,3 +557,24 @@ private val PICTURE_BOUNDS = SkRect.makeLTRB(
     r = PICTURE_MAX_VALUE,
     b = PICTURE_MAX_VALUE
 )
+
+
+// Adoption of android.view.ThreadedRenderer.setLightCenter
+private fun Density.getLightCenter(containerSize: IntSize): Point3 {
+    val lightX = containerSize.width / 2f
+    val lightY = LIGHT_Y.toPx()
+    // To prevent shadow distortion on larger screens, scale the z position of the light source
+    // relative to the smallest screen dimension.
+    val zRatio = min(containerSize.width, containerSize.height).toFloat() / 450.dp.toPx()
+    val zWeightedAdjustment = (zRatio + 2) / 3f
+    val lightZ = LIGHT_Z.toPx() * zWeightedAdjustment
+
+    return Point3(lightX,lightY, lightZ)
+}
+
+// Values from core/res/res/values/dimens.xml
+private val LIGHT_Y = 0.dp
+private val LIGHT_Z = 500.dp
+private val LIGHT_RADIUS = 800.dp
+private const val AMBIENT_SHADOW_ALPHA = 0.039f
+private const val SPOT_SHADOW_ALPHA = 0.19f

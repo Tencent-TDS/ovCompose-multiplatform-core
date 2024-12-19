@@ -19,9 +19,11 @@ package androidx.compose.ui.graphics
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.unit.IntSize
 
 @InternalComposeUiApi
 class SkiaGraphicsContext(
+    var containerSize: () -> IntSize,
     private val measureDrawBounds: Boolean,
 ) : GraphicsContext {
     private val snapshotObserver = SnapshotStateObserver { command ->
@@ -37,9 +39,11 @@ class SkiaGraphicsContext(
         snapshotObserver.clear()
     }
 
-    override fun createGraphicsLayer(): GraphicsLayer {
-        return GraphicsLayer(snapshotObserver, measureDrawBounds)
-    }
+    override fun createGraphicsLayer() = GraphicsLayer(
+        snapshotObserver = snapshotObserver,
+        containerSize = containerSize,
+        measureDrawBounds = measureDrawBounds
+    )
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
         layer.release()

@@ -127,6 +127,7 @@ internal class RootNodeOwner(
     private val rootSemanticsNode = EmptySemanticsModifier()
     private val snapshotObserver = snapshotInvalidationTracker.snapshotObserver()
     private val graphicsContext = SkiaGraphicsContext(
+        containerSize = { platformContext.windowInfo.containerSize },
         measureDrawBounds = platformContext.measureDrawLayerBounds,
     )
 
