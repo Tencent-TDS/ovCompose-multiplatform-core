@@ -9,7 +9,7 @@ private external interface WeakMap {
     fun get(key: JsAny): Int?
 }
 
-private var weakMap: WeakMap = js("new WeakMap()")
+private val weakMap: WeakMap = js("new WeakMap()")
 @NoLiveLiterals
 private fun memoizeIdentityHashCode(instance: JsAny): Int {
     val value = nextHash++
