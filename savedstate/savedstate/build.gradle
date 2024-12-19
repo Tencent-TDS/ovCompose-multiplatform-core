@@ -6,16 +6,14 @@
  * modifying its settings.
  */
 
-
-import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     alias(libs.plugins.kotlinSerialization)
+    id("JetbrainsAndroidXPlugin")
 }
 
 androidXMultiplatform {
@@ -24,10 +22,12 @@ androidXMultiplatform {
     ios()
     linux()
     mac()
+    js()
+    wasm()
 
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
+    //kotlin {
+    //    explicitApi = ExplicitApiMode.Strict
+    //}
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -35,7 +35,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.0")
+                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
                 api(projectOrArtifact(":lifecycle:lifecycle-common"))
                 api(libs.kotlinSerializationCore)
             }
@@ -65,7 +65,7 @@ androidXMultiplatform {
             dependencies {
                 api("androidx.annotation:annotation:1.8.1")
                 implementation("androidx.core:core-ktx:1.13.1")
-                implementation(projectOrArtifact(":core:core-viewtree"))
+                implementation("androidx.core:core-viewtree:1.0.0-alpha01")
                 api(libs.kotlinStdlib)
             }
         }
@@ -108,12 +108,10 @@ androidXMultiplatform {
         }
 
         nativeMain {
-            dependsOn(commonMain)
             dependsOn(nonAndroidMain)
         }
 
         nativeTest {
-            dependsOn(commonTest)
             dependsOn(nonAndroidTest)
         }
 
@@ -133,11 +131,19 @@ androidXMultiplatform {
             dependsOn(nativeTest)
         }
 
+        webMain {
+            dependsOn(nonAndroidMain)
+        }
+
+        webTest {
+            dependsOn(nonAndroidTest)
+        }
+
         targets.configureEach { target ->
             if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
-                    if (konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.OSX || konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.IOS) {
+                    if (konanTargetFamily.appleFamily) {
                         dependsOn(darwinMain)
                     } else if (konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.LINUX) {
                         dependsOn(linuxMain)
@@ -147,7 +153,7 @@ androidXMultiplatform {
                 }
                 target.compilations["test"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
-                    if (konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.OSX || konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.IOS) {
+                    if (konanTargetFamily.appleFamily) {
                         dependsOn(darwinTest)
                     } else if (konanTargetFamily == org.jetbrains.kotlin.konan.target.Family.LINUX) {
                         dependsOn(linuxTest)
@@ -155,9 +161,23 @@ androidXMultiplatform {
                         throw new GradleException("unknown native target ${target}")
                     }
                 }
+            } else if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.js ||
+                    target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.wasm) {
+                target.compilations["main"].defaultSourceSet.dependsOn(webMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(webTest)
             }
         }
     }
+}
+
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
 }
 
 android {
@@ -171,10 +191,10 @@ android {
 androidx {
     name = "Saved State"
     type = LibraryType.PUBLISHED_LIBRARY
-    samples(project(":savedstate:savedstate-samples"))
+    //samples(project(":savedstate:savedstate-samples"))
     inceptionYear = "2018"
     description = "Android Lifecycle Saved State"
     legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
+    //kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
