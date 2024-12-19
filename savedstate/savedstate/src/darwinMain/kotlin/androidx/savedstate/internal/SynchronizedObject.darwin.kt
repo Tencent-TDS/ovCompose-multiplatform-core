@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.savedstate
+package androidx.savedstate.internal
 
-import androidx.annotation.MainThread
-
-@MainThread
-internal actual fun platformPerformAttach(owner: SavedStateRegistryOwner) {
-    // Nothing
-}
+internal actual val PTHREAD_MUTEX_RECURSIVE: Int = platform.posix.PTHREAD_MUTEX_RECURSIVE
