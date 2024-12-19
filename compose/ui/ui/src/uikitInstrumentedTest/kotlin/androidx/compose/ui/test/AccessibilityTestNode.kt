@@ -247,9 +247,9 @@ data class AccessibilityTestNode(
  * Removes all element that are not accessibility elements or does not work as elements containers.
  */
 internal fun AccessibilityTestNode.normalized(): AccessibilityTestNode? {
-    val normalizedChildren = children?.flatMap {
-        it.normalized()?.let {
-            if (it.hasAccessibilityComponents) {
+    val normalizedChildren = children?.flatMap { child ->
+        child.normalized()?.let {
+            if (it.hasAccessibilityComponents || (it.children?.count() ?: 0) > 1) {
                 listOf(it)
             } else {
                 it.children

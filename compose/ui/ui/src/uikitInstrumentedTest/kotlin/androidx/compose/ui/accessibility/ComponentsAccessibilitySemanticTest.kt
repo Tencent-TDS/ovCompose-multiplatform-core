@@ -90,9 +90,15 @@ class ComponentsAccessibilitySemanticTest {
 
         assertAccessibilityTree {
             node {
-                isAccessibilityElement = true
-                label = "Content"
-                traits(UIAccessibilityTraitButton)
+                node {
+                    isAccessibilityElement = true
+                    label = "Content"
+                    traits(UIAccessibilityTraitButton)
+                }
+                node {
+                    isAccessibilityElement = false
+                    label = "Content"
+                }
             }
             node {
                 isAccessibilityElement = true
@@ -679,6 +685,39 @@ class ComponentsAccessibilitySemanticTest {
                     label = "Enabled With Tag"
                     isAccessibilityElement = true
                 }
+            }
+        }
+    }
+
+    @Test
+    fun testChildrenOfCollapsedNode() = runUIKitInstrumentedTest {
+        setContentWithAccessibilityEnabled {
+            Column {
+                Row(modifier = Modifier.testTag("row").clickable {}) {
+                    Text("Foo", modifier = Modifier.testTag("row_title"))
+                    Text("Bar", modifier = Modifier.testTag("row_subtitle"))
+                }
+            }
+        }
+
+        assertAccessibilityTree {
+            node {
+                label = "Foo\nBar"
+                identifier = "row"
+                isAccessibilityElement = true
+                traits(UIAccessibilityTraitButton)
+            }
+            node {
+                label = "Foo"
+                identifier = "row_title"
+                isAccessibilityElement = false
+                traits(UIAccessibilityTraitStaticText)
+            }
+            node {
+                label = "Bar"
+                identifier = "row_subtitle"
+                isAccessibilityElement = false
+                traits(UIAccessibilityTraitStaticText)
             }
         }
     }

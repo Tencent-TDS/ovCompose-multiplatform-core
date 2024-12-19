@@ -68,7 +68,6 @@ import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraits
-import platform.UIKit.UITextInputProtocol
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityElementAtIndex
@@ -133,9 +132,10 @@ private sealed interface AccessibilityNode {
      */
     class Semantics(
         private val semanticsNode: SemanticsNode,
-        private val mediator: AccessibilityMediator
+        private val mediator: AccessibilityMediator,
+        private val ignoreSemanticChildren: Boolean = false
     ): AccessibilityNode {
-        private val cachedConfig = semanticsNode.config
+        private val cachedConfig = semanticsNode.copyWithMergingEnabled().config
 
         override val key: AccessibilityElementKey
             get() = semanticsNode.semanticsKey
@@ -147,7 +147,11 @@ private sealed interface AccessibilityNode {
             get() = mediator.convertToAppWindowCGRect(semanticsNode.boundsInWindow)
 
         override val accessibilityInteropView: InteropWrappingView?
-            get() = cachedConfig.getOrNull(NativeAccessibilityViewSemanticsKey)
+            get() = if (ignoreSemanticChildren) {
+                null
+            } else {
+                cachedConfig.getOrNull(NativeAccessibilityViewSemanticsKey)
+            }
 
         override val accessibilityLabel: String?
             get() = cachedConfig.accessibilityLabel()
@@ -479,6 +483,7 @@ private class AccessibilityElement(
         val indent = " ".repeat(depth * 2)
         logger.apply {
             log("${indent}${key}")
+            log("$indent  isAccessibilityElement: ${isAccessibilityElement()}")
             log("$indent  containmentChain: ${debugContainmentChain()}")
             log("$indent  accessibilityLabel: ${accessibilityLabel()}")
             log("$indent  accessibilityValue: ${accessibilityValue()}")
@@ -769,16 +774,20 @@ internal class AccessibilityMediator(
                 // To align behavior, flatting the node with all its children and arranging them
                 // inside the synthetic container node.
                 val containerElement = createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(node, mediator = this),
+                    node = AccessibilityNode.Semantics(
+                        semanticsNode = node,
+                        mediator = this,
+                        ignoreSemanticChildren = true
+                    ),
                     children = emptyList()
                 )
                 createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Container(node, mediator = this),
+                    node = AccessibilityNode.Container(containerNode = node, mediator = this),
                     children = listOf(containerElement) + children
                 )
             } else {
                 createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(node, mediator = this),
+                    node = AccessibilityNode.Semantics(semanticsNode = node, mediator = this),
                     children = children
                 )
             }
@@ -816,7 +825,7 @@ internal class AccessibilityMediator(
      * Performs a complete sync of the accessibility tree with the current semantics tree.
      */
     private fun completeSync(): NodesSyncResult {
-        val rootSemanticsNode = owner.rootSemanticsNode
+        val rootSemanticsNode = owner.unmergedRootSemanticsNode
 
         check(!view.isAccessibilityElement) {
             "Root view must not be an accessibility element"
