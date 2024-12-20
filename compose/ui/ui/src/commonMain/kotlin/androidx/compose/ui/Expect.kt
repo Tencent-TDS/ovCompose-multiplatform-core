@@ -42,3 +42,5 @@ internal expect fun currentTimeMillis(): Long
 internal expect fun postDelayed(delayMillis: Long, block: () -> Unit): Any
 
 internal expect fun removePost(token: Any?)
+
+internal expect fun getCurrentThreadId(): Long
