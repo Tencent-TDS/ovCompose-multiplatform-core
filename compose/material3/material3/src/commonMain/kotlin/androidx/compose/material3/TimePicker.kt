@@ -1984,16 +1984,8 @@ private enum class LayoutId {
     InnerCircle,
 }
 
-// TODO(https://github.com/JetBrains/compose-multiplatform/issues/3373) fix expect composable getter
-@OptIn(ExperimentalMaterial3Api::class)
-internal val defaultTimePickerLayoutType: TimePickerLayoutType
-    @Composable
-    @ReadOnlyComposable get() = defaultTimePickerLayoutType()
-
-@Composable
-@ReadOnlyComposable
-@OptIn(ExperimentalMaterial3Api::class)
-internal expect fun defaultTimePickerLayoutType() : TimePickerLayoutType
+internal expect val defaultTimePickerLayoutType: TimePickerLayoutType
+    @Composable @ReadOnlyComposable get
 
 private const val FullCircle: Float = (PI * 2).toFloat()
 private const val HalfCircle: Float = FullCircle / 2f
