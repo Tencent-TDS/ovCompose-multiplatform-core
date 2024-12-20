@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
@@ -43,7 +44,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import org.jetbrains.skia.Point3
 
 internal class GraphicsLayerOwnerLayer(
     private var graphicsLayer: GraphicsLayer,
@@ -334,29 +334,34 @@ internal class GraphicsLayerOwnerLayer(
         }
     }
 
-    private fun updateMatrix() = with(graphicsLayer) {
-        val pivotX: Float
-        val pivotY: Float
-        if (pivotOffset.isUnspecified) {
-            pivotX = size.width / 2f
-            pivotY = size.height / 2f
-        } else {
-            pivotX = pivotOffset.x
-            pivotY = pivotOffset.y
+    private fun updateMatrix() {
+        if (!isMatrixDirty) return
+        with(graphicsLayer) {
+            val pivotX: Float
+            val pivotY: Float
+            if (pivotOffset.isUnspecified) {
+                pivotX = size.width / 2f
+                pivotY = size.height / 2f
+            } else {
+                pivotX = pivotOffset.x
+                pivotY = pivotOffset.y
+            }
+            prepareTransformationMatrix(
+                matrix = matrixCache,
+                pivotX = pivotX,
+                pivotY = pivotY,
+                translationX = translationX,
+                translationY = translationY,
+                rotationX = rotationX,
+                rotationY = rotationY,
+                rotationZ = rotationZ,
+                scaleX = scaleX,
+                scaleY = scaleY,
+                cameraDistance = cameraDistance
+            )
         }
-        prepareTransformationMatrix(
-            matrix = matrixCache,
-            pivotX = pivotX,
-            pivotY = pivotY,
-            translationX = translationX,
-            translationY = translationY,
-            rotationX = rotationX,
-            rotationY = rotationY,
-            rotationZ = rotationZ,
-            scaleX = scaleX,
-            scaleY = scaleY,
-            cameraDistance = cameraDistance
-        )
+        isMatrixDirty = false
+        isIdentity = matrixCache.isIdentity()
     }
 }
 
