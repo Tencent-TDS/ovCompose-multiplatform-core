@@ -277,7 +277,7 @@ internal class TextFieldSelectionState(
         return TextFieldHandleState(
             visible = true,
             position = if (includePosition) getCursorRect().bottomCenter else Offset.Unspecified,
-            lineHeight = getCursorLineHeight(),
+            lineHeight = lineHeight,
             direction = ResolvedTextDirection.Ltr,
             handlesCrossed = false
         )
@@ -1209,30 +1209,10 @@ internal class TextFieldSelectionState(
         return TextFieldHandleState(
             visible = true,
             position = coercedPosition,
-            lineHeight = getHandleLineHeight(isStartHandle),
+            lineHeight = layoutResult.getLineHeight(handleOffset),
             direction = direction,
             handlesCrossed = handlesCrossed
         )
-    }
-
-    private fun getHandleLineHeight(isStartHandle: Boolean): Float {
-        val layoutResult = textLayoutState.layoutResult ?: return 0f
-        val selection = textFieldState.visualText.selection
-        val offset = if (isStartHandle) {
-            selection.start
-        } else {
-            selection.end
-        }
-        val line = layoutResult.getLineForOffset(offset)
-        return layoutResult.multiParagraph.getLineHeight(line)
-    }
-
-    private fun getCursorLineHeight(): Float {
-        val layoutResult = textLayoutState.layoutResult ?: return 0f
-        val selection = textFieldState.visualText.selection
-        if (!selection.collapsed) return 0f
-        val line = layoutResult.getLineForOffset(selection.start)
-        return layoutResult.multiParagraph.getLineHeight(line)
     }
 
     private fun getHandlePosition(isStartHandle: Boolean): Offset {
