@@ -65,4 +65,3 @@ internal actual abstract class PlatformOptimizedCancellationException actual con
 
 }
 
-internal actual fun getCurrentThreadId(): Long = Thread.currentThread().id
