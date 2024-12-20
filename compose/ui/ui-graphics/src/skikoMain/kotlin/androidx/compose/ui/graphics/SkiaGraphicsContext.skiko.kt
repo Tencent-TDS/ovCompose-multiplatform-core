@@ -26,7 +26,7 @@ import org.jetbrains.skia.Point3
 
 @InternalComposeUiApi
 class SkiaGraphicsContext(
-    internal val measureDrawBounds: Boolean,
+    internal val measureDrawBounds: Boolean = false,
 ): GraphicsContext {
     internal val lightGeometry = LightGeometry()
     internal val lightInfo = LightInfo()
