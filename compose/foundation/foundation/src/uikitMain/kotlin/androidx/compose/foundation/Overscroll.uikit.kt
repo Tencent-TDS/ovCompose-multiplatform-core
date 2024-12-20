@@ -46,27 +46,11 @@ internal actual fun CompositionLocalAccessorScope.defaultOverscrollFactory(): Ov
     return CupertinoOverscrollEffectFactory(density, layoutDirection)
 }
 
-private class CupertinoOverscrollEffectFactory(
+private data class CupertinoOverscrollEffectFactory(
     private val density: Density,
     private val layoutDirection: LayoutDirection
 ) : OverscrollFactory {
     override fun createOverscrollEffect(): OverscrollEffect {
         return CupertinoOverscrollEffect(density.density, layoutDirection, applyClip = false)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is CupertinoOverscrollEffectFactory) return false
-
-        if (density != other.density) return false
-        if (layoutDirection != other.layoutDirection) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = density.hashCode()
-        result = 31 * result + layoutDirection.hashCode()
-        return result
     }
 }
