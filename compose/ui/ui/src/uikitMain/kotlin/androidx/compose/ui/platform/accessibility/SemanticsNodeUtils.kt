@@ -152,6 +152,7 @@ internal data class AccessibilityScrollEventResult(
  * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
  * @param rect to place in the center of scrollable area
  * @param safeAreaRectInWindow safe area rect to reduce focusable borders
+ * @return true if the scroll was successful, otherwise returns false
  */
 internal fun SemanticsNode.scrollToCenterRectIfNeeded(
     rect: Rect,
