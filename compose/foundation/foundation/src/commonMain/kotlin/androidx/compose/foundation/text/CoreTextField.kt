@@ -24,6 +24,7 @@ import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.overscroll
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.handwriting.stylusHandwriting
@@ -701,6 +702,7 @@ internal fun CoreTextField(
                     // TextFields
                     .heightIn(min = state.minHeightForSingleLineField)
                     .heightInLines(textStyle = textStyle, minLines = minLines, maxLines = maxLines)
+                    .overscroll(overscrollEffect)
                     .textFieldScroll(
                         scrollerPosition = scrollerPosition,
                         textFieldValue = value,

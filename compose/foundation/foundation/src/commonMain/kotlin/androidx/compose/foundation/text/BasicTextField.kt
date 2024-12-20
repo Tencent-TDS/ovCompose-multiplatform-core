@@ -27,6 +27,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.overscroll
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.handwriting.stylusHandwriting
@@ -313,6 +314,8 @@ internal fun BasicTextField(
 
     DisposableEffect(textFieldSelectionState) { onDispose { textFieldSelectionState.dispose() } }
 
+    val overscrollEffect = rememberTextFieldOverscrollEffect()
+
     val handwritingEnabled =
         !isPassword &&
             keyboardOptions.keyboardType != KeyboardType.Password &&
@@ -373,6 +376,7 @@ internal fun BasicTextField(
                         reverseScrolling = false
                     ),
                 interactionSource = interactionSource,
+                overscrollEffect = overscrollEffect
             )
             .pointerHoverIcon(textPointerIcon)
 
@@ -401,6 +405,7 @@ internal fun BasicTextField(
                             )
                             .textFieldMinSize(textStyle)
                             .clipToBounds()
+                            .overscroll(overscrollEffect)
                             .then(
                                 TextFieldCoreModifier(
                                     isFocused = isFocused && isWindowFocused,

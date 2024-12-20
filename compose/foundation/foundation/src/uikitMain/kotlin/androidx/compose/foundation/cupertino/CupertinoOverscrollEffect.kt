@@ -22,7 +22,6 @@ import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.OverscrollEffect
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +30,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
@@ -130,14 +136,11 @@ class CupertinoOverscrollEffect(
             // this effect is considered to be in progress
             visibleOverscrollOffset.toOffset().getDistance() > 0.5f
 
-    override val effectModifier = Modifier
-        .onPlaced {
-            scrollSize = it.size.toSize()
-        }
-        .clipIfNeeded()
-        .offset {
-            visibleOverscrollOffset
-        }
+    override val node: DelegatableNode = CupertinoOverscrollNode(
+        offset = { visibleOverscrollOffset },
+        coordinates = { scrollSize = it.size.toSize() },
+        applyClip = applyClip
+    )
 
     private fun Modifier.clipIfNeeded(): Modifier =
         if (applyClip) {
@@ -148,8 +151,8 @@ class CupertinoOverscrollEffect(
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {
-            NestedScrollSource.Drag -> CupertinoScrollSource.DRAG
-            NestedScrollSource.Fling -> CupertinoScrollSource.FLING
+            NestedScrollSource.UserInput -> CupertinoScrollSource.DRAG
+            NestedScrollSource.SideEffect -> CupertinoScrollSource.FLING
             else -> null
         }
 
@@ -437,6 +440,34 @@ class CupertinoOverscrollEffect(
 
     companion object Companion {
         private const val RUBBER_BAND_COEFFICIENT = 0.55f
+    }
+}
+
+private class CupertinoOverscrollNode(
+    val offset: Density.() -> IntOffset,
+    val coordinates: (LayoutCoordinates) -> Unit,
+    val applyClip: Boolean
+): LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
+
+    override val shouldAutoInvalidate: Boolean = true
+
+    override fun ContentDrawScope.draw() {
+        if (applyClip) {
+            clipRect { this@draw.drawContentWithOffset() }
+        } else {
+            this@draw.drawContentWithOffset()
+        }
+    }
+
+    private fun ContentDrawScope.drawContentWithOffset() {
+        val offset = offset()
+        translate(left = offset.x.toFloat(), top = offset.y.toFloat()) {
+            this@drawContentWithOffset.drawContent()
+        }
+    }
+
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        coordinates(coordinates)
     }
 }
 
