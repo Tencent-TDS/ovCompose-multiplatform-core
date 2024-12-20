@@ -29,8 +29,9 @@ resetSubFolder() {
 
 resetSubFolder "./buildSrc"
 resetSubFolder "./compose/**/build.gradle"
-resetSubFolder "./lifecycle/**/build.gradle"
-# navigation is merged separately 
+# lifecycle, savedstate and navigation is merged separately
+resetSubFolder "./lifecycle"
+resetSubFolder "./savedstate"
 resetSubFolder "./navigation"
 resetSubFolder "./.github"
 resetSubFolder "./.idea"

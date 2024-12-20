@@ -38,11 +38,14 @@ import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -53,9 +56,13 @@ import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRect
-import platform.CoreGraphics.CGRectContainsPoint
+import platform.CoreGraphics.CGRectGetMaxX
+import platform.CoreGraphics.CGRectGetMaxY
 import platform.CoreGraphics.CGRectGetMidX
 import platform.CoreGraphics.CGRectGetMidY
+import platform.CoreGraphics.CGRectGetMinX
+import platform.CoreGraphics.CGRectGetMinY
+import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
@@ -95,7 +102,7 @@ private enum class SemanticsTreeInvalidationKind {
     BOUNDS
 }
 
-private sealed interface AccessibilityElementKey {
+internal sealed interface AccessibilityElementKey {
     val id: Int
 
     data class Semantics(override val id: Int) : AccessibilityElementKey
@@ -122,6 +129,7 @@ private sealed interface AccessibilityNode {
     fun accessibilityIncrement() {}
     fun accessibilityDecrement() {}
     fun accessibilityElementDidBecomeFocused() {}
+    fun accessibilityElementDidLoseFocus() {}
     fun accessibilityScrollToVisible(): Boolean = false
     fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean = false
     fun accessibilityPerformEscape(): Boolean = false
@@ -209,6 +217,11 @@ private sealed interface AccessibilityNode {
                 log("Focused on:")
                 log(cachedConfig)
             }
+            mediator.setFocusTarget(key)
+        }
+
+        override fun accessibilityElementDidLoseFocus() {
+            mediator.clearFocusTargetIfNeeded(key)
         }
 
         override fun accessibilityScrollToVisible(): Boolean {
@@ -227,6 +240,7 @@ private sealed interface AccessibilityNode {
 
             val result = semanticsNode.scrollIfPossible(direction)
             return if (result != null) {
+                mediator.clearFocusTargetIfNeeded(key)
                 mediator.notifyScrollCompleted(
                     scrollResult = result,
                     delay = approximateScrollAnimationDuration,
@@ -377,6 +391,18 @@ private class AccessibilityElement(
             node.accessibilityLabel
         }
 
+    override fun accessibilityElementDidBecomeFocused() {
+        if (!isAlive) {
+            return
+        }
+
+        node.accessibilityElementDidBecomeFocused()
+    }
+
+    override fun accessibilityElementDidLoseFocus() {
+        node.accessibilityElementDidLoseFocus()
+    }
+
     override fun accessibilityActivate(): Boolean {
         if (!isAlive) {
             return false
@@ -496,7 +522,8 @@ private class AccessibilityElement(
 }
 
 private class NodesSyncResult(
-    val newElementToFocus: Any?
+    val newElementToFocus: Any?,
+    val isScreenChange: Boolean
 )
 
 /**
@@ -544,6 +571,32 @@ private val accessibilityDebugLogger: AccessibilityDebugLogger? = null
 //     }
 // }
 
+private sealed interface AccessibilityElementFocusMode {
+    val targetElementKey: AccessibilityElementKey?
+
+    /**
+     * Do not change focus. Notifies about significant changes on a screen to let iOS Accessibility
+     * decide about the next focused element.
+     */
+    data object Initial : AccessibilityElementFocusMode {
+        override val targetElementKey: AccessibilityElementKey? = null
+    }
+
+    /**
+     * Do not change focus. Notifies about content changes.
+     */
+    data object None : AccessibilityElementFocusMode {
+        override val targetElementKey: AccessibilityElementKey? = null
+    }
+
+    /**
+     * Keeps focus at the element if present, or notify about significant changes on a screen
+     */
+    data class KeepFocus(val key: AccessibilityElementKey) : AccessibilityElementFocusMode {
+        override val targetElementKey: AccessibilityElementKey = key
+    }
+}
+
 /**
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
@@ -558,15 +611,12 @@ internal class AccessibilityMediator(
     val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     val performEscape: () -> Boolean
 ): NSObject() {
-    /**
-     * Indicates that this mediator was just created and the accessibility focus should be set on the
-     * first eligible element.
-     */
-    private var needsInitialRefocusing = true
 
-    private var inflightScrollsCount = 0
-    private val needsRedundantRefocusingOnSameElement: Boolean
-        get() = inflightScrollsCount > 0
+    private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
+        set(value) {
+            field = value
+            debugLogger?.log("Focus mode: $focusMode")
+        }
 
     /**
      * The kind of invalidation that determines what kind of logic will be executed in the next sync.
@@ -621,7 +671,6 @@ internal class AccessibilityMediator(
         accessibilityDebugLogger?.log("AccessibilityMediator for $view created")
 
         view.accessibilityElements = listOf<NSObject>()
-        var notificationName = UIAccessibilityScreenChangedNotification
         coroutineScope.launch {
             // The main loop that listens for invalidations and performs the tree syncing
             // Will exit on CancellationException from within await on `invalidationChannel.receive()`
@@ -637,7 +686,7 @@ internal class AccessibilityMediator(
                 debugLogger = accessibilityDebugLogger.takeIf { isEnabled }
 
                 if (isEnabled) {
-                    var result: NodesSyncResult
+                    val result: NodesSyncResult
 
                     val time = measureTime {
                         result = sync(invalidationKind)
@@ -645,10 +694,13 @@ internal class AccessibilityMediator(
 
                     debugLogger?.log("AccessibilityMediator.sync took $time")
                     debugLogger?.log("LayoutChanged, newElementToFocus: ${result.newElementToFocus}")
-                    UIAccessibilityPostNotification(notificationName, result.newElementToFocus)
 
-                    // Post screen change notification only once
-                    notificationName = UIAccessibilityLayoutChangedNotification
+                    val notificationName = if (result.isScreenChange) {
+                        UIAccessibilityScreenChangedNotification
+                    } else {
+                        UIAccessibilityLayoutChangedNotification
+                    }
+                    UIAccessibilityPostNotification(notificationName, result.newElementToFocus)
                 } else {
                     if (view.accessibilityElements?.isEmpty() != true) {
                         view.accessibilityElements = listOf<NSObject>()
@@ -676,12 +728,8 @@ internal class AccessibilityMediator(
         focusedNode: SemanticsNode,
         focusedRectInWindow: Rect
     ) {
-        inflightScrollsCount++
-
         coroutineScope.launch {
             delay(delay)
-
-            inflightScrollsCount--
 
             UIAccessibilityPostNotification(
                 UIAccessibilityPageScrolledNotification,
@@ -691,14 +739,14 @@ internal class AccessibilityMediator(
             debugLogger?.log("PageScrolled")
 
             if (accessibilityElementsMap[focusedNode.semanticsKey] == null) {
-                findElementInRect(rect = focusedRectInWindow)?.let {
-                    debugLogger?.log("LayoutChanged, result: $it")
+                val element = findClosestElementToRect(rect = focusedRectInWindow)
+                debugLogger?.log("LayoutChanged, result: $element")
 
-                    UIAccessibilityPostNotification(
-                        UIAccessibilityLayoutChangedNotification,
-                        it
-                    )
+                (element as? AccessibilityElement)?.let {
+                    focusMode = AccessibilityElementFocusMode.KeepFocus(element.key)
                 }
+
+                UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, element)
             }
         }
     }
@@ -817,7 +865,7 @@ internal class AccessibilityMediator(
     private fun sync(invalidationKind: SemanticsTreeInvalidationKind): NodesSyncResult {
         return when (invalidationKind) {
             SemanticsTreeInvalidationKind.COMPLETE -> completeSync()
-            SemanticsTreeInvalidationKind.BOUNDS -> NodesSyncResult(null)
+            SemanticsTreeInvalidationKind.BOUNDS -> updateFocusedElement()
         }
     }
 
@@ -838,69 +886,103 @@ internal class AccessibilityMediator(
             debugTraverse(it, view)
         }
 
-        val focusedElement = UIAccessibilityFocusedElement(null) as? AccessibilityElement
-
-        // TODO: in future the focused element could be the interop UIView that is detached from the
-        //  hierarchy, but still maintains the focus until the GC collects it, or AX services detect
-        //  that it's not reachable anymore through containment chain
-        val isFocusedElementAlive = focusedElement?.isAlive ?: false
-
-        val isFocusedElementDead = !isFocusedElementAlive
-
-        val needsRefocusing = needsInitialRefocusing || isFocusedElementDead
-
-        val newElementToFocus = if (needsRefocusing) {
-            debugLogger?.log("Needs refocusing")
-            val refocusedElement = findFocusableElement(checkNotNull(rootElement))
-
-            if (refocusedElement != null) {
-                needsInitialRefocusing = false
-                debugLogger?.log("Refocusing on $refocusedElement")
-            } else {
-                debugLogger?.log("No focusable element found")
-            }
-
-            refocusedElement
-        } else {
-            if (needsRedundantRefocusingOnSameElement) {
-                focusedElement?.key.let {
-                    accessibilityElementsMap[it]
-                }
-            } else {
-                null // No need to refocus to anything
-            }
-        }
-
-        return NodesSyncResult(newElementToFocus)
+        return updateFocusedElement()
     }
 
-    private fun findElementInRect(rect: Rect): Any? {
+    private fun updateFocusedElement(): NodesSyncResult {
+        return when (val mode = focusMode) {
+            AccessibilityElementFocusMode.Initial -> {
+                focusMode = AccessibilityElementFocusMode.None
+                NodesSyncResult(newElementToFocus = null, isScreenChange = true)
+            }
+
+            AccessibilityElementFocusMode.None -> {
+                NodesSyncResult(newElementToFocus = null, isScreenChange = false)
+            }
+
+            is AccessibilityElementFocusMode.KeepFocus -> {
+                val focusedElement = UIAccessibilityFocusedElement(null)
+                val element = accessibilityElementsMap[mode.key]
+                if (element != null && !CGRectIsEmpty(element.accessibilityFrame())) {
+                    NodesSyncResult(element.takeIf { it !== focusedElement }, isScreenChange = false)
+                } else if (focusedElement is AccessibilityElement) {
+                    val newFocusedElement = rootElement?.let { findFocusableElement(it) }
+
+                    focusMode = if (newFocusedElement is AccessibilityElement) {
+                        AccessibilityElementFocusMode.KeepFocus(newFocusedElement.key)
+                    } else {
+                        AccessibilityElementFocusMode.None
+                    }
+
+                    NodesSyncResult(newFocusedElement, isScreenChange = true)
+                } else {
+                    NodesSyncResult(null, isScreenChange = false)
+                }
+            }
+        }
+    }
+
+    private fun findClosestElementToRect(rect: Rect): Any? {
         val windowRect = convertToAppWindowCGRect(rect)
         val centerPoint = CGPointMake(
             x = CGRectGetMidX(windowRect),
             y = CGRectGetMidY(windowRect)
         )
-        return rootElement?.let {
+
+        var closestElement: Pair<Double, NSObject>? = null
+
+        fun findElement(element: NSObject, point: CValue<CGPoint>): Any? {
+            if (element.isAccessibilityElement) {
+                val distanceSQ = minimalDistanceSQ(point, element.accessibilityFrame)
+                if (distanceSQ == 0.0) {
+                    return element
+                } else if (closestElement == null || distanceSQ < closestElement!!.first) {
+                    closestElement = distanceSQ to element
+                }
+            }
+
+            repeat(element.accessibilityElementCount().toInt()) { index ->
+                element.accessibilityElementAtIndex(index.toLong())?.let { element ->
+                    findElement(element as NSObject, point)?.let {
+                        return it
+                    }
+                }
+            }
+
+            return null
+        }
+
+        rootElement?.let {
             @Suppress("CAST_NEVER_SUCCEEDS")
             findElement(it as NSObject, centerPoint)
         }
+
+        return closestElement?.second
     }
 
-    private fun findElement(node: NSObject, point: CValue<CGPoint>): Any? {
-        val containsPoint = CGRectContainsPoint(node.accessibilityFrame, point)
-        if (containsPoint && node.isAccessibilityElement) {
-            return this
-        }
+    /**
+     * Calculates the squared minimal Euclidean distance between a point and the nearest point on
+     * the boundary of a rectangle.
+     */
+    private fun minimalDistanceSQ(point: CValue<CGPoint>, rect: CValue<CGRect>): Double {
+        // Clamp the point to the nearest point on the rectangle
+        val clampedX = min(max(point.useContents { x }, CGRectGetMinX(rect)), CGRectGetMaxX(rect))
+        val clampedY = min(max(point.useContents { y }, CGRectGetMinY(rect)), CGRectGetMaxY(rect))
 
-        repeat(node.accessibilityElementCount().toInt()) { index ->
-            node.accessibilityElementAtIndex(index.toLong())?.let { element ->
-                findElement(element as NSObject, point)?.let {
-                    return it
-                }
-            }
-        }
+        // Return the Euclidean distance between the `point` and the nearest point on the edge
+        val dx = clampedX - point.useContents { x }
+        val dy = clampedY - point.useContents { y }
+        return dx * dx + dy * dy
+    }
 
-        return this.takeIf { containsPoint }
+    fun setFocusTarget(key: AccessibilityElementKey) {
+        focusMode = AccessibilityElementFocusMode.KeepFocus(key)
+    }
+
+    fun clearFocusTargetIfNeeded(key: AccessibilityElementKey) {
+        if (focusMode.targetElementKey == key) {
+            focusMode = AccessibilityElementFocusMode.None
+        }
     }
 
     private fun findFocusableElement(node: Any): Any? {

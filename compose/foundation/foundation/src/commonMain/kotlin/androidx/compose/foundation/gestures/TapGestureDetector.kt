@@ -322,16 +322,26 @@ suspend fun AwaitPointerEventScope.awaitFirstDown(
     var event: PointerEvent
     do {
         event = awaitPointerEvent(pass)
-    } while (!event.isPrimaryChangedDown(requireUnconsumed))
+    } while (!event.isChangedToDown(requireUnconsumed))
     return event.changes[0]
 }
 
-private fun PointerEvent.isPrimaryChangedDown(requireUnconsumed: Boolean): Boolean {
-    val primaryButtonCausesDown = changes.fastAll { it.type == PointerType.Mouse }
-    val changedToDown = changes.fastAll {
+/**
+ * Whether [AwaitPointerEventScope.awaitFirstDown], for mouse events, responds only to the primary
+ * mouse button being pressed. The behavior currently differs between Android and Desktop, and
+ * eventually this needs to be aligned (b/384562201).
+ */
+internal expect fun firstDownRefersToPrimaryMouseButtonOnly(): Boolean
+
+private fun PointerEvent.isChangedToDown(requireUnconsumed: Boolean): Boolean {
+    val onlyPrimaryButtonCausesDown =
+        firstDownRefersToPrimaryMouseButtonOnly() &&
+            changes.fastAll { it.type == PointerType.Mouse }
+    if (onlyPrimaryButtonCausesDown && !buttons.isPrimaryPressed) return false
+
+    return changes.fastAll {
         if (requireUnconsumed) it.changedToDown() else it.changedToDownIgnoreConsumed()
     }
-    return changedToDown && (buttons.isPrimaryPressed || !primaryButtonCausesDown)
 }
 
 @Deprecated(

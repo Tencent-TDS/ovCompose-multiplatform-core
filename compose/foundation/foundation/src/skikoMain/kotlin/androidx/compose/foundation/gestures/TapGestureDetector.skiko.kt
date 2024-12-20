@@ -20,3 +20,5 @@ import androidx.compose.ui.input.pointer.PointerEvent
 
 actual val PointerEvent.isDeepPress: Boolean
     get() = false // TODO: Support PointerEvent.isDeepPress
+
+internal actual fun firstDownRefersToPrimaryMouseButtonOnly(): Boolean = true
