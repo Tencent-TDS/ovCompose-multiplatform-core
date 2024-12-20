@@ -150,58 +150,58 @@ internal data class AccessibilityScrollEventResult(
 
 /**
  * Try to perform a scroll on any ancestor of this element if the element is not fully visible.
+ * @param rect to place in the center of scrollable area
+ * @param safeAreaRectInWindow safe area rect to reduce focusable borders
+ * @return true if the scroll was successful, otherwise returns false
  */
-internal fun SemanticsNode.scrollToIfPossible() {
-    val scrollableAncestor = scrollableByAncestor ?: return
+internal fun SemanticsNode.scrollToCenterRectIfNeeded(
+    rect: Rect,
+    safeAreaRectInWindow: Rect
+): Boolean {
+    val scrollableAncestor = scrollableByAncestor ?: return false
     val scrollableAncestorRect = scrollableAncestor.boundsInWindow
-
-    val unclippedRect = unclippedBoundsInWindow
+    val scrollableViewportRect = scrollableAncestorRect.intersect(safeAreaRectInWindow)
 
     fun Float.invertIfNeeded() = if (isRTL) -this else this
-    // TODO: consider safe areas?
-    if (unclippedRect.top < scrollableAncestorRect.top) {
+
+    val dy = if (rect.top < scrollableViewportRect.top) {
         // The element is above the screen, scroll up
-        parent?.scrollByIfPossible(
-            0f,
-            unclippedRect.top - scrollableAncestorRect.top -
-                (scrollableAncestor.size.height - unclippedRect.size.height) / 2
-        )
-    } else if (unclippedRect.bottom > scrollableAncestorRect.bottom) {
+        rect.top - scrollableViewportRect.top -
+            (scrollableAncestor.size.height - rect.size.height) / 2
+    } else if (rect.bottom > scrollableViewportRect.bottom) {
         // The element is below the screen, scroll down
-        parent?.scrollByIfPossible(
-            0f,
-            unclippedRect.bottom - scrollableAncestorRect.bottom +
-                (scrollableAncestor.size.height - unclippedRect.size.height) / 2
-        )
-    } else if (unclippedRect.left < scrollableAncestorRect.left) {
-        // The element is to the left of the screen, scroll left
-        parent?.scrollByIfPossible(
-            (unclippedRect.left - scrollableAncestorRect.left -
-                (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
-            0f
-        )
-    } else if (unclippedRect.right > scrollableAncestorRect.right) {
-        // The element is to the right of the screen, scroll right
-        parent?.scrollByIfPossible(
-            (unclippedRect.right - scrollableAncestorRect.right +
-                (scrollableAncestor.size.width - unclippedRect.size.width) / 2).invertIfNeeded(),
-            0f
-        )
+        rect.bottom - scrollableViewportRect.bottom +
+            (scrollableAncestor.size.height - rect.size.height) / 2
+    } else {
+        0f
     }
+
+    val dx = if (rect.left < scrollableViewportRect.left) {
+        // The element is to the left of the screen, scroll left
+        (rect.left - scrollableViewportRect.left -
+            (scrollableAncestor.size.width - rect.size.width) / 2).invertIfNeeded()
+    } else if (rect.right > scrollableViewportRect.right) {
+        // The element is to the right of the screen, scroll right
+        (rect.right - scrollableViewportRect.right +
+            (scrollableAncestor.size.width - rect.size.width) / 2).invertIfNeeded()
+    } else {
+        0f
+    }
+    return scrollByIfPossible(dx, dy)
 }
 
-private fun SemanticsNode.scrollByIfPossible(dx: Float, dy: Float) {
+private fun SemanticsNode.scrollByIfPossible(dx: Float, dy: Float): Boolean {
     // if it has scrollBy action, invoke it, otherwise try to scroll the parent
     val action = config.getOrNull(SemanticsActions.ScrollBy)?.action
 
-    if (action != null) {
+    return if (action != null) {
         action(dx, dy)
     } else {
-        parent?.scrollByIfPossible(dx, dy)
+        parent?.scrollByIfPossible(dx, dy) ?: false
     }
 }
 
-private val SemanticsNode.unclippedBoundsInWindow: Rect
+internal val SemanticsNode.unclippedBoundsInWindow: Rect
     get() = Rect(positionInWindow, size.toSize())
 
 internal val SemanticsNode.isRTL: Boolean
@@ -239,7 +239,7 @@ private val SemanticsNode.isHiddenFromAccessibility: Boolean
  */
 private val SemanticsNode.scrollableByAncestor: SemanticsNode?
     get() {
-        var current = parent
+        var current: SemanticsNode? = this
 
         while (current != null) {
             if (current.config.getOrNull(SemanticsActions.ScrollBy) != null) {

@@ -64,13 +64,11 @@ import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntSize
-import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toPlatformInsets
 import androidx.compose.ui.unit.toSize
@@ -94,7 +92,6 @@ import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGPoint
-import platform.CoreGraphics.CGRect
 import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIEvent
@@ -102,7 +99,6 @@ import platform.UIKit.UIPress
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
 import platform.UIKit.UIView
-import platform.UIKit.UIWindow
 
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
@@ -114,7 +110,6 @@ import platform.UIKit.UIWindow
 private class SemanticsOwnerListenerImpl(
     private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
-    private val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {
 
@@ -132,7 +127,6 @@ private class SemanticsOwnerListenerImpl(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
-                convertToAppWindowCGRect,
                 performEscape
             ).also {
                 it.isEnabled = isEnabled
@@ -278,11 +272,6 @@ internal class ComposeSceneMediator(
         SemanticsOwnerListenerImpl(
             rootView = view,
             coroutineContext = coroutineContext,
-            convertToAppWindowCGRect = { rect, window ->
-                windowContext.convertWindowRect(rect, window)
-                    .toDpRect(Density(window.screen.scale.toFloat()))
-                    .asCGRect()
-            },
             performEscape = {
                 val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
                 val up = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyUp))
