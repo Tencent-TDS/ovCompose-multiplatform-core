@@ -16,38 +16,31 @@
 
 package androidx.compose.runtime.internal
 
-/**
- * We intentionally use the default `instance.hashCode()` here.
- * The consequence is that the returned values can be more often not unique,
- * but it's not required for correctness (absolute uniqueness can't be guaranteed on any platform).
- * It has good performance comparing with alternatives.
- *
- * For more details have a look:
- * https://kotlinlang.slack.com/archives/G010KHY484C/p1706547846376149
- * Quote: "...we optimize for the case where hash code is unique, but it is not required for correctness"
- *
- * And here: https://jetbrains.slack.com/archives/C047QCXNLTX/p1706536405443729
- */
+import androidx.compose.runtime.NoLiveLiterals
+
+private var nextHash = 1
+
+private external interface WeakMap {
+    fun set(key: JsAny, value: Int)
+    fun get(key: JsAny): Int?
+}
+
+private val weakMap: WeakMap = js("new WeakMap()")
+@NoLiveLiterals
+private fun memoizeIdentityHashCode(instance: JsAny): Int {
+    val value = nextHash++
+
+    weakMap.set(instance.toJsReference(), value)
+
+    return value
+}
+
+
 internal actual fun identityHashCode(instance: Any?): Int {
     if (instance == null) {
         return 0
     }
-    return instance.hashCode()
-}
 
-@JsFun("""
-(() => {
-const memoizeIdentityHashCodeMap = new WeakMap();
-let nextHash = 1;
-return (obj) => {
-    const res = memoizeIdentityHashCodeMap.get(obj);
-    if (res === undefined) {
-        const value = nextHash++;
-        memoizeIdentityHashCodeMap.set(obj, value);
-        return value;
-    }
-    return res;
+    val jsRef = instance.toJsReference()
+    return weakMap.get(jsRef) ?: memoizeIdentityHashCode(jsRef)
 }
-})()"""
-)
-private external fun getIdentityHashCode(instance: JsAny): Int
