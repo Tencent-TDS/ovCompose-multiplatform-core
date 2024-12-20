@@ -28,13 +28,19 @@ import androidx.compose.ui.platform.accessibility.canBeAccessibilityElement
 import androidx.compose.ui.platform.accessibility.isRTL
 import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
-import androidx.compose.ui.platform.accessibility.scrollToIfPossible
+import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
+import androidx.compose.ui.platform.accessibility.unclippedBoundsInWindow
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.uikit.density
+import androidx.compose.ui.uikit.toDpRect
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
+import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
 import kotlin.coroutines.CoroutineContext
@@ -44,7 +50,6 @@ import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -63,7 +68,6 @@ import platform.CoreGraphics.CGRectGetMidY
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
-import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityCustomAction
@@ -75,8 +79,8 @@ import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraits
+import platform.UIKit.UIEdgeInsetsInsetRect
 import platform.UIKit.UIView
-import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityElementAtIndex
 import platform.UIKit.accessibilityElementCount
 import platform.UIKit.accessibilityElements
@@ -141,7 +145,7 @@ private sealed interface AccessibilityNode {
     class Semantics(
         private val semanticsNode: SemanticsNode,
         private val mediator: AccessibilityMediator
-    ): AccessibilityNode {
+    ) : AccessibilityNode {
         private val cachedConfig = semanticsNode.config
 
         override val key: AccessibilityElementKey
@@ -220,9 +224,10 @@ private sealed interface AccessibilityNode {
         }
 
         override fun accessibilityScrollToVisible(): Boolean {
-            semanticsNode.scrollToIfPossible()
-
-            return true
+            return semanticsNode.parent?.scrollToCenterRectIfNeeded(
+                rect = semanticsNode.unclippedBoundsInWindow,
+                safeAreaRectInWindow = mediator.safeAreaRectInWindow
+            ) ?: false
         }
 
         override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
@@ -598,11 +603,6 @@ internal class AccessibilityMediator(
     val view: UIView,
     val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
-    /**
-     * A function that converts the given [Rect] from the semantics tree coordinate space (window container for layers)
-     * to the [CGRect] in coordinate space of the app window.
-     */
-    val convertToAppWindowCGRect: (Rect, UIWindow) -> CValue<CGRect>,
     val performEscape: () -> Boolean
 ): NSObject() {
 
@@ -661,6 +661,14 @@ internal class AccessibilityMediator(
             }
         }
 
+    val safeAreaRectInWindow: Rect get() {
+        val rectInWindow = view.convertRect(
+            rect = UIEdgeInsetsInsetRect(view.bounds, view.safeAreaInsets),
+            toView = null
+        )
+        return rectInWindow.toDpRect().toRect(view.density)
+    }
+
     init {
         accessibilityDebugLogger?.log("AccessibilityMediator for $view created")
 
@@ -711,9 +719,7 @@ internal class AccessibilityMediator(
     val hasPendingInvalidations: Boolean get() = !invalidationChannel.isEmpty
 
     fun convertToAppWindowCGRect(rect: Rect): CValue<CGRect> {
-        val window = view.window ?: return CGRectZero.readValue()
-
-        return convertToAppWindowCGRect(rect, window)
+        return rect.toDpRect(view.density).asCGRect()
     }
 
     fun notifyScrollCompleted(
