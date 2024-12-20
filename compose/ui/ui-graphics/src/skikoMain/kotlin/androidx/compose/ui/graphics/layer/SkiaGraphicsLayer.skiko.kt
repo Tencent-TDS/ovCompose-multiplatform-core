@@ -18,7 +18,6 @@ package androidx.compose.ui.graphics.layer
 
 import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -37,6 +36,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.SkiaBackedCanvas
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.asSkiaColorFilter
 import androidx.compose.ui.graphics.asSkiaPath
@@ -52,9 +52,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
-import kotlin.math.min
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
@@ -63,15 +61,13 @@ import org.jetbrains.skia.Rect as SkRect
 import org.jetbrains.skia.ShadowUtils
 
 actual class GraphicsLayer internal constructor(
-    private val snapshotObserver: SnapshotStateObserver,
-    private val containerSize: () -> IntSize,
-    measureDrawBounds: Boolean,
+    private val context: SkiaGraphicsContext,
 ) {
     private val pictureDrawScope = CanvasDrawScope()
     private val pictureRecorder = PictureRecorder()
     private var picture: Picture? = null
     // Use factory for BBoxHierarchy to track real bounds of drawn content
-    private val bbhFactory = if (measureDrawBounds) RTreeFactory() else null
+    private val bbhFactory = if (context.measureDrawBounds) RTreeFactory() else null
 
     // Composable state marker for tracking drawing invalidations.
     private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
@@ -230,7 +226,7 @@ actual class GraphicsLayer internal constructor(
         childDependenciesTracker.withTracking(
             onDependencyRemoved = { it.onRemovedFromParentLayer() }
         ) {
-            snapshotObserver.observeReads(
+            context.snapshotObserver.observeReads(
                 scope = this,
                 onValueChangedForScope = {
                     // Can be called from another thread
@@ -483,7 +479,7 @@ actual class GraphicsLayer internal constructor(
                 it.onRemovedFromParentLayer()
             }
 
-            snapshotObserver.clear(this)
+            context.snapshotObserver.clear(this)
         }
     }
 
@@ -509,7 +505,7 @@ actual class GraphicsLayer internal constructor(
             offscreenBufferRequested
     }
 
-    private fun drawShadow(canvas: Canvas) = with(density) {
+    private fun drawShadow(canvas: Canvas) {
         val path = when (val tmpOutline = internalOutline) {
             is Outline.Rectangle -> Path().apply { addRect(tmpOutline.rect) }
             is Outline.Rounded -> Path().apply { addRoundRect(tmpOutline.roundRect) }
@@ -517,18 +513,18 @@ actual class GraphicsLayer internal constructor(
             else -> return
         }
 
-        val translationZ = 0f
-        val zParams = Point3(0f, 0f, shadowElevation + translationZ)
-        val lightPos = getLightCenter(containerSize())
-        val ambientColor = ambientShadowColor.copy(alpha = AMBIENT_SHADOW_ALPHA * alpha)
-        val spotColor = spotShadowColor.copy(alpha = SPOT_SHADOW_ALPHA * alpha)
+        val zParams = Point3(0f, 0f, shadowElevation)
+        val ambientAlpha = context.lightInfo.ambientShadowAlpha * alpha
+        val spotAlpha = context.lightInfo.spotShadowAlpha * alpha
+        val ambientColor = ambientShadowColor.copy(alpha = ambientAlpha)
+        val spotColor = spotShadowColor.copy(alpha = spotAlpha)
 
-        ShadowUtils.drawShadow(
+        return ShadowUtils.drawShadow(
             canvas = canvas.nativeCanvas,
             path = path.asSkiaPath(),
             zPlaneParams = zParams,
-            lightPos = lightPos,
-            lightRadius = LIGHT_RADIUS.toPx(),
+            lightPos = context.lightGeometry.center,
+            lightRadius = context.lightGeometry.radius,
             ambientColor = ambientColor.toArgb(),
             spotColor = spotColor.toArgb(),
             transparentOccluder = alpha < 1f,
@@ -557,24 +553,3 @@ private val PICTURE_BOUNDS = SkRect.makeLTRB(
     r = PICTURE_MAX_VALUE,
     b = PICTURE_MAX_VALUE
 )
-
-
-// Adoption of android.view.ThreadedRenderer.setLightCenter
-private fun Density.getLightCenter(containerSize: IntSize): Point3 {
-    val lightX = containerSize.width / 2f
-    val lightY = LIGHT_Y.toPx()
-    // To prevent shadow distortion on larger screens, scale the z position of the light source
-    // relative to the smallest screen dimension.
-    val zRatio = min(containerSize.width, containerSize.height).toFloat() / 450.dp.toPx()
-    val zWeightedAdjustment = (zRatio + 2) / 3f
-    val lightZ = LIGHT_Z.toPx() * zWeightedAdjustment
-
-    return Point3(lightX,lightY, lightZ)
-}
-
-// Values from core/res/res/values/dimens.xml
-private val LIGHT_Y = 0.dp
-private val LIGHT_Z = 500.dp
-private val LIGHT_RADIUS = 800.dp
-private const val AMBIENT_SHADOW_ALPHA = 0.039f
-private const val SPOT_SHADOW_ALPHA = 0.19f

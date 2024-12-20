@@ -22,6 +22,7 @@ import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -65,6 +66,7 @@ import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
+import androidx.compose.ui.platform.setLightingInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
@@ -90,6 +92,10 @@ import androidx.compose.ui.viewinterop.pointerInteropFilter
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * Owner of root [LayoutNode].
@@ -126,10 +132,8 @@ internal class RootNodeOwner(
 
     private val rootSemanticsNode = EmptySemanticsModifier()
     private val snapshotObserver = snapshotInvalidationTracker.snapshotObserver()
-    private val graphicsContext = SkiaGraphicsContext(
-        containerSize = { platformContext.windowInfo.containerSize },
-        measureDrawBounds = platformContext.measureDrawLayerBounds,
-    )
+    private val graphicsContext = SkiaGraphicsContext(platformContext.measureDrawLayerBounds)
+    private val coroutineScope = CoroutineScope(coroutineContext + Job(parent = coroutineContext[Job]))
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)
         .focusProperties {
@@ -177,10 +181,18 @@ internal class RootNodeOwner(
         owner.root.attach(owner)
         platformContext.rootForTestListener?.onRootForTestCreated(rootForTest)
         onRootConstrainsChanged(size?.toConstraints())
+        onLightingInfoChanged()
+        coroutineScope.launch {
+            snapshotFlow { platformContext.windowInfo.containerSize }
+                .collect {
+                    onLightingInfoChanged()
+                }
+        }
     }
 
     fun dispose() {
         check(!isDisposed) { "RootNodeOwner is already disposed" }
+        coroutineScope.cancel()
         platformContext.rootForTestListener?.onRootForTestDisposed(rootForTest)
         snapshotObserver.stopObserving()
         graphicsContext.dispose()
@@ -224,6 +236,7 @@ internal class RootNodeOwner(
     fun invalidatePositionInWindow() {
         owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
         measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+        onLightingInfoChanged()
     }
 
     fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
@@ -243,6 +256,14 @@ internal class RootNodeOwner(
         if (measureAndLayoutDelegate.hasPendingMeasureOrLayout) {
             snapshotInvalidationTracker.requestMeasureAndLayout()
         }
+    }
+
+    private fun onLightingInfoChanged() {
+        graphicsContext.setLightingInfo(
+            canvasOffset = platformContext.convertLocalToWindowPosition(Offset.Zero),
+            density = density,
+            containerSize = platformContext.windowInfo.containerSize
+        )
     }
 
     @OptIn(InternalCoreApi::class)
