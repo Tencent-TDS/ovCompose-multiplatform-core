@@ -50,7 +50,6 @@ import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,12 +68,8 @@ import platform.CoreGraphics.CGRectGetMidY
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
-import platform.CoreGraphics.CGRectMake
-import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSNotFound
-import platform.Foundation.NSString
 import platform.UIKit.NSStringFromCGRect
-import platform.UIKit.NSStringFromUIEdgeInsets
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityFocusedElement
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
@@ -86,7 +81,6 @@ import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraits
 import platform.UIKit.UIEdgeInsetsInsetRect
 import platform.UIKit.UIView
-import platform.UIKit.UIWindow
 import platform.UIKit.accessibilityElementAtIndex
 import platform.UIKit.accessibilityElementCount
 import platform.UIKit.accessibilityElements
