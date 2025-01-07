@@ -60,7 +60,8 @@ internal class GraphicsLayerOwnerLayer(
     private val matrixCache = Matrix()
     private var inverseMatrixCache: Matrix? = null
 
-    private var isDirty = false
+    private var isDirty = true
+    private var isParentLayerInvalidated = false
 
     private var density = Density(1f)
     private var layoutDirection = LayoutDirection.Ltr
@@ -212,6 +213,7 @@ internal class GraphicsLayerOwnerLayer(
             }
             graphicsLayer.record(density, layoutDirection, size, recordLambda)
             isDirty = false
+            isParentLayerInvalidated = false
         }
     }
 
@@ -222,10 +224,12 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun invalidate() {
-        if (!isDirty && !isDestroyed) {
+        if (isDestroyed) return
+        isDirty = true
+        if (!isParentLayerInvalidated) {
             // Parent layer caches drawing into skia's picture, so we need to reset it
             invalidateParentLayer?.invoke()
-            isDirty = true
+            isParentLayerInvalidated = true
         }
     }
 
