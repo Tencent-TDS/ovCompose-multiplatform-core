@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+config.client.mocha = config.client.mocha || {};
+config.client.mocha.timeout = 10000;
+
 config.customLaunchers = {
     ChromeForComposeTests: {
         base: "Chrome",
