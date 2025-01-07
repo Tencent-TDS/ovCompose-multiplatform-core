@@ -971,6 +971,14 @@ class SkiaGraphicsLayerTest {
         val graphicsContext = SkiaGraphicsContext()
         val surfaceWidth = TEST_WIDTH * 2
         val surfaceHeight = TEST_HEIGHT * 2
+        graphicsContext.setLightingInfo(
+            centerX = surfaceWidth / 2f,
+            centerY = 0f,
+            centerZ = 600f,
+            radius = 800f,
+            ambientShadowAlpha = 0.039f,
+            spotShadowAlpha = 0.19f
+        )
         val surface = Surface.makeRasterN32Premul(surfaceWidth, surfaceHeight)
         val canvas = surface.canvas
         val drawScope = CanvasDrawScope()
