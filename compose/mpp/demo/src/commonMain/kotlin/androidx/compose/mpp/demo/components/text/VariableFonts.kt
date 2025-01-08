@@ -41,32 +41,32 @@ fun VariableFonts() {
         robotFlexFontByteArray = loadResource("RobotoFlex-VariableFont.ttf")
     }
     var opsz by remember { mutableStateOf(14f) }
-    var slnt by remember { mutableStateOf(0) }
+    var slnt by remember { mutableStateOf(0f) }
     var wdth by remember { mutableStateOf(100f) }
-    var wght by remember { mutableStateOf(400) }
-    var GRAD by remember { mutableStateOf(0) }
-    var XOPQ by remember { mutableStateOf(96) }
-    var XTRA by remember { mutableStateOf(468) }
-    var YOPQ by remember { mutableStateOf(79) }
-    var YTAS by remember { mutableStateOf(750) }
-    var YTDE by remember { mutableStateOf(-203) }
-    var YTFI by remember { mutableStateOf(738) }
-    var YTLC by remember { mutableStateOf(514) }
-    var YTUC by remember { mutableStateOf(712) }
+    var wght by remember { mutableStateOf(400f) }
+    var GRAD by remember { mutableStateOf(0f) }
+    var XOPQ by remember { mutableStateOf(96f) }
+    var XTRA by remember { mutableStateOf(468f) }
+    var YOPQ by remember { mutableStateOf(79f) }
+    var YTAS by remember { mutableStateOf(750f) }
+    var YTDE by remember { mutableStateOf(-203f) }
+    var YTFI by remember { mutableStateOf(738f) }
+    var YTLC by remember { mutableStateOf(514f) }
+    var YTUC by remember { mutableStateOf(712f) }
     val variationSettings = FontVariation.Settings(
         FontVariation.Setting("opsz", opsz),
-        FontVariation.Setting("slnt", slnt.toFloat()),
+        FontVariation.Setting("slnt", slnt),
         FontVariation.Setting("wdth", wdth),
-        FontVariation.Setting("wght", wght.toFloat()),
-        FontVariation.Setting("GRAD", GRAD.toFloat()),
-        FontVariation.Setting("XOPQ", XOPQ.toFloat()),
-        FontVariation.Setting("XTRA", XTRA.toFloat()),
-        FontVariation.Setting("YOPQ", YOPQ.toFloat()),
-        FontVariation.Setting("YTAS", YTAS.toFloat()),
-        FontVariation.Setting("YTDE", YTDE.toFloat()),
-        FontVariation.Setting("YTFI", YTFI.toFloat()),
-        FontVariation.Setting("YTLC", YTLC.toFloat()),
-        FontVariation.Setting("YTUC", YTUC.toFloat()),
+        FontVariation.Setting("wght", wght),
+        FontVariation.Setting("GRAD", GRAD),
+        FontVariation.Setting("XOPQ", XOPQ),
+        FontVariation.Setting("XTRA", XTRA),
+        FontVariation.Setting("YOPQ", YOPQ),
+        FontVariation.Setting("YTAS", YTAS),
+        FontVariation.Setting("YTDE", YTDE),
+        FontVariation.Setting("YTFI", YTFI),
+        FontVariation.Setting("YTLC", YTLC),
+        FontVariation.Setting("YTUC", YTUC),
     )
     val fontFamily =
         robotFlexFontByteArray?.let {
@@ -89,80 +89,80 @@ fun VariableFonts() {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             Text("opsz $opsz")
             Slider(
-                value = opsz.toFloat(),
+                value = opsz,
                 onValueChange = { opsz = it },
                 valueRange = 8f..144f,
             )
             Text("slnt $slnt")
             Slider(
-                value = slnt.toFloat(),
-                onValueChange = { slnt = it.toInt() },
+                value = slnt,
+                onValueChange = { slnt = it },
                 valueRange = -10f..0f
             )
             Text("wdth $wdth")
             Slider(
-                value = wdth.toFloat(),
+                value = wdth,
                 onValueChange = { wdth = it },
                 valueRange = 25f..151f
             )
             Text("wght $wght")
             Slider(
-                value = wght.toFloat(),
-                onValueChange = { wght = it.toInt() },
+                value = wght,
+                onValueChange = { wght = it },
                 valueRange = 100f..1000f
             )
             Text("GRAD $GRAD")
             Slider(
-                value = GRAD.toFloat(),
-                onValueChange = { GRAD = it.toInt() },
+                value = GRAD,
+                onValueChange = { GRAD = it },
                 valueRange = -200f..150f
             )
             Text("XOPQ $XOPQ")
             Slider(
-                value = XOPQ.toFloat(),
-                onValueChange = { XOPQ = it.toInt() },
+                value = XOPQ,
+                onValueChange = { XOPQ = it },
                 valueRange = 27f..175f
             )
             Text("XTRA $XTRA")
             Slider(
-                value = XTRA.toFloat(),
-                onValueChange = { XTRA = it.toInt() },
+                value = XTRA,
+                onValueChange = { XTRA = it },
                 valueRange = 323f..603f
             )
             Text("YOPQ $YOPQ")
             Slider(
-                value = YOPQ.toFloat(),
-                onValueChange = { YOPQ = it.toInt() },
+                value = YOPQ,
+                onValueChange = { YOPQ = it },
                 valueRange = 25f..135f
             )
             Text("YTAS $YTAS")
             Slider(
-                value = YTAS.toFloat(),
-                onValueChange = { YTAS = it.toInt() },
+                value = YTAS,
+                onValueChange = { YTAS = it },
                 valueRange = 649f..854f
             )
             Text("YTDE $YTDE")
             Slider(
-                value = YTDE.toFloat(),
-                onValueChange = { YTDE = it.toInt() },
+                value = YTDE,
+                onValueChange = { YTDE = it },
                 valueRange = -305f..-98f
             )
             Text("YTFI $YTFI")
             Slider(
-                value = YTFI.toFloat(),
-                onValueChange = { YTFI = it.toInt() },
+                value = YTFI,
+                onValueChange = { YTFI = it },
                 valueRange = 560f..788f
             )
             Text("YTLC $YTLC")
             Slider(
-                value = YTLC.toFloat(),
-                onValueChange = { YTLC = it.toInt() },
+                value = YTLC,
+                onValueChange = { YTLC = it },
                 valueRange = 416f..570f
             )
             Text("YTUC $YTUC")
             Slider(
-                value = YTUC.toFloat(),
-                onValueChange = { YTUC = it.toInt() },
+                value = YTUC,
+                onValueChange = { YTUC = it },
                 valueRange = 528f..760f
             )
         }
