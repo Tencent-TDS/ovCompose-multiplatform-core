@@ -240,9 +240,10 @@ internal class MSSIMMatcher(@FloatRange(from = 0.0, to = 1.0) private val thresh
     private fun getIntensity(pixel: Int): Double {
         val gamma = 1.0
         var l = 0.0
-        l += 0.21f * (Color.getG(pixel) / 255f.toDouble()).pow(gamma)
-        l += 0.72f * (Color.getG(pixel) / 255f.toDouble()).pow(gamma)
-        l += 0.07f * (Color.getB(pixel) / 255f.toDouble()).pow(gamma)
-        return l
+        l += 0.21f * (Color.getR(pixel) / 255.0).pow(gamma)
+        l += 0.72f * (Color.getG(pixel) / 255.0).pow(gamma)
+        l += 0.07f * (Color.getB(pixel) / 255.0).pow(gamma)
+        val alpha = Color.getA(pixel) / 255.0
+        return l * alpha
     }
 }
