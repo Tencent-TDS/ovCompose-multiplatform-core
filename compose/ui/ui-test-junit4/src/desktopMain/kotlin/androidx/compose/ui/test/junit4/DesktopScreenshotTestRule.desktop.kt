@@ -166,8 +166,12 @@ class ScreenshotTestRule internal constructor(
 
         if (!comparisonResult.matches) {
             throw AssertionError(
-                "Image mismatch! Comparison stats: '${comparisonResult
-                    .comparisonStatistics}'"
+                "Image mismatch!\n" +
+                    "\tExpected image: '${goldenIdentifierResolver(goldenIdentifier)}'\n" +
+                    "\tActual image: '${goldenIdentifierResolver(goldenIdentifier, "actual")}'\n" +
+                    "\tDiff image: '${goldenIdentifierResolver(goldenIdentifier, "diff")}'\n" +
+                    "\tFS location: '${fsGoldenPath}'\n" +
+                    "\tComparison stats: '${comparisonResult.comparisonStatistics}'"
             )
         }
     }
