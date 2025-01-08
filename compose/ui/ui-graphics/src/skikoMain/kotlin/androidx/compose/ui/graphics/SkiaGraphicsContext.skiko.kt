@@ -19,16 +19,20 @@ package androidx.compose.ui.graphics
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
+import org.jetbrains.skia.Point3
 
 @InternalComposeUiApi
-class SkiaGraphicsContext() : GraphicsContext {
-    private val snapshotObserver = SnapshotStateObserver { command ->
+class SkiaGraphicsContext(
+    internal val measureDrawBounds: Boolean = false,
+): GraphicsContext {
+    internal val lightGeometry = LightGeometry()
+    internal val lightInfo = LightInfo()
+    internal val snapshotObserver = SnapshotStateObserver { command ->
         command()
     }
-
-    // Temporary workaround to disable state tracking workaround inside old internal layers
-    var activeGraphicsLayersCount = 0
-        private set
 
     init {
         snapshotObserver.start()
@@ -39,15 +43,34 @@ class SkiaGraphicsContext() : GraphicsContext {
         snapshotObserver.clear()
     }
 
-    override fun createGraphicsLayer(): GraphicsLayer {
-        activeGraphicsLayersCount++
-        return GraphicsLayer(snapshotObserver)
+    fun setLightingInfo(
+        centerX: Float = Float.MIN_VALUE,
+        centerY: Float = Float.MIN_VALUE,
+        centerZ: Float = Float.MIN_VALUE,
+        radius: Float = 0f,
+        ambientShadowAlpha: Float = 0f,
+        spotShadowAlpha: Float = 0f
+    ) {
+        lightGeometry.center = Point3(centerX, centerY, centerZ)
+        lightGeometry.radius = radius
+        lightInfo.ambientShadowAlpha = ambientShadowAlpha
+        lightInfo.spotShadowAlpha = spotShadowAlpha
     }
 
+    override fun createGraphicsLayer() = GraphicsLayer(this)
+
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
-        if (!layer.isReleased) {
-            activeGraphicsLayersCount--
-            layer.release()
-        }
+        layer.release()
     }
 }
+
+// Adoption of frameworks/base/libs/hwui/Lighting.h
+internal data class LightGeometry(
+    var center: Point3 = Point3(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE),
+    var radius: Float = 0f
+)
+
+internal data class LightInfo(
+    var ambientShadowAlpha: Float = 0f,
+    var spotShadowAlpha: Float = 0f
+)

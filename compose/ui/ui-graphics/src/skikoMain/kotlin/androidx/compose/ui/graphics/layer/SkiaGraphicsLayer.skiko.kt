@@ -18,8 +18,6 @@ package androidx.compose.ui.graphics.layer
 
 import androidx.compose.runtime.SnapshotMutationPolicy
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.neverEqualPolicy
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -38,6 +36,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.SkiaBackedCanvas
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.asSkiaColorFilter
 import androidx.compose.ui.graphics.asSkiaPath
@@ -53,18 +52,22 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
 import org.jetbrains.skia.Point3
+import org.jetbrains.skia.RTreeFactory
+import org.jetbrains.skia.Rect as SkRect
+import org.jetbrains.skia.ShadowUtils
 
 actual class GraphicsLayer internal constructor(
-    private val snapshotObserver: SnapshotStateObserver
+    private val context: SkiaGraphicsContext,
 ) {
     private val pictureDrawScope = CanvasDrawScope()
     private val pictureRecorder = PictureRecorder()
     private var picture: Picture? = null
+    // Use factory for BBoxHierarchy to track real bounds of drawn content
+    private val bbhFactory = if (context.measureDrawBounds) RTreeFactory() else null
 
     // Composable state marker for tracking drawing invalidations.
     private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
@@ -194,8 +197,12 @@ actual class GraphicsLayer internal constructor(
             // It's designed to be handled externally.
             requestDraw = false
         )
-        val bounds = size.toSize().toRect().toSkiaRect()
-        val canvas = pictureRecorder.beginRecording(bounds)
+        val measureDrawBounds = !clip || shadowElevation > 0
+        val bounds = size.toSize().toRect()
+        val canvas = pictureRecorder.beginRecording(
+            bounds = if (measureDrawBounds) PICTURE_BOUNDS else bounds.toSkiaRect(),
+            bbh = if (measureDrawBounds) bbhFactory else null
+        )
         val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
         skiaCanvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
             this@GraphicsLayer.alpha
@@ -219,7 +226,7 @@ actual class GraphicsLayer internal constructor(
         childDependenciesTracker.withTracking(
             onDependencyRemoved = { it.onRemovedFromParentLayer() }
         ) {
-            snapshotObserver.observeReads(
+            context.snapshotObserver.observeReads(
                 scope = this,
                 onValueChangedForScope = {
                     // Can be called from another thread
@@ -472,7 +479,7 @@ actual class GraphicsLayer internal constructor(
                 it.onRemovedFromParentLayer()
             }
 
-            snapshotObserver.clear(this)
+            context.snapshotObserver.clear(this)
         }
     }
 
@@ -498,7 +505,7 @@ actual class GraphicsLayer internal constructor(
             offscreenBufferRequested
     }
 
-    private fun drawShadow(canvas: Canvas) = with(density) {
+    private fun drawShadow(canvas: Canvas) {
         val path = when (val tmpOutline = internalOutline) {
             is Outline.Rectangle -> Path().apply { addRect(tmpOutline.rect) }
             is Outline.Rounded -> Path().apply { addRoundRect(tmpOutline.roundRect) }
@@ -507,23 +514,42 @@ actual class GraphicsLayer internal constructor(
         }
 
         val zParams = Point3(0f, 0f, shadowElevation)
-
-        val lightPos = Point3(0f, -300.dp.toPx(), 600.dp.toPx())
-        val lightRad = 800.dp.toPx()
-
-        val ambientAlpha = 0.039f * alpha
-        val spotAlpha = 0.19f * alpha
+        val ambientAlpha = context.lightInfo.ambientShadowAlpha * alpha
+        val spotAlpha = context.lightInfo.spotShadowAlpha * alpha
         val ambientColor = ambientShadowColor.copy(alpha = ambientAlpha)
         val spotColor = spotShadowColor.copy(alpha = spotAlpha)
 
-        org.jetbrains.skia.ShadowUtils.drawShadow(
-            canvas.nativeCanvas, path.asSkiaPath(), zParams, lightPos,
-            lightRad,
-            ambientColor.toArgb(),
-            spotColor.toArgb(), alpha < 1f, false
+        return ShadowUtils.drawShadow(
+            canvas = canvas.nativeCanvas,
+            path = path.asSkiaPath(),
+            zPlaneParams = zParams,
+            lightPos = context.lightGeometry.center,
+            lightRadius = context.lightGeometry.radius,
+            ambientColor = ambientColor.toArgb(),
+            spotColor = spotColor.toArgb(),
+            transparentOccluder = alpha < 1f,
+            geometricOnly = false
         )
     }
 
     actual suspend fun toImageBitmap(): ImageBitmap =
         ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 }
+
+// The goal with selecting the size of the rectangle here is to avoid limiting the
+// drawable area as much as possible.
+// Due to https://partnerissuetracker.corp.google.com/issues/324465764 we have to
+// leave room for scale between the values we specify here and Float.MAX_VALUE.
+// The maximum possible scale that can be applied to the canvas will be
+// Float.MAX_VALUE divided by the largest value below.
+// 2^30 was chosen because it's big enough, leaves quite a lot of room between it
+// and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
+// case).
+private const val PICTURE_MIN_VALUE = -(1 shl 30).toFloat()
+private const val PICTURE_MAX_VALUE = ((1 shl 30)-1).toFloat()
+private val PICTURE_BOUNDS = SkRect.makeLTRB(
+    l = PICTURE_MIN_VALUE,
+    t = PICTURE_MIN_VALUE,
+    r = PICTURE_MAX_VALUE,
+    b = PICTURE_MAX_VALUE
+)

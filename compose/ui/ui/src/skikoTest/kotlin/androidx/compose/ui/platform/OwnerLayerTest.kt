@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.isEqualTo
+import androidx.compose.ui.node.OwnedLayer
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.unit.*
@@ -39,12 +40,12 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.jetbrains.skia.Surface
 
-class RenderNodeLayerTest {
+class OwnerLayerTest {
 
     private val layer = TestRenderNodeLayer()
     private val cos45 = cos(PI / 4).toFloat()
 
-    private val matrix get() = layer.matrix
+    private val matrix get() = layer.underlyingMatrix
     private val inverseMatrix get() = Matrix().apply {
         matrix.invertTo(this)
     }
@@ -482,7 +483,7 @@ class RenderNodeLayerTest {
     fun invalidate_parent_layer() {
         var parentDrawCount = 0
 
-        var childLayer: RenderNodeLayer? = null
+        var childLayer: OwnedLayer? = null
         val parentLayer = TestRenderNodeLayer(
             drawBlock = { canvas, parentLayer ->
                 parentDrawCount++
@@ -571,18 +572,26 @@ class RenderNodeLayerTest {
 
                 state = 2f
                 Snapshot.sendApplyNotifications()
-                assertEquals(2, invalidateCount)  // invalidate, as draw state changed again
+                assertEquals(1, invalidateCount)  // no invalidation as it's already dirty
                 assertEquals(1, drawCount)
 
                 draw()
                 Snapshot.sendApplyNotifications()
-                assertEquals(2, invalidateCount)
+                assertEquals(2, invalidateCount) // internal state invalidation (SUBJECT TO CHANGE)
                 assertEquals(2, drawCount)  // draw, because we invalidated and cache cleared
+
+                // -----
+                // Another draw because internal state invalidation (SUBJECT TO CHANGE)
+                draw()
+                Snapshot.sendApplyNotifications()
+                assertEquals(2, invalidateCount)
+                assertEquals(3, drawCount)
+                // -----
 
                 draw()
                 Snapshot.sendApplyNotifications()
                 assertEquals(2, invalidateCount)
-                assertEquals(2, drawCount) // no draw, as it is cached
+                assertEquals(3, drawCount) // no draw, as it is cached
             } finally {
                 stateObserver.stop()
                 stateObserver.clear()
@@ -590,16 +599,22 @@ class RenderNodeLayerTest {
         }
     }
 
+    private var graphicsContext: GraphicsContext? = null
+
     private fun TestRenderNodeLayer(
         invalidateParentLayer: () -> Unit = {},
         drawBlock: (Canvas, GraphicsLayer?) -> Unit = { _, _ -> },
-    ) = RenderNodeLayer(
-        Density(1f, 1f),
-        measureDrawBounds = false,
-        requiresStateWorkaround = { false },
-        invalidateParentLayer = invalidateParentLayer,
-        drawBlock = drawBlock,
-    )
+    ): GraphicsLayerOwnerLayer {
+        if (graphicsContext == null) {
+            graphicsContext = SkiaGraphicsContext()
+        }
+        return GraphicsLayerOwnerLayer(
+            graphicsLayer = graphicsContext!!.createGraphicsLayer(),
+            context = null,
+            drawBlock = drawBlock,
+            invalidateParentLayer = invalidateParentLayer,
+        )
+    }
 
     private fun assertMapping(from: Offset, to: Offset) {
         assertEquals(from, matrix.map(to), 0.001f)
@@ -612,7 +627,7 @@ class RenderNodeLayerTest {
         assertEquals(expected.y, actual.y, absoluteTolerance, message)
     }
 
-    private fun RenderNodeLayer.updateProperties(
+    private fun OwnedLayer.updateProperties(
         scaleX: Float = 1f,
         scaleY: Float = 1f,
         alpha: Float = 1f,
