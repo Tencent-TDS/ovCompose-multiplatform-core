@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.graphics
 
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.LayerManager
@@ -32,17 +31,8 @@ class SkiaGraphicsContext(
     internal val layerManager = LayerManager()
     internal val lightGeometry = LightGeometry()
     internal val lightInfo = LightInfo()
-    internal val snapshotObserver = SnapshotStateObserver { command ->
-        command()
-    }
-
-    init {
-        snapshotObserver.start()
-    }
 
     fun dispose() {
-        snapshotObserver.stop()
-        snapshotObserver.clear()
     }
 
     fun setLightingInfo(
