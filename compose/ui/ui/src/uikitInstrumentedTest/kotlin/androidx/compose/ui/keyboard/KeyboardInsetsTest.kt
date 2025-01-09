@@ -35,13 +35,13 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.runUIKitInstrumentedTest
 import androidx.compose.ui.uikit.OnFocusBehavior
-import androidx.compose.ui.uikit.toDpRect
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.viewinterop.UIKitView
 import kotlin.test.Ignore
 import kotlin.test.Test
@@ -333,7 +333,7 @@ class KeyboardInsetsTest {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private fun UIView.dpRectInWindow() = convertRect(bounds, toView = null).toDpRect()
+private fun UIView.dpRectInWindow() = convertRect(bounds, toView = null).asDpRect()
 private fun<T> List<T>.forEachWithPrevious(block: (T, T) -> Unit) {
     var previous: T? = null
     for (current in this) {

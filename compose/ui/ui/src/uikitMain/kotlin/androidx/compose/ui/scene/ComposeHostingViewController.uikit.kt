@@ -473,7 +473,7 @@ internal class ComposeHostingViewController(
 
     private fun ComposeSceneMediator.updateInteractionRect() {
         interactionBounds = with(density) {
-            view.bounds.useContents { asDpRect() }.toRect().roundToIntRect()
+            view.bounds.asDpRect().toRect().roundToIntRect()
         }
     }
 }
