@@ -108,10 +108,6 @@ actual class GraphicsLayer internal constructor(
         get() = SkRect.makeLTRB(0f, 0f, size.width.toFloat(), size.height.toFloat())
 
     actual var alpha: Float = 1f
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     actual var scaleX: Float = 1f
         set(value) {
@@ -134,10 +130,6 @@ actual class GraphicsLayer internal constructor(
             invalidateMatrix()
         }
     actual var shadowElevation: Float = 0f
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     actual var rotationX: Float = 0f
         set(value) {
@@ -162,26 +154,16 @@ actual class GraphicsLayer internal constructor(
         }
 
     actual var renderEffect: RenderEffect? = null
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     private var density: Density = Density(1f)
 
-    private fun invalidateMatrix(requestDraw: Boolean = true) {
+    private fun invalidateMatrix() {
         matrixDirty = true
-        if (requestDraw) {
-            requestDraw()
-        }
     }
 
-    private fun requestDraw() {
-    }
-
-    private fun updateLayerConfiguration(requestDraw: Boolean = true) {
+    private fun updateLayerConfiguration() {
         this.outlineDirty = true
-        invalidateMatrix(requestDraw)
+        invalidateMatrix()
     }
 
     private fun updatePlaceholder() {
@@ -203,12 +185,7 @@ actual class GraphicsLayer internal constructor(
 
         this.density = density
         this.size = size
-        updateLayerConfiguration(
-            // [record] doesn't change the state and should not explicitly request drawing
-            // (happens only on the next frame) to avoid infinity invalidation loop.
-            // It's designed to be handled externally.
-            requestDraw = false
-        )
+        updateLayerConfiguration()
         val measureDrawBounds = !clip || shadowElevation > 0
         val bounds = size.toSize().toRect()
         val canvas = pictureRecorder.beginRecording(
@@ -248,10 +225,6 @@ actual class GraphicsLayer internal constructor(
     }
 
     actual var clip: Boolean = false
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     private inline fun createOutlineWithPosition(
         outlineTopLeft: Offset,
@@ -385,16 +358,8 @@ actual class GraphicsLayer internal constructor(
         }
 
     actual var blendMode: BlendMode = BlendMode.SrcOver
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     actual var colorFilter: ColorFilter? = null
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     private fun resetOutlineParams() {
         internalOutline = null
@@ -475,16 +440,8 @@ actual class GraphicsLayer internal constructor(
     }
 
     actual var ambientShadowColor: Color = Color.Black
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     actual var spotShadowColor: Color = Color.Black
-        set(value) {
-            field = value
-            requestDraw()
-        }
 
     private fun requiresLayer(): Boolean {
         val alphaNeedsLayer = alpha < 1f && compositingStrategy != CompositingStrategy.ModulateAlpha
