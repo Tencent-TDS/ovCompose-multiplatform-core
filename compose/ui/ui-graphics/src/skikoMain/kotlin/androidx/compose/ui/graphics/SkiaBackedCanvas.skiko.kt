@@ -113,11 +113,6 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
         skia.clipPath(path.asSkiaPath(), clipOp.toSkia(), antiAlias)
     }
 
-    fun clipRoundRect(rect: RoundRect, clipOp: ClipOp = ClipOp.Intersect) {
-        val antiAlias = true
-        nativeCanvas.clipRRect(rect.toSkiaRRect(), clipOp.toSkia(), antiAlias)
-    }
-
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {
         skia.drawLine(p1.x, p1.y, p2.x, p2.y, paint.skia)
     }

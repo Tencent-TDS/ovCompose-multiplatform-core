@@ -240,10 +240,12 @@ internal class RootNodeOwner(
     }
 
     fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
-        owner.root.draw(
-            canvas = canvas,
-            graphicsLayer = null // the root node will provide the root graphics layer
-        )
+        graphicsContext.drawIntoCanvas(canvas) {
+            owner.root.draw(
+                canvas = it,
+                graphicsLayer = null // the root node will provide the root graphics layer
+            )
+        }
         clearInvalidObservations()
     }
 
