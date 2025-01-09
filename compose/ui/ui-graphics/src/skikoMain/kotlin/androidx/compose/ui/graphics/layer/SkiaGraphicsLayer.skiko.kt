@@ -16,8 +16,6 @@
 
 package androidx.compose.ui.graphics.layer
 
-import androidx.compose.runtime.SnapshotMutationPolicy
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -42,10 +40,12 @@ import androidx.compose.ui.graphics.asSkiaPath
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.draw
+import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.prepareTransformationMatrix
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toSkia
+import androidx.compose.ui.graphics.toSkiaMatrix44
 import androidx.compose.ui.graphics.toSkiaRRect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.unit.Density
@@ -72,12 +72,6 @@ actual class GraphicsLayer internal constructor(
 
     // Use factory for BBoxHierarchy to track real bounds of drawn content
     private val bbhFactory = if (context.measureDrawBounds) RTreeFactory() else null
-
-    // Composable state marker for tracking drawing invalidations.
-    private val drawState = mutableStateOf(Unit, object : SnapshotMutationPolicy<Unit> {
-        override fun equivalent(a: Unit, b: Unit): Boolean = false
-        override fun merge(previous: Unit, current: Unit, applied: Unit) = current
-    })
 
     private var matrixDirty = true
     private val matrix = Matrix()
@@ -183,7 +177,6 @@ actual class GraphicsLayer internal constructor(
     }
 
     private fun requestDraw() {
-        drawState.value = Unit
     }
 
     private fun updateLayerConfiguration(requestDraw: Boolean = true) {
@@ -243,17 +236,9 @@ actual class GraphicsLayer internal constructor(
 
     private fun trackRecord(block: () -> Unit) {
         childDependenciesTracker.withTracking(
-            onDependencyRemoved = { it.onRemovedFromParentLayer() }
-        ) {
-            context.snapshotObserver.observeReads(
-                scope = this,
-                onValueChangedForScope = {
-                    // Can be called from another thread
-                    it.requestDraw()
-                },
-                block = block
-            )
-        }
+            onDependencyRemoved = { it.onRemovedFromParentLayer() },
+            block = block
+        )
     }
 
     private fun addSubLayer(graphicsLayer: GraphicsLayer) {
@@ -324,25 +309,24 @@ actual class GraphicsLayer internal constructor(
         if (isReleased) return
         parentLayer?.addSubLayer(this)
 
-        // Read the state because any changes to the state should trigger re-drawing.
-        drawState.value
-
         configureOutline()
         updateMatrix()
-        canvas.save()
-        canvas.concat(matrix)
-        canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
-
         placeholder?.let {
             canvas.nativeCanvas.drawPicture(it, null, null)
         }
-
-        canvas.restore()
     }
 
     internal fun drawPlaceholder(canvas: SkCanvas) {
         val recordedPicture = picture ?: return
         var restoreCount = 0
+
+        canvas.save()
+        restoreCount++
+
+        if (!matrix.isIdentity()) {
+            canvas.concat(matrix.toSkiaMatrix44())
+        }
+        canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
 
         if (shadowElevation > 0) {
             drawShadow(canvas)
@@ -487,8 +471,6 @@ actual class GraphicsLayer internal constructor(
             childDependenciesTracker.removeDependencies {
                 it.onRemovedFromParentLayer()
             }
-
-            context.snapshotObserver.clear(this)
         }
     }
 
