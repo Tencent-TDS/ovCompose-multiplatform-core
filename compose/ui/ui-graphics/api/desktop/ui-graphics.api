@@ -421,10 +421,6 @@ public final class androidx/compose/ui/graphics/ImageBitmapKt {
 	public static synthetic fun toPixelMap$default (Landroidx/compose/ui/graphics/ImageBitmap;IIII[IIIILjava/lang/Object;)Landroidx/compose/ui/graphics/PixelMap;
 }
 
-public final class androidx/compose/ui/graphics/ImageBitmap_skikoKt {
-	public static final fun createImageBitmap ([B)Landroidx/compose/ui/graphics/ImageBitmap;
-}
-
 public class androidx/compose/ui/graphics/Interval {
 	public fun <init> (FFLjava/lang/Object;)V
 	public synthetic fun <init> (FFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
