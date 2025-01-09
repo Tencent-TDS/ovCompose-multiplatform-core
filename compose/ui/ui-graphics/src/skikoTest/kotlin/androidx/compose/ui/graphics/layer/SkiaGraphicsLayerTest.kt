@@ -1050,7 +1050,6 @@ class SkiaGraphicsLayerTest {
             verify?.invoke(imageBitmap.toPixelMap())
         } finally {
             surface.close()
-            graphicsContext.dispose()
         }
     }
 
