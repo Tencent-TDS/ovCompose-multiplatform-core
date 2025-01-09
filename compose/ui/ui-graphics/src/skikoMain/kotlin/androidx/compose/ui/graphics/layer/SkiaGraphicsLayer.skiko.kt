@@ -528,7 +528,7 @@ actual class GraphicsLayer internal constructor(
 }
 
 
-fun SkCanvas.clipOutline(outline: Outline?, bounds: SkRect) = when (outline) {
+private fun SkCanvas.clipOutline(outline: Outline?, bounds: SkRect) = when (outline) {
     is Outline.Rectangle -> clipRect(outline.rect.toSkiaRect(), antiAlias = true)
     is Outline.Rounded -> clipRRect(outline.roundRect.toSkiaRRect(), antiAlias = true)
     is Outline.Generic -> clipPath(outline.path.asSkiaPath())

@@ -32,9 +32,6 @@ class SkiaGraphicsContext(
     internal val lightGeometry = LightGeometry()
     internal val lightInfo = LightInfo()
 
-    fun dispose() {
-    }
-
     fun setLightingInfo(
         centerX: Float = Float.MIN_VALUE,
         centerY: Float = Float.MIN_VALUE,
