@@ -17,13 +17,20 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.semantics.AccessibilityKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
 import androidx.compose.ui.interop.UIKitView
 import androidx.compose.ui.interop.UIKitViewController
+import androidx.compose.ui.uikit.UIViewBitmapRecorder
+import androidx.compose.ui.unit.asDpRect
+import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import org.jetbrains.skia.Bitmap
+import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIResponder
 import platform.UIKit.UIView
@@ -51,9 +58,26 @@ internal actual typealias InteropViewGroup = UIView
  * @see UIKitInteropInteractionMode
  */
 internal class InteropWrappingView(
-    var interactionMode: UIKitInteropInteractionMode?
+    var interactionMode: UIKitInteropInteractionMode?,
+    renderToTexture: Boolean,
 ) : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
+
+    private var isRenderingToTexture = false
+    private var bitmapRecorder: UIViewBitmapRecorder? = null
+    val viewImageBitmap get() = bitmapRecorder?.viewImageBitmap
+
+    var renderToTexture: Boolean = renderToTexture
+        set(value) {
+            if (field != value) {
+                field = value
+                if (!value) {
+                    bitmapRecorder?.dispose()
+                    bitmapRecorder = null
+                }
+                setNeedsDisplay()
+            }
+        }
 
     init {
         // required to properly clip the content of the wrapping view in case interop unclipped
@@ -61,8 +85,25 @@ internal class InteropWrappingView(
         clipsToBounds = true
     }
 
+    fun dispose() {
+        bitmapRecorder?.dispose()
+        bitmapRecorder = null
+    }
+
     override fun accessibilityContainer(): Any? {
         return actualAccessibilityContainer
+    }
+
+    override fun drawRect(rect: CValue<CGRect>) {
+        super.drawRect(rect)
+        if (renderToTexture && !isRenderingToTexture) {
+            val bitmapRecorder = this.bitmapRecorder ?: UIViewBitmapRecorder(this).also {
+                bitmapRecorder = it
+            }
+            isRenderingToTexture = true
+            bitmapRecorder.drawRect(rect)
+            isRenderingToTexture = false
+        }
     }
 }
 

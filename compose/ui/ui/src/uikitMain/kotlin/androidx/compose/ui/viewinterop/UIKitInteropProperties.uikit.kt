@@ -54,8 +54,11 @@ import androidx.compose.ui.semantics.semantics
  */
 @Immutable
 class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
+    @property:ExperimentalComposeUiApi
     val interactionMode: UIKitInteropInteractionMode? = UIKitInteropInteractionMode.Cooperative(),
-    val isNativeAccessibilityEnabled: Boolean = false
+    val isNativeAccessibilityEnabled: Boolean = false,
+    @property:ExperimentalComposeUiApi
+    val renderToTexture: Boolean = false,
 ) {
     /**
      * Indicates whether the user can interact with the interop component.
@@ -76,7 +79,8 @@ class UIKitInteropProperties @ExperimentalComposeUiApi constructor(
         isNativeAccessibilityEnabled: Boolean
     ) : this(
         interactionMode = if (isInteractive) UIKitInteropInteractionMode.Cooperative() else null,
-        isNativeAccessibilityEnabled
+        isNativeAccessibilityEnabled =  isNativeAccessibilityEnabled,
+        renderToTexture = false,
     )
 
     internal companion object {

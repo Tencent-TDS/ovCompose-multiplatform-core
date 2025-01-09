@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasurePolicy
@@ -63,7 +64,8 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         factory,
         interopContainer,
         interopWrappingView = InteropWrappingView(
-            interactionMode = null
+            interactionMode = properties.interactionMode,
+            renderToTexture = properties.renderToTexture,
         ),
         properties,
         compositeKeyHash
@@ -169,6 +171,11 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
         root.insertSubview(view = group, atIndex = index.toLong())
     }
 
+    override fun onRelease() {
+        super.onRelease()
+        interopWrappingView.dispose()
+    }
+
     /**
      * Check that [group] doesn't entirely clip a child view with a [cgRect]
      */
@@ -179,21 +186,29 @@ internal abstract class UIKitInteropElementHolder<T : InteropView>(
 
     private fun onPropertiesChanged() {
         interopWrappingView.interactionMode = properties.interactionMode
+        interopWrappingView.renderToTexture = properties.renderToTexture
 
         platformModifier = Modifier
             .pointerInteropFilter(
                 isInteractive = properties.isInteractive,
                 this
             )
-            .drawBehind {
-                drawRect(
-                    color = Color.Transparent,
-                    blendMode = BlendMode.Clear
-                )
-            }
+            .drawBehind { onDraw() }
             .nativeAccessibility(
                 isEnabled = properties.isNativeAccessibilityEnabled,
                 interopWrappingView
             )
+    }
+
+    private fun DrawScope.onDraw() {
+        if (properties.renderToTexture) {
+            val imageBitmap = interopWrappingView.viewImageBitmap ?: return
+            drawImage(imageBitmap)
+        } else {
+            drawRect(
+                color = Color.Transparent,
+                blendMode = BlendMode.Clear
+            )
+        }
     }
 }
