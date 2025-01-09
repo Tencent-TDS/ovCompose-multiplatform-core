@@ -56,13 +56,6 @@ internal class GraphicsLayerOwnerLayer(
     private var invalidateParentLayer: (() -> Unit)? = invalidateParentLayer
 
     private var size: IntSize = IntSize(Int.MAX_VALUE, Int.MAX_VALUE)
-    private var isDestroyed = false
-    private val matrixCache = Matrix()
-    private var inverseMatrixCache: Matrix? = null
-
-    private var isDirty = true
-    private var isParentLayerInvalidated = false
-
     private var density = Density(1f)
     private var layoutDirection = LayoutDirection.Ltr
     private val scope = CanvasDrawScope()
@@ -70,9 +63,15 @@ internal class GraphicsLayerOwnerLayer(
     private var transformOrigin: TransformOrigin = TransformOrigin.Center
     private var outline: Outline? = null
 
+    private val matrixCache = Matrix()
+    private var inverseMatrixCache: Matrix? = null
+
+    private var isDestroyed = false
+    private var isDirty = true
     private var isMatrixDirty = false
     private var isInverseMatrixDirty = false
     private var isIdentity = true
+    private var isParentLayerInvalidated = false
 
     override fun updateLayerProperties(scope: ReusableGraphicsLayerScope) {
         val maybeChangedFields = scope.mutatedFields or mutatedFields
@@ -190,11 +189,8 @@ internal class GraphicsLayerOwnerLayer(
         }
     }
 
-    private var drawnWithEnabledZ = false
-
     override fun drawLayer(canvas: Canvas, parentLayer: GraphicsLayer?) {
         updateDisplayList()
-        drawnWithEnabledZ = graphicsLayer.shadowElevation > 0
         scope.drawContext.also {
             it.canvas = canvas
             it.graphicsLayer = parentLayer
@@ -293,7 +289,6 @@ internal class GraphicsLayerOwnerLayer(
         matrixCache.reset()
         inverseMatrixCache?.reset()
         transformOrigin = TransformOrigin.Center
-        drawnWithEnabledZ = false
         size = IntSize(Int.MAX_VALUE, Int.MAX_VALUE)
         outline = null
         mutatedFields = 0
