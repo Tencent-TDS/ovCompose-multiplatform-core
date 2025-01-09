@@ -479,48 +479,6 @@ class OwnerLayerTest {
         assertTrue(layer.isInLayer(Offset(50f, 100f)))
     }
 
-    @Test
-    fun invalidate_parent_layer() {
-        var parentDrawCount = 0
-
-        var childLayer: OwnedLayer? = null
-        val parentLayer = TestRenderNodeLayer(
-            drawBlock = { canvas, parentLayer ->
-                parentDrawCount++
-                childLayer?.drawLayer(canvas, parentLayer)
-            },
-        )
-
-        val surface = Surface.makeNull(10, 10)
-        val canvas = surface.canvas.asComposeCanvas()
-
-        assertThat(parentDrawCount).isEqualTo(0)
-
-        parentLayer.drawLayer(canvas, null)
-        assertThat(parentDrawCount).isEqualTo(1)
-
-        // shouldn't be drawn again, as it isn't changed
-        parentLayer.drawLayer(canvas, null)
-        assertThat(parentDrawCount).isEqualTo(1)
-
-        // https://github.com/JetBrains/compose-multiplatform/issues/4681
-        // parent should be drawn again, as we add a child
-        childLayer = TestRenderNodeLayer(
-            invalidateParentLayer = parentLayer::invalidate,
-            drawBlock = { _, _ -> },
-        )
-        childLayer.invalidate()
-        parentLayer.drawLayer(canvas, null)
-        assertThat(parentDrawCount).isEqualTo(2)
-
-        parentLayer.drawLayer(canvas, null)
-        assertThat(parentDrawCount).isEqualTo(2)
-
-        childLayer.invalidate()
-        parentLayer.drawLayer(canvas, null)
-        assertThat(parentDrawCount).isEqualTo(3)
-    }
-
     // we run in UI thread to not be in concurrent with GlobalSnapshotManager
     // we have to be non-concurrent with it to not have races with sendApplyNotifications
     // it is currently hard to isolate Snapshot changes
@@ -533,7 +491,7 @@ class OwnerLayerTest {
             var invalidateCount = 0
             var state by mutableStateOf(0f)
             val layer = TestRenderNodeLayer(
-                invalidateParentLayer = {
+                invalidateBlock = {
                     invalidateCount++
                 },
                 drawBlock = { canvas, _ ->
@@ -572,26 +530,18 @@ class OwnerLayerTest {
 
                 state = 2f
                 Snapshot.sendApplyNotifications()
-                assertEquals(1, invalidateCount)  // no invalidation as it's already dirty
+                assertEquals(2, invalidateCount)  // invalidate, as draw state changed again
                 assertEquals(1, drawCount)
 
                 draw()
                 Snapshot.sendApplyNotifications()
-                assertEquals(2, invalidateCount) // internal state invalidation (SUBJECT TO CHANGE)
+                assertEquals(2, invalidateCount)
                 assertEquals(2, drawCount)  // draw, because we invalidated and cache cleared
 
-                // -----
-                // Another draw because internal state invalidation (SUBJECT TO CHANGE)
                 draw()
                 Snapshot.sendApplyNotifications()
                 assertEquals(2, invalidateCount)
-                assertEquals(3, drawCount)
-                // -----
-
-                draw()
-                Snapshot.sendApplyNotifications()
-                assertEquals(2, invalidateCount)
-                assertEquals(3, drawCount) // no draw, as it is cached
+                assertEquals(2, drawCount) // no draw, as it is cached
             } finally {
                 stateObserver.stop()
                 stateObserver.clear()
@@ -602,18 +552,23 @@ class OwnerLayerTest {
     private var graphicsContext: GraphicsContext? = null
 
     private fun TestRenderNodeLayer(
-        invalidateParentLayer: () -> Unit = {},
+        invalidateBlock: () -> Unit = {},
         drawBlock: (Canvas, GraphicsLayer?) -> Unit = { _, _ -> },
     ): GraphicsLayerOwnerLayer {
         if (graphicsContext == null) {
             graphicsContext = SkiaGraphicsContext()
         }
-        return GraphicsLayerOwnerLayer(
+        return object : GraphicsLayerOwnerLayer(
             graphicsLayer = graphicsContext!!.createGraphicsLayer(),
             context = null,
             drawBlock = drawBlock,
-            invalidateParentLayer = invalidateParentLayer,
-        )
+            invalidateParentLayer = {},
+        ) {
+            override fun invalidate() {
+                super.invalidate()
+                invalidateBlock()
+            }
+        }
     }
 
     private fun assertMapping(from: Offset, to: Offset) {

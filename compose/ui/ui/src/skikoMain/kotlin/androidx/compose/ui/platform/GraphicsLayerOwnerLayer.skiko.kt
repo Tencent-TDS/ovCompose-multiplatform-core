@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-internal class GraphicsLayerOwnerLayer(
+internal open class GraphicsLayerOwnerLayer(
     private var graphicsLayer: GraphicsLayer,
     // when we have a context it means the object is created by us and we need to release it
     private val context: GraphicsContext?,
