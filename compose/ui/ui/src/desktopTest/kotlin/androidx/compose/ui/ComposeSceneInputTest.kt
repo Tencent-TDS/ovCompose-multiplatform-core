@@ -24,7 +24,7 @@ import org.junit.Test
 @OptIn(ExperimentalComposeUiApi::class)
 class ComposeSceneInputTest {
     @Test
-    fun move() = ImageComposeScene(100, 100).use { scene ->
+    fun move() = ImageComposeScene(100, 100).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
@@ -54,7 +54,7 @@ class ComposeSceneInputTest {
     }
 
     @Test
-    fun `move to popup`() = ImageComposeScene(100, 100).use { scene ->
+    fun `move to popup`() = ImageComposeScene(100, 100).useInUiThread { scene ->
         val background = FillBox()
         val cutPopup = PopupState(IntRect(-20, -20, 40, 40))
         val overlappedPopup = PopupState(IntRect(20, 20, 60, 60))
@@ -118,7 +118,7 @@ class ComposeSceneInputTest {
     }
 
     @Test
-    fun click() = ImageComposeScene(100, 100).use { scene ->
+    fun click() = ImageComposeScene(100, 100).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
@@ -149,7 +149,7 @@ class ComposeSceneInputTest {
     fun `pressed popup should own received moves outside popup`() = ImageComposeScene(
         100,
         100
-    ).use { scene ->
+    ).useInUiThread { scene ->
         val background = FillBox()
         val cutPopup = PopupState(IntRect(-20, -20, 40, 40))
         val overlappedPopup = PopupState(IntRect(20, 20, 60, 60))
@@ -269,7 +269,7 @@ class ComposeSceneInputTest {
     }
 
     @Test
-    fun scroll() = ImageComposeScene(100, 100).use { scene ->
+    fun scroll() = ImageComposeScene(100, 100).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
@@ -295,7 +295,7 @@ class ComposeSceneInputTest {
     }
 
     @Test
-    fun touch() = ImageComposeScene(100, 100).use { scene ->
+    fun touch() = ImageComposeScene(100, 100).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
@@ -333,7 +333,7 @@ class ComposeSceneInputTest {
     @Test
     fun `multitouch, send multiple touch changes as multiple events`() = ImageComposeScene(
         100, 100
-    ).use { scene ->
+    ).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
@@ -405,7 +405,7 @@ class ComposeSceneInputTest {
     @Test
     fun `multitouch, send multiple touch changes in a single event`() = ImageComposeScene(
         100, 100
-    ).use { scene ->
+    ).useInUiThread { scene ->
         val background = FillBox()
 
         scene.setContent {
