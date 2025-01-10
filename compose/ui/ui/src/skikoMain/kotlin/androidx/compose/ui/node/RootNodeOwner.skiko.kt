@@ -177,7 +177,6 @@ internal class RootNodeOwner(
     private val pointerInputEventProcessor = PointerInputEventProcessor(owner.root)
     private val measureAndLayoutDelegate = MeasureAndLayoutDelegate(owner.root)
     private var isDisposed = false
-    private var isDrawingContent = false
 
     init {
         snapshotObserver.startObserving()
@@ -242,16 +241,8 @@ internal class RootNodeOwner(
     }
 
     fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
-        isDrawingContent = true
-        graphicsContext.drawIntoCanvas(canvas) {
-            owner.root.draw(
-                canvas = it,
-                graphicsLayer = null // the root node will provide the root graphics layer
-            )
-        }
-        ownedLayerManager.updateDirtyLayers()
+        ownedLayerManager.draw(canvas)
         clearInvalidObservations()
-        isDrawingContent = false
     }
 
     fun setRootModifier(modifier: Modifier) {
@@ -671,6 +662,8 @@ internal class RootNodeOwner(
         // during the next AndroidComposeView dispatchDraw pass.
         private var postponedDirtyLayers: MutableList<OwnedLayer>? = null
 
+        private var isDrawingContent = false
+
         override fun createLayer(
             drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
             invalidateParentLayer: () -> Unit,
@@ -697,7 +690,6 @@ internal class RootNodeOwner(
                     dirtyLayers.remove(layer)
                     postponedDirtyLayers?.remove(layer)
                 }
-                invalidate()
             } else if (!isDrawingContent) {
                 dirtyLayers += layer
             } else {
@@ -712,7 +704,13 @@ internal class RootNodeOwner(
             snapshotInvalidationTracker.requestDraw()
         }
 
-        fun updateDirtyLayers() {
+        fun draw(canvas: Canvas) {
+            isDrawingContent = true
+
+            // Unlike Android, "draw" forms actual render commands sequence, so updating
+            // display lists after that won't affect current frame result.
+            // So, we applying it before drawing to reflect the changes from previous phases.
+            // Changes that requires another round of invalidation will be scheduled to next frame.
             if (dirtyLayers.isNotEmpty()) {
                 for (i in 0 until dirtyLayers.size) {
                     val layer = dirtyLayers[i]
@@ -720,6 +718,14 @@ internal class RootNodeOwner(
                 }
             }
             dirtyLayers.clear()
+
+            // Draw root node
+            graphicsContext.drawIntoCanvas(canvas) {
+                owner.root.draw(
+                    canvas = it,
+                    graphicsLayer = null // the root node will provide the root graphics layer
+                )
+            }
 
             // updateDisplayList operations performed above (during root.draw and during the explicit
             // layer.updateDisplayList() calls) can result in the same layers being invalidated. These
@@ -730,6 +736,8 @@ internal class RootNodeOwner(
                 dirtyLayers.addAll(postponed)
                 postponed.clear()
             }
+
+            isDrawingContent = false
         }
     }
 }
