@@ -501,12 +501,13 @@ class OwnerLayerTest {
             )
 
             val surface = Surface.makeRasterN32Premul(100, 100)
-            val canvas = surface.canvas
             val stateObserver = SnapshotStateObserver { it.invoke() }
 
             fun draw() {
                 stateObserver.observeReads(Unit, { layer.invalidate() }) {
-                    layer.drawLayer(canvas.asComposeCanvas(), null)
+                    graphicsContext!!.drawIntoCanvas(surface.canvas.asComposeCanvas()) { canvas ->
+                        layer.drawLayer(canvas, null)
+                    }
                 }
             }
 
@@ -549,7 +550,7 @@ class OwnerLayerTest {
         }
     }
 
-    private var graphicsContext: GraphicsContext? = null
+    private var graphicsContext: SkiaGraphicsContext? = null
 
     private fun TestRenderNodeLayer(
         invalidateBlock: () -> Unit = {},
