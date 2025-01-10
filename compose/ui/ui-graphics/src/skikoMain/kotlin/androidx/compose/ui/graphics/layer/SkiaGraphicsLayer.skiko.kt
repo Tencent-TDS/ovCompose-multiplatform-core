@@ -325,7 +325,7 @@ actual class GraphicsLayer internal constructor(
                 drawShadow(canvas)
             }
 
-            if (clip || shadowElevation > 0f) {
+            if (clip) {
                 canvas.save()
                 restoreCount++
 
