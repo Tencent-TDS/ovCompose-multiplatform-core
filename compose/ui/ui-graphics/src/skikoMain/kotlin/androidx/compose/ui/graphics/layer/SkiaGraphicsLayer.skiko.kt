@@ -283,8 +283,9 @@ actual class GraphicsLayer internal constructor(
         if (isReleased) return
         parentLayer?.addSubLayer(this)
 
-        configureOutline()
-        updateMatrix()
+        // Do any recalculation in [drawPlaceholder] because this block will be run only in case
+        // of parent layer invalidation. Things like transform should be applied without it.
+
         placeholder?.let {
             canvas.nativeCanvas.drawPicture(it, null, null)
         }
@@ -293,6 +294,9 @@ actual class GraphicsLayer internal constructor(
     internal fun drawPlaceholder(canvas: SkCanvas) {
         val recordedPicture = picture ?: return
         var restoreCount = 0
+
+        configureOutline()
+        updateMatrix()
 
         canvas.save()
         restoreCount++
