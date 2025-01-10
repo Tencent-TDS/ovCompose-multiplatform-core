@@ -192,6 +192,9 @@ internal class GraphicsLayerOwnerLayer(
         if (size != this.size) {
             this.size = size
             invalidate()
+
+            // Updating size invalidates placeholder reference, so parent layer must be redrawn
+            invalidateParentLayer?.invoke()
         }
     }
 
