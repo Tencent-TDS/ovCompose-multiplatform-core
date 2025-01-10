@@ -468,7 +468,7 @@ class WindowTest {
                         // toInt() because this is how the ComposeWindow rounds decimal sizes
                         // (see ComposeBridge.updateSceneSize)
                         actualCanvasSize = size.toInt()
-                        expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().roundToIntSize()
                     }
                 }
             }
