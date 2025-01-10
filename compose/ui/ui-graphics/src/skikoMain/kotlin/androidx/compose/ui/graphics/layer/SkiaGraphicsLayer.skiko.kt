@@ -166,6 +166,7 @@ actual class GraphicsLayer internal constructor(
         invalidateMatrix()
     }
 
+    // Note: Updating of placeholder REQUIRES parent layer invalidation
     private fun updatePlaceholder() {
         context.layerManager.unregisterPlaceholder(placeholder)
         placeholder?.close()
