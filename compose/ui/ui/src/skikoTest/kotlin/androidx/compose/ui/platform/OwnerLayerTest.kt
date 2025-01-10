@@ -558,17 +558,25 @@ class OwnerLayerTest {
         if (graphicsContext == null) {
             graphicsContext = SkiaGraphicsContext()
         }
-        return object : GraphicsLayerOwnerLayer(
+        return GraphicsLayerOwnerLayer(
             graphicsLayer = graphicsContext!!.createGraphicsLayer(),
             context = null,
+            layerManager = object : OwnedLayerManager {
+                override fun createLayer(
+                    drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
+                    invalidateParentLayer: () -> Unit,
+                    explicitLayer: GraphicsLayer?
+                ): OwnedLayer = throw NotImplementedError()
+                override fun recycle(layer: OwnedLayer) = false
+                override fun notifyLayerIsDirty(layer: OwnedLayer, isDirty: Boolean) = Unit
+
+                override fun invalidate() {
+                    invalidateBlock()
+                }
+            },
             drawBlock = drawBlock,
-            invalidateParentLayer = {},
-        ) {
-            override fun invalidate() {
-                super.invalidate()
-                invalidateBlock()
-            }
-        }
+            invalidateParentLayer = {}
+        )
     }
 
     private fun assertMapping(from: Offset, to: Offset) {

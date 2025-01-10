@@ -45,10 +45,11 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-internal open class GraphicsLayerOwnerLayer(
+internal class GraphicsLayerOwnerLayer(
     private var graphicsLayer: GraphicsLayer,
     // when we have a context it means the object is created by us and we need to release it
     private val context: GraphicsContext?,
+    private val layerManager: OwnedLayerManager,
     drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
     invalidateParentLayer: () -> Unit,
 ) : OwnedLayer {
@@ -67,7 +68,13 @@ internal open class GraphicsLayerOwnerLayer(
     private var inverseMatrixCache: Matrix? = null
 
     private var isDestroyed = false
-    private var isDirty = true
+    private var isDirty = false
+        set(value) {
+            if (value != field) {
+                field = value
+                layerManager.notifyLayerIsDirty(this, value)
+            }
+        }
     private var isMatrixDirty = false
     private var isInverseMatrixDirty = false
     private var isIdentity = true
@@ -220,6 +227,7 @@ internal open class GraphicsLayerOwnerLayer(
     override fun invalidate() {
         if (isDestroyed) return
         isDirty = true
+        layerManager.invalidate()
     }
 
     override fun destroy() {
@@ -227,7 +235,10 @@ internal open class GraphicsLayerOwnerLayer(
         invalidateParentLayer = null
         isDestroyed = true
         isDirty = false
-        context?.releaseGraphicsLayer(graphicsLayer)
+        if (context != null) {
+            context.releaseGraphicsLayer(graphicsLayer)
+            layerManager.recycle(this)
+        }
     }
 
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
