@@ -68,7 +68,7 @@ internal class GraphicsLayerOwnerLayer(
     private var inverseMatrixCache: Matrix? = null
 
     private var isDestroyed = false
-    private var isDirty = false
+    private var isDirty = true
         set(value) {
             if (value != field) {
                 field = value
