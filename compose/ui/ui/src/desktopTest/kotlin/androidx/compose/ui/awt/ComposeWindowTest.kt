@@ -43,6 +43,7 @@ import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_ENTERED
 import java.awt.event.MouseEvent.MOUSE_MOVED
 import java.awt.event.WindowEvent
+import kotlin.math.roundToInt
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.skiko.ExperimentalSkikoApi
 import org.jetbrains.skiko.GraphicsApi
@@ -155,8 +156,8 @@ class ComposeWindowTest {
 
                 assertThat(window.windowContext.windowInfo.containerSize)
                     .isEqualTo(IntSize(
-                        width = (234 * window.density.density).toInt(),
-                        height = (345 * window.density.density).toInt(),
+                        width = (234 * window.density.density).roundToInt(),
+                        height = (345 * window.density.density).roundToInt(),
                     ))
             } finally {
                 window.dispose()
