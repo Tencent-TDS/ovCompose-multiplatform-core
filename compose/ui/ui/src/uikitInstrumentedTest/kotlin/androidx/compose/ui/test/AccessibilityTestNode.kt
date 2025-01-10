@@ -16,8 +16,8 @@
 
 package androidx.compose.ui.test
 
-import androidx.compose.ui.uikit.toDpRect
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.asDpRect
 import kotlin.test.assertEquals
 import kotlin.test.fail
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -111,7 +111,7 @@ internal fun UIKitInstrumentedTest.getAccessibilityTree(): AccessibilityTestNode
             identifier = (element as? UIAccessibilityElement)?.accessibilityIdentifier,
             label = element.accessibilityLabel,
             value = element.accessibilityValue,
-            frame = element.accessibilityFrame.toDpRect(),
+            frame = element.accessibilityFrame.asDpRect(),
             children = children,
             traits = allAccessibilityTraits.keys.filter {
                 element.accessibilityTraits and it != 0.toULong()

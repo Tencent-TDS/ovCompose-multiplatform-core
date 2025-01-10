@@ -36,10 +36,10 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.toDpRect
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
@@ -672,7 +672,7 @@ internal class AccessibilityMediator(
             rect = UIEdgeInsetsInsetRect(view.bounds, view.safeAreaInsets),
             toView = null
         )
-        return rectInWindow.toDpRect().toRect(view.density)
+        return rectInWindow.asDpRect().toRect(view.density)
     }
 
     init {
