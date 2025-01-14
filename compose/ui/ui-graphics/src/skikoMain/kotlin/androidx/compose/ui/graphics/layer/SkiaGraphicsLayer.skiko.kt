@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.asSkiaColorFilter
 import androidx.compose.ui.graphics.asSkiaPath
+import androidx.compose.ui.graphics.copyInto
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.draw
@@ -422,7 +423,7 @@ actual class GraphicsLayer internal constructor(
         )
         matrixDirty = false
         matrixIdentity = matrix.isIdentity()
-        matrix.values.copyInto(matrixSkia.mat)
+        matrix.copyInto(matrixSkia)
     }
 
     actual var isReleased: Boolean = false

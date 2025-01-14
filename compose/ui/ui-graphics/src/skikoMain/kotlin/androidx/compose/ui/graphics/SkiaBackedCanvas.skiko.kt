@@ -27,7 +27,6 @@ import org.jetbrains.skia.CubicResampler
 import org.jetbrains.skia.FilterMipmap
 import org.jetbrains.skia.FilterMode
 import org.jetbrains.skia.Image
-import org.jetbrains.skia.Matrix44
 import org.jetbrains.skia.MipmapMode
 import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
@@ -98,7 +97,7 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
 
     override fun concat(matrix: Matrix) {
         if (!matrix.isIdentity()) {
-            skia.concat(matrix.toSkia())
+            skia.concat(matrix.toSkiaMatrix44())
         }
     }
 
@@ -367,8 +366,6 @@ private fun ClipOp.toSkia() = when (this) {
     ClipOp.Intersect -> SkClipMode.INTERSECT
     else -> SkClipMode.INTERSECT
 }
-
-private fun Matrix.toSkia() = Matrix44(*values)
 
 // These constants are chosen to correspond the old implementation of SkFilterQuality:
 // https://github.com/google/skia/blob/1f193df9b393d50da39570dab77a0bb5d28ec8ef/src/image/SkImage.cpp#L809
