@@ -63,9 +63,11 @@ kotlin {
                 if (isItForPublication) {
                     implementation "org.jetbrains.compose.animation:animation-core:1.7.1"
                     api "org.jetbrains.compose.runtime:runtime:1.7.1"
+                    api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
                 } else {
                     implementation(project(":compose:animation:animation-core"))
                     api(project(":compose:runtime:runtime"))
+                    api(project(":annotation:annotation"))
                 }
 
                 api "org.jetbrains.compose.animation:animation:1.7.1"
