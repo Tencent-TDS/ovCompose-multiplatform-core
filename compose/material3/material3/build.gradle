@@ -114,7 +114,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:foundation:foundation-layout"))
-                implementation("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+
+                // TODO: re-pin annotation again to 1.8.0, since currently material3 uses new APIs
+                //implementation("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
             }
 

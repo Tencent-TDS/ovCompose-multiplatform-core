@@ -19,7 +19,6 @@ package androidx.compose.ui
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 
 internal actual fun classKeyForObject(a: Any): Any {
@@ -36,7 +35,7 @@ internal actual fun InspectorInfo.tryPopulateReflectively(
 
 internal actual abstract class PlatformOptimizedCancellationException actual constructor(
     message: String?
-) : CancellationException(message)
+) : kotlinx.coroutines.CancellationException(message)
 
 internal actual val PostDelayedDispatcher: CoroutineContext
     get() = Dispatchers.Main
