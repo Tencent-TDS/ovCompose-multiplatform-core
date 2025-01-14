@@ -293,13 +293,11 @@ actual class GraphicsLayer internal constructor(
 
     internal fun drawPlaceholder(canvas: SkCanvas) {
         val recordedPicture = picture ?: return
-        var restoreCount = 0
 
         configureOutline()
         updateMatrix()
 
-        canvas.save()
-        restoreCount++
+        val restoreCount = canvas.save()
 
         if (!matrix.isIdentity()) {
             canvas.concat(matrix.toSkiaMatrix44())
@@ -312,7 +310,6 @@ actual class GraphicsLayer internal constructor(
 
         if (clip) {
             canvas.save()
-            restoreCount++
             canvas.clipOutline(internalOutline, bounds)
         }
 
@@ -327,17 +324,12 @@ actual class GraphicsLayer internal constructor(
                     blendMode = this@GraphicsLayer.blendMode.toSkia()
                 }
             )
-            restoreCount++
         } else {
             canvas.save()
-            restoreCount++
         }
 
         canvas.drawPicture(recordedPicture, null, null)
-
-        repeat(restoreCount) {
-            canvas.restore()
-        }
+        canvas.restoreToCount(restoreCount)
     }
 
     private fun onAddedToParentLayer() {
