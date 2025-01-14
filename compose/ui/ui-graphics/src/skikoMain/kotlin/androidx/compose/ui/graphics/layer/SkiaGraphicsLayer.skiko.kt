@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.prepareTransformationMatrix
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toSkia
-import androidx.compose.ui.graphics.toSkiaMatrix44
 import androidx.compose.ui.graphics.toSkiaRRect
 import androidx.compose.ui.graphics.toSkiaRect
 import androidx.compose.ui.unit.Density
@@ -54,6 +53,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
 import org.jetbrains.skia.Canvas as SkCanvas
+import org.jetbrains.skia.Matrix44 as SkMatrix44
 import org.jetbrains.skia.Paint as SkPaint
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
@@ -74,7 +74,9 @@ actual class GraphicsLayer internal constructor(
     private val bbhFactory = if (context.measureDrawBounds) RTreeFactory() else null
 
     private var matrixDirty = true
+    private var matrixIdentity = true
     private val matrix = Matrix()
+    private val matrixSkia = SkMatrix44(*matrix.values)
 
     actual var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
 
@@ -299,8 +301,8 @@ actual class GraphicsLayer internal constructor(
 
         val restoreCount = canvas.save()
 
-        if (!matrix.isIdentity()) {
-            canvas.concat(matrix.toSkiaMatrix44())
+        if (!matrixIdentity) {
+            canvas.concat(matrixSkia)
         }
         canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
 
@@ -419,6 +421,8 @@ actual class GraphicsLayer internal constructor(
             cameraDistance = cameraDistance
         )
         matrixDirty = false
+        matrixIdentity = matrix.isIdentity()
+        matrix.values.copyInto(matrixSkia.mat)
     }
 
     actual var isReleased: Boolean = false
@@ -485,7 +489,7 @@ actual class GraphicsLayer internal constructor(
 private fun SkCanvas.clipOutline(outline: Outline?, bounds: SkRect) = when (outline) {
     is Outline.Rectangle -> clipRect(outline.rect.toSkiaRect(), antiAlias = true)
     is Outline.Rounded -> clipRRect(outline.roundRect.toSkiaRRect(), antiAlias = true)
-    is Outline.Generic -> clipPath(outline.path.asSkiaPath())
+    is Outline.Generic -> clipPath(outline.path.asSkiaPath(), antiAlias = true)
     null -> clipRect(bounds, antiAlias = true)
 }
 

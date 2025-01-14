@@ -27,6 +27,7 @@ import org.jetbrains.skia.CubicResampler
 import org.jetbrains.skia.FilterMipmap
 import org.jetbrains.skia.FilterMode
 import org.jetbrains.skia.Image
+import org.jetbrains.skia.Matrix44
 import org.jetbrains.skia.MipmapMode
 import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
@@ -97,7 +98,7 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
 
     override fun concat(matrix: Matrix) {
         if (!matrix.isIdentity()) {
-            skia.concat(matrix.toSkiaMatrix44())
+            skia.concat(matrix.toSkia())
         }
     }
 
@@ -359,20 +360,22 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
             paint.asFrameworkPaint()
         )
     }
+}
 
-    private fun ClipOp.toSkia() = when (this) {
-        ClipOp.Difference -> SkClipMode.DIFFERENCE
-        ClipOp.Intersect -> SkClipMode.INTERSECT
-        else -> SkClipMode.INTERSECT
-    }
+private fun ClipOp.toSkia() = when (this) {
+    ClipOp.Difference -> SkClipMode.DIFFERENCE
+    ClipOp.Intersect -> SkClipMode.INTERSECT
+    else -> SkClipMode.INTERSECT
+}
 
-    // These constants are chosen to correspond the old implementation of SkFilterQuality:
-    // https://github.com/google/skia/blob/1f193df9b393d50da39570dab77a0bb5d28ec8ef/src/image/SkImage.cpp#L809
-    // https://github.com/google/skia/blob/1f193df9b393d50da39570dab77a0bb5d28ec8ef/include/core/SkSamplingOptions.h#L86
-    private fun FilterQuality.toSkia(): SamplingMode = when (this) {
-        FilterQuality.Low -> FilterMipmap(FilterMode.LINEAR, MipmapMode.NONE)
-        FilterQuality.Medium -> FilterMipmap(FilterMode.LINEAR, MipmapMode.NEAREST)
-        FilterQuality.High -> CubicResampler(1 / 3.0f, 1 / 3.0f)
-        else -> FilterMipmap(FilterMode.NEAREST, MipmapMode.NONE)
-    }
+private fun Matrix.toSkia() = Matrix44(*values)
+
+// These constants are chosen to correspond the old implementation of SkFilterQuality:
+// https://github.com/google/skia/blob/1f193df9b393d50da39570dab77a0bb5d28ec8ef/src/image/SkImage.cpp#L809
+// https://github.com/google/skia/blob/1f193df9b393d50da39570dab77a0bb5d28ec8ef/include/core/SkSamplingOptions.h#L86
+private fun FilterQuality.toSkia(): SamplingMode = when (this) {
+    FilterQuality.Low -> FilterMipmap(FilterMode.LINEAR, MipmapMode.NONE)
+    FilterQuality.Medium -> FilterMipmap(FilterMode.LINEAR, MipmapMode.NEAREST)
+    FilterQuality.High -> CubicResampler(1 / 3.0f, 1 / 3.0f)
+    else -> FilterMipmap(FilterMode.NEAREST, MipmapMode.NONE)
 }
