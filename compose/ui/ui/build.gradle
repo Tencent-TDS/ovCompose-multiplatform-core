@@ -144,8 +144,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         darwin()
         js()
         wasm()
-        // TODO: make a YT ticket!!!
-        // iosInstrumentedTest() // 2.1.0 doesn't support declaring the same target twice https://kotlinlang.org/docs/whatsnew21.html#dropped-support-for-declaring-multiple-targets-of-the-same-type
+        // TODO: Migrate iosInstrumentedTest to kotlin 2.1.0
+        //  https://youtrack.jetbrains.com/issue/CMP-7390/Migrate-iosInstrumentedTest-target-to-kotlin-2.1.0
+        //  Kotlin 2.1.0 doesn't support declaring multiple targets of the same type
+        // iosInstrumentedTest()
 
         configureDarwinFlags()
     }
