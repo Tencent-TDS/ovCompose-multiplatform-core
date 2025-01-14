@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.GlobalSnapshotManager
 import androidx.compose.ui.util.trace
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
+import org.jetbrains.skiko.FPSCounter
 
 /**
  * BaseComposeScene is an internal abstract class that implements the ComposeScene interface.
@@ -101,9 +102,9 @@ internal abstract class BaseComposeScene(
     protected fun updateInvalidations() {
         hasPendingDraws = frameClock.hasAwaiters ||
             snapshotInvalidationTracker.hasInvalidations
-        if (hasPendingDraws && !isInvalidationDisabled && !isClosed && composition != null) {
+        //if (hasPendingDraws && !isInvalidationDisabled && !isClosed && composition != null) {
             invalidate()
-        }
+       // }
     }
 
     override var compositionLocalContext: CompositionLocalContext? by mutableStateOf(null)
@@ -152,11 +153,13 @@ internal abstract class BaseComposeScene(
         recomposer.performScheduledRecomposerTasks()
     }
 
+    val fpsCounter = FPSCounter(periodSeconds = 4.0, logOnTick = true)
+
     override fun render(canvas: Canvas, nanoTime: Long) {
         // This is a no-op if the scene is closed, this situation can happen if the scene is
         // in the list for rendering, but recomposition in another scene from the same list
         // processed earlier has closed it.
-
+        fpsCounter.tick()
         if (isClosed) return
 
         postponeInvalidation("BaseComposeScene:render") {
