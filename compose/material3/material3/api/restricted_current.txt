@@ -42,15 +42,15 @@ package androidx.compose.material3 {
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static androidx.compose.material3.BottomAppBarState BottomAppBarState(float initialHeightOffsetLimit, float initialHeightOffset, float initialContentOffset);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void CenterAlignedTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void CenterAlignedTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void LargeFlexibleTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? subtitle, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.ui.Alignment.Horizontal titleHorizontalAlignment, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void LargeTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void LargeTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void LargeTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, kotlin.jvm.functions.Function0<kotlin.Unit>? subtitle, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional int titleHorizontalAlignment, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void MediumFlexibleTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? subtitle, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.ui.Alignment.Horizontal titleHorizontalAlignment, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void MediumTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void MediumTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void MediumTopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, kotlin.jvm.functions.Function0<kotlin.Unit>? subtitle, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional int titleHorizontalAlignment, optional float collapsedHeight, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void TopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void TopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void TopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, kotlin.jvm.functions.Function0<kotlin.Unit> subtitle, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional int titleHorizontalAlignment, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void TopAppBar(kotlin.jvm.functions.Function0<kotlin.Unit> title, kotlin.jvm.functions.Function0<kotlin.Unit> subtitle, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> navigationIcon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> actions, optional androidx.compose.ui.Alignment.Horizontal titleHorizontalAlignment, optional float expandedHeight, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.material3.TopAppBarColors colors, optional androidx.compose.material3.TopAppBarScrollBehavior? scrollBehavior);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static androidx.compose.material3.BottomAppBarState rememberBottomAppBarState(optional float initialHeightOffsetLimit, optional float initialHeightOffset, optional float initialContentOffset);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static androidx.compose.material3.TopAppBarState rememberTopAppBarState(optional float initialHeightOffsetLimit, optional float initialHeightOffset, optional float initialContentOffset);
   }
@@ -697,12 +697,12 @@ package androidx.compose.material3 {
     property public abstract kotlin.ranges.IntRange yearRange;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public final class DefaultNavigationBarComponentOverride implements androidx.compose.material3.NavigationBarComponentOverride {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public final class DefaultNavigationBarComponentOverride implements androidx.compose.material3.NavigationBarComponentOverride {
     method @androidx.compose.runtime.Composable public void NavigationBar(androidx.compose.material3.NavigationBarComponentOverrideContext);
     field public static final androidx.compose.material3.DefaultNavigationBarComponentOverride INSTANCE;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public final class DefaultNavigationRailComponentOverride implements androidx.compose.material3.NavigationRailComponentOverride {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public final class DefaultNavigationRailComponentOverride implements androidx.compose.material3.NavigationRailComponentOverride {
     method @androidx.compose.runtime.Composable public void NavigationRail(androidx.compose.material3.NavigationRailComponentOverrideContext);
     field public static final androidx.compose.material3.DefaultNavigationRailComponentOverride INSTANCE;
   }
@@ -822,6 +822,9 @@ package androidx.compose.material3 {
   }
 
   @SuppressCompatibility @kotlin.RequiresOptIn(message="This material API is experimental and is likely to change or to be removed in" + " the future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalMaterial3Api {
+  }
+
+  @SuppressCompatibility @kotlin.RequiresOptIn(message="This material3 API is experimental and is likely to change or to be removed in the" + " future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalMaterial3ComponentOverrideApi {
   }
 
   @SuppressCompatibility @kotlin.RequiresOptIn(message="This material3 API is experimental and is likely to change or to be removed in the" + " future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalMaterial3ExpressiveApi {
@@ -958,32 +961,55 @@ package androidx.compose.material3 {
     property public abstract androidx.compose.ui.Alignment.Horizontal horizontalAlignment;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public final class FloatingAppBarDefaults {
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingAppBarScrollBehavior exitAlwaysScrollBehavior(int exitDirection, optional androidx.compose.material3.FloatingAppBarState state, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> snapAnimationSpec, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> flingAnimationSpec);
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Immutable public final class FloatingToolbarColors {
+    ctor public FloatingToolbarColors(long toolbarContainerColor, long toolbarContentColor, long fabContainerColor, long fabContentColor);
+    method public androidx.compose.material3.FloatingToolbarColors copy(optional long toolbarContainerColor, optional long toolbarContentColor, optional long fabContainerColor, optional long fabContentColor);
+    method public long getFabContainerColor();
+    method public long getFabContentColor();
+    method public long getToolbarContainerColor();
+    method public long getToolbarContentColor();
+    property public final long fabContainerColor;
+    property public final long fabContentColor;
+    property public final long toolbarContainerColor;
+    property public final long toolbarContentColor;
+  }
+
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public final class FloatingToolbarDefaults {
+    method @androidx.compose.runtime.Composable public void StandardFloatingActionButton(kotlin.jvm.functions.Function0<kotlin.Unit> onClick, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.ui.graphics.Shape shape, optional long containerColor, optional long contentColor, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public void VibrantFloatingActionButton(kotlin.jvm.functions.Function0<kotlin.Unit> onClick, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.ui.graphics.Shape shape, optional long containerColor, optional long contentColor, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public <T> androidx.compose.animation.core.FiniteAnimationSpec<T> animationSpec();
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingToolbarScrollBehavior exitAlwaysScrollBehavior(int exitDirection, optional androidx.compose.material3.FloatingToolbarState state, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> snapAnimationSpec, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> flingAnimationSpec);
+    method public androidx.compose.ui.Modifier floatingToolbarVerticalNestedScroll(androidx.compose.ui.Modifier, boolean expanded, kotlin.jvm.functions.Function0<kotlin.Unit> onExpand, kotlin.jvm.functions.Function0<kotlin.Unit> onCollapse, optional float expandScrollDistanceThreshold, optional float collapseScrollDistanceThreshold, optional boolean reverseLayout);
     method @androidx.compose.runtime.Composable public long getContainerColor();
     method public float getContainerElevation();
     method @androidx.compose.runtime.Composable public androidx.compose.ui.graphics.Shape getContainerShape();
     method public float getContainerSize();
     method public androidx.compose.foundation.layout.PaddingValues getContentPadding();
     method public float getScreenOffset();
+    method public float getScrollDistanceThreshold();
     method @androidx.compose.runtime.Composable public androidx.compose.animation.EnterTransition horizontalEnterTransition(androidx.compose.ui.Alignment.Horizontal expandFrom);
     method @androidx.compose.runtime.Composable public androidx.compose.animation.ExitTransition horizontalExitTransition(androidx.compose.ui.Alignment.Horizontal shrinkTowards);
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingToolbarColors standardFloatingToolbarColors();
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingToolbarColors standardFloatingToolbarColors(optional long toolbarContainerColor, optional long toolbarContentColor, optional long fabContainerColor, optional long fabContentColor);
     method @androidx.compose.runtime.Composable public androidx.compose.animation.EnterTransition verticalEnterTransition(androidx.compose.ui.Alignment.Vertical expandFrom);
     method @androidx.compose.runtime.Composable public androidx.compose.animation.ExitTransition verticalExitTransition(androidx.compose.ui.Alignment.Vertical shrinkTowards);
-    property @androidx.compose.runtime.Composable public final long ContainerColor;
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingToolbarColors vibrantFloatingToolbarColors();
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.FloatingToolbarColors vibrantFloatingToolbarColors(optional long toolbarContainerColor, optional long toolbarContentColor, optional long fabContainerColor, optional long fabContentColor);
+    property @Deprecated @androidx.compose.runtime.Composable public long ContainerColor;
     property public final float ContainerElevation;
     property @androidx.compose.runtime.Composable public final androidx.compose.ui.graphics.Shape ContainerShape;
     property public final float ContainerSize;
     property public final androidx.compose.foundation.layout.PaddingValues ContentPadding;
     property public final float ScreenOffset;
-    field public static final androidx.compose.material3.FloatingAppBarDefaults INSTANCE;
+    property public final float ScrollDistanceThreshold;
+    field public static final androidx.compose.material3.FloatingToolbarDefaults INSTANCE;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class FloatingAppBarExitDirection {
-    field public static final androidx.compose.material3.FloatingAppBarExitDirection.Companion Companion;
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class FloatingToolbarExitDirection {
+    field public static final androidx.compose.material3.FloatingToolbarExitDirection.Companion Companion;
   }
 
-  public static final class FloatingAppBarExitDirection.Companion {
+  public static final class FloatingToolbarExitDirection.Companion {
     method public int getBottom();
     method public int getEnd();
     method public int getStart();
@@ -994,26 +1020,41 @@ package androidx.compose.material3 {
     property public final int Top;
   }
 
-  public final class FloatingAppBarKt {
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public static androidx.compose.material3.FloatingAppBarState FloatingAppBarState(float initialOffsetLimit, float initialOffset, float initialContentOffset);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void HorizontalFloatingAppBar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingAppBarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void VerticalFloatingAppBar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingAppBarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> content);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static androidx.compose.material3.FloatingAppBarState rememberFloatingAppBarState(optional float initialOffsetLimit, optional float initialOffset, optional float initialContentOffset);
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class FloatingToolbarHorizontalFabPosition {
+    field public static final androidx.compose.material3.FloatingToolbarHorizontalFabPosition.Companion Companion;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Stable public sealed interface FloatingAppBarScrollBehavior extends androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+  public static final class FloatingToolbarHorizontalFabPosition.Companion {
+    method public int getEnd();
+    method public int getStart();
+    property public final int End;
+    property public final int Start;
+  }
+
+  public final class FloatingToolbarKt {
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public static androidx.compose.material3.FloatingToolbarState FloatingToolbarState(float initialOffsetLimit, float initialOffset, float initialContentOffset);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void HorizontalFloatingToolbar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.FloatingToolbarColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingToolbarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void HorizontalFloatingToolbar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingToolbarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void HorizontalFloatingToolbar(boolean expanded, kotlin.jvm.functions.Function0<kotlin.Unit> floatingActionButton, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.FloatingToolbarColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.ui.graphics.Shape shape, optional int floatingActionButtonPosition, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> animationSpec, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void VerticalFloatingToolbar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.FloatingToolbarColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingToolbarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> content);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void VerticalFloatingToolbar(boolean expanded, optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.material3.FloatingToolbarScrollBehavior? scrollBehavior, optional androidx.compose.ui.graphics.Shape shape, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? leadingContent, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? trailingContent, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void VerticalFloatingToolbar(boolean expanded, kotlin.jvm.functions.Function0<kotlin.Unit> floatingActionButton, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.FloatingToolbarColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.ui.graphics.Shape shape, optional int floatingActionButtonPosition, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> animationSpec, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static androidx.compose.material3.FloatingToolbarState rememberFloatingToolbarState(optional float initialOffsetLimit, optional float initialOffset, optional float initialContentOffset);
+  }
+
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Stable public sealed interface FloatingToolbarScrollBehavior extends androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
     method public androidx.compose.ui.Modifier floatingScrollBehavior(androidx.compose.ui.Modifier);
     method public int getExitDirection();
     method public androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> getFlingAnimationSpec();
     method public androidx.compose.animation.core.AnimationSpec<java.lang.Float> getSnapAnimationSpec();
-    method public androidx.compose.material3.FloatingAppBarState getState();
+    method public androidx.compose.material3.FloatingToolbarState getState();
     property public abstract int exitDirection;
     property public abstract androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> flingAnimationSpec;
     property public abstract androidx.compose.animation.core.AnimationSpec<java.lang.Float> snapAnimationSpec;
-    property public abstract androidx.compose.material3.FloatingAppBarState state;
+    property public abstract androidx.compose.material3.FloatingToolbarState state;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public interface FloatingAppBarState {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public interface FloatingToolbarState {
     method public float getContentOffset();
     method public float getOffset();
     method public float getOffsetLimit();
@@ -1023,10 +1064,21 @@ package androidx.compose.material3 {
     property public abstract float contentOffset;
     property public abstract float offset;
     property public abstract float offsetLimit;
-    field public static final androidx.compose.material3.FloatingAppBarState.Companion Companion;
+    field public static final androidx.compose.material3.FloatingToolbarState.Companion Companion;
   }
 
-  public static final class FloatingAppBarState.Companion {
+  public static final class FloatingToolbarState.Companion {
+  }
+
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class FloatingToolbarVerticalFabPosition {
+    field public static final androidx.compose.material3.FloatingToolbarVerticalFabPosition.Companion Companion;
+  }
+
+  public static final class FloatingToolbarVerticalFabPosition.Companion {
+    method public int getBottom();
+    method public int getTop();
+    property public final int Bottom;
+    property public final int Top;
   }
 
   @androidx.compose.runtime.Immutable public final class IconButtonColors {
@@ -1488,11 +1540,11 @@ package androidx.compose.material3 {
   public interface MultiChoiceSegmentedButtonRowScope extends androidx.compose.foundation.layout.RowScope {
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public interface NavigationBarComponentOverride {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public interface NavigationBarComponentOverride {
     method @androidx.compose.runtime.Composable public void NavigationBar(androidx.compose.material3.NavigationBarComponentOverrideContext);
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public final class NavigationBarComponentOverrideContext {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public final class NavigationBarComponentOverrideContext {
     method public long getContainerColor();
     method public kotlin.jvm.functions.Function1<androidx.compose.foundation.layout.RowScope,kotlin.Unit> getContent();
     method public long getContentColor();
@@ -1546,8 +1598,8 @@ package androidx.compose.material3 {
   public final class NavigationBarKt {
     method @androidx.compose.runtime.Composable public static void NavigationBar(optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional long contentColor, optional float tonalElevation, optional androidx.compose.foundation.layout.WindowInsets windowInsets, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void NavigationBarItem(androidx.compose.foundation.layout.RowScope, boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onClick, kotlin.jvm.functions.Function0<kotlin.Unit> icon, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional boolean alwaysShowLabel, optional androidx.compose.material3.NavigationBarItemColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationBarComponentOverride> getLocalNavigationBarComponentOverride();
-    property @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationBarComponentOverride> LocalNavigationBarComponentOverride;
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationBarComponentOverride> getLocalNavigationBarComponentOverride();
+    property @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationBarComponentOverride> LocalNavigationBarComponentOverride;
   }
 
   @androidx.compose.runtime.Stable public interface NavigationDrawerItemColors {
@@ -1609,11 +1661,11 @@ package androidx.compose.material3 {
     property public final int Top;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public interface NavigationRailComponentOverride {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public interface NavigationRailComponentOverride {
     method @androidx.compose.runtime.Composable public void NavigationRail(androidx.compose.material3.NavigationRailComponentOverrideContext);
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public final class NavigationRailComponentOverrideContext {
+  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public final class NavigationRailComponentOverrideContext {
     method public long getContainerColor();
     method public kotlin.jvm.functions.Function1<androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> getContent();
     method public long getContentColor();
@@ -1665,8 +1717,8 @@ package androidx.compose.material3 {
   public final class NavigationRailKt {
     method @androidx.compose.runtime.Composable public static void NavigationRail(optional androidx.compose.ui.Modifier modifier, optional long containerColor, optional long contentColor, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit>? header, optional androidx.compose.foundation.layout.WindowInsets windowInsets, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.ColumnScope,kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void NavigationRailItem(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onClick, kotlin.jvm.functions.Function0<kotlin.Unit> icon, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional boolean alwaysShowLabel, optional androidx.compose.material3.NavigationRailItemColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationRailComponentOverride> getLocalNavigationRailComponentOverride();
-    property @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationRailComponentOverride> LocalNavigationRailComponentOverride;
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationRailComponentOverride> getLocalNavigationRailComponentOverride();
+    property @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.NavigationRailComponentOverride> LocalNavigationRailComponentOverride;
   }
 
   @androidx.compose.runtime.Immutable public final class OutlinedTextFieldDefaults {
@@ -2105,14 +2157,17 @@ package androidx.compose.material3 {
   }
 
   @androidx.compose.runtime.Stable public final class SliderDefaults {
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public void Thumb(androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, androidx.compose.material3.SliderState sliderState, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.SliderColors colors, optional boolean enabled, optional long thumbSize);
     method @androidx.compose.runtime.Composable public void Thumb(androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.SliderColors colors, optional boolean enabled, optional long thumbSize);
     method @Deprecated @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.RangeSliderState rangeSliderState, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.SliderColors colors, optional boolean enabled);
     method @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.RangeSliderState rangeSliderState, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.material3.SliderColors colors, optional kotlin.jvm.functions.Function2<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,kotlin.Unit>? drawStopIndicator, optional kotlin.jvm.functions.Function3<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,? super androidx.compose.ui.graphics.Color,kotlin.Unit> drawTick, optional float thumbTrackGapSize, optional float trackInsideCornerSize);
     method @Deprecated @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.SliderPositions sliderPositions, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.SliderColors colors, optional boolean enabled);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.SliderState sliderState, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.SliderColors colors, optional boolean enabled);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.SliderState sliderState, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.material3.SliderColors colors, optional kotlin.jvm.functions.Function2<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,kotlin.Unit>? drawStopIndicator, optional kotlin.jvm.functions.Function3<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,? super androidx.compose.ui.graphics.Color,kotlin.Unit> drawTick, optional float thumbTrackGapSize, optional float trackInsideCornerSize);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public void Track(androidx.compose.material3.SliderState sliderState, float trackCornerSize, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.material3.SliderColors colors, optional kotlin.jvm.functions.Function2<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,kotlin.Unit>? drawStopIndicator, optional kotlin.jvm.functions.Function3<? super androidx.compose.ui.graphics.drawscope.DrawScope,? super androidx.compose.ui.geometry.Offset,? super androidx.compose.ui.graphics.Color,kotlin.Unit> drawTick, optional float thumbTrackGapSize, optional float trackInsideCornerSize);
     method @androidx.compose.runtime.Composable public androidx.compose.material3.SliderColors colors();
     method @androidx.compose.runtime.Composable public androidx.compose.material3.SliderColors colors(optional long thumbColor, optional long activeTrackColor, optional long activeTickColor, optional long inactiveTrackColor, optional long inactiveTickColor, optional long disabledThumbColor, optional long disabledActiveTrackColor, optional long disabledActiveTickColor, optional long disabledInactiveTrackColor, optional long disabledInactiveTickColor);
+    method public void drawStopIndicator(androidx.compose.ui.graphics.drawscope.DrawScope, long offset, float size, long color);
     method public float getTickSize();
     method public float getTrackStopIndicatorSize();
     property public final float TickSize;
@@ -2127,6 +2182,7 @@ package androidx.compose.material3 {
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void Slider(androidx.compose.material3.SliderState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.material3.SliderColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> thumb, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> track);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void Slider(float value, kotlin.jvm.functions.Function1<? super java.lang.Float,kotlin.Unit> onValueChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional kotlin.jvm.functions.Function0<kotlin.Unit>? onValueChangeFinished, optional androidx.compose.material3.SliderColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional @IntRange(from=0L) int steps, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> thumb, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> track, optional kotlin.ranges.ClosedFloatingPointRange<java.lang.Float> valueRange);
     method @androidx.compose.runtime.Composable public static void Slider(float value, kotlin.jvm.functions.Function1<? super java.lang.Float,kotlin.Unit> onValueChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional kotlin.ranges.ClosedFloatingPointRange<java.lang.Float> valueRange, optional @IntRange(from=0L) int steps, optional kotlin.jvm.functions.Function0<kotlin.Unit>? onValueChangeFinished, optional androidx.compose.material3.SliderColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void VerticalSlider(androidx.compose.material3.SliderState state, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional boolean reverseDirection, optional androidx.compose.material3.SliderColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource interactionSource, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> thumb, optional kotlin.jvm.functions.Function1<? super androidx.compose.material3.SliderState,kotlin.Unit> track);
   }
 
   @Deprecated @androidx.compose.runtime.Stable public final class SliderPositions {
@@ -2143,12 +2199,17 @@ package androidx.compose.material3 {
     ctor public SliderState(optional float value, optional @IntRange(from=0L) int steps, optional kotlin.jvm.functions.Function0<kotlin.Unit>? onValueChangeFinished, optional kotlin.ranges.ClosedFloatingPointRange<java.lang.Float> valueRange);
     method public void dispatchRawDelta(float delta);
     method public suspend Object? drag(androidx.compose.foundation.MutatePriority dragPriority, kotlin.jvm.functions.Function2<? super androidx.compose.foundation.gestures.DragScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+    method public float getCoercedValueAsFraction();
+    method public kotlin.jvm.functions.Function1<java.lang.Float,kotlin.Unit>? getOnValueChange();
     method public kotlin.jvm.functions.Function0<kotlin.Unit>? getOnValueChangeFinished();
     method public int getSteps();
     method public float getValue();
     method public kotlin.ranges.ClosedFloatingPointRange<java.lang.Float> getValueRange();
+    method public void setOnValueChange(kotlin.jvm.functions.Function1<? super java.lang.Float,kotlin.Unit>?);
     method public void setOnValueChangeFinished(kotlin.jvm.functions.Function0<kotlin.Unit>?);
     method public void setValue(float);
+    property public final float coercedValueAsFraction;
+    property public final kotlin.jvm.functions.Function1<java.lang.Float,kotlin.Unit>? onValueChange;
     property public final kotlin.jvm.functions.Function0<kotlin.Unit>? onValueChangeFinished;
     property @IntRange(from=0L) public final int steps;
     property public final float value;
@@ -2536,7 +2597,8 @@ package androidx.compose.material3 {
     method @androidx.compose.runtime.Composable public androidx.compose.ui.graphics.Shape getShape();
     method @Deprecated public float getUnfocusedBorderThickness();
     method public float getUnfocusedIndicatorThickness();
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public androidx.compose.ui.Modifier indicatorLine(androidx.compose.ui.Modifier, boolean enabled, boolean isError, androidx.compose.foundation.interaction.InteractionSource interactionSource, androidx.compose.material3.TextFieldColors colors, optional float focusedIndicatorLineThickness, optional float unfocusedIndicatorLineThickness);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public androidx.compose.ui.Modifier indicatorLine(androidx.compose.ui.Modifier, boolean enabled, boolean isError, androidx.compose.foundation.interaction.InteractionSource interactionSource, optional androidx.compose.material3.TextFieldColors? colors, optional androidx.compose.ui.graphics.Shape? textFieldShape, optional float focusedIndicatorLineThickness, optional float unfocusedIndicatorLineThickness);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public androidx.compose.ui.Modifier indicatorLine(androidx.compose.ui.Modifier, boolean enabled, boolean isError, androidx.compose.foundation.interaction.InteractionSource interactionSource, androidx.compose.material3.TextFieldColors colors, optional float focusedIndicatorLineThickness, optional float unfocusedIndicatorLineThickness);
     method @Deprecated public androidx.compose.foundation.layout.PaddingValues outlinedTextFieldPadding(optional float start, optional float top, optional float end, optional float bottom);
     method @Deprecated public androidx.compose.foundation.layout.PaddingValues textFieldWithLabelPadding(optional float start, optional float end, optional float top, optional float bottom);
     method @Deprecated public androidx.compose.foundation.layout.PaddingValues textFieldWithoutLabelPadding(optional float start, optional float top, optional float end, optional float bottom);
@@ -2809,6 +2871,8 @@ package androidx.compose.material3 {
   }
 
   public final class TooltipKt {
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void PlainTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional long contentColor, optional long containerColor, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void RichTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? title, optional kotlin.jvm.functions.Function0<kotlin.Unit>? action, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.RichTooltipColors colors, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> text);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void TooltipBox(androidx.compose.ui.window.PopupPositionProvider positionProvider, kotlin.jvm.functions.Function1<? super androidx.compose.material3.TooltipScope,kotlin.Unit> tooltip, androidx.compose.material3.TooltipState state, optional androidx.compose.ui.Modifier modifier, optional boolean focusable, optional boolean enableUserInput, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void TooltipBox(androidx.compose.ui.window.PopupPositionProvider positionProvider, kotlin.jvm.functions.Function1<? super androidx.compose.material3.TooltipScope,kotlin.Unit> tooltip, androidx.compose.material3.TooltipState state, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? onDismissRequest, optional boolean focusable, optional boolean enableUserInput, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public static androidx.compose.material3.TooltipState TooltipState(optional boolean initialIsVisible, optional boolean isPersistent, optional androidx.compose.foundation.MutatorMutex mutatorMutex);
@@ -2833,57 +2897,61 @@ package androidx.compose.material3 {
 
   public final class Tooltip_androidKt {
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void PlainTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional long caretSize, optional androidx.compose.ui.graphics.Shape shape, optional long contentColor, optional long containerColor, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> content);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void PlainTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional long contentColor, optional long containerColor, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void PlainTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional long contentColor, optional long containerColor, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void RichTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? title, optional kotlin.jvm.functions.Function0<kotlin.Unit>? action, optional long caretSize, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.RichTooltipColors colors, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> text);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void RichTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? title, optional kotlin.jvm.functions.Function0<kotlin.Unit>? action, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.RichTooltipColors colors, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> text);
+    method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public static void RichTooltip(androidx.compose.material3.TooltipScope, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit>? title, optional kotlin.jvm.functions.Function0<kotlin.Unit>? action, optional long caretSize, optional float maxWidth, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.RichTooltipColors colors, optional float tonalElevation, optional float shadowElevation, kotlin.jvm.functions.Function0<kotlin.Unit> text);
   }
 
   @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Stable public final class TopAppBarColors {
-    ctor public TopAppBarColors(long containerColor, long scrolledContainerColor, long navigationIconContentColor, long titleContentColor, long actionIconContentColor);
-    method public androidx.compose.material3.TopAppBarColors copy(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    ctor @Deprecated public TopAppBarColors(long containerColor, long scrolledContainerColor, long navigationIconContentColor, long titleContentColor, long actionIconContentColor);
+    ctor public TopAppBarColors(long containerColor, long scrolledContainerColor, long navigationIconContentColor, long titleContentColor, long actionIconContentColor, long subtitleContentColor);
+    method public androidx.compose.material3.TopAppBarColors copy(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor, optional long subtitleContentColor);
     method public long getActionIconContentColor();
     method public long getContainerColor();
     method public long getNavigationIconContentColor();
     method public long getScrolledContainerColor();
+    method public long getSubtitleContentColor();
     method public long getTitleContentColor();
     property public final long actionIconContentColor;
     property public final long containerColor;
     property public final long navigationIconContentColor;
     property public final long scrolledContainerColor;
+    property public final long subtitleContentColor;
     property public final long titleContentColor;
   }
 
   @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api public final class TopAppBarDefaults {
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors centerAlignedTopAppBarColors();
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors centerAlignedTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors centerAlignedTopAppBarColors();
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors centerAlignedTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
     method @Deprecated @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarScrollBehavior enterAlwaysScrollBehavior(optional androidx.compose.material3.TopAppBarState state, optional kotlin.jvm.functions.Function0<java.lang.Boolean> canScroll, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float>? snapAnimationSpec, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float>? flingAnimationSpec);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarScrollBehavior enterAlwaysScrollBehavior(optional androidx.compose.material3.TopAppBarState state, optional kotlin.jvm.functions.Function0<java.lang.Boolean> canScroll, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float>? snapAnimationSpec, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float>? flingAnimationSpec, optional boolean reverseLayout);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarScrollBehavior exitUntilCollapsedScrollBehavior(optional androidx.compose.material3.TopAppBarState state, optional kotlin.jvm.functions.Function0<java.lang.Boolean> canScroll, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float>? snapAnimationSpec, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float>? flingAnimationSpec);
     method public float getLargeAppBarCollapsedHeight();
     method public float getLargeAppBarExpandedHeight();
-    method public float getLargeAppBarWithSubtitleExpandedHeight();
-    method public float getLargeAppBarWithoutSubtitleExpandedHeight();
+    method public float getLargeFlexibleAppBarWithSubtitleExpandedHeight();
+    method public float getLargeFlexibleAppBarWithoutSubtitleExpandedHeight();
     method public float getMediumAppBarCollapsedHeight();
     method public float getMediumAppBarExpandedHeight();
-    method public float getMediumAppBarWithSubtitleExpandedHeight();
-    method public float getMediumAppBarWithoutSubtitleExpandedHeight();
+    method public float getMediumFlexibleAppBarWithSubtitleExpandedHeight();
+    method public float getMediumFlexibleAppBarWithoutSubtitleExpandedHeight();
     method public float getTopAppBarExpandedHeight();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.WindowInsets getWindowInsets();
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors largeTopAppBarColors();
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors largeTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors mediumTopAppBarColors();
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors mediumTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors largeTopAppBarColors();
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors largeTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors mediumTopAppBarColors();
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors mediumTopAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3Api @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarScrollBehavior pinnedScrollBehavior(optional androidx.compose.material3.TopAppBarState state, optional kotlin.jvm.functions.Function0<java.lang.Boolean> canScroll);
     method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors topAppBarColors();
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors topAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors topAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor);
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.TopAppBarColors topAppBarColors(optional long containerColor, optional long scrolledContainerColor, optional long navigationIconContentColor, optional long titleContentColor, optional long actionIconContentColor, optional long subtitleContentColor);
     property public final float LargeAppBarCollapsedHeight;
     property public final float LargeAppBarExpandedHeight;
-    property public final float LargeAppBarWithSubtitleExpandedHeight;
-    property public final float LargeAppBarWithoutSubtitleExpandedHeight;
+    property public final float LargeFlexibleAppBarWithSubtitleExpandedHeight;
+    property public final float LargeFlexibleAppBarWithoutSubtitleExpandedHeight;
     property public final float MediumAppBarCollapsedHeight;
     property public final float MediumAppBarExpandedHeight;
-    property public final float MediumAppBarWithSubtitleExpandedHeight;
-    property public final float MediumAppBarWithoutSubtitleExpandedHeight;
+    property public final float MediumFlexibleAppBarWithSubtitleExpandedHeight;
+    property public final float MediumFlexibleAppBarWithoutSubtitleExpandedHeight;
     property public final float TopAppBarExpandedHeight;
     property @androidx.compose.runtime.Composable public final androidx.compose.foundation.layout.WindowInsets windowInsets;
     field public static final androidx.compose.material3.TopAppBarDefaults INSTANCE;
@@ -2923,19 +2991,6 @@ package androidx.compose.material3 {
   public static final class TopAppBarState.Companion {
     method public androidx.compose.runtime.saveable.Saver<androidx.compose.material3.TopAppBarState,? extends java.lang.Object?> getSaver();
     property public final androidx.compose.runtime.saveable.Saver<androidx.compose.material3.TopAppBarState,? extends java.lang.Object?> Saver;
-  }
-
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class TopAppBarTitleAlignment {
-    field public static final androidx.compose.material3.TopAppBarTitleAlignment.Companion Companion;
-  }
-
-  public static final class TopAppBarTitleAlignment.Companion {
-    method public int getCenter();
-    method public int getEnd();
-    method public int getStart();
-    property public final int Center;
-    property public final int End;
-    property public final int Start;
   }
 
   @androidx.compose.runtime.Immutable public final class Typography {
@@ -3060,19 +3115,6 @@ package androidx.compose.material3 {
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void LinearWavyProgressIndicator(kotlin.jvm.functions.Function0<java.lang.Float> progress, optional androidx.compose.ui.Modifier modifier, optional long color, optional long trackColor, optional androidx.compose.ui.graphics.drawscope.Stroke stroke, optional androidx.compose.ui.graphics.drawscope.Stroke trackStroke, optional float gapSize, optional float stopSize, optional kotlin.jvm.functions.Function1<? super java.lang.Float,java.lang.Float> amplitude, optional float wavelength, optional float waveSpeed);
   }
 
-  @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @kotlin.jvm.JvmInline public final value class WideNavigationRailArrangement {
-    field public static final androidx.compose.material3.WideNavigationRailArrangement.Companion Companion;
-  }
-
-  public static final class WideNavigationRailArrangement.Companion {
-    method public int getBottom();
-    method public int getCenter();
-    method public int getTop();
-    property public final int Bottom;
-    property public final int Center;
-    property public final int Top;
-  }
-
   @androidx.compose.runtime.Immutable public final class WideNavigationRailColors {
     ctor public WideNavigationRailColors(long containerColor, long contentColor, long modalContainerColor, long modalScrimColor);
     method public androidx.compose.material3.WideNavigationRailColors copy(optional long containerColor, optional long contentColor, optional long modalContainerColor, optional long modalScrimColor);
@@ -3089,11 +3131,11 @@ package androidx.compose.material3 {
   @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi public final class WideNavigationRailDefaults {
     method @androidx.compose.runtime.Composable public androidx.compose.material3.WideNavigationRailColors colors();
     method @androidx.compose.runtime.Composable public androidx.compose.material3.WideNavigationRailColors colors(optional long containerColor, optional long contentColor, optional long modalContainerColor, optional long modalScrimColor);
-    method public int getArrangement();
+    method public androidx.compose.foundation.layout.Arrangement.Vertical getArrangement();
     method @androidx.compose.runtime.Composable public androidx.compose.ui.graphics.Shape getContainerShape();
     method @androidx.compose.runtime.Composable public androidx.compose.ui.graphics.Shape getModalContainerShape();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.WindowInsets getWindowInsets();
-    property public final int Arrangement;
+    property public final androidx.compose.foundation.layout.Arrangement.Vertical arrangement;
     property @androidx.compose.runtime.Composable public final androidx.compose.ui.graphics.Shape containerShape;
     property @androidx.compose.runtime.Composable public final androidx.compose.ui.graphics.Shape modalContainerShape;
     property @androidx.compose.runtime.Composable public final androidx.compose.foundation.layout.WindowInsets windowInsets;
@@ -3108,8 +3150,8 @@ package androidx.compose.material3 {
   }
 
   public final class WideNavigationRailKt {
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void ModalWideNavigationRail(optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.WideNavigationRailState state, optional boolean hideOnCollapse, optional androidx.compose.ui.graphics.Shape collapsedShape, optional androidx.compose.ui.graphics.Shape expandedShape, optional androidx.compose.material3.WideNavigationRailColors colors, optional kotlin.jvm.functions.Function0<kotlin.Unit>? header, optional float expandedHeaderTopPadding, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional int arrangement, optional androidx.compose.material3.ModalWideNavigationRailProperties expandedProperties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
-    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void WideNavigationRail(optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.WideNavigationRailState state, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.WideNavigationRailColors colors, optional kotlin.jvm.functions.Function0<kotlin.Unit>? header, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional int arrangement, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void ModalWideNavigationRail(optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.WideNavigationRailState state, optional boolean hideOnCollapse, optional androidx.compose.ui.graphics.Shape collapsedShape, optional androidx.compose.ui.graphics.Shape expandedShape, optional androidx.compose.material3.WideNavigationRailColors colors, optional kotlin.jvm.functions.Function0<kotlin.Unit>? header, optional float expandedHeaderTopPadding, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.foundation.layout.Arrangement.Vertical arrangement, optional androidx.compose.material3.ModalWideNavigationRailProperties expandedProperties, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void WideNavigationRail(optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.WideNavigationRailState state, optional androidx.compose.ui.graphics.Shape shape, optional androidx.compose.material3.WideNavigationRailColors colors, optional kotlin.jvm.functions.Function0<kotlin.Unit>? header, optional androidx.compose.foundation.layout.WindowInsets windowInsets, optional androidx.compose.foundation.layout.Arrangement.Vertical arrangement, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @SuppressCompatibility @androidx.compose.material3.ExperimentalMaterial3ExpressiveApi @androidx.compose.runtime.Composable public static void WideNavigationRailItem(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onClick, kotlin.jvm.functions.Function0<kotlin.Unit> icon, kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional boolean railExpanded, optional int iconPosition, optional androidx.compose.material3.NavigationItemColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
   }
 

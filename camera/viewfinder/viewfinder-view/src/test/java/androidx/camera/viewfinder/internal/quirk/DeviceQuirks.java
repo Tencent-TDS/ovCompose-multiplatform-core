@@ -17,8 +17,8 @@
 package androidx.camera.viewfinder.internal.quirk;
 
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -46,8 +46,7 @@ public class DeviceQuirks {
      * found.
      */
     @SuppressWarnings("unchecked")
-    @Nullable
-    public static <T extends Quirk> T get(@NonNull final Class<T> quirkClass) {
+    public static <T extends Quirk> @Nullable T get(final @NonNull Class<T> quirkClass) {
         final List<Quirk> quirks = DeviceQuirksLoader.loadQuirks();
         quirks.addAll(QuirkInjector.INJECTED_QUIRKS);
         for (final Quirk quirk : quirks) {

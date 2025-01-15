@@ -39,7 +39,8 @@ dependencies {
 }
 
 android {
-    namespace "androidx.camera.lifecycle.samples"
+    compileSdk = 35
+    namespace = "androidx.camera.lifecycle.samples"
 }
 
 androidx {

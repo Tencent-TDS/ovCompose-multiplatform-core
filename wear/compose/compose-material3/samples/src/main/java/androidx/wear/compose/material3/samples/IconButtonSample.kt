@@ -119,7 +119,7 @@ fun IconButtonWithImageSample(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier =
-                if (enabled) Modifier else Modifier.alpha(IconButtonDefaults.disabledImageOpacity)
+                if (enabled) Modifier else Modifier.alpha(IconButtonDefaults.DisabledImageOpacity)
         )
     }
 }

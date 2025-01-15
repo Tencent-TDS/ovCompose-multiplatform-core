@@ -228,7 +228,9 @@ fun ComposeUiTest.waitUntilNodeCount(
     timeoutMillis: Long = 1_000L
 ) {
     waitUntil("exactly $count nodes match (${matcher.description})", timeoutMillis) {
-        onAllNodes(matcher).fetchSemanticsNodes().size == count
+        // Never require the existence of compose roots. Either the current UI or the anticipated UI
+        // might not have any compose at all (i.e. View only).
+        onAllNodes(matcher).fetchSemanticsNodes(atLeastOneRootRequired = false).size == count
     }
 }
 

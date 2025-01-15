@@ -92,10 +92,6 @@ class DelegatingSandboxedUiAdapter(private var delegate: Bundle) : SandboxedUiAd
         delegateChangeListeners.remove(listener)
     }
 
-    override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-    override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
     /** Fetches the current delegate which is a [SandboxedUiAdapter] Bundle. */
     // TODO(b/375388971): Check coreLibInfo is present
     fun getDelegate(): Bundle {

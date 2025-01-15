@@ -18,10 +18,11 @@ package androidx.appsearch.compiler;
 
 import static java.util.stream.Collectors.joining;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.AnnotatedGetterOrField.ElementTypeCategory;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -60,8 +61,7 @@ public abstract class PropertyAccessor {
     /**
      * The getter/field element.
      */
-    @NonNull
-    public abstract Element getElement();
+    public abstract @NonNull Element getElement();
 
 
     /**
@@ -85,8 +85,7 @@ public abstract class PropertyAccessor {
      *                           the field is private, an appropriate non-private getter can be
      *                           picked from this list.
      */
-    @NonNull
-    public static PropertyAccessor infer(
+    public static @NonNull PropertyAccessor infer(
             @NonNull AnnotatedGetterOrField getterOrField,
             @NonNull Collection<ExecutableElement> neighboringMethods,
             @NonNull IntrospectionHelper helper) throws ProcessingException {
@@ -104,8 +103,7 @@ public abstract class PropertyAccessor {
                 findCorrespondingGetter(getterOrField, neighboringMethods, helper));
     }
 
-    @NonNull
-    private static ExecutableElement findCorrespondingGetter(
+    private static @NonNull ExecutableElement findCorrespondingGetter(
             @NonNull AnnotatedGetterOrField privateField,
             @NonNull Collection<ExecutableElement> neighboringMethods,
             @NonNull IntrospectionHelper helper) throws ProcessingException {
@@ -138,8 +136,7 @@ public abstract class PropertyAccessor {
         throw processingException;
     }
 
-    @NonNull
-    private static Set<String> getAcceptableGetterNames(
+    private static @NonNull Set<String> getAcceptableGetterNames(
             @NonNull AnnotatedGetterOrField privateField,
             @NonNull IntrospectionHelper helper) {
         // String mMyField -> {myField, getMyField}

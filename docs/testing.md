@@ -348,7 +348,9 @@ prebuilts/fullsdk-darwin ln -s ~/Library/Android/sdk/emulator emulator ln -s
 ~/Library/Android/sdk/system-images system-images` (substituting `fullsdk-linux`
 and your local SDK path as appropriate)
 
-## Debugging with platform SDK sources {#sources}
+## Debugging tests
+
+### Using custom platform SDK sources {#sources}
 
 The platform SDK sources that are checked into the development branch may not
 match up with the build of Android present on the emulator or your physical
@@ -371,6 +373,29 @@ NOTE The `Project Structure` dialog reachable via `File > Project Structure` is
 **not** the same as the `Project Structure` dialog that will allow you to
 specify the SDK source path. You must use the "Module Settings" action as
 directed above.
+
+### Accessing FTL outputs
+
+When we run tests on Firebase Test Lab devices, we transfer the results and
+logcat output back to Android's test result infrastructure; however, FTL also
+captures screen recordings of the entire test run.
+
+To access these videos from the Android Test Investigate page for a failed test
+run:
+
+-   For the failing test, go to `Artifacts tab` in the Android Test Investigate
+    page
+-   Disable `Hide empty folders` (if enabled) by clicking on it
+-   Under `Run artifacts`, click on "i" icon next to the test module to open the
+    Information tab
+-   In the Information tab to the right, click on the link next to the `logs`
+    property
+
+The full logcat output and screen recording are available from the `Devices` tab
+by clicking on the test device under `Device details` and using the `Logs` and
+`Video` tabs, respectively.
+
+Per-test logcat output and videos are available from the `Test cases` tab.
 
 ## Running unit and integration tests {#running}
 

@@ -54,9 +54,9 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.media3.effect"
+    namespace = "androidx.camera.media3.effect"
     lint {
         baseline = file("lint-baseline.xml")
     }

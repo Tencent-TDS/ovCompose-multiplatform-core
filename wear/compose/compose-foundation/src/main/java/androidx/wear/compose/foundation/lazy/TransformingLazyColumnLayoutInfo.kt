@@ -26,7 +26,7 @@ import androidx.compose.ui.util.unpackFloat2
  * height are applied (using [TransformingLazyColumnItemScope.transformedHeight] modifier).
  */
 @JvmInline
-value class TransformingLazyColumnItemScrollProgress
+public value class TransformingLazyColumnItemScrollProgress
 internal constructor(private val packedValue: Long) {
     /**
      * The top offset (between the top of the list container and the top of the item) as a fraction
@@ -35,7 +35,7 @@ internal constructor(private val packedValue: Long) {
      * of the container. This value is calculated before any height modifications are applied (using
      * [TransformingLazyColumnItemScope.transformedHeight] modifier).
      */
-    val topOffsetFraction: Float
+    public val topOffsetFraction: Float
         get() = unpackFloat1(packedValue)
 
     /**
@@ -45,7 +45,7 @@ internal constructor(private val packedValue: Long) {
      * top of the container. This value is calculated before any height modifications are applied
      * (using [TransformingLazyColumnItemScope.transformedHeight] modifier).
      */
-    val bottomOffsetFraction: Float
+    public val bottomOffsetFraction: Float
         get() = unpackFloat2(packedValue)
 
     /**
@@ -57,7 +57,7 @@ internal constructor(private val packedValue: Long) {
      * @param bottomOffsetFraction The bottom offset (between the top of the list container and the
      *   bottom of the item) as a fraction of the height of the list container.
      */
-    constructor(
+    public constructor(
         topOffsetFraction: Float,
         bottomOffsetFraction: Float
     ) : this(packFloats(topOffsetFraction, bottomOffsetFraction))
@@ -92,53 +92,53 @@ internal constructor(private val packedValue: Long) {
 }
 
 /** Represents an item that is visible in the [TransformingLazyColumn] component. */
-sealed interface TransformingLazyColumnVisibleItemInfo {
+public sealed interface TransformingLazyColumnVisibleItemInfo {
     /** The index of the item in the underlying data source. */
-    val index: Int
+    public val index: Int
 
     /** The offset of the item from the start of the visible area. */
-    val offset: Int
+    public val offset: Int
 
     /** The height of the item after applying height transformation. */
-    val transformedHeight: Int
+    public val transformedHeight: Int
 
     /**
      * The height of the item returned during the measurement phase and before height transformation
      * is applied.
      */
-    val measuredHeight: Int
+    public val measuredHeight: Int
 
     /** The scroll progress of the item, indicating its position within the visible area. */
-    val scrollProgress: TransformingLazyColumnItemScrollProgress
+    public val scrollProgress: TransformingLazyColumnItemScrollProgress
 
     /** The key of the item which was passed to the item() or items() function. */
-    val key: Any
+    public val key: Any
 
     /** The content type of the item which was passed to the item() or items() function. */
-    val contentType: Any?
+    public val contentType: Any?
 }
 
 /** Holds the layout information for a [TransformingLazyColumn]. */
-sealed interface TransformingLazyColumnLayoutInfo {
+public sealed interface TransformingLazyColumnLayoutInfo {
     /**
      * A list of [TransformingLazyColumnVisibleItemInfo] objects representing the visible items in
      * the list.
      */
-    val visibleItems: List<TransformingLazyColumnVisibleItemInfo>
+    public val visibleItems: List<TransformingLazyColumnVisibleItemInfo>
 
     /** The total count of items passed to [TransformingLazyColumn]. */
-    val totalItemsCount: Int
+    public val totalItemsCount: Int
 
     /** The size of the viewport in pixels. */
-    val viewportSize: IntSize
+    public val viewportSize: IntSize
 
     /**
      * The content padding in pixels applied before the first item in the direction of scrolling.
      */
-    val beforeContentPadding: Int
+    public val beforeContentPadding: Int
 
     /** The content padding in pixels applied after the last item in the direction of scrolling. */
-    val afterContentPadding: Int
+    public val afterContentPadding: Int
 }
 
 internal const val UnspecifiedPackedFloats = 0x7fc00000_7fc00000L // NaN_NaN

@@ -46,13 +46,6 @@ dependencies {
 }
 
 android {
-    sourceSets {
-        main.res.srcDirs = [
-                "res",
-                "res-public"
-        ]
-    }
-
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
     }
@@ -60,7 +53,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.preference"
+    namespace = "androidx.preference"
 }
 
 androidx {

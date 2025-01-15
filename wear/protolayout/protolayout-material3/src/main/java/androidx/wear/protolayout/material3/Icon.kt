@@ -16,11 +16,11 @@
 
 package androidx.wear.protolayout.material3
 
-import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.DimensionBuilders.ImageDimension
 import androidx.wear.protolayout.LayoutElementBuilders.ColorFilter
 import androidx.wear.protolayout.LayoutElementBuilders.Image
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
+import androidx.wear.protolayout.types.LayoutColor
 
 /**
  * Returns the icon components with the defined style.
@@ -36,11 +36,11 @@ import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 public fun MaterialScope.icon(
     protoLayoutResourceId: String,
     size: ImageDimension = defaultIconStyle.size,
-    tintColor: ColorProp = defaultIconStyle.tintColor,
+    tintColor: LayoutColor = defaultIconStyle.tintColor,
 ): LayoutElement =
     Image.Builder()
         .setResourceId(protoLayoutResourceId)
         .setWidth(size)
         .setHeight(size)
-        .setColorFilter(ColorFilter.Builder().setTint(tintColor).build())
+        .setColorFilter(ColorFilter.Builder().setTint(tintColor.prop).build())
         .build()

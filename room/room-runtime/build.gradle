@@ -23,6 +23,7 @@
  */
 
 
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -58,12 +59,12 @@ android {
         aidl = true
     }
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
         stableAidl {
-            version 1
+            version = 1
         }
     }
-    namespace "androidx.room"
+    namespace = "androidx.room"
     // TODO(b/345531033)
     experimentalProperties["android.lint.useK2Uast"] = false
 }
@@ -225,4 +226,11 @@ androidx {
     description = "Android Room-Runtime"
     legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
+    // TODO: b/326456246
+    optOutJSpecify = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+ksp {
+    useKsp2 = true
 }

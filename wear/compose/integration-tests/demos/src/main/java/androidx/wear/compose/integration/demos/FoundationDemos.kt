@@ -18,7 +18,6 @@ package androidx.wear.compose.integration.demos
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.samples.CurvedAndNormalText
 import androidx.wear.compose.foundation.samples.CurvedBackground
 import androidx.wear.compose.foundation.samples.CurvedBottomLayout
@@ -44,13 +43,14 @@ import androidx.wear.compose.foundation.samples.SimpleScalingLazyColumnWithSnap
 import androidx.wear.compose.foundation.samples.SimpleSwipeToDismissBox
 import androidx.wear.compose.foundation.samples.SimpleVerticalPagerSample
 import androidx.wear.compose.foundation.samples.StatefulSwipeToDismissBox
+import androidx.wear.compose.foundation.samples.SwipeToRevealSample
+import androidx.wear.compose.foundation.samples.SwipeToRevealWithDelayedText
+import androidx.wear.compose.foundation.samples.SwipeToRevealWithExpandables
 import androidx.wear.compose.foundation.samples.TransformingLazyColumnAnimateItemSample
 import androidx.wear.compose.foundation.samples.TransformingLazyColumnLettersSample
 import androidx.wear.compose.integration.demos.common.Centralize
 import androidx.wear.compose.integration.demos.common.ComposableDemo
 import androidx.wear.compose.integration.demos.common.DemoCategory
-import androidx.wear.compose.material.samples.SwipeToRevealCardSample
-import androidx.wear.compose.material.samples.SwipeToRevealChipSample
 
 // Declare the swipe to dismiss demos so that we can use this variable as the background composable
 // for the SwipeToDismissDemo itself.
@@ -186,59 +186,13 @@ val WearFoundationDemos =
             DemoCategory(
                 "Swipe To Reveal",
                 listOf(
-                    DemoCategory(
-                        "Samples",
-                        listOf(
-                            ComposableDemo("Material S2R Chip") { params ->
-                                Centralize {
-                                    SwipeToRevealChipSample(params.swipeToDismissBoxState)
-                                }
-                            },
-                            ComposableDemo("Material S2R Card") { params ->
-                                Centralize {
-                                    SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                }
-                            },
-                            ComposableDemo("Material S2R Cards Inside SLC") { params ->
-                                Centralize {
-                                    ScalingLazyColumn {
-                                        item {
-                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                        }
-                                        item {
-                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                        }
-                                        item {
-                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                        }
-                                        item {
-                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                        }
-                                    }
-                                }
-                            },
-                        )
-                    ),
-                    DemoCategory(
-                        "Demos",
-                        listOf(
-                            ComposableDemo("S2R Chip, 2 actions") { params ->
-                                SwipeToRevealChips(
-                                    params.swipeToDismissBoxState,
-                                    includeSecondaryAction = true
-                                )
-                            },
-                            ComposableDemo("S2R Chip, 1 action") { params ->
-                                SwipeToRevealChips(
-                                    params.swipeToDismissBoxState,
-                                    includeSecondaryAction = false
-                                )
-                            },
-                            ComposableDemo("S2R Card") { params ->
-                                SwipeToRevealCards(params.swipeToDismissBoxState)
-                            },
-                        )
-                    )
+                    ComposableDemo("S2R") { Centralize { SwipeToRevealSample() } },
+                    ComposableDemo("S2R With Delayed Text") {
+                        Centralize { SwipeToRevealWithDelayedText() }
+                    },
+                    ComposableDemo("S2R With Expandables") {
+                        Centralize { SwipeToRevealWithExpandables() }
+                    },
                 )
             ),
             DemoCategory(

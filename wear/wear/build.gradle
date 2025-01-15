@@ -21,8 +21,8 @@ dependencies {
     api("androidx.recyclerview:recyclerview:1.1.0")
     api("androidx.core:core:1.6.0")
     api("androidx.versionedparcelable:versionedparcelable:1.1.1")
-    api('androidx.dynamicanimation:dynamicanimation:1.0.0')
-    api('androidx.lifecycle:lifecycle-runtime:2.5.1')
+    api("androidx.dynamicanimation:dynamicanimation:1.0.0")
+    api("androidx.lifecycle:lifecycle-runtime:2.5.1")
 
     androidTestImplementation(project(":test:screenshot:screenshot"))
     androidTestImplementation(libs.kotlinStdlib)
@@ -54,21 +54,15 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 23
+        minSdk = 23
     }
-
-    sourceSets {
-        main.res.srcDirs += "src/main/res-public"
-        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/wear/wear"
-    }
-
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear"
+    namespace = "androidx.wear"
 }
 
 androidx {
@@ -79,4 +73,5 @@ androidx {
     description = "Android Wear Support UI"
     failOnDeprecationWarnings = false
     legacyDisableKotlinStrictApiMode = true
+    addGoldenImageAssets()
 }

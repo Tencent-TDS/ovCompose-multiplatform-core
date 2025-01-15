@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowManager.LayoutParams
 import androidx.core.view.WindowCompat
+import androidx.window.layout.WindowMetricsCalculator
 
 @Suppress("DEPRECATION") // Old ways of setting edge to edge are deprecated
 class TestActivityEdgeToEdge : TestActivity() {
@@ -50,5 +51,20 @@ class TestActivityEdgeToEdge : TestActivity() {
             window.attributes = params
         }
         this.actionBar?.hide()
+    }
+
+    fun waitForExpectedBounds() {
+        val currentWindowMetrics =
+            WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this)
+        val rootView = findViewById<View>(androidx.window.test.R.id.view_home).rootView
+        if (
+            currentWindowMetrics.bounds.width() == rootView.width &&
+                currentWindowMetrics.bounds.height() == rootView.height
+        ) {
+            return
+        } else {
+            resetLayoutCounter()
+            waitForLayout()
+        }
     }
 }

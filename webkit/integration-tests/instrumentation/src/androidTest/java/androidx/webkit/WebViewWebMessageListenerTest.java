@@ -21,6 +21,9 @@ import android.webkit.WebView;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
+import androidx.webkit.test.common.TestWebMessageListener;
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
 
 import org.jspecify.annotations.NonNull;
 import org.junit.After;
@@ -80,40 +83,6 @@ public class WebViewWebMessageListenerTest {
 
     private WebViewOnUiThread mWebViewOnUiThread;
     private final TestWebMessageListener mListener = new TestWebMessageListener();
-
-    private static class TestWebMessageListener implements WebViewCompat.WebMessageListener {
-        private final BlockingQueue<Data> mQueue = new LinkedBlockingQueue<>();
-
-        static class Data {
-            WebMessageCompat mMessage;
-            Uri mSourceOrigin;
-            boolean mIsMainFrame;
-            JavaScriptReplyProxy mReplyProxy;
-
-            Data(WebMessageCompat message, Uri sourceOrigin, boolean isMainFrame,
-                    JavaScriptReplyProxy replyProxy) {
-                mMessage = message;
-                mSourceOrigin = sourceOrigin;
-                mIsMainFrame = isMainFrame;
-                mReplyProxy = replyProxy;
-            }
-        }
-
-        @Override
-        public void onPostMessage(@NonNull WebView webView, @NonNull WebMessageCompat message,
-                @NonNull Uri sourceOrigin,
-                boolean isMainFrame, @NonNull JavaScriptReplyProxy replyProxy) {
-            mQueue.add(new Data(message, sourceOrigin, isMainFrame, replyProxy));
-        }
-
-        public Data waitForOnPostMessage() throws Exception {
-            return WebkitUtils.waitForNextQueueElement(mQueue);
-        }
-
-        public boolean hasNoMoreOnPostMessage() {
-            return mQueue.isEmpty();
-        }
-    }
 
     @Before
     public void setUp() {

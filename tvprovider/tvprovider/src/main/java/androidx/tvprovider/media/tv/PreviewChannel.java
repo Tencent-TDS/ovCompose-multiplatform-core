@@ -87,9 +87,15 @@ public class PreviewChannel {
      * beforehand.
      *
      * @param cursor a cursor row from the TvProvider
-     * @return a PreviewChannel whose values come from the cursor row
+     * @return a PreviewChannel whose values come from the cursor row or {@code null} if the cursor
+     * is not pointing at a preview channel.
      */
+    @Nullable
     public static PreviewChannel fromCursor(Cursor cursor) {
+        String type = cursor.getString(Columns.COL_TYPE);
+        if (!type.equals(Channels.TYPE_PREVIEW)) {
+            return null;
+        }
         Builder builder = new Builder();
         builder.setId(cursor.getInt(Columns.COL_ID));
         builder.setPackageName(cursor.getString(Columns.COL_PACKAGE_NAME));

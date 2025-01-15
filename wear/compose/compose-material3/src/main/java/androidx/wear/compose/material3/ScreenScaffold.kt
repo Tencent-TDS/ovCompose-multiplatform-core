@@ -24,8 +24,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Measurable
@@ -34,9 +37,11 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.ActiveFocusListener
 import androidx.wear.compose.foundation.ScrollInfoProvider
@@ -64,50 +69,104 @@ import kotlin.math.roundToInt
  *
  * Example of using AppScaffold and ScreenScaffold:
  *
- * @sample androidx.wear.compose.material3.samples.ScaffoldSample
+ * @sample androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
  * @param scrollState The scroll state for [ScalingLazyColumn], used to drive screen transitions
  *   such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
+ * @param edgeButton Slot for an [EdgeButton] that takes the available space below a scrolling list.
+ *   It will scale up and fade in when the user scrolls to the end of the list, and scale down and
+ *   fade out as the user scrolls up.
  * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists. The bottom padding value is always ignored because we instead use
+ *   [edgeButtonSpacing] to specify the gap between edge button and content - and the [EdgeButton]
+ *   hugs the bottom of the screen.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButton Optional slot for a [EdgeButton] that takes the available space below a
- *   scrolling list. It will scale up and fade in when the user scrolls to the end of the list, and
- *   scale down and fade out as the user scrolls up.
- * @param content The body content for this screen.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists to properly offset the [EdgeButton].
  */
 @Composable
-fun ScreenScaffold(
+public fun ScreenScaffold(
     scrollState: ScalingLazyListState,
+    edgeButton: @Composable BoxScope.() -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
-    edgeButton: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
-) =
-    if (edgeButton != null) {
-        ScreenScaffold(
-            edgeButton,
-            ScrollInfoProvider(scrollState),
-            modifier,
-            timeText,
-            scrollIndicator,
-            content
-        )
-    } else {
-        ScreenScaffold(
-            modifier,
-            timeText,
-            ScrollInfoProvider(scrollState),
-            scrollIndicator,
-            content
-        )
-    }
+    edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        edgeButton = edgeButton,
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        modifier = modifier,
+        contentPadding = contentPadding,
+        edgeButtonSpacing = edgeButtonSpacing,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        content = content
+    )
+
+/**
+ * [ScreenScaffold] is one of the Wear Material3 scaffold components.
+ *
+ * The scaffold components [AppScaffold] and [ScreenScaffold] lay out the structure of a screen and
+ * coordinate transitions of the [ScrollIndicator] and [TimeText] components. [AppScaffold] should
+ * be at the top of the composition (because it provides [ScaffoldState] and layers [TimeText] on
+ * top of all other content) and [ScreenScaffold] should be part of [AppScaffold]'s content. When
+ * used in conjunction with SwipeDismissableNavHost, [AppScaffold] remains at the top of the
+ * composition, whilst [ScreenScaffold] will be placed for each individual composable route.
+ *
+ * [ScreenScaffold] displays the [ScrollIndicator] at the center-end of the screen by default and
+ * coordinates showing/hiding [TimeText] and [ScrollIndicator] according to [scrollState].
+ *
+ * Example of using AppScaffold and ScreenScaffold:
+ *
+ * @sample androidx.wear.compose.material3.samples.ScaffoldSample
+ * @param scrollState The scroll state for [ScalingLazyColumn], used to drive screen transitions
+ *   such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
+ * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists.
+ * @param timeText Time text (both time and potentially status message) for this screen, if
+ *   different to the time text at the [AppScaffold] level. When null, the time text from the
+ *   [AppScaffold] is displayed for this screen.
+ * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
+ *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
+ *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists to properly offset the [EdgeButton].
+ */
+@Composable
+public fun ScreenScaffold(
+    scrollState: ScalingLazyListState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
+    timeText: (@Composable () -> Unit)? = null,
+    scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
+        ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
+    },
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        scrollIndicator = scrollIndicator,
+        content = content
+    )
 
 /**
  * [ScreenScaffold] is one of the Wear Material3 scaffold components.
@@ -124,6 +183,72 @@ fun ScreenScaffold(
  *
  * This version of [ScreenScaffold] has a special slot for a button at the bottom, that grows and
  * shrinks to take the available space after the scrollable content.
+ *
+ * Example of using AppScaffold and ScreenScaffold:
+ *
+ * @sample androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
+ *
+ * Example of using ScreenScaffold with a [EdgeButton]:
+ *
+ * @sample androidx.wear.compose.material3.samples.EdgeButtonListSample
+ * @param scrollState The scroll state for [TransformingLazyColumn], used to drive screen
+ *   transitions such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
+ * @param edgeButton Slot for an [EdgeButton] that takes the available space below a scrolling list.
+ *   It will scale up and fade in when the user scrolls to the end of the list, and scale down and
+ *   fade out as the user scrolls up.
+ * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists. The bottom padding value is always ignored because we instead use
+ *   [edgeButtonSpacing] to specify the gap between edge button and content - and the [EdgeButton]
+ *   hugs the bottom of the screen.
+ * @param timeText Time text (both time and potentially status message) for this screen, if
+ *   different to the time text at the [AppScaffold] level. When null, the time text from the
+ *   [AppScaffold] is displayed for this screen.
+ * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
+ *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
+ *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists to properly offset the [EdgeButton].
+ */
+@Composable
+public fun ScreenScaffold(
+    scrollState: TransformingLazyColumnState,
+    edgeButton: @Composable BoxScope.() -> Unit,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
+    timeText: (@Composable () -> Unit)? = null,
+    scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
+        ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
+    },
+    edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        edgeButton = edgeButton,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        edgeButtonSpacing = edgeButtonSpacing,
+        content = content
+    )
+
+/**
+ * [ScreenScaffold] is one of the Wear Material3 scaffold components.
+ *
+ * The scaffold components [AppScaffold] and [ScreenScaffold] lay out the structure of a screen and
+ * coordinate transitions of the [ScrollIndicator] and [TimeText] components. [AppScaffold] should
+ * be at the top of the composition (because it provides [ScaffoldState] and layers [TimeText] on
+ * top of all other content) and [ScreenScaffold] should be part of [AppScaffold]'s content. When
+ * used in conjunction with SwipeDismissableNavHost, [AppScaffold] remains at the top of the
+ * composition, whilst [ScreenScaffold] will be placed for each individual composable route.
+ *
+ * [ScreenScaffold] displays the [ScrollIndicator] at the center-end of the screen by default and
+ * coordinates showing/hiding [TimeText] and [ScrollIndicator] according to [scrollState].
  *
  * Example of using AppScaffold and ScreenScaffold:
  *
@@ -135,46 +260,38 @@ fun ScreenScaffold(
  * @param scrollState The scroll state for [TransformingLazyColumn], used to drive screen
  *   transitions such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
  * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButton Optional slot for a [EdgeButton] that takes the available space below a
- *   scrolling list. It will scale up and fade in when the user scrolls to the end of the list, and
- *   scale down and fade out as the user scrolls up.
- * @param content The body content for this screen.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists.
  */
 @Composable
-fun ScreenScaffold(
+public fun ScreenScaffold(
     scrollState: TransformingLazyColumnState,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
-    edgeButton: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
-) =
-    if (edgeButton != null) {
-        ScreenScaffold(
-            edgeButton,
-            ScrollInfoProvider(scrollState),
-            modifier,
-            timeText,
-            scrollIndicator,
-            content
-        )
-    } else {
-        ScreenScaffold(
-            modifier,
-            timeText,
-            ScrollInfoProvider(scrollState),
-            scrollIndicator,
-            content
-        )
-    }
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        content = content
+    )
 
 /**
  * [ScreenScaffold] is one of the Wear Material3 scaffold components.
@@ -194,50 +311,104 @@ fun ScreenScaffold(
  *
  * Example of using AppScaffold and ScreenScaffold:
  *
- * @sample androidx.wear.compose.material3.samples.ScaffoldSample
+ * @sample androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
  * @param scrollState The scroll state for [androidx.compose.foundation.lazy.LazyColumn], used to
  *   drive screen transitions such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
+ * @param edgeButton Slot for an [EdgeButton] that takes the available space below a scrolling list.
+ *   It will scale up and fade in when the user scrolls to the end of the list, and scale down and
+ *   fade out as the user scrolls up.
  * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists. The bottom padding value is always ignored because we instead use
+ *   [edgeButtonSpacing] to specify the gap between edge button and content - and the [EdgeButton]
+ *   hugs the bottom of the screen.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButton Optional slot for a [EdgeButton] that takes the available space below a
- *   scrolling list. It will scale up and fade in when the user scrolls to the end of the list, and
- *   scale down and fade out as the user scrolls up.
- * @param content The body content for this screen.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists to properly offset the [EdgeButton].
  */
 @Composable
-fun ScreenScaffold(
+public fun ScreenScaffold(
     scrollState: LazyListState,
+    edgeButton: @Composable BoxScope.() -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
-    edgeButton: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
-) =
-    if (edgeButton != null) {
-        ScreenScaffold(
-            edgeButton,
-            ScrollInfoProvider(scrollState),
-            modifier,
-            timeText,
-            scrollIndicator,
-            content
-        )
-    } else {
-        ScreenScaffold(
-            modifier,
-            timeText,
-            ScrollInfoProvider(scrollState),
-            scrollIndicator,
-            content
-        )
-    }
+    edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        edgeButton = edgeButton,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        edgeButtonSpacing = edgeButtonSpacing,
+        content = content
+    )
+
+/**
+ * [ScreenScaffold] is one of the Wear Material3 scaffold components.
+ *
+ * The scaffold components [AppScaffold] and [ScreenScaffold] lay out the structure of a screen and
+ * coordinate transitions of the [ScrollIndicator] and [TimeText] components. [AppScaffold] should
+ * be at the top of the composition (because it provides [ScaffoldState] and layers [TimeText] on
+ * top of all other content) and [ScreenScaffold] should be part of [AppScaffold]'s content. When
+ * used in conjunction with SwipeDismissableNavHost, [AppScaffold] remains at the top of the
+ * composition, whilst [ScreenScaffold] will be placed for each individual composable route.
+ *
+ * [ScreenScaffold] displays the [ScrollIndicator] at the center-end of the screen by default and
+ * coordinates showing/hiding [TimeText] and [ScrollIndicator] according to [scrollState].
+ *
+ * Example of using AppScaffold and ScreenScaffold:
+ *
+ * @sample androidx.wear.compose.material3.samples.ScaffoldSample
+ * @param scrollState The scroll state for [androidx.compose.foundation.lazy.LazyColumn], used to
+ *   drive screen transitions such as [TimeText] scroll away and showing/hiding [ScrollIndicator].
+ * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists.
+ * @param timeText Time text (both time and potentially status message) for this screen, if
+ *   different to the time text at the [AppScaffold] level. When null, the time text from the
+ *   [AppScaffold] is displayed for this screen.
+ * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
+ *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
+ *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists.
+ */
+@Composable
+public fun ScreenScaffold(
+    scrollState: LazyListState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
+    timeText: (@Composable () -> Unit)? = null,
+    scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
+        ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
+    },
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        content = content
+    )
 
 /**
  * [ScreenScaffold] is one of the Wear Material3 scaffold components.
@@ -260,24 +431,38 @@ fun ScreenScaffold(
  * @param scrollState The scroll state for a Column, used to drive screen transitions such as
  *   [TimeText] scroll away and showing/hiding [ScrollIndicator].
  * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param content The body content for this screen.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists.
  */
 @Composable
-fun ScreenScaffold(
+public fun ScreenScaffold(
     scrollState: ScrollState,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
-    content: @Composable BoxScope.() -> Unit,
-) = ScreenScaffold(modifier, timeText, ScrollInfoProvider(scrollState), scrollIndicator, content)
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit =
+    ScreenScaffold(
+        scrollInfoProvider = ScrollInfoProvider(scrollState),
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollIndicator = scrollIndicator,
+        content = content
+    )
 
 /**
  * [ScreenScaffold] is one of the Wear Material3 scaffold components.
@@ -299,47 +484,84 @@ fun ScreenScaffold(
  *
  * Example of using AppScaffold and ScreenScaffold:
  *
- * @sample androidx.wear.compose.material3.samples.ScaffoldSample
- * @param edgeButton slot for a [EdgeButton] that takes the available space below a scrolling list.
- *   It will scale up and fade in when the user scrolls to the end of the list, and scale down and
- *   fade out as the user scrolls up.
+ * @sample androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
  * @param scrollInfoProvider Provider for scroll information used to scroll away screen elements
  *   such as [TimeText] and coordinate showing/hiding the [ScrollIndicator], this needs to be a
  *   [ScrollInfoProvider].
+ * @param edgeButton slot for a [EdgeButton] that takes the available space below a scrolling list.
+ *   It will scale up and fade in when the user scrolls to the end of the list, and scale down and
+ *   fade out as the user scrolls up.
  * @param modifier The modifier for the screen scaffold.
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists. The bottom padding value is always ignored because we instead use
+ *   [edgeButtonSpacing] to specify the gap between edge button and content - and the [EdgeButton]
+ *   hugs the bottom of the screen.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param content The body content for this screen.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content. This gap size could
+ *   not be smaller then [ScreenScaffoldDefaults.EdgeButtonMinSpacing].
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists to properly offset the [EdgeButton].
  */
 @Composable
-fun ScreenScaffold(
-    edgeButton: @Composable BoxScope.() -> Unit,
+public fun ScreenScaffold(
     scrollInfoProvider: ScrollInfoProvider,
+    edgeButton: @Composable BoxScope.() -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
-) =
+    edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit {
+    val effectiveEdgeButtonSpacing =
+        (edgeButtonSpacing - ScreenScaffoldDefaults.EdgeButtonMinSpacing).coerceAtLeast(0.dp)
+    // Adds the gap between content and edge button.
+    val lastItemOffsetCorrection = with(LocalDensity.current) { effectiveEdgeButtonSpacing.toPx() }
+    val localDensity = LocalDensity.current
+
     ScreenScaffold(
-        modifier,
-        timeText,
-        scrollInfoProvider,
-        scrollIndicator,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        timeText = timeText,
+        scrollInfoProvider = scrollInfoProvider,
+        scrollIndicator = scrollIndicator,
         content = {
-            content()
+            var intrinsicButtonHeight by remember(edgeButton) { mutableStateOf<Float?>(null) }
+
+            content(
+                // Replace bottom content padding adjusted for the edge button.
+                ReplacePaddingValues(
+                    contentPadding,
+                    with(localDensity) {
+                        (intrinsicButtonHeight?.toDp() ?: 0.dp) + effectiveEdgeButtonSpacing
+                    }
+                )
+            )
             Box(
-                Modifier.align(Alignment.BottomCenter).dynamicHeight {
-                    scrollInfoProvider.lastItemOffset.coerceAtLeast(0f)
-                },
                 contentAlignment = Alignment.BottomCenter,
-                content = edgeButton
+                content = edgeButton,
+                modifier =
+                    Modifier.align(Alignment.BottomCenter).dynamicHeight(
+                        onIntrinsicHeightMeasured = {
+                            if (intrinsicButtonHeight != it) {
+                                intrinsicButtonHeight = it
+                            }
+                        }
+                    ) {
+                        (scrollInfoProvider.lastItemOffset - lastItemOffsetCorrection)
+                            .coerceAtLeast(0f)
+                    },
             )
         }
     )
+}
 
 /**
  * [ScreenScaffold] is one of the Wear Material3 scaffold components.
@@ -358,24 +580,30 @@ fun ScreenScaffold(
  *
  * @sample androidx.wear.compose.material3.samples.ScaffoldSample
  * @param modifier The modifier for the screen scaffold.
+ * @param scrollInfoProvider Provider for scroll information used to scroll away screen elements
+ *   such as [TimeText] and coordinate showing/hiding the [ScrollIndicator].
+ * @param contentPadding The padding to apply around the entire content. This contentPadding is then
+ *   received by the [content] and should be consumed by using [Modifier.padding] or contentPadding
+ *   parameter of the lazy lists.
  * @param timeText Time text (both time and potentially status message) for this screen, if
  *   different to the time text at the [AppScaffold] level. When null, the time text from the
  *   [AppScaffold] is displayed for this screen.
- * @param scrollInfoProvider Provider for scroll information used to scroll away screen elements
- *   such as [TimeText] and coordinate showing/hiding the [ScrollIndicator].
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param content The body content for this screen.
+ * @param content The body content for this screen. The lambda receives a [PaddingValues] that
+ *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
+ *   used with lists.
  */
 @Composable
-fun ScreenScaffold(
+public fun ScreenScaffold(
     modifier: Modifier = Modifier,
-    timeText: (@Composable () -> Unit)? = null,
     scrollInfoProvider: ScrollInfoProvider? = null,
+    contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
+    timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = null,
-    content: @Composable BoxScope.() -> Unit,
-) {
+    content: @Composable BoxScope.(PaddingValues) -> Unit,
+): Unit {
     val scaffoldState = LocalScaffoldState.current
     val key = remember { Any() }
 
@@ -394,7 +622,7 @@ fun ScreenScaffold(
     scaffoldState.UpdateIdlingDetectorIfNeeded()
 
     Box(modifier = modifier.fillMaxSize()) {
-        content()
+        content(contentPadding)
         scrollInfoProvider?.let {
             AnimatedIndicator(
                 isVisible = {
@@ -408,7 +636,7 @@ fun ScreenScaffold(
 }
 
 /** Contains the default values used by [ScreenScaffold] */
-object ScreenScaffoldDefaults {
+public object ScreenScaffoldDefaults {
     /**
      * Creates padding values with extra bottom padding for an EdgeButton.
      *
@@ -420,41 +648,74 @@ object ScreenScaffoldDefaults {
      *   edge button size.
      * @return A [PaddingValues] object with the calculated padding.
      */
-    fun contentPaddingWithEdgeButton(
+    @Deprecated(
+        "Use the combination of a new contentPadding parameter on the ScreenScaffold to " +
+            "get back the padding values inside of the content lambda."
+    )
+    public fun contentPaddingWithEdgeButton(
         edgeButtonSize: EdgeButtonSize,
         start: Dp = 0.dp,
         top: Dp = 0.dp,
         end: Dp = 0.dp,
         extraBottom: Dp = 0.dp,
-    ) = PaddingValues(start, top, end, extraBottom + edgeButtonSize.maximumHeightPlusPadding())
+    ): PaddingValues =
+        PaddingValues(start, top, end, extraBottom + edgeButtonSize.maximumHeightPlusPadding())
+
+    /** The default space between [EdgeButton] and list content in [ScreenScaffold]. */
+    public val EdgeButtonSpacing: Dp = 16.dp
+
+    /** The minimum space between [EdgeButton] and list content in [ScreenScaffold]. */
+    public val EdgeButtonMinSpacing: Dp = EdgeButtonVerticalPadding
+
+    /** Default contentPadding added to the [ScreenScaffold]. */
+    public val contentPadding: PaddingValues
+        @Composable
+        get() =
+            PaddingValues(
+                horizontal = PaddingDefaults.horizontalContentPadding(),
+                vertical = PaddingDefaults.verticalContentPadding()
+            )
 }
 
 // Sets the height that will be used down the line, using a state as parameter, to avoid
 // recompositions when the height changes.
-internal fun Modifier.dynamicHeight(heightState: () -> Float) =
-    this.then(DynamicHeightElement(heightState))
+internal fun Modifier.dynamicHeight(
+    onIntrinsicHeightMeasured: (Float) -> Unit,
+    heightState: () -> Float
+) = this.then(DynamicHeightElement(onIntrinsicHeightMeasured, heightState))
 
 // Following classes 'inspired' by 'WrapContentElement' / 'WrapContentNode'
-private class DynamicHeightElement(val heightState: () -> Float) :
-    ModifierNodeElement<DynamicHeightNode>() {
-    override fun create(): DynamicHeightNode = DynamicHeightNode(heightState)
+private class DynamicHeightElement(
+    val onIntrinsicHeightMeasured: (Float) -> Unit,
+    val heightState: () -> Float
+) : ModifierNodeElement<DynamicHeightNode>() {
+    override fun create(): DynamicHeightNode =
+        DynamicHeightNode(onIntrinsicHeightMeasured, heightState)
 
     override fun update(node: DynamicHeightNode) {
         node.heightState = heightState
+        node.onIntrinsicHeightMeasured = onIntrinsicHeightMeasured
     }
 
     override fun InspectorInfo.inspectableProperties() {
-        name = "MyHeightElement"
+        name = "DynamicHeightElement"
     }
 
     override fun equals(other: Any?) =
-        other is DynamicHeightElement && heightState === other.heightState
+        other is DynamicHeightElement &&
+            heightState === other.heightState &&
+            onIntrinsicHeightMeasured === other.onIntrinsicHeightMeasured
 
-    override fun hashCode() = heightState.hashCode()
+    override fun hashCode() = 31 * heightState.hashCode() + onIntrinsicHeightMeasured.hashCode()
 }
 
-private class DynamicHeightNode(var heightState: () -> Float) :
-    LayoutModifierNode, Modifier.Node() {
+private class DynamicHeightNode(
+    var onIntrinsicHeightMeasured: (Float) -> Unit,
+    var heightState: () -> Float
+) : LayoutModifierNode, Modifier.Node() {
+
+    var lastMeasureHeight: Int? = null
+
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
@@ -462,7 +723,10 @@ private class DynamicHeightNode(var heightState: () -> Float) :
         // Similar to .fillMaxWidth().height(heightState.value) but we observe the state in the
         // measurement pass, not on Composition.
         val height = heightState().roundToInt()
-
+        if (lastMeasureHeight == null || height > 0 && lastMeasureHeight != height) {
+            onIntrinsicHeightMeasured(measurable.maxIntrinsicHeight(constraints.maxWidth).toFloat())
+            lastMeasureHeight = height
+        }
         val wrappedConstraints =
             Constraints(constraints.maxWidth, constraints.maxWidth, height, height)
         val placeable = measurable.measure(wrappedConstraints)
@@ -478,4 +742,9 @@ private class DynamicHeightNode(var heightState: () -> Float) :
             placeable.place(position)
         }
     }
+}
+
+private class ReplacePaddingValues(paddingValues: PaddingValues, val bottomPadding: Dp) :
+    PaddingValues by paddingValues {
+    override fun calculateBottomPadding(): Dp = bottomPadding
 }

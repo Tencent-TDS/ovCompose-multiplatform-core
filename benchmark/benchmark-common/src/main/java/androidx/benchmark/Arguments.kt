@@ -92,7 +92,7 @@ object Arguments {
     internal val requireAot: Boolean
     internal val requireJitDisabledIfRooted: Boolean
     val throwOnMainThreadMeasureRepeated: Boolean // non-internal, used in BenchmarkRule
-    val runOnMainDeadlineSeconds: Long // non-internal, used in BenchmarkRule
+    val measureRepeatedOnMainThrowOnDeadline: Boolean // non-internal, used in BenchmarkRule
 
     internal var error: String? = null
     internal val additionalTestOutputDir: String?
@@ -332,11 +332,10 @@ object Arguments {
         dropShadersThrowOnFailure =
             arguments.getBenchmarkArgument("dropShaders.throwOnFailure")?.toBoolean() ?: true
 
-        // very relaxed default to start, ideally this would be less than 5 (ANR timeout),
-        // but configurability should help experimenting / narrowing over time
-        runOnMainDeadlineSeconds =
-            arguments.getBenchmarkArgument("runOnMainDeadlineSeconds")?.toLong() ?: 30
-        Log.d(BenchmarkState.TAG, "runOnMainDeadlineSeconds $runOnMainDeadlineSeconds")
+        measureRepeatedOnMainThrowOnDeadline =
+            arguments
+                .getBenchmarkArgument("measureRepeatedOnMainThread.throwOnDeadline")
+                ?.toBoolean() ?: true
 
         requireAot = arguments.getBenchmarkArgument("requireAot")?.toBoolean() ?: false
         requireJitDisabledIfRooted =

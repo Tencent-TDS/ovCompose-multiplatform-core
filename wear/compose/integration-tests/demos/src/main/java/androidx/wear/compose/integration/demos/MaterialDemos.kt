@@ -16,8 +16,6 @@
 
 package androidx.wear.compose.integration.demos
 
-import android.annotation.SuppressLint
-import android.os.Build
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.integration.demos.common.Centralize
 import androidx.wear.compose.integration.demos.common.ComposableDemo
 import androidx.wear.compose.integration.demos.common.DemoCategory
@@ -84,6 +83,8 @@ import androidx.wear.compose.material.samples.StepperSample
 import androidx.wear.compose.material.samples.StepperWithCustomSemanticsSample
 import androidx.wear.compose.material.samples.StepperWithIntegerSample
 import androidx.wear.compose.material.samples.StepperWithoutRangeSemanticsSample
+import androidx.wear.compose.material.samples.SwipeToRevealCardSample
+import androidx.wear.compose.material.samples.SwipeToRevealChipSample
 import androidx.wear.compose.material.samples.TextPlaceholder
 import androidx.wear.compose.material.samples.TimeTextAnimation
 import androidx.wear.compose.material.samples.TimeTextWithFullDateAndTimeFormat
@@ -95,7 +96,6 @@ import androidx.wear.compose.material.samples.ToggleChipWithSwitch
 import java.time.LocalDate
 import java.time.LocalTime
 
-@SuppressLint("ClassVerificationFailure")
 val WearMaterialDemos =
     DemoCategory(
         "Material",
@@ -146,71 +146,65 @@ val WearMaterialDemos =
             ),
             DemoCategory(
                 "Picker",
-                if (Build.VERSION.SDK_INT > 25) {
-                    listOf(
-                        ComposableDemo("Time HH:MM:SS") { params ->
-                            var timePickerTime by remember { mutableStateOf(LocalTime.now()) }
-                            TimePicker(
-                                onTimeConfirm = {
-                                    timePickerTime = it
-                                    params.navigateBack()
-                                },
-                                time = timePickerTime,
-                            )
-                        },
-                        ComposableDemo("Time 12 Hour") { params ->
-                            var timePickerTime by remember { mutableStateOf(LocalTime.now()) }
-                            TimePickerWith12HourClock(
-                                onTimeConfirm = {
-                                    timePickerTime = it
-                                    params.navigateBack()
-                                },
-                                time = timePickerTime,
-                            )
-                        },
-                        ComposableDemo("Date Picker") { params ->
-                            var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
-                            DatePicker(
-                                onDateConfirm = {
-                                    datePickerDate = it
-                                    params.navigateBack()
-                                },
-                                date = datePickerDate
-                            )
-                        },
-                        ComposableDemo("From Date Picker") { params ->
-                            var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
-                            DatePicker(
-                                onDateConfirm = {
-                                    datePickerDate = it
-                                    params.navigateBack()
-                                },
-                                date = datePickerDate,
-                                fromDate = datePickerDate
-                            )
-                        },
-                        ComposableDemo("To Date Picker") { params ->
-                            var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
-                            DatePicker(
-                                onDateConfirm = {
-                                    datePickerDate = it
-                                    params.navigateBack()
-                                },
-                                date = datePickerDate,
-                                toDate = datePickerDate
-                            )
-                        },
-                        ComposableDemo("Simple Picker") { SimplePicker() },
-                        ComposableDemo("No gradient") { PickerWithoutGradient() },
-                        ComposableDemo("Animate picker change") { AnimateOptionChangePicker() },
-                        ComposableDemo("Sample Picker Group") { PickerGroup24Hours() },
-                        ComposableDemo("Autocentering Picker Group") { AutoCenteringPickerGroup() }
-                    )
-                } else {
-                    listOf(
-                        ComposableDemo("Simple Picker") { SimplePicker() },
-                    )
-                }
+                listOf(
+                    ComposableDemo("Time HH:MM:SS") { params ->
+                        var timePickerTime by remember { mutableStateOf(LocalTime.now()) }
+                        TimePicker(
+                            onTimeConfirm = {
+                                timePickerTime = it
+                                params.navigateBack()
+                            },
+                            time = timePickerTime,
+                        )
+                    },
+                    ComposableDemo("Time 12 Hour") { params ->
+                        var timePickerTime by remember { mutableStateOf(LocalTime.now()) }
+                        TimePickerWith12HourClock(
+                            onTimeConfirm = {
+                                timePickerTime = it
+                                params.navigateBack()
+                            },
+                            time = timePickerTime,
+                        )
+                    },
+                    ComposableDemo("Date Picker") { params ->
+                        var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
+                        DatePicker(
+                            onDateConfirm = {
+                                datePickerDate = it
+                                params.navigateBack()
+                            },
+                            date = datePickerDate
+                        )
+                    },
+                    ComposableDemo("From Date Picker") { params ->
+                        var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
+                        DatePicker(
+                            onDateConfirm = {
+                                datePickerDate = it
+                                params.navigateBack()
+                            },
+                            date = datePickerDate,
+                            fromDate = datePickerDate
+                        )
+                    },
+                    ComposableDemo("To Date Picker") { params ->
+                        var datePickerDate by remember { mutableStateOf(LocalDate.now()) }
+                        DatePicker(
+                            onDateConfirm = {
+                                datePickerDate = it
+                                params.navigateBack()
+                            },
+                            date = datePickerDate,
+                            toDate = datePickerDate
+                        )
+                    },
+                    ComposableDemo("Simple Picker") { SimplePicker() },
+                    ComposableDemo("No gradient") { PickerWithoutGradient() },
+                    ComposableDemo("Animate picker change") { AnimateOptionChangePicker() },
+                    ComposableDemo("Sample Picker Group") { PickerGroup24Hours() },
+                    ComposableDemo("Autocentering Picker Group") { AutoCenteringPickerGroup() }
+                )
             ),
             DemoCategory(
                 "Slider",
@@ -598,6 +592,64 @@ val WearMaterialDemos =
                     ComposableDemo("Simple") { SimpleSwipeToDismissBox(it.navigateBack) },
                     ComposableDemo("Stateful") { StatefulSwipeToDismissBox() },
                     ComposableDemo("Edge swipe") { EdgeSwipeForSwipeToDismiss(it.navigateBack) },
+                )
+            ),
+            DemoCategory(
+                "Swipe To Reveal",
+                listOf(
+                    DemoCategory(
+                        "Samples",
+                        listOf(
+                            ComposableDemo("S2R Chip") { params ->
+                                Centralize {
+                                    SwipeToRevealChipSample(params.swipeToDismissBoxState)
+                                }
+                            },
+                            ComposableDemo("S2R Card") { params ->
+                                Centralize {
+                                    SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                }
+                            },
+                            ComposableDemo("S2R Cards Inside SLC") { params ->
+                                Centralize {
+                                    ScalingLazyColumn {
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                    }
+                                }
+                            },
+                        )
+                    ),
+                    DemoCategory(
+                        "Demos",
+                        listOf(
+                            ComposableDemo("S2R Chip, 2 actions") { params ->
+                                SwipeToRevealChips(
+                                    params.swipeToDismissBoxState,
+                                    includeSecondaryAction = true
+                                )
+                            },
+                            ComposableDemo("S2R Chip, 1 action") { params ->
+                                SwipeToRevealChips(
+                                    params.swipeToDismissBoxState,
+                                    includeSecondaryAction = false
+                                )
+                            },
+                            ComposableDemo("S2R Card") { params ->
+                                SwipeToRevealCards(params.swipeToDismissBoxState)
+                            },
+                        )
+                    )
                 )
             ),
             DemoCategory(

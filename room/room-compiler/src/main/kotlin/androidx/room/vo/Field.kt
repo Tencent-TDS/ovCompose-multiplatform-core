@@ -25,8 +25,8 @@ import androidx.room.ext.decapitalize
 import androidx.room.migration.bundle.FieldBundle
 import androidx.room.parser.Collate
 import androidx.room.parser.SQLTypeAffinity
-import androidx.room.solver.types.CursorValueReader
 import androidx.room.solver.types.StatementValueBinder
+import androidx.room.solver.types.StatementValueReader
 import java.util.Locale
 
 // used in cache matching, must stay as a data class or implement equals
@@ -52,7 +52,7 @@ data class Field(
     var statementBinder: StatementValueBinder? = null
 
     // reads this field from a cursor column
-    var cursorValueReader: CursorValueReader? = null
+    var statementValueReader: StatementValueReader? = null
     val typeName: XTypeName by lazy { type.asTypeName() }
 
     override fun getIdKey(): String {

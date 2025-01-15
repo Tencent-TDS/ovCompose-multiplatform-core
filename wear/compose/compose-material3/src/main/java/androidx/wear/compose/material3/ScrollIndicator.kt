@@ -68,6 +68,7 @@ import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.inverseLerp
 import androidx.wear.compose.material3.ScrollIndicatorDefaults.maxSizeFraction
 import androidx.wear.compose.material3.ScrollIndicatorDefaults.minSizeFraction
+import androidx.wear.compose.materialcore.isLargeScreen
 import androidx.wear.compose.materialcore.isRoundDevice
 import androidx.wear.compose.materialcore.toRadians
 import kotlin.math.asin
@@ -107,7 +108,7 @@ import kotlinx.coroutines.launch
  *   AnimationSpec should be passed instead.
  */
 @Composable
-fun ScrollIndicator(
+public fun ScrollIndicator(
     state: ScrollState,
     modifier: Modifier = Modifier,
     reverseDirection: Boolean = false,
@@ -155,12 +156,12 @@ fun ScrollIndicator(
  *   AnimationSpec should be passed instead.
  */
 @Composable
-fun ScrollIndicator(
+public fun ScrollIndicator(
     state: ScalingLazyListState,
     modifier: Modifier = Modifier,
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
-) =
+): Unit =
     IndicatorImpl(
         state = ScalingLazyColumnStateAdapter(state = state),
         indicatorHeight = ScrollIndicatorDefaults.indicatorHeight,
@@ -172,12 +173,12 @@ fun ScrollIndicator(
     )
 
 @Composable
-fun ScrollIndicator(
+public fun ScrollIndicator(
     state: TransformingLazyColumnState,
     modifier: Modifier = Modifier,
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
-) =
+): Unit =
     IndicatorImpl(
         state = TransformingLazyColumnStateAdapter(state = state),
         indicatorHeight = ScrollIndicatorDefaults.indicatorHeight,
@@ -215,12 +216,12 @@ fun ScrollIndicator(
  *   AnimationSpec should be passed instead.
  */
 @Composable
-fun ScrollIndicator(
+public fun ScrollIndicator(
     state: LazyListState,
     modifier: Modifier = Modifier,
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
-) =
+): Unit =
     IndicatorImpl(
         state = LazyColumnStateAdapter(state = state),
         indicatorHeight = ScrollIndicatorDefaults.indicatorHeight,
@@ -232,12 +233,12 @@ fun ScrollIndicator(
     )
 
 /** Contains the default values used for [ScrollIndicator]. */
-object ScrollIndicatorDefaults {
+public object ScrollIndicatorDefaults {
     /**
      * [AnimationSpec] used for position animation. To disable this animation, pass [snap]
      * AnimationSpec instead
      */
-    val PositionAnimationSpec: AnimationSpec<Float> =
+    public val PositionAnimationSpec: AnimationSpec<Float> =
         tween(durationMillis = 500, easing = CubicBezierEasing(0f, 0f, 0f, 1f))
 
     internal const val minSizeFraction = 0.3f
@@ -248,8 +249,7 @@ object ScrollIndicatorDefaults {
     internal val indicatorWidth
         @Composable
         get(): Dp {
-            val screenHeight = LocalConfiguration.current.screenHeightDp
-            return if (screenHeight >= 225) 6.dp else 5.dp
+            return if (isLargeScreen()) 6.dp else 5.dp
         }
 
     internal val gapHeight = 3.dp

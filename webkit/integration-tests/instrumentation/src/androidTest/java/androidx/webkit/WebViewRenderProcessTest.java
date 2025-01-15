@@ -27,6 +27,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SdkSuppress;
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
 
 import com.google.common.util.concurrent.ListenableFuture;
 

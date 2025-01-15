@@ -62,7 +62,7 @@ internal fun rememberRotaryHapticHandler(
     hapticsEnabled: Boolean
 ): RotaryHapticHandler =
     if (hapticsEnabled) {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.VANILLA_ICE_CREAM)
             rememberCustomRotaryHapticHandler(scrollableState)
         else rememberPlatformRotaryHapticHandler(scrollableState)
     } else rememberDisabledRotaryHapticHandler()
@@ -171,7 +171,7 @@ private fun rememberHapticChannel() = remember {
  * @param hapticsChannel Channel to which haptic events will be sent
  * @param hapticsThresholdPx A scroll threshold after which haptic is produced.
  */
-private class CustomRotaryHapticHandler(
+internal class CustomRotaryHapticHandler(
     private val scrollableState: ScrollableState,
     private val hapticsChannel: Channel<RotaryHapticsType>,
     private val hapticsThresholdPx: Long = 50

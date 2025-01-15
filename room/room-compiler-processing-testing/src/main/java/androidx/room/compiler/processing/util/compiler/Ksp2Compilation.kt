@@ -109,10 +109,12 @@ internal class Ksp2Compilation(
 
                 moduleName = KotlinCliRunner.getJvmModuleName(arguments.kotlincArguments)
 
-                languageVersion = TestDefaultOptions.kotlinLanguageVersion.versionString
-                apiVersion = TestDefaultOptions.kotlinApiVersion.versionString
-                jvmTarget = TestDefaultOptions.jvmTarget.description
-                jvmDefaultMode = TestDefaultOptions.jvmDefaultMode.description
+                languageVersion =
+                    KotlinCliRunner.getLanguageVersion(arguments.kotlincArguments).versionString
+                apiVersion = KotlinCliRunner.getApiVersion(arguments.kotlincArguments).versionString
+                jvmTarget = KotlinCliRunner.getJvmTarget(arguments.kotlincArguments).description
+                jvmDefaultMode =
+                    KotlinCliRunner.getJvmDefaultMode(arguments.kotlincArguments).description
 
                 processorOptions = this@Ksp2Compilation.processorOptions
             }

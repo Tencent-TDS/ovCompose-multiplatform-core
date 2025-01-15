@@ -52,7 +52,7 @@ public fun CurvedScope.curvedComposable(
     radialAlignment: CurvedAlignment.Radial = CurvedAlignment.Radial.Center,
     rotationLocked: Boolean = false,
     content: @Composable BoxScope.() -> Unit
-) =
+): Unit =
     add(
         CurvedComposableChild(
             curvedLayoutDirection.absoluteClockwise(),
@@ -80,7 +80,7 @@ public fun CurvedScope.curvedComposable(
     modifier: CurvedModifier = CurvedModifier,
     radialAlignment: CurvedAlignment.Radial = CurvedAlignment.Radial.Center,
     content: @Composable BoxScope.() -> Unit
-) =
+): Unit =
     add(
         CurvedComposableChild(
             curvedLayoutDirection.absoluteClockwise(),

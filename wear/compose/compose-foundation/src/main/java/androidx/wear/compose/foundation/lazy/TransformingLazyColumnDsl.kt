@@ -37,18 +37,18 @@ import androidx.wear.compose.foundation.lazy.layout.LazyLayoutAnimationSpecsNode
 
 /** Receiver scope being used by the item content parameter of [TransformingLazyColumn]. */
 @TransformingLazyColumnScopeMarker
-sealed interface TransformingLazyColumnItemScope {
+public sealed interface TransformingLazyColumnItemScope {
     /**
      * Scroll progress of the item before height transformation is applied using
      * [Modifier.transformedHeight]. Is null for the item that is off screen.
      */
-    val DrawScope.scrollProgress: TransformingLazyColumnItemScrollProgress?
+    public val DrawScope.scrollProgress: TransformingLazyColumnItemScrollProgress?
 
     /**
      * Scroll progress of the item before height transformation is applied using
      * [Modifier.transformedHeight]. Is null for the item that is off screen.
      */
-    val GraphicsLayerScope.scrollProgress: TransformingLazyColumnItemScrollProgress?
+    public val GraphicsLayerScope.scrollProgress: TransformingLazyColumnItemScrollProgress?
 
     /**
      * Applies the new height of the item depending on its scroll progress and measured height.
@@ -57,7 +57,7 @@ sealed interface TransformingLazyColumnItemScope {
      *   the item returned during measurement. The second parameter is the scroll progress of the
      *   item. This lambda should not read from any state values.
      */
-    fun Modifier.transformedHeight(
+    public fun Modifier.transformedHeight(
         heightProvider:
             (measuredHeight: Int, scrollProgress: TransformingLazyColumnItemScrollProgress) -> Int
     ): Modifier
@@ -70,7 +70,7 @@ sealed interface TransformingLazyColumnItemScope {
      * @sample androidx.wear.compose.foundation.samples.TransformingLazyColumnImplicitSample
      */
     @Composable
-    fun TransformExclusion(content: @Composable TransformingLazyColumnItemScope.() -> Unit) {
+    public fun TransformExclusion(content: @Composable TransformingLazyColumnItemScope.() -> Unit) {
         CompositionLocalProvider(LocalTransformingLazyColumnItemScope provides null) { content() }
     }
 
@@ -90,7 +90,7 @@ sealed interface TransformingLazyColumnItemScope {
      * @param fadeOutSpec an animation spec to use for animating the item disappearance. When null
      *   is provided the item will be disappearance without animations.
      */
-    fun Modifier.animateItem(
+    public fun Modifier.animateItem(
         fadeInSpec: FiniteAnimationSpec<Float>? = spring(stiffness = Spring.StiffnessMediumLow),
         placementSpec: FiniteAnimationSpec<IntOffset>? =
             spring(
@@ -103,7 +103,7 @@ sealed interface TransformingLazyColumnItemScope {
 
 /** Receiver scope which is used by [TransformingLazyColumn]. */
 @TransformingLazyColumnScopeMarker
-sealed interface TransformingLazyColumnScope {
+public sealed interface TransformingLazyColumnScope {
     /**
      * Adds [count] items.
      *
@@ -115,7 +115,7 @@ sealed interface TransformingLazyColumnScope {
      *   such type will be considered compatible.
      * @param content The content displayed by a single item.
      */
-    fun items(
+    public fun items(
         count: Int,
         key: ((index: Int) -> Any)? = null,
         contentType: (index: Int) -> Any? = { null },
@@ -136,7 +136,7 @@ sealed interface TransformingLazyColumnScope {
      *   type will be considered compatible.
      * @param content The content of the item.
      */
-    fun item(
+    public fun item(
         key: Any? = null,
         contentType: Any? = null,
         content: @Composable TransformingLazyColumnItemScope.() -> Unit
@@ -158,12 +158,12 @@ sealed interface TransformingLazyColumnScope {
  *   will be considered compatible.
  * @param itemContent the content displayed by a single item.
  */
-inline fun <T> TransformingLazyColumnScope.items(
+public inline fun <T> TransformingLazyColumnScope.items(
     items: List<T>,
     noinline key: ((item: T) -> Any)? = null,
     noinline contentType: (item: T) -> Any? = { null },
     crossinline itemContent: @Composable TransformingLazyColumnItemScope.(item: T) -> Unit
-) =
+): Unit =
     items(
         count = items.size,
         key = if (key != null) { index: Int -> key(items[index]) } else null,
@@ -187,14 +187,14 @@ inline fun <T> TransformingLazyColumnScope.items(
  *   will be considered compatible.
  * @param itemContent the content displayed by a single item
  */
-inline fun <T> TransformingLazyColumnScope.itemsIndexed(
+public inline fun <T> TransformingLazyColumnScope.itemsIndexed(
     items: List<T>,
     noinline key: ((index: Int, item: T) -> Any)? = null,
     crossinline contentType: (index: Int, item: T) -> Any? = { _, _ -> null },
     crossinline itemContent:
         @Composable
         TransformingLazyColumnItemScope.(index: Int, item: T) -> Unit
-) =
+): Unit =
     items(
         count = items.size,
         key = if (key != null) { index: Int -> key(index, items[index]) } else null,
@@ -205,8 +205,10 @@ inline fun <T> TransformingLazyColumnScope.itemsIndexed(
 
 internal class TransformingLazyColumnItemScopeImpl(
     val index: Int,
-    val state: TransformingLazyColumnState
+    val state: TransformingLazyColumnState,
+    val reduceMotionEnabled: Boolean
 ) : TransformingLazyColumnItemScope {
+
     private val _scrollProgress: TransformingLazyColumnItemScrollProgress?
         get() = state.layoutInfo.visibleItems.fastFirstOrNull { it.index == index }?.scrollProgress
 
@@ -218,14 +220,18 @@ internal class TransformingLazyColumnItemScopeImpl(
 
     override fun Modifier.transformedHeight(
         heightProvider: (Int, TransformingLazyColumnItemScrollProgress) -> Int
-    ): Modifier = this then TransformingLazyColumnCompositeParentDataModifier(heightProvider)
+    ): Modifier =
+        if (reduceMotionEnabled) this
+        else this then TransformingLazyColumnCompositeParentDataModifier(heightProvider)
 
     override fun Modifier.animateItem(
         fadeInSpec: FiniteAnimationSpec<Float>?,
         placementSpec: FiniteAnimationSpec<IntOffset>?,
         fadeOutSpec: FiniteAnimationSpec<Float>?,
     ): Modifier =
-        if (fadeInSpec == null && placementSpec == null && fadeOutSpec == null) {
+        if (reduceMotionEnabled) {
+            this
+        } else if (fadeInSpec == null && placementSpec == null && fadeOutSpec == null) {
             this
         } else {
             this then LazyLayoutAnimateItemElement(fadeInSpec, placementSpec, fadeOutSpec)

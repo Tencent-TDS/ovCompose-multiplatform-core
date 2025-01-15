@@ -234,3 +234,8 @@ fun readVersion(databaseFile: File): Int {
 fun createCancellationSignal(): CancellationSignal {
     return CancellationSignal()
 }
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+fun toSQLiteConnection(db: SupportSQLiteDatabase): SQLiteConnection {
+    return SupportSQLiteConnection(db)
+}

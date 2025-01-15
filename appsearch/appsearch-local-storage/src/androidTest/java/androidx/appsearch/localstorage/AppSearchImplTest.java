@@ -22,9 +22,9 @@ import static androidx.appsearch.app.AppSearchResult.RESULT_OUT_OF_SPACE;
 import static androidx.appsearch.localstorage.util.PrefixUtil.addPrefixToDocument;
 import static androidx.appsearch.localstorage.util.PrefixUtil.createPrefix;
 import static androidx.appsearch.localstorage.util.PrefixUtil.removePrefixesFromDocument;
-import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.DOCUMENT_ANDROID_V_OVERLAY_DATABASE_NAME;
 import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.BLOB_ANDROID_V_OVERLAY_DATABASE_NAME;
 import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.BLOB_VISIBILITY_DATABASE_NAME;
+import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.DOCUMENT_ANDROID_V_OVERLAY_DATABASE_NAME;
 import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.DOCUMENT_VISIBILITY_DATABASE_NAME;
 import static androidx.appsearch.localstorage.visibilitystore.VisibilityStore.VISIBILITY_PACKAGE_NAME;
 import static androidx.appsearch.testutil.AppSearchTestUtils.calculateDigest;
@@ -38,7 +38,6 @@ import static org.junit.Assert.assertThrows;
 import android.content.Context;
 import android.os.ParcelFileDescriptor;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.app.AppSearchBlobHandle;
 import androidx.appsearch.app.AppSearchResult;
 import androidx.appsearch.app.AppSearchSchema;
@@ -101,6 +100,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -3701,11 +3701,11 @@ public class AppSearchImplTest {
         }
 
         StorageInfo storageInfo1 = mAppSearchImpl.getStorageInfoForPackage("package1");
-        assertThat(storageInfo1.getBlobSizeBytes()).isEqualTo(15 * 1024);
-        assertThat(storageInfo1.getBlobCount()).isEqualTo(2);
+        assertThat(storageInfo1.getBlobsSizeBytes()).isEqualTo(15 * 1024);
+        assertThat(storageInfo1.getBlobsCount()).isEqualTo(2);
         StorageInfo storageInfo2 = mAppSearchImpl.getStorageInfoForPackage("package2");
-        assertThat(storageInfo2.getBlobSizeBytes()).isEqualTo(20 * 1024);
-        assertThat(storageInfo2.getBlobCount()).isEqualTo(1);
+        assertThat(storageInfo2.getBlobsSizeBytes()).isEqualTo(20 * 1024);
+        assertThat(storageInfo2.getBlobsCount()).isEqualTo(1);
     }
 
 
@@ -3754,11 +3754,11 @@ public class AppSearchImplTest {
         }
 
         StorageInfo storageInfo1 = mAppSearchImpl.getStorageInfoForDatabase("package", "db1");
-        assertThat(storageInfo1.getBlobSizeBytes()).isEqualTo(15 * 1024);
-        assertThat(storageInfo1.getBlobCount()).isEqualTo(2);
+        assertThat(storageInfo1.getBlobsSizeBytes()).isEqualTo(15 * 1024);
+        assertThat(storageInfo1.getBlobsCount()).isEqualTo(2);
         StorageInfo storageInfo2 = mAppSearchImpl.getStorageInfoForDatabase("package", "db2");
-        assertThat(storageInfo2.getBlobSizeBytes()).isEqualTo(20 * 1024);
-        assertThat(storageInfo2.getBlobCount()).isEqualTo(1);
+        assertThat(storageInfo2.getBlobsSizeBytes()).isEqualTo(20 * 1024);
+        assertThat(storageInfo2.getBlobsCount()).isEqualTo(1);
     }
 
     @Test

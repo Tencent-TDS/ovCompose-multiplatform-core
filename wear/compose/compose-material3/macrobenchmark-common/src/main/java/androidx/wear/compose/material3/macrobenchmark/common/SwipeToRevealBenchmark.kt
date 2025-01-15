@@ -53,6 +53,7 @@ object SwipeToRevealBenchmark : MacrobenchmarkScreen {
                         onClick = { /* This block is called when the primary action is executed. */
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     secondaryAction(
@@ -64,7 +65,7 @@ object SwipeToRevealBenchmark : MacrobenchmarkScreen {
                     undoPrimaryAction(
                         onClick = { /* This block is called when the undo primary action is executed. */
                         },
-                        label = "Undo Delete"
+                        text = { Text("Undo Delete") },
                     )
                 }
             ) {

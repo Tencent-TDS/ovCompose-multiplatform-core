@@ -34,5 +34,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.asynclayoutinflater"
+    namespace = "androidx.asynclayoutinflater"
 }

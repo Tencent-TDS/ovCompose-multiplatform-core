@@ -52,7 +52,7 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
     buildFeatures {
         aidl = true
@@ -63,7 +63,7 @@ android {
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.tiles"
+    namespace = "androidx.wear.tiles"
 }
 
 androidx {

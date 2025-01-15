@@ -35,7 +35,7 @@ class TypeConverterStoreImpl(
     override fun findConverterIntoStatement(input: XType, columnTypes: List<XType>?) =
         findTypeConverter(inputs = listOf(input), outputs = columnTypes ?: knownColumnTypes)
 
-    override fun findConverterFromCursor(columnTypes: List<XType>?, output: XType) =
+    override fun findConverterFromStatement(columnTypes: List<XType>?, output: XType) =
         findTypeConverter(inputs = columnTypes ?: knownColumnTypes, outputs = listOf(output))
 
     override fun findTypeConverter(input: XType, output: XType) =

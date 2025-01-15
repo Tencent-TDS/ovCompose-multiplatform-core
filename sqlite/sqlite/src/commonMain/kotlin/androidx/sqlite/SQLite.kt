@@ -58,17 +58,6 @@ public fun SQLiteConnection.execSQL(sql: String) {
     prepare(sql).use { it.step() }
 }
 
-/** Use the receiver statement within the [block] and closes it once it is done. */
-// TODO(b/315461431): Migrate to a Closeable interface in KMP
-@Suppress("AcronymName") // SQL is a known term and should remain capitalized
-public inline fun <R> SQLiteStatement.use(block: (SQLiteStatement) -> R): R {
-    try {
-        return block.invoke(this)
-    } finally {
-        close()
-    }
-}
-
 /** Throws a [SQLiteException] with its message formed by the given [errorCode] amd [errorMsg]. */
 @Suppress("AcronymName") // SQL is a known term and should remain capitalized
 public fun throwSQLiteException(errorCode: Int, errorMsg: String?): Nothing {

@@ -19,11 +19,9 @@ package androidx.camera.video
 import android.Manifest
 import android.content.Context
 import android.graphics.Rect
-import android.graphics.SurfaceTexture
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
-import android.util.Log
 import android.util.Rational
 import android.util.Size
 import android.view.Surface
@@ -37,12 +35,8 @@ import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
 import androidx.camera.core.DynamicRange
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
-import androidx.camera.core.UseCaseGroup
 import androidx.camera.core.impl.CameraControlInternal
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.utils.AspectRatioUtil.ASPECT_RATIO_16_9
@@ -53,26 +47,22 @@ import androidx.camera.core.impl.utils.TransformUtils.is90or270
 import androidx.camera.core.impl.utils.TransformUtils.rectToSize
 import androidx.camera.core.impl.utils.TransformUtils.rotateSize
 import androidx.camera.core.impl.utils.TransformUtils.within360
-import androidx.camera.core.impl.utils.executor.CameraXExecutors
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.impl.AndroidUtil.isEmulator
 import androidx.camera.testing.impl.AndroidUtil.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraTaskTrackingExecutor
 import androidx.camera.testing.impl.CameraUtil
-import androidx.camera.testing.impl.StreamSharingForceEnabledEffect
 import androidx.camera.testing.impl.SurfaceTextureProvider
 import androidx.camera.testing.impl.WakelockEmptyActivityRule
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.camera.testing.impl.getRotatedAspectRatio
 import androidx.camera.testing.impl.getRotation
-import androidx.camera.testing.impl.mocks.MockScreenFlash
 import androidx.camera.testing.impl.useAndRelease
 import androidx.camera.testing.impl.video.AudioChecker
 import androidx.camera.testing.impl.video.Recording
 import androidx.camera.testing.impl.video.RecordingSession
 import androidx.camera.video.VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE
-import androidx.lifecycle.LifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
@@ -82,7 +72,6 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -225,7 +214,10 @@ class VideoRecordingTest(
         ProcessCameraProvider.configureInstance(cameraXConfig)
 
         cameraProvider =
-            ProcessCameraProviderWrapper(ProcessCameraProvider.getInstance(context).get())
+            ProcessCameraProviderWrapper(
+                ProcessCameraProvider.getInstance(context).get(),
+                forceEnableStreamSharing
+            )
         lifecycleOwner = FakeLifecycleOwner()
         lifecycleOwner.startAndResume()
 
@@ -235,7 +227,7 @@ class VideoRecordingTest(
 
         instrumentation.runOnMainSync {
             // Sets surface provider to preview
-            preview.surfaceProvider = getSurfaceProvider()
+            preview.surfaceProvider = SurfaceTextureProvider.createSurfaceTextureProvider()
 
             // Retrieves the target testing camera and camera info
             camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector)
@@ -437,50 +429,6 @@ class VideoRecordingTest(
     }
 
     @Test
-    fun recordingWithPreviewAndImageAnalysis() {
-        // Arrange.
-        val analysis = ImageAnalysis.Builder().build()
-        val latchForImageAnalysis = CountDownLatch(5)
-        analysis.setAnalyzer(CameraXExecutors.directExecutor()) {
-            latchForImageAnalysis.countDown()
-            it.close()
-        }
-        checkAndBindUseCases(preview, videoCapture, analysis)
-
-        // Act.
-        recordingSession.createRecording().recordAndVerify()
-
-        // Verify.
-        assertThat(latchForImageAnalysis.await(10, TimeUnit.SECONDS)).isTrue()
-    }
-
-    @Test
-    fun recordingWithPreviewAndImageCapture() {
-        // Arrange.
-        val imageCapture = ImageCapture.Builder().build()
-        checkAndBindUseCases(preview, videoCapture, imageCapture)
-
-        // Act.
-        recordingSession.createRecording().recordAndVerify()
-
-        // Verify.
-        completeImageCapture(imageCapture)
-    }
-
-    @Test
-    fun recordingWithPreviewAndFlashImageCapture() {
-        // Arrange.
-        val imageCapture = ImageCapture.Builder().build()
-        checkAndBindUseCases(preview, videoCapture, imageCapture)
-
-        // Act.
-        recordingSession.createRecording().recordAndVerify()
-
-        // Verify.
-        completeImageCapture(imageCapture, useFlash = true)
-    }
-
-    @Test
     fun recordingWithPreview_boundSeparately() {
         assumeTrue(camera.isUseCasesCombinationSupported(preview, videoCapture))
 
@@ -573,26 +521,6 @@ class VideoRecordingTest(
         //    -> Recorder.requestReset()
         //    -> recording is stopped unexpectedly.
         readyFuture?.get(VIDEO_TIMEOUT_SEC, TimeUnit.SECONDS)
-    }
-
-    @Test
-    fun boundButNotRecordingDuringCapture_withPreviewAndImageCapture() {
-        // Arrange.
-        val imageCapture = ImageCapture.Builder().build()
-        checkAndBindUseCases(preview, videoCapture, imageCapture)
-
-        // Act & verify.
-        completeImageCapture(imageCapture)
-    }
-
-    @Test
-    fun boundButNotRecordingDuringFlashCapture_withPreviewAndImageCapture() {
-        // Arrange.
-        val imageCapture = ImageCapture.Builder().build()
-        checkAndBindUseCases(preview, videoCapture, imageCapture)
-
-        // Act & verify.
-        completeImageCapture(imageCapture, useFlash = true)
     }
 
     @Test
@@ -725,98 +653,6 @@ class VideoRecordingTest(
     }
 
     @Test
-    fun persistentRecording_canContinueRecordingAfterRebind() {
-        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        assumeFalse(
-            "The test is temporarily ignored when stream sharing is enabled.",
-            forceEnableStreamSharing
-        )
-
-        checkAndBindUseCases(preview, videoCapture)
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        // Bypass stream sharing if it's enforced on the device. Like quirks in
-        // androidx.camera.core.internal.compat.workaround.StreamSharingForceEnabler.
-        assumeFalse(
-            "The test is temporarily ignored when the video capture requires transformation.",
-            isStreamSharingEnabled(videoCapture)
-        )
-
-        val recording =
-            recordingSession.createRecording(asPersistentRecording = true).startAndVerify()
-
-        instrumentation.runOnMainSync { cameraProvider.unbindAll() }
-        checkAndBindUseCases(preview, videoCapture)
-
-        recording.clearEvents()
-        recording.verifyStatus()
-
-        recording.stopAndVerify()
-    }
-
-    @Test
-    fun persistentRecording_canContinueRecordingPausedAfterRebind() {
-        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        assumeFalse(
-            "The test is temporarily ignored when stream sharing is enabled.",
-            forceEnableStreamSharing
-        )
-
-        checkAndBindUseCases(preview, videoCapture)
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        // Bypass stream sharing if it's enforced on the device. Like quirks in
-        // androidx.camera.core.internal.compat.workaround.StreamSharingForceEnabler.
-        assumeFalse(
-            "The test is temporarily ignored when the video capture requires transformation.",
-            isStreamSharingEnabled(videoCapture)
-        )
-
-        val recording =
-            recordingSession
-                .createRecording(asPersistentRecording = true)
-                .startAndVerify()
-                .pauseAndVerify()
-
-        instrumentation.runOnMainSync { cameraProvider.unbindAll() }
-        checkAndBindUseCases(preview, videoCapture)
-
-        recording.resumeAndVerify().stopAndVerify()
-    }
-
-    @Test
-    fun persistentRecording_canStopAfterUnbind() {
-        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        assumeFalse(
-            "The test is temporarily ignored when stream sharing is enabled.",
-            forceEnableStreamSharing
-        )
-
-        checkAndBindUseCases(preview, videoCapture)
-
-        // TODO(b/340406044): Enable the test for stream sharing use case.
-        // Bypass stream sharing if it's enforced on the device. Like quirks in
-        // androidx.camera.core.internal.compat.workaround.StreamSharingForceEnabler.
-        assumeFalse(
-            "The test is temporarily ignored when the video capture requires transformation.",
-            isStreamSharingEnabled(videoCapture)
-        )
-
-        val recording =
-            recordingSession.createRecording(asPersistentRecording = true).startAndVerify()
-
-        instrumentation.runOnMainSync { cameraProvider.unbindAll() }
-
-        recording.stopAndVerify()
-    }
-
-    @Test
     fun canRecordWithCorrectTransformation() {
         // Act.
         checkAndBindUseCases(preview, videoCapture)
@@ -917,74 +753,6 @@ class VideoRecordingTest(
         )
     }
 
-    @Test
-    fun updateVideoUsage_whenUseCaseUnboundAndReboundForPersistentRecording(): Unit = runBlocking {
-        assumeFalse(
-            "TODO: b/340406044 - Temporarily ignored when stream sharing is enabled.",
-            forceEnableStreamSharing
-        )
-
-        checkAndBindUseCases(preview, videoCapture)
-        val recording =
-            recordingSession.createRecording(asPersistentRecording = true).startAndVerify()
-
-        // Act 1 - unbind VideoCapture before recording completes, isRecording should be false.
-        instrumentation.runOnMainSync { cameraProvider.unbind(videoCapture) }
-
-        camera.cameraControl.verifyIfInVideoUsage(
-            false,
-            "VideoCapture unbound but camera still in video usage"
-        )
-
-        // Act 2 - rebind VideoCapture, isRecording should be true.
-        checkAndBindUseCases(videoCapture)
-
-        camera.cameraControl.verifyIfInVideoUsage(
-            true,
-            "VideoCapture re-bound but camera still not in video usage"
-        )
-
-        // TODO(b/382158668): Remove the check for the status events.
-        recording.clearEvents()
-        recording.verifyStatus()
-        recording.stopAndVerify()
-    }
-
-    @Test
-    fun updateVideoUsage_whenUseCaseBoundToNewCameraForPersistentRecording(): Unit = runBlocking {
-        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
-
-        assumeFalse(
-            "TODO: b/340406044 - Temporarily ignored when stream sharing is enabled.",
-            forceEnableStreamSharing
-        )
-
-        checkAndBindUseCases(preview, videoCapture)
-        val recording =
-            recordingSession.createRecording(asPersistentRecording = true).startAndVerify()
-
-        // Act 1 - unbind before recording completes, isRecording should be false.
-        instrumentation.runOnMainSync { cameraProvider.unbindAll() }
-
-        camera.cameraControl.verifyIfInVideoUsage(
-            false,
-            "VideoCapture unbound but camera still in video usage"
-        )
-
-        // Act 2 - rebind VideoCapture to opposite camera, isRecording should be true.
-        checkAndBindUseCases(preview, videoCapture, useOppositeCamera = true)
-
-        oppositeCamera.cameraControl.verifyIfInVideoUsage(
-            true,
-            "VideoCapture re-bound but camera still not in video usage"
-        )
-
-        // TODO(b/382158668): Remove the check for the status events.
-        recording.clearEvents()
-        recording.verifyStatus()
-        recording.stopAndVerify()
-    }
-
     // TODO: b/341691683 - Add tests for multiple VideoCapture bound and recording concurrently
 
     private fun getCameraSelector(useOppositeCamera: Boolean): CameraSelector =
@@ -1011,35 +779,6 @@ class VideoRecordingTest(
                 *useCases
             )
         }
-    }
-
-    private fun completeImageCapture(
-        imageCapture: ImageCapture,
-        imageFile: File = temporaryFolder.newFile(),
-        useFlash: Boolean = false
-    ) {
-        val savedCallback = ImageSavedCallback()
-
-        if (useFlash) {
-            if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_FRONT) {
-                imageCapture.screenFlash = MockScreenFlash()
-                imageCapture.flashMode = ImageCapture.FLASH_MODE_SCREEN
-            } else {
-                imageCapture.flashMode = ImageCapture.FLASH_MODE_ON
-            }
-        } else {
-            imageCapture.flashMode = ImageCapture.FLASH_MODE_OFF
-        }
-
-        imageCapture.takePicture(
-            ImageCapture.OutputFileOptions.Builder(imageFile).build(),
-            CameraXExecutors.ioExecutor(),
-            savedCallback
-        )
-        savedCallback.verifyCaptureResult()
-
-        // Just in case same imageCapture is bound to rear camera later
-        imageCapture.screenFlash = null
     }
 
     data class ExpectedRotation(val contentRotation: Int, val metadataRotation: Int)
@@ -1099,80 +838,8 @@ class VideoRecordingTest(
         }
     }
 
-    private fun getSurfaceProvider(): Preview.SurfaceProvider {
-        return SurfaceTextureProvider.createSurfaceTextureProvider(
-            object : SurfaceTextureProvider.SurfaceTextureCallback {
-                override fun onSurfaceTextureReady(
-                    surfaceTexture: SurfaceTexture,
-                    resolution: Size
-                ) {
-                    // No-op
-                }
-
-                override fun onSafeToRelease(surfaceTexture: SurfaceTexture) {
-                    surfaceTexture.release()
-                }
-            }
-        )
-    }
-
     private fun assumeExtraCroppingQuirk() {
         assumeExtraCroppingQuirk(implName)
-    }
-
-    private inner class ProcessCameraProviderWrapper(val cameraProvider: ProcessCameraProvider) {
-
-        fun bindToLifecycle(
-            lifecycleOwner: LifecycleOwner,
-            cameraSelector: CameraSelector,
-            vararg useCases: UseCase
-        ): Camera {
-            if (useCases.isEmpty()) {
-                return cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, *useCases)
-            }
-            val useCaseGroup =
-                UseCaseGroup.Builder()
-                    .apply {
-                        useCases.forEach { useCase -> addUseCase(useCase) }
-                        if (forceEnableStreamSharing) {
-                            addEffect(StreamSharingForceEnabledEffect())
-                        }
-                    }
-                    .build()
-            return cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, useCaseGroup)
-        }
-
-        fun unbind(vararg useCases: UseCase) {
-            cameraProvider.unbind(*useCases)
-        }
-
-        fun unbindAll() {
-            cameraProvider.unbindAll()
-        }
-
-        fun shutdownAsync(): ListenableFuture<Void> = cameraProvider.shutdownAsync()
-    }
-
-    private class ImageSavedCallback : ImageCapture.OnImageSavedCallback {
-
-        private val latch = CountDownLatch(1)
-        val results = mutableListOf<ImageCapture.OutputFileResults>()
-        val errors = mutableListOf<ImageCaptureException>()
-
-        override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-            results.add(outputFileResults)
-            latch.countDown()
-        }
-
-        override fun onError(exception: ImageCaptureException) {
-            errors.add(exception)
-            Log.e(TAG, "OnImageSavedCallback.onError: ${exception.message}")
-            latch.countDown()
-        }
-
-        fun verifyCaptureResult() {
-            assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue()
-        }
     }
 
     private suspend fun CameraControl.verifyIfInVideoUsage(

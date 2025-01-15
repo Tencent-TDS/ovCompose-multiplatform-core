@@ -15,6 +15,7 @@
  */
 
 @file:OptIn(ExperimentalMultiplatform::class)
+@file:Suppress("RedundantVisibilityModifier")
 
 package dalvik.annotation.optimization
 

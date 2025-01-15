@@ -54,22 +54,32 @@ package androidx.webkit {
     field public final int httpResponseStatusCode;
   }
 
+  @SuppressCompatibility @androidx.webkit.WebViewCompat.ExperimentalUrlPrerender public class PrerenderException extends java.lang.Exception {
+    ctor public PrerenderException(String, Throwable?);
+  }
+
+  @SuppressCompatibility @androidx.webkit.WebViewCompat.ExperimentalUrlPrerender public interface PrerenderOperationCallback {
+    method public void onError(androidx.webkit.PrerenderException);
+    method public void onPrerenderActivated();
+  }
+
   public class ProcessGlobalConfig {
     ctor public ProcessGlobalConfig();
     method public static void apply(androidx.webkit.ProcessGlobalConfig);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX, enforcement="androidx.webkit.WebViewFeature#isConfigFeatureSupported(String, Context)") public androidx.webkit.ProcessGlobalConfig setDataDirectorySuffix(android.content.Context, String);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS, enforcement="androidx.webkit.WebViewFeature#isConfigFeatureSupported(String, Context)") public androidx.webkit.ProcessGlobalConfig setDirectoryBasePaths(android.content.Context, java.io.File, java.io.File);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES, enforcement="androidx.webkit.WebViewFeature#isConfigFeatureSupported(String, Context)") public androidx.webkit.ProcessGlobalConfig setPartitionedCookiesEnabled(android.content.Context, boolean);
   }
 
   public interface Profile {
-    method @SuppressCompatibility @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.Profile.ExperimentalUrlPrefetch public void clearPrefetchAsync(String, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
+    method @SuppressCompatibility @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread @androidx.webkit.Profile.ExperimentalUrlPrefetch public void clearPrefetchAsync(String, java.util.concurrent.Executor, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROFILE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public android.webkit.CookieManager getCookieManager();
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROFILE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public android.webkit.GeolocationPermissions getGeolocationPermissions();
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROFILE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public String getName();
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROFILE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public android.webkit.ServiceWorkerController getServiceWorkerController();
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROFILE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public android.webkit.WebStorage getWebStorage();
-    method @SuppressCompatibility @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.Profile.ExperimentalUrlPrefetch public void prefetchUrlAsync(String, androidx.core.os.CancellationSignal?, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
-    method @SuppressCompatibility @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.Profile.ExperimentalUrlPrefetch public void prefetchUrlAsync(String, androidx.core.os.CancellationSignal?, androidx.webkit.SpeculativeLoadingParameters, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
+    method @SuppressCompatibility @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread @androidx.webkit.Profile.ExperimentalUrlPrefetch public void prefetchUrlAsync(String, android.os.CancellationSignal?, java.util.concurrent.Executor, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
+    method @SuppressCompatibility @RequiresFeature(name=androidx.webkit.WebViewFeature.PROFILE_URL_PREFETCH, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread @androidx.webkit.Profile.ExperimentalUrlPrefetch public void prefetchUrlAsync(String, android.os.CancellationSignal?, java.util.concurrent.Executor, androidx.webkit.SpeculativeLoadingParameters, androidx.webkit.OutcomeReceiverCompat<java.lang.Void!,androidx.webkit.PrefetchException!>);
     field public static final String DEFAULT_PROFILE_NAME = "Default";
   }
 
@@ -293,7 +303,7 @@ package androidx.webkit {
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.SAFE_BROWSING_ENABLE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static boolean getSafeBrowsingEnabled(android.webkit.WebSettings);
     method @SuppressCompatibility @RequiresFeature(name=androidx.webkit.WebViewFeature.SPECULATIVE_LOADING, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.WebSettingsCompat.ExperimentalSpeculativeLoading public static int getSpeculativeLoadingStatus(android.webkit.WebSettings);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.USER_AGENT_METADATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static androidx.webkit.UserAgentMetadata getUserAgentMetadata(android.webkit.WebSettings);
-    method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEB_AUTHENTICATION, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static int getWebAuthenticationSupport(android.webkit.WebSettings);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEB_AUTHENTICATION, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static int getWebAuthenticationSupport(android.webkit.WebSettings);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static androidx.webkit.WebViewMediaIntegrityApiStatusConfig getWebViewMediaIntegrityApiStatus(android.webkit.WebSettings);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.ALGORITHMIC_DARKENING, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static boolean isAlgorithmicDarkeningAllowed(android.webkit.WebSettings);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.ALGORITHMIC_DARKENING, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setAlgorithmicDarkeningAllowed(android.webkit.WebSettings, boolean);
@@ -308,7 +318,7 @@ package androidx.webkit {
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.SAFE_BROWSING_ENABLE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setSafeBrowsingEnabled(android.webkit.WebSettings, boolean);
     method @SuppressCompatibility @RequiresFeature(name=androidx.webkit.WebViewFeature.SPECULATIVE_LOADING, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.WebSettingsCompat.ExperimentalSpeculativeLoading public static void setSpeculativeLoadingStatus(android.webkit.WebSettings, @SuppressCompatibility int);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.USER_AGENT_METADATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setUserAgentMetadata(android.webkit.WebSettings, androidx.webkit.UserAgentMetadata);
-    method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEB_AUTHENTICATION, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setWebAuthenticationSupport(android.webkit.WebSettings, int);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEB_AUTHENTICATION, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void setWebAuthenticationSupport(android.webkit.WebSettings, int);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setWebViewMediaIntegrityApiStatus(android.webkit.WebSettings, androidx.webkit.WebViewMediaIntegrityApiStatusConfig);
     field public static final int ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_APP_TRIGGER = 3; // 0x3
     field public static final int ATTRIBUTION_BEHAVIOR_APP_SOURCE_AND_WEB_TRIGGER = 1; // 0x1
@@ -331,6 +341,13 @@ package androidx.webkit {
   }
 
   @SuppressCompatibility @RequiresOptIn(level=androidx.annotation.RequiresOptIn.Level.ERROR) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.FIELD, java.lang.annotation.ElementType.TYPE}) public static @interface WebSettingsCompat.ExperimentalSpeculativeLoading {
+  }
+
+  public final class WebStorageCompat {
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.DELETE_BROWSING_DATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void deleteBrowsingData(android.webkit.WebStorage, Runnable);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.DELETE_BROWSING_DATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void deleteBrowsingData(android.webkit.WebStorage, java.util.concurrent.Executor, Runnable);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.DELETE_BROWSING_DATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static String deleteBrowsingDataForSite(android.webkit.WebStorage, String, Runnable);
+    method @RequiresFeature(name=androidx.webkit.WebViewFeature.DELETE_BROWSING_DATA, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static String deleteBrowsingDataForSite(android.webkit.WebStorage, String, java.util.concurrent.Executor, Runnable);
   }
 
   public final class WebViewAssetLoader {
@@ -389,6 +406,8 @@ package androidx.webkit {
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.MULTI_PROCESS, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static boolean isMultiProcessEnabled();
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.VISUAL_STATE_CALLBACK, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void postVisualStateCallback(android.webkit.WebView, long, androidx.webkit.WebViewCompat.VisualStateCallback);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.POST_WEB_MESSAGE, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void postWebMessage(android.webkit.WebView, androidx.webkit.WebMessageCompat, android.net.Uri);
+    method @SuppressCompatibility @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.PRERENDER_WITH_URL, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.WebViewCompat.ExperimentalUrlPrerender public static void prerenderUrlAsync(android.webkit.WebView, String, androidx.core.os.CancellationSignal?, androidx.webkit.PrerenderOperationCallback);
+    method @SuppressCompatibility @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.PRERENDER_WITH_URL, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @androidx.webkit.WebViewCompat.ExperimentalUrlPrerender public static void prerenderUrlAsync(android.webkit.WebView, String, androidx.core.os.CancellationSignal?, androidx.webkit.SpeculativeLoadingParameters, androidx.webkit.PrerenderOperationCallback);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.WEB_MESSAGE_LISTENER, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void removeWebMessageListener(android.webkit.WebView, String);
     method @RequiresFeature(name=androidx.webkit.WebViewFeature.MUTE_AUDIO, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") @UiThread public static void setAudioMuted(android.webkit.WebView, boolean);
     method @AnyThread @RequiresFeature(name=androidx.webkit.WebViewFeature.DEFAULT_TRAFFICSTATS_TAGGING, enforcement="androidx.webkit.WebViewFeature#isFeatureSupported") public static void setDefaultTrafficStatsTag(int);
@@ -402,6 +421,9 @@ package androidx.webkit {
   }
 
   @SuppressCompatibility @RequiresOptIn(level=androidx.annotation.RequiresOptIn.Level.ERROR) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.FIELD}) public static @interface WebViewCompat.ExperimentalAsyncStartUp {
+  }
+
+  @SuppressCompatibility @RequiresOptIn(level=androidx.annotation.RequiresOptIn.Level.ERROR) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.FIELD}) public static @interface WebViewCompat.ExperimentalUrlPrerender {
   }
 
   public static interface WebViewCompat.VisualStateCallback {
@@ -424,6 +446,7 @@ package androidx.webkit {
     field public static final String BACK_FORWARD_CACHE = "BACK_FORWARD_CACHE";
     field public static final String CREATE_WEB_MESSAGE_CHANNEL = "CREATE_WEB_MESSAGE_CHANNEL";
     field public static final String DEFAULT_TRAFFICSTATS_TAGGING = "DEFAULT_TRAFFICSTATS_TAGGING";
+    field public static final String DELETE_BROWSING_DATA = "DELETE_BROWSING_DATA";
     field public static final String DISABLED_ACTION_MODE_MENU_ITEMS = "DISABLED_ACTION_MODE_MENU_ITEMS";
     field public static final String DOCUMENT_START_SCRIPT = "DOCUMENT_START_SCRIPT";
     field public static final String ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY = "ENTERPRISE_AUTHENTICATION_APP_LINK_POLICY";
@@ -439,7 +462,8 @@ package androidx.webkit {
     field public static final String MUTE_AUDIO = "MUTE_AUDIO";
     field public static final String OFF_SCREEN_PRERASTER = "OFF_SCREEN_PRERASTER";
     field public static final String POST_WEB_MESSAGE = "POST_WEB_MESSAGE";
-    field @SuppressCompatibility @androidx.webkit.Profile.ExperimentalUrlPrefetch public static final String PROFILE_URL_PREFETCH = "PREFETCH_URL_V2";
+    field @SuppressCompatibility @androidx.webkit.WebViewCompat.ExperimentalUrlPrerender public static final String PRERENDER_WITH_URL = "PRERENDER_URL";
+    field @SuppressCompatibility @androidx.webkit.Profile.ExperimentalUrlPrefetch public static final String PROFILE_URL_PREFETCH = "PREFETCH_URL_V3";
     field public static final String PROXY_OVERRIDE = "PROXY_OVERRIDE";
     field public static final String PROXY_OVERRIDE_REVERSE_BYPASS = "PROXY_OVERRIDE_REVERSE_BYPASS";
     field public static final String RECEIVE_HTTP_ERROR = "RECEIVE_HTTP_ERROR";
@@ -460,6 +484,7 @@ package androidx.webkit {
     field public static final String SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST = "SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST";
     field public static final String SHOULD_OVERRIDE_WITH_REDIRECTS = "SHOULD_OVERRIDE_WITH_REDIRECTS";
     field public static final String SPECULATIVE_LOADING = "SPECULATIVE_LOADING_STATUS";
+    field public static final String STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES = "STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES";
     field public static final String STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX = "STARTUP_FEATURE_SET_DATA_DIRECTORY_SUFFIX";
     field public static final String STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS = "STARTUP_FEATURE_SET_DIRECTORY_BASE_PATHS";
     field public static final String START_SAFE_BROWSING = "START_SAFE_BROWSING";

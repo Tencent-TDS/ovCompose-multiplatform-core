@@ -16,8 +16,8 @@
 
 package androidx.camera.viewfinder.internal.quirk;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Provider of device specific quirks for the view module, which are used for device specific
@@ -31,8 +31,7 @@ import androidx.annotation.Nullable;
  */
 public class DeviceQuirks {
 
-    @NonNull
-    private static final Quirks QUIRKS;
+    private static final @NonNull Quirks QUIRKS;
 
     static {
         QUIRKS = new Quirks(DeviceQuirksLoader.loadQuirks());
@@ -48,8 +47,7 @@ public class DeviceQuirks {
      * @return A device {@link Quirk} instance of the provided type, or {@code null} if it isn't
      * found.
      */
-    @Nullable
-    public static <T extends Quirk> T get(@NonNull final Class<T> quirkClass) {
+    public static <T extends Quirk> @Nullable T get(final @NonNull Class<T> quirkClass) {
         return QUIRKS.get(quirkClass);
     }
 }

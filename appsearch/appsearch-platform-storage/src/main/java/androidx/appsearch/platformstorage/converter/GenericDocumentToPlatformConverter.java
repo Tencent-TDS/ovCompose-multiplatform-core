@@ -18,7 +18,6 @@ package androidx.appsearch.platformstorage.converter;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -28,6 +27,8 @@ import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.app.Features;
 import androidx.appsearch.app.GenericDocument;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
 
@@ -43,9 +44,8 @@ public final class GenericDocumentToPlatformConverter {
      * Translates a jetpack {@link androidx.appsearch.app.GenericDocument} into a platform
      * {@link android.app.appsearch.GenericDocument}.
      */
-    @NonNull
     @OptIn(markerClass = ExperimentalAppSearchApi.class)
-    public static android.app.appsearch.GenericDocument toPlatformGenericDocument(
+    public static android.app.appsearch.@NonNull GenericDocument toPlatformGenericDocument(
             @NonNull GenericDocument jetpackDocument) {
         Preconditions.checkNotNull(jetpackDocument);
         android.app.appsearch.GenericDocument.Builder<
@@ -114,10 +114,9 @@ public final class GenericDocumentToPlatformConverter {
      * Translates a platform {@link android.app.appsearch.GenericDocument} into a jetpack
      * {@link androidx.appsearch.app.GenericDocument}.
      */
-    @NonNull
     @SuppressWarnings("deprecation")
-    public static GenericDocument toJetpackGenericDocument(
-            @NonNull android.app.appsearch.GenericDocument platformDocument) {
+    public static @NonNull GenericDocument toJetpackGenericDocument(
+            android.app.appsearch.@NonNull GenericDocument platformDocument) {
         Preconditions.checkNotNull(platformDocument);
         GenericDocument.Builder<GenericDocument.Builder<?>> jetpackBuilder =
                 new GenericDocument.Builder<>(

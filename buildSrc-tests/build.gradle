@@ -19,7 +19,6 @@
 
 import androidx.build.LibraryType
 import androidx.build.KotlinTarget
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -87,8 +86,7 @@ tasks.withType(Test).configureEach {
 }
 
 androidx {
-    type = LibraryType.GRADLE_PLUGIN
-    publish = Publish.NONE
+    type = LibraryType.INTERNAL_GRADLE_PLUGIN
     kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 

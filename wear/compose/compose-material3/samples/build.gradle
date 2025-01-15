@@ -48,11 +48,11 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     defaultConfig {
-        minSdkVersion 25
+        minSdk = 30
     }
-    namespace "androidx.wear.compose.material3.samples"
+    namespace = "androidx.wear.compose.material3.samples"
 }
 
 androidx {

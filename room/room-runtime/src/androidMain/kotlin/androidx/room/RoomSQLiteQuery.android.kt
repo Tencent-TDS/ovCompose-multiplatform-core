@@ -129,6 +129,8 @@ class RoomSQLiteQuery private constructor(@field:VisibleForTesting val capacity:
         stringBindings[index] = value
     }
 
+    fun bindText(index: Int, value: String) = bindString(index, value)
+
     override fun bindBlob(index: Int, value: ByteArray) {
         bindingTypes[index] = BLOB
         blobBindings[index] = value

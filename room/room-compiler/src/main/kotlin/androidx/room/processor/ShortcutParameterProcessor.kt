@@ -36,7 +36,7 @@ class ShortcutParameterProcessor(
             context.logger.e(
                 element = element,
                 msg =
-                    ProcessorErrors.nullableParamInShortcutMethod(
+                    ProcessorErrors.nullableParamInShortcutFunction(
                         asMember.asTypeName().toString(context.codeLanguage)
                     )
             )

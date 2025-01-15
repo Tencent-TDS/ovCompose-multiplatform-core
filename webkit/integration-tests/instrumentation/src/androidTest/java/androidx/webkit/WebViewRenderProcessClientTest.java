@@ -23,6 +23,8 @@ import android.webkit.WebView;
 import androidx.concurrent.futures.ResolvableFuture;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -44,7 +46,7 @@ public class WebViewRenderProcessClientTest {
 
     @Before
     public void setUp() {
-        mWebViewOnUiThread = new androidx.webkit.WebViewOnUiThread();
+        mWebViewOnUiThread = new WebViewOnUiThread();
     }
 
     @After

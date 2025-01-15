@@ -20,7 +20,6 @@ import static androidx.appsearch.localstorage.util.PrefixUtil.getDatabaseName;
 import static androidx.appsearch.localstorage.util.PrefixUtil.getPackageName;
 import static androidx.appsearch.localstorage.util.PrefixUtil.removePrefixesFromDocument;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.AppSearchResult;
@@ -40,6 +39,8 @@ import com.google.android.icing.proto.PropertyProto;
 import com.google.android.icing.proto.SearchResultProto;
 import com.google.android.icing.proto.SnippetMatchProto;
 import com.google.android.icing.proto.SnippetProto;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,8 +63,7 @@ public class SearchResultToProtoConverter {
      * @param schemaCache   The SchemaCache instance held in AppSearch.
      * @return {@link SearchResultPage} of results.
      */
-    @NonNull
-    public static SearchResultPage toSearchResultPage(@NonNull SearchResultProto proto,
+    public static @NonNull SearchResultPage toSearchResultPage(@NonNull SearchResultProto proto,
             @NonNull SchemaCache schemaCache, @NonNull AppSearchConfig config)
             throws AppSearchException {
         List<SearchResult> results = new ArrayList<>(proto.getResultsCount());
@@ -83,10 +83,9 @@ public class SearchResultToProtoConverter {
      * @param schemaCache   The SchemaCache instance held in AppSearch.
      * @return A {@link SearchResult}.
      */
-    @NonNull
     @OptIn(markerClass = ExperimentalAppSearchApi.class)
-    private static SearchResult toUnprefixedSearchResult(
-            @NonNull SearchResultProto.ResultProto proto,
+    private static @NonNull SearchResult toUnprefixedSearchResult(
+            SearchResultProto.@NonNull ResultProto proto,
             @NonNull SchemaCache schemaCache,
             @NonNull AppSearchConfig config) throws AppSearchException {
 

@@ -16,7 +16,7 @@
 
 package androidx.camera.viewfinder.internal.quirk;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +33,7 @@ public class DeviceQuirksLoader {
      * Goes through all defined device-specific quirks, and returns those that should be loaded
      * on the current device.
      */
-    @NonNull
-    static List<Quirk> loadQuirks() {
+    static @NonNull List<Quirk> loadQuirks() {
         final List<Quirk> quirks = new ArrayList<>();
 
         if (SurfaceViewStretchedQuirk.load()) {

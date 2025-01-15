@@ -28,6 +28,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.ParentDataModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -93,10 +94,13 @@ sealed interface PaneScaffoldScope {
      * @sample androidx.compose.material3.adaptive.samples.PaneExpansionDragHandleSample
      */
     @ExperimentalMaterial3AdaptiveApi
+    // TODO(conradchen): Change this to a composable function with default semantics after
+    //  b/165812010 is fixed
     fun Modifier.paneExpansionDraggable(
         state: PaneExpansionState,
         minTouchTargetSize: Dp,
-        interactionSource: MutableInteractionSource
+        interactionSource: MutableInteractionSource,
+        semanticsProperties: (SemanticsPropertyReceiver.() -> Unit)
     ): Modifier
 }
 

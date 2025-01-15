@@ -18,7 +18,6 @@ package androidx.camera.camera2.pipe.integration.impl
 
 import android.content.Context
 import android.graphics.ImageFormat
-import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.OutputConfiguration
@@ -882,6 +881,25 @@ constructor(
             return Camera2ImplConfig(implementationOptions)
         }
 
+        // return video stabilization mode. null indicate mode unspecified.
+        public fun getVideoStabilizationModeFromCaptureConfig(captureConfig: CaptureConfig): Int? {
+            val isPreviewStabilizationMode = captureConfig.previewStabilizationMode
+            val isVideoStabilizationMode = captureConfig.videoStabilizationMode
+
+            return if (
+                isPreviewStabilizationMode == StabilizationMode.OFF ||
+                    isVideoStabilizationMode == StabilizationMode.OFF
+            ) {
+                CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
+            } else if (isPreviewStabilizationMode == StabilizationMode.ON) {
+                CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION
+            } else if (isVideoStabilizationMode == StabilizationMode.ON) {
+                CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
+            } else {
+                null
+            }
+        }
+
         public fun createCameraGraphConfig(
             sessionConfigAdapter: SessionConfigAdapter,
             streamConfigMap: MutableMap<CameraStream.Config, DeferrableSurface>,
@@ -991,24 +1009,11 @@ constructor(
             val combinedFlags = createCameraGraphFlags(cameraQuirks, containsVideo, isExtensions)
 
             // Set video stabilization mode to capture request
-            var videoStabilizationMode = CameraCharacteristics.CONTROL_VIDEO_STABILIZATION_MODE_OFF
+            var videoStabilizationMode: Int? = null
             if (sessionConfigAdapter.getValidSessionConfigOrNull() != null) {
                 val config =
                     sessionConfigAdapter.getValidSessionConfigOrNull()!!.repeatingCaptureConfig
-                val isPreviewStabilizationMode = config.previewStabilizationMode
-                val isVideoStabilizationMode = config.videoStabilizationMode
-
-                if (
-                    isPreviewStabilizationMode == StabilizationMode.OFF ||
-                        isVideoStabilizationMode == StabilizationMode.OFF
-                ) {
-                    videoStabilizationMode = CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF
-                } else if (isPreviewStabilizationMode == StabilizationMode.ON) {
-                    videoStabilizationMode =
-                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION
-                } else if (isVideoStabilizationMode == StabilizationMode.ON) {
-                    videoStabilizationMode = CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
-                }
+                videoStabilizationMode = getVideoStabilizationModeFromCaptureConfig(config)
             }
 
             // Set fps range to capture request
@@ -1018,7 +1023,9 @@ constructor(
                     if (isExtensions) {
                         set(CameraPipeKeys.ignore3ARequiredParameters, true)
                     }
-                    set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, videoStabilizationMode)
+                    videoStabilizationMode?.let {
+                        set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE, it)
+                    }
                     set(
                         CameraPipeKeys.camera2CaptureRequestTag,
                         "android.hardware.camera2.CaptureRequest.setTag.CX"

@@ -200,7 +200,7 @@ public fun RevealScope.SwipeToRevealPrimaryAction(
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource? = null,
-) =
+): Unit =
     ActionCommon(
         revealState = revealState,
         actionType = RevealActionType.PrimaryAction,
@@ -231,7 +231,7 @@ public fun RevealScope.SwipeToRevealSecondaryAction(
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit,
-) =
+): Unit =
     ActionCommon(
         revealState = revealState,
         actionType = RevealActionType.SecondaryAction,
@@ -288,7 +288,7 @@ public fun RevealScope.SwipeToRevealUndoAction(
 @ExperimentalWearMaterialApi
 public object SwipeToRevealDefaults {
     /** Recommended shape for [SwipeToReveal] actions when used with [Card]. */
-    public val CardActionShape = RoundedCornerShape(40.dp)
+    public val CardActionShape: RoundedCornerShape = RoundedCornerShape(40.dp)
 
     /**
      * The recommended colors used to display the contents of the primary, secondary and undo
@@ -323,10 +323,10 @@ public object SwipeToRevealDefaults {
     }
 
     /** [ImageVector] for delete icon, often used for the primary action. */
-    public val Delete = Icons.Outlined.Delete
+    public val Delete: ImageVector = Icons.Outlined.Delete
 
     /** [ImageVector] for more options icon, often used for the secondary action. */
-    public val MoreOptions = Icons.Outlined.MoreVert
+    public val MoreOptions: ImageVector = Icons.Outlined.MoreVert
 
     internal val UndoButtonHorizontalPadding = 14.dp
     internal val UndoButtonVerticalPadding = 6.dp
@@ -347,12 +347,12 @@ public object SwipeToRevealDefaults {
 @ExperimentalWearMaterialApi
 public class SwipeToRevealActionColors
 constructor(
-    val primaryActionBackgroundColor: Color,
-    val primaryActionContentColor: Color,
-    val secondaryActionBackgroundColor: Color,
-    val secondaryActionContentColor: Color,
-    val undoActionBackgroundColor: Color,
-    val undoActionContentColor: Color
+    public val primaryActionBackgroundColor: Color,
+    public val primaryActionContentColor: Color,
+    public val secondaryActionBackgroundColor: Color,
+    public val secondaryActionContentColor: Color,
+    public val undoActionBackgroundColor: Color,
+    public val undoActionContentColor: Color
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

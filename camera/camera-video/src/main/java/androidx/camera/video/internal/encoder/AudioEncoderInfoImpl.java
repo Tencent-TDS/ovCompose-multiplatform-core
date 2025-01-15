@@ -21,7 +21,7 @@ import static androidx.camera.video.internal.utils.CodecUtil.findCodecAndGetCode
 import android.media.MediaCodecInfo;
 import android.util.Range;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -43,8 +43,7 @@ public class AudioEncoderInfoImpl extends EncoderInfoImpl implements AudioEncode
      *
      * @throws InvalidConfigException if the encoder is not found.
      */
-    @NonNull
-    public static AudioEncoderInfoImpl from(@NonNull AudioEncoderConfig encoderConfig)
+    public static @NonNull AudioEncoderInfoImpl from(@NonNull AudioEncoderConfig encoderConfig)
             throws InvalidConfigException {
         return new AudioEncoderInfoImpl(findCodecAndGetCodecInfo(encoderConfig),
                 encoderConfig.getMimeType());
@@ -56,9 +55,8 @@ public class AudioEncoderInfoImpl extends EncoderInfoImpl implements AudioEncode
         mAudioCapabilities = Objects.requireNonNull(mCodecCapabilities.getAudioCapabilities());
     }
 
-    @NonNull
     @Override
-    public Range<Integer> getBitrateRange() {
+    public @NonNull Range<Integer> getBitrateRange() {
         return mAudioCapabilities.getBitrateRange();
     }
 }

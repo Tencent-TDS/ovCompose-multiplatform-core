@@ -27,5 +27,6 @@ dependencies {
 }
 
 android {
-    namespace "com.example.androidx.preference"
+    compileSdk = 35
+    namespace = "com.example.androidx.preference"
 }

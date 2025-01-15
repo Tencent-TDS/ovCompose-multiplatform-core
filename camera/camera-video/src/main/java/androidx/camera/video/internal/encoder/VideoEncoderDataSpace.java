@@ -18,9 +18,9 @@ package androidx.camera.video.internal.encoder;
 
 import android.media.MediaFormat;
 
-import androidx.annotation.NonNull;
-
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Defines the three components of colors used by an encoder.
@@ -81,8 +81,7 @@ public abstract class VideoEncoderDataSpace {
     }
 
     /** Creates a data space from the three primaries. */
-    @NonNull
-    public static VideoEncoderDataSpace create(int standard, int transfer, int range) {
+    public static @NonNull VideoEncoderDataSpace create(int standard, int transfer, int range) {
         return new AutoValue_VideoEncoderDataSpace(standard, transfer, range);
     }
 

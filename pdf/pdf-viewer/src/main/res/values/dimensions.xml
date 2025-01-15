@@ -26,4 +26,7 @@
     <!--Find in file button size -->
     <dimen name="find_in_file_button_size">48dp</dimen>
 
+    <dimen name="text_select_handle_touch_size">48dp</dimen>
+    <dimen name="pdf_horizontal_padding">0dp</dimen>
+
 </resources>

@@ -71,7 +71,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
 
-    lintPublish project(":appcompat:appcompat-lint")
+    lintPublish(project(":appcompat:appcompat-lint"))
 }
 
 android {
@@ -79,11 +79,6 @@ android {
         // This disables the builds tools automatic vector -> PNG generation
         generatedDensities = []
     }
-
-    sourceSets {
-        main.res.srcDirs += "src/main/res-public"
-    }
-
     aaptOptions {
         additionalParameters "--no-version-vectors"
         noCompress "ttf"
@@ -104,8 +99,8 @@ android {
     useLibrary "android.test.runner"
     useLibrary "android.test.base"
     useLibrary "android.test.mock"
-    namespace "androidx.appcompat"
-    testNamespace "androidx.appcompat.test"
+    namespace = "androidx.appcompat"
+    testNamespace = "androidx.appcompat.test"
 }
 
 androidx {

@@ -22,18 +22,17 @@ import androidx.room.compiler.codegen.XTypeSpec
 import androidx.room.ext.CommonTypeNames
 import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.SQLiteDriverTypeNames
-import androidx.room.ext.SupportDbTypeNames
 import androidx.room.solver.CodeGenScope
+import androidx.room.vo.DataClass
 import androidx.room.vo.FieldWithIndex
 import androidx.room.vo.Fields
-import androidx.room.vo.Pojo
 import androidx.room.vo.ShortcutEntity
 import androidx.room.vo.columnNames
 
 class EntityUpdateAdapterWriter
 private constructor(
     val tableName: String,
-    val pojo: Pojo,
+    val dataClass: DataClass,
     val primaryKeyFields: Fields,
     val onConflict: String
 ) {
@@ -41,25 +40,17 @@ private constructor(
         fun create(entity: ShortcutEntity, onConflict: String) =
             EntityUpdateAdapterWriter(
                 tableName = entity.tableName,
-                pojo = entity.pojo,
+                dataClass = entity.dataClass,
                 primaryKeyFields = entity.primaryKey.fields,
                 onConflict = onConflict
             )
     }
 
-    fun createAnonymous(typeWriter: TypeWriter, dbParam: String, useDriverApi: Boolean): XTypeSpec {
-        return if (useDriverApi) {
-                XTypeSpec.anonymousClassBuilder()
-            } else {
-                XTypeSpec.anonymousClassBuilder("%L", dbParam)
-            }
+    fun createAnonymous(typeWriter: TypeWriter): XTypeSpec {
+        return XTypeSpec.anonymousClassBuilder()
             .apply {
                 superclass(
-                    if (useDriverApi) {
-                        RoomTypeNames.DELETE_OR_UPDATE_ADAPTER.parametrizedBy(pojo.typeName)
-                    } else {
-                        RoomTypeNames.DELETE_OR_UPDATE_ADAPTER_COMPAT.parametrizedBy(pojo.typeName)
-                    }
+                    RoomTypeNames.DELETE_OR_UPDATE_ADAPTER.parametrizedBy(dataClass.typeName)
                 )
                 addFunction(
                     XFunSpec.builder(
@@ -69,7 +60,8 @@ private constructor(
                         )
                         .apply {
                             returns(CommonTypeNames.STRING)
-                            val pojoCols = pojo.columnNames.joinToString(",") { "`$it` = ?" }
+                            val dataClassCols =
+                                dataClass.columnNames.joinToString(",") { "`$it` = ?" }
                             val pkFieldsCols =
                                 primaryKeyFields.columnNames.joinToString(" AND ") { "`$it` = ?" }
                             val query = buildString {
@@ -78,7 +70,7 @@ private constructor(
                                 } else {
                                     append("UPDATE `$tableName` SET")
                                 }
-                                append(" $pojoCols")
+                                append(" $dataClassCols")
                                 append(" WHERE")
                                 append(" $pkFieldsCols")
                             }
@@ -94,26 +86,18 @@ private constructor(
                         )
                         .apply {
                             val stmtParam = "statement"
-                            addParameter(
-                                stmtParam,
-                                if (useDriverApi) {
-                                    SQLiteDriverTypeNames.STATEMENT
-                                } else {
-                                    SupportDbTypeNames.SQLITE_STMT
-                                }
-                            )
+                            addParameter(stmtParam, SQLiteDriverTypeNames.STATEMENT)
                             val entityParam = "entity"
-                            addParameter(entityParam, pojo.typeName)
-                            val mappedField = FieldWithIndex.byOrder(pojo.fields)
-                            val bindScope =
-                                CodeGenScope(writer = typeWriter, useDriverApi = useDriverApi)
+                            addParameter(entityParam, dataClass.typeName)
+                            val mappedField = FieldWithIndex.byOrder(dataClass.fields)
+                            val bindScope = CodeGenScope(writer = typeWriter)
                             FieldReadWriteWriter.bindToStatement(
                                 ownerVar = entityParam,
                                 stmtParamVar = stmtParam,
                                 fieldsWithIndices = mappedField,
                                 scope = bindScope
                             )
-                            val pkeyStart = pojo.fields.size
+                            val pkeyStart = dataClass.fields.size
                             val mappedPrimaryKeys =
                                 primaryKeyFields.mapIndexed { index, field ->
                                     FieldWithIndex(

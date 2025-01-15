@@ -16,7 +16,7 @@
 
 package androidx.camera.viewfinder.internal.quirk;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;

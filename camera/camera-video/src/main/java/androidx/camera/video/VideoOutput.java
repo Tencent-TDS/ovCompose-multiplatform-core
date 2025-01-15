@@ -18,7 +18,6 @@ package androidx.camera.video;
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.CameraInfo;
@@ -27,6 +26,8 @@ import androidx.camera.core.impl.ConstantObservable;
 import androidx.camera.core.impl.Observable;
 import androidx.camera.core.impl.Timebase;
 import androidx.core.util.Consumer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.Executor;
 
@@ -102,9 +103,8 @@ public interface VideoOutput {
      * Returns an observable {@link StreamInfo} which contains the information of the
      * {@link VideoOutput}.
      */
-    @NonNull
     @RestrictTo(Scope.LIBRARY)
-    default Observable<StreamInfo> getStreamInfo() {
+    default @NonNull Observable<StreamInfo> getStreamInfo() {
         return StreamInfo.ALWAYS_ACTIVE_OBSERVABLE;
     }
 
@@ -124,8 +124,7 @@ public interface VideoOutput {
      * {@link #onSurfaceRequested(SurfaceRequest)}.
      */
     @RestrictTo(Scope.LIBRARY)
-    @NonNull
-    default Observable<MediaSpec> getMediaSpec() {
+    default @NonNull Observable<MediaSpec> getMediaSpec() {
         return ConstantObservable.withValue(null);
     }
 
@@ -138,8 +137,7 @@ public interface VideoOutput {
      * video quality/consistency (e.g. AE precapture).
      */
     @RestrictTo(Scope.LIBRARY)
-    @NonNull
-    default Observable<Boolean> isSourceStreamRequired() {
+    default @NonNull Observable<Boolean> isSourceStreamRequired() {
         return ConstantObservable.withValue(false);
     }
 
@@ -157,8 +155,7 @@ public interface VideoOutput {
      * Returns the {@link VideoCapabilities} information of the {@link VideoOutput}.
      */
     @RestrictTo(Scope.LIBRARY)
-    @NonNull
-    default VideoCapabilities getMediaCapabilities(@NonNull CameraInfo cameraInfo) {
+    default @NonNull VideoCapabilities getMediaCapabilities(@NonNull CameraInfo cameraInfo) {
         return VideoCapabilities.EMPTY;
     }
 }

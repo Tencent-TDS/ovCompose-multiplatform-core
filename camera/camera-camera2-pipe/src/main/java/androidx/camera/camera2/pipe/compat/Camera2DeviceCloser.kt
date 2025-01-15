@@ -236,7 +236,9 @@ constructor(
 
                 override fun onActive(session: CameraCaptureSessionWrapper) {}
             }
-        if (!cameraDeviceWrapper.createCaptureSession(listOf(surface), callback)) {
+        if (cameraDeviceWrapper.createCaptureSession(listOf(surface), callback)) {
+            sessionConfigured.await()
+        } else {
             Log.error {
                 "Failed to create a blank capture session! " +
                     "Surfaces may not be disconnected properly."
@@ -246,7 +248,6 @@ constructor(
                 surfaceTexture.release()
             }
         }
-        sessionConfigured.await()
     }
 
     companion object {

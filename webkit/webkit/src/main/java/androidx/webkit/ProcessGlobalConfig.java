@@ -20,7 +20,6 @@ import android.content.Context;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.RequiresFeature;
-import androidx.annotation.RestrictTo;
 import androidx.webkit.internal.ApiHelperForP;
 import androidx.webkit.internal.StartupApiFeature;
 import androidx.webkit.internal.WebViewFeatureInternal;
@@ -197,7 +196,6 @@ public class ProcessGlobalConfig {
      * Partitioned cookies will be enabled by default for apps that target Android B and above.
      * For apps that target below Android B, this is disabled.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @RequiresFeature(name = WebViewFeature.STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES,
             enforcement =
                     "androidx.webkit.WebViewFeature#isConfigFeatureSupported(String, Context)")

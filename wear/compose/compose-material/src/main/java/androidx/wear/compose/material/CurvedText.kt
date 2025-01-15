@@ -99,7 +99,7 @@ public fun CurvedScope.curvedText(
     style: CurvedTextStyle? = null,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) =
+): Unit =
     basicCurvedText(text, modifier, angularDirection, overflow) {
         val baseStyle = style ?: CurvedTextStyle(LocalTextStyle.current)
         val textColor =
@@ -177,7 +177,7 @@ public fun CurvedScope.curvedText(
     style: CurvedTextStyle? = null,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) =
+): Unit =
     basicCurvedText(text, modifier, angularDirection, overflow) {
         val baseStyle = style ?: CurvedTextStyle(LocalTextStyle.current)
         val textColor =

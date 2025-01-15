@@ -22,7 +22,6 @@ import static androidx.appsearch.compiler.IntrospectionHelper.DOCUMENT_CLASS_MAP
 import static androidx.appsearch.compiler.IntrospectionHelper.GENERIC_DOCUMENT_CLASS;
 import static androidx.appsearch.compiler.IntrospectionHelper.isNonNullKotlinField;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.AnnotatedGetterOrField.ElementTypeCategory;
 import androidx.appsearch.compiler.annotationwrapper.DataPropertyAnnotation;
 import androidx.appsearch.compiler.annotationwrapper.LongPropertyAnnotation;
@@ -35,6 +34,8 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +68,7 @@ class FromGenericDocumentCodeGenerator {
     public static void generate(
             @NonNull ProcessingEnvironment env,
             @NonNull DocumentModel model,
-            @NonNull TypeSpec.Builder classBuilder) {
+            TypeSpec.@NonNull Builder classBuilder) {
         new FromGenericDocumentCodeGenerator(env, model).generate(classBuilder);
     }
 
@@ -419,7 +420,7 @@ class FromGenericDocumentCodeGenerator {
      * <p>If the list is a non-null Kotlin list, it will be initialized to an empty list. Otherwise,
      * if it is a nullable Kotlin list or Java list, it will be initialized to null.
      */
-    private void addDefaultValueForList(@NonNull CodeBlock.Builder codeBlockBuilder,
+    private void addDefaultValueForList(CodeBlock.@NonNull Builder codeBlockBuilder,
             @NonNull AnnotatedGetterOrField getterOrField) {
         Objects.requireNonNull(codeBlockBuilder);
         Objects.requireNonNull(getterOrField);
@@ -439,8 +440,7 @@ class FromGenericDocumentCodeGenerator {
     //     unpack it from a primitive array of type long[], double[], boolean[], or byte[][]
     //     by reading each element one-by-one and assigning it. The compiler takes care of
     //     unboxing.
-    @NonNull
-    private CodeBlock listForLoopAssign(
+    private @NonNull CodeBlock listForLoopAssign(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         TypeMirror serializedType = annotation.getUnderlyingTypeWithinGenericDoc(mHelper);
@@ -473,8 +473,7 @@ class FromGenericDocumentCodeGenerator {
     //     List contains String or EmbeddingVector. We have to convert this from
     //     an array of String[] or EmbeddingVector[], but no conversion of the
     //     collection elements is needed. We can use Arrays#asList for this.
-    @NonNull
-    private CodeBlock listCallArraysAsList(
+    private @NonNull CodeBlock listCallArraysAsList(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         CodeBlock.Builder builder = CodeBlock.builder()
@@ -496,8 +495,7 @@ class FromGenericDocumentCodeGenerator {
     //     List contains a class which is annotated with @Document.
     //     We have to convert this from an array of GenericDocument[], by reading each element
     //     one-by-one and converting it through the standard conversion machinery.
-    @NonNull
-    private CodeBlock listForLoopCallFromGenericDocument(
+    private @NonNull CodeBlock listForLoopCallFromGenericDocument(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         CodeBlock.Builder codeBlockBuilder = CodeBlock.builder()
@@ -524,8 +522,7 @@ class FromGenericDocumentCodeGenerator {
     //     List contains a custom type for which we have a serializer.
     //     We have to convert this from an array of String[]|long[], by reading each element
     //     one-by-one and calling serializerClass.deserialize(element).
-    @NonNull
-    private CodeBlock listForLoopCallDeserialize(
+    private @NonNull CodeBlock listForLoopCallDeserialize(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField,
             @NonNull SerializerClass serializerClass) {
@@ -563,8 +560,7 @@ class FromGenericDocumentCodeGenerator {
     //     We have to unpack it from a primitive array of type long[], double[], boolean[] or
     //     byte[] by reading each element one-by-one and assigning it. The compiler takes care
     //     of unboxing.
-    @NonNull
-    private CodeBlock arrayForLoopAssign(
+    private @NonNull CodeBlock arrayForLoopAssign(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         TypeMirror serializedType = annotation.getUnderlyingTypeWithinGenericDoc(mHelper);
@@ -600,8 +596,7 @@ class FromGenericDocumentCodeGenerator {
     // 2b: ArrayUseDirectly
     //     Array is of type String[], long[], double[], boolean[], byte[][] or
     //     EmbeddingVector[].
-    @NonNull
-    private CodeBlock arrayUseDirectly(
+    private @NonNull CodeBlock arrayUseDirectly(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         return CodeBlock.builder()
@@ -617,8 +612,7 @@ class FromGenericDocumentCodeGenerator {
     //     Array is of a class which is annotated with @Document.
     //     We have to convert this from an array of GenericDocument[], by reading each element
     //     one-by-one and converting it through the standard conversion machinery.
-    @NonNull
-    private CodeBlock arrayForLoopCallFromGenericDocument(
+    private @NonNull CodeBlock arrayForLoopCallFromGenericDocument(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         return CodeBlock.builder()
@@ -648,8 +642,7 @@ class FromGenericDocumentCodeGenerator {
     //     Array is of a custom type for which we have a serializer.
     //     We have to convert this from an array of String[]|long[], by reading each element
     //     one-by-one and calling serializerClass.deserialize(element).
-    @NonNull
-    private CodeBlock arrayForLoopCallDeserialize(
+    private @NonNull CodeBlock arrayForLoopCallDeserialize(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField,
             @NonNull SerializerClass serializerClass) {
@@ -691,8 +684,7 @@ class FromGenericDocumentCodeGenerator {
     //     EmbeddingVector.
     //     We can use this field directly, after testing for null. The java compiler will box
     //     or unbox as needed.
-    @NonNull
-    private CodeBlock fieldUseDirectlyWithNullCheck(
+    private @NonNull CodeBlock fieldUseDirectlyWithNullCheck(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         TypeMirror serializedType = annotation.getUnderlyingTypeWithinGenericDoc(mHelper);
@@ -721,8 +713,7 @@ class FromGenericDocumentCodeGenerator {
     //     We can use this field directly. Since we cannot assign null, we must assign the
     //     default value if the field is not specified. The java compiler will box or unbox as
     //     needed
-    @NonNull
-    private CodeBlock fieldUseDirectlyWithoutNullCheck(
+    private @NonNull CodeBlock fieldUseDirectlyWithoutNullCheck(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         return CodeBlock.builder()
@@ -742,8 +733,7 @@ class FromGenericDocumentCodeGenerator {
     //     Field is of a class which is annotated with @Document.
     //     We have to convert this from a GenericDocument through the standard conversion
     //     machinery.
-    @NonNull
-    private CodeBlock fieldCallFromGenericDocument(
+    private @NonNull CodeBlock fieldCallFromGenericDocument(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         return CodeBlock.builder()
@@ -765,8 +755,7 @@ class FromGenericDocumentCodeGenerator {
     //     Field is of a custom type for which we have a serializer.
     //     We have to convert this from a String|long by calling
     //     serializerClass.deserialize(value).
-    @NonNull
-    private CodeBlock fieldCallDeserialize(
+    private @NonNull CodeBlock fieldCallDeserialize(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField,
             @NonNull SerializerClass serializerClass) {
@@ -802,8 +791,7 @@ class FromGenericDocumentCodeGenerator {
      * }
      * </pre>
      */
-    @NonNull
-    private CodeBlock maybeApplyNarrowingCast(
+    private @NonNull CodeBlock maybeApplyNarrowingCast(
             @NonNull CodeBlock expr,
             @NonNull TypeMirror exprType,
             @NonNull TypeMirror targetType) {

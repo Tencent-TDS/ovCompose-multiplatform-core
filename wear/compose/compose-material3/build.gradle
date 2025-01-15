@@ -69,22 +69,17 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
 
     defaultConfig {
-        minSdkVersion 25
+        minSdk = 30
     }
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    sourceSets.androidTest.assets.srcDirs +=
-            project.rootDir.absolutePath + "/../../golden/wear/compose/material3"
     buildTypes.configureEach {
         consumerProguardFiles("proguard-rules.pro")
     }
-    namespace "androidx.wear.compose.material3"
-    lint {
-        baseline = file("lint-baseline.xml")
-    }
+    namespace = "androidx.wear.compose.material3"
 }
 
 androidx {
@@ -96,10 +91,10 @@ androidx {
             "developers to write Jetpack Compose applications for Wearable devices that " +
             "implement Wear Material 3 Design UX guidelines and specifications. It builds upon " +
             "the Jetpack Compose libraries."
-    legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
     samples(project(":wear:compose:compose-material3-samples"))
     kotlinTarget = KotlinTarget.KOTLIN_1_9
+    addGoldenImageAssets()
 }
 
 tasks.withType(KotlinCompile).configureEach {

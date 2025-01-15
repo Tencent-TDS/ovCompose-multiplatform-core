@@ -100,10 +100,12 @@ Finally, you will need to accept the
 
 ## Check out the source {#source}
 
-Like ChromeOS, Chromium, and the Android build system, we develop in the open as
-much as possible. All feature development occurs in the public
-[androidx-main](https://android.googlesource.com/platform/frameworks/support/+/androidx-main)
-branch of the Android Open Source Project.
+Like ChromeOS, Chromium, and the Android OS, we develop in the open as much as
+possible. All feature development occurs in the public
+[`androidx-main`](https://android.googlesource.com/platform/superproject/+/refs/heads/androidx-main)
+`repo` branch of the Android Open Source Project, with majority of the code in
+the
+[`frameworks/support` git repository](https://android.googlesource.com/platform/frameworks/support/+/androidx-main).
 
 As of 2024/10/10, you will need about XXX GB for a clean checkout or YYY GB for
 a fully-built checkout.
@@ -382,8 +384,15 @@ which our gradlew expands into a few correctness-related flags including
 ./gradlew core:core:assemble --strict
 ```
 
-To build every module and generate the local Maven repository artifact, use the
-`createArchive` Gradle task:
+To generate a local Maven artifact for the specific module and place it in
+`out/repository`, use the `publish` Gradle task:
+
+```shell
+./gradlew core:core:publish
+```
+
+To build every module and generate the local Maven repository artifacts and
+place them in `out/repository`, use the `createArchive` Gradle task:
 
 ```shell
 ./gradlew createArchive

@@ -15,7 +15,6 @@
  */
 
 import androidx.build.KotlinTarget
-import androidx.build.Publish
 import androidx.build.LibraryType
 
 plugins {
@@ -27,13 +26,14 @@ plugins {
 dependencies {
     implementation(libs.kotlinStdlib)
 
-    compileOnly project(":annotation:annotation-sampled")
-    implementation project(":graphics:graphics-core")
-    implementation "androidx.annotation:annotation:1.7.0"
+    compileOnly(project(":annotation:annotation-sampled"))
+    implementation(project(":graphics:graphics-core"))
+    implementation "androidx.annotation:annotation:1.8.1"
 }
 
 android {
-    namespace "androidx.graphics.core.samples"
+    compileSdk = 35
+    namespace = "androidx.graphics.core.samples"
 }
 
 androidx {

@@ -38,8 +38,8 @@ dependencies {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib"
     }
 
-    implementation project(path: ':privacysandbox:tools:tools')
-    implementation project(path: ':privacysandbox:tools:tools-core')
+    implementation(project(":privacysandbox:tools:tools"))
+    implementation(project(":privacysandbox:tools:tools-core"))
 
     testImplementation(project(":internal-testutils-truth"))
     testImplementation(project(":privacysandbox:tools:tools-testing"))

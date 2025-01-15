@@ -25,7 +25,6 @@ import android.widget.TextView
 import androidx.privacysandbox.tools.PrivacySandboxInterface
 import androidx.privacysandbox.tools.PrivacySandboxService
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionObserverFactory
 import java.util.concurrent.Executor
 
 @PrivacySandboxService
@@ -61,10 +60,6 @@ class TextViewAdImpl : TextViewAd {
         view.text = "foo bar baz"
         clientExecutor.execute { client.onSessionOpened(TextViewAdSession(view)) }
     }
-
-    override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-    override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
 
     inner class TextViewAdSession(override val view: View) : SandboxedUiAdapter.Session {
         override fun close() {}

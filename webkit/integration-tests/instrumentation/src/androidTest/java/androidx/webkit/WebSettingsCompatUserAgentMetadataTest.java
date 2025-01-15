@@ -28,6 +28,8 @@ import android.webkit.WebView;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -75,7 +77,7 @@ public class WebSettingsCompatUserAgentMetadataTest {
 
     @Before
     public void setUp() throws Exception {
-        mWebViewOnUiThread = new androidx.webkit.WebViewOnUiThread();
+        mWebViewOnUiThread = new WebViewOnUiThread();
         mTestHttpsWebViewClient = new TestHttpsWebViewClient(mWebViewOnUiThread);
     }
 

@@ -40,7 +40,7 @@ android {
     aaptOptions {
         additionalParameters("--no-version-vectors")
     }
-    namespace "androidx.vectordrawable.seekable"
+    namespace = "androidx.vectordrawable.seekable"
 }
 
 androidx {

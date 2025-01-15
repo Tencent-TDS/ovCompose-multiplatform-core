@@ -44,7 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
  * @param content The main content for this application.
  */
 @Composable
-fun AppScaffold(
+public fun AppScaffold(
     modifier: Modifier = Modifier,
     timeText: @Composable () -> Unit = { TimeText { time() } },
     content: @Composable BoxScope.() -> Unit,

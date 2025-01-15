@@ -89,7 +89,7 @@ import androidx.wear.compose.foundation.sizeIn
  *   [curvedRow] or [CurvedLayout] See [CurvedDirection.Angular].
  * @param overflow How visual overflow should be handled.
  */
-fun CurvedScope.curvedText(
+public fun CurvedScope.curvedText(
     text: String,
     modifier: CurvedModifier = CurvedModifier,
     maxSweepAngle: Float = CurvedTextDefaults.ScrollableContentMaxSweepAngle,
@@ -103,7 +103,7 @@ fun CurvedScope.curvedText(
     style: CurvedTextStyle? = null,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) =
+): Unit =
     basicCurvedText(
         text = text,
         modifier = modifier.sizeIn(maxSweepDegrees = maxSweepAngle),
@@ -126,7 +126,7 @@ fun CurvedScope.curvedText(
         )
     }
 
-object CurvedTextDefaults {
+public object CurvedTextDefaults {
 
     /**
      * The default maximum sweep angle in degrees used by [curvedText]. This threshold is for the
@@ -135,19 +135,19 @@ object CurvedTextDefaults {
      * This is calculated by keeping the length of the corresponding chord on the circle to be
      * approximately 57% of the screen width.
      */
-    const val ScrollableContentMaxSweepAngle: Float = 70f
+    public const val ScrollableContentMaxSweepAngle: Float = 70f
 
     /**
      * The recommended maximum sweep angle in degrees used by [curvedText] for screens without
      * scrollable content.
      */
-    const val StaticContentMaxSweepAngle: Float = 120f
+    public const val StaticContentMaxSweepAngle: Float = 120f
 
     /**
      * The recommended background color to use when displaying curved text so it is visible on top
      * of other content.
      */
     @Composable
-    fun backgroundColor() =
+    public fun backgroundColor(): Color =
         MaterialTheme.colorScheme.background.let { it.copy(alpha = 0.85f * it.alpha) }
 }

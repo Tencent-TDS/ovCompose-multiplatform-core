@@ -16,10 +16,10 @@
 
 package androidx.wear.compose.material3.lazy
 
-import androidx.compose.runtime.State
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
@@ -33,6 +33,7 @@ internal fun GraphicsLayerScope.contentTransformation(
 ) =
     with(behavior) {
         scrollProgress()?.let {
+            compositingStrategy = CompositingStrategy.Offscreen
             clip = true
             shape =
                 object : Shape {
@@ -57,16 +58,17 @@ internal fun GraphicsLayerScope.contentTransformation(
                 }
             translationX = size.width * it.contentXOffsetFraction * it.scale
             translationY = -1f * size.height * (1f - it.scale) / 2f
-            alpha = it.contentAlpha.coerceAtMost(0.99f) // Alpha hack.
+            alpha = it.contentAlpha
             scaleX = it.scale
             scaleY = it.scale
         }
     }
 
 internal fun GraphicsLayerScope.contentTransformation(
-    transformState: State<TransformationState?>,
+    transformState: TransformationState?,
 ) =
-    transformState.value?.let {
+    transformState?.let {
+        compositingStrategy = CompositingStrategy.Offscreen
         clip = true
         shape =
             object : Shape {
@@ -90,7 +92,7 @@ internal fun GraphicsLayerScope.contentTransformation(
             }
         translationX = size.width * it.contentXOffsetFraction * it.scale
         translationY = -1f * size.height * (1f - it.scale) / 2f
-        alpha = it.contentAlpha.coerceAtMost(0.99f) // Alpha hack.
+        alpha = it.contentAlpha
         scaleX = it.scale
         scaleY = it.scale
     }

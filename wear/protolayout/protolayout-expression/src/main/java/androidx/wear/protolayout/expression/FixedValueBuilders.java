@@ -129,6 +129,24 @@ final class FixedValueBuilders {
             return mImpl.getValue();
         }
 
+        @Override
+        public int hashCode() {
+            return Integer.hashCode(mImpl.getValue());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedInt32)) {
+                return false;
+            }
+            FixedInt32 that = (FixedInt32) obj;
+            return this.mImpl.getValue() == that.mImpl.getValue();
+        }
+
         /** Builder for {@link FixedInt32}. */
         public static final class Builder
                 implements DynamicBuilders.DynamicInt32.Builder,
@@ -241,6 +259,24 @@ final class FixedValueBuilders {
         @Override
         public @NonNull String getStringValue() {
             return mImpl.getValue();
+        }
+
+        @Override
+        public int hashCode() {
+            return mImpl.getValue().hashCode();
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedString)) {
+                return false;
+            }
+            FixedString that = (FixedString) obj;
+            return this.mImpl.getValue().equals(that.mImpl.getValue());
         }
 
         /** Builder for {@link FixedString}. */
@@ -363,6 +399,24 @@ final class FixedValueBuilders {
             return mImpl.getValue();
         }
 
+        @Override
+        public int hashCode() {
+            return Float.hashCode(mImpl.getValue());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedFloat)) {
+                return false;
+            }
+            FixedFloat that = (FixedFloat) obj;
+            return this.mImpl.getValue() == that.mImpl.getValue();
+        }
+
         /** Builder for {@link FixedFloat}. */
         public static final class Builder
                 implements DynamicBuilders.DynamicFloat.Builder,
@@ -481,6 +535,24 @@ final class FixedValueBuilders {
             return mImpl.getValue();
         }
 
+        @Override
+        public int hashCode() {
+            return Boolean.hashCode(mImpl.getValue());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedBool)) {
+                return false;
+            }
+            FixedBool that = (FixedBool) obj;
+            return this.mImpl.getValue() == that.mImpl.getValue();
+        }
+
         /** Builder for {@link FixedBool}. */
         public static final class Builder
                 implements DynamicBuilders.DynamicBool.Builder,
@@ -597,6 +669,24 @@ final class FixedValueBuilders {
             return mImpl.getArgb();
         }
 
+        @Override
+        public int hashCode() {
+            return Integer.hashCode(mImpl.getArgb());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedColor)) {
+                return false;
+            }
+            FixedColor that = (FixedColor) obj;
+            return this.mImpl.getArgb() == that.mImpl.getArgb();
+        }
+
         /** Builder for {@link FixedColor}. */
         public static final class Builder
                 implements DynamicBuilders.DynamicColor.Builder,
@@ -659,6 +749,24 @@ final class FixedValueBuilders {
         @Override
         public @NonNull Instant getInstantValue() {
             return Instant.ofEpochSecond(mImpl.getEpochSeconds());
+        }
+
+        @Override
+        public int hashCode() {
+            return Long.hashCode(mImpl.getEpochSeconds());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedInstant)) {
+                return false;
+            }
+            FixedInstant that = (FixedInstant) obj;
+            return this.mImpl.getEpochSeconds() == that.mImpl.getEpochSeconds();
         }
 
         @Override
@@ -775,6 +883,24 @@ final class FixedValueBuilders {
         @Override
         public @NonNull Duration getDurationValue() {
             return Duration.ofSeconds(mImpl.getSeconds());
+        }
+
+        @Override
+        public int hashCode() {
+            return Long.hashCode(mImpl.getSeconds());
+        }
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (this == obj) {
+                return true;
+            }
+
+            if (!(obj instanceof FixedDuration)) {
+                return false;
+            }
+            FixedDuration that = (FixedDuration) obj;
+            return this.mImpl.getSeconds() == that.mImpl.getSeconds();
         }
 
         @Override

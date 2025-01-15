@@ -44,7 +44,6 @@ dependencies {
 android {
     sourceSets {
         main {
-            res.srcDirs += "src/main/res-public"
             resources {
                 srcDirs += [fontDir.getAbsolutePath()]
                 includes += ["LICENSE_UNICODE", "LICENSE_OFL"]
@@ -58,7 +57,7 @@ android {
             }
         }
     }
-    namespace "androidx.emoji"
+    namespace = "androidx.emoji"
 }
 
 androidx {

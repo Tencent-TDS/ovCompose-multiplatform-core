@@ -24,6 +24,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.internal.readAnnotatedString
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -72,14 +74,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.platform.WindowInfo
@@ -162,6 +166,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -1296,25 +1301,28 @@ class TextFieldTest : FocusedWindowTest {
 
     // Regression test for b/311834126
     @Test
-    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() {
+    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() = runTest {
         val longText = "Text".repeat(4)
         val shortText = "Text".repeat(2)
 
         var tfv by mutableStateOf(TextFieldValue(shortText))
-        val clipboardManager =
-            object : ClipboardManager {
+        val clipboard =
+            object : Clipboard {
                 var contents: AnnotatedString? = null
 
-                override fun setText(annotatedString: AnnotatedString) {
-                    contents = annotatedString
+                override suspend fun getClipEntry(): ClipEntry? {
+                    return contents?.toClipEntry()
                 }
 
-                override fun getText(): AnnotatedString? {
-                    return contents
+                override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+                    contents = clipEntry?.readAnnotatedString()
                 }
+
+                override val nativeClipboard: NativeClipboard
+                    get() = error("FakeClipboard doesn't have a backing NativeClipboard")
             }
         rule.setTextFieldTestContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     value = tfv,
                     onValueChange = { tfv = it },
@@ -1322,7 +1330,7 @@ class TextFieldTest : FocusedWindowTest {
                 )
             }
         }
-        clipboardManager.setText(AnnotatedString(longText))
+        clipboard.setClipEntry(AnnotatedString(longText).toClipEntry())
         rule.waitForIdle()
 
         val node = rule.onNodeWithTag(Tag)

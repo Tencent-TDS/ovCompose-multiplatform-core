@@ -54,8 +54,8 @@ dependencies {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.paging.integration.testapp"
+    compileSdk = 35
+    namespace = "androidx.paging.integration.testapp"
 }
 
 // Enable parameter names to support Room incremental when its a project() dep.

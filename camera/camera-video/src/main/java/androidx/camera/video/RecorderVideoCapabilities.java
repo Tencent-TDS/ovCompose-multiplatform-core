@@ -32,8 +32,6 @@ import static java.util.Collections.singleton;
 
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.CameraInfo;
@@ -56,6 +54,9 @@ import androidx.camera.video.internal.workaround.DefaultEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityAddedEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityResolutionModifiedEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityValidatedEncoderProfilesProvider;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -171,15 +172,13 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         mIsStabilizationSupported = cameraInfo.isVideoStabilizationSupported();
     }
 
-    @NonNull
     @Override
-    public Set<DynamicRange> getSupportedDynamicRanges() {
+    public @NonNull Set<DynamicRange> getSupportedDynamicRanges() {
         return mCapabilitiesMapForFullySpecifiedDynamicRange.keySet();
     }
 
-    @NonNull
     @Override
-    public List<Quality> getSupportedQualities(@NonNull DynamicRange dynamicRange) {
+    public @NonNull List<Quality> getSupportedQualities(@NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? new ArrayList<>() : capabilities.getSupportedQualities();
     }
@@ -196,34 +195,31 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         return mIsStabilizationSupported;
     }
 
-    @Nullable
     @Override
-    public VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality,
+    public @Nullable VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality,
             @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? null : capabilities.getProfiles(quality);
     }
 
-    @Nullable
     @Override
-    public VideoValidatedEncoderProfilesProxy findNearestHigherSupportedEncoderProfilesFor(
-            @NonNull Size size, @NonNull DynamicRange dynamicRange) {
+    public @Nullable VideoValidatedEncoderProfilesProxy
+            findNearestHigherSupportedEncoderProfilesFor(
+                    @NonNull Size size, @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? null
                 : capabilities.findNearestHigherSupportedEncoderProfilesFor(size);
     }
 
-    @NonNull
     @Override
-    public Quality findNearestHigherSupportedQualityFor(@NonNull Size size,
+    public @NonNull Quality findNearestHigherSupportedQualityFor(@NonNull Size size,
             @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? Quality.NONE
                 : capabilities.findNearestHigherSupportedQualityFor(size);
     }
 
-    @Nullable
-    private CapabilitiesByQuality getCapabilities(@NonNull DynamicRange dynamicRange) {
+    private @Nullable CapabilitiesByQuality getCapabilities(@NonNull DynamicRange dynamicRange) {
         if (dynamicRange.isFullySpecified()) {
             return mCapabilitiesMapForFullySpecifiedDynamicRange.get(dynamicRange);
         }
@@ -253,8 +249,7 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         return false;
     }
 
-    @Nullable
-    private CapabilitiesByQuality generateCapabilitiesForNonFullySpecifiedDynamicRange(
+    private @Nullable CapabilitiesByQuality generateCapabilitiesForNonFullySpecifiedDynamicRange(
             @NonNull DynamicRange dynamicRange) {
         if (!DynamicRanges.canResolve(dynamicRange, getSupportedDynamicRanges())) {
             return null;

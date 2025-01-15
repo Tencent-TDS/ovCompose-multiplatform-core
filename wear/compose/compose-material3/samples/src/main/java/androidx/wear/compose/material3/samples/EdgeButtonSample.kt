@@ -20,6 +20,7 @@ import androidx.annotation.Sampled
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
@@ -48,7 +50,6 @@ import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.RadioButton
 import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.ScreenScaffoldDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
@@ -106,6 +107,7 @@ fun EdgeButtonSample() {
     }
 }
 
+@Preview
 @Sampled
 @Composable
 fun EdgeButtonListSample() {
@@ -126,6 +128,7 @@ fun EdgeButtonListSample() {
 
     ScreenScaffold(
         scrollState = state,
+        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = verticalPadding),
         edgeButton = {
             EdgeButton(
                 onClick = {},
@@ -143,19 +146,13 @@ fun EdgeButtonListSample() {
                     Text("Ok")
                 }
             }
-        }
-    ) {
+        },
+    ) { contentPadding ->
         ScalingLazyColumn(
             state = state,
             modifier = Modifier.fillMaxSize().selectableGroup(),
             autoCentering = null,
-            contentPadding =
-                ScreenScaffoldDefaults.contentPaddingWithEdgeButton(
-                    edgeButtonSize = EdgeButtonSize.Medium,
-                    start = horizontalPadding,
-                    end = horizontalPadding,
-                    top = verticalPadding,
-                ),
+            contentPadding = contentPadding,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             item { Text("Color") }

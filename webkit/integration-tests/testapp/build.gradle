@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.ApkCopyHelperKt
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.guavaAndroid)
     implementation(libs.espressoIdlingNet)
     implementation(libs.espressoIdlingResource)
+    implementation(libs.okhttpMockwebserver)
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -62,15 +63,15 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled = true
         }
     }
-    namespace "com.example.androidx.webkit"
+    namespace = "com.example.androidx.webkit"
 }
 
 androidx {
     name = "WebKit Test App"
-    publish = Publish.NONE
+    type = LibraryType.TEST_APPLICATION
     inceptionYear = "2017"
     description = "The WebKit Support Library test application is a demonstration of the APIs provided in the androidx.webkit library."
     additionalDeviceTestApkKeys.add("chrome")

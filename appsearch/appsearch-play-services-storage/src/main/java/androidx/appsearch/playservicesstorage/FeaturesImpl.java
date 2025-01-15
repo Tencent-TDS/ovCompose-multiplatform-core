@@ -16,10 +16,11 @@
 
 package androidx.appsearch.playservicesstorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.app.Features;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An implementation of {@link Features}. Feature availability is dependent on Android API

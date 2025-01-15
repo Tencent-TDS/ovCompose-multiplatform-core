@@ -23,7 +23,6 @@ import androidx.room.util.getCoroutineContext
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.execSQL
-import androidx.sqlite.use
 import kotlin.jvm.JvmOverloads
 import kotlin.jvm.JvmSuppressWildcards
 import kotlinx.atomicfu.atomic

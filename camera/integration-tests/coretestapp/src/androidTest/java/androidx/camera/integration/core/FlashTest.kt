@@ -195,16 +195,19 @@ class FlashTest(private val implName: String, private val cameraXConfig: CameraX
         )
     }
 
+    @LabTestRule.LabTestRearCamera
     @Test
     fun requestAeModeIsOnAlwaysFlash_whenCapturedWithFlashOn() {
         verifyRequestAeOrFlashModeForFlashModeCapture(ImageCapture.FLASH_MODE_ON)
     }
 
+    @LabTestRule.LabTestRearCamera
     @Test
     fun requestAeModeIsOnAutoFlash_whenCapturedWithFlashAuto() {
         verifyRequestAeOrFlashModeForFlashModeCapture(ImageCapture.FLASH_MODE_AUTO)
     }
 
+    @LabTestRule.LabTestRearCamera
     @Test
     fun flashEnabledInRequest_whenCapturedWithFlashOnAndSharedEffect() {
         verifyRequestAeOrFlashModeForFlashModeCapture(

@@ -81,8 +81,8 @@ class BuiltInConverterFlagsTest {
             hasError(CANNOT_FIND_COLUMN_TYPE_ADAPTER, "val uuid: UUID")
             hasError(CANNOT_FIND_COLUMN_TYPE_ADAPTER, "val myEnum: MyEnum")
             hasError(CANNOT_FIND_COLUMN_TYPE_ADAPTER, "val blob: ByteBuffer")
-            // even though it is enabled in dao or db, since pojo processing will visit the pojo,
-            // we'll still get errors for these because entity disabled them
+            // even though it is enabled in dao or db, since data class processing will visit the
+            // data class, we'll still get errors for these because entity disabled them
             hasError(CANNOT_FIND_STMT_READER, "val uuid: UUID")
             hasError(CANNOT_FIND_STMT_READER, "val myEnum: MyEnum")
             hasError(CANNOT_FIND_STMT_READER, "val blob: ByteBuffer")

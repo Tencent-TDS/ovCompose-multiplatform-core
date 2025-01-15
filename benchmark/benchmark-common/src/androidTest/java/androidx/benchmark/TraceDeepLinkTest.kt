@@ -28,7 +28,11 @@ class TraceDeepLinkTest {
     @Test
     fun noParamLink() {
         val emptyLink =
-            TraceDeepLink(outputRelativePath = "foo.perfetto-trace", selectionParams = null)
+            TraceDeepLink(
+                outputRelativePath = "foo.perfetto-trace",
+                perfettoUiParams = null,
+                studioParams = null
+            )
         assertThat(emptyLink.createMarkdownLink("bar", LinkFormat.V2))
             .isEqualTo("[bar](file://foo.perfetto-trace)")
         assertThat(emptyLink.createMarkdownLink("bar", LinkFormat.V3))
@@ -53,13 +57,14 @@ class TraceDeepLinkTest {
         val link =
             TraceDeepLink(
                 outputRelativePath = "foo.perfetto-trace",
-                selectionParams = selectionParams
+                perfettoUiParams = selectionParams,
+                studioParams = null
             )
         assertThat(link.createMarkdownLink("bar", LinkFormat.V2))
             .isEqualTo("[bar](file://foo.perfetto-trace)")
         assertThat(link.createMarkdownLink("bar", LinkFormat.V3))
             .isEqualTo(
-                "[bar](uri://foo.perfetto-trace?enablePlugins=androidx.benchmark&selectionParams=eNpNyUEKgCAQBdDbuEgQO4BX6AoxTL-Q1DG1oNsXuWn7XibeacNEEY4lmiSNgr9gco8PCihQzqoigJuXNNcXm7M_QVrcaK06TpTbddeDXotEXYNn1AegNihK)"
+                "[bar](uri://foo.perfetto-trace?enablePlugins=androidx.benchmark&androidx.benchmark:selectionParams=eNpNyUEKgCAQBdDbuEgQO4BX6AoxTL-Q1DG1oNsXuWn7XibeacNEEY4lmiSNgr9gco8PCihQzqoigJuXNNcXm7M_QVrcaK06TpTbddeDXotEXYNn1AegNihK)"
             )
     }
 
@@ -68,9 +73,6 @@ class TraceDeepLinkTest {
         val selectionParams =
             TraceDeepLink.StartupSelectionParams(
                 packageName = Packages.FAKE,
-                tid = null,
-                selectionStart = null,
-                selectionEnd = null,
                 reasonId = "REASON_SAMPLE"
             )
         assertThat(selectionParams.buildInnerParamString())
@@ -79,13 +81,33 @@ class TraceDeepLinkTest {
         val link =
             TraceDeepLink(
                 outputRelativePath = "foo.perfetto-trace",
-                selectionParams = selectionParams
+                perfettoUiParams = selectionParams,
+                studioParams = null
             )
         assertThat(link.createMarkdownLink("bar", LinkFormat.V2))
             .isEqualTo("[bar](file://foo.perfetto-trace)")
         assertThat(link.createMarkdownLink("bar", LinkFormat.V3))
             .isEqualTo(
-                "[bar](uri://foo.perfetto-trace?enablePlugins=android_startup&selectionParams=eNorSEzOTkxP9UvMTbVNzs_Vy8svSczJLEvVK4BIgAWKUhNzEgsK1IB0cX5efGaKbZCrY7C_X3ywo2-AjysAgIgZGQ==)"
+                "[bar](uri://foo.perfetto-trace?enablePlugins=android_startup&android_startup:selectionParams=eNorSEzOTkxP9UvMTbVNzs_Vy8svSczJLEvVK4BIgAWKUhNzEgsK1IB0cX5efGaKbZCrY7C_X3ywo2-AjysAgIgZGQ==)"
+            )
+    }
+
+    @Test
+    fun studioParamLink() {
+        val selectionParams = TraceDeepLink.StudioSelectionParams(ts = 0, dur = 100, tid = 104)
+        assertThat(selectionParams.buildInnerParamString()).isEqualTo("ts=0&dur=100&tid=104")
+
+        val link =
+            TraceDeepLink(
+                outputRelativePath = "foo.perfetto-trace",
+                perfettoUiParams = null,
+                studioParams = selectionParams
+            )
+        assertThat(link.createMarkdownLink("bar", LinkFormat.V2))
+            .isEqualTo("[bar](file://foo.perfetto-trace)")
+        assertThat(link.createMarkdownLink("bar", LinkFormat.V3))
+            .isEqualTo(
+                "[bar](uri://foo.perfetto-trace?selectionParams=eNorKbY1UEspLbI1NDBQK8lMAdImAED7Bc0=)"
             )
     }
 }

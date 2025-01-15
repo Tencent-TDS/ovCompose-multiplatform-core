@@ -160,9 +160,25 @@ class XProcessingEnvTest {
 
     @Test
     fun findGeneratedAnnotation() {
-        runProcessorTest(sources = emptyList(), classpath = emptyList()) { invocation ->
+        runProcessorTest(
+            sources = emptyList(),
+            classpath = emptyList(),
+            javacArguments = listOf("-target", "1.8", "-source", "1.8"),
+            kotlincArguments = listOf("-jvm-target=1.8")
+        ) { invocation ->
             val generatedAnnotation = invocation.processingEnv.findGeneratedAnnotation()
-            assertThat(generatedAnnotation?.name).isEqualTo("Generated")
+            assertThat(generatedAnnotation?.qualifiedName).isEqualTo("javax.annotation.Generated")
+        }
+
+        runProcessorTest(
+            sources = emptyList(),
+            classpath = emptyList(),
+            javacArguments = listOf("-target", "11", "-source", "11"),
+            kotlincArguments = listOf("-jvm-target=11")
+        ) { invocation ->
+            val generatedAnnotation = invocation.processingEnv.findGeneratedAnnotation()
+            assertThat(generatedAnnotation?.qualifiedName)
+                .isEqualTo("javax.annotation.processing.Generated")
         }
     }
 
@@ -260,14 +276,9 @@ class XProcessingEnvTest {
                     )
                 ),
             javacArguments = listOf("-source", "11"),
-            kotlincArguments = listOf("-Xjvm-target 11")
+            kotlincArguments = listOf("-jvm-target=11")
         ) {
-            if (it.processingEnv.backend == XProcessingEnv.Backend.KSP) {
-                // KSP is hardcoded to 8 for now...
-                assertThat(it.processingEnv.jvmVersion).isEqualTo(8)
-            } else {
-                assertThat(it.processingEnv.jvmVersion).isEqualTo(11)
-            }
+            assertThat(it.processingEnv.jvmVersion).isEqualTo(11)
         }
     }
 

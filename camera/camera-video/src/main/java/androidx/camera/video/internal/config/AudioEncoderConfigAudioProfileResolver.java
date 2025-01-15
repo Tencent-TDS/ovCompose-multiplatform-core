@@ -19,7 +19,6 @@ package androidx.camera.video.internal.config;
 
 import android.util.Range;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.EncoderProfilesProxy.AudioProfileProxy;
 import androidx.camera.core.impl.Timebase;
@@ -27,6 +26,8 @@ import androidx.camera.video.AudioSpec;
 import androidx.camera.video.internal.audio.AudioSettings;
 import androidx.camera.video.internal.encoder.AudioEncoderConfig;
 import androidx.core.util.Supplier;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An {@link AudioEncoderConfig} supplier that resolves requested encoder settings from an
@@ -70,8 +71,7 @@ public final class AudioEncoderConfigAudioProfileResolver implements
     }
 
     @Override
-    @NonNull
-    public AudioEncoderConfig get() {
+    public @NonNull AudioEncoderConfig get() {
         Logger.d(TAG, "Using resolved AUDIO bitrate from AudioProfile");
         Range<Integer> audioSpecBitrateRange = mAudioSpec.getBitrate();
         int resolvedBitrate = AudioConfigUtil.scaleAndClampBitrate(

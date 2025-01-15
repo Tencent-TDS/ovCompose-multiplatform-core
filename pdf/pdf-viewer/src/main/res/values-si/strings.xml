@@ -29,8 +29,10 @@
     <string name="desc_page_single" msgid="8459583146661044094">"<xliff:g id="TOTAL">%2$d</xliff:g> න් <xliff:g id="PAGE">%1$d</xliff:g> වෙනි පිටුව"</string>
     <string name="desc_zoom" msgid="7318480946145947242">"විශාලනය සියයට <xliff:g id="FIRST">%1$d</xliff:g>"</string>
     <string name="desc_goto_link" msgid="2461368384824849714">"<xliff:g id="PAGE_NUMBER">%1$d</xliff:g> වෙනි පිටුවට යන්න"</string>
-    <string name="desc_page" msgid="5684226167093594168">"පිටුව <xliff:g id="PAGE">%1$d</xliff:g>"</string>
+    <!-- no translation found for desc_page (6702471448987833953) -->
+    <skip />
     <string name="desc_empty_page" msgid="5041794048330057239">"හිස් පිටුව"</string>
+    <string name="desc_page_with_text" msgid="2564017005407577604">"පිටුව <xliff:g id="PAGE_NUMBER">%1$d</xliff:g>: <xliff:g id="PAGE_TEXT">%2$s</xliff:g>"</string>
     <string name="error_file_format_pdf" msgid="7567006188638831878">"PDF සංදර්ශනය කළ නොහැක (<xliff:g id="TITLE">%1$s</xliff:g> අවලංගු ආකෘතියකි)"</string>
     <string name="error_on_page" msgid="1592475819957182385">"පිටුව සංදර්ශනය කළ නොහැක <xliff:g id="PAGE">%1$d</xliff:g> (ගොනු දෝෂය)"</string>
     <string name="desc_web_link_shortened_to_domain" msgid="3323639528531061592">"සබැඳිය: <xliff:g id="DESTINATION_DOMAIN">%1$s</xliff:g> හි දී වෙබ් පිටුව"</string>

@@ -29,10 +29,10 @@ import androidx.benchmark.macro.perfetto.queryStartupInsights
 import androidx.benchmark.perfetto.PerfettoCapture
 import androidx.benchmark.perfetto.PerfettoCaptureWrapper
 import androidx.benchmark.perfetto.PerfettoConfig
-import androidx.benchmark.perfetto.PerfettoTrace
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
 import androidx.benchmark.perfetto.UiState
 import androidx.benchmark.perfetto.appendUiState
+import androidx.benchmark.traceprocessor.PerfettoTrace
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.tracing.trace
 import java.io.File
 
@@ -65,7 +65,7 @@ internal data class IterationResult(
 
 /** Run a Macrobenchmark Phase and collect a list of [IterationResult]. */
 @ExperimentalBenchmarkConfigApi
-internal fun PerfettoTraceProcessor.runPhase(
+internal fun TraceProcessor.runPhase(
     uniqueName: String,
     packageName: String,
     macrobenchmarkPackageName: String,

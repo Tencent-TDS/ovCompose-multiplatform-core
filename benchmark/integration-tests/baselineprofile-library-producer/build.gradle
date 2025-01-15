@@ -32,8 +32,7 @@ plugins {
 
 android {
     defaultConfig {
-        minSdkVersion 23
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        minSdk = 23
     }
     testOptions.managedDevices.allDevices {
         pixel6Api31(ManagedVirtualDevice) {
@@ -43,7 +42,7 @@ android {
         }
     }
     targetProjectPath = ":benchmark:integration-tests:baselineprofile-library-app-target"
-    namespace "androidx.benchmark.integration.baselineprofile.library.producer"
+    namespace = "androidx.benchmark.integration.baselineprofile.library.producer"
 }
 
 dependencies {

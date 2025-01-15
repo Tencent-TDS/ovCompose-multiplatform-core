@@ -20,8 +20,8 @@ plugins {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.appcompat.demo.receivecontent"
+    compileSdk = 35
+    namespace = "androidx.appcompat.demo.receivecontent"
 }
 
 dependencies {

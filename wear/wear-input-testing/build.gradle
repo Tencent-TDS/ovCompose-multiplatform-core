@@ -29,15 +29,16 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(project(":wear:wear-input"))
     compileOnly fileTree(dir: "../wear_stubs", include: ["com.google.android.wearable-stubs.jar"])
 }
 
 android {
     defaultConfig {
-        minSdkVersion 25
+        minSdk = 25
     }
-    namespace "androidx.wear.input.testing"
+    namespace = "androidx.wear.input.testing"
 }
 
 androidx {

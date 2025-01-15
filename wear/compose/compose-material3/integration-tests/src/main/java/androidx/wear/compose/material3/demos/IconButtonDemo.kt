@@ -19,8 +19,6 @@ package androidx.wear.compose.material3.demos
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,7 +103,7 @@ fun IconButtonDemo() {
         }
         item { ListHeader { Text("With onLongClick") } }
         item { IconButtonWithOnLongClickSample { showOnLongClickToast(context) } }
-        item { ListHeader { Text("Corner Animation") } }
+        item { ListHeader { Text("Animated") } }
         item {
             Row {
                 IconButtonWithCornerAnimationSample()
@@ -113,33 +111,6 @@ fun IconButtonDemo() {
                 IconButtonWithCornerAnimationSample(
                     colors = IconButtonDefaults.filledVariantIconButtonColors()
                 )
-            }
-        }
-        item { ListHeader { Text("Morphed Animation") } }
-        item {
-            Row {
-                FilledIconButton(
-                    onClick = {},
-                    shapes =
-                        IconButtonDefaults.animatedShapes(
-                            shape = CutCornerShape(5.dp),
-                            pressedShape = RoundedCornerShape(5.dp)
-                        ),
-                ) {
-                    FavoriteIcon(ButtonDefaults.IconSize)
-                }
-                Spacer(modifier = Modifier.width(5.dp))
-                FilledIconButton(
-                    onClick = {},
-                    colors = IconButtonDefaults.filledVariantIconButtonColors(),
-                    shapes =
-                        IconButtonDefaults.animatedShapes(
-                            shape = CutCornerShape(5.dp),
-                            pressedShape = RoundedCornerShape(5.dp)
-                        ),
-                ) {
-                    FavoriteIcon(ButtonDefaults.IconSize)
-                }
             }
         }
         item { ListHeader { Text("Sizes") } }

@@ -111,7 +111,7 @@ import androidx.wear.compose.materialcore.animateSelectionColor
  *   which is "start" aligned.
  */
 @Composable
-fun RadioButton(
+public fun RadioButton(
     selected: Boolean,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
@@ -267,7 +267,7 @@ fun RadioButton(
  *   which is "start" aligned.
  */
 @Composable
-fun SplitRadioButton(
+public fun SplitRadioButton(
     selected: Boolean,
     onSelectionClick: () -> Unit,
     selectionContentDescription: String?,
@@ -396,17 +396,19 @@ fun SplitRadioButton(
 }
 
 /** Contains the default values used by [RadioButton]s and [SplitRadioButton]s */
-object RadioButtonDefaults {
+public object RadioButtonDefaults {
     /** Recommended [Shape] for [RadioButton]. */
-    val radioButtonShape: Shape
+    public val radioButtonShape: Shape
         @Composable get() = RadioButtonTokens.Shape.value
 
     /** Recommended [Shape] for [SplitRadioButton]. */
-    val splitRadioButtonShape: Shape
+    public val splitRadioButtonShape: Shape
         @Composable get() = SplitRadioButtonTokens.Shape.value
 
     /** Creates a [RadioButtonColors] for use in a [RadioButton]. */
-    @Composable fun radioButtonColors() = MaterialTheme.colorScheme.defaultRadioButtonColors
+    @Composable
+    public fun radioButtonColors(): RadioButtonColors =
+        MaterialTheme.colorScheme.defaultRadioButtonColors
 
     /**
      * Creates a [RadioButtonColors] for use in a [RadioButton].
@@ -450,7 +452,7 @@ object RadioButtonDefaults {
      *   disabled and not selected.
      */
     @Composable
-    fun radioButtonColors(
+    public fun radioButtonColors(
         selectedContainerColor: Color = Color.Unspecified,
         selectedContentColor: Color = Color.Unspecified,
         selectedSecondaryContentColor: Color = Color.Unspecified,
@@ -471,7 +473,7 @@ object RadioButtonDefaults {
         disabledUnselectedSecondaryContentColor: Color = Color.Unspecified,
         disabledUnselectedIconColor: Color = Color.Unspecified,
         disabledUnselectedControlColor: Color = Color.Unspecified
-    ) =
+    ): RadioButtonColors =
         MaterialTheme.colorScheme.defaultRadioButtonColors.copy(
             selectedContainerColor = selectedContainerColor,
             selectedContentColor = selectedContentColor,
@@ -497,7 +499,8 @@ object RadioButtonDefaults {
 
     /** Creates a [SplitRadioButtonColors] for use in a [SplitRadioButton]. */
     @Composable
-    fun splitRadioButtonColors() = MaterialTheme.colorScheme.defaultSplitRadioButtonColors
+    public fun splitRadioButtonColors(): SplitRadioButtonColors =
+        MaterialTheme.colorScheme.defaultSplitRadioButtonColors
 
     /**
      * Creates a [SplitRadioButtonColors] for use in a [SplitRadioButton].
@@ -540,7 +543,7 @@ object RadioButtonDefaults {
      * @param disabledUnselectedControlColor The radio control color when disabled and unselected.
      */
     @Composable
-    fun splitRadioButtonColors(
+    public fun splitRadioButtonColors(
         selectedContainerColor: Color = Color.Unspecified,
         selectedContentColor: Color = Color.Unspecified,
         selectedSecondaryContentColor: Color = Color.Unspecified,
@@ -561,7 +564,7 @@ object RadioButtonDefaults {
         disabledUnselectedSecondaryContentColor: Color = Color.Unspecified,
         disabledUnselectedSplitContainerColor: Color = Color.Unspecified,
         disabledUnselectedControlColor: Color = Color.Unspecified,
-    ) =
+    ): SplitRadioButtonColors =
         MaterialTheme.colorScheme.defaultSplitRadioButtonColors.copy(
             selectedContainerColor = selectedContainerColor,
             selectedContentColor = selectedContentColor,
@@ -590,7 +593,7 @@ object RadioButtonDefaults {
     private val VerticalPadding = 8.dp
 
     /** The default content padding used by [RadioButton] */
-    val ContentPadding: PaddingValues =
+    public val ContentPadding: PaddingValues =
         PaddingValues(
             start = HorizontalPadding,
             top = VerticalPadding,
@@ -791,27 +794,27 @@ object RadioButtonDefaults {
  * @constructor [RadioButtonColors] constructor to be used with [RadioButton]
  */
 @Immutable
-class RadioButtonColors(
-    val selectedContainerColor: Color,
-    val selectedContentColor: Color,
-    val selectedSecondaryContentColor: Color,
-    val selectedIconColor: Color,
-    val selectedControlColor: Color,
-    val unselectedContainerColor: Color,
-    val unselectedContentColor: Color,
-    val unselectedSecondaryContentColor: Color,
-    val unselectedIconColor: Color,
-    val unselectedControlColor: Color,
-    val disabledSelectedContainerColor: Color,
-    val disabledSelectedContentColor: Color,
-    val disabledSelectedSecondaryContentColor: Color,
-    val disabledSelectedIconColor: Color,
-    val disabledSelectedControlColor: Color,
-    val disabledUnselectedContainerColor: Color,
-    val disabledUnselectedContentColor: Color,
-    val disabledUnselectedSecondaryContentColor: Color,
-    val disabledUnselectedIconColor: Color,
-    val disabledUnselectedControlColor: Color,
+public class RadioButtonColors(
+    public val selectedContainerColor: Color,
+    public val selectedContentColor: Color,
+    public val selectedSecondaryContentColor: Color,
+    public val selectedIconColor: Color,
+    public val selectedControlColor: Color,
+    public val unselectedContainerColor: Color,
+    public val unselectedContentColor: Color,
+    public val unselectedSecondaryContentColor: Color,
+    public val unselectedIconColor: Color,
+    public val unselectedControlColor: Color,
+    public val disabledSelectedContainerColor: Color,
+    public val disabledSelectedContentColor: Color,
+    public val disabledSelectedSecondaryContentColor: Color,
+    public val disabledSelectedIconColor: Color,
+    public val disabledSelectedControlColor: Color,
+    public val disabledUnselectedContainerColor: Color,
+    public val disabledUnselectedContentColor: Color,
+    public val disabledUnselectedSecondaryContentColor: Color,
+    public val disabledUnselectedIconColor: Color,
+    public val disabledUnselectedControlColor: Color,
 ) {
     /**
      * Returns a copy of this RadioButtonColors optionally overriding some of the values.
@@ -853,7 +856,7 @@ class RadioButtonColors(
      * @param disabledUnselectedControlColor Radio selection control color when the radio button is
      *   disabled and unselected
      */
-    fun copy(
+    public fun copy(
         selectedContainerColor: Color = this.selectedContainerColor,
         selectedContentColor: Color = this.selectedContentColor,
         selectedSecondaryContentColor: Color = this.selectedSecondaryContentColor,
@@ -1115,28 +1118,27 @@ class RadioButtonColors(
  *   unselected and disabled
  * @constructor [SplitRadioButtonColors] constructor to be used with [SplitRadioButton]
  */
-class SplitRadioButtonColors
-constructor(
-    val selectedContainerColor: Color,
-    val selectedContentColor: Color,
-    val selectedSecondaryContentColor: Color,
-    val selectedSplitContainerColor: Color,
-    val selectedControlColor: Color,
-    val unselectedContainerColor: Color,
-    val unselectedContentColor: Color,
-    val unselectedSecondaryContentColor: Color,
-    val unselectedSplitContainerColor: Color,
-    val unselectedControlColor: Color,
-    val disabledSelectedContainerColor: Color,
-    val disabledSelectedContentColor: Color,
-    val disabledSelectedSecondaryContentColor: Color,
-    val disabledSelectedSplitContainerColor: Color,
-    val disabledSelectedControlColor: Color,
-    val disabledUnselectedContainerColor: Color,
-    val disabledUnselectedContentColor: Color,
-    val disabledUnselectedSecondaryContentColor: Color,
-    val disabledUnselectedSplitContainerColor: Color,
-    val disabledUnselectedControlColor: Color,
+public class SplitRadioButtonColors(
+    public val selectedContainerColor: Color,
+    public val selectedContentColor: Color,
+    public val selectedSecondaryContentColor: Color,
+    public val selectedSplitContainerColor: Color,
+    public val selectedControlColor: Color,
+    public val unselectedContainerColor: Color,
+    public val unselectedContentColor: Color,
+    public val unselectedSecondaryContentColor: Color,
+    public val unselectedSplitContainerColor: Color,
+    public val unselectedControlColor: Color,
+    public val disabledSelectedContainerColor: Color,
+    public val disabledSelectedContentColor: Color,
+    public val disabledSelectedSecondaryContentColor: Color,
+    public val disabledSelectedSplitContainerColor: Color,
+    public val disabledSelectedControlColor: Color,
+    public val disabledUnselectedContainerColor: Color,
+    public val disabledUnselectedContentColor: Color,
+    public val disabledUnselectedSecondaryContentColor: Color,
+    public val disabledUnselectedSplitContainerColor: Color,
+    public val disabledUnselectedControlColor: Color,
 ) {
     /**
      * Returns a copy of this SplitRadioButtonColors optionally overriding some of the values.
@@ -1181,7 +1183,7 @@ constructor(
      * @param disabledUnselectedControlColor Selection control color when the [SplitRadioButton] is
      *   unselected and disabled
      */
-    fun copy(
+    public fun copy(
         selectedContainerColor: Color = this.selectedContainerColor,
         selectedContentColor: Color = this.selectedContentColor,
         selectedSecondaryContentColor: Color = this.selectedSecondaryContentColor,

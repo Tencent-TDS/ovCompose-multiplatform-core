@@ -13,6 +13,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.interpolator:interpolator:1.0.0")
     api("androidx.core:core:1.1.0")
@@ -39,7 +40,7 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     sourceSets {
         main.java.srcDirs += [
                 "common",
@@ -47,7 +48,7 @@ android {
                 "api21",
         ]
     }
-    namespace "androidx.leanback"
+    namespace = "androidx.leanback"
 }
 
 androidx {
@@ -57,4 +58,6 @@ androidx {
     inceptionYear = "2014"
     description = "Android Support Leanback v17"
     failOnDeprecationWarnings = false
+    // TODO: b/326456246
+    optOutJSpecify = true
 }

@@ -28,6 +28,7 @@ import android.view.Surface
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.isHardwareLevelLegacy
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsHighSpeedVideo
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsLogicalMultiCamera
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsPrivateReprocessing
 import androidx.camera.camera2.pipe.CameraPipe
@@ -212,12 +213,10 @@ constructor(
         return streamConfigurationMapCompat.getOutputFormats()?.toSet() ?: emptySet()
     }
 
-    @SuppressLint("ClassVerificationFailure")
     override fun getSupportedResolutions(format: Int): List<Size> {
         return streamConfigurationMapCompat.getOutputSizes(format)?.toList() ?: emptyList()
     }
 
-    @SuppressLint("ClassVerificationFailure")
     override fun getSupportedHighResolutions(format: Int): List<Size> {
         return streamConfigurationMapCompat.getHighResolutionOutputSizes(format)?.toList()
             ?: emptyList()
@@ -259,6 +258,31 @@ constructor(
     override fun getSupportedDynamicRanges(): Set<DynamicRange> {
         return DynamicRangeProfilesCompat.fromCameraMetaData(cameraProperties.metadata)
             .supportedDynamicRanges
+    }
+
+    override fun isHighSpeedSupported(): Boolean =
+        Build.VERSION.SDK_INT >= 23 && cameraProperties.metadata.supportsHighSpeedVideo
+
+    override fun getSupportedHighSpeedFrameRateRanges(): Set<Range<Int>> {
+        return streamConfigurationMapCompat.getHighSpeedVideoFpsRanges()?.toSet() ?: emptySet()
+    }
+
+    override fun getSupportedHighSpeedFrameRateRangesFor(size: Size): Set<Range<Int>> {
+        return runCatching {
+                streamConfigurationMapCompat.getHighSpeedVideoFpsRangesFor(size)?.toSet()
+            }
+            .getOrNull() ?: emptySet()
+    }
+
+    override fun getSupportedHighSpeedResolutions(): List<Size> {
+        return streamConfigurationMapCompat.getHighSpeedVideoSizes()?.toList() ?: emptyList()
+    }
+
+    override fun getSupportedHighSpeedResolutionsFor(fpsRange: Range<Int>): List<Size> {
+        return runCatching {
+                streamConfigurationMapCompat.getHighSpeedVideoSizesFor(fpsRange)?.toList()
+            }
+            .getOrNull() ?: emptyList()
     }
 
     override fun querySupportedDynamicRanges(

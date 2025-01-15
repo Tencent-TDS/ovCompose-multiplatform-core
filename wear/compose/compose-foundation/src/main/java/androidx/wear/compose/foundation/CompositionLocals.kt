@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.stateIn
  * CompositionLocal for global reduce-motion setting, which turns off animations and screen
  * movements. To use, call LocalReduceMotion.current.enabled(), which returns a Boolean.
  */
-val LocalReduceMotion: ProvidableCompositionLocal<ReduceMotion> = staticCompositionLocalOf {
+public val LocalReduceMotion: ProvidableCompositionLocal<ReduceMotion> = staticCompositionLocalOf {
     ReduceMotion {
         val context = LocalContext.current.applicationContext
         val flow = getReduceMotionFlowFor(context)
@@ -55,7 +55,7 @@ val LocalReduceMotion: ProvidableCompositionLocal<ReduceMotion> = staticComposit
  *
  * Defaults to [Color.Black] if not explicitly set.
  */
-val LocalSwipeToDismissBackgroundScrimColor: ProvidableCompositionLocal<Color> =
+public val LocalSwipeToDismissBackgroundScrimColor: ProvidableCompositionLocal<Color> =
     compositionLocalOf {
         Color.Black
     }
@@ -65,16 +65,17 @@ val LocalSwipeToDismissBackgroundScrimColor: ProvidableCompositionLocal<Color> =
  *
  * Defaults to [Color.Black] if not explicitly set.
  */
-val LocalSwipeToDismissContentScrimColor: ProvidableCompositionLocal<Color> = compositionLocalOf {
-    Color.Black
-}
+public val LocalSwipeToDismissContentScrimColor: ProvidableCompositionLocal<Color> =
+    compositionLocalOf {
+        Color.Black
+    }
 
 /**
  * ReduceMotion provides a means for callers to determine whether an app should turn off animations
  * and screen movement.
  */
-fun interface ReduceMotion {
-    @Composable fun enabled(): Boolean
+public fun interface ReduceMotion {
+    @Composable public fun enabled(): Boolean
 }
 
 private val reduceMotionCache = AtomicReference<StateFlow<Boolean>>()

@@ -131,6 +131,8 @@ import androidx.wear.protolayout.proto.LayoutElementProto.ArcText;
 import androidx.wear.protolayout.proto.LayoutElementProto.Box;
 import androidx.wear.protolayout.proto.LayoutElementProto.Column;
 import androidx.wear.protolayout.proto.LayoutElementProto.ContentScaleMode;
+import androidx.wear.protolayout.proto.LayoutElementProto.DashedArcLine;
+import androidx.wear.protolayout.proto.LayoutElementProto.DashedLinePattern;
 import androidx.wear.protolayout.proto.LayoutElementProto.ExtensionLayoutElement;
 import androidx.wear.protolayout.proto.LayoutElementProto.FontFeatureSetting;
 import androidx.wear.protolayout.proto.LayoutElementProto.FontSetting;
@@ -191,6 +193,7 @@ import androidx.wear.protolayout.renderer.common.ProtoLayoutDiffer.TreeNodeWithC
 import androidx.wear.protolayout.renderer.common.ProviderStatsLogger.InflaterStatsLogger;
 import androidx.wear.protolayout.renderer.common.RenderingArtifact;
 import androidx.wear.protolayout.renderer.dynamicdata.ProtoLayoutDynamicDataPipeline;
+import androidx.wear.protolayout.renderer.dynamicdata.ProtoLayoutDynamicDataPipeline.PipelineMaker;
 import androidx.wear.protolayout.renderer.inflater.RenderedMetadata.LayoutInfo;
 import androidx.wear.protolayout.renderer.inflater.RenderedMetadata.LinearLayoutProperties;
 import androidx.wear.protolayout.renderer.inflater.RenderedMetadata.PendingFrameLayoutParams;
@@ -350,12 +353,12 @@ public final class ProtoLayoutInflater {
     public static final class InflateResult {
         public final ViewGroup inflateParent;
         public final View firstChild;
-        private final Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> mPipelineMaker;
+        private final Optional<PipelineMaker> mPipelineMaker;
 
         InflateResult(
                 ViewGroup inflateParent,
                 View firstChild,
-                Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+                Optional<PipelineMaker> pipelineMaker) {
             this.inflateParent = inflateParent;
             this.firstChild = firstChild;
             this.mPipelineMaker = pipelineMaker;
@@ -379,13 +382,13 @@ public final class ProtoLayoutInflater {
         final List<InflatedView> mInflatedViews;
         final RenderedMetadata mRenderedMetadataAfterMutation;
         final NodeFingerprint mPreMutationRootNodeFingerprint;
-        final Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> mPipelineMaker;
+        final Optional<PipelineMaker> mPipelineMaker;
 
         ViewGroupMutation(
                 List<InflatedView> inflatedViews,
                 RenderedMetadata renderedMetadataAfterMutation,
                 NodeFingerprint preMutationRootNodeFingerprint,
-                Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+                Optional<PipelineMaker> pipelineMaker) {
             this.mInflatedViews = inflatedViews;
             this.mRenderedMetadataAfterMutation = renderedMetadataAfterMutation;
             this.mPreMutationRootNodeFingerprint = preMutationRootNodeFingerprint;
@@ -1245,7 +1248,7 @@ public final class ProtoLayoutInflater {
             FontStyle style,
             TextView textView,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker,
+            Optional<PipelineMaker> pipelineMaker,
             boolean isAutoSizeAllowed) {
         // Note: Underline must be applied as a Span to work correctly (as opposed to using
         // TextPaint#setTextUnderline). This is applied in the caller instead.
@@ -1705,7 +1708,7 @@ public final class ProtoLayoutInflater {
             @NonNull View view,
             @NonNull Transformation transformation,
             @NonNull String posId,
-            @NonNull Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            @NonNull Optional<PipelineMaker> pipelineMaker) {
         // In a composite transformation, the order of applying the individual transformations
         // does not affect the result, as Android view does the transformation in fixed order by
         // first scale, then rotate then translate.
@@ -1786,7 +1789,7 @@ public final class ProtoLayoutInflater {
             Consumer<Float> consumerOffsetDp,
             Consumer<Float> consumerLocationRatio,
             @NonNull String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         switch (pivotDimension.getInnerCase()) {
             case OFFSET_DP:
                 DpProp offset = pivotDimension.getOffsetDp();
@@ -1819,7 +1822,7 @@ public final class ProtoLayoutInflater {
             @Nullable View wrapper, // The wrapper view for layout sizing, if any
             @NonNull Modifiers modifiers,
             @NonNull String posId,
-            @NonNull Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            @NonNull Optional<PipelineMaker> pipelineMaker) {
         if (modifiers.hasVisible()) {
             applyVisible(
                     view,
@@ -1896,7 +1899,7 @@ public final class ProtoLayoutInflater {
             View view,
             BoolProp visible,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker,
+            Optional<PipelineMaker> pipelineMaker,
             Function<Boolean, Integer> toViewVisibility) {
         handleProp(
                 visible,
@@ -2359,7 +2362,7 @@ public final class ProtoLayoutInflater {
             String rowPosId,
             boolean includeChildren,
             LayoutInfo.Builder layoutInfoBuilder,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         ContainerDimension width = row.hasWidth() ? row.getWidth() : CONTAINER_DIMENSION_DEFAULT;
         ContainerDimension height = row.hasHeight() ? row.getHeight() : CONTAINER_DIMENSION_DEFAULT;
 
@@ -2418,7 +2421,7 @@ public final class ProtoLayoutInflater {
             String boxPosId,
             boolean includeChildren,
             LayoutInfo.Builder layoutInfoBuilder,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         ContainerDimension width = box.hasWidth() ? box.getWidth() : CONTAINER_DIMENSION_DEFAULT;
         ContainerDimension height = box.hasHeight() ? box.getHeight() : CONTAINER_DIMENSION_DEFAULT;
 
@@ -2717,8 +2720,8 @@ public final class ProtoLayoutInflater {
             ParentViewWrapper parentViewWrapper,
             ArcSpacer spacer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
-        float lengthDegrees = 0;
+            Optional<PipelineMaker> pipelineMaker) {
+        float length = 0;
         int thicknessPx = safeDpToPx(spacer.getThickness());
         WearCurvedSpacer space = new WearCurvedSpacer(mUiContext);
         ArcLayout.LayoutParams layoutParams =
@@ -2728,7 +2731,8 @@ public final class ProtoLayoutInflater {
             final AngularDimension angularLength = spacer.getAngularLength();
             switch (angularLength.getInnerCase()) {
                 case DEGREES:
-                    lengthDegrees = max(0, angularLength.getDegrees().getValue());
+                    length = max(0, angularLength.getDegrees().getValue());
+                    space.setSweepAngleDegrees(length);
                     break;
 
                 case EXPANDED_ANGULAR_DIMENSION:
@@ -2758,20 +2762,21 @@ public final class ProtoLayoutInflater {
                     }
 
                 case DP:
-                    // TODO: b/377325905 - ArcSpacer accepts Dp length.
+                    length = max(0, safeDpToPx(angularLength.getDp().getValue()));
+                    space.setLengthPx(length);
                     break;
 
                 case INNER_NOT_SET:
                     break;
             }
         } else {
-            lengthDegrees = max(0, spacer.getLength().getValue());
+            length = max(0, spacer.getLength().getValue());
+            space.setSweepAngleDegrees(length);
         }
 
-        if (lengthDegrees == 0 && thicknessPx == 0) {
+        if (length == 0 && thicknessPx == 0) {
             return null;
         }
-        space.setSweepAngleDegrees(lengthDegrees);
         space.setThickness(thicknessPx);
 
         View wrappedView =
@@ -2809,7 +2814,7 @@ public final class ProtoLayoutInflater {
             ParentViewWrapper parentViewWrapper,
             Text text,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         TextView textView = newThemedTextView();
 
         LayoutParams layoutParams = generateDefaultLayoutParams();
@@ -3018,7 +3023,7 @@ public final class ProtoLayoutInflater {
             ParentViewWrapper parentViewWrapper,
             ArcText text,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         CurvedTextView textView = newThemedCurvedTextView();
 
         LayoutParams layoutParams = generateDefaultLayoutParams();
@@ -3325,7 +3330,7 @@ public final class ProtoLayoutInflater {
             ParentViewWrapper parentViewWrapper,
             ArcLine line,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         float lengthDegrees = 0;
         if (line.hasAngularLength()) {
             if (line.getAngularLength().getInnerCase() == ArcLineLength.InnerCase.DEGREES) {
@@ -3345,13 +3350,6 @@ public final class ProtoLayoutInflater {
 
         try {
             lineView.setUpdatesEnabled(false);
-
-            // A ArcLineView must always be the same width/height as its parent, so it can draw the
-            // line properly inside of those bounds.
-            ArcLayout.LayoutParams layoutParams =
-                    new ArcLayout.LayoutParams(generateDefaultLayoutParams());
-            layoutParams.width = LayoutParams.MATCH_PARENT;
-            layoutParams.height = LayoutParams.MATCH_PARENT;
 
             if (line.hasBrush()) {
                 lineView.setBrush(line.getBrush());
@@ -3392,6 +3390,7 @@ public final class ProtoLayoutInflater {
 
             DegreesProp length = DegreesProp.getDefaultInstance();
 
+            float arcLayoutWeight = 0;
             if (line.hasAngularLength()) {
                 final ArcLineLength angularLength = line.getAngularLength();
                 switch (angularLength.getInnerCase()) {
@@ -3405,10 +3404,10 @@ public final class ProtoLayoutInflater {
                         {
                             ExpandedAngularDimensionProp expandedAngularDimension =
                                     angularLength.getExpandedAngularDimension();
-                            layoutParams.setWeight(
+                            arcLayoutWeight =
                                     expandedAngularDimension.hasLayoutWeight()
                                             ? expandedAngularDimension.getLayoutWeight().getValue()
-                                            : 1.0f);
+                                            : 1.0f;
                             length = DegreesProp.getDefaultInstance();
                             break;
                         }
@@ -3427,51 +3426,127 @@ public final class ProtoLayoutInflater {
 
             lineView.setLineDirection(arcLineDirection);
 
-            SizedArcContainer sizeWrapper = null;
-            SizedArcContainer.LayoutParams sizedLp =
-                    new SizedArcContainer.LayoutParams(
-                            LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-            Float sizeForLayout = resolveSizeForLayoutIfNeeded(length);
+            @Nullable Float sizeForLayout = resolveSizeForLayoutIfNeeded(length);
             if (sizeForLayout != null) {
-                sizeWrapper = new SizedArcContainer(mUiContext);
-                sizeWrapper.setArcDirection(arcLineDirection);
-                if (sizeForLayout <= 0f) {
-                    Log.w(
-                            TAG,
-                            "ArcLine length's value_for_layout is not a positive value. Element"
-                                    + " won't be visible.");
-                }
-                sizeWrapper.setSweepAngleDegrees(sizeForLayout);
-                sizedLp.setAngularAlignment(
-                        angularAlignmentProtoToAngularAlignment(
-                                length.getAngularAlignmentForLayout()));
-
-                // Also clamp the line to that angle...
                 lineView.setMaxSweepAngleDegrees(sizeForLayout);
             }
-
             View wrappedView =
-                    applyModifiersToArcLayoutView(
-                            lineView, line.getModifiers(), posId, pipelineMaker);
-
-            if (sizeWrapper != null) {
-                sizeWrapper.addView(wrappedView, sizedLp);
-                parentViewWrapper.maybeAddView(sizeWrapper, layoutParams);
-                return new InflatedView(
-                        sizeWrapper,
-                        parentViewWrapper
-                                .getParentProperties()
-                                .applyPendingChildLayoutParams(layoutParams));
-            } else {
-                parentViewWrapper.maybeAddView(wrappedView, layoutParams);
-                return new InflatedView(
-                        wrappedView,
-                        parentViewWrapper
-                                .getParentProperties()
-                                .applyPendingChildLayoutParams(layoutParams));
-            }
+                    applyModifiersToArcLayoutView(lineView, line.getModifiers(), posId,
+                            pipelineMaker);
+            return addLineViewToParentArc(
+                    parentViewWrapper,
+                    wrappedView,
+                    sizeForLayout,
+                    arcLineDirection,
+                    angularAlignmentProtoToAngularAlignment(length.getAngularAlignmentForLayout()),
+                    arcLayoutWeight);
         } finally {
             lineView.setUpdatesEnabled(true);
+        }
+    }
+
+    private @Nullable InflatedView inflateDashedArcLine(
+            @NonNull ParentViewWrapper parentViewWrapper,
+            @NonNull DashedArcLine dashedLine,
+            @NonNull String posId,
+            @NonNull Optional<PipelineMaker> pipelineMaker) {
+        float lengthDegrees = max(0, dashedLine.getLength().getValue());
+        int thicknessPx = safeDpToPx(dashedLine.getThickness());
+        if (lengthDegrees == 0 && thicknessPx == 0) {
+            return null;
+        }
+
+        WearDashedArcLineView dashedLineView = new WearDashedArcLineView(mUiContext);
+        dashedLineView.setThickness(thicknessPx);
+
+        if (dashedLine.hasColor()) {
+            handleProp(dashedLine.getColor(), dashedLineView::setColor, posId, pipelineMaker);
+        } else {
+            dashedLineView.setColor(LINE_COLOR_DEFAULT);
+        }
+
+        if (dashedLine.hasLinePattern()) {
+            DashedLinePattern linePattern = dashedLine.getLinePattern();
+            if (linePattern.getGapLocationsCount() > 0) {
+                List<Float> gapLocations = new ArrayList<>();
+                for (DegreesProp degree : linePattern.getGapLocationsList()) {
+                    gapLocations.add(degree.getValue());
+                }
+                dashedLineView.setGapLocations(gapLocations);
+            }
+            dashedLineView.setGapSize(safeDpToPx(linePattern.getGapSize()));
+        }
+
+        ArcDirection arcLineDirection =
+                dashedLine.hasArcDirection()
+                        ? dashedLine.getArcDirection().getValue()
+                        : ArcDirection.UNRECOGNIZED;
+        dashedLineView.setLineDirection(arcLineDirection);
+
+        DegreesProp length = dashedLine.getLength();
+        handleProp(length, dashedLineView::setLineSweepAngleDegrees, posId, pipelineMaker);
+
+        @Nullable Float sizeForLayout = resolveSizeForLayoutIfNeeded(length);
+        if (sizeForLayout != null) {
+            dashedLineView.setMaxSweepAngleDegrees(sizeForLayout);
+        }
+        View wrappedView =
+                applyModifiersToArcLayoutView(
+                        dashedLineView, dashedLine.getModifiers(), posId, pipelineMaker);
+        return addLineViewToParentArc(
+                parentViewWrapper,
+                wrappedView,
+                sizeForLayout,
+                arcLineDirection,
+                angularAlignmentProtoToAngularAlignment(length.getAngularAlignmentForLayout()),
+                /* arcLayoutWeight= */ 0
+                // Zero weight in ArcLayout means the view should not be stretched.
+        );
+    }
+
+    private InflatedView addLineViewToParentArc(
+            @NonNull ParentViewWrapper parentArc,
+            @NonNull View lineView,
+            @Nullable Float sizeForLayout,
+            @NonNull ArcDirection arcLineDirection,
+            @SizedArcContainer.LayoutParams.AngularAlignment int angularAlignment,
+            float arcLayoutWeight) {
+        SizedArcContainer sizeWrapper = null;
+        SizedArcContainer.LayoutParams sizedLayoutParams =
+                new SizedArcContainer.LayoutParams(LayoutParams.MATCH_PARENT,
+                        LayoutParams.MATCH_PARENT);
+        if (sizeForLayout != null) {
+            sizeWrapper = new SizedArcContainer(mUiContext);
+            sizeWrapper.setArcDirection(arcLineDirection);
+            if (sizeForLayout <= 0f) {
+                Log.w(
+                        TAG,
+                        "Arc Line length's value_for_layout is not a positive value. Element won't"
+                                + " be visible.");
+            }
+            sizeWrapper.setSweepAngleDegrees(sizeForLayout);
+            sizedLayoutParams.setAngularAlignment(angularAlignment);
+        }
+
+        // A WearDashedArcLineView or WearCurvedLineView must always be the same width/height as its
+        // parent, so it can draw the line properly inside of those bounds.
+        ArcLayout.LayoutParams layoutParams = new ArcLayout.LayoutParams(
+                generateDefaultLayoutParams());
+        layoutParams.width = LayoutParams.MATCH_PARENT;
+        layoutParams.height = LayoutParams.MATCH_PARENT;
+        layoutParams.setWeight(arcLayoutWeight);
+
+        if (sizeWrapper != null) {
+            sizeWrapper.addView(lineView, sizedLayoutParams);
+            parentArc.maybeAddView(sizeWrapper, layoutParams);
+            return new InflatedView(
+                    sizeWrapper,
+                    parentArc.getParentProperties().applyPendingChildLayoutParams(layoutParams));
+        } else {
+            parentArc.maybeAddView(lineView, layoutParams);
+            return new InflatedView(
+                    lineView,
+                    parentArc.getParentProperties().applyPendingChildLayoutParams(layoutParams));
         }
     }
 
@@ -3483,7 +3558,7 @@ public final class ProtoLayoutInflater {
             String arcPosId,
             boolean includeChildren,
             LayoutInfo.Builder layoutInfoBuilder,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         ArcLayout arcLayout = new ArcLayout(mUiContext);
         int anchorAngleSign = 1;
 
@@ -3929,7 +4004,10 @@ public final class ProtoLayoutInflater {
                 break;
 
             case DASHED_LINE:
-                // TODO: b/360314390 - inflate a dashed arc here with WearDashedArcLineView
+                inflatedView =
+                        inflateDashedArcLine(
+                                parentViewWrapper, element.getDashedLine(), nodePosId,
+                                pipelineMaker);
                 break;
 
             case INNER_NOT_SET:
@@ -4001,7 +4079,7 @@ public final class ProtoLayoutInflater {
             String nodePosId,
             boolean includeChildren,
             LayoutInfo.Builder layoutInfoBuilder,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         InflatedView inflatedView = null;
         // What is it?
         switch (element.getInnerCase()) {
@@ -4162,7 +4240,7 @@ public final class ProtoLayoutInflater {
             StringProp stringProp,
             Consumer<String> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (stringProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker
@@ -4186,7 +4264,7 @@ public final class ProtoLayoutInflater {
             DegreesProp degreesProp,
             Consumer<Float> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (degreesProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker
@@ -4205,7 +4283,7 @@ public final class ProtoLayoutInflater {
             DpProp dpProp,
             Consumer<Float> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         handleProp(dpProp, consumer, consumer, posId, pipelineMaker);
     }
 
@@ -4214,7 +4292,7 @@ public final class ProtoLayoutInflater {
             Consumer<Float> staticValueConsumer,
             Consumer<Float> dynamicValueConsumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (dpProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker
@@ -4233,7 +4311,7 @@ public final class ProtoLayoutInflater {
             ColorProp colorProp,
             Consumer<Integer> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (colorProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker.get().addPipelineFor(colorProp, colorProp.getArgb(), posId, consumer);
@@ -4250,7 +4328,7 @@ public final class ProtoLayoutInflater {
             BoolProp boolProp,
             Consumer<Boolean> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (boolProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker.get().addPipelineFor(boolProp, boolProp.getValue(), posId, consumer);
@@ -4267,7 +4345,7 @@ public final class ProtoLayoutInflater {
             FloatProp floatProp,
             Consumer<Float> consumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         handleProp(floatProp, consumer, consumer, posId, pipelineMaker);
     }
 
@@ -4276,7 +4354,7 @@ public final class ProtoLayoutInflater {
             Consumer<Float> staticValueConsumer,
             Consumer<Float> dynamicValueconsumer,
             String posId,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         if (floatProp.hasDynamicValue() && pipelineMaker.isPresent()) {
             try {
                 pipelineMaker
@@ -4499,7 +4577,7 @@ public final class ProtoLayoutInflater {
             List<LayoutElement> childElements,
             String parentPosId,
             LayoutInfo.Builder layoutInfoBuilder,
-            Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
+            Optional<PipelineMaker> pipelineMaker) {
         int index = FIRST_CHILD_INDEX;
         for (LayoutElement childElement : childElements) {
             String childPosId = ProtoLayoutDiffer.createNodePosId(parentPosId, index++);
@@ -4595,7 +4673,7 @@ public final class ProtoLayoutInflater {
         LayoutInfo.Builder layoutInfoBuilder =
                 new LayoutInfo.Builder(prevRenderedMetadata.getLayoutInfo());
         LayoutInfo prevLayoutInfo = prevRenderedMetadata.getLayoutInfo();
-        Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker =
+        Optional<PipelineMaker> pipelineMaker =
                 mDataPipeline.map(
                         p ->
                                 p.newPipelineMaker(

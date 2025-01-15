@@ -51,5 +51,6 @@
     <string name="aspect_ratio">Aspect Ratio</string>
     <string name="force_stream_sharing">Force Stream Sharing</string>
     <string name="disable_view_port">Disable View Port</string>
+    <string name="enable_torch_as_flash">Enable torch-as-flash</string>
 
 </resources>

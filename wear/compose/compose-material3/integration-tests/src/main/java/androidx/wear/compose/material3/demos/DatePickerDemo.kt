@@ -16,8 +16,6 @@
 
 package androidx.wear.compose.material3.demos
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -43,7 +41,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-@RequiresApi(Build.VERSION_CODES.O)
 val DatePickerDemos =
     listOf(
         ComposableDemo("Date Year-Month-Day") { DatePickerYearMonthDaySample() },
@@ -54,7 +51,6 @@ val DatePickerDemos =
         ComposableDemo("Past only") { DatePickerPastOnlyDemo() },
     )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DatePickerDemo(datePickerType: DatePickerType) {
     var showDatePicker by remember { mutableStateOf(true) }
@@ -89,7 +85,6 @@ fun DatePickerDemo(datePickerType: DatePickerType) {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DatePickerPastOnlyDemo() {
     val currentDate = LocalDate.now()
@@ -106,7 +101,7 @@ fun DatePickerPastOnlyDemo() {
                 showDatePicker = false
             },
             datePickerType = DatePickerType.YearMonthDay,
-            maxDate = currentDate
+            maxValidDate = currentDate
         )
     } else {
         Box(

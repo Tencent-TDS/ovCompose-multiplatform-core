@@ -25,6 +25,8 @@ import android.view.ViewGroup
 import android.view.ViewParent
 import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -418,6 +420,10 @@ internal open class AndroidViewHolder(
             if (view.parent !== this) addView(view)
         }
         layoutNode.onDetach = { owner ->
+            @OptIn(ExperimentalComposeUiApi::class)
+            if (ComposeUiFlags.isViewFocusFixEnabled && hasFocus()) {
+                owner.focusOwner.clearFocus(true)
+            }
             (owner as? AndroidComposeView)?.removeAndroidView(this)
             removeAllViewsInLayout()
         }

@@ -16,8 +16,6 @@
 
 package androidx.wear.compose.material3
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
@@ -585,7 +583,6 @@ class RadioButtonTest {
         Assert.assertEquals(2, secondaryLabelMaxLines)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun radio_button_allows_checked_background_color_override() =
         verifyRadioButtonBackgroundColor(
@@ -594,7 +591,6 @@ class RadioButtonTest {
             expectedColor = SELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun radio_button_allows_unchecked_background_color_override() =
         verifyRadioButtonBackgroundColor(
@@ -603,7 +599,6 @@ class RadioButtonTest {
             expectedColor = UNSELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun split_radio_button_allows_checked_background_color_override() =
         verifySplitRadioButtonBackgroundColor(
@@ -612,7 +607,6 @@ class RadioButtonTest {
             expectedColor = SELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun split_radio_button_allows_unchecked_background_color_override() =
         verifySplitRadioButtonBackgroundColor(
@@ -621,7 +615,6 @@ class RadioButtonTest {
             expectedColor = UNSELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun verifyRadioButtonBackgroundColor(
         selected: Boolean,
         enabled: Boolean,
@@ -644,7 +637,6 @@ class RadioButtonTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun verifySplitRadioButtonBackgroundColor(
         selected: Boolean,
         enabled: Boolean,

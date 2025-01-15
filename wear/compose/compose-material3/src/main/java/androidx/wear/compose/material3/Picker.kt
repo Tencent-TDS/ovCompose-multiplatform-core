@@ -128,7 +128,7 @@ import kotlinx.coroutines.launch
  *   align with the centrally selected Picker value.
  */
 @Composable
-fun Picker(
+public fun Picker(
     state: PickerState,
     contentDescription: String?,
     modifier: Modifier = Modifier,
@@ -254,7 +254,7 @@ fun Picker(
  * @param shouldRepeatOptions if true (the default), the options will be repeated.
  */
 @Composable
-fun rememberPickerState(
+public fun rememberPickerState(
     @IntRange(from = 1) initialNumberOfOptions: Int,
     @IntRange(from = 0) initiallySelectedIndex: Int = 0,
     shouldRepeatOptions: Boolean = true
@@ -279,10 +279,10 @@ fun rememberPickerState(
  * @param shouldRepeatOptions if true (the default), the options will be repeated.
  */
 @Stable
-class PickerState(
+public class PickerState(
     @IntRange(from = 1) initialNumberOfOptions: Int,
     @IntRange(from = 0) initiallySelectedIndex: Int = 0,
-    val shouldRepeatOptions: Boolean = true
+    public val shouldRepeatOptions: Boolean = true
 ) : ScrollableState {
     init {
         verifyNumberOfOptions(initialNumberOfOptions)
@@ -291,7 +291,7 @@ class PickerState(
     private var _numberOfOptions by mutableIntStateOf(initialNumberOfOptions)
 
     /** Represents how many different choices are presented by this [Picker] */
-    var numberOfOptions
+    public var numberOfOptions: Int
         get() = _numberOfOptions
         set(newNumberOfOptions) {
             verifyNumberOfOptions(newNumberOfOptions)
@@ -307,7 +307,7 @@ class PickerState(
         }
 
     /** Index of the selected option (i.e. at the center). */
-    val selectedOptionIndex: Int
+    public val selectedOptionIndex: Int
         get() = (scalingLazyListState.centerItemIndex + optionsOffset) % numberOfOptions
 
     /**
@@ -316,7 +316,7 @@ class PickerState(
      * @sample androidx.wear.compose.material3.samples.PickerScrollToOption
      * @param index The index of the option to scroll to.
      */
-    suspend fun scrollToOption(index: Int) {
+    public suspend fun scrollToOption(index: Int) {
         scalingLazyListState.scrollToItem(getClosestTargetItemIndex(index), 0)
     }
 
@@ -334,13 +334,13 @@ class PickerState(
      * @sample androidx.wear.compose.material3.samples.PickerAnimateScrollToOption
      * @param index The index of the option to scroll to.
      */
-    suspend fun animateScrollToOption(index: Int) {
+    public suspend fun animateScrollToOption(index: Int) {
         scalingLazyListState.animateScrollToItem(getClosestTargetItemIndex(index), 0)
     }
 
-    companion object {
+    public companion object {
         /** The default [Saver] implementation for [PickerState]. */
-        val Saver =
+        public val Saver: Saver<PickerState, Any> =
             listSaver<PickerState, Any?>(
                 save = {
                     listOf(it.numberOfOptions, it.selectedOptionIndex, it.shouldRepeatOptions)
@@ -417,26 +417,26 @@ class PickerState(
 }
 
 /** Contains the default values used by [Picker]. */
-object PickerDefaults {
+public object PickerDefaults {
     /**
      * Default rotary behavior for [Picker] - it is recommended to use scroll behavior with snap in
      * order to indicate the selected item in the center of the [Picker].
      */
     @Composable
-    fun rotarySnapBehavior(state: PickerState) =
+    public fun rotarySnapBehavior(state: PickerState): RotaryScrollableBehavior =
         RotaryScrollableDefaults.snapBehavior(state, state.toRotarySnapLayoutInfoProvider())
 
     /**
      * Default Picker gradient ratio - the proportion of the Picker height allocated to each of the
      * of the top and bottom gradients.
      */
-    val GradientRatio = 0.33f
+    public val GradientRatio: Float = 0.33f
 }
 
 /** Receiver scope which is used by [Picker]. */
-interface PickerScope {
+public interface PickerScope {
     /** Index of the option selected (i.e., at the center). */
-    val selectedOptionIndex: Int
+    public val selectedOptionIndex: Int
 }
 
 private fun positiveModulo(n: Int, mod: Int) = ((n % mod) + mod) % mod

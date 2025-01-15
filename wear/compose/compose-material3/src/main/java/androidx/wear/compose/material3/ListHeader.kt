@@ -59,7 +59,7 @@ import androidx.wear.compose.material3.tokens.ListSubHeaderTokens
  * @param content Slot for [ListHeader] content, expected to be a single line of text.
  */
 @Composable
-fun ListHeader(
+public fun ListHeader(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
     contentColor: Color = ListHeaderDefaults.ContentColor,
@@ -105,7 +105,7 @@ fun ListHeader(
  * @param label A slot for providing label to the [ListSubHeader].
  */
 @Composable
-fun ListSubHeader(
+public fun ListSubHeader(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
     contentColor: Color = ListHeaderDefaults.subHeaderContentColor,
@@ -142,25 +142,25 @@ fun ListSubHeader(
     }
 }
 
-object ListHeaderDefaults {
+public object ListHeaderDefaults {
     private val TopPadding = 16.dp
     private val SubHeaderBottomPadding = 8.dp
     private val HeaderBottomPadding = 12.dp
     private val HorizontalPadding = 14.dp
 
     /** The default content padding for ListHeader */
-    val ContentPadding =
+    public val ContentPadding: PaddingValues =
         PaddingValues(HorizontalPadding, TopPadding, HorizontalPadding, HeaderBottomPadding)
 
     /** The default content padding for ListSubHeader */
-    val SubHeaderContentPadding =
+    public val SubHeaderContentPadding: PaddingValues =
         PaddingValues(HorizontalPadding, TopPadding, HorizontalPadding, SubHeaderBottomPadding)
 
     /** The default color for ListHeader */
-    val ContentColor: Color
+    public val ContentColor: Color
         @Composable get() = ListHeaderTokens.ContentColor.value
 
     /** The default color for ListSubHeader */
-    val subHeaderContentColor: Color
+    public val subHeaderContentColor: Color
         @Composable get() = ListSubHeaderTokens.ContentColor.value
 }

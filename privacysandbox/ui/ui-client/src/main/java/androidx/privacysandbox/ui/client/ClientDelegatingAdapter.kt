@@ -29,7 +29,6 @@ import androidx.privacysandbox.ui.core.IDelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.IDelegatorCallback
 import androidx.privacysandbox.ui.core.ISessionRefreshCallback
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionObserverFactory
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.*
@@ -233,8 +232,4 @@ internal class ClientDelegatingAdapter(
                 }
             }
     }
-
-    override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-    override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
 }

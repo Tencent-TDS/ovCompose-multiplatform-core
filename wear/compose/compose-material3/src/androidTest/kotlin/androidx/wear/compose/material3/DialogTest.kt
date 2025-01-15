@@ -16,6 +16,7 @@
 
 package androidx.wear.compose.material3
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -114,6 +115,66 @@ class DialogTest {
             Dialog(modifier = Modifier.testTag(TEST_TAG), onDismissRequest = {}, show = false) {}
         }
         rule.onNodeWithTag(TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun shrink_background_when_dialog_is_shown() {
+        var scaffoldState = ScaffoldState()
+        rule.setContentWithTheme {
+            CompositionLocalProvider(
+                LocalScaffoldState provides scaffoldState,
+            ) {
+                var show by remember { mutableStateOf(false) }
+                Button(modifier = Modifier.testTag(SHOW_BUTTON_TAG), onClick = { show = true }) {}
+
+                Dialog(show = show, modifier = Modifier.testTag(TEST_TAG), onDismissRequest = {}) {}
+            }
+        }
+        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
+        rule.waitForIdle()
+        assert(scaffoldState.parentScale.floatValue < 1f)
+    }
+
+    @Test
+    fun expand_background_when_dialog_is_hidden() {
+        var scaffoldState = ScaffoldState()
+        rule.setContentWithTheme {
+            CompositionLocalProvider(
+                LocalScaffoldState provides scaffoldState,
+            ) {
+                var show by remember { mutableStateOf(true) }
+                Button(modifier = Modifier.testTag(SHOW_BUTTON_TAG), onClick = { show = false }) {}
+
+                Dialog(show = show, modifier = Modifier.testTag(TEST_TAG), onDismissRequest = {}) {}
+            }
+        }
+        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
+        rule.waitForIdle()
+        Assert.assertEquals(scaffoldState.parentScale.floatValue, 1f, 0.01f)
+    }
+
+    @Test
+    fun expand_background_when_dialog_is_removed() {
+        var scaffoldState = ScaffoldState()
+        rule.setContentWithTheme {
+            CompositionLocalProvider(
+                LocalScaffoldState provides scaffoldState,
+            ) {
+                var show by remember { mutableStateOf(true) }
+                Button(modifier = Modifier.testTag(SHOW_BUTTON_TAG), onClick = { show = false }) {}
+
+                if (show) {
+                    Dialog(
+                        show = show,
+                        modifier = Modifier.testTag(TEST_TAG),
+                        onDismissRequest = {}
+                    ) {}
+                }
+            }
+        }
+        rule.onNodeWithTag(SHOW_BUTTON_TAG).performClick()
+        rule.waitForIdle()
+        Assert.assertEquals(scaffoldState.parentScale.floatValue, 1f, 0.01f)
     }
 }
 

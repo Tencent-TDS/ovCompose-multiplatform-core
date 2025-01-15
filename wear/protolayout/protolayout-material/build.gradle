@@ -65,18 +65,9 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-
-    sourceSets {
-        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/wear/wear-protolayout-material"
-    }
-
-    defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    namespace "androidx.wear.protolayout.material"
+    namespace = "androidx.wear.protolayout.material"
 }
 
 androidx {
@@ -84,4 +75,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Material components library for ProtoLayout."
+    addGoldenImageAssets()
 }

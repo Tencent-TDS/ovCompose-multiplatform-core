@@ -29,8 +29,10 @@
     <string name="desc_page_single" msgid="8459583146661044094">"第 <xliff:g id="PAGE">%1$d</xliff:g> 页，共 <xliff:g id="TOTAL">%2$d</xliff:g> 页"</string>
     <string name="desc_zoom" msgid="7318480946145947242">"缩放比例为百分之 <xliff:g id="FIRST">%1$d</xliff:g>"</string>
     <string name="desc_goto_link" msgid="2461368384824849714">"前往第 <xliff:g id="PAGE_NUMBER">%1$d</xliff:g> 页"</string>
-    <string name="desc_page" msgid="5684226167093594168">"第 <xliff:g id="PAGE">%1$d</xliff:g> 页"</string>
+    <!-- no translation found for desc_page (6702471448987833953) -->
+    <skip />
     <string name="desc_empty_page" msgid="5041794048330057239">"空白页面"</string>
+    <string name="desc_page_with_text" msgid="2564017005407577604">"第 <xliff:g id="PAGE_NUMBER">%1$d</xliff:g> 页：<xliff:g id="PAGE_TEXT">%2$s</xliff:g>"</string>
     <string name="error_file_format_pdf" msgid="7567006188638831878">"无法显示 PDF（“<xliff:g id="TITLE">%1$s</xliff:g>”的格式无效）"</string>
     <string name="error_on_page" msgid="1592475819957182385">"无法显示第 <xliff:g id="PAGE">%1$d</xliff:g> 页（文件错误）"</string>
     <string name="desc_web_link_shortened_to_domain" msgid="3323639528531061592">"链接：位于 <xliff:g id="DESTINATION_DOMAIN">%1$s</xliff:g> 的网页"</string>

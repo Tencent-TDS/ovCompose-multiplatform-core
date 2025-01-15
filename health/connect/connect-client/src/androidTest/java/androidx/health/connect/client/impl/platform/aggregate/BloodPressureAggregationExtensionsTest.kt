@@ -19,13 +19,14 @@ package androidx.health.connect.client.impl.platform.aggregate
 import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
-import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
+import androidx.health.connect.client.impl.platform.toLocalTimeWithDefaultZoneFallback
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.millimetersOfMercury
@@ -38,12 +39,12 @@ import com.google.common.truth.Truth.assertThat
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Period
 import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertThrows
-import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -407,7 +408,6 @@ class BloodPressureAggregationExtensionsTest {
 
     @Test
     fun aggregateBloodPressure_localTimeRangeFilter() = runTest {
-        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)
         healthConnectClient.insertRecords(
             listOf(
                 BloodPressureRecord(
@@ -548,9 +548,98 @@ class BloodPressureAggregationExtensionsTest {
         assertThat(aggregationResult.dataOrigins).isEmpty()
     }
 
+    @Test
+    fun aggregateBloodPressure_groupByPeriod() = runTest {
+        healthConnectClient.insertRecords(
+            listOf(
+                BloodPressureRecord(
+                    time = START_TIME + 4.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 120.millimetersOfMercury,
+                    diastolic = 80.millimetersOfMercury
+                ),
+                BloodPressureRecord(
+                    time = START_TIME + 8.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 100.millimetersOfMercury,
+                    diastolic = 60.millimetersOfMercury
+                ),
+                BloodPressureRecord(
+                    time = START_TIME + 1.days + 10.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 100.millimetersOfMercury,
+                    diastolic = 70.millimetersOfMercury
+                )
+            )
+        )
+
+        val aggregationResult =
+            healthConnectClient.aggregateFallback(
+                AggregateGroupByPeriodRequest(
+                    setOf(
+                        BloodPressureRecord.DIASTOLIC_AVG,
+                        BloodPressureRecord.DIASTOLIC_MAX,
+                        BloodPressureRecord.DIASTOLIC_MIN,
+                        BloodPressureRecord.SYSTOLIC_AVG,
+                        BloodPressureRecord.SYSTOLIC_MAX,
+                        BloodPressureRecord.SYSTOLIC_MIN,
+                    ),
+                    TimeRangeFilter.after(
+                        START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                    ),
+                    timeRangeSlicer = Period.ofDays(1)
+                )
+            )
+
+        assertThat(aggregationResult).hasSize(2)
+
+        with(aggregationResult[0]) {
+            assertThat(startTime)
+                .isEqualTo(START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC))
+            assertThat(endTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(1)
+                )
+            assertThat(result.dataOrigins).containsExactly(DataOrigin(context.packageName))
+
+            assertEquals(
+                result[BloodPressureRecord.DIASTOLIC_AVG] to 70.millimetersOfMercury,
+                result[BloodPressureRecord.DIASTOLIC_MAX] to 80.millimetersOfMercury,
+                result[BloodPressureRecord.DIASTOLIC_MIN] to 60.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_AVG] to 110.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_MAX] to 120.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_MIN] to 100.millimetersOfMercury,
+            )
+        }
+
+        with(aggregationResult[1]) {
+            assertThat(startTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(1)
+                )
+            assertThat(endTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(2)
+                )
+            assertThat(result.dataOrigins).containsExactly(DataOrigin(context.packageName))
+
+            assertEquals(
+                result[BloodPressureRecord.DIASTOLIC_AVG] to 70.millimetersOfMercury,
+                result[BloodPressureRecord.DIASTOLIC_MAX] to 70.millimetersOfMercury,
+                result[BloodPressureRecord.DIASTOLIC_MIN] to 70.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_AVG] to 100.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_MAX] to 100.millimetersOfMercury,
+                result[BloodPressureRecord.SYSTOLIC_MIN] to 100.millimetersOfMercury,
+            )
+        }
+    }
+
     private fun <A, E> assertEquals(vararg assertions: Pair<A, E>) {
         assertions.forEach { (actual, expected) -> assertThat(actual).isEqualTo(expected) }
     }
+
+    private val Int.days: Duration
+        get() = Duration.ofDays(1)
 
     private val Int.seconds: Duration
         get() = Duration.ofSeconds(this.toLong())

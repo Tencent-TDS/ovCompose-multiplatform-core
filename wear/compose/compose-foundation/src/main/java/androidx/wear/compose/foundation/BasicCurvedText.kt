@@ -79,7 +79,7 @@ public fun CurvedScope.basicCurvedText(
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
     style: @Composable () -> CurvedTextStyle = { CurvedTextStyle() }
-) =
+): Unit =
     add(
         CurvedTextChild(
             text,
@@ -110,7 +110,7 @@ public fun CurvedScope.basicCurvedText(
     modifier: CurvedModifier = CurvedModifier,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) = basicCurvedText(text, modifier, angularDirection, overflow) { style }
+): Unit = basicCurvedText(text, modifier, angularDirection, overflow) { style }
 
 internal class CurvedTextChild(
     val text: String,

@@ -25,8 +25,9 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.SessionConfiguration;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A Android framework based {@link CameraDeviceSetupCompat} implementation.
@@ -41,9 +42,8 @@ class Camera2CameraDeviceSetupCompat implements CameraDeviceSetupCompat {
         mCameraDeviceSetup = cameraManager.getCameraDeviceSetup(cameraId);
     }
 
-    @NonNull
     @Override
-    public SupportQueryResult isSessionConfigurationSupported(
+    public @NonNull SupportQueryResult isSessionConfigurationSupported(
             @NonNull SessionConfiguration sessionConfig)
             throws CameraAccessException {
         return new SupportQueryResult(

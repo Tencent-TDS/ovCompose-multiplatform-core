@@ -56,7 +56,7 @@ class AlertDialogTest {
     fun dialog_supports_testtag_with_bottomButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -76,7 +76,7 @@ class AlertDialogTest {
     fun dialog_supports_testtag_with_no_buttons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -89,7 +89,7 @@ class AlertDialogTest {
     fun dialog_supports_testtag_with_confirmDismissButtons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -170,7 +170,7 @@ class AlertDialogTest {
     fun displays_icon_with_bottomButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 icon = { TestImage(TEST_TAG) },
                 title = {},
@@ -184,7 +184,7 @@ class AlertDialogTest {
     fun displays_icon_with_confirmDismissButtons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 icon = { TestImage(TEST_TAG) },
                 title = {},
@@ -199,7 +199,7 @@ class AlertDialogTest {
     fun displays_title_with_bottomButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
                 edgeButton = {},
@@ -212,7 +212,7 @@ class AlertDialogTest {
     fun displays_title_with_confirmDismissButtons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
                 confirmButton = {},
@@ -226,7 +226,7 @@ class AlertDialogTest {
     fun displays_messageText_with_bottomButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 text = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
@@ -240,7 +240,7 @@ class AlertDialogTest {
     fun displays_messageText_with_confirmDismissButtons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 text = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
@@ -254,7 +254,7 @@ class AlertDialogTest {
     @Test
     fun displays_content_with_bottomButton() {
         rule.setContentWithTheme {
-            AlertDialog(show = true, onDismissRequest = {}, title = {}, edgeButton = {}) {
+            AlertDialog(visible = true, onDismissRequest = {}, title = {}, edgeButton = {}) {
                 item { Text("Text", modifier = Modifier.testTag(TEST_TAG)) }
             }
         }
@@ -265,7 +265,7 @@ class AlertDialogTest {
     fun displays_content_with_confirmDismissButtons() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 confirmButton = {},
@@ -281,7 +281,7 @@ class AlertDialogTest {
     fun displays_confirmButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 confirmButton = { Button(onClick = {}, modifier = Modifier.testTag(TEST_TAG)) {} },
@@ -295,7 +295,7 @@ class AlertDialogTest {
     fun displays_dismissButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 confirmButton = {},
@@ -309,7 +309,7 @@ class AlertDialogTest {
     fun displays_bottomButton() {
         rule.setContentWithTheme {
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 title = {},
                 edgeButton = { Button(onClick = {}, modifier = Modifier.testTag(TEST_TAG)) {} },
@@ -332,7 +332,7 @@ class AlertDialogTest {
                     showDialog = false
                     dismissCounter++
                 },
-                show = showDialog
+                visible = showDialog
             )
         }
 
@@ -354,7 +354,7 @@ class AlertDialogTest {
                     showDialog = false
                     dismissCounter++
                 },
-                show = showDialog
+                visible = showDialog
             )
         }
 
@@ -374,7 +374,7 @@ class AlertDialogTest {
                 title = {},
                 edgeButton = {},
                 onDismissRequest = { dismissCounter++ },
-                show = show.value
+                visible = show.value
             )
         }
         rule.waitForIdle()
@@ -391,7 +391,7 @@ class AlertDialogTest {
                 title = {},
                 edgeButton = {},
                 onDismissRequest = {},
-                show = false
+                visible = false
             )
         }
         rule.onNodeWithTag(TEST_TAG).assertDoesNotExist()
@@ -415,7 +415,7 @@ class AlertDialogTest {
             expectedTextAlign = TextAlign.Center
             expectedTextMaxLines = AlertTitleMaxLines
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {
@@ -450,7 +450,7 @@ class AlertDialogTest {
             expectedTextStyle = MaterialTheme.typography.bodyMedium
             expectedTextAlign = TextAlign.Center
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -477,7 +477,7 @@ class AlertDialogTest {
         rule.setContentWithTheme {
             expectedContentColor = Color.Yellow
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = { Text("Title", color = expectedContentColor) },
@@ -495,7 +495,7 @@ class AlertDialogTest {
         rule.setContentWithTheme {
             expectedContentColor = Color.Yellow
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -514,7 +514,7 @@ class AlertDialogTest {
         rule.setContentWithTheme {
             expectedBackgroundColor = Color.Yellow
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG).background(expectedBackgroundColor),
                 title = {},
@@ -534,7 +534,7 @@ class AlertDialogTest {
             expectedConfirmColor = Color.Yellow
             expectedDismissColor = Color.Red
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},
@@ -573,7 +573,7 @@ class AlertDialogTest {
         rule.setContentWithTheme {
             expectedEdgeButtonColor = Color.Yellow
             AlertDialog(
-                show = true,
+                visible = true,
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 title = {},

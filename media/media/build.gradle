@@ -47,16 +47,10 @@ android {
     buildFeatures {
         aidl = true
     }
-    sourceSets {
-        main.java.srcDirs += [
-        ]
-        main.res.srcDirs += "src/main/res-public"
-    }
-
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.media"
+    namespace = "androidx.media"
 }
 
 androidx {

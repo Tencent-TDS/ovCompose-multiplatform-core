@@ -50,7 +50,7 @@ dependencies {
 android {
     defaultConfig {
     }
-    namespace "androidx.input.motionprediction"
+    namespace = "androidx.input.motionprediction"
 }
 
 androidx {
@@ -61,4 +61,6 @@ androidx {
     description = "reduce the latency of input interactions by predicting future MotionEvents"
     metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
+    // TODO: b/326456246
+    optOutJSpecify = true
 }

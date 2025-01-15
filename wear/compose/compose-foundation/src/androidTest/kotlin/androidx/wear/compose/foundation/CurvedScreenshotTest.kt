@@ -309,4 +309,4 @@ class CurvedScreenshotTest {
     }
 }
 
-internal const val SCREENSHOT_GOLDEN_PATH = "wear/compose/foundation"
+internal const val SCREENSHOT_GOLDEN_PATH = "wear/compose/compose-foundation"

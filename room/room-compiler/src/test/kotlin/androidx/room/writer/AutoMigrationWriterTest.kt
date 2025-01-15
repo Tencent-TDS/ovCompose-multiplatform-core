@@ -88,7 +88,7 @@ class AutoMigrationWriterTest(private val codeLanguage: CodeLanguage) {
                     )
             }
 
-        runProcessorTestWithK1(listOf(specSource)) { invocation ->
+        runProcessorTestWithK1(sources = listOf(specSource)) { invocation ->
             val autoMigrationResultWithNewAddedColumn =
                 AutoMigration(
                     from = 1,
@@ -334,6 +334,7 @@ class AutoMigrationWriterTest(private val codeLanguage: CodeLanguage) {
                     sources = sources + kotlinDatabaseSource,
                     options =
                         mapOf(Context.BooleanProcessorOptions.GENERATE_KOTLIN.argName to "true"),
+                    kotlincArguments = listOf("-jvm-target=11"),
                     handler = handler
                 )
         }

@@ -18,9 +18,9 @@ package androidx.camera.viewfinder.internal.transform;
 
 import android.graphics.Rect;
 
-import androidx.annotation.NonNull;
-
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Transformation associated the viewfinder output.
@@ -31,8 +31,7 @@ public abstract class TransformationInfo {
     /**
      * Returns the crop rect rectangle.
      */
-    @NonNull
-    public abstract Rect getCropRect();
+    public abstract @NonNull Rect getCropRect();
 
     /**
      * Returns the rotation needed to transform the output from sensor to the target
@@ -50,8 +49,7 @@ public abstract class TransformationInfo {
     /**
      * Creates new {@link TransformationInfo}.
      */
-    @NonNull
-    public static TransformationInfo of(@NonNull Rect cropRect,
+    public static @NonNull TransformationInfo of(@NonNull Rect cropRect,
             @Rotation.RotationDegreesValue int rotationDegrees,
             @Rotation.RotationValue int targetRotation) {
         return new AutoValue_TransformationInfo(cropRect, rotationDegrees,

@@ -18,7 +18,6 @@ package androidx.wear.protolayout.testing
 
 import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.wear.protolayout.ActionBuilders.LoadAction
 import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.DimensionBuilders.ProportionalDimensionProp
 import androidx.wear.protolayout.DimensionBuilders.dp
@@ -31,14 +30,18 @@ import androidx.wear.protolayout.LayoutElementBuilders.FontStyle
 import androidx.wear.protolayout.LayoutElementBuilders.Image
 import androidx.wear.protolayout.LayoutElementBuilders.Row
 import androidx.wear.protolayout.LayoutElementBuilders.Spacer
-import androidx.wear.protolayout.LayoutElementBuilders.Text
 import androidx.wear.protolayout.ModifiersBuilders.Background
 import androidx.wear.protolayout.ModifiersBuilders.Clickable
 import androidx.wear.protolayout.ModifiersBuilders.ElementMetadata
 import androidx.wear.protolayout.ModifiersBuilders.Modifiers
 import androidx.wear.protolayout.ModifiersBuilders.Semantics
-import androidx.wear.protolayout.StateBuilders
 import androidx.wear.protolayout.TypeBuilders.StringProp
+import androidx.wear.protolayout.expression.DynamicBuilders
+import androidx.wear.protolayout.layout.basicText
+import androidx.wear.protolayout.modifiers.loadAction
+import androidx.wear.protolayout.types.LayoutString
+import androidx.wear.protolayout.types.asLayoutConstraint
+import androidx.wear.protolayout.types.layoutString
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,32 +69,25 @@ class FiltersTest {
 
     @Test
     fun hasClickable_matches() {
-        val clickable = Clickable.Builder().setOnClick(LoadAction.Builder().build()).build()
+        val clickable = Clickable.Builder().setOnClick(loadAction()).build()
         val testElement =
             Column.Builder()
                 .setModifiers(Modifiers.Builder().setClickable(clickable).build())
                 .build()
 
-        assertThat(hasClickable(clickable).matches(testElement)).isTrue()
+        assertThat(hasClickable().matches(testElement)).isTrue()
     }
 
     @Test
     fun hasClickable_doesNotMatch() {
-        val clickable = Clickable.Builder().setOnClick(LoadAction.Builder().build()).build()
-        val otherClickable =
-            Clickable.Builder()
-                .setOnClick(
-                    LoadAction.Builder()
-                        .setRequestState(StateBuilders.State.Builder().build())
-                        .build()
-                )
-                .build()
+        val clickable = Clickable.Builder().setOnClick(loadAction()).build()
+        val action = loadAction {}
         val testElement =
             Column.Builder()
                 .setModifiers(Modifiers.Builder().setClickable(clickable).build())
                 .build()
 
-        assertThat(hasClickable(otherClickable).matches(testElement)).isFalse()
+        assertThat(hasClickable(action = action).matches(testElement)).isFalse()
     }
 
     @Test
@@ -140,7 +136,21 @@ class FiltersTest {
     @Test
     fun hasText() {
         val textContent = "random test content"
-        val testElement = Text.Builder().setText(textContent).build()
+        val testElement = basicText(textContent.layoutString)
+
+        assertThat(hasText(textContent).matches(testElement)).isTrue()
+        assertThat(hasText("blabla").matches(testElement)).isFalse()
+    }
+
+    @Test
+    fun hasDynamicText() {
+        val textContent =
+            LayoutString(
+                "static content",
+                DynamicBuilders.DynamicString.constant("dynamic content"),
+                "static content".asLayoutConstraint()
+            )
+        val testElement = basicText(textContent)
 
         assertThat(hasText(textContent).matches(testElement)).isTrue()
         assertThat(hasText("blabla").matches(testElement)).isFalse()
@@ -177,12 +187,11 @@ class FiltersTest {
     @Test
     fun hasColor_onTextStyle() {
         val testText =
-            Text.Builder()
-                .setText("text")
-                .setFontStyle(
+            basicText(
+                "text".layoutString,
+                fontStyle =
                     FontStyle.Builder().setColor(ColorProp.Builder(Color.CYAN).build()).build()
-                )
-                .build()
+            )
 
         assertThat(hasColor(Color.CYAN).matches(testText)).isTrue()
         assertThat(hasColor(Color.GREEN).matches(testText)).isFalse()
@@ -320,7 +329,7 @@ class FiltersTest {
                 .addContent(
                     Column.Builder()
                         .setWidth(width)
-                        .addContent(Text.Builder().setText("text").build())
+                        .addContent(basicText("text".layoutString))
                         .build()
                 )
                 .build()
@@ -350,7 +359,7 @@ class FiltersTest {
                 .addContent(
                     Column.Builder()
                         .setWidth(width)
-                        .addContent(Text.Builder().setText("text").build())
+                        .addContent(basicText("text".layoutString))
                         .build()
                 )
                 .build()

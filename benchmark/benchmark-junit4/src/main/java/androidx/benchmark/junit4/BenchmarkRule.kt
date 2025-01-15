@@ -51,35 +51,10 @@ import org.junit.runners.model.Statement
 /**
  * JUnit rule for benchmarking code on an Android device.
  *
- * In Kotlin, benchmark with [measureRepeated]:
- * ```
- * @get:Rule
- * val benchmarkRule = BenchmarkRule();
- *
- * @Test
- * fun myBenchmark() {
- *     benchmarkRule.measureRepeated {
- *         doSomeWork()
- *     }
- * }
- * ```
- *
- * In Java, use `getState()`:
- * ```
- * @Rule
- * public BenchmarkRule benchmarkRule = new BenchmarkRule();
- *
- * @Test
- * public void myBenchmark() {
- *     BenchmarkState state = benchmarkRule.getState();
- *     while (state.keepRunning()) {
- *         doSomeWork();
- *     }
- * }
- * ```
+ * In Kotlin, benchmark with [measureRepeated]. In Java, use [getState].
  *
  * Benchmark results will be output:
- * - Summary in AndroidStudio in the test log
+ * - Summary in Android Studio in the test log
  * - In JSON format, on the host
  * - In simple form in Logcat with the tag "Benchmark"
  *
@@ -87,8 +62,10 @@ import org.junit.runners.model.Statement
  *
  * See the [Benchmark Guide](https://developer.android.com/studio/profile/benchmark) for more
  * information on writing Benchmarks.
+ *
+ * @sample androidx.benchmark.samples.benchmarkRuleSample
  */
-public class BenchmarkRule
+class BenchmarkRule
 private constructor(
     private val config: MicrobenchmarkConfig?,
     /**
@@ -112,7 +89,7 @@ private constructor(
     /**
      * Object used for benchmarking in Java.
      *
-     * ```
+     * ```java
      * @Rule
      * public BenchmarkRule benchmarkRule = new BenchmarkRule();
      *
@@ -156,13 +133,7 @@ private constructor(
          * - Controlling which parts of multi-stage work are measured (e.g. View measure/layout)
          * - Disabling timing during per-loop verification
          *
-         * ```
-         * @Test
-         * fun bitmapProcessing() = benchmarkRule.measureRepeated {
-         *     val input: Bitmap = runWithTimingDisabled { constructTestBitmap() }
-         *     processBitmap(input)
-         * }
-         * ```
+         * @sample androidx.benchmark.samples.runWithTimingDisabledSample
          */
         public inline fun <T> runWithTimingDisabled(block: () -> T): T {
             getOuterState().pauseTiming()
@@ -253,7 +224,7 @@ private constructor(
                                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                         ) {
                             PerfettoCapture.PerfettoSdkConfig(
-                                InstrumentationRegistry.getInstrumentation().context.packageName,
+                                getInstrumentation().context.packageName,
                                 PerfettoCapture.PerfettoSdkConfig.InitialProcessState.Alive
                             )
                         } else {
@@ -276,8 +247,7 @@ private constructor(
                         UiState(
                             timelineStart = null,
                             timelineEnd = null,
-                            highlightPackage =
-                                InstrumentationRegistry.getInstrumentation().context.packageName
+                            highlightPackage = getInstrumentation().context.packageName
                         )
                     )
                 }
@@ -298,21 +268,8 @@ private constructor(
 /**
  * Benchmark a block of code.
  *
- * ```
- * @get:Rule
- * val benchmarkRule = BenchmarkRule();
- *
- * @Test
- * fun myBenchmark() {
- *     ...
- *     benchmarkRule.measureRepeated {
- *         doSomeWork()
- *     }
- *     ...
- * }
- * ```
- *
  * @param block The block of code to benchmark.
+ * @sample androidx.benchmark.samples.benchmarkRuleSample
  */
 public inline fun BenchmarkRule.measureRepeated(crossinline block: BenchmarkRule.Scope.() -> Unit) {
     // Note: this is an extension function to discourage calling from Java.
@@ -345,24 +302,11 @@ public inline fun BenchmarkRule.measureRepeated(crossinline block: BenchmarkRule
  * duration, as they may run for much more than 5 seconds and suffer ANRs, especially in continuous
  * runs.
  *
- * ```
- * @get:Rule
- * val benchmarkRule = BenchmarkRule();
- *
- * @Test
- * fun myBenchmark() {
- *     ...
- *     benchmarkRule.measureRepeatedOnMainThread {
- *         doSomeWorkOnMainThread()
- *     }
- *     ...
- * }
- * ```
- *
  * @param block The block of code to benchmark.
  * @throws java.lang.Throwable when an exception is thrown on the main thread.
  * @throws IllegalStateException if a hard deadline is exceeded while the block is running on the
  *   main thread.
+ * @sample androidx.benchmark.samples.measureRepeatedOnMainThreadSample
  */
 inline fun BenchmarkRule.measureRepeatedOnMainThread(
     crossinline block: BenchmarkRule.Scope.() -> Unit
@@ -379,7 +323,9 @@ inline fun BenchmarkRule.measureRepeatedOnMainThread(
             val localScope = scope
 
             val initialTimeNs = System.nanoTime()
+            // we try to stop next measurement after soft deadline...
             val softDeadlineNs = initialTimeNs + TimeUnit.SECONDS.toNanos(2)
+            // ... and throw if took longer than hard deadline
             val hardDeadlineNs = initialTimeNs + TimeUnit.SECONDS.toNanos(10)
             var timeNs: Long = 0
 
@@ -411,7 +357,7 @@ inline fun BenchmarkRule.measureRepeatedOnMainThread(
                 resumeScheduled = true
                 localState.pauseTiming()
 
-                if (timeNs > hardDeadlineNs) {
+                if (timeNs > hardDeadlineNs && Arguments.measureRepeatedOnMainThrowOnDeadline) {
                     localState.cleanupBeforeThrow()
                     val overrunInSec = (timeNs - hardDeadlineNs) / 1_000_000_000.0
                     throw IllegalStateException(

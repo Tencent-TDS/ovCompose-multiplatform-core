@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:JvmName("Filters")
 
 package androidx.wear.protolayout.testing
 
 import androidx.annotation.ColorInt
+import androidx.annotation.Dimension
+import androidx.annotation.Dimension.Companion.DP
 import androidx.annotation.RestrictTo
+import androidx.wear.protolayout.ActionBuilders.Action
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
 import androidx.wear.protolayout.DimensionBuilders.DpProp
 import androidx.wear.protolayout.DimensionBuilders.ExpandedDimensionProp
@@ -33,8 +37,9 @@ import androidx.wear.protolayout.LayoutElementBuilders.Spacer
 import androidx.wear.protolayout.LayoutElementBuilders.Spannable
 import androidx.wear.protolayout.LayoutElementBuilders.Text
 import androidx.wear.protolayout.ModifiersBuilders.Clickable
-import androidx.wear.protolayout.TypeBuilders.StringProp
+import androidx.wear.protolayout.modifiers.loadAction
 import androidx.wear.protolayout.proto.DimensionProto
+import androidx.wear.protolayout.types.LayoutString
 
 /** Returns a [LayoutElementMatcher] which checks whether the element is clickable. */
 public fun isClickable(): LayoutElementMatcher =
@@ -44,9 +49,22 @@ public fun isClickable(): LayoutElementMatcher =
  * Returns a [LayoutElementMatcher] which checks whether the element has the specific [Clickable]
  * attached.
  */
-public fun hasClickable(clickable: Clickable): LayoutElementMatcher =
-    LayoutElementMatcher("has $clickable") {
-        it.modifiers?.clickable?.toProto() == clickable.toProto()
+@JvmOverloads
+public fun hasClickable(
+    action: Action = loadAction(),
+    id: String? = null,
+    @Dimension(DP) minClickableWidth: Float = Float.NaN,
+    @Dimension(DP) minClickableHeight: Float = Float.NaN
+): LayoutElementMatcher =
+    LayoutElementMatcher("has clickable($action, $id, $minClickableWidth, $minClickableHeight)") {
+        val clk = it.modifiers?.clickable ?: return@LayoutElementMatcher false
+        if (!minClickableWidth.isNaN() && clk.minimumClickableWidth.value != minClickableWidth) {
+            return@LayoutElementMatcher false
+        }
+        if (!minClickableHeight.isNaN() && clk.minimumClickableHeight.value != minClickableHeight) {
+            return@LayoutElementMatcher false
+        }
+        clk.onClick?.toActionProto() == action.toActionProto() && id?.let { clk.id == it } != false
     }
 
 /**
@@ -89,9 +107,12 @@ public fun containsTag(value: String): LayoutElementMatcher =
 /**
  * Returns a [LayoutElementMatcher] which checks whether the element's text equals the given value.
  */
-public fun hasText(value: StringProp): LayoutElementMatcher =
+public fun hasText(value: LayoutString): LayoutElementMatcher =
     LayoutElementMatcher("Element text = '$value'") {
-        it is Text && it.text?.toProto() == value.toProto()
+        it is Text &&
+            // TODO: b/375448507 - Add dynamic data evaluation and compare the current string value
+            it.text?.toProto()?.value == value.staticValue &&
+            it.text?.toProto()?.dynamicValue == value.dynamicValue?.toDynamicStringProto()
     }
 
 /**

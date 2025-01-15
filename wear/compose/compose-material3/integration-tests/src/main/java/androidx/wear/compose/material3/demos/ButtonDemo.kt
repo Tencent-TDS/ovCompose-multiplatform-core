@@ -409,7 +409,7 @@ fun OutlinedButtonDemo() {
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        item { ListHeader { Text("3 Slot Button)") } }
+        item { ListHeader { Text("3 Slot Button") } }
         item { OutlinedButtonSample() }
         item {
             OutlinedButton(

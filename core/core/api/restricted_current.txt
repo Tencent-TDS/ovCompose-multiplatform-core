@@ -3971,6 +3971,17 @@ package androidx.core.view {
     method public androidx.core.view.WindowInsetsCompat.Builder setVisible(@androidx.core.view.WindowInsetsCompat.Type.InsetsType int, boolean);
   }
 
+  public static final class WindowInsetsCompat.Side {
+    method @androidx.core.view.WindowInsetsCompat.Side.InsetsSide public static int all();
+    field public static final int BOTTOM = 8; // 0x8
+    field public static final int LEFT = 1; // 0x1
+    field public static final int RIGHT = 4; // 0x4
+    field public static final int TOP = 2; // 0x2
+  }
+
+  @IntDef(flag=true, value={androidx.core.view.WindowInsetsCompat.Side.LEFT, androidx.core.view.WindowInsetsCompat.Side.TOP, androidx.core.view.WindowInsetsCompat.Side.RIGHT, androidx.core.view.WindowInsetsCompat.Side.BOTTOM}) @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.SOURCE) public static @interface WindowInsetsCompat.Side.InsetsSide {
+  }
+
   public static final class WindowInsetsCompat.Type {
     method @androidx.core.view.WindowInsetsCompat.Type.InsetsType public static int captionBar();
     method @androidx.core.view.WindowInsetsCompat.Type.InsetsType public static int displayCutout();
@@ -4667,6 +4678,47 @@ package androidx.core.view.inputmethod {
     method public void requestPermission();
     method public Object? unwrap();
     method public static androidx.core.view.inputmethod.InputContentInfoCompat? wrap(Object?);
+  }
+
+}
+
+package androidx.core.view.insetscontrast {
+
+  public class ColorProtection extends androidx.core.view.insetscontrast.ContrastProtection {
+    ctor public ColorProtection(@androidx.core.view.WindowInsetsCompat.Side.InsetsSide int);
+    ctor public ColorProtection(@androidx.core.view.WindowInsetsCompat.Side.InsetsSide int, @ColorInt int);
+    method @ColorInt public int getColor();
+    method public void setColor(@ColorInt int);
+  }
+
+  public abstract class ContrastProtection {
+    ctor public ContrastProtection(@androidx.core.view.WindowInsetsCompat.Side.InsetsSide int);
+    method public void animateAlpha(float);
+    method public void animateInsetsAmount(float);
+    method @FloatRange(from=0.0, to=1.0) public float getAlpha();
+    method public float getInsetAmount();
+    method @androidx.core.view.WindowInsetsCompat.Side.InsetsSide public int getSide();
+    method public void setAlpha(@FloatRange(from=0.0, to=1.0) float);
+    method public void setInsetAmount(@FloatRange(from=0.0, to=1.0) float);
+  }
+
+  public class GradientProtection extends androidx.core.view.insetscontrast.ContrastProtection {
+    ctor public GradientProtection(@androidx.core.view.WindowInsetsCompat.Side.InsetsSide int);
+    ctor public GradientProtection(@androidx.core.view.WindowInsetsCompat.Side.InsetsSide int, @ColorInt int);
+    method @ColorInt public int getColor();
+    method public float getScale();
+    method public void setColor(@ColorInt int);
+    method public void setScale(float);
+  }
+
+  public class ProtectionView extends android.widget.FrameLayout {
+    ctor public ProtectionView(android.content.Context, androidx.core.view.insetscontrast.SystemBarStateMonitor, java.util.List<androidx.core.view.insetscontrast.ContrastProtection!>);
+    method public void dispose();
+  }
+
+  public class SystemBarStateMonitor {
+    ctor public SystemBarStateMonitor(android.view.Window);
+    method public void dispose();
   }
 
 }

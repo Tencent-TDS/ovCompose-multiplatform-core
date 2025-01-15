@@ -154,24 +154,14 @@ interface XAnnotation {
         getAnnotationValue(methodName).asAnnotationValueList()
 
     /** Returns the value of the given [methodName] as a [XAnnotationValue]. */
+    operator fun get(methodName: String): XAnnotationValue?
+
+    /**
+     * Returns the value of the given [methodName] as a [XAnnotationValue], throwing an exception if
+     * the method is not found.
+     */
     fun getAnnotationValue(methodName: String): XAnnotationValue
 }
-
-/**
- * Returns the value of the given [methodName], throwing an exception if the method is not found or
- * if the given type [T] does not match the actual type.
- *
- * Note that non primitive types are wrapped by interfaces in order to allow them to be represented
- * by the process:
- * - "Class" types are represented with [XType]
- * - Annotations are represented with [XAnnotation]
- * - Enums are represented with [XEnumEntry]
- *
- * For convenience, wrapper functions are provided for these types, eg [XAnnotation.getAsType]
- */
-// TODO: Consider deprecating this method for getAs*() methods
-@Suppress("DEPRECATION")
-inline fun <reified T> XAnnotation.get(methodName: String): T = get(methodName, T::class.java)
 
 /**
  * Returns the value of the given [methodName], throwing an exception if the method is not found or

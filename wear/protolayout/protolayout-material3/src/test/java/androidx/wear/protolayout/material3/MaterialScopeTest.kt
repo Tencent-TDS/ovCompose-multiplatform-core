@@ -19,9 +19,9 @@ import android.graphics.Color
 import android.os.Build.VERSION_CODES
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.wear.protolayout.ColorBuilders.argb
 import androidx.wear.protolayout.DeviceParametersBuilders
 import androidx.wear.protolayout.material3.tokens.ColorTokens
+import androidx.wear.protolayout.types.argb
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,14 +55,15 @@ class MaterialScopeTest {
                     ),
                 defaultTextElementStyle = TextElementStyle(),
                 defaultIconStyle = IconStyle(),
-                defaultBackgroundImageStyle = BackgroundImageStyle()
+                defaultBackgroundImageStyle = BackgroundImageStyle(),
+                defaultAvatarImageStyle = AvatarImageStyle()
             )
 
         assertThat(scopeWithDefaultTheme.deviceConfiguration).isEqualTo(DEVICE_PARAMETERS)
         assertThat(scopeWithDefaultTheme.allowDynamicTheme).isTrue()
         assertThat(isDynamicColorSchemeEnabled(scopeWithDefaultTheme.context)).isTrue()
         // It doesn't use default static theme
-        assertThat(scopeWithDefaultTheme.theme.colorScheme.primary.argb)
+        assertThat(scopeWithDefaultTheme.theme.colorScheme.primary.staticArgb)
             .isNotEqualTo(ColorTokens.PRIMARY)
     }
 
@@ -79,24 +80,27 @@ class MaterialScopeTest {
                     MaterialTheme(
                         colorScheme =
                             ColorScheme(
-                                error = argb(customErrorColor),
-                                tertiary = argb(customTertiaryColor)
+                                error = customErrorColor.argb,
+                                tertiary = customTertiaryColor.argb
                             )
                     ),
                 allowDynamicTheme = false,
                 defaultTextElementStyle = TextElementStyle(),
                 defaultIconStyle = IconStyle(),
-                defaultBackgroundImageStyle = BackgroundImageStyle()
+                defaultBackgroundImageStyle = BackgroundImageStyle(),
+                defaultAvatarImageStyle = AvatarImageStyle()
             )
 
         assertThat(materialScope.deviceConfiguration).isEqualTo(DEVICE_PARAMETERS)
         assertThat(materialScope.allowDynamicTheme).isFalse()
 
         // Overridden
-        assertThat(materialScope.theme.colorScheme.error.argb).isEqualTo(customErrorColor)
-        assertThat(materialScope.theme.colorScheme.tertiary.argb).isEqualTo(customTertiaryColor)
+        assertThat(materialScope.theme.colorScheme.error.staticArgb).isEqualTo(customErrorColor)
+        assertThat(materialScope.theme.colorScheme.tertiary.staticArgb)
+            .isEqualTo(customTertiaryColor)
         // Not overridden
-        assertThat(materialScope.theme.colorScheme.primary.argb).isEqualTo(ColorTokens.PRIMARY)
+        assertThat(materialScope.theme.colorScheme.primary.staticArgb)
+            .isEqualTo(ColorTokens.PRIMARY)
     }
 
     @Test
@@ -113,23 +117,26 @@ class MaterialScopeTest {
                     MaterialTheme(
                         colorScheme =
                             ColorScheme(
-                                error = argb(customErrorColor),
-                                tertiary = argb(customTertiaryColor)
+                                error = customErrorColor.argb,
+                                tertiary = customTertiaryColor.argb
                             )
                     ),
                 defaultTextElementStyle = TextElementStyle(),
                 defaultIconStyle = IconStyle(),
-                defaultBackgroundImageStyle = BackgroundImageStyle()
+                defaultBackgroundImageStyle = BackgroundImageStyle(),
+                defaultAvatarImageStyle = AvatarImageStyle()
             )
 
         assertThat(isDynamicColorSchemeEnabled(materialScope.context)).isFalse()
         assertThat(materialScope.deviceConfiguration).isEqualTo(DEVICE_PARAMETERS)
         assertThat(materialScope.allowDynamicTheme).isTrue()
         // Overridden
-        assertThat(materialScope.theme.colorScheme.error.argb).isEqualTo(customErrorColor)
-        assertThat(materialScope.theme.colorScheme.tertiary.argb).isEqualTo(customTertiaryColor)
+        assertThat(materialScope.theme.colorScheme.error.staticArgb).isEqualTo(customErrorColor)
+        assertThat(materialScope.theme.colorScheme.tertiary.staticArgb)
+            .isEqualTo(customTertiaryColor)
         // Not overridden
-        assertThat(materialScope.theme.colorScheme.primary.argb).isEqualTo(ColorTokens.PRIMARY)
+        assertThat(materialScope.theme.colorScheme.primary.staticArgb)
+            .isEqualTo(ColorTokens.PRIMARY)
     }
 
     companion object {

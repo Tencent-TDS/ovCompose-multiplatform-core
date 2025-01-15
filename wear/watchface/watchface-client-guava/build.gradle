@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -36,7 +35,7 @@ dependencies {
     api(libs.kotlinCoroutinesGuava)
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
 
-    androidTestImplementation project(":wear:watchface:watchface-samples")
+    androidTestImplementation(project(":wear:watchface:watchface-samples"))
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
@@ -56,7 +55,7 @@ androidx {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-    namespace "androidx.wear.watchface.client.guava"
+    namespace = "androidx.wear.watchface.client.guava"
 }

@@ -57,9 +57,7 @@ fun TextToggleButtonDemo() {
                 TextToggleButtonsDemo(enabled = false, initialChecked = false)
             }
         }
-        item {
-            ListHeader { Text("Text Toggle Button Shape morphing", textAlign = TextAlign.Center) }
-        }
+        item { ListHeader { Text("Shape morphing", textAlign = TextAlign.Center) } }
         item {
             Row {
                 AnimatedTextToggleButtonsDemo(enabled = true, initialChecked = true)
@@ -74,11 +72,7 @@ fun TextToggleButtonDemo() {
                 AnimatedTextToggleButtonsDemo(enabled = false, initialChecked = false)
             }
         }
-        item {
-            ListHeader {
-                Text("Text Toggle Button Shape morphing variant", textAlign = TextAlign.Center)
-            }
-        }
+        item { ListHeader { Text("Shape morphing variant", textAlign = TextAlign.Center) } }
         item {
             Row {
                 VariantAnimatedTextToggleButtonsDemo(enabled = true, initialChecked = true)

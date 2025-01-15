@@ -103,7 +103,7 @@ import kotlin.math.roundToInt
  * @param backgroundColor The color which will be used for an indicator background.
  */
 @Composable
-fun HorizontalPageIndicator(
+public fun HorizontalPageIndicator(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     selectedColor: Color = PageIndicatorDefaults.selectedColor,
@@ -144,7 +144,7 @@ fun HorizontalPageIndicator(
  * @param backgroundColor The color which will be used for an indicator background.
  */
 @Composable
-fun VerticalPageIndicator(
+public fun VerticalPageIndicator(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     selectedColor: Color = PageIndicatorDefaults.selectedColor,
@@ -164,20 +164,20 @@ fun VerticalPageIndicator(
 }
 
 /** Contains the default values used by [HorizontalPageIndicator] and [VerticalPageIndicator] */
-object PageIndicatorDefaults {
+public object PageIndicatorDefaults {
 
     /**
      * The recommended color to use for the selected indicator item in [VerticalPageIndicator] and
      * [HorizontalPageIndicator].
      */
-    val selectedColor: Color
+    public val selectedColor: Color
         @ReadOnlyComposable @Composable get() = ColorSchemeKeyTokens.OnBackground.value
 
     /**
      * The recommended color to use for the unselected indicator item in [VerticalPageIndicator] and
      * [HorizontalPageIndicator].
      */
-    val unselectedColor: Color
+    public val unselectedColor: Color
         @ReadOnlyComposable
         @Composable
         get() = ColorSchemeKeyTokens.OnBackground.value.copy(alpha = 0.3f)
@@ -186,7 +186,7 @@ object PageIndicatorDefaults {
      * The recommended color to use for the background in [VerticalPageIndicator] and
      * [HorizontalPageIndicator].
      */
-    val backgroundColor: Color
+    public val backgroundColor: Color
         @ReadOnlyComposable
         @Composable
         get() = ColorSchemeKeyTokens.Background.value.copy(alpha = 0.85f)

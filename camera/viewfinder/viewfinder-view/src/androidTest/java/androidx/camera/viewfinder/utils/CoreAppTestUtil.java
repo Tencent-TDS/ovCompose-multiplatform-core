@@ -28,14 +28,14 @@ import android.os.Build;
 import android.os.RemoteException;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.viewfinder.internal.utils.Logger;
 import androidx.test.espresso.Espresso;
 import androidx.test.espresso.IdlingRegistry;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.uiautomator.UiDevice;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.AssumptionViolatedException;
 
 import java.io.IOException;
@@ -210,9 +210,9 @@ public final class CoreAppTestUtil {
      * @param <T>             The Activity class under test
      * @return Returns the reference to the activity for test.
      */
-    @Nullable
-    public static <T extends Activity> T launchActivity(@NonNull Instrumentation instrumentation,
-            @NonNull Class<T> activityClass, @Nullable Intent startIntent) {
+    public static <T extends Activity> @Nullable T launchActivity(
+            @NonNull Instrumentation instrumentation, @NonNull Class<T> activityClass,
+            @Nullable Intent startIntent) {
         Context context = instrumentation.getTargetContext();
 
         // inject custom intent, if provided

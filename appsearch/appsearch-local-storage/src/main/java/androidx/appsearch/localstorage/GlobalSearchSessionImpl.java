@@ -22,8 +22,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.ParcelFileDescriptor;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appsearch.app.AppSearchBatchResult;
 import androidx.appsearch.app.AppSearchBlobHandle;
 import androidx.appsearch.app.AppSearchResult;
@@ -46,6 +44,9 @@ import androidx.core.util.Preconditions;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,7 +64,7 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
     private final Executor mExecutor;
     private final Features mFeatures;
     private final Context mContext;
-    @Nullable private final AppSearchLogger mLogger;
+    private final @Nullable AppSearchLogger mLogger;
 
     private final CallerAccess mSelfCallerAccess;
 
@@ -84,12 +85,12 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
         mSelfCallerAccess = new CallerAccess(/*callingPackageName=*/mContext.getPackageName());
     }
 
-    @NonNull
     @Override
-    public ListenableFuture<AppSearchBatchResult<String, GenericDocument>> getByDocumentIdAsync(
-            @NonNull String packageName,
-            @NonNull String databaseName,
-            @NonNull GetByDocumentIdRequest request) {
+    public @NonNull ListenableFuture<AppSearchBatchResult<String, GenericDocument>>
+            getByDocumentIdAsync(
+                    @NonNull String packageName,
+                    @NonNull String databaseName,
+                    @NonNull GetByDocumentIdRequest request) {
         Preconditions.checkNotNull(packageName);
         Preconditions.checkNotNull(databaseName);
         Preconditions.checkNotNull(request);
@@ -113,10 +114,9 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
         });
     }
 
-    @NonNull
     @Override
     @ExperimentalAppSearchApi
-    public ListenableFuture<OpenBlobForReadResponse> openBlobForReadAsync(
+    public @NonNull ListenableFuture<OpenBlobForReadResponse> openBlobForReadAsync(
             @NonNull Set<AppSearchBlobHandle> handles) {
         Preconditions.checkNotNull(handles);
         Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
@@ -139,9 +139,8 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
         });
     }
 
-    @NonNull
     @Override
-    public SearchResults search(
+    public @NonNull SearchResults search(
             @NonNull String queryExpression, @NonNull SearchSpec searchSpec) {
         Preconditions.checkNotNull(queryExpression);
         Preconditions.checkNotNull(searchSpec);
@@ -162,9 +161,8 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
      * {@link androidx.appsearch.exceptions.AppSearchException} having a result code of
      * {@link AppSearchResult#RESULT_SECURITY_ERROR}.
      */
-    @NonNull
     @Override
-    public ListenableFuture<Void> reportSystemUsageAsync(
+    public @NonNull ListenableFuture<Void> reportSystemUsageAsync(
             @NonNull ReportSystemUsageRequest request) {
         Preconditions.checkNotNull(request);
         Preconditions.checkState(!mIsClosed, "GlobalSearchSession has already been closed");
@@ -176,9 +174,8 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
     }
 
     @SuppressLint("KotlinPropertyAccess")
-    @NonNull
     @Override
-    public ListenableFuture<GetSchemaResponse> getSchemaAsync(
+    public @NonNull ListenableFuture<GetSchemaResponse> getSchemaAsync(
             @NonNull String packageName, @NonNull String databaseName) {
         Preconditions.checkNotNull(packageName);
         Preconditions.checkNotNull(databaseName);
@@ -187,9 +184,8 @@ class GlobalSearchSessionImpl implements GlobalSearchSession {
                 () -> mAppSearchImpl.getSchema(packageName, databaseName, mSelfCallerAccess));
     }
 
-    @NonNull
     @Override
-    public Features getFeatures() {
+    public @NonNull Features getFeatures() {
         return mFeatures;
     }
 

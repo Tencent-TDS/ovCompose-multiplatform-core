@@ -42,7 +42,7 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
 
     buildFeatures {
@@ -52,7 +52,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.wear.watchface.data"
+    namespace = "androidx.wear.watchface.data"
 }
 
 androidx {

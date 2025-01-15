@@ -25,6 +25,9 @@ import android.view.ViewGroup;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
+
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;

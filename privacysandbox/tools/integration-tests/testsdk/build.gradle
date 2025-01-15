@@ -78,8 +78,6 @@ android {
     compileSdkExtension = 14
 
     defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
         ksp {
             arg(aidlInput)
             arg(frameworkAidlInput)

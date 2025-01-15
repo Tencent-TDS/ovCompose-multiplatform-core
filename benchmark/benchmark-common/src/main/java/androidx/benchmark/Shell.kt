@@ -59,19 +59,24 @@ object Shell {
      * As this function is also used for package names (which never have a leading `/`), we simply
      * check for either.
      */
-    private fun psLineContainsProcess(psOutputLine: String, processName: String): Boolean {
-        return psOutputLine.endsWith(" $processName") || psOutputLine.endsWith("/$processName")
+    internal fun psLineContainsProcess(psOutputLine: String, processName: String): Boolean {
+        val processLabel = psOutputLine.substringAfterLast(" ")
+        return processLabel == processName || // exact match
+            processLabel.startsWith("$processName:") || // app subprocess
+            processLabel.endsWith("/$processName") // executable with relative path
     }
 
     /**
      * Equivalent of [psLineContainsProcess], but to be used with full process name string (e.g.
      * from pgrep)
      */
-    private fun fullProcessNameMatchesProcess(
+    internal fun fullProcessNameMatchesProcess(
         fullProcessName: String,
         processName: String
     ): Boolean {
-        return fullProcessName == processName || fullProcessName.endsWith("/$processName")
+        return fullProcessName == processName || // exact match
+            fullProcessName.startsWith("$processName:") || // app subprocess
+            fullProcessName.endsWith("/$processName") // executable with relative path
     }
 
     fun connectUiAutomation() {

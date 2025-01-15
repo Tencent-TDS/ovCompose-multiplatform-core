@@ -20,7 +20,6 @@ package androidx.room.util
 
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
-import androidx.sqlite.use
 import kotlin.jvm.JvmName
 
 /**

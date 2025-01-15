@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.lifecycle:lifecycle-common:2.1.0")
     api(libs.guavaListenableFuture)
     api(project(":camera:camera-core"))
@@ -60,12 +61,14 @@ dependencies {
 }
 
 android {
+    compileSdk = 35
+
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.lifecycle"
+    namespace = "androidx.camera.lifecycle"
 }
 
 androidx {

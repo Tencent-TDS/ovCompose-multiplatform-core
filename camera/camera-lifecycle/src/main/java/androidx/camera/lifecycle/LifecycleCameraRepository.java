@@ -17,8 +17,6 @@
 package androidx.camera.lifecycle;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraEffect;
 import androidx.camera.core.UseCase;
@@ -35,6 +33,9 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.OnLifecycleEvent;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -87,7 +88,7 @@ final class LifecycleCameraRepository {
     private final ArrayDeque<LifecycleOwner> mActiveLifecycleOwners = new ArrayDeque<>();
 
     @GuardedBy("mLock")
-    @Nullable CameraCoordinator mCameraCoordinator;
+@Nullable CameraCoordinator mCameraCoordinator;
 
     @VisibleForTesting
     LifecycleCameraRepository() {
@@ -95,8 +96,7 @@ final class LifecycleCameraRepository {
         // should only be called for testing purpose.
     }
 
-    @NonNull
-    static LifecycleCameraRepository getInstance() {
+    static @NonNull LifecycleCameraRepository getInstance() {
         synchronized (INSTANCE_LOCK) {
             if (sInstance == null) {
                 sInstance = new LifecycleCameraRepository();
@@ -151,9 +151,8 @@ final class LifecycleCameraRepository {
      *
      * @return null if no such LifecycleCamera exists.
      */
-    @Nullable
-    LifecycleCamera getLifecycleCamera(LifecycleOwner lifecycleOwner,
-            @NonNull CameraUseCaseAdapter.CameraId cameraId
+    @Nullable LifecycleCamera getLifecycleCamera(LifecycleOwner lifecycleOwner,
+            CameraUseCaseAdapter.@NonNull CameraId cameraId
     ) {
         synchronized (mLock) {
             return mCameraMap.get(Key.create(lifecycleOwner, cameraId));
@@ -530,16 +529,14 @@ final class LifecycleCameraRepository {
     @AutoValue
     abstract static class Key {
         static Key create(@NonNull LifecycleOwner lifecycleOwner,
-                @NonNull CameraUseCaseAdapter.CameraId cameraId) {
+                CameraUseCaseAdapter.@NonNull CameraId cameraId) {
             return new AutoValue_LifecycleCameraRepository_Key(
                     lifecycleOwner, cameraId);
         }
 
-        @NonNull
-        public abstract LifecycleOwner getLifecycleOwner();
+        public abstract @NonNull LifecycleOwner getLifecycleOwner();
 
-        @NonNull
-        public abstract CameraUseCaseAdapter.CameraId getCameraId();
+        public abstract CameraUseCaseAdapter.@NonNull CameraId getCameraId();
     }
 
     private static class LifecycleCameraRepositoryObserver implements LifecycleObserver {

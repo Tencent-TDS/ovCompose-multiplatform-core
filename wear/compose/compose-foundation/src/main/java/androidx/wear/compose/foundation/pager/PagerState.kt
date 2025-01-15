@@ -35,7 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
  * @param pageCount The number of pages this Pager will have.
  */
 @Composable
-fun rememberPagerState(
+public fun rememberPagerState(
     @IntRange(from = 0) initialPage: Int = 0,
     @FloatRange(from = -0.5, to = 0.5) initialPageOffsetFraction: Float = 0f,
     @IntRange(from = 1) pageCount: () -> Int
@@ -55,7 +55,7 @@ fun rememberPagerState(
  *   snapped position.
  * @param pageCount The number of pages this Pager will have.
  */
-fun PagerState(
+public fun PagerState(
     @IntRange(from = 0) currentPage: Int = 0,
     @FloatRange(from = -0.5, to = 0.5) currentPageOffsetFraction: Float = 0f,
     @IntRange(from = 1) pageCount: () -> Int
@@ -72,7 +72,7 @@ fun PagerState(
  * @param currentPageOffsetFraction The fractional offset from the start of the current page. Should
  *   be between -0.5 and 0.5, where 0 indicates the start of the current page.
  */
-abstract class PagerState(
+public abstract class PagerState(
     @IntRange(from = 0) currentPage: Int = 0,
     @FloatRange(from = -0.5, to = 0.5) currentPageOffsetFraction: Float = 0f
 ) : ComposePagerState(currentPage, currentPageOffsetFraction)

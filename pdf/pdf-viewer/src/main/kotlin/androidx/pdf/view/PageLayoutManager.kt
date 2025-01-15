@@ -17,7 +17,9 @@
 package androidx.pdf.view
 
 import android.graphics.Point
+import android.graphics.PointF
 import android.graphics.Rect
+import android.graphics.RectF
 import android.util.Range
 import androidx.pdf.PdfDocument
 import kotlin.math.ceil
@@ -101,6 +103,50 @@ internal class PageLayoutManager(
         return paginationModel.getPageLocation(pageNum, viewport)
     }
 
+    /** Returns the size of the page at [pageNum], or null if we don't know that page's size yet */
+    fun getPageSize(pageNum: Int): Point? {
+        val size = paginationModel.getPageSize(pageNum)
+        if (size == PaginationModel.UNKNOWN_SIZE) return null
+        return size
+    }
+
+    /**
+     * Returns the [PdfPoint] that exists at [contentCoordinates], or null if no page content is
+     * laid out at [contentCoordinates].
+     *
+     * @param contentCoordinates the content coordinates to check (View coordinates that are scaled
+     *   up or down by the current zoom level)
+     * @param viewport the current viewport in content coordinates
+     */
+    fun getPdfPointAt(contentCoordinates: PointF, viewport: Rect): PdfPoint? {
+        val visiblePages = visiblePages.value
+        for (pageIndex in visiblePages.lower..visiblePages.upper) {
+            val pageBounds = paginationModel.getPageLocation(pageIndex, viewport)
+            if (RectF(pageBounds).contains(contentCoordinates.x, contentCoordinates.y)) {
+                return PdfPoint(
+                    pageIndex,
+                    PointF(
+                        contentCoordinates.x - pageBounds.left,
+                        contentCoordinates.y - pageBounds.top,
+                    )
+                )
+            }
+        }
+        return null
+    }
+
+    /**
+     * Returns a View-relative [RectF] corresponding to a page-relative [PdfRect], or null if the
+     * page hasn't been laid out
+     */
+    fun getViewRect(pdfRect: PdfRect, viewport: Rect): RectF? {
+        if (pdfRect.pageNum > paginationModel.reach) return null
+        val pageBounds = paginationModel.getPageLocation(pdfRect.pageNum, viewport)
+        val out = RectF(pdfRect.pageRect)
+        out.offset(pageBounds.left.toFloat(), pageBounds.top.toFloat())
+        return out
+    }
+
     /**
      * Emits a new [Range] to [visiblePages] based on the current [scrollY], [height], and [zoom] of
      * a [PdfView]
@@ -148,5 +194,6 @@ internal class PageLayoutManager(
 
     companion object {
         private const val DEFAULT_PAGE_SPACING_PX: Int = 20
+        private const val INVALID_ID = -1
     }
 }

@@ -1010,11 +1010,8 @@ class CameraUseCaseAdapterTest {
     private fun createAdapterWithSupportedCameraOperations(
         @AdapterCameraInfo.CameraOperation supportedOps: Set<Int>
     ): CameraUseCaseAdapter {
-        val fakeSessionProcessor = FakeSessionProcessor()
-        // no camera operations are supported.
-        fakeSessionProcessor.restrictedCameraOperations = supportedOps
+        val fakeSessionProcessor = FakeSessionProcessor(supportedCameraOperations = supportedOps)
         val cameraConfig: CameraConfig = FakeCameraConfig(fakeSessionProcessor)
-
         return createCameraUseCaseAdapter(fakeCamera, cameraConfig)
     }
 

@@ -22,7 +22,7 @@ import static androidx.camera.featurecombinationquery.CameraDeviceSetupCompat.Su
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.params.SessionConfiguration;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -42,9 +42,8 @@ final class AggregatedCameraDeviceSetupCompat implements CameraDeviceSetupCompat
         mCameraDeviceSetupImpls = cameraDeviceSetupImpls;
     }
 
-    @NonNull
     @Override
-    public SupportQueryResult isSessionConfigurationSupported(
+    public @NonNull SupportQueryResult isSessionConfigurationSupported(
             @NonNull SessionConfiguration sessionConfig)
             throws CameraAccessException {
         for (CameraDeviceSetupCompat impl : mCameraDeviceSetupImpls) {

@@ -47,7 +47,7 @@ android {
     useLibrary "android.test.runner"
     useLibrary "android.test.base"
     useLibrary "android.test.mock"
-    namespace "androidx.test.uiautomator"
+    namespace = "androidx.test.uiautomator"
 }
 
 androidx {

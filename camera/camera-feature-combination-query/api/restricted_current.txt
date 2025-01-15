@@ -1,5 +1,5 @@
 // Signature format: 4.0
-package @androidx.camera.featurecombinationquery.ExperimentalFeatureCombinationQuery androidx.camera.featurecombinationquery {
+package androidx.camera.featurecombinationquery {
 
   public interface CameraDeviceSetupCompat {
     method public androidx.camera.featurecombinationquery.CameraDeviceSetupCompat.SupportQueryResult isSessionConfigurationSupported(android.hardware.camera2.params.SessionConfiguration) throws android.hardware.camera2.CameraAccessException;
@@ -21,9 +21,6 @@ package @androidx.camera.featurecombinationquery.ExperimentalFeatureCombinationQ
   public class CameraDeviceSetupCompatFactory {
     ctor public CameraDeviceSetupCompatFactory(android.content.Context);
     method public androidx.camera.featurecombinationquery.CameraDeviceSetupCompat getCameraDeviceSetupCompat(String) throws android.hardware.camera2.CameraAccessException;
-  }
-
-  @SuppressCompatibility @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @kotlin.RequiresOptIn public @interface ExperimentalFeatureCombinationQuery {
   }
 
 }

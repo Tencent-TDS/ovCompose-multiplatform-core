@@ -150,7 +150,11 @@ class DaoWriterTest {
                     COMMON.LIMIT_OFFSET_PAGING_SOURCE
                 )
             )
-        runProcessorTestWithK1(sources = sources, classpath = libs) { invocation ->
+        runProcessorTestWithK1(
+            sources = sources,
+            classpath = libs,
+            kotlincArguments = listOf("-jvm-target=11")
+        ) { invocation ->
             if (invocation.isKsp && !javaLambdaSyntaxAvailable) {
                 // Skip KSP backend without lambda syntax, it is a nonsensical combination.
                 return@runProcessorTestWithK1

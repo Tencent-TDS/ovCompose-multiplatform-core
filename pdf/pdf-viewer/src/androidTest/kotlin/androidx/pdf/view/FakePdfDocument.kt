@@ -30,6 +30,7 @@ import androidx.annotation.RequiresExtension
 import androidx.pdf.PdfDocument
 import androidx.pdf.content.PageMatchBounds
 import androidx.pdf.content.PageSelection
+import androidx.pdf.content.PdfPageTextContent
 import androidx.pdf.content.SelectionBoundary
 import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +66,8 @@ internal open class FakePdfDocument(
     override val isLinearized: Boolean = false,
     private val searchResults: SparseArray<List<PageMatchBounds>> = SparseArray(),
     override val uri: Uri = Uri.parse("content://test.app/document.pdf"),
+    private val pageLinks: Map<Int, PdfDocument.PdfPageLinks> = mapOf(),
+    private val textContents: List<PdfPageTextContent> = emptyList()
 ) : PdfDocument {
     override val pageCount: Int = pages.size
 
@@ -84,14 +87,21 @@ internal open class FakePdfDocument(
     }
 
     override suspend fun getPageLinks(pageNumber: Int): PdfDocument.PdfPageLinks {
-        // TODO(b/376136907) provide a useful implementation when it's needed for testing
-        return PdfDocument.PdfPageLinks(listOf(), listOf())
+        return pageLinks[pageNumber] ?: PdfDocument.PdfPageLinks(emptyList(), emptyList())
     }
 
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
     override suspend fun getPageContent(pageNumber: Int): PdfDocument.PdfPageContent {
-        // TODO(b/376136746) provide a useful implementation when it's needed for testing
-        return PdfDocument.PdfPageContent(listOf(), listOf())
+        // Return content for the requested page if pageNumber is valid
+        if (pageNumber in pages.indices && pageNumber < textContents.size) {
+            return PdfDocument.PdfPageContent(
+                textContents = listOf(textContents[pageNumber]),
+                imageContents = emptyList()
+            )
+        }
+
+        // Return default empty content if pageNumber is out of range
+        return PdfDocument.PdfPageContent(textContents = emptyList(), imageContents = emptyList())
     }
 
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
@@ -162,12 +172,12 @@ internal open class FakePdfDocument(
                 if (tileRegion == null) {
                     _bitmapRequests[pageNumber] = FullBitmap(scaledPageSizePx)
                     // Tiling, and this is a new rect for a tile board we're already tracking
-                } else if (requestedSize != null && requestedSize is TileBoard) {
+                } else if (requestedSize != null && requestedSize is Tiles) {
                     requestedSize.withTile(tileRegion)
                     // Tiling, and this is the first rect requested
                 } else {
                     _bitmapRequests[pageNumber] =
-                        TileBoard(scaledPageSizePx).apply { withTile(tileRegion) }
+                        Tiles(scaledPageSizePx).apply { withTile(tileRegion) }
                 }
             }
         }
@@ -185,7 +195,7 @@ internal sealed class SizeParams(val scaledPageSizePx: Size)
 internal class FullBitmap(scaledPageSizePx: Size) : SizeParams(scaledPageSizePx)
 
 /** Represents a set of tile region [Bitmap] requested from [PdfDocument.BitmapSource] */
-internal class TileBoard(scaledPageSizePx: Size) : SizeParams(scaledPageSizePx) {
+internal class Tiles(scaledPageSizePx: Size) : SizeParams(scaledPageSizePx) {
     private val _tiles = mutableListOf<Rect>()
     val tiles: List<Rect>
         get() = _tiles

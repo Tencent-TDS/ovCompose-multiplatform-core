@@ -17,7 +17,6 @@
 package androidx.camera.video.internal.encoder;
 
 import static androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor;
-import static androidx.camera.video.internal.utils.CodecUtil.createCodec;
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.CONFIGURED;
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.ERROR;
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.PAUSED;
@@ -27,6 +26,7 @@ import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.P
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.RELEASED;
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.STARTED;
 import static androidx.camera.video.internal.encoder.EncoderImpl.InternalState.STOPPING;
+import static androidx.camera.video.internal.utils.CodecUtil.createCodec;
 import static androidx.core.util.Preconditions.checkState;
 
 import static java.util.Objects.requireNonNull;
@@ -42,8 +42,6 @@ import android.util.Range;
 import android.view.Surface;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.Timebase;
@@ -67,6 +65,9 @@ import androidx.concurrent.futures.CallbackToFutureAdapter.Completer;
 import androidx.core.util.Preconditions;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -211,8 +212,7 @@ public class EncoderImpl implements Encoder {
     private boolean mIsFlushedAfterEndOfStream = false;
     private boolean mSourceStoppedSignalled = false;
     boolean mMediaCodecEosSignalled = false;
-    @Nullable
-    private Future<?> mSignalEosTimeoutFuture;
+    private @Nullable Future<?> mSignalEosTimeoutFuture;
 
     /**
      * Creates the encoder with a {@link EncoderConfig}
@@ -329,14 +329,12 @@ public class EncoderImpl implements Encoder {
 
     /** Gets the {@link EncoderInput} of the encoder */
     @Override
-    @NonNull
-    public EncoderInput getInput() {
+    public @NonNull EncoderInput getInput() {
         return mEncoderInput;
     }
 
-    @NonNull
     @Override
-    public EncoderInfo getEncoderInfo() {
+    public @NonNull EncoderInfo getEncoderInfo() {
         return mEncoderInfo;
     }
 
@@ -630,9 +628,8 @@ public class EncoderImpl implements Encoder {
     }
 
     /** {@inheritDoc} */
-    @NonNull
     @Override
-    public ListenableFuture<Void> getReleasedFuture() {
+    public @NonNull ListenableFuture<Void> getReleasedFuture() {
         return mReleasedFuture;
     }
 
@@ -792,7 +789,7 @@ public class EncoderImpl implements Encoder {
 
     @SuppressWarnings("WeakerAccess") // synthetic accessor
     @ExecutedBy("mEncoderExecutor")
-    void handleEncodeError(@NonNull MediaCodec.CodecException e) {
+    void handleEncodeError(MediaCodec.@NonNull CodecException e) {
         handleEncodeError(EncodeException.ERROR_CODEC, e.getMessage(), e);
     }
 
@@ -971,8 +968,7 @@ public class EncoderImpl implements Encoder {
 
     @SuppressWarnings("WeakerAccess") // synthetic accessor
     @ExecutedBy("mEncoderExecutor")
-    @NonNull
-    ListenableFuture<InputBuffer> acquireInputBuffer() {
+    @NonNull ListenableFuture<InputBuffer> acquireInputBuffer() {
         switch (mState) {
             case CONFIGURED:
                 return Futures.immediateFailedFuture(new IllegalStateException(
@@ -1051,8 +1047,7 @@ public class EncoderImpl implements Encoder {
 
     @SuppressWarnings("WeakerAccess") // synthetic accessor
     class MediaCodecCallback extends MediaCodec.Callback {
-        @Nullable
-        private final VideoTimebaseConverter mVideoTimestampConverter;
+        private final @Nullable VideoTimebaseConverter mVideoTimestampConverter;
         // See b/255209101. On some devices, MediaCodec#signalEndOfInputStream() doesn't trigger
         // an end-of-stream buffer. This flag is used for a general workaround to take an output
         // buffer which reaches stop timestamp as an end-of-stream buffer. It should be true by
@@ -1237,8 +1232,7 @@ public class EncoderImpl implements Encoder {
         }
 
         @ExecutedBy("mEncoderExecutor")
-        @NonNull
-        private BufferInfo resolveOutputBufferInfo(@NonNull BufferInfo bufferInfo) {
+        private @NonNull BufferInfo resolveOutputBufferInfo(@NonNull BufferInfo bufferInfo) {
             long adjustedTimeUs = getAdjustedTimeUs(bufferInfo);
             if (bufferInfo.presentationTimeUs == adjustedTimeUs) {
                 return bufferInfo;
@@ -1455,7 +1449,7 @@ public class EncoderImpl implements Encoder {
         }
 
         @Override
-        public void onError(@NonNull MediaCodec mediaCodec, @NonNull MediaCodec.CodecException e) {
+        public void onError(@NonNull MediaCodec mediaCodec, MediaCodec.@NonNull CodecException e) {
             mEncoderExecutor.execute(() -> {
                 switch (mState) {
                     case STARTED:
@@ -1629,9 +1623,8 @@ public class EncoderImpl implements Encoder {
         private final List<ListenableFuture<InputBuffer>> mAcquisitionList = new ArrayList<>();
 
         /** {@inheritDoc} */
-        @NonNull
         @Override
-        public ListenableFuture<State> fetchData() {
+        public @NonNull ListenableFuture<State> fetchData() {
             return CallbackToFutureAdapter.getFuture(completer -> {
                 mEncoderExecutor.execute(() -> completer.set(mBufferProviderState));
                 return "fetchData";
@@ -1639,9 +1632,8 @@ public class EncoderImpl implements Encoder {
         }
 
         /** {@inheritDoc} */
-        @NonNull
         @Override
-        public ListenableFuture<InputBuffer> acquireBuffer() {
+        public @NonNull ListenableFuture<InputBuffer> acquireBuffer() {
             return CallbackToFutureAdapter.getFuture(completer -> {
                 mEncoderExecutor.execute(() -> {
                     if (mBufferProviderState == State.ACTIVE) {
@@ -1734,8 +1726,7 @@ public class EncoderImpl implements Encoder {
         private Api23Impl() {
         }
 
-        @NonNull
-        static Surface createPersistentInputSurface() {
+        static @NonNull Surface createPersistentInputSurface() {
             return MediaCodec.createPersistentInputSurface();
         }
 

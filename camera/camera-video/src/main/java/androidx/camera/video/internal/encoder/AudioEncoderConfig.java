@@ -18,10 +18,11 @@ package androidx.camera.video.internal.encoder;
 
 import android.media.MediaFormat;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.impl.Timebase;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -34,16 +35,14 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
     }
 
     /** Returns a build for this config. */
-    @NonNull
-    public static Builder builder() {
+    public static @NonNull Builder builder() {
         return new AutoValue_AudioEncoderConfig.Builder()
                 .setProfile(EncoderConfig.CODEC_PROFILE_NONE);
     }
 
     /** {@inheritDoc} */
     @Override
-    @NonNull
-    public abstract String getMimeType();
+    public abstract @NonNull String getMimeType();
 
     /**
      * {@inheritDoc}
@@ -54,8 +53,7 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
     public abstract int getProfile();
 
     @Override
-    @NonNull
-    public abstract Timebase getInputTimebase();
+    public abstract @NonNull Timebase getInputTimebase();
 
     /** Gets the bitrate. */
     public abstract int getBitrate();
@@ -67,9 +65,8 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
     public abstract int getChannelCount();
 
     /** {@inheritDoc} */
-    @NonNull
     @Override
-    public MediaFormat toMediaFormat() {
+    public @NonNull MediaFormat toMediaFormat() {
         MediaFormat mediaFormat = MediaFormat.createAudioFormat(getMimeType(), getSampleRate(),
                 getChannelCount());
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, getBitrate());
@@ -99,35 +96,27 @@ public abstract class AudioEncoderConfig implements EncoderConfig {
          * {@link EncoderConfig#CODEC_PROFILE_NONE}, an IllegalArgumentException will be thrown by
          * {@link #build()}.
          */
-        @NonNull
-        public abstract Builder setMimeType(@NonNull String mimeType);
+        public abstract @NonNull Builder setMimeType(@NonNull String mimeType);
 
         /** Sets (optional) profile for the mime type specified by {@link #setMimeType(String)}. */
-        @NonNull
-        public abstract Builder setProfile(int profile);
+        public abstract @NonNull Builder setProfile(int profile);
 
         /** Sets the source timebase. */
-        @NonNull
-        public abstract Builder setInputTimebase(@NonNull Timebase timebase);
+        public abstract @NonNull Builder setInputTimebase(@NonNull Timebase timebase);
 
         /** Sets the bitrate. */
-        @NonNull
-        public abstract Builder setBitrate(int bitrate);
+        public abstract @NonNull Builder setBitrate(int bitrate);
 
         /** Sets the sample rate. */
-        @NonNull
-        public abstract Builder setSampleRate(int sampleRate);
+        public abstract @NonNull Builder setSampleRate(int sampleRate);
 
         /** Sets the channel count. */
-        @NonNull
-        public abstract Builder setChannelCount(int channelCount);
+        public abstract @NonNull Builder setChannelCount(int channelCount);
 
-        @NonNull
-        abstract AudioEncoderConfig autoBuild();
+        abstract @NonNull AudioEncoderConfig autoBuild();
 
         /** Builds the config instance. */
-        @NonNull
-        public AudioEncoderConfig build() {
+        public @NonNull AudioEncoderConfig build() {
             AudioEncoderConfig config = autoBuild();
             if (Objects.equals(config.getMimeType(), MediaFormat.MIMETYPE_AUDIO_AAC)
                     && config.getProfile() == CODEC_PROFILE_NONE) {

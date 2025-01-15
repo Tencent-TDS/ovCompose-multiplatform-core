@@ -27,8 +27,6 @@ import static java.util.Objects.requireNonNull;
 import android.graphics.Rect;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
@@ -54,6 +52,9 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.core.util.Pair;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -91,8 +92,7 @@ public final class FakeCameraControl implements CameraControlInternal {
      * <p> {@link CameraXExecutors#directExecutor} via default, unless some other executor is set
      * via {@link #FakeCameraControl(Executor, ControlUpdateCallback)}.
      */
-    @NonNull
-    private final Executor mExecutor;
+    private final @NonNull Executor mExecutor;
     private final ControlUpdateCallback mControlUpdateCallback;
     private final SessionConfig.Builder mSessionConfigBuilder = new SessionConfig.Builder();
     @ImageCapture.FlashMode
@@ -122,8 +122,7 @@ public final class FakeCameraControl implements CameraControlInternal {
     private final FakeCameraCapturePipeline mFakeCameraCapturePipeline =
             new FakeCameraCapturePipeline();
 
-    @Nullable
-    private FocusMeteringAction mLastSubmittedFocusMeteringAction = null;
+    private @Nullable FocusMeteringAction mLastSubmittedFocusMeteringAction = null;
 
     /**
      * Constructs an instance of {@link FakeCameraControl} with a no-op
@@ -310,8 +309,7 @@ public final class FakeCameraControl implements CameraControlInternal {
         Logger.d(TAG, "setScreenFlash(" + mScreenFlash + ")");
     }
 
-    @Nullable
-    public ScreenFlash getScreenFlash() {
+    public @Nullable ScreenFlash getScreenFlash() {
         return mScreenFlash;
     }
 
@@ -326,7 +324,7 @@ public final class FakeCameraControl implements CameraControlInternal {
     }
 
     @Override
-    public void addZslConfig(@NonNull SessionConfig.Builder sessionConfigBuilder) {
+    public void addZslConfig(SessionConfig.@NonNull Builder sessionConfigBuilder) {
         // Override if Zero-Shutter Lag needs to add config to session config.
         mIsZslConfigAdded = true;
     }
@@ -345,8 +343,7 @@ public final class FakeCameraControl implements CameraControlInternal {
      * @return Returns a {@link Futures#immediateFuture} which immediately contains a result.
      */
     @Override
-    @NonNull
-    public ListenableFuture<Void> enableTorch(boolean torch) {
+    public @NonNull ListenableFuture<Void> enableTorch(boolean torch) {
         Logger.d(TAG, "enableTorch(" + torch + ")");
         mTorchEnabled = torch;
         return Futures.immediateFuture(null);
@@ -363,9 +360,8 @@ public final class FakeCameraControl implements CameraControlInternal {
      * @param value The exposure compensation value to be set.
      * @return Returns a {@link Futures#immediateFuture} which immediately contains a result.
      */
-    @NonNull
     @Override
-    public ListenableFuture<Integer> setExposureCompensationIndex(int value) {
+    public @NonNull ListenableFuture<Integer> setExposureCompensationIndex(int value) {
         mExposureCompensation = value;
         return Futures.immediateFuture(null);
     }
@@ -375,9 +371,8 @@ public final class FakeCameraControl implements CameraControlInternal {
         return mExposureCompensation;
     }
 
-    @NonNull
     @Override
-    public ListenableFuture<List<Void>> submitStillCaptureRequests(
+    public @NonNull ListenableFuture<List<Void>> submitStillCaptureRequests(
             @NonNull List<CaptureConfig> captureConfigs,
             int captureMode, int flashType) {
         Logger.d(TAG, "submitStillCaptureRequests: captureConfigs = " + captureConfigs);
@@ -417,17 +412,15 @@ public final class FakeCameraControl implements CameraControlInternal {
         return Futures.allAsList(fakeFutures);
     }
 
-    @NonNull
     @Override
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public ListenableFuture<CameraCapturePipeline> getCameraCapturePipelineAsync(int captureMode,
-            int flashType) {
+    public @NonNull ListenableFuture<CameraCapturePipeline> getCameraCapturePipelineAsync(
+            int captureMode, int flashType) {
         return Futures.immediateFuture(mFakeCameraCapturePipeline);
     }
 
-    @NonNull
     @Override
-    public SessionConfig getSessionConfig() {
+    public @NonNull SessionConfig getSessionConfig() {
         return mSessionConfigBuilder.build();
     }
 
@@ -435,9 +428,8 @@ public final class FakeCameraControl implements CameraControlInternal {
      * Returns a {@link Rect} corresponding to
      * {@link FakeCameraDeviceSurfaceManager#MAX_OUTPUT_SIZE}.
      */
-    @NonNull
     @Override
-    public Rect getSensorRect() {
+    public @NonNull Rect getSensorRect() {
         return new Rect(0, 0, MAX_OUTPUT_SIZE.getWidth(), MAX_OUTPUT_SIZE.getHeight());
     }
 
@@ -448,18 +440,16 @@ public final class FakeCameraControl implements CameraControlInternal {
      * @return Returns a {@link Futures#immediateFuture} which immediately contains a empty
      * {@link FocusMeteringResult}.
      */
-    @NonNull
     @Override
-    public ListenableFuture<FocusMeteringResult> startFocusAndMetering(
+    public @NonNull ListenableFuture<FocusMeteringResult> startFocusAndMetering(
             @NonNull FocusMeteringAction action) {
         mLastSubmittedFocusMeteringAction = action;
         return Futures.immediateFuture(FocusMeteringResult.emptyInstance());
     }
 
     /** Returns a {@link Futures#immediateFuture} which immediately contains a result. */
-    @NonNull
     @Override
-    public ListenableFuture<Void> cancelFocusAndMetering() {
+    public @NonNull ListenableFuture<Void> cancelFocusAndMetering() {
         return Futures.immediateFuture(null);
     }
 
@@ -496,9 +486,8 @@ public final class FakeCameraControl implements CameraControlInternal {
         mOnNewCaptureRequestListener = null;
     }
 
-    @NonNull
     @Override
-    public ListenableFuture<Void> setZoomRatio(float ratio) {
+    public @NonNull ListenableFuture<Void> setZoomRatio(float ratio) {
         mZoomRatio = ratio;
         return Futures.immediateFuture(null);
     }
@@ -508,9 +497,8 @@ public final class FakeCameraControl implements CameraControlInternal {
         return mZoomRatio;
     }
 
-    @NonNull
     @Override
-    public ListenableFuture<Void> setLinearZoom(float linearZoom) {
+    public @NonNull ListenableFuture<Void> setLinearZoom(float linearZoom) {
         mLinearZoom = linearZoom;
         return Futures.immediateFuture(null);
     }
@@ -521,8 +509,7 @@ public final class FakeCameraControl implements CameraControlInternal {
     }
 
     /** Gets the last focus metering action submitted with {@link #startFocusAndMetering}. */
-    @Nullable
-    public FocusMeteringAction getLastSubmittedFocusMeteringAction() {
+    public @Nullable FocusMeteringAction getLastSubmittedFocusMeteringAction() {
         return mLastSubmittedFocusMeteringAction;
     }
 
@@ -540,9 +527,8 @@ public final class FakeCameraControl implements CameraControlInternal {
         mInteropConfig = MutableOptionsBundle.create();
     }
 
-    @NonNull
     @Override
-    public Config getInteropConfig() {
+    public @NonNull Config getInteropConfig() {
         return MutableOptionsBundle.from(mInteropConfig);
     }
 

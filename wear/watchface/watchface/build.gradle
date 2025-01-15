@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.RunApiTasks
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -67,15 +66,11 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-
-    sourceSets.androidTest.assets.srcDirs +=
-         project.rootDir.absolutePath + "/../../golden/wear/wear-watchface"
-
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.watchface"
+    namespace = "androidx.wear.watchface"
 }
 
 androidx {
@@ -85,4 +80,5 @@ androidx {
     description = "Android Wear Watchface"
     legacyDisableKotlinStrictApiMode = true
     samples(project(":wear:watchface:watchface-samples"))
+    addGoldenImageAssets()
 }

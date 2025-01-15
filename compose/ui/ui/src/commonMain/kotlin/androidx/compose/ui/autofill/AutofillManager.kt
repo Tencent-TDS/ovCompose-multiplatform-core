@@ -22,7 +22,7 @@ package androidx.compose.ui.autofill
  * This interface is available to all composables via a CompositionLocal. The composable can then
  * notify the Autofill framework that user values have been committed as required.
  */
-interface AutofillManager {
+abstract class AutofillManager internal constructor() {
 
     /**
      * Indicate the autofill session should be committed.
@@ -32,7 +32,7 @@ interface AutofillManager {
      * function, the framework considers the form submitted, and any relevant dialog will appear to
      * notify the user of the data processed.
      */
-    fun commit()
+    abstract fun commit()
 
     /**
      * Indicate the autofill context should be canceled.
@@ -41,7 +41,7 @@ interface AutofillManager {
      * canceled. After calling this function, the framework will stop the current autofill session
      * without processing any information entered in the autofillable field.
      */
-    fun cancel()
+    abstract fun cancel()
 
     /**
      * Request autofill for previously focused element.
@@ -51,5 +51,5 @@ interface AutofillManager {
      * Any component that can be autofilled may call this when it is active to request an autofill
      * services response.
      */
-    fun requestAutofillForActiveElement()
+    abstract fun requestAutofillForActiveElement()
 }

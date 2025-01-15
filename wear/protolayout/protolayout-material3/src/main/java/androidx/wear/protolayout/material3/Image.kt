@@ -16,15 +16,17 @@
 
 package androidx.wear.protolayout.material3
 
-import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
 import androidx.wear.protolayout.DimensionBuilders.ImageDimension
 import androidx.wear.protolayout.LayoutElementBuilders.Box
 import androidx.wear.protolayout.LayoutElementBuilders.ContentScaleMode
 import androidx.wear.protolayout.LayoutElementBuilders.Image
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
-import androidx.wear.protolayout.ModifiersBuilders.Corner
-import androidx.wear.protolayout.ModifiersBuilders.Modifiers
+import androidx.wear.protolayout.modifiers.LayoutModifier
+import androidx.wear.protolayout.modifiers.background
+import androidx.wear.protolayout.modifiers.clip
+import androidx.wear.protolayout.modifiers.toProtoLayoutModifiers
+import androidx.wear.protolayout.types.LayoutColor
 
 /**
  * Returns the image background with the defined style.
@@ -32,8 +34,9 @@ import androidx.wear.protolayout.ModifiersBuilders.Modifiers
  * Material components provide proper defaults for the background image. In order to take advantage
  * of those defaults, this should be used with the resource ID only: `backgroundImage("id")`.
  *
- * @param protoLayoutResourceId The protolayout resource id of the icon. Node that, this is not an
+ * @param protoLayoutResourceId The protolayout resource id of the image. Node that, this is not an
  *   Android resource id.
+ * @param modifier Modifiers to set to this element.
  * @param width The width of an image. Usually, this matches the width of the parent component this
  *   is used in.
  * @param height The height of an image. Usually, this matches the height of the parent component
@@ -42,18 +45,17 @@ import androidx.wear.protolayout.ModifiersBuilders.Modifiers
  *   It's recommended to use [ColorScheme.background] color with 60% opacity.
  * @param overlayWidth The width of the overlay on top of the image background
  * @param overlayHeight The height of the overlay on top of the image background
- * @param shape The shape of the corners for the image
  * @param contentScaleMode The content scale mode for the image to define how image will adapt to
  *   the given size
  */
 public fun MaterialScope.backgroundImage(
     protoLayoutResourceId: String,
+    modifier: LayoutModifier = LayoutModifier,
     width: ImageDimension = defaultBackgroundImageStyle.width,
     height: ImageDimension = defaultBackgroundImageStyle.height,
-    overlayColor: ColorProp = defaultBackgroundImageStyle.overlayColor,
+    overlayColor: LayoutColor = defaultBackgroundImageStyle.overlayColor,
     overlayWidth: ContainerDimension = defaultBackgroundImageStyle.overlayWidth,
     overlayHeight: ContainerDimension = defaultBackgroundImageStyle.overlayHeight,
-    shape: Corner = defaultBackgroundImageStyle.shape,
     @ContentScaleMode contentScaleMode: Int = defaultBackgroundImageStyle.contentScaleMode,
 ): LayoutElement =
     Box.Builder()
@@ -64,7 +66,10 @@ public fun MaterialScope.backgroundImage(
             Image.Builder()
                 .setWidth(width)
                 .setHeight(height)
-                .setModifiers(Modifiers.Builder().setBackground(shape.toBackground()).build())
+                .setModifiers(
+                    (LayoutModifier.clip(defaultBackgroundImageStyle.shape) then modifier)
+                        .toProtoLayoutModifiers()
+                )
                 .setResourceId(protoLayoutResourceId)
                 .setContentScaleMode(contentScaleMode)
                 .build()
@@ -74,9 +79,40 @@ public fun MaterialScope.backgroundImage(
             Box.Builder()
                 .setWidth(overlayWidth)
                 .setHeight(overlayHeight)
-                .setModifiers(
-                    Modifiers.Builder().setBackground(overlayColor.toBackground()).build()
-                )
+                .setModifiers(LayoutModifier.background(overlayColor).toProtoLayoutModifiers())
                 .build()
         )
+        .build()
+
+/**
+ * Returns the avatar image with the defined style.
+ *
+ * Material components such as [appCard] provide proper defaults for the small avatar image. In
+ * order to take advantage of those defaults, this should be used with the resource ID only:
+ * `avatarImage("id")`.
+ *
+ * @param protoLayoutResourceId The protolayout resource id of the image. Node that, this is not an
+ *   Android resource id.
+ * @param modifier Modifiers to set to this element.
+ * @param width The width of an image. Usually, a small image that fit into the component's slot.
+ * @param height The height of an image. Usually, a small image that fit into the component's slot.
+ * @param contentScaleMode The content scale mode for the image to define how image will adapt to
+ *   the given size
+ */
+public fun MaterialScope.avatarImage(
+    protoLayoutResourceId: String,
+    width: ImageDimension = defaultAvatarImageStyle.width,
+    height: ImageDimension = defaultAvatarImageStyle.height,
+    modifier: LayoutModifier = LayoutModifier,
+    @ContentScaleMode contentScaleMode: Int = defaultAvatarImageStyle.contentScaleMode,
+): LayoutElement =
+    Image.Builder()
+        .setWidth(width)
+        .setHeight(height)
+        .setModifiers(
+            (LayoutModifier.clip(defaultAvatarImageStyle.shape) then modifier)
+                .toProtoLayoutModifiers()
+        )
+        .setResourceId(protoLayoutResourceId)
+        .setContentScaleMode(contentScaleMode)
         .build()

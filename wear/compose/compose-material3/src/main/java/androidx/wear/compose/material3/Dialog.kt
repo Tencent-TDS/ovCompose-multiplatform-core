@@ -24,6 +24,7 @@ import androidx.compose.animation.core.rememberTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -34,6 +35,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogProperties
@@ -44,8 +46,8 @@ import androidx.wear.compose.material3.MotionScheme.Companion.standard
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * A base dialog component used by [AlertDialog] and [Confirmation] variations. This dialog provides
- * a full-screen experience with custom entry/exit animations.
+ * A base dialog component used by [AlertDialog] and [ConfirmationDialog] variations. This dialog
+ * provides a full-screen experience with custom entry/exit animations.
  *
  * Dialogs provide important prompts in a user flow. They can require an action, communicate
  * information, or help users accomplish a task.
@@ -62,7 +64,7 @@ import kotlinx.coroutines.flow.collectLatest
  * @param content A composable function that defines the content of the dialog.
  */
 @Composable
-fun Dialog(
+public fun Dialog(
     show: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -138,6 +140,9 @@ fun Dialog(
                         modifier =
                             Modifier.matchParentSize()
                                 .background(MaterialTheme.colorScheme.background)
+                                .graphicsLayer {
+                                    compositingStrategy = CompositingStrategy.Offscreen
+                                }
                     ) {
                         content()
                     }
@@ -154,6 +159,9 @@ fun Dialog(
             }
         }
     }
+
+    // We want to be sure that background is scaled back to 1f after dialog is disposed.
+    DisposableEffect(Unit) { onDispose { scaffoldState.parentScale.floatValue = 1f } }
 }
 
 @Composable

@@ -30,7 +30,6 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig;
 import androidx.camera.core.CameraSelector;
@@ -64,6 +63,8 @@ import androidx.camera.extensions.internal.Version;
 import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledValidator;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.testing.impl.CameraUtil;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,8 +192,7 @@ public class ExtensionsTestUtil {
      * Returns the parameters which contains the combination of CameraXConfig
      * name, CameraXConfig, implementationType, extensions mode and lens facing.
      */
-    @NonNull
-    public static Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
+    public static @NonNull Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
             @NonNull Context context,
             boolean excludeUnavailableModes
     ) {
@@ -393,7 +393,7 @@ public class ExtensionsTestUtil {
      */
     public static <T> void setCamera2SessionCaptureCallback(
             ExtendableBuilder<T> usecaseBuilder,
-            @NonNull CameraCaptureSession.CaptureCallback captureCallback) {
+            CameraCaptureSession.@NonNull CaptureCallback captureCallback) {
         usecaseBuilder.getMutableConfig().insertOption(
                 SESSION_CAPTURE_CALLBACK_OPTION,
                 captureCallback

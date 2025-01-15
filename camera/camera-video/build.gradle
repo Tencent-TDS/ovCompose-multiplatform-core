@@ -24,6 +24,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api(project(":camera:camera-core"))
     implementation("androidx.core:core:1.1.0")
@@ -47,7 +48,7 @@ dependencies {
         exclude group: "androidx.camera", module: "camera-core"
     })
 
-    androidTestImplementation(project(path: ":camera:camera-camera2"))
+    androidTestImplementation(project(":camera:camera-camera2"))
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
@@ -74,13 +75,15 @@ dependencies {
 }
 
 android {
+    compileSdk = 35
+
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.video"
+    namespace = "androidx.camera.video"
 }
 
 androidx {

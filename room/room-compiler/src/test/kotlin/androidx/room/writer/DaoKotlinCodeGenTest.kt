@@ -47,7 +47,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
         )
 
     @Test
-    fun pojoRowAdapter_variableProperty() {
+    fun dataClassRowAdapter_variableProperty() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -82,7 +82,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_variableProperty_java() {
+    fun dataClassRowAdapter_variableProperty_java() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -135,7 +135,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
 
     // b/274760383
     @Test
-    fun pojoRowAdapter_otherModule() {
+    fun dataClassRowAdapter_otherModule() {
         val lib =
             compileFiles(
                 sources =
@@ -191,7 +191,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_internalVisibility() {
+    fun dataClassRowAdapter_internalVisibility() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -227,7 +227,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_primitives() {
+    fun dataClassRowAdapter_primitives() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -264,7 +264,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_primitives_nullable() {
+    fun dataClassRowAdapter_primitives_nullable() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -301,7 +301,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_boolean() {
+    fun dataClassRowAdapter_boolean() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -334,7 +334,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_string() {
+    fun dataClassRowAdapter_string() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -366,7 +366,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_byteArray() {
+    fun dataClassRowAdapter_byteArray() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -399,7 +399,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_enum() {
+    fun dataClassRowAdapter_enum() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -437,7 +437,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_uuid() {
+    fun dataClassRowAdapter_uuid() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -476,7 +476,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_embedded() {
+    fun dataClassRowAdapter_embedded() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -516,7 +516,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_customTypeConverter() {
+    fun dataClassRowAdapter_customTypeConverter() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -558,7 +558,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_customTypeConverter_provided() {
+    fun dataClassRowAdapter_customTypeConverter_provided() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -601,7 +601,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_customTypeConverter_composite() {
+    fun dataClassRowAdapter_customTypeConverter_composite() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -649,7 +649,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_customTypeConverter_nullAware() {
+    fun dataClassRowAdapter_customTypeConverter_nullAware() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -698,7 +698,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_customTypeConverter_internalVisibility() {
+    fun dataClassRowAdapter_customTypeConverter_internalVisibility() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -716,6 +716,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
 
             @Entity
             @TypeConverters(FooConverter::class)
+            @ConsistentCopyVisibility
             internal data class MyEntity internal constructor(
                 @PrimaryKey
                 internal val pk: Int,
@@ -800,7 +801,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
             @Entity
             data class MyEntity(
                 @PrimaryKey
-                val pk: Int,
+                val pk: String,
             )
             """
                     .trimIndent()
@@ -1108,7 +1109,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun transactionMethodAdapter_interface(
+    fun transactionFunctionAdapter_interface(
         @TestParameter("disable", "all-compatibility", "all") jvmDefaultMode: String
     ) {
         // For parametrized tests, use method name from reflection
@@ -1180,7 +1181,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun transactionMethodAdapter_abstractClass() {
+    fun transactionFunctionAdapter_abstractClass() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -1235,7 +1236,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun deleteOrUpdateMethodAdapter() {
+    fun deleteOrUpdateFunctionAdapter() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -1273,7 +1274,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun insertOrUpsertMethodAdapter() {
+    fun insertOrUpsertFunctionAdapter() {
         val src =
             Source.kotlin(
                 "MyDao.kt",
@@ -1938,6 +1939,9 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
             abstract class MyDao {
                 @Query("SELECT * from MyEntity")
                 abstract fun getDataSourceFactory(): DataSource.Factory<Int, MyEntity>
+
+                @Query("SELECT * FROM MyEntity WHERE pk > :gt ORDER BY pk ASC")
+                abstract fun getDataSourceFactoryWithArgs(gt: Long): DataSource.Factory<Int, MyEntity>
             }
 
             @Entity
@@ -1952,7 +1956,8 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
         runTest(
             sources =
                 listOf(src, databaseSrc, COMMON.DATA_SOURCE_FACTORY, COMMON.POSITIONAL_DATA_SOURCE),
-            expectedFilePath = getTestGoldenPath(testName.methodName)
+            expectedFilePath = getTestGoldenPath(testName.methodName),
+            withKsp2 = false
         )
     }
 
@@ -2601,7 +2606,7 @@ class DaoKotlinCodeGenTest : BaseDaoKotlinCodeGenTest() {
     }
 
     @Test
-    fun pojoRowAdapter_valueClassConverter() {
+    fun dataClassRowAdapter_valueClassConverter() {
         val src =
             Source.kotlin(
                 "MyDao.kt",

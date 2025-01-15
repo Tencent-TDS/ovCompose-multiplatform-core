@@ -21,7 +21,7 @@ import android.util.SparseArray
 import android.view.View
 import android.view.autofill.AutofillValue
 import androidx.compose.ui.geometry.Rect
-import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,10 +48,10 @@ class AndroidPerformAutofillTest {
     fun performAutofill_name() {
         // Arrange.
         val expectedValue = "Name"
-        var autofilledValue = ""
+        var autoFilledValue = ""
         val autofillNode =
             AutofillNode(
-                onFill = { autofilledValue = it },
+                onFill = { autoFilledValue = it },
                 autofillTypes = listOf(AutofillType.PersonFullName),
                 boundingBox = Rect(0f, 0f, 0f, 0f)
             )
@@ -66,17 +66,17 @@ class AndroidPerformAutofillTest {
         androidAutofill.performAutofill(autofillValues)
 
         // Assert.
-        Truth.assertThat(autofilledValue).isEqualTo(expectedValue)
+        assertThat(autoFilledValue).isEqualTo(expectedValue)
     }
 
     @Test
     fun performAutofill_email() {
         // Arrange.
         val expectedValue = "email@google.com"
-        var autofilledValue = ""
+        var autoFilledValue = ""
         val autofillNode =
             AutofillNode(
-                onFill = { autofilledValue = it },
+                onFill = { autoFilledValue = it },
                 autofillTypes = listOf(AutofillType.EmailAddress),
                 boundingBox = Rect(0f, 0f, 0f, 0f)
             )
@@ -91,6 +91,6 @@ class AndroidPerformAutofillTest {
         androidAutofill.performAutofill(autofillValues)
 
         // Assert.
-        Truth.assertThat(autofilledValue).isEqualTo(expectedValue)
+        assertThat(autoFilledValue).isEqualTo(expectedValue)
     }
 }

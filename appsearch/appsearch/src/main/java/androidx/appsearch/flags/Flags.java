@@ -381,6 +381,8 @@ public final class Flags {
 
     /** Whether delete propagation related APIs should be enabled. */
     public static boolean enableDeletePropagationType() {
-        return true;
+        // TODO(b/384947619): enable this flag once expiry propagation and dependency check are
+        //   implemented.
+        return false;
     }
 }

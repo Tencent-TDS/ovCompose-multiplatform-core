@@ -18,12 +18,13 @@ package androidx.camera.video.internal.config;
 
 import android.util.Range;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.EncoderProfilesProxy.AudioProfileProxy;
 import androidx.camera.video.AudioSpec;
 import androidx.camera.video.internal.audio.AudioSettings;
 import androidx.core.util.Supplier;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An {@link AudioSettings} supplier that resolves requested audio settings from an
@@ -51,8 +52,7 @@ public final class AudioSettingsAudioProfileResolver implements Supplier<AudioSe
     }
 
     @Override
-    @NonNull
-    public AudioSettings get() {
+    public @NonNull AudioSettings get() {
         // Resolve audio source
         int resolvedAudioSource = AudioConfigUtil.resolveAudioSource(mAudioSpec);
 

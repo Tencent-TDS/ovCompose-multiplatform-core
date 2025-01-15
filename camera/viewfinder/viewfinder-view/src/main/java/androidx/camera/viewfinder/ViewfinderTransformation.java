@@ -41,13 +41,14 @@ import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.viewfinder.core.ScaleType;
 import androidx.camera.viewfinder.internal.transform.TransformationInfo;
 import androidx.camera.viewfinder.internal.utils.Logger;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Handles {@link CameraViewfinder} transformation.
@@ -93,12 +94,10 @@ final class ViewfinderTransformation {
 
     private static final ScaleType DEFAULT_SCALE_TYPE = ScaleType.FILL_CENTER;
 
-    @Nullable
-    private Size mResolution;
+    private @Nullable Size mResolution;
     // This represents the area of the Surface that should be visible to end users. The area is
     // defined by the Viewport class.
-    @Nullable
-    private Rect mSurfaceCropRect;
+    private @Nullable Rect mSurfaceCropRect;
 
     private int mViewfinderRotationDegrees;
     private int mTargetRotation;

@@ -205,7 +205,8 @@ class DiscouragedGradleMethodDetector : Detector(), Detector.UastScanner {
                 "getParent" to Replacement(PROJECT, null, PROJECT_ISOLATION_ISSUE),
                 "getProperties" to
                     Replacement(PROJECT, "providers.gradleProperty", PROJECT_ISOLATION_ISSUE),
-                "getRootProject" to Replacement(PROJECT, null, PROJECT_ISOLATION_ISSUE),
+                "getRootProject" to
+                    Replacement(PROJECT, "isolated.rootProject", PROJECT_ISOLATION_ISSUE),
                 "groupBy" to Replacement(TASK_CONTAINER, null, EAGER_CONFIGURATION_ISSUE),
                 "matching" to Replacement(TASK_COLLECTION, null, EAGER_CONFIGURATION_ISSUE),
                 "map" to Replacement(TASK_CONTAINER, null, EAGER_CONFIGURATION_ISSUE),

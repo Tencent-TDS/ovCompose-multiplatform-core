@@ -16,8 +16,8 @@
 
 package androidx.camera.viewfinder.internal.quirk;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,11 +28,10 @@ import java.util.List;
  */
 public class Quirks {
 
-    @NonNull
-    private final List<Quirk> mQuirks;
+    private final @NonNull List<Quirk> mQuirks;
 
     /** Wraps the provided list of quirks. */
-    public Quirks(@NonNull final List<Quirk> quirks) {
+    public Quirks(final @NonNull List<Quirk> quirks) {
         mQuirks = new ArrayList<>(quirks);
     }
 
@@ -47,8 +46,7 @@ public class Quirks {
      * @return A {@link Quirk} instance of the provided type, or {@code null} if it isn't found.
      */
     @SuppressWarnings("unchecked")
-    @Nullable
-    public <T extends Quirk> T get(@NonNull final Class<T> quirkClass) {
+    public <T extends Quirk> @Nullable T get(final @NonNull Class<T> quirkClass) {
         for (final Quirk quirk : mQuirks) {
             if (quirk.getClass() == quirkClass) {
                 return (T) quirk;

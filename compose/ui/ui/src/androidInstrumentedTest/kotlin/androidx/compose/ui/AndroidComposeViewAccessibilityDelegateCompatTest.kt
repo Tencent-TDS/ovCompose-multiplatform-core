@@ -35,11 +35,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.AndroidComposeView
 import androidx.compose.ui.platform.AndroidComposeViewAccessibilityDelegateCompat
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testClipEntry
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
@@ -103,6 +105,8 @@ import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Correspondence
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -218,7 +222,10 @@ class AndroidComposeViewAccessibilityDelegateCompatTest {
     fun testPopulateAccessibilityNodeInfoProperties_disabled() {
         // Arrange.
         rule.setContentWithAccessibilityEnabled {
-            LocalClipboardManager.current.setText(AnnotatedString("test"))
+            val clipboard = LocalClipboard.current
+            rememberCoroutineScope().launch(start = CoroutineStart.UNDISPATCHED) {
+                clipboard.setClipEntry(testClipEntry("test"))
+            }
             Box(
                 Modifier.size(10.dp).semantics(mergeDescendants = true) {
                     testTag = tag
@@ -896,7 +903,10 @@ class AndroidComposeViewAccessibilityDelegateCompatTest {
     fun test_PasteAction_ifFocused() {
         // Arrange.
         rule.setContentWithAccessibilityEnabled {
-            LocalClipboardManager.current.setText(AnnotatedString("test"))
+            val clipboard = LocalClipboard.current
+            rememberCoroutineScope().launch(start = CoroutineStart.UNDISPATCHED) {
+                clipboard.setClipEntry(testClipEntry("test"))
+            }
             Box(
                 Modifier.size(10.dp).semantics(mergeDescendants = true) {
                     testTag = tag
@@ -923,7 +933,10 @@ class AndroidComposeViewAccessibilityDelegateCompatTest {
     fun test_noPasteAction_ifUnfocused() {
         // Arrange.
         rule.setContentWithAccessibilityEnabled {
-            LocalClipboardManager.current.setText(AnnotatedString("test"))
+            val clipboard = LocalClipboard.current
+            rememberCoroutineScope().launch(start = CoroutineStart.UNDISPATCHED) {
+                clipboard.setClipEntry(testClipEntry("test"))
+            }
             Box(
                 Modifier.size(10.dp).semantics(mergeDescendants = true) {
                     testTag = tag

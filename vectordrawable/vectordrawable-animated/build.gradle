@@ -38,7 +38,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles("proguard-rules.pro")
     }
-    namespace "androidx.vectordrawable.animated"
+    namespace = "androidx.vectordrawable.animated"
 }
 
 androidx {

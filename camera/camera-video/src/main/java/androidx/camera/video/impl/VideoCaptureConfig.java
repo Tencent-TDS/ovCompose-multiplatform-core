@@ -20,7 +20,6 @@ import static androidx.core.util.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
-import androidx.annotation.NonNull;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.ImageFormatConstants;
@@ -32,6 +31,8 @@ import androidx.camera.video.VideoCapture;
 import androidx.camera.video.VideoOutput;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Config for a video capture use case.
@@ -68,13 +69,11 @@ public final class VideoCaptureConfig<T extends VideoOutput>
     }
 
     @SuppressWarnings("unchecked")
-    @NonNull
-    public T getVideoOutput() {
+    public @NonNull T getVideoOutput() {
         return (T) requireNonNull(retrieveOption(OPTION_VIDEO_OUTPUT));
     }
 
-    @NonNull
-    public Function<VideoEncoderConfig, VideoEncoderInfo> getVideoEncoderInfoFinder() {
+    public @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> getVideoEncoderInfoFinder() {
         return requireNonNull(retrieveOption(OPTION_VIDEO_ENCODER_INFO_FINDER));
     }
 
@@ -92,9 +91,8 @@ public final class VideoCaptureConfig<T extends VideoOutput>
         return ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE;
     }
 
-    @NonNull
     @Override
-    public Config getConfig() {
+    public @NonNull Config getConfig() {
         return mConfig;
     }
 }

@@ -44,15 +44,20 @@ dependencies {
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.kotlinCoroutinesTest)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.testRunner)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.truth)
 }
 
 android {
-    namespace "androidx.pdf.viewer.fragment"
+    namespace = "androidx.pdf.viewer.fragment"
 
     defaultConfig {
-        minSdk 31
-        compileSdk 35
-        targetSdk 31
+        minSdk = 31
+        compileSdk = 35
+        targetSdk = 31
     }
 }
 

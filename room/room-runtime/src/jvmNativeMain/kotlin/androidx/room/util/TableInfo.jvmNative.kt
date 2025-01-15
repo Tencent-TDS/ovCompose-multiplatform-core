@@ -19,6 +19,7 @@ import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.room.ColumnInfo.SQLiteTypeAffinity
 import androidx.sqlite.SQLiteConnection
+import kotlin.jvm.JvmStatic
 
 /**
  * A data class that holds the information about a table.
@@ -72,6 +73,7 @@ actual constructor(
          * @param tableName The table name.
          * @return A TableInfo containing the schema information for the provided table name.
          */
+        @JvmStatic
         actual fun read(connection: SQLiteConnection, tableName: String): TableInfo {
             return readTableInfo(connection, tableName)
         }

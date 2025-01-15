@@ -42,5 +42,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.arch.core"
+    namespace = "androidx.arch.core"
 }

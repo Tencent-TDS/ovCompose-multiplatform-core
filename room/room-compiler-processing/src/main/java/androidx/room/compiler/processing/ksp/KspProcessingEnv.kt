@@ -171,8 +171,19 @@ internal class KspProcessingEnv(
     }
 
     override fun findGeneratedAnnotation(): XTypeElement? {
-        return findTypeElement("javax.annotation.processing.Generated")
-            ?: findTypeElement("javax.annotation.Generated")
+        val jvmPlatform =
+            delegate.platforms.filterIsInstance<JvmPlatformInfo>().singleOrNull() ?: return null
+        val jvmTarget =
+            try {
+                jvmPlatform.jvmTarget.toInt()
+            } catch (ex: NumberFormatException) {
+                null
+            }
+        return if (jvmTarget != null && jvmTarget > 9) {
+            findTypeElement("javax.annotation.processing.Generated")
+        } else {
+            findTypeElement("javax.annotation.Generated")
+        }
     }
 
     override fun getDeclaredType(type: XTypeElement, vararg types: XType): KspType {

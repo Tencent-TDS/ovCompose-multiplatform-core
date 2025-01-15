@@ -108,7 +108,7 @@ import java.util.Locale
  * @param content The content of the [TimeText] - displays the current time by default.
  */
 @Composable
-fun TimeText(
+public fun TimeText(
     modifier: Modifier = Modifier,
     curvedModifier: CurvedModifier = CurvedModifier,
     maxSweepAngle: Float = TimeTextDefaults.MaxSweepAngle,
@@ -157,7 +157,7 @@ fun TimeText(
 }
 
 /** Receiver scope which is used by [TimeText]. */
-sealed class TimeTextScope {
+public sealed class TimeTextScope {
     /**
      * Adds a composable [Text] for non-round devices and [curvedText] for round devices to
      * [TimeText] content. Typically used to add a short status message ahead of the time text.
@@ -169,21 +169,21 @@ sealed class TimeTextScope {
      *   specified. The default value, [TimeTextDefaults.AutoTextWeight], makes this text have
      *   weight 1f if it's the only one, and not have weight if there are two or more.
      */
-    abstract fun text(
+    public abstract fun text(
         text: String,
         style: TextStyle? = null,
         weight: Float = TimeTextDefaults.AutoTextWeight
     )
 
     /** Adds a text displaying current time. */
-    abstract fun time()
+    public abstract fun time()
 
     /**
      * Adds a separator in [TimeText].
      *
      * @param style configuration for the [separator] such as color, font etc.
      */
-    abstract fun separator(style: TextStyle? = null)
+    public abstract fun separator(style: TextStyle? = null)
 
     /**
      * Adds a composable in content of [TimeText]. This can be used to display non-text information
@@ -191,18 +191,18 @@ sealed class TimeTextScope {
      *
      * @param content Slot for the [composable] to be displayed.
      */
-    abstract fun composable(content: @Composable () -> Unit)
+    public abstract fun composable(content: @Composable () -> Unit)
 }
 
 /** Contains the default values used by [TimeText]. */
-object TimeTextDefaults {
+public object TimeTextDefaults {
     /** The default padding from the edge of the screen. */
     private val Padding = PaddingDefaults.edgePadding
     /** Default format for 24h clock. */
-    const val TimeFormat24Hours = "HH:mm"
+    public const val TimeFormat24Hours: String = "HH:mm"
 
     /** Default format for 12h clock. */
-    const val TimeFormat12Hours = "h:mm"
+    public const val TimeFormat12Hours: String = "h:mm"
 
     /**
      * The default maximum sweep angle in degrees used by [TimeText].
@@ -210,17 +210,17 @@ object TimeTextDefaults {
      * This is calculated by keeping the length of the corresponding chord on the circle to be
      * approximately 57% of the screen width.
      */
-    const val MaxSweepAngle: Float = 70f
+    public const val MaxSweepAngle: Float = 70f
 
     /** The default content padding used by [TimeText]. */
-    val ContentPadding: PaddingValues = PaddingValues(top = Padding)
+    public val ContentPadding: PaddingValues = PaddingValues(top = Padding)
 
     /**
      * Retrieves default timeFormat for the device. Depending on settings, it can be either 12h or
      * 24h format.
      */
     @Composable
-    fun timeFormat(): String {
+    public fun timeFormat(): String {
         val format = if (is24HourFormat()) TimeFormat24Hours else TimeFormat12Hours
         return DateFormat.getBestDateTimePattern(Locale.getDefault(), format)
             .replace("a", "")
@@ -236,11 +236,11 @@ object TimeTextDefaults {
      * @param fontSize The font size.
      */
     @Composable
-    fun timeTextStyle(
+    public fun timeTextStyle(
         background: Color = Color.Unspecified,
         color: Color = MaterialTheme.colorScheme.onBackground,
         fontSize: TextUnit = TextUnit.Unspecified,
-    ) =
+    ): TextStyle =
         MaterialTheme.typography.arcMedium +
             TextStyle(color = color, background = background, fontSize = fontSize)
 
@@ -258,7 +258,7 @@ object TimeTextDefaults {
      * @param timeFormat Date and time string pattern.
      */
     @Composable
-    fun rememberTimeSource(timeFormat: String): TimeSource =
+    public fun rememberTimeSource(timeFormat: String): TimeSource =
         remember(timeFormat) { DefaultTimeSource(timeFormat) }
 
     /**
@@ -301,17 +301,17 @@ object TimeTextDefaults {
      * text, and no weight will be used if there are 2 or more texts. For the 2+ texts case, usually
      * one of them should have weight manually specified to ensure its properly cut and ellipsized.
      */
-    val AutoTextWeight = -1f
+    public val AutoTextWeight: Float = -1f
 }
 
-interface TimeSource {
+public interface TimeSource {
 
     /**
      * A method responsible for returning updated time string.
      *
      * @return Formatted time string.
      */
-    @Composable fun currentTime(): String
+    @Composable public fun currentTime(): String
 }
 
 /** Implementation of [TimeTextScope] for round devices. */

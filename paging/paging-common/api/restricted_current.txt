@@ -503,7 +503,7 @@ package androidx.paging {
     method public Key? component3();
     method public int component4();
     method public int component5();
-    method public androidx.paging.PagingSource.LoadResult.Page<Key,Value> copy(java.util.List<? extends Value> data, Key? prevKey, Key? nextKey, @IntRange(from=-2147483648L) int itemsBefore, @IntRange(from=-2147483648L) int itemsAfter);
+    method public androidx.paging.PagingSource.LoadResult.Page<Key,Value> copy(java.util.List<? extends Value> data, Key? prevKey, Key? nextKey, @IntRange(from=androidx.paging.PagingSource.LoadResult.Page.COUNT_UNDEFINED.toLong()) int itemsBefore, @IntRange(from=androidx.paging.PagingSource.LoadResult.Page.COUNT_UNDEFINED.toLong()) int itemsAfter);
     method public java.util.List<Value> getData();
     method public int getItemsAfter();
     method public int getItemsBefore();
@@ -625,7 +625,7 @@ package androidx.paging {
 
   public static final class RemoteMediator.MediatorResult.Success extends androidx.paging.RemoteMediator.MediatorResult {
     ctor public RemoteMediator.MediatorResult.Success(boolean endOfPaginationReached);
-    method public boolean getEndOfPaginationReached();
+    method public boolean endOfPaginationReached();
     property public final boolean endOfPaginationReached;
   }
 

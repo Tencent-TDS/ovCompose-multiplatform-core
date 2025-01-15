@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.RunApiTasks
 
 plugins {
     id("AndroidXPlugin")
@@ -37,7 +36,6 @@ dependencies {
 androidx {
     name = "WindowManager Sidecar"
     type = LibraryType.PUBLISHED_LIBRARY // Only to generate per-project-zips
-    runApiTasks = new RunApiTasks.Yes("Need to track API surface but should never publish")
     inceptionYear = "2020"
     description = "This version of the OEM extension is deprecated. Please use window:extensions:extensions." +
             "module instead."
@@ -45,5 +43,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.window.sidecar"
+    namespace = "androidx.window.sidecar"
 }

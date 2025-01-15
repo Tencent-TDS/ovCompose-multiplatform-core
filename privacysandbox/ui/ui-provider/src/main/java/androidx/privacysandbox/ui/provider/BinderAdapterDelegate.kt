@@ -43,7 +43,6 @@ import androidx.privacysandbox.ui.core.ProtocolConstants
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
-import androidx.privacysandbox.ui.core.SessionObserverFactory
 import androidx.privacysandbox.ui.provider.impl.DeferredSessionClient
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
@@ -144,10 +143,6 @@ private class BinderAdapterDelegate(
             )
         }
     }
-
-    override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-    override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
 
     /** Called in remote mode via binder call. */
     override fun openRemoteSession(
@@ -358,7 +353,7 @@ private class BinderAdapterDelegate(
 
         override fun onSessionOpened(session: SandboxedUiAdapter.Session) {
             val sessionObservers: MutableList<SessionObserver> = mutableListOf()
-            if (adapter is AbstractSandboxedUiAdapter) {
+            if (adapter is SessionObserverFactoryRegistry) {
                 adapter.sessionObserverFactories.forEach { sessionObservers.add(it.create()) }
             }
             client.onSessionOpened(SessionForObservers(session, sessionObservers))

@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -54,7 +53,7 @@ androidx {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-    namespace "androidx.wear.watchface.editor.guava"
+    namespace = "androidx.wear.watchface.editor.guava"
 }

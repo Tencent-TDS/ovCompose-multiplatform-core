@@ -45,7 +45,7 @@ dependencies {
 }
 
 android {
-    namespace "androidx.security"
+    namespace = "androidx.security"
 }
 
 androidx {

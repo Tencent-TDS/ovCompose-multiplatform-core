@@ -532,7 +532,7 @@ object SplitButtonDefaults {
                             )
                         }
                     }
-                    .semantics { role = Role.Checkbox },
+                    .semantics { role = Role.Button },
             enabled = enabled,
             shape = shape,
             color = colors.containerColor,

@@ -16,12 +16,13 @@
 
 package androidx.appsearch.builtintypes;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -36,9 +37,8 @@ public final class WebPage extends Thing {
     // DO NOT CHANGE since it will alter schema definition
     public static final String SCHEMA_NAME = "builtin:WebPage";
 
-    @Nullable
     @Document.DocumentProperty
-    private final ImageObject mFavicon;
+    private final @Nullable ImageObject mFavicon;
 
     @OptIn(markerClass = ExperimentalAppSearchApi.class)
     WebPage(@NonNull String namespace, @NonNull String id, int documentScore,
@@ -55,8 +55,7 @@ public final class WebPage extends Thing {
     /**
      * Returns a favicon that represents the web page.
      */
-    @Nullable
-    public ImageObject getFavicon() {
+    public @Nullable ImageObject getFavicon() {
         return mFavicon;
     }
 
@@ -92,16 +91,14 @@ public final class WebPage extends Thing {
         /**
          * Returns a favicon that represents the web page.
          */
-        @NonNull
-        public Self setFavicon(@Nullable ImageObject favicon) {
+        public @NonNull Self setFavicon(@Nullable ImageObject favicon) {
             mFavicon = favicon;
             return (Self) this;
         }
 
         /** Builds the {@link WebPage}. */
-        @NonNull
         @Override
-        public WebPage build() {
+        public @NonNull WebPage build() {
             return new WebPage(
                     mNamespace,
                     mId,

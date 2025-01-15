@@ -39,7 +39,6 @@ import androidx.privacysandbox.ui.core.IRemoteSessionController
 import androidx.privacysandbox.ui.core.ISandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ProtocolConstants
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionObserverFactory
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -166,10 +165,6 @@ object SandboxedUiAdapterFactory {
                 client.onSessionError(exception)
             }
         }
-
-        override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-        override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
 
         private class SessionClientProxyHandler(
             private val origClient: SandboxedUiAdapter.SessionClient,
@@ -298,10 +293,6 @@ object SandboxedUiAdapterFactory {
             }
         }
 
-        override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
-        override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {}
-
         class RemoteSessionClient(
             val context: Context,
             val client: SandboxedUiAdapter.SessionClient,
@@ -391,7 +382,6 @@ object SandboxedUiAdapterFactory {
                 }
             }
 
-            @SuppressLint("ClassVerificationFailure")
             override fun notifyResized(width: Int, height: Int) {
 
                 val parentView = surfaceView.parent as View

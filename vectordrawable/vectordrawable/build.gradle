@@ -32,7 +32,7 @@ android {
     aaptOptions {
         additionalParameters "--no-version-vectors"
     }
-    namespace "androidx.vectordrawable"
+    namespace = "androidx.vectordrawable"
 }
 
 androidx {

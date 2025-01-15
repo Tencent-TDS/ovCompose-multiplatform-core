@@ -49,11 +49,8 @@ dependencies {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.camera.viewfinder.compose"
-
-    sourceSets.androidTest.assets.srcDirs +=
-            project.rootDir.absolutePath + "/../../golden/camera/viewfinder/viewfinder-compose"
+    compileSdk = 35
+    namespace = "androidx.camera.viewfinder.compose"
 }
 
 androidx {
@@ -62,4 +59,5 @@ androidx {
     inceptionYear = "2023"
     description = "Standalone Composable Viewfinder for Camera"
     legacyDisableKotlinStrictApiMode = true
+    addGoldenImageAssets()
 }

@@ -16,9 +16,7 @@
 
 package androidx.wear.compose.material3.macrobenchmark.common
 
-import android.os.Build
 import android.os.SystemClock
-import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.icons.Icons
@@ -43,7 +41,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-@RequiresApi(Build.VERSION_CODES.O)
 object DatePickerBenchmark : MacrobenchmarkScreen {
     override val content: @Composable (BoxScope.() -> Unit)
         get() = {
@@ -61,8 +58,8 @@ object DatePickerBenchmark : MacrobenchmarkScreen {
                         datePickerDate = it
                         showDatePicker = false
                     },
-                    minDate = minDate,
-                    maxDate = maxDate,
+                    minValidDate = minDate,
+                    maxValidDate = maxDate,
                     datePickerType = DatePickerType.YearMonthDay
                 )
             } else {

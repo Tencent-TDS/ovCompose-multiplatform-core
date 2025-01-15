@@ -29,5 +29,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.asynclayoutinflater.appcompatfactory"
+    namespace = "androidx.asynclayoutinflater.appcompatfactory"
 }

@@ -17,6 +17,7 @@ package androidx.room.util
 
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
+import kotlin.jvm.JvmStatic
 
 /**
  * A data class that holds the information about a view.
@@ -47,6 +48,7 @@ actual constructor(
          * @param viewName The view name.
          * @return A ViewInfo containing the schema information for the provided view name.
          */
+        @JvmStatic
         actual fun read(connection: SQLiteConnection, viewName: String): ViewInfo {
             return readViewInfo(connection, viewName)
         }

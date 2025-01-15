@@ -31,7 +31,7 @@ class DatabaseView(
     embeddedFields: List<EmbeddedField>,
     constructor: Constructor?
 ) :
-    Pojo(element, type, fields, embeddedFields, emptyList(), constructor),
+    DataClass(element, type, fields, embeddedFields, emptyList(), constructor),
     HasSchemaIdentity,
     EntityOrView {
 

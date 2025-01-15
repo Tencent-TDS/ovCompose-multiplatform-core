@@ -266,7 +266,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun supports_testtag() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 progress = { 0.5f },
                 modifier = Modifier.testTag(TEST_TAG)
             )
@@ -280,7 +280,7 @@ class CircularProgressIndicatorContentTest {
         val progress = mutableStateOf(0f)
 
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier =
                     Modifier.testTag(TEST_TAG).semantics {
                         progressBarRangeInfo = ProgressBarRangeInfo(progress.value, 0f..1f)
@@ -300,7 +300,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun contains_progress_color() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 1f },
                 colors =
@@ -323,7 +323,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun contains_progress_incomplete_color() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0f },
                 colors =
@@ -346,7 +346,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun change_start_end_angle() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0.5f },
                 startAngle = 0f,
@@ -375,7 +375,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun set_small_progress_value() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0.02f },
                 colors =
@@ -401,7 +401,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun set_small_stroke_width() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0.5f },
                 strokeWidth = CircularProgressIndicatorDefaults.smallStrokeWidth,
@@ -427,7 +427,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun set_large_stroke_width() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0.5f },
                 strokeWidth = CircularProgressIndicatorDefaults.largeStrokeWidth,
@@ -454,7 +454,7 @@ class CircularProgressIndicatorContentTest {
     @Test
     fun progress_disabled_contains_disabled_colors() {
         setContentWithTheme {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 modifier = Modifier.size(COMPONENT_SIZE).testTag(TEST_TAG),
                 progress = { 0.5f },
                 enabled = false,

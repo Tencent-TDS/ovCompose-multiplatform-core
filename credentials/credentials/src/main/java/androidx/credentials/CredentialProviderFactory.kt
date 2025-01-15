@@ -73,13 +73,17 @@ internal class CredentialProviderFactory(val context: Context) {
         shouldFallbackToPreU: Boolean = true
     ): CredentialProvider? {
         if (request is CreateRestoreCredentialRequest || request == TYPE_CLEAR_RESTORE_CREDENTIAL) {
-            return tryCreatePreUOemProvider()
+            return tryCreateClosedSourceProviderFromManifest()
         } else if (request is GetCredentialRequest) {
             for (option in request.credentialOptions) {
                 if (option is GetRestoreCredentialOption || option is GetDigitalCredentialOption) {
-                    return tryCreatePreUOemProvider()
+                    return tryCreateClosedSourceProviderFromManifest()
                 }
             }
+        } else if (
+            request is CreatePublicKeyCredentialRequest && request.isConditionalCreateRequest
+        ) {
+            return tryCreateClosedSourceProviderFromManifest()
         }
         return getBestAvailableProvider(shouldFallbackToPreU)
     }
@@ -93,17 +97,17 @@ internal class CredentialProviderFactory(val context: Context) {
         if (Build.VERSION.SDK_INT >= 34) { // Android U
             val postUProvider = tryCreatePostUProvider()
             if (postUProvider == null && shouldFallbackToPreU) {
-                return tryCreatePreUOemProvider()
+                return tryCreateClosedSourceProviderFromManifest()
             }
             return postUProvider
         } else if (Build.VERSION.SDK_INT <= MAX_CRED_MAN_PRE_FRAMEWORK_API_LEVEL) {
-            return tryCreatePreUOemProvider()
+            return tryCreateClosedSourceProviderFromManifest()
         } else {
             return null
         }
     }
 
-    private fun tryCreatePreUOemProvider(): CredentialProvider? {
+    private fun tryCreateClosedSourceProviderFromManifest(): CredentialProvider? {
         if (testMode) {
             if (testPreUProvider == null) {
                 return null
@@ -116,10 +120,10 @@ internal class CredentialProviderFactory(val context: Context) {
         }
 
         val classNames = getAllowedProvidersFromManifest(context)
-        if (classNames.isEmpty()) {
-            return null
+        return if (classNames.isEmpty()) {
+            null
         } else {
-            return instantiatePreUProvider(classNames, context)
+            instantiatePreUProvider(classNames, context)
         }
     }
 

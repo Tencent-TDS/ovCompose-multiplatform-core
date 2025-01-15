@@ -18,7 +18,7 @@ package androidx.camera.video.internal.encoder;
 
 import android.util.Range;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 /**
  * VideoEncoderInfo provides video encoder related information and capabilities.
@@ -46,12 +46,10 @@ public interface VideoEncoderInfo extends EncoderInfo {
     }
 
     /** Returns the range of supported video widths. */
-    @NonNull
-    Range<Integer> getSupportedWidths();
+    @NonNull Range<Integer> getSupportedWidths();
 
     /** Returns the range of supported video heights. */
-    @NonNull
-    Range<Integer> getSupportedHeights();
+    @NonNull Range<Integer> getSupportedHeights();
 
     /**
      * Returns the range of supported video widths for a video height.
@@ -60,8 +58,7 @@ public interface VideoEncoderInfo extends EncoderInfo {
      * @see #getSupportedHeights()
      * @see #getHeightAlignment()
      */
-    @NonNull
-    Range<Integer> getSupportedWidthsFor(int height);
+    @NonNull Range<Integer> getSupportedWidthsFor(int height);
 
     /**
      * Returns the range of supported video heights for a video width.
@@ -70,8 +67,7 @@ public interface VideoEncoderInfo extends EncoderInfo {
      * @see #getSupportedWidths()
      * @see #getWidthAlignment()
      */
-    @NonNull
-    Range<Integer> getSupportedHeightsFor(int width);
+    @NonNull Range<Integer> getSupportedHeightsFor(int width);
 
     /**
      * Returns the alignment requirement for video width (in pixels).
@@ -90,6 +86,5 @@ public interface VideoEncoderInfo extends EncoderInfo {
     /**
      * Returns the video encoder's bitrate range.
      */
-    @NonNull
-    Range<Integer> getSupportedBitrateRange();
+    @NonNull Range<Integer> getSupportedBitrateRange();
 }

@@ -625,7 +625,7 @@ class NullabilityAwareTypeConverterStoreTest {
                     )
                 assertThat(intoStatement).isNull()
                 val fromCursor =
-                    storeWithoutConverter.findConverterFromCursor(
+                    storeWithoutConverter.findConverterFromStatement(
                         output = byteArray,
                         columnTypes = listOf(string.makeNullable(), string.makeNonNullable())
                     )
@@ -642,7 +642,7 @@ class NullabilityAwareTypeConverterStoreTest {
                 assertThat(intoStatement?.to).isEqualTo(string.makeNonNullable())
                 assertThat(intoStatement?.from).isEqualTo(byteArray.makeNonNullable())
                 val fromCursor =
-                    storeWithConverter.findConverterFromCursor(
+                    storeWithConverter.findConverterFromStatement(
                         output = byteArray,
                         columnTypes = listOf(string.makeNullable(), string.makeNonNullable())
                     )
@@ -816,7 +816,7 @@ class NullabilityAwareTypeConverterStoreTest {
                 )
                 .forEach { myClassType ->
                     val toMyClass =
-                        store.findConverterFromCursor(columnTypes = null, output = myClassType)
+                        store.findConverterFromStatement(columnTypes = null, output = myClassType)
                     val fromMyClass =
                         store.findConverterIntoStatement(input = myClassType, columnTypes = null)
 

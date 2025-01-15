@@ -99,7 +99,7 @@ import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.METADATA_TAG
  *   it an edge button, the given label will be ignored.
  * @param onClick The clickable action for whole layout. If any area (outside of other added
  *   tappable components) is clicked, it will fire the associated action.
- * @sample androidx.wear.protolayout.material3.samples.topLeveLayout
+ * @sample androidx.wear.protolayout.material3.samples.topLevelLayout
  */
 // TODO: b/356568440 - Add sample above and put it in a proper samples file and link with @sample
 // TODO: b/346958146 - Link visuals once they are available.
@@ -210,7 +210,7 @@ private fun MaterialScope.getIconPlaceholder(overrideIcon: Boolean): LayoutEleme
                 .setBackground(
                     ModifiersBuilders.Background.Builder()
                         .setCorner(shapes.full)
-                        .setColor(theme.colorScheme.onBackground)
+                        .setColor(theme.colorScheme.onBackground.prop)
                         .build()
                 )
                 .build()

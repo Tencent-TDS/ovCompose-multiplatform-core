@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.RunApiTasks
+
 import androidx.build.LibraryType
 
 plugins {
@@ -57,7 +57,7 @@ android {
         aidl = true
     }
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
     lintOptions {
         disable 'NullabilityAnnotationsDetector' // False alarm on transformed files.
@@ -65,7 +65,7 @@ android {
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.watchface.complications.rendering"
+    namespace = "androidx.wear.watchface.complications.rendering"
 }
 
 androidx {

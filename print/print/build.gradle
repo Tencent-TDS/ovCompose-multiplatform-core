@@ -25,5 +25,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.print"
+    namespace = "androidx.print"
 }

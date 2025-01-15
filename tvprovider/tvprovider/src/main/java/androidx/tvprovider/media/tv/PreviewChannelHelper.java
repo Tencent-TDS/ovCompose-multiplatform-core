@@ -205,7 +205,10 @@ public class PreviewChannelHelper {
                         null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 do {
-                    channels.add(PreviewChannel.fromCursor(cursor));
+                    PreviewChannel previewChannel = PreviewChannel.fromCursor(cursor);
+                    if (previewChannel != null) {
+                        channels.add(previewChannel);
+                    }
                 } while (cursor.moveToNext());
             }
         }

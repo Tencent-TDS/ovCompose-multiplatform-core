@@ -21,6 +21,7 @@ import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_ALWAYS_FLASH;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_EXTERNAL_FLASH;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_OFF;
@@ -56,7 +57,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
@@ -94,6 +94,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import com.google.common.truth.BooleanSubject;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -397,20 +398,8 @@ public final class Camera2CameraControlImplDeviceTest {
     public void enableTorch_aeModeSetAndRequestUpdated() throws InterruptedException {
         assumeTrue(mHasFlashUnit);
         mCamera2CameraControlImpl.enableTorch(true);
-
         HandlerUtil.waitForLooperToIdle(mHandler);
-
-        verify(mControlUpdateCallback, times(1)).onCameraControlUpdateSessionConfig();
-        SessionConfig sessionConfig = mCamera2CameraControlImpl.getSessionConfig();
-        Camera2ImplConfig camera2Config = new Camera2ImplConfig(
-                sessionConfig.getImplementationOptions());
-
-        assertAeMode(camera2Config, CONTROL_AE_MODE_ON);
-
-        assertThat(
-                camera2Config.getCaptureRequestOption(
-                        CaptureRequest.FLASH_MODE, FLASH_MODE_OFF))
-                .isEqualTo(FLASH_MODE_TORCH);
+        verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON, FLASH_MODE_TORCH);
     }
 
     @Test
@@ -440,6 +429,47 @@ public final class Camera2CameraControlImplDeviceTest {
 
         assertAeMode(resultCaptureConfig, CONTROL_AE_MODE_ON);
 
+    }
+
+    @SdkSuppress(minSdkVersion = 35)
+    @Test
+    public void enableLowLightBoost_aeModeSetAndRequestUpdated() throws InterruptedException {
+        assumeTrue(mCamera2CameraControlImpl.getLowLightBoostControl().isLowLightBoostSupported());
+        mCamera2CameraControlImpl.enableLowLightBoostAsync(true);
+        HandlerUtil.waitForLooperToIdle(mHandler);
+        verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY,
+                FLASH_MODE_OFF);
+    }
+
+    @SdkSuppress(minSdkVersion = 35)
+    @Test
+    public void enableLowLightBoostCanOverrideTorch_aeModeSetAndRequestUpdated()
+            throws InterruptedException {
+        assumeTrue(mCamera2CameraControlImpl.getLowLightBoostControl().isLowLightBoostSupported());
+        assumeTrue(mHasFlashUnit);
+
+        mCamera2CameraControlImpl.enableTorch(true);
+        HandlerUtil.waitForLooperToIdle(mHandler);
+        verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON, FLASH_MODE_TORCH);
+
+        mCamera2CameraControlImpl.enableTorch(true);
+        HandlerUtil.waitForLooperToIdle(mHandler);
+        verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY,
+                FLASH_MODE_OFF);
+    }
+
+    private void verifyControlAeModeAndFlashMode(int expectedAeMode, int expectedFlashMode) {
+        verify(mControlUpdateCallback, times(1)).onCameraControlUpdateSessionConfig();
+        SessionConfig sessionConfig = mCamera2CameraControlImpl.getSessionConfig();
+        Camera2ImplConfig camera2Config = new Camera2ImplConfig(
+                sessionConfig.getImplementationOptions());
+
+        assertAeMode(camera2Config, expectedAeMode);
+
+        assertThat(
+                camera2Config.getCaptureRequestOption(
+                        CaptureRequest.FLASH_MODE, FLASH_MODE_OFF))
+                .isEqualTo(expectedFlashMode);
     }
 
     @Test
@@ -872,8 +902,7 @@ public final class Camera2CameraControlImplDeviceTest {
         assertThat(sessionZoomRatio).isEqualTo(2.0f);
     }
 
-    @NonNull
-    private Rect getSessionCropRegion(
+    private @NonNull Rect getSessionCropRegion(
             CameraControlInternal.ControlUpdateCallback controlUpdateCallback)
             throws InterruptedException {
         verify(controlUpdateCallback, times(1)).onCameraControlUpdateSessionConfig();
@@ -886,9 +915,8 @@ public final class Camera2CameraControlImplDeviceTest {
                 CaptureRequest.SCALER_CROP_REGION, null);
     }
 
-    @NonNull
     @RequiresApi(30)
-    private Float getSessionZoomRatio(
+    private @NonNull Float getSessionZoomRatio(
             CameraControlInternal.ControlUpdateCallback controlUpdateCallback)
             throws InterruptedException {
         verify(controlUpdateCallback, times(1)).onCameraControlUpdateSessionConfig();

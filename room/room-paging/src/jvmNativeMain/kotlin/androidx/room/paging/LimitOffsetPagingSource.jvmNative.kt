@@ -46,10 +46,11 @@ actual constructor(
     override val jumpingSupported: Boolean
         get() = true
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value> =
+    actual override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value> =
         implementation.load(params)
 
-    override fun getRefreshKey(state: PagingState<Int, Value>): Int? = state.getClippedRefreshKey()
+    actual override fun getRefreshKey(state: PagingState<Int, Value>): Int? =
+        state.getClippedRefreshKey()
 
     protected actual open suspend fun convertRows(
         limitOffsetQuery: RoomRawQuery,

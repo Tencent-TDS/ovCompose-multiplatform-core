@@ -44,6 +44,6 @@ androidx {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.swiperefreshlayout"
+    compileSdk = 35
+    namespace = "androidx.swiperefreshlayout"
 }

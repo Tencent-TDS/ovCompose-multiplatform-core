@@ -23,9 +23,10 @@ import android.util.Size;
 import android.view.Display;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
 import androidx.camera.viewfinder.CameraViewfinder;
 import androidx.camera.viewfinder.internal.transform.TransformationInfo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Utility class for transform.
@@ -79,8 +80,7 @@ public class TransformUtils {
     /**
      * Converts a {@link Size} to a float array of vertices.
      */
-    @NonNull
-    public static float[] sizeToVertices(@NonNull Size size) {
+    public static float @NonNull [] sizeToVertices(@NonNull Size size) {
         return new float[]{0, 0, size.getWidth(), 0, size.getWidth(), size.getHeight(), 0,
                 size.getHeight()};
     }
@@ -143,8 +143,7 @@ public class TransformUtils {
      *                             c'-----------b'
      * </pre>
      */
-    @NonNull
-    public static Matrix getRectToRect(
+    public static @NonNull Matrix getRectToRect(
             @NonNull RectF source, @NonNull RectF target, int rotationDegrees) {
         // Map source to normalized space.
         Matrix matrix = new Matrix();
@@ -166,8 +165,7 @@ public class TransformUtils {
      * @param sensorOrientation THe sensor orientation.
      * @return {@link TransformationInfo}.
      */
-    @NonNull
-    public static TransformationInfo createTransformInfo(
+    public static @NonNull TransformationInfo createTransformInfo(
             @NonNull Size surfaceResolution,
             @NonNull Display display,
             boolean isFrontCamera,
@@ -192,8 +190,7 @@ public class TransformUtils {
     /**
      * Gets the transform from a normalized space (-1, -1) - (1, 1) to the given rect.
      */
-    @NonNull
-    private static Matrix getNormalizedToBuffer(@NonNull RectF viewPortRect) {
+    private static @NonNull Matrix getNormalizedToBuffer(@NonNull RectF viewPortRect) {
         Matrix normalizedToBuffer = new Matrix();
         normalizedToBuffer.setRectToRect(NORMALIZED_RECT, viewPortRect, Matrix.ScaleToFit.FILL);
         return normalizedToBuffer;

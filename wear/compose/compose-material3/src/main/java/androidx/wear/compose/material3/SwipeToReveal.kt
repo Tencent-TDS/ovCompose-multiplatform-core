@@ -18,12 +18,12 @@ package androidx.wear.compose.material3
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,13 +46,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.RevealActionType
+import androidx.wear.compose.foundation.RevealScope
 import androidx.wear.compose.foundation.RevealState
 import androidx.wear.compose.foundation.RevealValue
 import androidx.wear.compose.foundation.SwipeDirection
@@ -104,13 +109,14 @@ import kotlinx.coroutines.launch
  * @see [androidx.wear.compose.foundation.SwipeToReveal]
  */
 @Composable
-fun SwipeToReveal(
+public fun SwipeToReveal(
     actions: SwipeToRevealScope.() -> Unit,
     modifier: Modifier = Modifier,
     revealState: RevealState = rememberRevealState(),
     actionButtonHeight: Dp = SwipeToRevealDefaults.SmallActionButtonHeight,
     content: @Composable () -> Unit,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     val children = SwipeToRevealScope()
     with(children, actions)
     val primaryAction = children.primaryAction
@@ -136,6 +142,9 @@ fun SwipeToReveal(
         modifier =
             modifier.fillMaxWidth().semantics {
                 customActions = buildList {
+                    require(primaryAction.label != null) {
+                        "Label for PrimaryAction should be provided."
+                    }
                     add(
                         CustomAccessibilityAction(primaryAction.label) {
                             primaryAction.onClick()
@@ -143,6 +152,9 @@ fun SwipeToReveal(
                         }
                     )
                     children.secondaryAction?.let {
+                        require(it.label != null) {
+                            "Label for SecondaryAction should be provided."
+                        }
                         add(
                             CustomAccessibilityAction(it.label) {
                                 it.onClick()
@@ -215,40 +227,58 @@ fun SwipeToReveal(
         state = revealState,
         content = content,
     )
+
+    LaunchedEffect(revealState.targetValue) {
+        if (
+            (revealState.targetValue == RevealValue.LeftRevealed ||
+                revealState.targetValue == RevealValue.RightRevealed)
+        ) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        }
+    }
 }
 
 /**
  * Scope for the actions of a [SwipeToReveal] composable. Used to define the primary, secondary,
  * undo primary and undo secondary actions.
  */
-class SwipeToRevealScope {
+public class SwipeToRevealScope {
     /**
      * Adds the primary action to a [SwipeToReveal]. This is required and exactly one primary action
      * should be specified. In case there are multiple, only the latest one will be displayed.
      *
+     * When first revealed the primary action displays an icon and then, if fully swiped, it
+     * additionally shows text.
+     *
      * @param onClick Callback to be executed when the action is performed via a full swipe, or a
      *   button click.
      * @param icon Icon composable to be displayed for this action.
+     * @param text Text composable to be displayed when the user fully swipes to execute the primary
+     *   action.
      * @param label Label for this action. Used to create a [CustomAccessibilityAction] for the
-     *   [SwipeToReveal] component, and to display what the action is when the user fully swipes to
-     *   execute the primary action.
+     *   [SwipeToReveal] component.
      * @param containerColor Container color for this action.
      * @param contentColor Content color for this action.
      */
-    fun primaryAction(
+    public fun primaryAction(
         onClick: () -> Unit,
         icon: @Composable () -> Unit,
+        text: @Composable () -> Unit,
         label: String,
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified
     ) {
-        primaryAction = SwipeToRevealAction(onClick, icon, label, containerColor, contentColor)
+        primaryAction =
+            SwipeToRevealAction(onClick, icon, text, label, containerColor, contentColor)
     }
 
     /**
      * Adds the secondary action to a [SwipeToReveal]. This is optional and at most one secondary
      * action should be specified. In case there are multiple, only the latest one will be
      * displayed.
+     *
+     * Secondary action only displays an icon, because, unlike the primary action, it is never
+     * extended to full width so does not have room to display text.
      *
      * @param onClick Callback to be executed when the action is performed via a button click.
      * @param icon Icon composable to be displayed for this action.
@@ -257,14 +287,15 @@ class SwipeToRevealScope {
      * @param containerColor Container color for this action.
      * @param contentColor Content color for this action.
      */
-    fun secondaryAction(
+    public fun secondaryAction(
         onClick: () -> Unit,
         icon: @Composable () -> Unit,
         label: String,
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified
     ) {
-        secondaryAction = SwipeToRevealAction(onClick, icon, label, containerColor, contentColor)
+        secondaryAction =
+            SwipeToRevealAction(onClick, icon, null, label, containerColor, contentColor)
     }
 
     /**
@@ -273,20 +304,22 @@ class SwipeToRevealScope {
      * specified. In case there are multiple, only the latest one will be displayed.
      *
      * @param onClick Callback to be executed when the action is performed via a button click.
-     * @param label Label for this action. Used to display what the undo action is after the user
-     *   executes the primary action.
+     * @param text Text composable to indicate what the undo action is, to be displayed when the
+     *   user executes the primary action. This should include appropriated semantics for
+     *   accessibility.
      * @param icon Optional Icon composable to be displayed for this action.
      * @param containerColor Container color for this action.
      * @param contentColor Content color for this action.
      */
-    fun undoPrimaryAction(
+    public fun undoPrimaryAction(
         onClick: () -> Unit,
-        label: String,
+        text: @Composable () -> Unit,
         icon: @Composable (() -> Unit)? = null,
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified
     ) {
-        undoPrimaryAction = SwipeToRevealAction(onClick, icon, label, containerColor, contentColor)
+        undoPrimaryAction =
+            SwipeToRevealAction(onClick, icon, text, null, containerColor, contentColor)
     }
 
     /**
@@ -295,21 +328,22 @@ class SwipeToRevealScope {
      * be specified. In case there are multiple, only the latest one will be displayed.
      *
      * @param onClick Callback to be executed when the action is performed via a button click.
-     * @param label Label for this action. Used to display what the undo action is after the user
-     *   executes the secondary action.
+     * @param text Text composable to indicate what the undo action is, to be displayed when the
+     *   user executes the primary action. This should include appropriated semantics for
+     *   accessibility.
      * @param icon Optional Icon composable to be displayed for this action.
      * @param containerColor Container color for this action.
      * @param contentColor Content color for this action.
      */
-    fun undoSecondaryAction(
+    public fun undoSecondaryAction(
         onClick: () -> Unit,
-        label: String,
+        text: @Composable () -> Unit,
         icon: @Composable (() -> Unit)? = null,
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified
     ) {
         undoSecondaryAction =
-            SwipeToRevealAction(onClick, icon, label, containerColor, contentColor)
+            SwipeToRevealAction(onClick, icon, text, null, containerColor, contentColor)
     }
 
     internal var primaryAction: SwipeToRevealAction? = null
@@ -333,7 +367,7 @@ class SwipeToRevealScope {
  * @param swipeDirection Direction of the swipe to reveal the actions.
  */
 @Composable
-fun rememberRevealState(
+public fun rememberRevealState(
     initialValue: RevealValue = RevealValue.Covered,
     anchorWidth: Dp = SwipeToRevealDefaults.SingleActionAnchorWidth,
     useAnchoredActions: Boolean = true,
@@ -351,25 +385,25 @@ fun rememberRevealState(
     )
 }
 
-object SwipeToRevealDefaults {
+public object SwipeToRevealDefaults {
 
     /** Width that's required to display both actions in a [SwipeToReveal] composable. */
-    val DoubleActionAnchorWidth = 130.dp
+    public val DoubleActionAnchorWidth: Dp = 130.dp
 
     /** Width that's required to display a single action in a [SwipeToReveal] composable. */
-    val SingleActionAnchorWidth = 64.dp
+    public val SingleActionAnchorWidth: Dp = 64.dp
 
     /** Standard height for a small revealed action, such as when the swiped item is a Button. */
-    val SmallActionButtonHeight = 52.dp
+    public val SmallActionButtonHeight: Dp = 52.dp
 
     /** Standard height for a large revealed action, such as when the swiped item is a Card. */
-    val LargeActionButtonHeight = 84.dp
+    public val LargeActionButtonHeight: Dp = 84.dp
 
     internal val IconSize = 26.dp
 }
 
 @Composable
-internal fun ActionButton(
+internal fun RevealScope.ActionButton(
     revealState: RevealState,
     action: SwipeToRevealAction,
     revealActionType: RevealActionType,
@@ -480,33 +514,32 @@ internal fun ActionButton(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val density = LocalDensity.current
             val primaryActionTextRevealed = remember { mutableStateOf(false) }
             action.icon?.let {
                 ActionIconWrapper(revealState, iconStartFadeInFraction, iconEndFadeInFraction, it)
             }
             when (revealActionType) {
-                RevealActionType.PrimaryAction ->
+                RevealActionType.PrimaryAction -> {
                     AnimatedVisibility(
                         visible = primaryActionTextRevealed.value,
-                        enter = fadeIn() + expandHorizontally() + scaleIn(),
-                        exit = fadeOut() + shrinkHorizontally() + scaleOut(),
+                        enter =
+                            fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                                expandHorizontally(spring(stiffness = Spring.StiffnessMedium)),
+                        exit =
+                            fadeOut(spring(stiffness = Spring.StiffnessHigh)) +
+                                shrinkHorizontally(spring(stiffness = Spring.StiffnessMedium)),
                     ) {
                         ActionText(action, contentColor)
                     }
-                RevealActionType.UndoAction -> ActionText(action, contentColor)
-            }
-            if (revealActionType == RevealActionType.PrimaryAction) {
-                LaunchedEffect(revealState.offset) {
-                    val minimumOffsetToRevealPx =
-                        with(density) {
-                            SwipeToRevealDefaults.DoubleActionAnchorWidth.toPx().toInt()
-                        }
-                    primaryActionTextRevealed.value =
-                        abs(revealState.offset) > minimumOffsetToRevealPx &&
-                            (revealState.targetValue == RevealValue.RightRevealed ||
-                                revealState.targetValue == RevealValue.LeftRevealed)
+
+                    LaunchedEffect(revealState.offset) {
+                        primaryActionTextRevealed.value =
+                            abs(revealState.offset) > revealOffset &&
+                                (revealState.targetValue == RevealValue.RightRevealed ||
+                                    revealState.targetValue == RevealValue.LeftRevealed)
+                    }
                 }
+                RevealActionType.UndoAction -> ActionText(action, contentColor)
             }
         }
     }
@@ -514,12 +547,21 @@ internal fun ActionButton(
 
 @Composable
 private fun ActionText(action: SwipeToRevealAction, contentColor: Color) {
-    Text(
-        modifier = Modifier.padding(start = action.icon?.let { ICON_AND_TEXT_PADDING } ?: 0.dp),
-        text = action.label,
-        color = contentColor,
-        maxLines = 1
-    )
+    require(action.text != null) { "A text composable should be provided to ActionText." }
+    Row(modifier = Modifier.padding(start = action.icon?.let { ICON_AND_TEXT_PADDING } ?: 0.dp)) {
+        CompositionLocalProvider(
+            LocalContentColor provides contentColor,
+            LocalTextStyle provides LocalTextStyle.current,
+            LocalTextConfiguration provides
+                TextConfiguration(
+                    textAlign = LocalTextConfiguration.current.textAlign,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                )
+        ) {
+            action.text.invoke()
+        }
+    }
 }
 
 @Composable
@@ -563,11 +605,16 @@ internal data class SwipeToRevealAction(
     val icon: @Composable (() -> Unit)?,
 
     /**
-     * Label for this action. Used to create a [CustomAccessibilityAction] for the [SwipeToReveal]
-     * component, display what the action is when the user fully swipes to execute the primary
-     * action, or when the undo action is shown.
+     * Text composable to be displayed when the user fully swipes to execute the primary action, or
+     * when the undo action is shown.
      */
-    val label: String,
+    val text: @Composable (() -> Unit)?,
+
+    /**
+     * Label for this action. Used to create a [CustomAccessibilityAction] for the [SwipeToReveal]
+     * component.
+     */
+    val label: String?,
 
     /**
      * Color of the container, used for the background of the action button. This can be

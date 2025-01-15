@@ -31,14 +31,9 @@ plugins {
 
 android {
     defaultConfig {
-        minSdk 26
+        minSdk = 26
     }
-
-    defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    namespace "androidx.wear.protolayout.materialcore"
+    namespace = "androidx.wear.protolayout.materialcore"
 }
 
 dependencies {

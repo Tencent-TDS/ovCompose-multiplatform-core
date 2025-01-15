@@ -47,5 +47,9 @@ package androidx.compose.material3.adaptive.navigation {
     method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi @androidx.compose.runtime.Composable public static <T> androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator<T> rememberSupportingPaneScaffoldNavigator(optional androidx.compose.material3.adaptive.layout.PaneScaffoldDirective scaffoldDirective, optional androidx.compose.material3.adaptive.layout.ThreePaneScaffoldAdaptStrategies adaptStrategies, optional boolean isDestinationHistoryAware, optional java.util.List<? extends androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem<? extends T>> initialDestinationHistory);
   }
 
+  public final class ThreePaneScaffoldPredictiveBackHandler_androidKt {
+    method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi @androidx.compose.runtime.Composable public static <T> void ThreePaneScaffoldPredictiveBackHandler(androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator<T> navigator, String backBehavior);
+  }
+
 }
 

@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 
 /** Scope for the panes of [ThreePaneScaffold]. */
@@ -55,7 +57,8 @@ internal class ThreePaneScaffoldScopeImpl(
     override fun Modifier.paneExpansionDraggable(
         state: PaneExpansionState,
         minTouchTargetSize: Dp,
-        interactionSource: MutableInteractionSource
+        interactionSource: MutableInteractionSource,
+        semanticsProperties: (SemanticsPropertyReceiver.() -> Unit)
     ): Modifier =
         this.draggable(
                 state = state.draggableState,
@@ -69,6 +72,7 @@ internal class ThreePaneScaffoldScopeImpl(
                 animateFraction = { motionProgress },
                 lookaheadScope = this@ThreePaneScaffoldScopeImpl
             )
+            .semantics(mergeDescendants = true, properties = semanticsProperties)
             .then(MinTouchTargetSizeElement(minTouchTargetSize))
 }
 

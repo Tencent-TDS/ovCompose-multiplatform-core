@@ -67,7 +67,7 @@ class DatabaseTest {
                         )
                     ),
                 views = emptyList(),
-                daoMethods = emptyList(),
+                daoFunctions = emptyList(),
                 version = 1,
                 exportSchema = false,
                 enableForeignKeys = false,

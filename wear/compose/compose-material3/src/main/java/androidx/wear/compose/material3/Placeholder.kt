@@ -97,7 +97,7 @@ import kotlinx.coroutines.isActive
  * @param color the color of the placeholder.
  */
 @Composable
-fun Modifier.placeholder(
+public fun Modifier.placeholder(
     placeholderState: PlaceholderState,
     shape: Shape = PlaceholderDefaults.Shape,
     color: Color =
@@ -148,7 +148,7 @@ fun Modifier.placeholder(
  * @param color the color to use in the shimmer.
  */
 @Composable
-fun Modifier.placeholderShimmer(
+public fun Modifier.placeholderShimmer(
     placeholderState: PlaceholderState,
     shape: Shape = PlaceholderDefaults.Shape,
     color: Color = MaterialTheme.colorScheme.onSurface,
@@ -198,7 +198,7 @@ fun Modifier.placeholderShimmer(
  *   given component and is ready to be displayed.
  */
 @Composable
-fun rememberPlaceholderState(isContentReady: () -> Boolean): PlaceholderState {
+public fun rememberPlaceholderState(isContentReady: () -> Boolean): PlaceholderState {
     val maxScreenDimension =
         with(LocalDensity.current) { Dp(max(screenHeightDp(), screenWidthDp()).toFloat()).toPx() }
     val isReduceMotionEnabled = LocalReduceMotion.current.enabled()
@@ -216,10 +216,10 @@ fun rememberPlaceholderState(isContentReady: () -> Boolean): PlaceholderState {
  * shimmer effect [Modifier.placeholderShimmer] effect which runs in an animation loop while waiting
  * for the data to load.
  */
-object PlaceholderDefaults {
+public object PlaceholderDefaults {
 
     /** Default [Shape] for Placeholder. */
-    val Shape: Shape = ShapeTokens.CornerFull
+    public val Shape: Shape = ShapeTokens.CornerFull
 
     /**
      * Create a [ButtonColors] that can be used in placeholder mode. This will provide the
@@ -240,7 +240,7 @@ object PlaceholderDefaults {
      * @param color the color to use for the placeholder background brush
      */
     @Composable
-    fun placeholderButtonColors(
+    public fun placeholderButtonColors(
         originalButtonColors: ButtonColors,
         placeholderState: PlaceholderState,
         color: Color = MaterialTheme.colorScheme.surfaceContainer
@@ -287,7 +287,7 @@ object PlaceholderDefaults {
      * @param placeholderState the current placeholder state.
      */
     @Composable
-    fun placeholderButtonColors(
+    public fun placeholderButtonColors(
         placeholderState: PlaceholderState,
         color: Color = MaterialTheme.colorScheme.surfaceContainer,
     ): ButtonColors {
@@ -325,7 +325,7 @@ object PlaceholderDefaults {
      * @param color the color to use for the placeholder background brush
      */
     @Composable
-    fun painterWithPlaceholderOverlayBackgroundBrush(
+    public fun painterWithPlaceholderOverlayBackgroundBrush(
         placeholderState: PlaceholderState,
         originalPainter: Painter,
         color: Color = MaterialTheme.colorScheme.surfaceContainer,
@@ -351,7 +351,7 @@ object PlaceholderDefaults {
      * @param color the color to use for the placeholder background brush
      */
     @Composable
-    fun placeholderBackgroundBrush(
+    public fun placeholderBackgroundBrush(
         placeholderState: PlaceholderState,
         color: Color = MaterialTheme.colorScheme.surfaceContainer,
     ): Painter {
@@ -394,7 +394,7 @@ object PlaceholderDefaults {
  * remove the placeholders.
  */
 @Stable
-class PlaceholderState
+public class PlaceholderState
 internal constructor(
     private val isContentReady: State<() -> Boolean>,
     private val maxScreenDimension: Float,
@@ -419,7 +419,7 @@ internal constructor(
      * Animate the placeholder according to the placeholder state. Cancels when the placeholder
      * becomes inactive.
      */
-    suspend fun animatePlaceholder() {
+    public suspend fun animatePlaceholder() {
         if (!isReduceMotionEnabled) {
             coroutineScope {
                 while (isActive) {
@@ -548,13 +548,17 @@ internal constructor(
      * Returns true if the placeholder content should be shown with no placeholders effects and
      * false if either the placeholder or the wipe-off effect are being shown.
      */
-    val isHidden: Boolean by derivedStateOf { placeholderStage == PlaceholderStage.HidePlaceholder }
+    public val isHidden: Boolean by derivedStateOf {
+        placeholderStage == PlaceholderStage.HidePlaceholder
+    }
 
     /**
      * Returns true if the wipe-off effect that reveals content is being shown and false if the
      * placeholder effect should be shown.
      */
-    val isWipingOff: Boolean by derivedStateOf { placeholderStage == PlaceholderStage.WipeOff }
+    public val isWipingOff: Boolean by derivedStateOf {
+        placeholderStage == PlaceholderStage.WipeOff
+    }
 
     /**
      * The width of the gradient to use for the placeholder shimmer and wipe-off effects. This is

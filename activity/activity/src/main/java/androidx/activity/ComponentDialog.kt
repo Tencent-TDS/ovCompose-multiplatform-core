@@ -60,7 +60,6 @@ constructor(context: Context, @StyleRes themeResId: Int = 0) :
         return bundle
     }
 
-    @Suppress("ClassVerificationFailure") // needed for onBackInvokedDispatcher call
     @CallSuper
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

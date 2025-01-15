@@ -20,8 +20,6 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
@@ -37,6 +35,9 @@ import androidx.appsearch.localstorage.util.FutureUtil;
 import androidx.core.util.Preconditions;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.util.concurrent.Executor;
@@ -62,8 +63,7 @@ public class LocalStorage {
         final Context mContext;
         final String mDatabaseName;
         final Executor mExecutor;
-        @Nullable
-        final AppSearchLogger mLogger;
+        final @Nullable AppSearchLogger mLogger;
 
         SearchContext(@NonNull Context context, @NonNull String databaseName,
                 @NonNull Executor executor, @Nullable AppSearchLogger logger) {
@@ -76,16 +76,14 @@ public class LocalStorage {
         /**
          * Returns the {@link Context} associated with the {@link AppSearchSession}
          */
-        @NonNull
-        public Context getContext() {
+        public @NonNull Context getContext() {
             return mContext;
         }
 
         /**
          * Returns the name of the database to create or open.
          */
-        @NonNull
-        public String getDatabaseName() {
+        public @NonNull String getDatabaseName() {
             return mDatabaseName;
         }
 
@@ -99,8 +97,7 @@ public class LocalStorage {
          * since {@link Executor#execute} won't return anything, we will hang forever waiting for
          * the execution.
          */
-        @NonNull
-        public Executor getWorkerExecutor() {
+        public @NonNull Executor getWorkerExecutor() {
             return mExecutor;
         }
 
@@ -109,8 +106,7 @@ public class LocalStorage {
             private final Context mContext;
             private final String mDatabaseName;
             private Executor mExecutor;
-            @Nullable
-            private AppSearchLogger mLogger;
+            private @Nullable AppSearchLogger mLogger;
 
             /**
              * Creates a {@link SearchContext.Builder} instance.
@@ -122,6 +118,7 @@ public class LocalStorage {
              *
              * <p>The database name cannot contain {@code '/'}.
              *
+             * @param context The context used as the parent of the created SearchContext
              * @param databaseName The name of the database.
              * @throws IllegalArgumentException if the databaseName contains {@code '/'}.
              */
@@ -141,8 +138,7 @@ public class LocalStorage {
              *
              * @param executor the worker executor used to run heavy background tasks.
              */
-            @NonNull
-            public Builder setWorkerExecutor(@NonNull Executor executor) {
+            public @NonNull Builder setWorkerExecutor(@NonNull Executor executor) {
                 mExecutor = Preconditions.checkNotNull(executor);
                 return this;
             }
@@ -157,15 +153,13 @@ public class LocalStorage {
              * @exportToFramework:hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-            @NonNull
-            public Builder setLogger(@NonNull AppSearchLogger logger) {
+            public @NonNull Builder setLogger(@NonNull AppSearchLogger logger) {
                 mLogger = Preconditions.checkNotNull(logger);
                 return this;
             }
 
             /** Builds a {@link SearchContext} instance. */
-            @NonNull
-            public SearchContext build() {
+            public @NonNull SearchContext build() {
                 if (mExecutor == null) {
                     mExecutor = EXECUTOR;
                 }
@@ -178,8 +172,7 @@ public class LocalStorage {
     public static final class GlobalSearchContext {
         final Context mContext;
         final Executor mExecutor;
-        @Nullable
-        final AppSearchLogger mLogger;
+        final @Nullable AppSearchLogger mLogger;
 
         GlobalSearchContext(@NonNull Context context, @NonNull Executor executor,
                 @Nullable AppSearchLogger logger) {
@@ -191,8 +184,7 @@ public class LocalStorage {
         /**
          * Returns the {@link Context} associated with the {@link GlobalSearchSession}
          */
-        @NonNull
-        public Context getContext() {
+        public @NonNull Context getContext() {
             return mContext;
         }
 
@@ -206,8 +198,7 @@ public class LocalStorage {
          * since {@link Executor#execute} won't return anything, we will hang forever waiting for
          * the execution.
          */
-        @NonNull
-        public Executor getWorkerExecutor() {
+        public @NonNull Executor getWorkerExecutor() {
             return mExecutor;
         }
 
@@ -215,8 +206,7 @@ public class LocalStorage {
         public static final class Builder {
             private final Context mContext;
             private Executor mExecutor;
-            @Nullable
-            private AppSearchLogger mLogger;
+            private @Nullable AppSearchLogger mLogger;
 
             public Builder(@NonNull Context context) {
                 mContext = Preconditions.checkNotNull(context);
@@ -229,8 +219,7 @@ public class LocalStorage {
              *
              * @param executor the worker executor used to run heavy background tasks.
              */
-            @NonNull
-            public Builder setWorkerExecutor(@NonNull Executor executor) {
+            public @NonNull Builder setWorkerExecutor(@NonNull Executor executor) {
                 Preconditions.checkNotNull(executor);
                 mExecutor = executor;
                 return this;
@@ -245,15 +234,13 @@ public class LocalStorage {
              * @exportToFramework:hide
              */
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-            @NonNull
-            public Builder setLogger(@NonNull AppSearchLogger logger) {
+            public @NonNull Builder setLogger(@NonNull AppSearchLogger logger) {
                 mLogger = Preconditions.checkNotNull(logger);
                 return this;
             }
 
             /** Builds a {@link GlobalSearchContext} instance. */
-            @NonNull
-            public GlobalSearchContext build() {
+            public @NonNull GlobalSearchContext build() {
                 if (mExecutor == null) {
                     mExecutor = EXECUTOR;
                 }
@@ -280,8 +267,7 @@ public class LocalStorage {
      * @param context The {@link SearchContext} contains all information to create a new
      *                {@link AppSearchSession}
      */
-    @NonNull
-    public static ListenableFuture<AppSearchSession> createSearchSessionAsync(
+    public static @NonNull ListenableFuture<AppSearchSession> createSearchSessionAsync(
             @NonNull SearchContext context) {
         Preconditions.checkNotNull(context);
         return FutureUtil.execute(context.mExecutor, () -> {
@@ -301,8 +287,7 @@ public class LocalStorage {
      * <p>This process requires a native search library. If it's not created, the initialization
      * process will create one.
      */
-    @NonNull
-    public static ListenableFuture<GlobalSearchSession> createGlobalSearchSessionAsync(
+    public static @NonNull ListenableFuture<GlobalSearchSession> createGlobalSearchSessionAsync(
             @NonNull GlobalSearchContext context) {
         Preconditions.checkNotNull(context);
         return FutureUtil.execute(context.mExecutor, () -> {
@@ -318,11 +303,10 @@ public class LocalStorage {
      * <p>If the system is not initialized, it will be initialized using the provided
      * {@code context}.
      */
-    @NonNull
     @WorkerThread
     @VisibleForTesting
-    static LocalStorage getOrCreateInstance(@NonNull Context context, @NonNull Executor executor,
-            @Nullable AppSearchLogger logger)
+    static @NonNull LocalStorage getOrCreateInstance(@NonNull Context context,
+            @NonNull Executor executor, @Nullable AppSearchLogger logger)
             throws AppSearchException {
         Preconditions.checkNotNull(context);
         if (sInstance == null) {
@@ -404,8 +388,7 @@ public class LocalStorage {
         });
     }
 
-    @NonNull
-    private AppSearchSession doCreateSearchSession(@NonNull SearchContext context) {
+    private @NonNull AppSearchSession doCreateSearchSession(@NonNull SearchContext context) {
         return new SearchSessionImpl(
                 mAppSearchImpl,
                 context.mExecutor,
@@ -415,8 +398,7 @@ public class LocalStorage {
                 context.mLogger);
     }
 
-    @NonNull
-    private GlobalSearchSession doCreateGlobalSearchSession(
+    private @NonNull GlobalSearchSession doCreateGlobalSearchSession(
             @NonNull GlobalSearchContext context) {
         return new GlobalSearchSessionImpl(mAppSearchImpl, context.mExecutor,
                 new FeaturesImpl(), context.mContext, context.mLogger);

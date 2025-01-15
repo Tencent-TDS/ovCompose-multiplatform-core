@@ -49,4 +49,14 @@ class ActivityOptionsCompatTest {
         activityOptionsCompat.setLaunchDisplayId(0)
         assertEquals(activityOptionsCompat.launchDisplayId, 0)
     }
+
+    @Config(maxSdk = 25)
+    @Test
+    fun testGetLaunchDisplayId_pre26() {
+        val activityOptionsCompat = ActivityOptionsCompat.makeBasic()
+        assertEquals(activityOptionsCompat.launchDisplayId, Display.INVALID_DISPLAY)
+
+        activityOptionsCompat.launchDisplayId = 0
+        assertEquals(activityOptionsCompat.launchDisplayId, Display.INVALID_DISPLAY)
+    }
 }

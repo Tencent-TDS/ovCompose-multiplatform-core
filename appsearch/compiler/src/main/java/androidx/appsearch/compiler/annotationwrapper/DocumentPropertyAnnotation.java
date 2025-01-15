@@ -19,12 +19,13 @@ package androidx.appsearch.compiler.annotationwrapper;
 import static androidx.appsearch.compiler.IntrospectionHelper.APPSEARCH_SCHEMA_CLASS;
 import static androidx.appsearch.compiler.IntrospectionHelper.DOCUMENT_ANNOTATION_CLASS;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.IntrospectionHelper;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ClassName;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,8 +57,7 @@ public abstract class DocumentPropertyAnnotation extends DataPropertyAnnotation 
      * @param defaultName The name to use for the annotated property in case the annotation
      *                    params do not mention an explicit name.
      */
-    @NonNull
-    static DocumentPropertyAnnotation parse(
+    static @NonNull DocumentPropertyAnnotation parse(
             @NonNull Map<String, Object> annotationParams, @NonNull String defaultName) {
         String name = (String) annotationParams.get("name");
         List<String> indexableNestedPropertiesList = new ArrayList<>();
@@ -84,8 +84,7 @@ public abstract class DocumentPropertyAnnotation extends DataPropertyAnnotation 
      * Returns the list of nested properties to index for the nested document other than the
      * properties inherited from the type's parent.
      */
-    @NonNull
-    public abstract ImmutableList<String> getIndexableNestedPropertiesList();
+    public abstract @NonNull ImmutableList<String> getIndexableNestedPropertiesList();
 
     /**
      * Specifies whether to inherit the parent class's definition for the indexable nested
@@ -93,15 +92,14 @@ public abstract class DocumentPropertyAnnotation extends DataPropertyAnnotation 
      */
     public abstract boolean shouldInheritIndexableNestedPropertiesFromSuperClass();
 
-    @NonNull
     @Override
-    public final Kind getDataPropertyKind() {
+    public final @NonNull Kind getDataPropertyKind() {
         return Kind.DOCUMENT_PROPERTY;
     }
 
-    @NonNull
     @Override
-    public TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper) {
+    public @NonNull TypeMirror getUnderlyingTypeWithinGenericDoc(
+            @NonNull IntrospectionHelper helper) {
         return helper.mGenericDocumentType;
     }
 }

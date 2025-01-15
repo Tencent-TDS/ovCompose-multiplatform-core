@@ -92,7 +92,7 @@ import kotlin.math.roundToInt
  * @param content Content body for the Stepper.
  */
 @Composable
-fun Stepper(
+public fun Stepper(
     value: Float,
     onValueChange: (Float) -> Unit,
     steps: Int,
@@ -157,7 +157,7 @@ fun Stepper(
  * @param content Content body for the Stepper.
  */
 @Composable
-fun Stepper(
+public fun Stepper(
     value: Int,
     onValueChange: (Int) -> Unit,
     valueProgression: IntProgression,
@@ -183,12 +183,12 @@ fun Stepper(
 }
 
 /** Defaults used by [Stepper]. */
-object StepperDefaults {
+public object StepperDefaults {
     /** Default size for increase and decrease icons. */
-    val IconSize = 24.dp
+    public val IconSize: Dp = 24.dp
 
     /** Creates a [StepperColors] that represents the default colors used in a [Stepper]. */
-    @Composable fun colors() = MaterialTheme.colorScheme.defaultStepperColors
+    @Composable public fun colors(): StepperColors = MaterialTheme.colorScheme.defaultStepperColors
 
     /**
      * Creates a [StepperColors] that represents the default colors used in a [Stepper].
@@ -201,14 +201,14 @@ object StepperDefaults {
      * @param disabledButtonIconColor the disabled button icon color for this [Stepper].
      */
     @Composable
-    fun colors(
+    public fun colors(
         contentColor: Color = Color.Unspecified,
         buttonContainerColor: Color = Color.Unspecified,
         buttonIconColor: Color = Color.Unspecified,
         disabledContentColor: Color = Color.Unspecified,
         disabledButtonContainerColor: Color = Color.Unspecified,
         disabledButtonIconColor: Color = Color.Unspecified,
-    ) =
+    ): StepperColors =
         MaterialTheme.colorScheme.defaultStepperColors.copy(
             contentColor = contentColor,
             buttonContainerColor = buttonContainerColor,
@@ -250,13 +250,13 @@ object StepperDefaults {
  *   state.
  * @param disabledButtonIconColor icon tint [Color] for this [Stepper] in disabled state.
  */
-class StepperColors(
-    val contentColor: Color,
-    val buttonContainerColor: Color,
-    val buttonIconColor: Color,
-    val disabledContentColor: Color,
-    val disabledButtonContainerColor: Color,
-    val disabledButtonIconColor: Color,
+public class StepperColors(
+    public val contentColor: Color,
+    public val buttonContainerColor: Color,
+    public val buttonIconColor: Color,
+    public val disabledContentColor: Color,
+    public val disabledButtonContainerColor: Color,
+    public val disabledButtonIconColor: Color,
 ) {
     /**
      * Returns a copy of this [StepperColors] optionally overriding some of the values.
@@ -269,14 +269,14 @@ class StepperColors(
      *   state.
      * @param disabledButtonIconColor Icon tint [Color] for this [Stepper] in disabled state.
      */
-    fun copy(
+    public fun copy(
         contentColor: Color = this.contentColor,
         buttonContainerColor: Color = this.buttonContainerColor,
         buttonIconColor: Color = this.buttonIconColor,
         disabledContentColor: Color = this.disabledContentColor,
         disabledButtonContainerColor: Color = this.disabledButtonContainerColor,
         disabledButtonIconColor: Color = this.disabledButtonIconColor,
-    ) =
+    ): StepperColors =
         StepperColors(
             contentColor = contentColor.takeOrElse { this.contentColor },
             buttonContainerColor = buttonContainerColor.takeOrElse { this.buttonContainerColor },

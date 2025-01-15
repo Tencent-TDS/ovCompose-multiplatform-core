@@ -43,8 +43,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeInfo.TouchDelegateInfo;
 
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
@@ -59,6 +57,9 @@ import androidx.core.view.accessibility.AccessibilityViewCommand.ScrollToPositio
 import androidx.core.view.accessibility.AccessibilityViewCommand.SetProgressArguments;
 import androidx.core.view.accessibility.AccessibilityViewCommand.SetSelectionArguments;
 import androidx.core.view.accessibility.AccessibilityViewCommand.SetTextArguments;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.time.Duration;
@@ -516,8 +517,7 @@ public class AccessibilityNodeInfoCompat {
         /**
          * Action to move to the page above.
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_PAGE_UP =
+        public static final @NonNull AccessibilityActionCompat ACTION_PAGE_UP =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 29
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_UP : null,
                         android.R.id.accessibilityActionPageUp, null, null, null);
@@ -525,8 +525,7 @@ public class AccessibilityNodeInfoCompat {
         /**
          * Action to move to the page below.
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_PAGE_DOWN =
+        public static final @NonNull AccessibilityActionCompat ACTION_PAGE_DOWN =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 29
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_DOWN : null,
                         android.R.id.accessibilityActionPageDown, null, null, null);
@@ -534,8 +533,7 @@ public class AccessibilityNodeInfoCompat {
         /**
          * Action to move to the page left.
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_PAGE_LEFT =
+        public static final @NonNull AccessibilityActionCompat ACTION_PAGE_LEFT =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 29
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_LEFT : null,
                         android.R.id.accessibilityActionPageLeft, null, null, null);
@@ -543,8 +541,7 @@ public class AccessibilityNodeInfoCompat {
         /**
          * Action to move to the page right.
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_PAGE_RIGHT =
+        public static final @NonNull AccessibilityActionCompat ACTION_PAGE_RIGHT =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 29
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_PAGE_RIGHT : null,
                         android.R.id.accessibilityActionPageRight, null, null, null);
@@ -640,7 +637,7 @@ public class AccessibilityNodeInfoCompat {
          *     delays will lead to unexpected UI behavior.
          * <p>
          */
-        @NonNull public static final AccessibilityActionCompat ACTION_PRESS_AND_HOLD =
+        public static final @NonNull AccessibilityActionCompat ACTION_PRESS_AND_HOLD =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 30
                         ? AccessibilityNodeInfo.AccessibilityAction.ACTION_PRESS_AND_HOLD : null,
                         android.R.id.accessibilityActionPressAndHold, null, null, null);
@@ -653,7 +650,7 @@ public class AccessibilityNodeInfoCompat {
          * actionId has set. A node should expose this action only for views that are currently
          * with input focus and editable.
          */
-        @NonNull public static final AccessibilityActionCompat ACTION_IME_ENTER =
+        public static final @NonNull AccessibilityActionCompat ACTION_IME_ENTER =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 30
                         ? AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER : null,
                         android.R.id.accessibilityActionImeEnter, null, null, null);
@@ -669,8 +666,7 @@ public class AccessibilityNodeInfoCompat {
          *
          * @see AccessibilityEventCompat#CONTENT_CHANGE_TYPE_DRAG_STARTED
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_DRAG_START =
+        public static final @NonNull AccessibilityActionCompat ACTION_DRAG_START =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 32
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_DRAG_START : null,
                         android.R.id.accessibilityActionDragStart, null, null, null);
@@ -686,8 +682,7 @@ public class AccessibilityNodeInfoCompat {
          *
          * @see AccessibilityEventCompat#CONTENT_CHANGE_TYPE_DRAG_DROPPED
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_DRAG_DROP =
+        public static final @NonNull AccessibilityActionCompat ACTION_DRAG_DROP =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 32
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_DRAG_DROP : null,
                         android.R.id.accessibilityActionDragDrop, null, null, null);
@@ -700,8 +695,7 @@ public class AccessibilityNodeInfoCompat {
          *
          * @see AccessibilityEventCompat#CONTENT_CHANGE_TYPE_DRAG_CANCELLED
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_DRAG_CANCEL =
+        public static final @NonNull AccessibilityActionCompat ACTION_DRAG_CANCEL =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 32
                         ?  AccessibilityNodeInfo.AccessibilityAction.ACTION_DRAG_CANCEL : null,
                         android.R.id.accessibilityActionDragCancel, null, null, null);
@@ -709,8 +703,7 @@ public class AccessibilityNodeInfoCompat {
         /**
          * Action to show suggestions for editable text.
          */
-        @NonNull
-        public static final AccessibilityActionCompat ACTION_SHOW_TEXT_SUGGESTIONS =
+        public static final @NonNull AccessibilityActionCompat ACTION_SHOW_TEXT_SUGGESTIONS =
                 new AccessibilityActionCompat(Build.VERSION.SDK_INT >= 33
                         ?   AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_TEXT_SUGGESTIONS
                         :   null, android.R.id.accessibilityActionShowTextSuggestions, null,
@@ -739,9 +732,8 @@ public class AccessibilityNodeInfoCompat {
          *     required argument.<br>
          * </p>
          */
-        @NonNull
         @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
-        public static final AccessibilityActionCompat ACTION_SCROLL_IN_DIRECTION =
+        public static final @NonNull AccessibilityActionCompat ACTION_SCROLL_IN_DIRECTION =
                 new AccessibilityActionCompat(
                         Build.VERSION.SDK_INT >= 34 ? Api34Impl.getActionScrollInDirection() : null,
                         android.R.id.accessibilityActionScrollInDirection, null, null, null);
@@ -880,9 +872,8 @@ public class AccessibilityNodeInfoCompat {
             return true;
         }
 
-        @NonNull
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             StringBuilder builder = new StringBuilder();
             builder.append("AccessibilityActionCompat: ");
             // Mirror AccessibilityNodeInfoCompat.toString's action string.
@@ -1101,8 +1092,7 @@ public class AccessibilityNodeInfoCompat {
              * @param rowCount The number of rows in the collection.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setRowCount(int rowCount) {
+            public CollectionInfoCompat.@NonNull Builder setRowCount(int rowCount) {
                 mRowCount = rowCount;
                 return this;
             }
@@ -1112,8 +1102,7 @@ public class AccessibilityNodeInfoCompat {
              * @param columnCount The number of columns in the collection.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setColumnCount(int columnCount) {
+            public CollectionInfoCompat.@NonNull Builder setColumnCount(int columnCount) {
                 mColumnCount = columnCount;
                 return this;
             }
@@ -1122,8 +1111,7 @@ public class AccessibilityNodeInfoCompat {
              * @param hierarchical Whether the collection is hierarchical.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setHierarchical(boolean hierarchical) {
+            public CollectionInfoCompat.@NonNull Builder setHierarchical(boolean hierarchical) {
                 mHierarchical = hierarchical;
                 return this;
             }
@@ -1133,8 +1121,7 @@ public class AccessibilityNodeInfoCompat {
              * @param selectionMode The selection mode.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setSelectionMode(int selectionMode) {
+            public CollectionInfoCompat.@NonNull Builder setSelectionMode(int selectionMode) {
                 mSelectionMode = selectionMode;
                 return this;
             }
@@ -1147,8 +1134,7 @@ public class AccessibilityNodeInfoCompat {
              *                  {@code UNDEFINED} if the item count is not known.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setItemCount(int itemCount) {
+            public CollectionInfoCompat.@NonNull Builder setItemCount(int itemCount) {
                 mItemCount = itemCount;
                 return this;
             }
@@ -1159,8 +1145,7 @@ public class AccessibilityNodeInfoCompat {
              *                                            accessibility.
              * @return This builder.
              */
-            @NonNull
-            public CollectionInfoCompat.Builder setImportantForAccessibilityItemCount(
+            public CollectionInfoCompat.@NonNull Builder setImportantForAccessibilityItemCount(
                     int importantForAccessibilityItemCount) {
                 mImportantForAccessibilityItemCount = importantForAccessibilityItemCount;
                 return this;
@@ -1169,8 +1154,7 @@ public class AccessibilityNodeInfoCompat {
             /**
              * Creates a new {@link CollectionInfoCompat} instance.
              */
-            @NonNull
-            public CollectionInfoCompat build() {
+            public @NonNull CollectionInfoCompat build() {
                 if (Build.VERSION.SDK_INT >= 35) {
                     return Api35Impl.buildCollectionInfoCompat(mRowCount, mColumnCount,
                             mHierarchical, mSelectionMode, mItemCount,
@@ -1301,8 +1285,7 @@ public class AccessibilityNodeInfoCompat {
          *
          * @return The row title.
          */
-        @Nullable
-        public String getRowTitle() {
+        public @Nullable String getRowTitle() {
             if (Build.VERSION.SDK_INT >= 33) {
                 return Api33Impl.getCollectionItemRowTitle(mInfo);
             } else {
@@ -1315,8 +1298,7 @@ public class AccessibilityNodeInfoCompat {
          *
          * @return The column title.
          */
-        @Nullable
-        public String getColumnTitle() {
+        public @Nullable String getColumnTitle() {
             if (Build.VERSION.SDK_INT >= 33) {
                 return Api33Impl.getCollectionItemColumnTitle(mInfo);
             } else {
@@ -1349,8 +1331,7 @@ public class AccessibilityNodeInfoCompat {
              * @param heading The heading state
              * @return This builder
              */
-            @NonNull
-            public Builder setHeading(boolean heading) {
+            public @NonNull Builder setHeading(boolean heading) {
                 mHeading = heading;
                 return this;
             }
@@ -1361,8 +1342,7 @@ public class AccessibilityNodeInfoCompat {
              * @param columnIndex The column index
              * @return This builder
              */
-            @NonNull
-            public Builder setColumnIndex(int columnIndex) {
+            public @NonNull Builder setColumnIndex(int columnIndex) {
                 mColumnIndex = columnIndex;
                 return this;
             }
@@ -1373,8 +1353,7 @@ public class AccessibilityNodeInfoCompat {
              * @param rowIndex The row index
              * @return This builder
              */
-            @NonNull
-            public Builder setRowIndex(int rowIndex) {
+            public @NonNull Builder setRowIndex(int rowIndex) {
                 mRowIndex = rowIndex;
                 return this;
             }
@@ -1385,8 +1364,7 @@ public class AccessibilityNodeInfoCompat {
              * @param columnSpan The number of columns spans
              * @return This builder
              */
-            @NonNull
-            public Builder setColumnSpan(int columnSpan) {
+            public @NonNull Builder setColumnSpan(int columnSpan) {
                 mColumnSpan = columnSpan;
                 return this;
             }
@@ -1397,8 +1375,7 @@ public class AccessibilityNodeInfoCompat {
              * @param rowSpan The number of rows spans
              * @return This builder
              */
-            @NonNull
-            public Builder setRowSpan(int rowSpan) {
+            public @NonNull Builder setRowSpan(int rowSpan) {
                 mRowSpan = rowSpan;
                 return this;
             }
@@ -1409,8 +1386,7 @@ public class AccessibilityNodeInfoCompat {
              * @param selected The number of rows spans
              * @return This builder
              */
-            @NonNull
-            public Builder setSelected(boolean selected) {
+            public @NonNull Builder setSelected(boolean selected) {
                 mSelected = selected;
                 return this;
             }
@@ -1421,8 +1397,7 @@ public class AccessibilityNodeInfoCompat {
              * @param rowTitle The row title
              * @return This builder
              */
-            @NonNull
-            public Builder setRowTitle(@Nullable String rowTitle) {
+            public @NonNull Builder setRowTitle(@Nullable String rowTitle) {
                 mRowTitle = rowTitle;
                 return this;
             }
@@ -1433,8 +1408,7 @@ public class AccessibilityNodeInfoCompat {
              * @param columnTitle The column title
              * @return This builder
              */
-            @NonNull
-            public Builder setColumnTitle(@Nullable String columnTitle) {
+            public @NonNull Builder setColumnTitle(@Nullable String columnTitle) {
                 mColumnTitle = columnTitle;
                 return this;
             }
@@ -1442,8 +1416,7 @@ public class AccessibilityNodeInfoCompat {
             /**
              * Builds and returns a {@link AccessibilityNodeInfo.CollectionItemInfo}.
              */
-            @NonNull
-            public CollectionItemInfoCompat build() {
+            public @NonNull CollectionItemInfoCompat build() {
                 if (Build.VERSION.SDK_INT >= 33) {
                     return Api33Impl.buildCollectionItemInfoCompat(mHeading, mColumnIndex,
                             mRowIndex, mColumnSpan, mRowSpan, mSelected, mRowTitle, mColumnTitle);
@@ -1597,8 +1570,7 @@ public class AccessibilityNodeInfoCompat {
          * @param index The desired index, must be between 0 and {@link #getRegionCount()}-1.
          * @return Returns the {@link Region} stored at the given index.
          */
-        @Nullable
-        public Region getRegionAt(@IntRange(from = 0) int index) {
+        public @Nullable Region getRegionAt(@IntRange(from = 0) int index) {
             if (Build.VERSION.SDK_INT >= 29) {
                 return mInfo.getRegionAt(index);
             }
@@ -1620,8 +1592,7 @@ public class AccessibilityNodeInfoCompat {
          * @param region The region retrieved from {@link #getRegionAt(int)}.
          * @return The target node associates with the given region.
          */
-        @Nullable
-        public AccessibilityNodeInfoCompat getTargetForRegion(@NonNull Region region) {
+        public @Nullable AccessibilityNodeInfoCompat getTargetForRegion(@NonNull Region region) {
             if (Build.VERSION.SDK_INT >= 29) {
                 AccessibilityNodeInfo info = mInfo.getTargetForRegion(region);
                 if (info != null) {
@@ -2533,8 +2504,7 @@ public class AccessibilityNodeInfoCompat {
      *
      * @see AccessibilityNodeInfoCompat#getParent(int) for a description of prefetching.
      */
-    @Nullable
-    public AccessibilityNodeInfoCompat getChild(int index, int prefetchingStrategy) {
+    public @Nullable AccessibilityNodeInfoCompat getChild(int index, int prefetchingStrategy) {
         if (Build.VERSION.SDK_INT >= 33) {
             return Api33Impl.getChild(mInfo, index, prefetchingStrategy);
         }
@@ -2793,8 +2763,7 @@ public class AccessibilityNodeInfoCompat {
      * @see #FLAG_PREFETCH_SIBLINGS
      * @see #FLAG_PREFETCH_UNINTERRUPTIBLE
      */
-    @Nullable
-    public AccessibilityNodeInfoCompat getParent(int prefetchingStrategy) {
+    public @Nullable AccessibilityNodeInfoCompat getParent(int prefetchingStrategy) {
         if (Build.VERSION.SDK_INT >= 33) {
             return Api33Impl.getParent(mInfo, prefetchingStrategy);
         }
@@ -2923,7 +2892,7 @@ public class AccessibilityNodeInfoCompat {
      * </ul>
      * @param outBounds The output node bounds.
      */
-    public void getBoundsInWindow(@NonNull  Rect outBounds) {
+    public void getBoundsInWindow(@NonNull Rect outBounds) {
         if (Build.VERSION.SDK_INT >= 34) {
             Api34Impl.getBoundsInWindow(mInfo, outBounds);
         } else {
@@ -3766,8 +3735,7 @@ public class AccessibilityNodeInfoCompat {
      * </ul>
      * @see #setContainerTitle for details.
      */
-    @Nullable
-    public CharSequence getContainerTitle() {
+    public @Nullable CharSequence getContainerTitle() {
         if (Build.VERSION.SDK_INT >= 34) {
             return Api34Impl.getContainerTitle(mInfo);
         } else {
@@ -3967,8 +3935,7 @@ public class AccessibilityNodeInfoCompat {
      * @return The {@link android.view.accessibility.AccessibilityNodeInfo.ExtraRenderingInfo
      * extra rendering info}.
      */
-    @Nullable
-    public AccessibilityNodeInfo.ExtraRenderingInfo getExtraRenderingInfo() {
+    public AccessibilityNodeInfo.@Nullable ExtraRenderingInfo getExtraRenderingInfo() {
         if (Build.VERSION.SDK_INT >= 33) {
             return Api33Impl.getExtraRenderingInfo(mInfo);
         } else {
@@ -4293,8 +4260,7 @@ public class AccessibilityNodeInfoCompat {
      * @see #EXTRA_DATA_RENDERING_INFO_KEY
      * @see #EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY
      */
-    @NonNull
-    public List<String> getAvailableExtraData() {
+    public @NonNull List<String> getAvailableExtraData() {
         if (Build.VERSION.SDK_INT >= 26) {
             return mInfo.getAvailableExtraData();
         } else {
@@ -4603,8 +4569,7 @@ public class AccessibilityNodeInfoCompat {
      *
      * @return The tooltip text.
      */
-    @Nullable
-    public CharSequence getTooltipText() {
+    public @Nullable CharSequence getTooltipText() {
         if (Build.VERSION.SDK_INT >= 28) {
             return mInfo.getTooltipText();
         } else {
@@ -4912,8 +4877,7 @@ public class AccessibilityNodeInfoCompat {
      * @return {@link TouchDelegateInfoCompat} or {@code null} if there are no touch delegates
      * in this node.
      */
-    @Nullable
-    public TouchDelegateInfoCompat getTouchDelegateInfo() {
+    public @Nullable TouchDelegateInfoCompat getTouchDelegateInfo() {
         if (Build.VERSION.SDK_INT >= 29) {
             TouchDelegateInfo delegateInfo = mInfo.getTouchDelegateInfo();
             if (delegateInfo != null) {
@@ -5033,9 +4997,8 @@ public class AccessibilityNodeInfoCompat {
     }
 
     @SuppressWarnings("deprecation")
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append(super.toString());
 

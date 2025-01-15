@@ -354,11 +354,13 @@ package androidx.wear.compose.foundation {
     ctor public SwipeToDismissBoxState();
     ctor public SwipeToDismissBoxState(optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> animationSpec, optional kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.SwipeToDismissValue,java.lang.Boolean> confirmStateChange);
     method public androidx.wear.compose.foundation.SwipeToDismissValue getCurrentValue();
+    method public float getOffset();
     method public androidx.wear.compose.foundation.SwipeToDismissValue getTargetValue();
     method public boolean isAnimationRunning();
     method public suspend Object? snapTo(androidx.wear.compose.foundation.SwipeToDismissValue targetValue, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     property public final androidx.wear.compose.foundation.SwipeToDismissValue currentValue;
     property public final boolean isAnimationRunning;
+    property public final float offset;
     property public final androidx.wear.compose.foundation.SwipeToDismissValue targetValue;
   }
 
@@ -614,14 +616,14 @@ package androidx.wear.compose.foundation.lazy {
 package androidx.wear.compose.foundation.pager {
 
   public final class PagerDefaults {
+    method public int getBeyondViewportPageCount();
+    method public androidx.compose.animation.core.AnimationSpec<java.lang.Float> getSnapAnimationSpec();
+    method public float getSwipeToDismissEdgeZoneFraction();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.gestures.TargetedFlingBehavior snapFlingBehavior(androidx.wear.compose.foundation.pager.PagerState state, optional androidx.compose.foundation.pager.PagerSnapDistance pagerSnapDistance, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> decayAnimationSpec, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> snapAnimationSpec, optional @FloatRange(from=0.0, to=1.0) float snapPositionalThreshold);
-    property public static final int BeyondViewportPageCount;
-    property public static final float Stiffness;
-    property public static final float SwipeToDismissEdgeZoneFraction;
-    field public static final int BeyondViewportPageCount = 0; // 0x0
+    property public final int BeyondViewportPageCount;
+    property public final androidx.compose.animation.core.AnimationSpec<java.lang.Float> SnapAnimationSpec;
+    property public final float SwipeToDismissEdgeZoneFraction;
     field public static final androidx.wear.compose.foundation.pager.PagerDefaults INSTANCE;
-    field public static final float Stiffness = 2000.0f;
-    field public static final float SwipeToDismissEdgeZoneFraction = 0.15f;
   }
 
   public final class PagerKt {

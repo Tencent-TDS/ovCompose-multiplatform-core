@@ -21,12 +21,15 @@ import android.content.Context
 import android.os.Build
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
+import androidx.health.connect.client.impl.platform.toLocalTimeWithDefaultZoneFallback
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Mass
+import androidx.health.connect.client.units.grams
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -36,6 +39,7 @@ import com.google.common.truth.Truth.assertThat
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.Period
 import java.time.ZoneOffset
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -130,6 +134,80 @@ class NutritionAggregationExtensionsTest {
 
         assertThat(aggregationResult[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(Mass.grams(1.7))
         assertThat(aggregationResult.dataOrigins).containsExactly(DataOrigin(context.packageName))
+    }
+
+    @Test
+    fun aggregateNutritionTransFatTotal_groupByPeriod() = runTest {
+        healthConnectClient.insertRecords(
+            listOf(
+                NutritionRecord(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 1.minutes,
+                    transFat = .3.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 1.days + 2.minutes,
+                    endTime = START_TIME + 1.days + 3.minutes,
+                    transFat = null,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 3.days + 4.minutes,
+                    endTime = START_TIME + 3.days + 5.minutes,
+                    transFat = .4.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 3.days + 6.minutes,
+                    endTime = START_TIME + 3.days + 7.minutes,
+                    transFat = .5.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                )
+            )
+        )
+
+        val aggregationResult =
+            healthConnectClient.aggregateFallback(
+                AggregateGroupByPeriodRequest(
+                    metrics = setOf(NutritionRecord.TRANS_FAT_TOTAL),
+                    timeRangeFilter =
+                        TimeRangeFilter.after(
+                            START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                        ),
+                    timeRangeSlicer = Period.ofDays(1)
+                )
+            )
+
+        assertThat(aggregationResult).hasSize(2)
+
+        with(aggregationResult[0]) {
+            assertThat(startTime)
+                .isEqualTo(START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC))
+            assertThat(endTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(1)
+                )
+            assertThat(result[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(.3.grams)
+            assertThat(result.dataOrigins).containsExactly(DataOrigin(context.packageName))
+        }
+
+        with(aggregationResult[1]) {
+            assertThat(startTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(3)
+                )
+            assertThat(endTime)
+                .isEqualTo(
+                    START_TIME.toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC).plusDays(4)
+                )
+            assertThat(result[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(.9.grams)
+            assertThat(result.dataOrigins).containsExactly(DataOrigin(context.packageName))
+        }
     }
 
     @Test
@@ -502,6 +580,9 @@ class NutritionAggregationExtensionsTest {
         assertThat(NutritionRecord.TRANS_FAT_TOTAL in aggregationResult).isFalse()
         assertThat(aggregationResult.dataOrigins).isEmpty()
     }
+
+    private val Int.days: Duration
+        get() = Duration.ofDays(this.toLong())
 
     private val Int.seconds: Duration
         get() = Duration.ofSeconds(this.toLong())

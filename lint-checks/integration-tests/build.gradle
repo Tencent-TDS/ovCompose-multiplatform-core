@@ -46,9 +46,9 @@ android {
         // We don't need to see the errors in stdout
         textOutput("${buildDir}/lint-results-debug.txt") // Set to this value for b/189877657
         // We don't want errors to cause lint to fail
-        abortOnError false
+        abortOnError = false
     }
-    namespace "androidx.lint.integration.tests"
+    namespace = "androidx.lint.integration.tests"
 }
 
 

@@ -41,6 +41,7 @@ import androidx.health.connect.client.records.IntermenstrualBleedingRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.MenstruationFlowRecord
 import androidx.health.connect.client.records.MenstruationPeriodRecord
+import androidx.health.connect.client.records.MindfulnessSessionRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.OvulationTestRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
@@ -220,6 +221,9 @@ public class HealthPermission internal constructor() {
         internal const val READ_OVULATION_TEST = PERMISSION_PREFIX + "READ_OVULATION_TEST"
         internal const val READ_SEXUAL_ACTIVITY = PERMISSION_PREFIX + "READ_SEXUAL_ACTIVITY"
 
+        // Read permissions for WELLNESS
+        internal const val READ_MINDFULNESS_SESSION = PERMISSION_PREFIX + "READ_MINDFULNESS_SESSION"
+
         // Read permissions for NUTRITION.
         internal const val READ_HYDRATION = PERMISSION_PREFIX + "READ_HYDRATION"
         internal const val READ_NUTRITION = PERMISSION_PREFIX + "READ_NUTRITION"
@@ -280,6 +284,10 @@ public class HealthPermission internal constructor() {
         // Write permissions for NUTRITION.
         internal const val WRITE_HYDRATION = PERMISSION_PREFIX + "WRITE_HYDRATION"
         internal const val WRITE_NUTRITION = PERMISSION_PREFIX + "WRITE_NUTRITION"
+
+        // Write permissions for WELLNESS
+        internal const val WRITE_MINDFULNESS_SESSION =
+            PERMISSION_PREFIX + "WRITE_MINDFULNESS_SESSION"
 
         // Write permissions for SLEEP.
         internal const val WRITE_SLEEP = PERMISSION_PREFIX + "WRITE_SLEEP"
@@ -343,6 +351,8 @@ public class HealthPermission internal constructor() {
                     READ_MENSTRUATION.substringAfter(READ_PERMISSION_PREFIX),
                 MenstruationPeriodRecord::class to
                     READ_MENSTRUATION.substringAfter(READ_PERMISSION_PREFIX),
+                MindfulnessSessionRecord::class to
+                    READ_MINDFULNESS_SESSION.substringAfter(READ_PERMISSION_PREFIX),
                 NutritionRecord::class to READ_NUTRITION.substringAfter(READ_PERMISSION_PREFIX),
                 OvulationTestRecord::class to
                     READ_OVULATION_TEST.substringAfter(READ_PERMISSION_PREFIX),

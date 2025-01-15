@@ -655,7 +655,7 @@ public class TileServiceTest {
     }
 
     @Test
-    public void tileService_onTileEnter_callsProcessRecentInteractionEvents() throws Exception {
+    public void tileService_onTileEnter_callsOnRecentInteractionEvents() throws Exception {
         EventProto.TileEnterEvent enterRequest =
                 EventProto.TileEnterEvent.newBuilder().setTileId(TILE_ID).build();
 
@@ -687,7 +687,7 @@ public class TileServiceTest {
     }
 
     @Test
-    public void tileService_onTileLeave_callsProcessRecentInteractionEvents() throws Exception {
+    public void tileService_onTileLeave_callsOnRecentInteractionEvents() throws Exception {
         EventProto.TileLeaveEvent leaveRequest =
                 EventProto.TileLeaveEvent.newBuilder().setTileId(TILE_ID).build();
 
@@ -705,7 +705,7 @@ public class TileServiceTest {
     }
 
     @Test
-    public void tileService_processRecentInteractionEvents() throws Exception {
+    public void tileService_onRecentInteractionEvents() throws Exception {
         long fakeTimestamp = 112233L;
         ImmutableList<EventProto.TileInteractionEvent> eventProtos =
                 ImmutableList.of(
@@ -995,7 +995,7 @@ public class TileServiceTest {
         }
 
         @Override
-        protected void processRecentInteractionEvents(@NonNull List<TileInteractionEvent> events) {
+        protected void onRecentInteractionEvents(@NonNull List<TileInteractionEvent> events) {
             mLastEventBatch = events;
         }
 

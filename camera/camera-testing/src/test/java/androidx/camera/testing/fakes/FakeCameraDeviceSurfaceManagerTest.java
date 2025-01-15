@@ -30,7 +30,6 @@ import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.impl.AttachedSurfaceInfo;
@@ -42,6 +41,7 @@ import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.testing.impl.fakes.FakeCameraDeviceSurfaceManager;
 import androidx.camera.testing.impl.fakes.FakeUseCaseConfig;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -158,7 +158,7 @@ public class FakeCameraDeviceSurfaceManagerTest {
     }
 
     private Map<UseCaseConfig<?>, List<Size>> createConfigOutputSizesMap(
-            @NonNull UseCaseConfig<?>... useCaseConfigs) {
+            UseCaseConfig<?> @NonNull ... useCaseConfigs) {
         Map<UseCaseConfig<?>, List<Size>> configOutputSizesMap = new HashMap<>();
         for (UseCaseConfig<?> useCaseConfig : useCaseConfigs) {
             configOutputSizesMap.put(useCaseConfig, Collections.emptyList());

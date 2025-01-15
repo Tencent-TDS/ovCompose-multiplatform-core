@@ -182,7 +182,7 @@ public class WatchFaceServiceImageTest {
 
     @get:Rule
     public val screenshotRule: AndroidXScreenshotTestRule =
-        AndroidXScreenshotTestRule("wear/wear-watchface")
+        AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
     private val bitmap = Bitmap.createBitmap(BITMAP_WIDTH, BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
     private val canvas = Canvas(bitmap)

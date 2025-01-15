@@ -32,16 +32,16 @@ plugins {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     defaultConfig {
-        applicationId "androidx.window.demo"
-        minSdkVersion 23
-        targetSdkVersion 35
+        applicationId = "androidx.window.demo"
+        minSdk = 23
+        targetSdk = 35
     }
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    namespace "androidx.window.demo"
+    namespace = "androidx.window.demo"
     signingConfigs {
         config {
             keyAlias 'key'
@@ -52,10 +52,10 @@ android {
     }
     buildTypes {
         configureEach {
-            signingConfig signingConfigs.config
+            signingConfig = signingConfigs.config
         }
         release {
-            minifyEnabled true
+            minifyEnabled = true
             applicationIdSuffix ".release"
         }
         debug {

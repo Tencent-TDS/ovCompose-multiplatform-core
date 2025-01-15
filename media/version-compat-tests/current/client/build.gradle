@@ -20,7 +20,7 @@ plugins {
 }
 
 android {
-    namespace "android.support.mediacompat.client"
+    namespace = "android.support.mediacompat.client"
 }
 
 dependencies {

@@ -32,8 +32,6 @@ import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.EncoderProfilesProvider;
@@ -42,6 +40,9 @@ import androidx.camera.core.impl.Quirk;
 import androidx.camera.video.VideoSpec;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,8 +70,7 @@ public class ExtraSupportedQualityQuirk implements Quirk {
     }
 
     /** Gets the EncoderProfilesProxy for the extra supported quality. */
-    @Nullable
-    public Map<Integer, EncoderProfilesProxy> getExtraEncoderProfiles(
+    public @Nullable Map<Integer, EncoderProfilesProxy> getExtraEncoderProfiles(
             @NonNull CameraInfoInternal cameraInfo,
             @NonNull EncoderProfilesProvider encoderProfilesProvider,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
@@ -84,8 +84,7 @@ public class ExtraSupportedQualityQuirk implements Quirk {
     // Create 480P EncoderProfiles for front Camera if not exist. Derive profile from QUALITY_HIGH
     // which should be QUALITY_CIF. Even if QUALITY_HIGH is not QUALITY_CIF due to ROM
     // update, the code should still work.
-    @Nullable
-    private Map<Integer, EncoderProfilesProxy> getExtraEncoderProfilesForMotoC(
+    private @Nullable Map<Integer, EncoderProfilesProxy> getExtraEncoderProfilesForMotoC(
             @NonNull CameraInfoInternal cameraInfo,
             @NonNull EncoderProfilesProvider encoderProfilesProvider,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
@@ -123,9 +122,8 @@ public class ExtraSupportedQualityQuirk implements Quirk {
         return extraEncoderProfilesMap;
     }
 
-    @NonNull
-    private static Range<Integer> getSupportedBitrateRange(
-            @NonNull EncoderProfilesProxy.VideoProfileProxy videoProfile,
+    private static @NonNull Range<Integer> getSupportedBitrateRange(
+            EncoderProfilesProxy.@NonNull VideoProfileProxy videoProfile,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
         VideoEncoderInfo encoderInfo =
                 videoEncoderInfoFinder.apply(toVideoEncoderConfig(videoProfile));

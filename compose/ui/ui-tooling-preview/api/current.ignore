@@ -1,4 +1,8 @@
 // Baseline format: 1.0
+ChangedType: androidx.compose.ui.tooling.preview.PreviewParameter#provider():
+    Method androidx.compose.ui.tooling.preview.PreviewParameter.provider has changed return type from kotlin.reflect.KClass<? extends androidx.compose.ui.tooling.preview.PreviewParameterProvider<?>> to java.lang.Class<? extends androidx.compose.ui.tooling.preview.PreviewParameterProvider<?>>
+
+
 ChangedValue: androidx.compose.ui.tooling.preview.Devices#DESKTOP:
     Field androidx.compose.ui.tooling.preview.Devices.DESKTOP has changed value from spec:id=reference_desktop,shape=Normal,width=1920,height=1080,unit=dp,dpi=160 to spec:width=1920dp,height=1080dp,dpi=160
 ChangedValue: androidx.compose.ui.tooling.preview.Devices#FOLDABLE:

@@ -68,8 +68,6 @@ import android.view.autofill.AutofillId;
 import android.view.contentcapture.ContentCaptureSession;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.core.graphics.Insets;
 import androidx.core.test.R;
 import androidx.core.view.autofill.AutofillIdCompat;
@@ -80,6 +78,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -621,7 +621,7 @@ public class ViewCompatTest extends BaseInstrumentationTestCase<ViewCompatActivi
 
         @Override
         public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed,
-                int dyUnconsumed, @Nullable int[] offsetInWindow) {
+                int dyUnconsumed, int @Nullable [] offsetInWindow) {
             return true;
         }
     }
@@ -635,7 +635,7 @@ public class ViewCompatTest extends BaseInstrumentationTestCase<ViewCompatActivi
 
         @Override
         public boolean dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed,
-                int dyUnconsumed, @Nullable int[] offsetInWindow, int type) {
+                int dyUnconsumed, int @Nullable [] offsetInWindow, int type) {
             return true;
         }
     }
@@ -649,8 +649,8 @@ public class ViewCompatTest extends BaseInstrumentationTestCase<ViewCompatActivi
 
         @Override
         public void dispatchNestedScroll(int dxConsumed, int dyConsumed, int dxUnconsumed,
-                int dyUnconsumed, @Nullable int[] offsetInWindow, int type,
-                @NonNull int[] consumed) {
+                int dyUnconsumed, int @Nullable [] offsetInWindow, int type,
+                int @NonNull [] consumed) {
         }
     }
 }

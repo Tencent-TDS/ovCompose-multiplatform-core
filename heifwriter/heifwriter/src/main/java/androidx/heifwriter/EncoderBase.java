@@ -852,6 +852,15 @@ public class EncoderBase implements AutoCloseable,
             }
 
             try {
+                if (mInputTexture != null) {
+                    mInputTexture.release();
+                }
+            } catch (Exception e) {
+            } finally {
+                mInputTexture = null;
+            }
+
+            try {
                 if (mEncoderEglSurface != null) {
                     // Note that this frees mEncoderSurface too. If mEncoderEglSurface is not
                     // there, client is responsible to release the input surface it got from us,
@@ -861,15 +870,6 @@ public class EncoderBase implements AutoCloseable,
             } catch (Exception e) {
             } finally {
                 mEncoderEglSurface = null;
-            }
-
-            try {
-                if (mInputTexture != null) {
-                    mInputTexture.release();
-                }
-            } catch (Exception e) {
-            } finally {
-                mInputTexture = null;
             }
         }
     }

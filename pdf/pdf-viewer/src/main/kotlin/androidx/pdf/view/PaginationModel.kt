@@ -74,12 +74,6 @@ internal class PaginationModel(val pageSpacingPx: Int, val numPages: Int) : Parc
     private var accumulatedPageHeight = 0
 
     /**
-     * Pre-allocated Rect to avoid mutating [Rect] passed to us, without allocating a new one.
-     * Notably this class is used on the drawing path and should avoid excessive allocations.
-     */
-    private val tmpVisibleArea = Rect()
-
-    /**
      * The top position of each page known to this model, as a synthetic [List] to conveniently use
      * with APIs like [Collections.binarySearch]
      */
@@ -186,24 +180,21 @@ internal class PaginationModel(val pageSpacingPx: Int, val numPages: Int) : Parc
 
     /** Returns the location of the page in content coordinates */
     fun getPageLocation(pageNum: Int, viewport: Rect): Rect {
-        // We care about the intersection between what's visible and the coordinates of this model
-        tmpVisibleArea.set(viewport)
-        tmpVisibleArea.intersect(0, 0, maxWidth, totalEstimatedHeight)
         val page = pages[pageNum]
         var left = 0
         var right: Int = maxWidth
         val top = pagePositions[pageNum]
         val bottom = top + page.y
         // this page is smaller than the view's width, it may slide left or right.
-        if (page.x < tmpVisibleArea.width()) {
-            // page is smaller than the view: center (but respect min left margin)
-            left = Math.max(left, tmpVisibleArea.left + (tmpVisibleArea.width() - page.x) / 2)
+        if (page.x < viewport.width()) {
+            // page is smaller than the view: center
+            left = Math.max(left, viewport.left + (viewport.width() - page.x) / 2)
         } else {
-            // page is larger than view: scroll proportionally between the margins.
-            if (tmpVisibleArea.right > right) {
+            // page is larger than view: scroll proportionally
+            if (viewport.right > right) {
                 left = right - page.x
-            } else if (tmpVisibleArea.left > left) {
-                left = tmpVisibleArea.left * (right - page.x) / (right - tmpVisibleArea.width())
+            } else if (viewport.left > left) {
+                left = viewport.left * (right - page.x) / (right - viewport.width())
             }
         }
         right = left + page.x

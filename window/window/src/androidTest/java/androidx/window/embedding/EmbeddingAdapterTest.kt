@@ -336,10 +336,13 @@ class EmbeddingAdapterTest {
         val colorBackground = EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
         val splitAttributesWithColorBackground =
             SplitAttributes.Builder()
-                .setAnimationParams(EmbeddingAnimationParams(colorBackground))
+                .setAnimationParams(
+                    EmbeddingAnimationParams.Builder()
+                        .setAnimationBackground(colorBackground)
+                        .build()
+                )
                 .build()
-        val splitAttributesWithDefaultBackground =
-            SplitAttributes.Builder().setAnimationParams(EmbeddingAnimationParams()).build()
+        val splitAttributesWithDefaultBackground = SplitAttributes.Builder().build()
 
         val extensionsColorBackground =
             OEMEmbeddingAnimationBackground.createColorBackground(Color.BLUE)
@@ -381,10 +384,13 @@ class EmbeddingAdapterTest {
         val colorBackground = EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
         val splitAttributesWithColorBackground =
             SplitAttributes.Builder()
-                .setAnimationParams(EmbeddingAnimationParams(colorBackground))
+                .setAnimationParams(
+                    EmbeddingAnimationParams.Builder()
+                        .setAnimationBackground(colorBackground)
+                        .build()
+                )
                 .build()
-        val splitAttributesWithDefaultBackground =
-            SplitAttributes.Builder().setAnimationParams(EmbeddingAnimationParams()).build()
+        val splitAttributesWithDefaultBackground = SplitAttributes.Builder().build()
 
         // No difference after translate before API level 5
         assertEquals(
@@ -399,7 +405,8 @@ class EmbeddingAdapterTest {
         WindowTestUtils.assumeAtLeastVendorApiLevel(5)
 
         val dimAreaBehavior = EmbeddingConfiguration.DimAreaBehavior.ON_TASK
-        adapter.embeddingConfiguration = EmbeddingConfiguration(dimAreaBehavior)
+        adapter.embeddingConfiguration =
+            EmbeddingConfiguration.Builder().setDimAreaBehavior(dimAreaBehavior).build()
         val oemSplitAttributes = adapter.translateSplitAttributes(SplitAttributes.Builder().build())
 
         assertEquals(dimAreaBehavior.value, oemSplitAttributes.windowAttributes.dimAreaBehavior)

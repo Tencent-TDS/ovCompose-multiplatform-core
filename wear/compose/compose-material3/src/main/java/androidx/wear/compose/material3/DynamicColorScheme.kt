@@ -32,7 +32,7 @@ import androidx.compose.ui.graphics.Color
  *
  * @param context The context required to get system resource data.
  */
-fun dynamicColorScheme(
+public fun dynamicColorScheme(
     context: Context,
 ): ColorScheme? =
     if (!isDynamicColorSchemeEnabled(context)) {

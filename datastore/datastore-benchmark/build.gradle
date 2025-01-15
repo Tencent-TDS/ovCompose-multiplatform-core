@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -46,5 +46,9 @@ dependencies {
 }
 
 android {
-    namespace "androidx.datastore.benchmark"
+    namespace = "androidx.datastore.benchmark"
+}
+
+androidx {
+    type = LibraryType.BENCHMARK
 }

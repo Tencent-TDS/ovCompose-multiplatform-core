@@ -21,8 +21,6 @@ import static androidx.appsearch.app.AppSearchResult.throwableToFailedResult;
 
 import android.os.Parcel;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.GenericDocument;
@@ -39,6 +37,9 @@ import androidx.core.util.Preconditions;
 import com.google.android.icing.proto.PersistType;
 import com.google.android.icing.protobuf.CodedInputStream;
 import com.google.android.icing.protobuf.CodedOutputStream;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.File;
@@ -94,7 +95,7 @@ class AppSearchMigrationHelper implements Closeable {
      */
     @WorkerThread
     public void queryAndTransform(@NonNull Map<String, Migrator> migrators, int currentVersion,
-            int finalVersion, @Nullable SchemaMigrationStats.Builder schemaMigrationStatsBuilder)
+            int finalVersion, SchemaMigrationStats.@Nullable Builder schemaMigrationStatsBuilder)
             throws IOException, AppSearchException {
         Preconditions.checkState(mFile.exists(), "Internal temp file does not exist.");
         try (FileOutputStream outputStream = new FileOutputStream(mFile, /*append=*/ true)) {
@@ -169,9 +170,9 @@ class AppSearchMigrationHelper implements Closeable {
      * @throws IOException        on i/o problem
      * @throws AppSearchException on AppSearch problem
      */
-    @NonNull
     @WorkerThread
-    public SetSchemaResponse readAndPutDocuments(@NonNull SetSchemaResponse.Builder responseBuilder,
+    public @NonNull SetSchemaResponse readAndPutDocuments(
+            SetSchemaResponse.@NonNull Builder responseBuilder,
             SchemaMigrationStats.Builder schemaMigrationStatsBuilder)
             throws IOException, AppSearchException {
         Preconditions.checkState(mFile.exists(), "Internal temp file does not exist.");
@@ -219,8 +220,7 @@ class AppSearchMigrationHelper implements Closeable {
      *
      * @throws IOException        on File operation error.
      */
-    @NonNull
-    private static GenericDocument readDocumentFromInputStream(
+    private static @NonNull GenericDocument readDocumentFromInputStream(
             @NonNull CodedInputStream codedInputStream) throws IOException {
         byte[] serializedMessage = codedInputStream.readByteArray();
 

@@ -41,8 +41,8 @@ dependencies {
     api(libs.kotlinStdlib)
     implementation(libs.kspApi)
     implementation(libs.kotlinPoet)
-    implementation project(path: ':privacysandbox:tools:tools')
-    implementation project(path: ':privacysandbox:tools:tools-core')
+    implementation(project(":privacysandbox:tools:tools"))
+    implementation(project(":privacysandbox:tools:tools-core"))
 
     testImplementation(project(":privacysandbox:tools:tools-testing"))
     testImplementation(project(":room:room-compiler-processing-testing"))

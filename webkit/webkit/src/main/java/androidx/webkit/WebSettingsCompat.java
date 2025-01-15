@@ -23,6 +23,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.RequiresFeature;
 import androidx.annotation.RequiresOptIn;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.UiThread;
 import androidx.webkit.internal.ApiFeature;
 import androidx.webkit.internal.ApiHelperForM;
 import androidx.webkit.internal.ApiHelperForN;
@@ -958,6 +959,7 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @UiThread
     public static void setWebAuthenticationSupport(@NonNull WebSettings settings,
             @WebAuthenticationSupport int support) {
         final ApiFeature.NoFramework feature =
@@ -987,6 +989,7 @@ public class WebSettingsCompat {
     @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
     @WebAuthenticationSupport
+    @UiThread
     public static int getWebAuthenticationSupport(@NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.WEB_AUTHENTICATION;

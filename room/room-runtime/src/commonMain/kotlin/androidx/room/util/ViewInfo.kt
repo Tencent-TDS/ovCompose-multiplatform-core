@@ -17,7 +17,6 @@ package androidx.room.util
 
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
@@ -30,9 +29,9 @@ import kotlin.jvm.JvmStatic
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 expect class ViewInfo(name: String, sql: String?) {
     /** The view name */
-    @JvmField val name: String
+    val name: String
     /** The SQL of CREATE VIEW. */
-    @JvmField val sql: String?
+    val sql: String?
 
     override fun equals(other: Any?): Boolean
 

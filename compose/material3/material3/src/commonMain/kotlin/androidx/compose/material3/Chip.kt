@@ -58,18 +58,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
+import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastSumBy
 
 /**
  * <a href="https://m3.material.io/components/chips/overview" class="external"
@@ -2081,45 +2090,71 @@ private fun ChipContent(
                         }
                     )
                 }
-            }
-        ) { measurables, constraints ->
-            val leadingIconPlaceable: Placeable? =
-                measurables
-                    .fastFirstOrNull { it.layoutId == LeadingIconLayoutId }
-                    ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
-            val leadingIconWidth = leadingIconPlaceable.widthOrZero
-            val leadingIconHeight = leadingIconPlaceable.heightOrZero
+            },
+            measurePolicy = remember { ChipLayoutMeasurePolicy() },
+        )
+    }
+}
 
-            val trailingIconPlaceable: Placeable? =
-                measurables
-                    .fastFirstOrNull { it.layoutId == TrailingIconLayoutId }
-                    ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
-            val trailingIconWidth = trailingIconPlaceable.widthOrZero
-            val trailingIconHeight = trailingIconPlaceable.heightOrZero
+private class ChipLayoutMeasurePolicy : MeasurePolicy {
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints
+    ): MeasureResult {
+        val leadingIconPlaceable: Placeable? =
+            measurables
+                .fastFirstOrNull { it.layoutId == LeadingIconLayoutId }
+                ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val leadingIconWidth = leadingIconPlaceable.widthOrZero
+        val leadingIconHeight = leadingIconPlaceable.heightOrZero
 
-            val labelPlaceable =
-                measurables
-                    .fastFirst { it.layoutId == LabelLayoutId }
-                    .measure(
-                        constraints.offset(horizontal = -(leadingIconWidth + trailingIconWidth))
-                    )
+        val trailingIconPlaceable: Placeable? =
+            measurables
+                .fastFirstOrNull { it.layoutId == TrailingIconLayoutId }
+                ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val trailingIconWidth = trailingIconPlaceable.widthOrZero
+        val trailingIconHeight = trailingIconPlaceable.heightOrZero
 
-            val width = leadingIconWidth + labelPlaceable.width + trailingIconWidth
-            val height = maxOf(leadingIconHeight, labelPlaceable.height, trailingIconHeight)
+        val labelPlaceable =
+            measurables
+                .fastFirst { it.layoutId == LabelLayoutId }
+                .measure(constraints.offset(horizontal = -(leadingIconWidth + trailingIconWidth)))
 
-            layout(width, height) {
-                leadingIconPlaceable?.placeRelative(
-                    0,
-                    Alignment.CenterVertically.align(leadingIconHeight, height)
-                )
-                labelPlaceable.placeRelative(leadingIconWidth, 0)
-                trailingIconPlaceable?.placeRelative(
-                    leadingIconWidth + labelPlaceable.width,
-                    Alignment.CenterVertically.align(trailingIconHeight, height)
-                )
-            }
+        val width = leadingIconWidth + labelPlaceable.width + trailingIconWidth
+        val height = maxOf(leadingIconHeight, labelPlaceable.height, trailingIconHeight)
+
+        return layout(width, height) {
+            leadingIconPlaceable?.placeRelative(
+                0,
+                Alignment.CenterVertically.align(leadingIconHeight, height)
+            )
+            labelPlaceable.placeRelative(leadingIconWidth, 0)
+            trailingIconPlaceable?.placeRelative(
+                leadingIconWidth + labelPlaceable.width,
+                Alignment.CenterVertically.align(trailingIconHeight, height)
+            )
         }
     }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(
+        measurables: List<IntrinsicMeasurable>,
+        width: Int
+    ): Int = measurables.fastMaxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(
+        measurables: List<IntrinsicMeasurable>,
+        width: Int
+    ): Int = measurables.fastMaxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(
+        measurables: List<IntrinsicMeasurable>,
+        height: Int
+    ): Int = measurables.fastSumBy { it.minIntrinsicWidth(height) }
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(
+        measurables: List<IntrinsicMeasurable>,
+        height: Int
+    ): Int = measurables.fastSumBy { it.maxIntrinsicWidth(height) }
 }
 
 /**

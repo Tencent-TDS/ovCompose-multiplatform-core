@@ -4210,7 +4210,6 @@ internal fun Icon.getWireSizeAndDimensions(context: Context): WireSizeAndDimensi
     return WireSizeAndDimensions(null, drawable.minimumWidth, drawable.minimumHeight)
 }
 
-@SuppressLint("ClassVerificationFailure")
 internal fun Icon.write(dos: DataOutputStream) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
         IconHelper.writeToDataOutputStream(this, dos)

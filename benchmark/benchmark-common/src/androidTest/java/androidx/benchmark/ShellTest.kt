@@ -473,6 +473,55 @@ class ShellTest {
         )
     }
 
+    @Test
+    fun psLineContainsProcess() {
+        // shell executables
+        "root      10065 10061 14848  3932  poll_sched 7bcaf1fc8c S /data/local/tmp/tracebox"
+            .apply {
+                assertTrue(Shell.psLineContainsProcess(this, "tracebox"))
+                assertFalse(Shell.psLineContainsProcess(this, "tracebo"))
+            }
+
+        "root      10109 1     11552  1140  poll_sched 78c86eac8c S ./tracebox"
+            .apply {
+                assertTrue(Shell.psLineContainsProcess(this, "tracebox"))
+                assertFalse(Shell.psLineContainsProcess(this, "tracebo"))
+            }
+
+        // app
+        "u0_a140       9253  9778   15120128 139856 do_epoll_wait       0 S example.app"
+            .apply {
+                assertTrue(Shell.psLineContainsProcess(this, "example.app"))
+                assertFalse(Shell.psLineContainsProcess(this, "example.ap"))
+            }
+        // app subprocess
+        "u0_a140       9253  9778   15120128 139856 do_epoll_wait       0 S example.app:ui"
+            .apply {
+                assertTrue(Shell.psLineContainsProcess(this, "example.app:ui"))
+                assertTrue(Shell.psLineContainsProcess(this, "example.app"))
+                assertFalse(Shell.psLineContainsProcess(this, "example.ap"))
+            }
+    }
+
+    @Test
+    fun fullProcessNameMatchesProcess() {
+        // shell executables
+        assertTrue(Shell.fullProcessNameMatchesProcess("/data/local/tmp/tracebox", "tracebox"))
+        assertFalse(Shell.fullProcessNameMatchesProcess("/data/local/tmp/tracebox", "tracebo"))
+
+        assertTrue(Shell.fullProcessNameMatchesProcess("./tracebox", "tracebox"))
+        assertFalse(Shell.fullProcessNameMatchesProcess("./tracebox", "tracebo"))
+
+        // app
+        assertTrue(Shell.fullProcessNameMatchesProcess("example.app", "example.app"))
+        assertFalse(Shell.fullProcessNameMatchesProcess("example.app", "example.ap"))
+
+        // app subprocess
+        assertTrue(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.app:ui"))
+        assertTrue(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.app"))
+        assertFalse(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.ap"))
+    }
+
     private fun pidof(packageName: String): Int? {
         return Shell.getPidsForProcess(packageName).firstOrNull()
     }

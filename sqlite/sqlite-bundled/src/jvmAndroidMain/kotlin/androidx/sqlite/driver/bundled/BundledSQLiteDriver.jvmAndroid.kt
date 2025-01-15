@@ -38,7 +38,7 @@ public actual class BundledSQLiteDriver : SQLiteDriver {
     public actual val threadingMode: Int
         get() = nativeThreadSafeMode()
 
-    override fun open(fileName: String): SQLiteConnection {
+    actual override fun open(fileName: String): SQLiteConnection {
         return open(fileName, SQLITE_OPEN_READWRITE or SQLITE_OPEN_CREATE)
     }
 

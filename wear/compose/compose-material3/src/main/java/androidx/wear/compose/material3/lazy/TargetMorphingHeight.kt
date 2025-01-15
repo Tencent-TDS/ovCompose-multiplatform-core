@@ -38,7 +38,7 @@ import org.jetbrains.annotations.TestOnly
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnTargetMorphingHeightSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  */
-fun Modifier.targetMorphingHeight(
+public fun Modifier.targetMorphingHeight(
     @Suppress("UNUSED_PARAMETER") scope: TransformingLazyColumnItemScope,
 ): Modifier = this then TargetMorphingHeightProviderModifierElement()
 

@@ -16,7 +16,6 @@
 
 package androidx.wear.compose.material3.macrobenchmark.common.baselineprofile
 
-import android.os.Build
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.wear.compose.material3.DatePicker
@@ -28,16 +27,14 @@ val DatePickerScreen =
     object : MacrobenchmarkScreen {
         override val content: @Composable BoxScope.() -> Unit
             get() = {
-                if (Build.VERSION.SDK_INT >= 26) {
-                    val minDate = LocalDate.of(2022, 10, 15)
-                    val maxDate = LocalDate.of(2025, 2, 4)
-                    DatePicker(
-                        initialDate = LocalDate.of(2024, 9, 2),
-                        onDatePicked = {},
-                        minDate = minDate,
-                        maxDate = maxDate,
-                        datePickerType = DatePickerType.YearMonthDay
-                    )
-                }
+                val minDate = LocalDate.of(2022, 10, 15)
+                val maxDate = LocalDate.of(2025, 2, 4)
+                DatePicker(
+                    initialDate = LocalDate.of(2024, 9, 2),
+                    onDatePicked = {},
+                    minValidDate = minDate,
+                    maxValidDate = maxDate,
+                    datePickerType = DatePickerType.YearMonthDay
+                )
             }
     }

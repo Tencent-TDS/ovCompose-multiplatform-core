@@ -35,14 +35,14 @@ dependencies {
 
 android {
     defaultConfig {
-        applicationId "androidx.wear.watchface.samples.minimal.complications"
-        minSdkVersion 26
+        applicationId = "androidx.wear.watchface.samples.minimal.complications"
+        minSdk = 26
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android.txt')
         }
     }
@@ -51,5 +51,5 @@ android {
         sourceCompatibility 1.8
         targetCompatibility 1.8
     }
-    namespace "androidx.wear.watchface.samples.minimal.complications"
+    namespace = "androidx.wear.watchface.samples.minimal.complications"
 }

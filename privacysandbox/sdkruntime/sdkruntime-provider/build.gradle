@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    api project(path: ':privacysandbox:sdkruntime:sdkruntime-core')
+    api(project(":privacysandbox:sdkruntime:sdkruntime-core"))
 
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
@@ -43,7 +43,7 @@ dependencies {
 }
 
 android {
-    namespace "androidx.privacysandbox.sdkruntime.provider"
+    namespace = "androidx.privacysandbox.sdkruntime.provider"
     compileSdk = 35
     compileSdkExtension = 14
 }

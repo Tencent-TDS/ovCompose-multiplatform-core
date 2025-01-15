@@ -16,8 +16,6 @@
 
 package androidx.wear.compose.material3
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertDoesNotContainColor
@@ -37,7 +35,6 @@ import org.junit.runner.RunWith
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
-@RequiresApi(Build.VERSION_CODES.O)
 class CurvedTextTest {
     @get:Rule val rule = createComposeRule()
 

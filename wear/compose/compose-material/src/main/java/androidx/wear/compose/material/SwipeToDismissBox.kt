@@ -19,6 +19,7 @@ package androidx.wear.compose.material
 import androidx.annotation.RestrictTo
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
@@ -356,12 +357,12 @@ public class SwipeToDismissBoxState(
      *
      * @param targetValue The new target value to set [currentValue] to.
      */
-    public suspend fun snapTo(targetValue: SwipeToDismissValue) =
+    public suspend fun snapTo(targetValue: SwipeToDismissValue): Unit =
         foundationState.snapTo(convertToFoundationSwipeToDismissValue(targetValue))
 
     /** Foundation version of the [SwipeToDismissBoxState]. */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    val foundationState =
+    public val foundationState: androidx.wear.compose.foundation.SwipeToDismissBoxState =
         androidx.wear.compose.foundation.SwipeToDismissBoxState(
             animationSpec = animationSpec,
             confirmStateChange = { value: androidx.wear.compose.foundation.SwipeToDismissValue ->
@@ -405,12 +406,12 @@ public object SwipeToDismissBoxDefaults {
      * The default animation that will be used to animate to a new state after the swipe gesture.
      */
     @OptIn(ExperimentalWearMaterialApi::class)
-    public val AnimationSpec = SwipeableDefaults.AnimationSpec
+    public val AnimationSpec: SpringSpec<Float> = SwipeableDefaults.AnimationSpec
 
     /**
      * The default width of the area which might trigger a swipe with [edgeSwipeToDismiss] modifier
      */
-    public val EdgeWidth = 30.dp
+    public val EdgeWidth: Dp = 30.dp
 }
 
 /** Keys used to persistent state in [SwipeToDismissBox]. */

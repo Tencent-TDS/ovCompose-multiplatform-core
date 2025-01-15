@@ -16,14 +16,15 @@
 
 package androidx.appsearch.localstorage.usagereporting;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.localstorage.stats.ClickStats;
 import androidx.appsearch.localstorage.stats.SearchIntentStats;
 import androidx.appsearch.localstorage.stats.SearchSessionStats;
 import androidx.appsearch.usagereporting.ActionConstants;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -130,8 +131,7 @@ public final class SearchSessionStatsExtractor {
      * @param database The database name of the caller.
      * @param genericDocuments a list of taken actions in generic document form.
      */
-    @NonNull
-    public List<SearchSessionStats> extract(
+    public @NonNull List<SearchSessionStats> extract(
             @NonNull String packageName,
             @Nullable String database,
             @NonNull List<GenericDocument> genericDocuments) {

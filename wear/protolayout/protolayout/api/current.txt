@@ -131,6 +131,24 @@ package androidx.wear.protolayout {
     method public androidx.wear.protolayout.ColorBuilders.ColorStop build();
   }
 
+  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public static final class ColorBuilders.LinearGradient implements androidx.wear.protolayout.ColorBuilders.Brush {
+    method public java.util.List<androidx.wear.protolayout.ColorBuilders.ColorStop!> getColorStops();
+    method public androidx.wear.protolayout.DimensionBuilders.OffsetDimension? getEndX();
+    method public androidx.wear.protolayout.DimensionBuilders.OffsetDimension? getEndY();
+    method public androidx.wear.protolayout.DimensionBuilders.OffsetDimension? getStartX();
+    method public androidx.wear.protolayout.DimensionBuilders.OffsetDimension? getStartY();
+  }
+
+  public static final class ColorBuilders.LinearGradient.Builder {
+    ctor @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) @java.lang.SafeVarargs public ColorBuilders.LinearGradient.Builder(androidx.wear.protolayout.ColorBuilders.ColorProp!...);
+    ctor @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) @java.lang.SafeVarargs public ColorBuilders.LinearGradient.Builder(androidx.wear.protolayout.ColorBuilders.ColorStop!...);
+    method public androidx.wear.protolayout.ColorBuilders.LinearGradient build();
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public androidx.wear.protolayout.ColorBuilders.LinearGradient.Builder setEndX(androidx.wear.protolayout.DimensionBuilders.OffsetDimension);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public androidx.wear.protolayout.ColorBuilders.LinearGradient.Builder setEndY(androidx.wear.protolayout.DimensionBuilders.OffsetDimension);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public androidx.wear.protolayout.ColorBuilders.LinearGradient.Builder setStartX(androidx.wear.protolayout.DimensionBuilders.OffsetDimension);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public androidx.wear.protolayout.ColorBuilders.LinearGradient.Builder setStartY(androidx.wear.protolayout.DimensionBuilders.OffsetDimension);
+  }
+
   @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) public static final class ColorBuilders.SweepGradient implements androidx.wear.protolayout.ColorBuilders.Brush {
     method public java.util.List<androidx.wear.protolayout.ColorBuilders.ColorStop!> getColorStops();
     method public androidx.wear.protolayout.DimensionBuilders.DegreesProp getEndAngle();
@@ -212,7 +230,7 @@ package androidx.wear.protolayout {
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public androidx.wear.protolayout.DimensionBuilders.AngularLayoutConstraint.Builder setAngularAlignment(int);
   }
 
-  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static final class DimensionBuilders.BoundingBoxRatio implements androidx.wear.protolayout.DimensionBuilders.PivotDimension {
+  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static final class DimensionBuilders.BoundingBoxRatio implements androidx.wear.protolayout.DimensionBuilders.OffsetDimension androidx.wear.protolayout.DimensionBuilders.PivotDimension {
     method public androidx.wear.protolayout.TypeBuilders.FloatProp getRatio();
   }
 
@@ -237,7 +255,7 @@ package androidx.wear.protolayout {
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public androidx.wear.protolayout.DimensionBuilders.DegreesProp.Builder setValue(float);
   }
 
-  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public static final class DimensionBuilders.DpProp implements androidx.wear.protolayout.DimensionBuilders.AngularDimension androidx.wear.protolayout.DimensionBuilders.ContainerDimension androidx.wear.protolayout.DimensionBuilders.ExtensionDimension androidx.wear.protolayout.DimensionBuilders.ImageDimension androidx.wear.protolayout.DimensionBuilders.PivotDimension androidx.wear.protolayout.DimensionBuilders.SpacerDimension {
+  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public static final class DimensionBuilders.DpProp implements androidx.wear.protolayout.DimensionBuilders.AngularDimension androidx.wear.protolayout.DimensionBuilders.ContainerDimension androidx.wear.protolayout.DimensionBuilders.ExtensionDimension androidx.wear.protolayout.DimensionBuilders.ImageDimension androidx.wear.protolayout.DimensionBuilders.OffsetDimension androidx.wear.protolayout.DimensionBuilders.PivotDimension androidx.wear.protolayout.DimensionBuilders.SpacerDimension {
     method public androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat? getDynamicValue();
     method @Dimension(unit=androidx.annotation.Dimension.DP) public float getValue();
   }
@@ -285,6 +303,9 @@ package androidx.wear.protolayout {
   }
 
   @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public static interface DimensionBuilders.ImageDimension {
+  }
+
+  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public static interface DimensionBuilders.OffsetDimension {
   }
 
   @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static interface DimensionBuilders.PivotDimension {
@@ -963,6 +984,7 @@ package androidx.wear.protolayout {
   }
 
   @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public static final class ModifiersBuilders.Background {
+    method public androidx.wear.protolayout.ColorBuilders.Brush? getBrush();
     method public androidx.wear.protolayout.ColorBuilders.ColorProp? getColor();
     method public androidx.wear.protolayout.ModifiersBuilders.Corner? getCorner();
   }
@@ -970,6 +992,7 @@ package androidx.wear.protolayout {
   public static final class ModifiersBuilders.Background.Builder {
     ctor public ModifiersBuilders.Background.Builder();
     method public androidx.wear.protolayout.ModifiersBuilders.Background build();
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=500) public androidx.wear.protolayout.ModifiersBuilders.Background.Builder setBrush(androidx.wear.protolayout.ColorBuilders.Brush);
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public androidx.wear.protolayout.ModifiersBuilders.Background.Builder setColor(androidx.wear.protolayout.ColorBuilders.ColorProp);
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public androidx.wear.protolayout.ModifiersBuilders.Background.Builder setCorner(androidx.wear.protolayout.ModifiersBuilders.Corner);
   }
@@ -1481,7 +1504,92 @@ package androidx.wear.protolayout {
 
 }
 
+package androidx.wear.protolayout.layout {
+
+  public final class TextKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.Text basicText(androidx.wear.protolayout.types.LayoutString text, optional androidx.wear.protolayout.LayoutElementBuilders.FontStyle? fontStyle, optional androidx.wear.protolayout.modifiers.LayoutModifier? modifier, optional int maxLines, optional int multilineAlignment, optional int overflow, optional @Dimension(unit=androidx.annotation.Dimension.Companion.SP) float lineHeight);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.FontStyle fontStyle(optional @Dimension(unit=androidx.annotation.Dimension.Companion.SP) float size, optional boolean italic, optional boolean underline, optional androidx.wear.protolayout.types.LayoutColor? color, optional int weight, optional float letterSpacingEm, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) java.util.List<java.lang.Float> additionalSizesSp, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) java.util.List<? extends androidx.wear.protolayout.LayoutElementBuilders.FontSetting> settings, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) java.util.List<java.lang.String> preferredFontFamilies);
+  }
+
+}
+
+package androidx.wear.protolayout.modifiers {
+
+  public final class BackgroundKt {
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier background(androidx.wear.protolayout.modifiers.LayoutModifier, androidx.wear.protolayout.types.LayoutColor color, optional androidx.wear.protolayout.ModifiersBuilders.Corner? corner);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier backgroundColor(androidx.wear.protolayout.modifiers.LayoutModifier, androidx.wear.protolayout.types.LayoutColor color);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier clip(androidx.wear.protolayout.modifiers.LayoutModifier, androidx.wear.protolayout.ModifiersBuilders.Corner corner);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier clip(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float cornerRadius);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static androidx.wear.protolayout.modifiers.LayoutModifier clip(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float x, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float y);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static androidx.wear.protolayout.modifiers.LayoutModifier clipBottomLeft(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float x, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float y);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static androidx.wear.protolayout.modifiers.LayoutModifier clipBottomRight(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float x, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float y);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static androidx.wear.protolayout.modifiers.LayoutModifier clipTopLeft(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float x, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float y);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=400) public static androidx.wear.protolayout.modifiers.LayoutModifier clipTopRight(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float x, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float y);
+  }
+
+  public final class ClickableKt {
+    method public static androidx.wear.protolayout.ModifiersBuilders.Clickable clickable();
+    method public static androidx.wear.protolayout.ModifiersBuilders.Clickable clickable(optional androidx.wear.protolayout.ActionBuilders.Action action);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Clickable clickable(optional androidx.wear.protolayout.ActionBuilders.Action action, optional String? id);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Clickable clickable(optional androidx.wear.protolayout.ActionBuilders.Action action, optional String? id, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) float minClickableWidth);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Clickable clickable(optional androidx.wear.protolayout.ActionBuilders.Action action, optional String? id, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) float minClickableWidth, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) float minClickableHeight);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier clickable(androidx.wear.protolayout.modifiers.LayoutModifier, optional androidx.wear.protolayout.ActionBuilders.Action action, optional String? id);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier clickable(androidx.wear.protolayout.modifiers.LayoutModifier, androidx.wear.protolayout.ModifiersBuilders.Clickable clickable);
+    method public static androidx.wear.protolayout.ActionBuilders.LoadAction loadAction(optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.StateBuilders.State.Builder,kotlin.Unit>? requestedState);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) public static androidx.wear.protolayout.modifiers.LayoutModifier minimumTouchTargetSize(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float minWidth, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float minHeight);
+  }
+
+  public interface LayoutModifier {
+    method public <R> R foldIn(R initial, kotlin.jvm.functions.Function2<? super R,? super androidx.wear.protolayout.modifiers.LayoutModifier.Element,? extends R> operation);
+    method public default infix androidx.wear.protolayout.modifiers.LayoutModifier then(androidx.wear.protolayout.modifiers.LayoutModifier other);
+    field public static final androidx.wear.protolayout.modifiers.LayoutModifier.Companion Companion;
+  }
+
+  public static final class LayoutModifier.Companion implements androidx.wear.protolayout.modifiers.LayoutModifier {
+    method public <R> R foldIn(R initial, kotlin.jvm.functions.Function2<? super R,? super androidx.wear.protolayout.modifiers.LayoutModifier.Element,? extends R> operation);
+  }
+
+  public static interface LayoutModifier.Element extends androidx.wear.protolayout.modifiers.LayoutModifier {
+    method public default <R> R foldIn(R initial, kotlin.jvm.functions.Function2<? super R,? super androidx.wear.protolayout.modifiers.LayoutModifier.Element,? extends R> operation);
+  }
+
+  public final class ModifierAppliersKt {
+    method public static androidx.wear.protolayout.ModifiersBuilders.Modifiers toProtoLayoutModifiers(androidx.wear.protolayout.modifiers.LayoutModifier);
+  }
+
+  public final class PaddingKt {
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier padding(androidx.wear.protolayout.modifiers.LayoutModifier, androidx.wear.protolayout.ModifiersBuilders.Padding padding);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier padding(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float all);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier padding(androidx.wear.protolayout.modifiers.LayoutModifier, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float horizontal, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float vertical);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier padding(androidx.wear.protolayout.modifiers.LayoutModifier, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float start, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float top, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float end, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float bottom, optional boolean rtlAware);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Padding padding(@Dimension(unit=androidx.annotation.Dimension.Companion.DP) float all);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Padding padding(@Dimension(unit=androidx.annotation.Dimension.Companion.DP) float horizontal, @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float vertical);
+    method public static androidx.wear.protolayout.ModifiersBuilders.Padding padding(optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float start, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float top, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float end, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float bottom, optional boolean rtlAware);
+  }
+
+  public final class SemanticsKt {
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier contentDescription(androidx.wear.protolayout.modifiers.LayoutModifier, String staticValue, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) androidx.wear.protolayout.expression.DynamicBuilders.DynamicString? dynamicValue);
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier semanticsRole(androidx.wear.protolayout.modifiers.LayoutModifier, int semanticsRole);
+  }
+
+}
+
 package androidx.wear.protolayout.types {
+
+  public final class LayoutColor {
+    ctor public LayoutColor(@ColorInt int staticArgb, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor? dynamicArgb);
+    method public androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor? getDynamicArgb();
+    method public int getStaticArgb();
+    property @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public final androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor? dynamicArgb;
+    property @ColorInt public final int staticArgb;
+  }
+
+  public final class LayoutColorKt {
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static androidx.wear.protolayout.types.LayoutColor asLayoutColor(androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor, @ColorInt int staticArgb);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static androidx.wear.protolayout.types.LayoutColor asLayoutColor(androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor, @ColorInt long staticArgb);
+    method public static androidx.wear.protolayout.types.LayoutColor getArgb(int);
+    method public static androidx.wear.protolayout.types.LayoutColor getArgb(long);
+  }
 
   public final class LayoutString {
     ctor public LayoutString(String staticValue);

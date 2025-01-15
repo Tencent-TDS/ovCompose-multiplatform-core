@@ -19,6 +19,7 @@ package androidx.room
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
 import kotlin.jvm.JvmOverloads
+import kotlin.jvm.JvmSuppressWildcards
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -34,7 +35,7 @@ actual class InvalidationTracker
 actual constructor(
     private val database: RoomDatabase,
     shadowTablesMap: Map<String, String>,
-    viewTables: Map<String, Set<String>>,
+    viewTables: Map<String, @JvmSuppressWildcards Set<String>>,
     vararg tableNames: String
 ) {
     private val implementation =

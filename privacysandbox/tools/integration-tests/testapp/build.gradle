@@ -21,15 +21,13 @@ plugins {
 }
 
 android {
-    namespace "androidx.privacysandbox.tools.integration.testapp"
+    namespace = "androidx.privacysandbox.tools.integration.testapp"
 
     defaultConfig {
-        applicationId "androidx.privacysandbox.tools.integration.testapp"
-        minSdk 33
-        compileSdk 35
-        compileSdkExtension 14
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        applicationId = "androidx.privacysandbox.tools.integration.testapp"
+        minSdk = 33
+        compileSdk = 35
+        compileSdkExtension = 14
     }
     experimentalProperties["android.privacySandboxSdk.apiGenerator"] =
             project.dependencies.create(project(":privacysandbox:tools:tools-apigenerator"))
@@ -37,10 +35,8 @@ android {
             [libs.kotlinStdlib.get(),
              libs.kotlinCoroutinesAndroid.get(),
              libs.kotlinCoroutinesCore.get(),
-             // TODO: We'd like to use HEAD ui libraries here but we need to wait until we have an
-             //  AGP version containing ag/28945616 (should be in AGP 8.7.0-alpha09).
-             project.dependencies.create('androidx.privacysandbox.ui:ui-core:1.0.0-alpha09'),
-             project.dependencies.create('androidx.privacysandbox.ui:ui-client:1.0.0-alpha09')
+             project.dependencies.create(project(":privacysandbox:ui:ui-core")),
+             project.dependencies.create(project(":privacysandbox:ui:ui-client"))
             ]
 
     privacySandbox {

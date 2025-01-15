@@ -51,5 +51,6 @@ androidx {
 }
 
 android {
-    namespace "androidx.glance.appwidget.samples"
+    namespace = "androidx.glance.appwidget.samples"
+    compileSdk = 35
 }

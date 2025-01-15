@@ -30,11 +30,12 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
         }
     }
+    compileSdk = 35
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
     }
     lint {
         baseline = file("lint-baseline.xml")
     }
-    namespace "com.example.androidx.mediarouting"
+    namespace = "com.example.androidx.mediarouting"
 }

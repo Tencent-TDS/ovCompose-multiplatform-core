@@ -29,7 +29,8 @@ plugins {
 }
 
 dependencies {
-    implementation project(":appsearch:appsearch")
+    api(libs.jspecify)
+    implementation(project(":appsearch:appsearch"))
     implementation("androidx.core:core:1.12.0")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
     implementation("androidx.collection:collection:1.4.2")
@@ -54,8 +55,8 @@ androidx {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.appsearch.playservicesstorage"
+    compileSdk = 35
+    namespace = "androidx.appsearch.playservicesstorage"
      defaultConfig {
     }
 }

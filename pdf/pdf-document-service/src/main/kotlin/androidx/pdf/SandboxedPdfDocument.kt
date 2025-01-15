@@ -88,11 +88,14 @@ public class SandboxedPdfDocument(
         pageRange: IntRange
     ): SparseArray<List<PageMatchBounds>> {
         return withDocument { document ->
-            pageRange
-                .map { pageNum ->
-                    document.searchPageText(pageNum, query).map { it.toContentClass() }
+            SparseArray<List<PageMatchBounds>>(pageRange.last + 1).apply {
+                pageRange.forEach { pageNum ->
+                    document
+                        .searchPageText(pageNum, query)
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { put(pageNum, it.map { result -> result.toContentClass() }) }
                 }
-                .toSparseArray(pageRange)
+            }
         }
     }
 

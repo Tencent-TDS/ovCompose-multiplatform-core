@@ -49,8 +49,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.LocalTransformingLazyColumnItemScope
@@ -107,7 +105,7 @@ import androidx.wear.compose.materialcore.Text
  * @param content The main slot for a content of this card
  */
 @Composable
-fun Card(
+public fun Card(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
@@ -214,7 +212,7 @@ fun Card(
  * @param content The main slot for a content of this card
  */
 @Composable
-fun AppCard(
+public fun AppCard(
     onClick: () -> Unit,
     appName: @Composable RowScope.() -> Unit,
     title: @Composable RowScope.() -> Unit,
@@ -368,7 +366,7 @@ fun AppCard(
  *   expected to be provided
  */
 @Composable
-fun TitleCard(
+public fun TitleCard(
     onClick: () -> Unit,
     title: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
@@ -496,7 +494,7 @@ fun TitleCard(
  * @param content The main slot for a content of this card
  */
 @Composable
-fun OutlinedCard(
+public fun OutlinedCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null,
@@ -531,13 +529,13 @@ fun OutlinedCard(
 }
 
 /** Contains the default values used by [Card] */
-object CardDefaults {
+public object CardDefaults {
 
     /**
      * Creates a [CardColors] that represents the default container and content colors used in a
      * [Card], [AppCard] or [TitleCard].
      */
-    @Composable fun cardColors() = MaterialTheme.colorScheme.defaultCardColors
+    @Composable public fun cardColors(): CardColors = MaterialTheme.colorScheme.defaultCardColors
 
     /**
      * Creates a [CardColors] that represents the default container and content colors used in a
@@ -551,7 +549,7 @@ object CardDefaults {
      * @param subtitleColor the color used for subtitle, applies to [TitleCard].
      */
     @Composable
-    fun cardColors(
+    public fun cardColors(
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified,
         appNameColor: Color = Color.Unspecified,
@@ -572,7 +570,9 @@ object CardDefaults {
      * Creates a [CardColors] that represents the default container and content colors used in an
      * [OutlinedCard], outlined [AppCard] or [TitleCard].
      */
-    @Composable fun outlinedCardColors() = MaterialTheme.colorScheme.defaultOutlinedCardColors
+    @Composable
+    public fun outlinedCardColors(): CardColors =
+        MaterialTheme.colorScheme.defaultOutlinedCardColors
 
     /**
      * Creates a [CardColors] that represents the default container and content colors used in an
@@ -585,7 +585,7 @@ object CardDefaults {
      * @param subtitleColor the color used for subtitle, applies to [TitleCard].
      */
     @Composable
-    fun outlinedCardColors(
+    public fun outlinedCardColors(
         contentColor: Color = Color.Unspecified,
         appNameColor: Color = Color.Unspecified,
         timeColor: Color = Color.Unspecified,
@@ -613,7 +613,7 @@ object CardDefaults {
      * @param subtitleColor the color used for subtitle.
      */
     @Composable
-    fun imageCardColors(
+    public fun imageCardColors(
         containerPainter: Painter,
         contentColor: Color = Color.Unspecified,
         appNameColor: Color = Color.Unspecified,
@@ -653,7 +653,7 @@ object CardDefaults {
      *   component size.
      */
     @Composable
-    fun imageWithScrimBackgroundPainter(
+    public fun imageWithScrimBackgroundPainter(
         backgroundImagePainter: Painter,
         backgroundImageScrimBrush: Brush = SolidColor(overlayScrimColor),
         forcedSize: Size? = Size.Unspecified,
@@ -672,7 +672,7 @@ object CardDefaults {
      * @param borderWidth width of the border in [Dp].
      */
     @Composable
-    fun outlinedCardBorder(
+    public fun outlinedCardBorder(
         outlineColor: Color = OutlinedCardTokens.ContainerBorderColor.value,
         borderWidth: Dp = OutlinedCardTokens.BorderWidth
     ): BorderStroke = BorderStroke(borderWidth, outlineColor)
@@ -689,7 +689,7 @@ object CardDefaults {
             )
 
     /** The default content padding used by [Card] */
-    val ContentPadding: PaddingValues =
+    public val ContentPadding: PaddingValues =
         PaddingValues(
             start = CardHorizontalPadding,
             top = CardVerticalPadding,
@@ -698,13 +698,13 @@ object CardDefaults {
         )
 
     /** Additional bottom padding added for TitleCard with an image background */
-    val ImageBottomPadding = 12.dp
+    public val ImageBottomPadding: Dp = 12.dp
 
     /**
      * ContentPadding for use with an image background in order to show more of the image. Expected
      * to be used with TitleCard's with an image background
      */
-    val ImageContentPadding: PaddingValues =
+    public val ImageContentPadding: PaddingValues =
         PaddingValues(
             start = CardHorizontalPadding,
             top = CardVerticalPadding,
@@ -713,17 +713,17 @@ object CardDefaults {
         )
 
     /** The default size of the app icon/image when used inside a [AppCard]. */
-    val AppImageSize: Dp = CardTokens.AppImageSize
+    public val AppImageSize: Dp = CardTokens.AppImageSize
 
     /** The default shape of [Card], which determines its corner radius. */
-    val shape: Shape
+    public val shape: Shape
         @Composable get() = CardTokens.Shape.value
 
     /**
      * The default height of [Card], [AppCard] and [TitleCard]. The card will increase its height to
      * accommodate the contents, if necessary.
      */
-    val Height: Dp = CardTokens.ContainerMinHeight
+    public val Height: Dp = CardTokens.ContainerMinHeight
 
     private val ColorScheme.defaultCardColors: CardColors
         get() {
@@ -771,13 +771,13 @@ private fun Modifier.cardSizeModifier(): Modifier =
  * @param subtitleColor the color used for subtitle, applies to [TitleCard].
  */
 @Immutable
-class CardColors(
-    val containerPainter: Painter,
-    val contentColor: Color,
-    val appNameColor: Color,
-    val timeColor: Color,
-    val titleColor: Color,
-    val subtitleColor: Color
+public class CardColors(
+    public val containerPainter: Painter,
+    public val contentColor: Color,
+    public val appNameColor: Color,
+    public val timeColor: Color,
+    public val titleColor: Color,
+    public val subtitleColor: Color
 ) {
     /**
      * Returns a copy of this CardColors, optionally overriding some of the values.
@@ -789,14 +789,14 @@ class CardColors(
      * @param titleColor The color used for title, applies to [AppCard] and [TitleCard].
      * @param subtitleColor The color used for subtitle, applies to [TitleCard].
      */
-    fun copy(
+    public fun copy(
         containerColor: Color = Color.Unspecified,
         contentColor: Color = Color.Unspecified,
         appNameColor: Color = Color.Unspecified,
         timeColor: Color = Color.Unspecified,
         titleColor: Color = Color.Unspecified,
         subtitleColor: Color = Color.Unspecified
-    ) =
+    ): CardColors =
         CardColors(
             containerPainter =
                 if (containerColor != Color.Unspecified) ColorPainter(containerColor)
@@ -848,7 +848,6 @@ private fun CardImpl(
     interactionSource: MutableInteractionSource?,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val hapticFeedback = LocalHapticFeedback.current
     Column(
         modifier =
             modifier
@@ -857,14 +856,7 @@ private fun CardImpl(
                 .combinedClickable(
                     enabled = enabled,
                     onClick = onClick,
-                    onLongClick =
-                        onLongClick?.let {
-                            {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                it()
-                            }
-                        },
+                    onLongClick = onLongClick, // NB combinedClickable calls LongPress haptic
                     onLongClickLabel = onLongClickLabel,
                     role = null,
                     indication = ripple(),

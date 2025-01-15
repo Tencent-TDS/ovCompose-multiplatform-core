@@ -21,10 +21,10 @@ plugins {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
 
     defaultConfig {
-        applicationId "androidx.camera.integration.uiwidgets"
+        applicationId = "androidx.camera.integration.uiwidgets"
         versionCode 1
         versionName "1.0"
     }
@@ -39,25 +39,15 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
         }
     }
 
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-
-    // Compose
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-    namespace "androidx.camera.integration.uiwidgets"
+    namespace = "androidx.camera.integration.uiwidgets"
 }
 
 dependencies {

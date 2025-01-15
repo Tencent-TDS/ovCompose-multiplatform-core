@@ -93,12 +93,21 @@
             android:checked="false"
             android:text="@string/zorder_below_switch" />
 
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/compose_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="200dp"
+            android:checked="false"
+            android:text="@string/compose_switch" />
+
         <Button
             android:id="@+id/trigger_sandbox_death"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="200dp"
+            android:layout_marginTop="250dp"
             android:text="@string/trigger_sandbox_death_button" />
     </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>

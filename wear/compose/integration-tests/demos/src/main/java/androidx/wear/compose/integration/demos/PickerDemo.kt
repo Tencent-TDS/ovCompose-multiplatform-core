@@ -16,13 +16,10 @@
 
 package androidx.wear.compose.integration.demos
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Build
 import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener
 import android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -96,8 +93,6 @@ import java.time.temporal.TemporalAdjusters
  * @param modifier the modifiers for the `Box` containing the UI elements.
  * @param time the initial value to seed the picker with.
  */
-@SuppressLint("ClassVerificationFailure")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 public fun TimePicker(
     onTimeConfirm: (LocalTime) -> Unit,
@@ -270,8 +265,6 @@ public fun TimePicker(
  * @param modifier the modifiers for the `Column` containing the UI elements.
  * @param time the initial value to seed the picker with.
  */
-@SuppressLint("ClassVerificationFailure")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 public fun TimePickerWith12HourClock(
     onTimeConfirm: (LocalTime) -> Unit,
@@ -471,8 +464,6 @@ public fun TimePickerWith12HourClock(
  * @param fromDate the minimum date to be selected in picker
  * @param toDate the maximum date to be selected in picker
  */
-@SuppressLint("ClassVerificationFailure")
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 public fun DatePicker(
     onDateConfirm: (LocalDate) -> Unit,
@@ -865,21 +856,17 @@ private fun createDescriptionDatePicker(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 private fun verifyDates(date: LocalDate, fromDate: LocalDate, toDate: LocalDate) {
     require(toDate >= fromDate) { "toDate should be greater than or equal to fromDate" }
     require(date in fromDate..toDate) { "date should lie between fromDate and toDate" }
 }
 
-@SuppressLint("ClassVerificationFailure")
-@RequiresApi(Build.VERSION_CODES.O)
 private fun getMonthNames(pattern: String): List<String> {
     val monthFormatter = DateTimeFormatter.ofPattern(pattern)
     val months = 1..12
     return months.map { LocalDate.of(2022, it, 1).format(monthFormatter) }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 internal class DatePickerState
 constructor(
     private val date: LocalDate,

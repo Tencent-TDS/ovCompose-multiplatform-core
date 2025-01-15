@@ -28,7 +28,7 @@ android {
     sourceSets {
         main.res.srcDir "res"
     }
-    namespace "androidx.percentlayout"
+    namespace = "androidx.percentlayout"
 }
 
 androidx {

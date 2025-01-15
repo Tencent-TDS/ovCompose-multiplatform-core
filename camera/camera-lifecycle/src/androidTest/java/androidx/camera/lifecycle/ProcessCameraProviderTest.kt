@@ -1091,8 +1091,8 @@ class ProcessCameraProviderTest {
         supportedCapabilities: Set<Int>
     ): CameraSelector {
         val identifier = Identifier.create("idStr")
-        val sessionProcessor = FakeSessionProcessor()
-        sessionProcessor.restrictedCameraOperations = supportedCapabilities
+        val sessionProcessor =
+            FakeSessionProcessor(supportedCameraOperations = supportedCapabilities)
         ExtendedCameraConfigProviderStore.addConfig(identifier) { _, _ ->
             object : CameraConfig {
                 override fun getConfig(): Config {

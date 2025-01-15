@@ -86,7 +86,7 @@ import androidx.compose.ui.unit.dp
  * @sample androidx.compose.material3.samples.MediumToggleButtonWithIconSample
  * @sample androidx.compose.material3.samples.LargeToggleButtonWithIconSample
  * @sample androidx.compose.material3.samples.XLargeToggleButtonWithIconSample
- * @sample androidx.compose.material3.samples.RoundToggleButtonSample
+ * @sample androidx.compose.material3.samples.SquareToggleButtonSample
  * @param checked whether the toggle button is toggled on or off.
  * @param onCheckedChange called when the toggle button is clicked.
  * @param modifier the [Modifier] to be applied to the toggle button.
@@ -385,7 +385,7 @@ fun OutlinedToggleButton(
     shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.outlinedToggleButtonColors(),
     elevation: ButtonElevation? = null,
-    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
+    border: BorderStroke? = if (!checked) ButtonDefaults.outlinedButtonBorder(enabled) else null,
     contentPadding: PaddingValues = ToggleButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
@@ -486,7 +486,7 @@ object ToggleButtonDefaults {
 
     /** The default unchecked shape for [ToggleButton] */
     val shape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
+        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
 
     /** The default pressed shape for [ToggleButton] */
     val pressedShape: Shape
@@ -494,7 +494,7 @@ object ToggleButtonDefaults {
 
     /** The default checked shape for [ToggleButton] */
     val checkedShape: Shape
-        @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
+        @Composable get() = ButtonSmallTokens.SelectedContainerShapeSquare.value
 
     /** The default square shape for a extra small toggle button */
     val XSmallSquareShape: Shape
@@ -756,8 +756,7 @@ object ToggleButtonDefaults {
         get() {
             return defaultOutlinedToggleButtonColorsCached
                 ?: ToggleButtonColors(
-                        containerColor =
-                            fromToken(OutlinedButtonTokens.UnselectedPressedOutlineColor),
+                        containerColor = Color.Transparent,
                         contentColor = fromToken(OutlinedButtonTokens.UnselectedLabelTextColor),
                         disabledContainerColor =
                             fromToken(OutlinedButtonTokens.DisabledOutlineColor)

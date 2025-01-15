@@ -100,8 +100,8 @@ internal val STANDARD_IN_OUT = CubicBezierEasing(0.20f, 0.0f, 0.0f, 1.00f)
  * @see [SwipeDirection]
  */
 @JvmInline
-value class RevealValue private constructor(val value: Int) {
-    companion object {
+public value class RevealValue private constructor(public val value: Int) {
+    public companion object {
         /**
          * The value which represents the state in which the whole revealable content is fully
          * revealed, and they are displayed on the left side of the screen. This also represents the
@@ -110,7 +110,7 @@ value class RevealValue private constructor(val value: Int) {
          * This is only used when the swipe direction is set to [SwipeDirection.Both], and the user
          * swipes from the left side of the screen.
          */
-        val LeftRevealed = RevealValue(-2)
+        public val LeftRevealed: RevealValue = RevealValue(-2)
 
         /**
          * The value which represents the state in which all the actions are revealed and the top
@@ -120,14 +120,14 @@ value class RevealValue private constructor(val value: Int) {
          * This is only used when the swipe direction is set to [SwipeDirection.Both], and the user
          * swipes from the left side of the screen.
          */
-        val LeftRevealing = RevealValue(-1)
+        public val LeftRevealing: RevealValue = RevealValue(-1)
 
         /**
          * The default first value which generally represents the state where the revealable actions
          * have not been revealed yet. In this state, none of the actions have been triggered or
          * performed yet.
          */
-        val Covered = RevealValue(0)
+        public val Covered: RevealValue = RevealValue(0)
 
         /**
          * The value which represents the state in which all the actions are revealed and the top
@@ -137,7 +137,7 @@ value class RevealValue private constructor(val value: Int) {
          * @deprecated Use [RightRevealing] instead.
          */
         @Deprecated("Use RightRevealing instead.", ReplaceWith("RightRevealing"))
-        val Revealing = RevealValue(1)
+        public val Revealing: RevealValue = RevealValue(1)
 
         /**
          * The value which represents the state in which the whole revealable content is fully
@@ -147,21 +147,21 @@ value class RevealValue private constructor(val value: Int) {
          * @deprecated Use [RightRevealed] instead.
          */
         @Deprecated("Use RightRevealed instead.", ReplaceWith("RightRevealed"))
-        val Revealed = RevealValue(2)
+        public val Revealed: RevealValue = RevealValue(2)
 
         /**
          * The value which represents the state in which all the actions are revealed and the top
          * content is not being swiped. In this state, none of the actions have been triggered or
          * performed yet, and they are displayed on the right side of the screen.
          */
-        val RightRevealing = RevealValue(1)
+        public val RightRevealing: RevealValue = RevealValue(1)
 
         /**
          * The value which represents the state in which the whole revealable content is fully
          * revealed, and the actions are revealed on the right side of the screen. This also
          * represents the state in which one of the actions has been triggered/performed.
          */
-        val RightRevealed = RevealValue(2)
+        public val RightRevealed: RevealValue = RevealValue(2)
     }
 }
 
@@ -173,14 +173,14 @@ value class RevealValue private constructor(val value: Int) {
  * to respect the default value to avoid conflicting gestures.
  */
 @JvmInline
-value class SwipeDirection private constructor(val value: Int) {
-    companion object {
+public value class SwipeDirection private constructor(public val value: Int) {
+    public companion object {
         /**
          * The default value which allows the user to swipe right to left to reveal or execute the
          * actions. It's strongly advised to respect the default behavior to avoid conflict with the
          * swipe-to-dismiss gesture.
          */
-        val RightToLeft = SwipeDirection(0)
+        public val RightToLeft: SwipeDirection = SwipeDirection(0)
 
         /**
          * The value which allows the user to swipe in either direction to reveal or execute the
@@ -189,7 +189,7 @@ value class SwipeDirection private constructor(val value: Int) {
          * This is only supported for rare cases where the current screen does not support swipe to
          * dismiss.
          */
-        val Both = SwipeDirection(1)
+        public val Both: SwipeDirection = SwipeDirection(1)
     }
 }
 
@@ -199,28 +199,28 @@ value class SwipeDirection private constructor(val value: Int) {
  * [RevealState.animateTo].
  */
 @JvmInline
-value class RevealActionType private constructor(val value: Int) {
-    companion object {
+public value class RevealActionType private constructor(public val value: Int) {
+    public companion object {
         /**
          * Represents the primary action composable of [SwipeToReveal]. This corresponds to the
          * mandatory `primaryAction` parameter of [SwipeToReveal].
          */
-        val PrimaryAction = RevealActionType(0)
+        public val PrimaryAction: RevealActionType = RevealActionType(0)
 
         /**
          * Represents the secondary action composable of [SwipeToReveal]. This corresponds to the
          * optional `secondaryAction` composable of [SwipeToReveal].
          */
-        val SecondaryAction = RevealActionType(1)
+        public val SecondaryAction: RevealActionType = RevealActionType(1)
 
         /**
          * Represents the undo action composable of [SwipeToReveal]. This corresponds to the
          * `undoAction` composable of [SwipeToReveal] which is shown once an action is performed.
          */
-        val UndoAction = RevealActionType(2)
+        public val UndoAction: RevealActionType = RevealActionType(2)
 
         /** Default value when none of the above are applicable. */
-        val None = RevealActionType(-1)
+        public val None: RevealActionType = RevealActionType(-1)
     }
 }
 
@@ -238,7 +238,7 @@ value class RevealActionType private constructor(val value: Int) {
  *   keep the default [SwipeDirection.RightToLeft] in order to preserve compatibility with the
  *   system wide swipe to dismiss gesture.
  */
-fun createAnchors(
+public fun createAnchors(
     coveredAnchor: Float = 0f,
     revealingAnchor: Float = SwipeToRevealDefaults.revealingRatio,
     revealedAnchor: Float = 1f,
@@ -267,7 +267,7 @@ fun createAnchors(
  * @constructor Create a [RevealState].
  */
 @OptIn(ExperimentalWearFoundationApi::class)
-class RevealState
+public class RevealState
 internal constructor(
     initialValue: RevealValue,
     animationSpec: AnimationSpec<Float>,
@@ -289,14 +289,14 @@ internal constructor(
             nestedScrollDispatcher = nestedScrollDispatcher,
         )
 
-    var lastActionType by mutableStateOf(RevealActionType.None)
+    public var lastActionType: RevealActionType by mutableStateOf(RevealActionType.None)
 
     /**
      * The current [RevealValue] based on the status of the component.
      *
      * @see Modifier.swipeableV2
      */
-    val currentValue: RevealValue
+    public val currentValue: RevealValue
         get() = swipeableState.currentValue
 
     /**
@@ -306,7 +306,7 @@ internal constructor(
      *
      * @see Modifier.swipeableV2
      */
-    val targetValue: RevealValue
+    public val targetValue: RevealValue
         get() = swipeableState.targetValue
 
     /**
@@ -314,7 +314,7 @@ internal constructor(
      *
      * @see Modifier.swipeableV2
      */
-    val isAnimationRunning: Boolean
+    public val isAnimationRunning: Boolean
         get() = swipeableState.isAnimationRunning
 
     /**
@@ -322,7 +322,7 @@ internal constructor(
      *
      * @see Modifier.swipeableV2
      */
-    val offset: Float
+    public val offset: Float
         get() = swipeableState.offset ?: 0f
 
     /**
@@ -332,7 +332,7 @@ internal constructor(
      *
      * @see Modifier.swipeableV2
      */
-    val swipeAnchors: Map<RevealValue, Float>
+    public val swipeAnchors: Map<RevealValue, Float>
         get() = anchors
 
     /**
@@ -341,7 +341,7 @@ internal constructor(
      * @param targetValue The target [RevealValue] where the [currentValue] will be changed to.
      * @see Modifier.swipeableV2
      */
-    suspend fun snapTo(targetValue: RevealValue) {
+    public suspend fun snapTo(targetValue: RevealValue) {
         // Cover the previously open component if revealing a different one
         if (targetValue != RevealValue.Covered) {
             resetLastState(this)
@@ -354,7 +354,7 @@ internal constructor(
      *
      * @param targetValue The target [RevealValue] where the [currentValue] will animate to.
      */
-    suspend fun animateTo(targetValue: RevealValue) {
+    public suspend fun animateTo(targetValue: RevealValue) {
         // Cover the previously open component if revealing a different one
         if (targetValue != RevealValue.Covered) {
             resetLastState(this)
@@ -421,7 +421,7 @@ internal constructor(
  *   that value. Each anchor should be between [0..1] which will be adjusted based on total width.
  */
 @Composable
-fun rememberRevealState(
+public fun rememberRevealState(
     initialValue: RevealValue = RevealValue.Covered,
     animationSpec: AnimationSpec<Float> = SwipeToRevealDefaults.animationSpec,
     confirmValueChange: (RevealValue) -> Boolean = { true },
@@ -485,7 +485,7 @@ fun rememberRevealState(
  */
 @OptIn(ExperimentalWearFoundationApi::class)
 @Composable
-fun SwipeToReveal(
+public fun SwipeToReveal(
     primaryAction: @Composable RevealScope.() -> Unit,
     modifier: Modifier = Modifier,
     onFullSwipe: () -> Unit = {},
@@ -736,7 +736,7 @@ fun SwipeToReveal(
     }
 }
 
-interface RevealScope {
+public interface RevealScope {
 
     /**
      * The offset, in pixels, where the revealed actions are fully visible but the existing content
@@ -745,13 +745,13 @@ interface RevealScope {
      * [RevealValue.RightRevealing], it returns 0.0f.
      */
     /* @FloatRange(from = 0.0) */
-    val revealOffset: Float
+    public val revealOffset: Float
 
     /**
      * The last [RevealActionType] that was set in [RevealState]. This may not be set if the state
      * changed via interaction and not through API call.
      */
-    val lastActionType: RevealActionType
+    public val lastActionType: RevealActionType
 }
 
 private class RevealScopeImpl

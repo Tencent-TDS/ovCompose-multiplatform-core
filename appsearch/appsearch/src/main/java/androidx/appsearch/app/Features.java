@@ -15,8 +15,9 @@
  */
 package androidx.appsearch.app;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Set;
 
@@ -316,6 +317,8 @@ public interface Features {
      * {@link AppSearchSchema.StringPropertyConfig#DELETE_PROPAGATION_TYPE_PROPAGATE_FROM} and
      * {@link AppSearchSchema.StringPropertyConfig.Builder#setDeletePropagationType}.
      */
+    // TODO(b/384947619) unhide the API once it is ready.
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @ExperimentalAppSearchApi
     String SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM =
             "SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM";

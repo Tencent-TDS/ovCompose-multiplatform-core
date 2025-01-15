@@ -20,6 +20,7 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -179,7 +180,7 @@ class ProgressIndicatorScreenshotTest {
     @Test
     fun circular_progress_indicator_content(@TestParameter screenSize: ScreenSize) =
         verifyProgressIndicatorScreenshot(screenSize = screenSize) {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 progress = { 0.25f },
                 modifier = Modifier.aspectRatio(1f).testTag(TEST_TAG),
                 startAngle = 120f,
@@ -190,7 +191,7 @@ class ProgressIndicatorScreenshotTest {
     @Test
     fun circular_progress_indicator_content_overflow(@TestParameter screenSize: ScreenSize) =
         verifyProgressIndicatorScreenshot(screenSize = screenSize) {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 progress = { 1.2f },
                 modifier = Modifier.aspectRatio(1f).testTag(TEST_TAG),
                 startAngle = 120f,
@@ -202,7 +203,7 @@ class ProgressIndicatorScreenshotTest {
     @Test
     fun circular_progress_indicator_content_disabled(@TestParameter screenSize: ScreenSize) =
         verifyProgressIndicatorScreenshot(screenSize = screenSize) {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 progress = { 0.25f },
                 modifier = Modifier.aspectRatio(1f).testTag(TEST_TAG),
                 startAngle = 120f,
@@ -214,7 +215,7 @@ class ProgressIndicatorScreenshotTest {
     @Test
     fun circular_progress_indicator_content_custom_color(@TestParameter screenSize: ScreenSize) =
         verifyProgressIndicatorScreenshot(screenSize = screenSize) {
-            CircularProgressIndicatorContent(
+            CircularProgressIndicatorStatic(
                 progress = { 0.75f },
                 modifier = Modifier.size(200.dp).testTag(TEST_TAG),
                 startAngle = 120f,
@@ -329,6 +330,48 @@ class ProgressIndicatorScreenshotTest {
                 enabled = false,
             )
         }
+
+    @Test
+    fun segmented_progress_indicator_small_size(@TestParameter screenSize: ScreenSize) {
+        val customIndicatorColor = Color.Green
+        val customTrackColor = Color.Black
+
+        verifyProgressIndicatorScreenshot(screenSize = screenSize) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                SegmentedCircularProgressIndicator(
+                    progress = { 0.7f },
+                    segmentCount = 6,
+                    modifier = Modifier.testTag(TEST_TAG).align(Alignment.Center).size(80.dp),
+                    colors =
+                        ProgressIndicatorDefaults.colors(
+                            indicatorColor = customIndicatorColor,
+                            trackColor = customTrackColor,
+                        ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun segmented_progress_indicator_small_size_binary(@TestParameter screenSize: ScreenSize) {
+        val customIndicatorColor = Color.Green
+        val customTrackColor = Color.Black
+
+        verifyProgressIndicatorScreenshot(screenSize = screenSize) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+                SegmentedCircularProgressIndicator(
+                    segmentCount = 6,
+                    segmentValue = { it % 2 != 0 },
+                    modifier = Modifier.testTag(TEST_TAG).align(Alignment.Center).size(80.dp),
+                    colors =
+                        ProgressIndicatorDefaults.colors(
+                            indicatorColor = customIndicatorColor,
+                            trackColor = customTrackColor,
+                        ),
+                )
+            }
+        }
+    }
 
     @Test
     fun progress_indicator_indeterminate(@TestParameter screenSize: ScreenSize) =

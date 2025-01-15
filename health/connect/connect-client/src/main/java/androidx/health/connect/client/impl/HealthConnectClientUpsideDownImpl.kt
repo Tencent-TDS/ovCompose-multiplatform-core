@@ -46,7 +46,6 @@ import androidx.health.connect.client.feature.HealthConnectFeaturesPlatformImpl
 import androidx.health.connect.client.impl.platform.aggregate.AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10
 import androidx.health.connect.client.impl.platform.aggregate.aggregateFallback
 import androidx.health.connect.client.impl.platform.aggregate.isPlatformSupportedMetric
-import androidx.health.connect.client.impl.platform.aggregate.plus
 import androidx.health.connect.client.impl.platform.records.toPlatformRecord
 import androidx.health.connect.client.impl.platform.records.toPlatformRecordClass
 import androidx.health.connect.client.impl.platform.records.toSdkRecord

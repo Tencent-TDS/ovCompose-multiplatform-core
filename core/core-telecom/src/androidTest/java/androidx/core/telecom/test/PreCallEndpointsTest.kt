@@ -24,7 +24,7 @@ import androidx.core.telecom.CallEndpointCompat.Companion.TYPE_BLUETOOTH
 import androidx.core.telecom.CallEndpointCompat.Companion.TYPE_EARPIECE
 import androidx.core.telecom.CallEndpointCompat.Companion.TYPE_SPEAKER
 import androidx.core.telecom.internal.CallEndpointUuidTracker
-import androidx.core.telecom.internal.PreCallEndpoints
+import androidx.core.telecom.internal.PreCallEndpointsUpdater
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import kotlinx.coroutines.channels.Channel
@@ -52,7 +52,7 @@ class PreCallEndpointsTest {
     @Test
     fun testInitialValues() {
         val initEndpoints = mutableListOf(defaultEarpiece, defaultSpeaker, defaultBluetooth)
-        val currentPreCallEndpoints = PreCallEndpoints(initEndpoints, Channel())
+        val currentPreCallEndpoints = PreCallEndpointsUpdater(initEndpoints, Channel())
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultEarpiece))
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultSpeaker))
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultBluetooth))
@@ -65,51 +65,51 @@ class PreCallEndpointsTest {
     @Test
     fun testEndpointsAddedWithNewEndpoint() {
         val initEndpoints = mutableListOf(defaultEarpiece)
-        val currentPreCallEndpoints = PreCallEndpoints(initEndpoints, Channel())
+        val currentPreCallEndpoints = PreCallEndpointsUpdater(initEndpoints, Channel())
 
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultEarpiece))
         assertFalse(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultSpeaker))
 
         val res = currentPreCallEndpoints.maybeAddCallEndpoint(defaultSpeaker)
-        assertEquals(PreCallEndpoints.START_TRACKING_NEW_ENDPOINT, res)
+        assertEquals(PreCallEndpointsUpdater.START_TRACKING_NEW_ENDPOINT, res)
     }
 
     @SmallTest
     @Test
     fun testEndpointsAddedWithNoNewEndpoints() {
         val initEndpoints = mutableListOf(defaultEarpiece, defaultSpeaker)
-        val currentPreCallEndpoints = PreCallEndpoints(initEndpoints, Channel())
+        val currentPreCallEndpoints = PreCallEndpointsUpdater(initEndpoints, Channel())
 
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultEarpiece))
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultSpeaker))
 
         val res = currentPreCallEndpoints.maybeAddCallEndpoint(defaultSpeaker)
-        assertEquals(PreCallEndpoints.ALREADY_TRACKING_ENDPOINT, res)
+        assertEquals(PreCallEndpointsUpdater.ALREADY_TRACKING_ENDPOINT, res)
     }
 
     @SmallTest
     @Test
     fun testEndpointsRemovedWithUntrackedEndpoint() {
         val initEndpoints = mutableListOf(defaultEarpiece)
-        val currentPreCallEndpoints = PreCallEndpoints(initEndpoints, Channel())
+        val currentPreCallEndpoints = PreCallEndpointsUpdater(initEndpoints, Channel())
 
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultEarpiece))
         assertFalse(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultSpeaker))
 
         val res = currentPreCallEndpoints.maybeRemoveCallEndpoint(defaultSpeaker)
-        assertEquals(PreCallEndpoints.NOT_TRACKING_REMOVED_ENDPOINT, res)
+        assertEquals(PreCallEndpointsUpdater.NOT_TRACKING_REMOVED_ENDPOINT, res)
     }
 
     @SmallTest
     @Test
     fun testEndpointsRemovedWithTrackedEndpoint() {
         val initEndpoints = mutableListOf(defaultEarpiece, defaultSpeaker)
-        val currentPreCallEndpoints = PreCallEndpoints(initEndpoints, Channel())
+        val currentPreCallEndpoints = PreCallEndpointsUpdater(initEndpoints, Channel())
 
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultEarpiece))
         assertTrue(currentPreCallEndpoints.isCallEndpointBeingTracked(defaultSpeaker))
 
         val res = currentPreCallEndpoints.maybeRemoveCallEndpoint(defaultSpeaker)
-        assertEquals(PreCallEndpoints.STOP_TRACKING_REMOVED_ENDPOINT, res)
+        assertEquals(PreCallEndpointsUpdater.STOP_TRACKING_REMOVED_ENDPOINT, res)
     }
 }

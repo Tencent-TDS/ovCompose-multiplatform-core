@@ -23,7 +23,6 @@
  */
 
 import androidx.build.LibraryType
-import androidx.build.RunApiTasks
 
 plugins {
     id("AndroidXPlugin")

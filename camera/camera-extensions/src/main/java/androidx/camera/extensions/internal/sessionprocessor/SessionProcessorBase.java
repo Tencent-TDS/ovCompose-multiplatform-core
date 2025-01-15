@@ -25,8 +25,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraXThreads;
 import androidx.camera.core.Logger;
@@ -43,6 +41,9 @@ import androidx.camera.extensions.CameraExtensionsControl;
 import androidx.camera.extensions.CameraExtensionsInfo;
 import androidx.camera.extensions.internal.ExtensionsUtils;
 import androidx.camera.extensions.internal.RequestOptionConfig;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,21 +64,18 @@ abstract class SessionProcessorBase implements SessionProcessor, CameraExtension
      * Unknown extension strength.
      */
     protected static final int EXTENSION_STRENGTH_UNKNOWN = -1;
-    @NonNull
     @GuardedBy("mLock")
-    private final Map<Integer, ImageReader> mImageReaderMap = new HashMap<>();
+    private final @NonNull Map<Integer, ImageReader> mImageReaderMap = new HashMap<>();
     @GuardedBy("mLock")
     private final Map<Integer, Camera2OutputConfig> mOutputConfigMap = new HashMap<>();
 
-    @Nullable
-    private HandlerThread mImageReaderHandlerThread;
+    private @Nullable HandlerThread mImageReaderHandlerThread;
     @GuardedBy("mLock")
     private final List<DeferrableSurface> mSurfacesList = new ArrayList<>();
     protected final Object mLock = new Object();
     private String mCameraId;
 
-    @NonNull
-    private final @CameraOperation Set<Integer> mSupportedCameraOperations;
+    private final @CameraOperation @NonNull Set<Integer> mSupportedCameraOperations;
     @GuardedBy("mLock")
     protected int mExtensionStrength = EXTENSION_STRENGTH_UNKNOWN;
 
@@ -144,8 +142,7 @@ abstract class SessionProcessorBase implements SessionProcessor, CameraExtension
         return operations;
     }
 
-    @NonNull
-    private static SessionProcessorSurface createOutputConfigSurface(
+    private static @NonNull SessionProcessorSurface createOutputConfigSurface(
             @NonNull Camera2OutputConfig outputConfig, Map<Integer, ImageReader> imageReaderMap) {
         if (outputConfig instanceof SurfaceOutputConfig) {
             SurfaceOutputConfig surfaceOutputConfig = (SurfaceOutputConfig) outputConfig;
@@ -176,9 +173,8 @@ abstract class SessionProcessorBase implements SessionProcessor, CameraExtension
         throw new UnsupportedOperationException("Unsupported Camera2OutputConfig:" + outputConfig);
     }
 
-    @NonNull
     @Override
-    public final SessionConfig initSession(@NonNull CameraInfo cameraInfo,
+    public final @NonNull SessionConfig initSession(@NonNull CameraInfo cameraInfo,
             @NonNull OutputSurfaceConfiguration outputSurfaceConfiguration) {
         CameraInfoInternal cameraInfoInternal = (CameraInfoInternal) cameraInfo;
         Map<String, CameraCharacteristics> characteristicsMap =
@@ -234,14 +230,12 @@ abstract class SessionProcessorBase implements SessionProcessor, CameraExtension
         return sessionConfigBuilder.build();
     }
 
-    @NonNull
     @Override
-    public @CameraOperation Set<Integer> getSupportedCameraOperations() {
+    public @CameraOperation @NonNull Set<Integer> getSupportedCameraOperations() {
         return mSupportedCameraOperations;
     }
 
-    @NonNull
-    protected abstract Camera2SessionConfig initSessionInternal(@NonNull String cameraId,
+    protected abstract @NonNull Camera2SessionConfig initSessionInternal(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> cameraCharacteristicsMap,
             @NonNull OutputSurfaceConfiguration outputSurfaceConfig);
 
@@ -330,9 +324,8 @@ abstract class SessionProcessorBase implements SessionProcessor, CameraExtension
             return true;
         }
 
-        @Nullable
         @Override
-        public Image get() {
+        public @Nullable Image get() {
             return mImage;
         }
     }

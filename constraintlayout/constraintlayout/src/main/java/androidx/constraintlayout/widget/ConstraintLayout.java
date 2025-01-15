@@ -2775,7 +2775,6 @@ public class ConstraintLayout extends ViewGroup {
          *
          * @param params the Layout Params to be copied
          */
-        @SuppressLint("ClassVerificationFailure")
         public LayoutParams(ViewGroup.LayoutParams params) {
             super(params);
 

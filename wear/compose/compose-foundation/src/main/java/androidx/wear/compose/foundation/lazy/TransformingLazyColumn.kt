@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.foundation.lazy.layout.LazyLayoutIntervalContent
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemProvider
 import androidx.compose.foundation.lazy.layout.getDefaultLazyLayoutKey
+import androidx.compose.foundation.overscroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
@@ -43,10 +44,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.IntrinsicMeasureScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalGraphicsContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior
@@ -79,7 +81,7 @@ import androidx.wear.compose.foundation.rotary.rotaryScrollable
  */
 // TODO: b/372629395 - Default to ContentPaddingMeasurementStrategy when no contentPadding provided.
 @Composable
-fun TransformingLazyColumn(
+public fun TransformingLazyColumn(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     state: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
@@ -92,20 +94,25 @@ fun TransformingLazyColumn(
     content: TransformingLazyColumnScope.() -> Unit
 ) {
     val graphicsContext = LocalGraphicsContext.current
+    val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
+    val measurementStrategy =
+        remember(contentPadding) {
+            TransformingLazyColumnContentPaddingMeasurementStrategy(
+                contentPadding = contentPadding,
+                layoutDirection = layoutDirection,
+                density = density,
+                graphicsContext = graphicsContext,
+                itemAnimator = state.animator,
+            )
+        }
 
     TransformingLazyColumnImpl(
         modifier = modifier,
         state = state,
         verticalArrangement = verticalArrangement,
         horizontalAlignment = horizontalAlignment,
-        measurementStrategyProvider = {
-            TransformingLazyColumnContentPaddingMeasurementStrategy(
-                contentPadding = contentPadding,
-                intrinsicMeasureScope = this,
-                graphicsContext = graphicsContext,
-                itemAnimator = state.animator,
-            )
-        },
+        measurementStrategy = measurementStrategy,
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
         rotaryScrollableBehavior = rotaryScrollableBehavior,
@@ -135,7 +142,7 @@ fun TransformingLazyColumn(
  */
 // TODO: b/372629395 - Remove this overload without contentPadding when clients are migrated.
 @Composable
-fun TransformingLazyColumn(
+public fun TransformingLazyColumn(
     modifier: Modifier = Modifier,
     state: TransformingLazyColumnState = rememberTransformingLazyColumnState(),
     verticalArrangement: Arrangement.Vertical =
@@ -146,12 +153,13 @@ fun TransformingLazyColumn(
     rotaryScrollableBehavior: RotaryScrollableBehavior? = RotaryScrollableDefaults.behavior(state),
     content: TransformingLazyColumnScope.() -> Unit
 ) {
+    val measurementStrategy = remember { TransformingLazyColumnCenterBoundsMeasurementStrategy() }
     TransformingLazyColumnImpl(
         modifier = modifier,
         state = state,
         verticalArrangement = verticalArrangement,
         horizontalAlignment = horizontalAlignment,
-        measurementStrategyProvider = { TransformingLazyColumnCenterBoundsMeasurementStrategy() },
+        measurementStrategy = measurementStrategy,
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
         rotaryScrollableBehavior = rotaryScrollableBehavior,
@@ -163,7 +171,7 @@ fun TransformingLazyColumn(
  * Composition local for components that need to be able to react to being inside a
  * [TransformingLazyColumn]'s item.
  */
-val LocalTransformingLazyColumnItemScope:
+public val LocalTransformingLazyColumnItemScope:
     ProvidableCompositionLocal<TransformingLazyColumnItemScope?> =
     compositionLocalOf(structuralEqualityPolicy()) { null }
 
@@ -179,8 +187,7 @@ internal fun TransformingLazyColumnImpl(
             alignment = Alignment.Top
         ),
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
-    measurementStrategyProvider:
-        IntrinsicMeasureScope.() -> TransformingLazyColumnMeasurementStrategy,
+    measurementStrategy: TransformingLazyColumnMeasurementStrategy,
     flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     userScrollEnabled: Boolean = true,
     rotaryScrollableBehavior: RotaryScrollableBehavior? = RotaryScrollableDefaults.behavior(state),
@@ -213,7 +220,7 @@ internal fun TransformingLazyColumnImpl(
             state = state,
             horizontalAlignment = horizontalAlignment,
             verticalArrangement = verticalArrangement,
-            measurementStrategyProvider = measurementStrategyProvider,
+            measurementStrategy = measurementStrategy,
             coroutineScope = coroutineScope,
         )
     val reverseDirection =
@@ -223,6 +230,8 @@ internal fun TransformingLazyColumnImpl(
             reverseScrolling = false
         )
     val semanticState = remember(state) { TransformingLazyColumnSemanticState(state = state) }
+    // TODO: b/388191915 - Migrate to use rememberOverscrollEffect when updated to 1.8.0.
+    @Suppress("DEPRECATION") val overscrollEffect = ScrollableDefaults.overscrollEffect()
 
     LazyLayout(
         itemProvider = itemProviderLambda,
@@ -245,12 +254,14 @@ internal fun TransformingLazyColumnImpl(
                     userScrollEnabled = userScrollEnabled,
                     reverseScrolling = false,
                 )
+                .overscroll(overscrollEffect)
                 .scrollable(
                     state = state,
                     reverseDirection = reverseDirection,
                     enabled = userScrollEnabled,
                     orientation = Orientation.Vertical,
                     flingBehavior = flingBehavior,
+                    overscrollEffect = overscrollEffect,
                 ),
         measurePolicy = measurePolicy
     )
@@ -267,8 +278,15 @@ internal class TransformingLazyColumnItemProvider(
 
     @Composable
     override fun Item(index: Int, key: Any) {
+        val reduceMotionEnabled = LocalReduceMotion.current.enabled()
         val itemScope =
-            remember(index) { TransformingLazyColumnItemScopeImpl(index, state = state) }
+            remember(index, reduceMotionEnabled) {
+                TransformingLazyColumnItemScopeImpl(
+                    index,
+                    state = state,
+                    reduceMotionEnabled = reduceMotionEnabled
+                )
+            }
         CompositionLocalProvider(LocalTransformingLazyColumnItemScope provides itemScope) {
             intervalContent.withInterval(index) { localIndex, content ->
                 content.item(itemScope, localIndex)

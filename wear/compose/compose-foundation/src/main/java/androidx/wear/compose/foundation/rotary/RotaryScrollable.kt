@@ -102,7 +102,7 @@ import kotlinx.coroutines.launch
  * @param reverseDirection Reverse the direction of scrolling if required for consistency with the
  *   scrollable state passed via [behavior].
  */
-fun Modifier.rotaryScrollable(
+public fun Modifier.rotaryScrollable(
     behavior: RotaryScrollableBehavior,
     focusRequester: FocusRequester,
     reverseDirection: Boolean = false
@@ -120,7 +120,7 @@ fun Modifier.rotaryScrollable(
  * [HighResSnapRotaryScrollableBehavior] (see [Modifier.rotaryScrollable] for descriptions of
  * low-res and high-res devices).
  */
-interface RotaryScrollableBehavior {
+public interface RotaryScrollableBehavior {
 
     /**
      * Executes a scrolling operation based on rotary input.
@@ -130,7 +130,7 @@ interface RotaryScrollableBehavior {
      * @param inputDeviceId The id for the input device that this event came from
      * @param orientation Orientation of the scrolling
      */
-    suspend fun CoroutineScope.performScroll(
+    public suspend fun CoroutineScope.performScroll(
         timestampMillis: Long,
         delta: Float,
         inputDeviceId: Int,
@@ -144,29 +144,29 @@ interface RotaryScrollableBehavior {
  * This interface defines the essential properties and methods required for a scrollable to be
  * controlled by rotary input and perform a snap action.
  */
-interface RotarySnapLayoutInfoProvider {
+public interface RotarySnapLayoutInfoProvider {
 
     /**
      * The average size in pixels of an item within the scrollable. This is used to estimate
      * scrolling distances for snapping when responding to rotary input.
      */
-    val averageItemSize: Float
+    public val averageItemSize: Float
 
     /** The index of the item that is closest to the center. */
-    val currentItemIndex: Int
+    public val currentItemIndex: Int
 
     /**
      * The offset in pixels of the currently centered item from its centered position. This value
      * can be positive or negative.
      */
-    val currentItemOffset: Float
+    public val currentItemOffset: Float
 
     /** The total number of items within the scrollable */
-    val totalItemCount: Int
+    public val totalItemCount: Int
 }
 
 /** Defaults for rotaryScrollable modifier */
-object RotaryScrollableDefaults {
+public object RotaryScrollableDefaults {
 
     /**
      * Implementation of [RotaryScrollableBehavior] to define scrolling behaviour with or without
@@ -184,7 +184,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun behavior(
+    public fun behavior(
         scrollableState: ScrollableState,
         flingBehavior: FlingBehavior? = ScrollableDefaults.flingBehavior(),
         hapticFeedbackEnabled: Boolean = true
@@ -216,7 +216,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun snapBehavior(
+    public fun snapBehavior(
         scrollableState: ScrollableState,
         layoutInfoProvider: RotarySnapLayoutInfoProvider,
         snapOffset: Dp = 0.dp,
@@ -242,7 +242,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun snapBehavior(
+    public fun snapBehavior(
         scrollableState: ScalingLazyListState,
         snapOffset: Dp = 0.dp,
         hapticFeedbackEnabled: Boolean = true
@@ -270,7 +270,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun snapBehavior(
+    public fun snapBehavior(
         pagerState: PagerState,
         snapOffset: Dp = 0.dp,
         hapticFeedbackEnabled: Boolean = true

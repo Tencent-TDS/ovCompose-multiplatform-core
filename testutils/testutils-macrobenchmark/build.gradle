@@ -32,15 +32,15 @@ plugins {
 dependencies {
     implementation(project(":benchmark:benchmark-macro"))
     implementation(project(":benchmark:benchmark-macro-junit4"))
-    implementation(androidxArtifact(":tracing:tracing-perfetto-binary"))
+    implementation(project(":tracing:tracing-perfetto-binary"))
     implementation(libs.kotlinStdlib)
 }
 
 android {
     defaultConfig {
-        minSdkVersion 23
+        minSdk = 23
     }
-    namespace "androidx.testutils.macrobenchmark"
+    namespace = "androidx.testutils.macrobenchmark"
 }
 
 androidx {

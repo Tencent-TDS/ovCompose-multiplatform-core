@@ -35,7 +35,7 @@ open class Entity(
     constructor: Constructor?,
     val shadowTableName: String?
 ) :
-    Pojo(element, type, fields, embeddedFields, emptyList(), constructor),
+    DataClass(element, type, fields, embeddedFields, emptyList(), constructor),
     HasSchemaIdentity,
     EntityOrView {
 

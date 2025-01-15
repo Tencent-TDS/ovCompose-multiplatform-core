@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 
 /** Scope for the children of a [ButtonGroup] */
-class ButtonGroupScope {
+public class ButtonGroupScope {
     internal val items = mutableListOf<ButtonGroupItem>()
 
     /**
@@ -62,12 +62,12 @@ class ButtonGroupScope {
      * @param content the content to use for this item. Usually, this will be one of the [Button]
      *   variants.
      */
-    fun buttonGroupItem(
+    public fun buttonGroupItem(
         interactionSource: InteractionSource,
         minWidth: Dp = minimumInteractiveComponentSize,
         weight: Float = 1f,
         content: @Composable () -> Unit
-    ) = items.add(ButtonGroupItem(interactionSource, minWidth, weight, content))
+    ): Boolean = items.add(ButtonGroupItem(interactionSource, minWidth, weight, content))
 }
 
 /**
@@ -87,7 +87,7 @@ class ButtonGroupScope {
  *   3 buttons within a ButtonGroup.
  */
 @Composable
-fun ButtonGroup(
+public fun ButtonGroup(
     modifier: Modifier = Modifier,
     spacing: Dp = ButtonGroupDefaults.Spacing,
     expansionWidth: Dp = ButtonGroupDefaults.ExpansionWidth,
@@ -170,33 +170,34 @@ fun ButtonGroup(
         // Add animated grow/shrink
         if (actualContent.items.size > 1) {
             animatedSizes.forEachIndexed { index, value ->
-                // Grow the pressed item
-                widths[index] += value.value
-
-                // Shrink the neighbors.
-                if (index == 0) {
-                    // index == 0, and we know there are at least 2 items.
-                    widths[1] -= value.value
-                } else if (index < animatedSizes.lastIndex) {
-                    // index is in the middle.
-                    widths[index - 1] -= value.value / 2
-                    widths[index + 1] -= value.value / 2
+                // How much we need to grow the pressed item.
+                val growth: Int
+                if (index in 1 until animatedSizes.lastIndex) {
+                    // index is in the middle. Ensure we keep the size of the middle element with
+                    // the same parity, so its content remains in place.
+                    growth = (value.value / 2).roundToInt() * 2
+                    widths[index - 1] -= growth / 2
+                    widths[index + 1] -= growth / 2
                 } else {
-                    // index == animatedSizes.lastIndex, and we know there are at least 2 items.
-                    widths[index - 1] -= value.value
+                    growth = value.value.roundToInt()
+                    if (index == 0) {
+                        // index == 0, and we know there are at least 2 items.
+                        widths[1] -= growth
+                    } else {
+                        // index == animatedSizes.lastIndex, and we know there are at least 2 items.
+                        widths[index - 1] -= growth
+                    }
                 }
+                // Grow the pressed item
+                widths[index] += growth
             }
         }
 
         // We know the width we want buttons to be, we can call measure now and pass that as a
         // constraint.
-        val finalSizes = IntArray(widths.size) { widths[it].roundToInt() }
-
         val placeables =
             measurables.fastMapIndexed { ix, placeable ->
-                placeable.measure(
-                    constraints.copy(minWidth = finalSizes[ix], maxWidth = finalSizes[ix])
-                )
+                placeable.measure(constraints.copy(minWidth = widths[ix], maxWidth = widths[ix]))
             }
 
         val height =
@@ -209,7 +210,7 @@ fun ButtonGroup(
             var x = 0
             placeables.fastForEachIndexed { index, placeable ->
                 placeable.place(x, verticalAlignment.align(placeable.height, height))
-                x += finalSizes[index] + spacingPx
+                x += widths[index] + spacingPx
                 // TODO: rounding finalSizes & spacing means we may have a few extra pixels wasted
                 //  or take more room than available.
             }
@@ -218,13 +219,13 @@ fun ButtonGroup(
 }
 
 /** Contains the default values used by [ButtonGroup] */
-object ButtonGroupDefaults {
+public object ButtonGroupDefaults {
     /**
      * Return the recommended padding to use as the contentPadding of a [ButtonGroup], when it takes
      * the full width of the screen.
      */
     @Composable
-    fun fullWidthPaddings(): PaddingValues {
+    public fun fullWidthPaddings(): PaddingValues {
         val screenHeight = screenHeightDp().dp
         return PaddingValues(
             horizontal = screenHeight * FullWidthHorizontalPaddingPercentage / 100,
@@ -233,10 +234,10 @@ object ButtonGroupDefaults {
     }
 
     /** How much buttons grow (and neighbors shrink) when pressed. */
-    val ExpansionWidth: Dp = 24.dp
+    public val ExpansionWidth: Dp = 24.dp
 
     /** Spacing between buttons. */
-    val Spacing: Dp = 4.dp
+    public val Spacing: Dp = 4.dp
 
     /** Padding at each side of the [ButtonGroup], as a percentage of the available space. */
     private const val FullWidthHorizontalPaddingPercentage: Float = 5.2f
@@ -282,7 +283,7 @@ internal fun computeWidths(
     items: List<Pair<Float, Float>>,
     spacingPx: Int,
     availableWidth: Int
-): FloatArray {
+): IntArray {
     val helper =
         Array(items.size) { index ->
             val pair = items[index]
@@ -349,7 +350,7 @@ internal fun computeWidths(
     }
 
     // Reconstruct the original order using the 'originalIndex'
-    val ret = FloatArray(helper.size) { 0f }
-    helper.forEach { ret[it.originalIndex] = it.width }
+    val ret = IntArray(helper.size) { 0 }
+    helper.forEach { ret[it.originalIndex] = it.width.roundToInt() }
     return ret
 }

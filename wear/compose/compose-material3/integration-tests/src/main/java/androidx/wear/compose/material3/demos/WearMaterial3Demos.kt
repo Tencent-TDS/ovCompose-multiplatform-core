@@ -31,7 +31,7 @@ import androidx.wear.compose.material3.samples.EdgeButtonSample
 import androidx.wear.compose.material3.samples.EdgeSwipeForSwipeToDismiss
 import androidx.wear.compose.material3.samples.HorizontalPagerScaffoldSample
 import androidx.wear.compose.material3.samples.ListHeaderSample
-import androidx.wear.compose.material3.samples.ScaffoldSample
+import androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
 import androidx.wear.compose.material3.samples.SimpleSwipeToDismissBox
 import androidx.wear.compose.material3.samples.StatefulSwipeToDismissBox
 import androidx.wear.compose.material3.samples.SwipeToRevealNonAnchoredSample
@@ -68,13 +68,13 @@ val WearMaterial3Demos =
                 ComposableDemo("Color Scheme") { ColorSchemeDemos() },
                 ComposableDemo("Dynamic Color Scheme") { DynamicColorSchemeDemos() },
                 Material3DemoCategory("Curved Text", CurvedTextDemos),
-                Material3DemoCategory("Alert Dialog", AlertDialogs),
-                Material3DemoCategory("Confirmation", Comfirmations),
+                Material3DemoCategory("Alert Dialog", AlertDialogDemos),
+                Material3DemoCategory("Confirmation Dialog", ComfirmationDialogDemos),
                 Material3DemoCategory("Open on phone Dialog", OpenOnPhoneDialogDemos),
                 Material3DemoCategory(
                     "Scaffold",
                     listOf(
-                        ComposableDemo("Screen Scaffold") { ScaffoldSample() },
+                        ComposableDemo("Screen Scaffold") { ScaffoldWithEdgeButtonSample() },
                         ComposableDemo("Horizontal Pager Scaffold") {
                             HorizontalPagerScaffoldSample()
                         },
@@ -115,9 +115,15 @@ val WearMaterial3Demos =
                 ),
                 ComposableDemo("List Header") { Centralize { ListHeaderSample() } },
                 Material3DemoCategory("Time Text", TimeTextDemos),
-                ComposableDemo("Card") { CardDemo() },
-                ComposableDemo("Animated Shape Buttons") { AnimatedShapeButtonDemo() },
-                ComposableDemo("Animated Shape Toggle Buttons") { AnimatedShapeToggleButtonDemo() },
+                Material3DemoCategory(
+                    "Card",
+                    listOf(
+                        ComposableDemo("Card") { CardDemo() },
+                        ComposableDemo("App Card") { AppCardDemo() },
+                        ComposableDemo("Title Card") { TitleCardDemo() },
+                        ComposableDemo("Image Card") { ImageCardDemo() },
+                    )
+                ),
                 ComposableDemo("Text Toggle Button") { TextToggleButtonDemo() },
                 ComposableDemo("Icon Toggle Button") { IconToggleButtonDemo() },
                 ComposableDemo("Checkbox Button") { CheckboxButtonDemo() },
@@ -129,13 +135,8 @@ val WearMaterial3Demos =
                 Material3DemoCategory("Stepper", StepperDemos),
                 Material3DemoCategory("Slider", SliderDemos),
                 Material3DemoCategory("Picker", PickerDemos),
-                // Requires API level 26 or higher due to java.time dependency.
-                *(if (Build.VERSION.SDK_INT >= 26)
-                    arrayOf(
-                        Material3DemoCategory("TimePicker", TimePickerDemos),
-                        Material3DemoCategory("DatePicker", DatePickerDemos)
-                    )
-                else emptyArray<Material3DemoCategory>()),
+                Material3DemoCategory("TimePicker", TimePickerDemos),
+                Material3DemoCategory("DatePicker", DatePickerDemos),
                 Material3DemoCategory("Progress Indicator", ProgressIndicatorDemos),
                 Material3DemoCategory("Scroll Indicator", ScrollIndicatorDemos),
                 Material3DemoCategory("Placeholder", PlaceholderDemos),
@@ -174,6 +175,7 @@ val WearMaterial3Demos =
                             ScalingLazyDemo { item { SwipeToRevealNonAnchoredSample() } }
                         },
                         ComposableDemo("Long labels") { SwipeToRevealWithLongLabels() },
+                        ComposableDemo("Custom Icons") { SwipeToRevealWithCustomIcons() },
                     )
                 ),
                 Material3DemoCategory(
@@ -211,7 +213,8 @@ val WearMaterial3Demos =
                         ComposableDemo("TLC Cards") { TransformingLazyColumnCards() },
                         ComposableDemo("Animation Demo") { TransformingLazyColumnScrollingSample() }
                     )
-                )
+                ),
+                ComposableDemo("Text") { TextWeightDemo() }
             )
             .sortedBy { it.title }
     )

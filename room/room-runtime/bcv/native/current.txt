@@ -34,6 +34,9 @@ abstract interface androidx.room/Transactor : androidx.room/PooledConnection { /
         enum entry EXCLUSIVE // androidx.room/Transactor.SQLiteTransactionType.EXCLUSIVE|null[0]
         enum entry IMMEDIATE // androidx.room/Transactor.SQLiteTransactionType.IMMEDIATE|null[0]
 
+        final val entries // androidx.room/Transactor.SQLiteTransactionType.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/Transactor.SQLiteTransactionType> // androidx.room/Transactor.SQLiteTransactionType.entries.<get-entries>|<get-entries>#static(){}[0]
+
         final fun valueOf(kotlin/String): androidx.room/Transactor.SQLiteTransactionType // androidx.room/Transactor.SQLiteTransactionType.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/Transactor.SQLiteTransactionType> // androidx.room/Transactor.SQLiteTransactionType.values|values#static(){}[0]
     }
@@ -125,6 +128,9 @@ abstract class androidx.room/RoomDatabase { // androidx.room/RoomDatabase|null[0
     final enum class JournalMode : kotlin/Enum<androidx.room/RoomDatabase.JournalMode> { // androidx.room/RoomDatabase.JournalMode|null[0]
         enum entry TRUNCATE // androidx.room/RoomDatabase.JournalMode.TRUNCATE|null[0]
         enum entry WRITE_AHEAD_LOGGING // androidx.room/RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING|null[0]
+
+        final val entries // androidx.room/RoomDatabase.JournalMode.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/RoomDatabase.JournalMode> // androidx.room/RoomDatabase.JournalMode.entries.<get-entries>|<get-entries>#static(){}[0]
 
         final fun valueOf(kotlin/String): androidx.room/RoomDatabase.JournalMode // androidx.room/RoomDatabase.JournalMode.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/RoomDatabase.JournalMode> // androidx.room/RoomDatabase.JournalMode.values|values#static(){}[0]

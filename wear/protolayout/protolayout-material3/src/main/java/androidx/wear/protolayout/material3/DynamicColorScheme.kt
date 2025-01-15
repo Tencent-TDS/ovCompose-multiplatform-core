@@ -21,8 +21,8 @@ import android.os.Build
 import android.provider.Settings
 import androidx.annotation.ColorRes
 import androidx.annotation.VisibleForTesting
-import androidx.wear.protolayout.ColorBuilders.ColorProp
-import androidx.wear.protolayout.ColorBuilders.argb
+import androidx.wear.protolayout.types.LayoutColor
+import androidx.wear.protolayout.types.argb
 
 /**
  * Creates a dynamic color scheme.
@@ -47,36 +47,38 @@ public fun dynamicColorScheme(
         // https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/res/res/values/public-final.xml;l=3500;drc=2a8b6a18e0b7f696013ffede0cc0ab1904864d09
         // TODO: b/340192801 - Confirm once it's fully supported in system.
         ColorScheme(
-            primary = getColorProp(context, R.color.system_primary_fixed),
-            primaryDim = getColorProp(context, R.color.system_primary_fixed_dim),
-            primaryContainer = getColorProp(context, R.color.system_primary_container_dark),
-            onPrimary = getColorProp(context, R.color.system_on_primary_fixed),
-            onPrimaryContainer = getColorProp(context, R.color.system_on_primary_container_dark),
-            secondary = getColorProp(context, R.color.system_secondary_fixed),
-            secondaryDim = getColorProp(context, R.color.system_secondary_fixed_dim),
-            secondaryContainer = getColorProp(context, R.color.system_secondary_container_dark),
-            onSecondary = getColorProp(context, R.color.system_on_secondary_fixed),
+            primary = getLayoutColor(context, R.color.system_primary_fixed),
+            primaryDim = getLayoutColor(context, R.color.system_primary_fixed_dim),
+            primaryContainer = getLayoutColor(context, R.color.system_primary_container_dark),
+            onPrimary = getLayoutColor(context, R.color.system_on_primary_fixed),
+            onPrimaryContainer = getLayoutColor(context, R.color.system_on_primary_container_dark),
+            secondary = getLayoutColor(context, R.color.system_secondary_fixed),
+            secondaryDim = getLayoutColor(context, R.color.system_secondary_fixed_dim),
+            secondaryContainer = getLayoutColor(context, R.color.system_secondary_container_dark),
+            onSecondary = getLayoutColor(context, R.color.system_on_secondary_fixed),
             onSecondaryContainer =
-                getColorProp(context, R.color.system_on_secondary_container_dark),
-            tertiary = getColorProp(context, R.color.system_tertiary_fixed),
-            tertiaryDim = getColorProp(context, R.color.system_tertiary_fixed_dim),
-            tertiaryContainer = getColorProp(context, R.color.system_tertiary_container_dark),
-            onTertiary = getColorProp(context, R.color.system_on_tertiary_fixed),
-            onTertiaryContainer = getColorProp(context, R.color.system_on_tertiary_container_dark),
-            surfaceContainerLow = getColorProp(context, R.color.system_surface_container_low_dark),
-            surfaceContainer = getColorProp(context, R.color.system_surface_container_dark),
+                getLayoutColor(context, R.color.system_on_secondary_container_dark),
+            tertiary = getLayoutColor(context, R.color.system_tertiary_fixed),
+            tertiaryDim = getLayoutColor(context, R.color.system_tertiary_fixed_dim),
+            tertiaryContainer = getLayoutColor(context, R.color.system_tertiary_container_dark),
+            onTertiary = getLayoutColor(context, R.color.system_on_tertiary_fixed),
+            onTertiaryContainer =
+                getLayoutColor(context, R.color.system_on_tertiary_container_dark),
+            surfaceContainerLow =
+                getLayoutColor(context, R.color.system_surface_container_low_dark),
+            surfaceContainer = getLayoutColor(context, R.color.system_surface_container_dark),
             surfaceContainerHigh =
-                getColorProp(context, R.color.system_surface_container_high_dark),
-            onSurface = getColorProp(context, R.color.system_on_surface_dark),
-            onSurfaceVariant = getColorProp(context, R.color.system_on_surface_variant_dark),
-            outline = getColorProp(context, R.color.system_outline_dark),
-            outlineVariant = getColorProp(context, R.color.system_outline_variant_dark),
-            background = getColorProp(context, R.color.system_background_dark),
-            onBackground = getColorProp(context, R.color.system_on_background_dark),
-            error = getColorProp(context, R.color.system_error_dark),
-            onError = getColorProp(context, R.color.system_on_error_dark),
-            errorContainer = getColorProp(context, R.color.system_error_container_dark),
-            onErrorContainer = getColorProp(context, R.color.system_on_error_container_dark),
+                getLayoutColor(context, R.color.system_surface_container_high_dark),
+            onSurface = getLayoutColor(context, R.color.system_on_surface_dark),
+            onSurfaceVariant = getLayoutColor(context, R.color.system_on_surface_variant_dark),
+            outline = getLayoutColor(context, R.color.system_outline_dark),
+            outlineVariant = getLayoutColor(context, R.color.system_outline_variant_dark),
+            background = getLayoutColor(context, R.color.system_background_dark),
+            onBackground = getLayoutColor(context, R.color.system_on_background_dark),
+            error = getLayoutColor(context, R.color.system_error_dark),
+            onError = getLayoutColor(context, R.color.system_on_error_dark),
+            errorContainer = getLayoutColor(context, R.color.system_error_container_dark),
+            onErrorContainer = getLayoutColor(context, R.color.system_on_error_container_dark),
         )
     } else {
         defaultColorScheme
@@ -100,6 +102,6 @@ public fun isDynamicColorSchemeEnabled(context: Context): Boolean =
 @VisibleForTesting
 internal const val DYNAMIC_THEMING_SETTING_NAME: String = "dynamic_color_theme_enabled"
 
-/** Retrieves the [ColorProp] from the dynamic system theme with the given color token name. */
-private fun getColorProp(context: Context, @ColorRes id: Int): ColorProp =
-    argb(context.resources.getColor(id, context.theme))
+/** Retrieves the [LayoutColor] from the dynamic system theme with the given color token name. */
+private fun getLayoutColor(context: Context, @ColorRes id: Int): LayoutColor =
+    context.resources.getColor(id, context.theme).argb

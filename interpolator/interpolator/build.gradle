@@ -25,5 +25,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.interpolator"
+    namespace = "androidx.interpolator"
 }

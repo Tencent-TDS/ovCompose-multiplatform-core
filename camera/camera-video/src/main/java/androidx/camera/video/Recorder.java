@@ -60,8 +60,6 @@ import android.view.Surface;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
@@ -115,6 +113,9 @@ import androidx.core.util.Preconditions;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -420,10 +421,8 @@ public final class Recorder implements VideoOutput {
     RecordingRecord mInProgressRecording = null;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     boolean mInProgressRecordingStopping = false;
-    @Nullable
-    private SurfaceRequest.TransformationInfo mInProgressTransformationInfo = null;
-    @Nullable
-    private SurfaceRequest.TransformationInfo mSourceTransformationInfo = null;
+    private SurfaceRequest.@Nullable TransformationInfo mInProgressTransformationInfo = null;
+    private SurfaceRequest.@Nullable TransformationInfo mSourceTransformationInfo = null;
     private VideoValidatedEncoderProfilesProxy mResolvedEncoderProfiles = null;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     final List<ListenableFuture<Void>> mEncodingFutures = new ArrayList<>();
@@ -456,8 +455,7 @@ public final class Recorder implements VideoOutput {
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     AudioState mAudioState = AudioState.INITIALIZING;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    @NonNull
-    Uri mOutputUri = Uri.EMPTY;
+    @NonNull Uri mOutputUri = Uri.EMPTY;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     long mRecordingBytes = 0L;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -489,8 +487,7 @@ public final class Recorder implements VideoOutput {
     // A cache that hold audio data created before the muxer starts to prevent A/V out of sync in
     // the beginning of the recording.
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    @NonNull
-    final RingBuffer<EncodedData> mPendingAudioRingBuffer = new ArrayRingBuffer<>(
+    final @NonNull RingBuffer<EncodedData> mPendingAudioRingBuffer = new ArrayRingBuffer<>(
             AUDIO_CACHE_SIZE);
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     Throwable mAudioErrorCause = null;
@@ -502,18 +499,14 @@ public final class Recorder implements VideoOutput {
     ScheduledFuture<?> mSourceNonStreamingTimeout = null;
     // The Recorder has to be reset first before being configured again.
     private boolean mNeedsResetBeforeNextStart = false;
-    @NonNull
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    VideoEncoderSession mVideoEncoderSession;
-    @Nullable
+    @NonNull VideoEncoderSession mVideoEncoderSession;
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-    VideoEncoderSession mVideoEncoderSessionToRelease = null;
+    @Nullable VideoEncoderSession mVideoEncoderSessionToRelease = null;
     double mAudioAmplitude = 0;
     private boolean mShouldSendResumeEvent = false;
-    @Nullable
-    private SetupVideoTask mSetupVideoTask = null;
-    @Nullable
-    private OutputStorage mOutputStorage = null;
+    private @Nullable SetupVideoTask mSetupVideoTask = null;
+    private @Nullable OutputStorage mOutputStorage = null;
     private long mAvailableBytesAboveRequired = Long.MAX_VALUE;
     //--------------------------------------------------------------------------------------------//
 
@@ -521,7 +514,7 @@ public final class Recorder implements VideoOutput {
             @VideoCapabilitiesSource int videoCapabilitiesSource,
             @NonNull EncoderFactory videoEncoderFactory,
             @NonNull EncoderFactory audioEncoderFactory,
-            @NonNull OutputStorage.Factory outputStorageFactory,
+            OutputStorage.@NonNull Factory outputStorageFactory,
             long requiredFreeStorageBytes) {
         mUserProvidedExecutor = executor;
         mExecutor = executor != null ? executor : CameraXExecutors.ioExecutor();
@@ -563,22 +556,19 @@ public final class Recorder implements VideoOutput {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
-    @NonNull
-    public Observable<MediaSpec> getMediaSpec() {
+    public @NonNull Observable<MediaSpec> getMediaSpec() {
         return mMediaSpec;
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
-    @NonNull
-    public Observable<StreamInfo> getStreamInfo() {
+    public @NonNull Observable<StreamInfo> getStreamInfo() {
         return mStreamInfo;
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
-    @NonNull
-    public Observable<Boolean> isSourceStreamRequired() {
+    public @NonNull Observable<Boolean> isSourceStreamRequired() {
         return mIsRecording;
     }
 
@@ -590,8 +580,7 @@ public final class Recorder implements VideoOutput {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Override
-    @NonNull
-    public VideoCapabilities getMediaCapabilities(@NonNull CameraInfo cameraInfo) {
+    public @NonNull VideoCapabilities getMediaCapabilities(@NonNull CameraInfo cameraInfo) {
         return getVideoCapabilities(cameraInfo, mVideoCapabilitiesSource);
     }
 
@@ -615,8 +604,7 @@ public final class Recorder implements VideoOutput {
      * @return a {@link PendingRecording} that is associated with this Recorder.
      * @see FileOutputOptions
      */
-    @NonNull
-    public PendingRecording prepareRecording(@NonNull Context context,
+    public @NonNull PendingRecording prepareRecording(@NonNull Context context,
             @NonNull FileOutputOptions fileOutputOptions) {
         return prepareRecordingInternal(context, fileOutputOptions);
     }
@@ -649,8 +637,7 @@ public final class Recorder implements VideoOutput {
      * @see FileDescriptorOutputOptions
      */
     @RequiresApi(26)
-    @NonNull
-    public PendingRecording prepareRecording(@NonNull Context context,
+    public @NonNull PendingRecording prepareRecording(@NonNull Context context,
             @NonNull FileDescriptorOutputOptions fileDescriptorOutputOptions) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             throw new UnsupportedOperationException(
@@ -681,14 +668,12 @@ public final class Recorder implements VideoOutput {
      * @return a {@link PendingRecording} that is associated with this Recorder.
      * @see MediaStoreOutputOptions
      */
-    @NonNull
-    public PendingRecording prepareRecording(@NonNull Context context,
+    public @NonNull PendingRecording prepareRecording(@NonNull Context context,
             @NonNull MediaStoreOutputOptions mediaStoreOutputOptions) {
         return prepareRecordingInternal(context, mediaStoreOutputOptions);
     }
 
-    @NonNull
-    private PendingRecording prepareRecordingInternal(@NonNull Context context,
+    private @NonNull PendingRecording prepareRecordingInternal(@NonNull Context context,
             @NonNull OutputOptions options) {
         Preconditions.checkNotNull(options, "The OutputOptions cannot be null.");
         return new PendingRecording(context, this, options);
@@ -702,8 +687,7 @@ public final class Recorder implements VideoOutput {
      * recorder, or the default value of {@link Recorder#DEFAULT_QUALITY_SELECTOR} if no quality
      * selector was provided.
      */
-    @NonNull
-    public QualitySelector getQualitySelector() {
+    public @NonNull QualitySelector getQualitySelector() {
         return getObservableData(mMediaSpec).getVideoSpec().getQualitySelector();
     }
 
@@ -738,8 +722,7 @@ public final class Recorder implements VideoOutput {
      * @return the {@link Executor} provided to {@link Builder#setExecutor(Executor)} on the
      * builder used to create this recorder. If no executor was provided, returns {code null}.
      */
-    @Nullable
-    public Executor getExecutor() {
+    public @Nullable Executor getExecutor() {
         return mUserProvidedExecutor;
     }
 
@@ -757,8 +740,7 @@ public final class Recorder implements VideoOutput {
     /** Gets an {@link Observable} of the video encoder's supported bitrate range. */
     @VisibleForTesting
     @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @NonNull
-    public Observable<Range<Integer>> getVideoEncoderBitrateRange() {
+    public @NonNull Observable<Range<Integer>> getVideoEncoderBitrateRange() {
         return mVideoEncoderBitrateRange;
     }
 
@@ -795,8 +777,7 @@ public final class Recorder implements VideoOutput {
      *                               {@link android.Manifest.permission#RECORD_AUDIO} is not
      *                               granted.
      */
-    @NonNull
-    Recording start(@NonNull PendingRecording pendingRecording) {
+    @NonNull Recording start(@NonNull PendingRecording pendingRecording) {
         Preconditions.checkNotNull(pendingRecording, "The given PendingRecording cannot be null.");
         RecordingRecord alreadyInProgressRecording = null;
         @VideoRecordError int error = ERROR_NONE;
@@ -1238,8 +1219,7 @@ public final class Recorder implements VideoOutput {
 
         private boolean mIsFailedRetryCanceled = false;
         private int mRetryCount = 0;
-        @Nullable
-        private ScheduledFuture<?> mRetryFuture = null;
+        private @Nullable ScheduledFuture<?> mRetryFuture = null;
 
         SetupVideoTask(@NonNull SurfaceRequest surfaceRequest, @NonNull Timebase timebase,
                 int maxRetryCount) {
@@ -1327,9 +1307,8 @@ public final class Recorder implements VideoOutput {
         return mInProgressRecording != null && mInProgressRecording.isPersistent();
     }
 
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    private ListenableFuture<Void> safeToCloseVideoEncoder() {
+    private @NonNull ListenableFuture<Void> safeToCloseVideoEncoder() {
         Logger.d(TAG, "Try to safely release video encoder: " + mVideoEncoder);
         return mVideoEncoderSession.signalTermination();
     }
@@ -1454,8 +1433,7 @@ public final class Recorder implements VideoOutput {
         }
     }
 
-    @NonNull
-    private MediaSpec composeRecorderMediaSpec(@NonNull MediaSpec mediaSpec) {
+    private @NonNull MediaSpec composeRecorderMediaSpec(@NonNull MediaSpec mediaSpec) {
         MediaSpec.Builder mediaSpecBuilder = mediaSpec.toBuilder();
 
         // Append default video configurations
@@ -1517,8 +1495,7 @@ public final class Recorder implements VideoOutput {
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    @NonNull
-    private AudioSource setupAudioSource(@NonNull RecordingRecord recordingToStart,
+    private @NonNull AudioSource setupAudioSource(@NonNull RecordingRecord recordingToStart,
             @NonNull AudioSettings audioSettings)
             throws AudioSourceAccessException {
         return recordingToStart.performOneTimeAudioSourceCreation(audioSettings, AUDIO_EXECUTOR);
@@ -1688,8 +1665,7 @@ public final class Recorder implements VideoOutput {
     }
 
     @ExecutedBy("mSequentialExecutor")
-    @NonNull
-    private List<EncodedData> getAudioDataToWriteAndClearCache(long firstVideoDataTimeUs) {
+    private @NonNull List<EncodedData> getAudioDataToWriteAndClearCache(long firstVideoDataTimeUs) {
         List<EncodedData> res = new ArrayList<>();
 
         while (!mPendingAudioRingBuffer.isEmpty()) {
@@ -2424,8 +2400,7 @@ public final class Recorder implements VideoOutput {
         throw new AssertionError("Invalid internal audio state: " + audioState);
     }
 
-    @NonNull
-    private StreamState internalStateToStreamState(@NonNull State state) {
+    private @NonNull StreamState internalStateToStreamState(@NonNull State state) {
         // Stopping state should be treated as inactive on certain chipsets. See b/196039619.
         DeactivateEncoderSurfaceBeforeStopEncoderQuirk quirk =
                 DeviceQuirks.get(DeactivateEncoderSurfaceBeforeStopEncoderQuirk.class);
@@ -2740,8 +2715,7 @@ public final class Recorder implements VideoOutput {
      * longer under lock.
      */
     @GuardedBy("mLock")
-    @NonNull
-    private RecordingRecord makePendingRecordingActiveLocked(@NonNull State state) {
+    private @NonNull RecordingRecord makePendingRecordingActiveLocked(@NonNull State state) {
         boolean startRecordingPaused = false;
         if (state == State.PENDING_PAUSED) {
             startRecordingPaused = true;
@@ -2813,8 +2787,7 @@ public final class Recorder implements VideoOutput {
 
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     @ExecutedBy("mSequentialExecutor")
-    @NonNull
-    RecordingStats getInProgressRecordingStats() {
+    @NonNull RecordingStats getInProgressRecordingStats() {
         return RecordingStats.of(mRecordingDurationNs, mRecordingBytes,
                 AudioStats.of(internalAudioStateToAudioStatsState(mAudioState), mAudioErrorCause,
                         mAudioAmplitude));
@@ -2900,7 +2873,7 @@ public final class Recorder implements VideoOutput {
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     @ExecutedBy("mSequentialExecutor")
     void setInProgressTransformationInfo(
-            @Nullable SurfaceRequest.TransformationInfo transformationInfo) {
+            SurfaceRequest.@Nullable TransformationInfo transformationInfo) {
         Logger.d(TAG, "Update stream transformation info: " + transformationInfo);
         mInProgressTransformationInfo = transformationInfo;
         synchronized (mLock) {
@@ -2956,8 +2929,7 @@ public final class Recorder implements VideoOutput {
         mAudioState = audioState;
     }
 
-    @NonNull
-    private static ScheduledFuture<?> scheduleTask(@NonNull Runnable task,
+    private static @NonNull ScheduledFuture<?> scheduleTask(@NonNull Runnable task,
             @NonNull Executor executor, long delay, TimeUnit timeUnit) {
         return CameraXExecutors.mainThreadExecutor().schedule(() -> executor.execute(task), delay,
                 timeUnit);
@@ -2999,8 +2971,7 @@ public final class Recorder implements VideoOutput {
      * @param cameraInfo info about the camera.
      * @return VideoCapabilities with respect to the input camera info.
      */
-    @NonNull
-    public static VideoCapabilities getVideoCapabilities(@NonNull CameraInfo cameraInfo) {
+    public static @NonNull VideoCapabilities getVideoCapabilities(@NonNull CameraInfo cameraInfo) {
         return getVideoCapabilities(cameraInfo, VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE);
     }
 
@@ -3021,8 +2992,7 @@ public final class Recorder implements VideoOutput {
      * @return VideoCapabilities with respect to the input camera info and video capabilities
      * source.
      */
-    @NonNull
-    public static VideoCapabilities getVideoCapabilities(@NonNull CameraInfo cameraInfo,
+    public static @NonNull VideoCapabilities getVideoCapabilities(@NonNull CameraInfo cameraInfo,
             @VideoCapabilitiesSource int videoCapabilitiesSource) {
         return new RecorderVideoCapabilities(videoCapabilitiesSource,
                 (CameraInfoInternal) cameraInfo, VideoEncoderInfoImpl.FINDER);
@@ -3048,12 +3018,11 @@ public final class Recorder implements VideoOutput {
 
         private final AtomicBoolean mMuted = new AtomicBoolean(false);
 
-        @NonNull
-        private final MutableStateObservable<Boolean> mRecordingState =
+        private final @NonNull MutableStateObservable<Boolean> mRecordingState =
                 MutableStateObservable.withInitialState(false);
 
-        @NonNull
-        static RecordingRecord from(@NonNull PendingRecording pendingRecording, long recordingId) {
+        static @NonNull RecordingRecord from(@NonNull PendingRecording pendingRecording,
+                long recordingId) {
             RecordingRecord recordingRecord = new AutoValue_Recorder_RecordingRecord(
                     pendingRecording.getOutputOptions(),
                     pendingRecording.getListenerExecutor(),
@@ -3066,14 +3035,11 @@ public final class Recorder implements VideoOutput {
             return recordingRecord;
         }
 
-        @NonNull
-        abstract OutputOptions getOutputOptions();
+        abstract @NonNull OutputOptions getOutputOptions();
 
-        @Nullable
-        abstract Executor getCallbackExecutor();
+        abstract @Nullable Executor getCallbackExecutor();
 
-        @Nullable
-        abstract Consumer<VideoRecordEvent> getEventListener();
+        abstract @Nullable Consumer<VideoRecordEvent> getEventListener();
 
         abstract boolean hasAudioEnabled();
 
@@ -3191,10 +3157,9 @@ public final class Recorder implements VideoOutput {
                     // permission requirements
                     @SuppressWarnings("Convert2Lambda")
                     AudioSourceSupplier audioSourceSupplier = new AudioSourceSupplier() {
-                        @NonNull
                         @Override
                         @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-                        public AudioSource get(@NonNull AudioSettings settings,
+                        public @NonNull AudioSource get(@NonNull AudioSettings settings,
                                 @NonNull Executor executor)
                                 throws AudioSourceAccessException {
                             // Context will only be held in local scope of the supplier so it will
@@ -3208,10 +3173,9 @@ public final class Recorder implements VideoOutput {
                     // permission requirements
                     @SuppressWarnings("Convert2Lambda")
                     AudioSourceSupplier audioSourceSupplier = new AudioSourceSupplier() {
-                        @NonNull
                         @Override
                         @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-                        public AudioSource get(@NonNull AudioSettings settings,
+                        public @NonNull AudioSource get(@NonNull AudioSettings settings,
                                 @NonNull Executor executor)
                                 throws AudioSourceAccessException {
                             // Do not set (or retain) context on other API levels
@@ -3334,8 +3298,7 @@ public final class Recorder implements VideoOutput {
 
         // Provides only true/false i.e. whether recording or not right now. More states can be
         // added later if ever required.
-        @NonNull
-        StateObservable<Boolean> getRecordingState() {
+        @NonNull StateObservable<Boolean> getRecordingState() {
             return mRecordingState;
         }
 
@@ -3348,9 +3311,8 @@ public final class Recorder implements VideoOutput {
          * <p>Calling this method when audio is not enabled for this recording will also throw an
          * {@link AssertionError}.
          */
-        @NonNull
         @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-        AudioSource performOneTimeAudioSourceCreation(
+        @NonNull AudioSource performOneTimeAudioSourceCreation(
                 @NonNull AudioSettings settings, @NonNull Executor audioSourceExecutor)
                 throws AudioSourceAccessException {
             if (!hasAudioEnabled()) {
@@ -3384,8 +3346,7 @@ public final class Recorder implements VideoOutput {
          * @throws AssertionError if the recording is not initialized or subsequent calls to this
          * method.
          */
-        @NonNull
-        MediaMuxer performOneTimeMediaMuxerCreation(int muxerOutputFormat,
+        @NonNull MediaMuxer performOneTimeMediaMuxerCreation(int muxerOutputFormat,
                 @NonNull Consumer<Uri> outputUriCreatedCallback) throws IOException {
             if (!mInitialized.get()) {
                 throw new AssertionError("Recording " + this + " has not been initialized");
@@ -3470,15 +3431,13 @@ public final class Recorder implements VideoOutput {
         }
 
         private interface MediaMuxerSupplier {
-            @NonNull
-            MediaMuxer get(int muxerOutputFormat, @NonNull Consumer<Uri> outputUriCreatedCallback)
-                    throws IOException;
+            @NonNull MediaMuxer get(int muxerOutputFormat,
+                    @NonNull Consumer<Uri> outputUriCreatedCallback) throws IOException;
         }
 
         private interface AudioSourceSupplier {
             @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-            @NonNull
-            AudioSource get(@NonNull AudioSettings settings,
+            @NonNull AudioSource get(@NonNull AudioSettings settings,
                     @NonNull Executor audioSourceExecutor) throws AudioSourceAccessException;
         }
     }
@@ -3517,8 +3476,7 @@ public final class Recorder implements VideoOutput {
          *
          * <p>If not set, the Recorder will be run on the IO executor internally managed by CameraX.
          */
-        @NonNull
-        public Builder setExecutor(@NonNull Executor executor) {
+        public @NonNull Builder setExecutor(@NonNull Executor executor) {
             Preconditions.checkNotNull(executor, "The specified executor can't be null.");
             mExecutor = executor;
             return this;
@@ -3542,8 +3500,7 @@ public final class Recorder implements VideoOutput {
          * @see QualitySelector
          * @see #setAspectRatio(int)
          */
-        @NonNull
-        public Builder setQualitySelector(@NonNull QualitySelector qualitySelector) {
+        public @NonNull Builder setQualitySelector(@NonNull QualitySelector qualitySelector) {
             Preconditions.checkNotNull(qualitySelector,
                     "The specified quality selector can't be null.");
             mMediaSpecBuilder.configureVideo(
@@ -3566,8 +3523,7 @@ public final class Recorder implements VideoOutput {
          * @throws IllegalArgumentException if videoCapabilitiesSource is not one of the possible
          * values.
          */
-        @NonNull
-        public Builder setVideoCapabilitiesSource(
+        public @NonNull Builder setVideoCapabilitiesSource(
                 @VideoCapabilitiesSource int videoCapabilitiesSource) {
             checkArgument(videoCapabilitiesSource == VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE
                             || videoCapabilitiesSource
@@ -3599,8 +3555,7 @@ public final class Recorder implements VideoOutput {
          * @param bitrate the target video encoding bitrate in bits per second.
          * @throws IllegalArgumentException if bitrate is 0 or less.
          */
-        @NonNull
-        public Builder setTargetVideoEncodingBitRate(@IntRange(from = 1) int bitrate) {
+        public @NonNull Builder setTargetVideoEncodingBitRate(@IntRange(from = 1) int bitrate) {
             if (bitrate <= 0) {
                 throw new IllegalArgumentException("The requested target bitrate " + bitrate
                         + " is not supported. Target bitrate must be greater than 0.");
@@ -3634,8 +3589,7 @@ public final class Recorder implements VideoOutput {
          *
          * @see #setQualitySelector(QualitySelector)
          */
-        @NonNull
-        public Builder setAspectRatio(@AspectRatio.Ratio int aspectRatio) {
+        public @NonNull Builder setAspectRatio(@AspectRatio.Ratio int aspectRatio) {
             mMediaSpecBuilder.configureVideo(builder -> builder.setAspectRatio(aspectRatio));
             return this;
         }
@@ -3658,8 +3612,7 @@ public final class Recorder implements VideoOutput {
          * @throws IllegalArgumentException If {@code bytes} is not positive.
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @NonNull
-        public Builder setRequiredFreeStorageBytes(@IntRange(from = 1L) long bytes) {
+        public @NonNull Builder setRequiredFreeStorageBytes(@IntRange(from = 1L) long bytes) {
             Preconditions.checkArgument(bytes > 0L);
             mRequiredFreeStorageBytes = bytes;
             return this;
@@ -3677,28 +3630,25 @@ public final class Recorder implements VideoOutput {
          *               {@link AudioSpec#SOURCE_AUTO}.
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @NonNull
-        public Builder setAudioSource(@AudioSpec.Source int source) {
+        public @NonNull Builder setAudioSource(@AudioSpec.Source int source) {
             mMediaSpecBuilder.configureAudio(builder -> builder.setSource(source));
             return this;
         }
 
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @NonNull
-        Builder setVideoEncoderFactory(@NonNull EncoderFactory videoEncoderFactory) {
+        @NonNull Builder setVideoEncoderFactory(@NonNull EncoderFactory videoEncoderFactory) {
             mVideoEncoderFactory = videoEncoderFactory;
             return this;
         }
 
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @NonNull
-        Builder setAudioEncoderFactory(@NonNull EncoderFactory audioEncoderFactory) {
+        @NonNull Builder setAudioEncoderFactory(@NonNull EncoderFactory audioEncoderFactory) {
             mAudioEncoderFactory = audioEncoderFactory;
             return this;
         }
 
-        @NonNull
-        Builder setOutputStorageFactory(@NonNull OutputStorage.Factory outputStorageFactory) {
+        @NonNull Builder setOutputStorageFactory(
+                OutputStorage.@NonNull Factory outputStorageFactory) {
             mOutputStorageFactory = outputStorageFactory;
             return this;
         }
@@ -3710,8 +3660,7 @@ public final class Recorder implements VideoOutput {
          * {@link Recorder} instance each time. The returned instance is configured with the
          * options set on this builder.
          */
-        @NonNull
-        public Recorder build() {
+        public @NonNull Recorder build() {
             return new Recorder(mExecutor, mMediaSpecBuilder.build(), mVideoCapabilitiesSource,
                     mVideoEncoderFactory, mAudioEncoderFactory, mOutputStorageFactory,
                     mRequiredFreeStorageBytes);

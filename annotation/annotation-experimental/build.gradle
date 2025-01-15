@@ -47,5 +47,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.annotation.experimental"
+    namespace = "androidx.annotation.experimental"
 }

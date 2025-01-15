@@ -22,6 +22,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -72,6 +73,11 @@ public class UiObject2 implements Searchable {
     private static final int DEFAULT_PINCH_SPEED = 1_000; // dp/s
     // Retry if scrollFinished has null result
     private static final int MAX_NULL_SCROLL_RETRY = 2;
+
+    private static final int WAIT_FOR_SNAPPING_BACK = 1_000;
+    // b/278551289
+    private static final int MAX_RECYCLERVIEW_SCROLL = 10;
+
     private static final long SCROLL_TIMEOUT = 1_000; // ms
     private static final long FLING_TIMEOUT = 5_000; // ms; longer as motion may continue.
 
@@ -804,6 +810,8 @@ public class UiObject2 implements Searchable {
 
         // To scroll, we swipe in the opposite direction
         final Direction swipeDirection = Direction.reverse(direction);
+        Boolean scrollFinishedResult = false;
+        int scrollCount = 0;
         while (true) {
             if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
                 // b/267804786: clearing cache on API 28 before applying the condition.
@@ -817,7 +825,7 @@ public class UiObject2 implements Searchable {
             PointerGesture swipe = Gestures.swipeRect(bounds, swipeDirection,
                     DEFAULT_SCROLL_UNTIL_PERCENT, speed, getDisplayId()).pause(250);
             EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
-            Boolean scrollFinishedResult =
+            scrollFinishedResult =
                     mGestureController.performGestureAndWait(scrollFinished, SCROLL_TIMEOUT, swipe);
             if (Boolean.TRUE.equals(scrollFinishedResult)) {
                 // Scroll has finished.
@@ -832,12 +840,24 @@ public class UiObject2 implements Searchable {
                 Log.i(TAG, String.format("Couldn't determine whether scroll was finished, "
                         + "retrying: count %d", nullScrollRetryCount - 1));
             }
+            if (scrollCount++ >= MAX_RECYCLERVIEW_SCROLL && isRecyclerView()) {
+                Log.d(TAG, String.format("Exit scrollUntil as Recyclerview has scrolled %d times, "
+                        + "threshold: %d", scrollCount, MAX_RECYCLERVIEW_SCROLL));
+                break;
+            }
         }
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
             // b/267804786: clearing cache on API 28 before applying the condition.
             clearCache();
         }
-        return condition.apply(this);
+        U result = condition.apply(this);
+        // b/339676505: sleep for snapping back animation when scroll reaches the end and
+        // also the condition is met.
+        if (result != null && !Boolean.FALSE.equals(result)
+                && Boolean.TRUE.equals(scrollFinishedResult)) {
+            SystemClock.sleep(WAIT_FOR_SNAPPING_BACK);
+        }
+        return result;
     }
 
     /**
@@ -861,6 +881,7 @@ public class UiObject2 implements Searchable {
 
         // To scroll, we swipe in the opposite direction
         final Direction swipeDirection = Direction.reverse(direction);
+        int scrollCount = 0;
         while (true) {
             // combine the input condition with scroll finished condition.
             EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
@@ -902,6 +923,11 @@ public class UiObject2 implements Searchable {
                 }
                 Log.i(TAG, String.format("Couldn't determine whether scroll was finished, "
                         + "retrying: count %d", nullScrollRetryCount - 1));
+            }
+            if (scrollCount++ >= MAX_RECYCLERVIEW_SCROLL && isRecyclerView()) {
+                Log.d(TAG, String.format("Exit scrollUntil as Recyclerview has scrolled %d times, "
+                        + "threshold: %d", scrollCount, MAX_RECYCLERVIEW_SCROLL));
+                break;
             }
         }
         return condition.getResult();
@@ -1011,6 +1037,10 @@ public class UiObject2 implements Searchable {
             Log.e(TAG, "Fail to call AccessibilityInteractionClient#clearCache() reflection", e);
         }
 
+    }
+
+    private boolean isRecyclerView() {
+        return this.getClassName().contains("RecyclerView");
     }
 
     UiDevice getDevice() {

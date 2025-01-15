@@ -35,7 +35,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".MainActivityV2" />
+
+        <activity android:name=".MainActivityV2"
+            android:windowSoftInputMode="adjustNothing" />
+        <!-- Prevents the PdfView from shifting upward when the activity resizes for the keyboard.
+        This flag is optional and can be customized by the host app to achieve the desired behavior. -->
 
     </application>
 

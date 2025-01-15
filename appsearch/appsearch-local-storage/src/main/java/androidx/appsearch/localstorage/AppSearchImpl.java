@@ -31,8 +31,6 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
@@ -124,6 +122,9 @@ import com.google.android.icing.proto.StorageInfoResultProto;
 import com.google.android.icing.proto.SuggestionResponse;
 import com.google.android.icing.proto.TypePropertyMask;
 import com.google.android.icing.proto.UsageReport;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.File;
@@ -228,19 +229,16 @@ public final class AppSearchImpl implements Closeable {
      * {@link #setSchema} and {@link #getSchema} to get the visibility schema. Make it nullable to
      * avoid call it before we actually create it.
      */
-    @Nullable
     @VisibleForTesting
     @GuardedBy("mReadWriteLock")
-    final VisibilityStore mDocumentVisibilityStoreLocked;
+    final @Nullable VisibilityStore mDocumentVisibilityStoreLocked;
 
-    @Nullable
     @VisibleForTesting
     @GuardedBy("mReadWriteLock")
-    final VisibilityStore mBlobVisibilityStoreLocked;
+    final @Nullable VisibilityStore mBlobVisibilityStoreLocked;
 
-    @Nullable
     @GuardedBy("mReadWriteLock")
-    private final VisibilityChecker mVisibilityCheckerLocked;
+    private final @Nullable VisibilityChecker mVisibilityCheckerLocked;
 
     /**
      * The counter to check when to call {@link #checkForOptimize}. The
@@ -250,8 +248,7 @@ public final class AppSearchImpl implements Closeable {
     @GuardedBy("mReadWriteLock")
     private int mOptimizeIntervalCountLocked = 0;
 
-    @Nullable
-    private final RevocableFileDescriptorStore mRevocableFileDescriptorStore;
+    private final @Nullable RevocableFileDescriptorStore mRevocableFileDescriptorStore;
 
     /** Whether this instance has been closed, and therefore unusable. */
     @GuardedBy("mReadWriteLock")
@@ -273,11 +270,10 @@ public final class AppSearchImpl implements Closeable {
      *                          access to aa specific schema. Pass null will lost that ability and
      *                          global querier could only get their own data.
      */
-    @NonNull
-    public static AppSearchImpl create(
+    public static @NonNull AppSearchImpl create(
             @NonNull File icingDir,
             @NonNull AppSearchConfig config,
-            @Nullable InitializeStats.Builder initStatsBuilder,
+            InitializeStats.@Nullable Builder initStatsBuilder,
             @Nullable VisibilityChecker visibilityChecker,
             @Nullable RevocableFileDescriptorStore revocableFileDescriptorStore,
             @NonNull OptimizeStrategy optimizeStrategy)
@@ -292,7 +288,7 @@ public final class AppSearchImpl implements Closeable {
     private AppSearchImpl(
             @NonNull File icingDir,
             @NonNull AppSearchConfig config,
-            @Nullable InitializeStats.Builder initStatsBuilder,
+            InitializeStats.@Nullable Builder initStatsBuilder,
             @Nullable VisibilityChecker visibilityChecker,
             @Nullable RevocableFileDescriptorStore revocableFileDescriptorStore,
             @NonNull OptimizeStrategy optimizeStrategy)
@@ -536,15 +532,14 @@ public final class AppSearchImpl implements Closeable {
      *                            FAILED_PRECONDITION for the incompatible change, the
      *                            exception will be converted to the SetSchemaResponse.
      */
-    @NonNull
-    public InternalSetSchemaResponse setSchema(
+    public @NonNull InternalSetSchemaResponse setSchema(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull List<AppSearchSchema> schemas,
             @NonNull List<InternalVisibilityConfig> visibilityConfigs,
             boolean forceOverride,
             int version,
-            @Nullable SetSchemaStats.Builder setSchemaStatsBuilder) throws AppSearchException {
+            SetSchemaStats.@Nullable Builder setSchemaStatsBuilder) throws AppSearchException {
         long javaLockAcquisitionLatencyStartMillis = SystemClock.elapsedRealtime();
         mReadWriteLock.writeLock().lock();
         try {
@@ -585,15 +580,14 @@ public final class AppSearchImpl implements Closeable {
      * @see #doSetSchemaNoChangeNotificationLocked
      */
     @GuardedBy("mReadWriteLock")
-    @NonNull
-    private InternalSetSchemaResponse doSetSchemaWithChangeNotificationLocked(
+    private @NonNull InternalSetSchemaResponse doSetSchemaWithChangeNotificationLocked(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull List<AppSearchSchema> schemas,
             @NonNull List<InternalVisibilityConfig> visibilityConfigs,
             boolean forceOverride,
             int version,
-            @Nullable SetSchemaStats.Builder setSchemaStatsBuilder) throws AppSearchException {
+            SetSchemaStats.@Nullable Builder setSchemaStatsBuilder) throws AppSearchException {
         // First, capture the old state of the system. This includes the old schema as well as
         // whether each registered observer can access each type. Once VisibilityStore is updated
         // by the setSchema call, the information of which observers could see which types will be
@@ -763,15 +757,14 @@ public final class AppSearchImpl implements Closeable {
      * @see #doSetSchemaWithChangeNotificationLocked
      */
     @GuardedBy("mReadWriteLock")
-    @NonNull
-    private InternalSetSchemaResponse doSetSchemaNoChangeNotificationLocked(
+    private @NonNull InternalSetSchemaResponse doSetSchemaNoChangeNotificationLocked(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull List<AppSearchSchema> schemas,
             @NonNull List<InternalVisibilityConfig> visibilityConfigs,
             boolean forceOverride,
             int version,
-            @Nullable SetSchemaStats.Builder setSchemaStatsBuilder) throws AppSearchException {
+            SetSchemaStats.@Nullable Builder setSchemaStatsBuilder) throws AppSearchException {
         long setRewriteSchemaLatencyStartTimeMillis = SystemClock.elapsedRealtime();
         SchemaProto.Builder existingSchemaBuilder = getSchemaProtoLocked().toBuilder();
 
@@ -898,8 +891,7 @@ public final class AppSearchImpl implements Closeable {
      * @param callerAccess Visibility access info of the calling app
      * @throws AppSearchException on IcingSearchEngine error.
      */
-    @NonNull
-    public GetSchemaResponse getSchema(
+    public @NonNull GetSchemaResponse getSchema(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull CallerAccess callerAccess)
@@ -1002,8 +994,7 @@ public final class AppSearchImpl implements Closeable {
      * @param databaseName The name of the database where this schema lives.
      * @throws AppSearchException on IcingSearchEngine error.
      */
-    @NonNull
-    public List<String> getNamespaces(
+    public @NonNull List<String> getNamespaces(
             @NonNull String packageName, @NonNull String databaseName) throws AppSearchException {
         mReadWriteLock.readLock().lock();
         try {
@@ -1151,9 +1142,8 @@ public final class AppSearchImpl implements Closeable {
      * @param databaseName   The databaseName this blob resides in.
      * @param handle         The {@link AppSearchBlobHandle} represent the blob.
      */
-    @NonNull
     @ExperimentalAppSearchApi
-    public ParcelFileDescriptor openWriteBlob(
+    public @NonNull ParcelFileDescriptor openWriteBlob(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull AppSearchBlobHandle handle)
@@ -1261,9 +1251,8 @@ public final class AppSearchImpl implements Closeable {
      * @param databaseName   The databaseName this blob resides in.
      * @param handle         The {@link AppSearchBlobHandle} represent the blob.
      */
-    @NonNull
     @ExperimentalAppSearchApi
-    public ParcelFileDescriptor openReadBlob(
+    public @NonNull ParcelFileDescriptor openReadBlob(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull AppSearchBlobHandle handle)
@@ -1298,9 +1287,8 @@ public final class AppSearchImpl implements Closeable {
      *
      * @param handle         The {@link AppSearchBlobHandle} represent the blob.
      */
-    @NonNull
     @ExperimentalAppSearchApi
-    public ParcelFileDescriptor globalOpenReadBlob(@NonNull AppSearchBlobHandle handle,
+    public @NonNull ParcelFileDescriptor globalOpenReadBlob(@NonNull AppSearchBlobHandle handle,
             @NonNull CallerAccess access)
             throws AppSearchException, IOException {
         if (mRevocableFileDescriptorStore == null) {
@@ -1443,8 +1431,7 @@ public final class AppSearchImpl implements Closeable {
      * @return The Document contents
      * @throws AppSearchException on IcingSearchEngine error or invalid permissions
      */
-    @NonNull
-    public GenericDocument globalGetDocument(
+    public @NonNull GenericDocument globalGetDocument(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull String namespace,
@@ -1500,8 +1487,7 @@ public final class AppSearchImpl implements Closeable {
      * @return The Document contents
      * @throws AppSearchException on IcingSearchEngine error.
      */
-    @NonNull
-    public GenericDocument getDocument(
+    public @NonNull GenericDocument getDocument(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull String namespace,
@@ -1538,11 +1524,10 @@ public final class AppSearchImpl implements Closeable {
      * @return the DocumentProto object
      * @throws AppSearchException on IcingSearchEngine error
      */
-    @NonNull
     @GuardedBy("mReadWriteLock")
     // We only log getResultProto.toString() in fullPii trace for debugging.
     @SuppressWarnings("LiteProtoToString")
-    private DocumentProto getDocumentProtoByIdLocked(
+    private @NonNull DocumentProto getDocumentProtoByIdLocked(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull String namespace,
@@ -1594,8 +1579,7 @@ public final class AppSearchImpl implements Closeable {
      * no documents matched the query.
      * @throws AppSearchException on IcingSearchEngine error.
      */
-    @NonNull
-    public SearchResultPage query(
+    public @NonNull SearchResultPage query(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull String queryExpression,
@@ -1671,8 +1655,7 @@ public final class AppSearchImpl implements Closeable {
      * no documents matched the query.
      * @throws AppSearchException on IcingSearchEngine error.
      */
-    @NonNull
-    public SearchResultPage globalQuery(
+    public @NonNull SearchResultPage globalQuery(
             @NonNull String queryExpression,
             @NonNull SearchSpec searchSpec,
             @NonNull CallerAccess callerAccess,
@@ -1769,7 +1752,7 @@ public final class AppSearchImpl implements Closeable {
     @GuardedBy("mReadWriteLock")
     private SearchResultPage doQueryLocked(
             @NonNull SearchSpecToProtoConverter searchSpecToProtoConverter,
-            @Nullable SearchStats.Builder sStatsBuilder)
+            SearchStats.@Nullable Builder sStatsBuilder)
             throws AppSearchException {
         // Rewrite the given SearchSpec into SearchSpecProto, ResultSpecProto and ScoringSpecProto.
         // All processes are counted in rewriteSearchSpecLatencyMillis
@@ -1806,7 +1789,7 @@ public final class AppSearchImpl implements Closeable {
             @NonNull SearchSpecProto searchSpec,
             @NonNull ResultSpecProto resultSpec,
             @NonNull ScoringSpecProto scoringSpec,
-            @Nullable SearchStats.Builder sStatsBuilder) throws AppSearchException {
+            SearchStats.@Nullable Builder sStatsBuilder) throws AppSearchException {
         if (LogUtil.isPiiTraceEnabled()) {
             LogUtil.piiTrace(
                     TAG,
@@ -1844,8 +1827,7 @@ public final class AppSearchImpl implements Closeable {
      *      by using that suggestion in {@link #query}.
      * @throws AppSearchException if the suggestionQueryExpression is empty.
      */
-    @NonNull
-    public List<SearchSuggestionResult> searchSuggestion(
+    public @NonNull List<SearchSuggestionResult> searchSuggestion(
             @NonNull String packageName,
             @NonNull String databaseName,
             @NonNull String suggestionQueryExpression,
@@ -1903,8 +1885,7 @@ public final class AppSearchImpl implements Closeable {
      *
      * <p>This method is inefficient to call repeatedly.
      */
-    @NonNull
-    public Map<String, Set<String>> getPackageToDatabases() {
+    public @NonNull Map<String, Set<String>> getPackageToDatabases() {
         mReadWriteLock.readLock().lock();
         try {
             Map<String, Set<String>> packageToDatabases = new ArrayMap<>();
@@ -1938,9 +1919,8 @@ public final class AppSearchImpl implements Closeable {
      * @return The next page of results of previously executed query.
      * @throws AppSearchException on IcingSearchEngine error or if can't advance on nextPageToken.
      */
-    @NonNull
-    public SearchResultPage getNextPage(@NonNull String packageName, long nextPageToken,
-            @Nullable SearchStats.Builder sStatsBuilder)
+    public @NonNull SearchResultPage getNextPage(@NonNull String packageName, long nextPageToken,
+            SearchStats.@Nullable Builder sStatsBuilder)
             throws AppSearchException {
         long totalLatencyStartMillis = SystemClock.elapsedRealtime();
 
@@ -2092,7 +2072,7 @@ public final class AppSearchImpl implements Closeable {
             @NonNull String databaseName,
             @NonNull String namespace,
             @NonNull String documentId,
-            @Nullable RemoveStats.Builder removeStatsBuilder) throws AppSearchException {
+            RemoveStats.@Nullable Builder removeStatsBuilder) throws AppSearchException {
         long totalLatencyStartTimeMillis = SystemClock.elapsedRealtime();
         mReadWriteLock.writeLock().lock();
         try {
@@ -2173,7 +2153,7 @@ public final class AppSearchImpl implements Closeable {
     public void removeByQuery(@NonNull String packageName, @NonNull String databaseName,
             @NonNull String queryExpression,
             @NonNull SearchSpec searchSpec,
-            @Nullable RemoveStats.Builder removeStatsBuilder)
+            RemoveStats.@Nullable Builder removeStatsBuilder)
             throws AppSearchException {
         if (searchSpec.getJoinSpec() != null) {
             throw new IllegalArgumentException("JoinSpec not allowed in removeByQuery, but "
@@ -2254,7 +2234,7 @@ public final class AppSearchImpl implements Closeable {
             @NonNull String packageName,
             @NonNull SearchSpecProto finalSearchSpec,
             @Nullable Set<String> prefixedObservedSchemas,
-            @Nullable RemoveStats.Builder removeStatsBuilder) throws AppSearchException {
+            RemoveStats.@Nullable Builder removeStatsBuilder) throws AppSearchException {
         LogUtil.piiTrace(TAG, "removeByQuery, request", finalSearchSpec);
         boolean returnDeletedDocumentInfo =
                 prefixedObservedSchemas != null && !prefixedObservedSchemas.isEmpty();
@@ -2318,9 +2298,8 @@ public final class AppSearchImpl implements Closeable {
     }
 
     /** Estimates the storage usage info for a specific package. */
-    @NonNull
     @ExperimentalAppSearchApi
-    public StorageInfo getStorageInfoForPackage(@NonNull String packageName)
+    public @NonNull StorageInfo getStorageInfoForPackage(@NonNull String packageName)
             throws AppSearchException {
         mReadWriteLock.readLock().lock();
         try {
@@ -2355,9 +2334,8 @@ public final class AppSearchImpl implements Closeable {
     }
 
     /** Estimates the storage usage info for a specific database in a package. */
-    @NonNull
     @ExperimentalAppSearchApi
-    public StorageInfo getStorageInfoForDatabase(@NonNull String packageName,
+    public @NonNull StorageInfo getStorageInfoForDatabase(@NonNull String packageName,
             @NonNull String databaseName)
             throws AppSearchException {
         mReadWriteLock.readLock().lock();
@@ -2410,8 +2388,7 @@ public final class AppSearchImpl implements Closeable {
      * Returns the native storage info capsuled in {@link StorageInfoResultProto} directly from
      * IcingSearchEngine.
      */
-    @NonNull
-    public StorageInfoProto getRawStorageInfoProto() throws AppSearchException {
+    public @NonNull StorageInfoProto getRawStorageInfoProto() throws AppSearchException {
         mReadWriteLock.readLock().lock();
         try {
             throwIfClosedLocked();
@@ -2443,7 +2420,7 @@ public final class AppSearchImpl implements Closeable {
     private static void getDocumentStorageInfoForNamespaces(
             @NonNull StorageInfoProto storageInfoProto,
             @NonNull Set<String> prefixedNamespaces,
-            @NonNull StorageInfo.Builder storageInfoBuilder) {
+            StorageInfo.@NonNull Builder storageInfoBuilder) {
         if (!storageInfoProto.hasDocumentStorageInfo()) {
             return;
         }
@@ -2505,7 +2482,7 @@ public final class AppSearchImpl implements Closeable {
     private static void getBlobStorageInfoForPrefix(
             @NonNull StorageInfoProto storageInfoProto,
             @NonNull String prefix,
-            @NonNull StorageInfo.Builder storageInfoBuilder) {
+            StorageInfo.@NonNull Builder storageInfoBuilder) {
         if (storageInfoProto.getNamespaceBlobStorageInfoCount() == 0) {
             return;
         }
@@ -2520,8 +2497,8 @@ public final class AppSearchImpl implements Closeable {
                 blobCount += blobStorageInfoProto.getNumBlobs();
             }
         }
-        storageInfoBuilder.setBlobCount(blobCount)
-                .setBlobSizeBytes(blobSizeBytes);
+        storageInfoBuilder.setBlobsCount(blobCount)
+                .setBlobsSizeBytes(blobSizeBytes);
     }
 
     /**
@@ -2533,8 +2510,7 @@ public final class AppSearchImpl implements Closeable {
      *                  {@link DebugInfoVerbosity.Code#DETAILED} will return more detailed
      *                  debug information as indicated in the comments in debug.proto
      */
-    @NonNull
-    public DebugInfoProto getRawDebugInfoProto(@NonNull DebugInfoVerbosity.Code verbosity)
+    public @NonNull DebugInfoProto getRawDebugInfoProto(DebugInfoVerbosity.@NonNull Code verbosity)
             throws AppSearchException {
         mReadWriteLock.readLock().lock();
         try {
@@ -2572,7 +2548,7 @@ public final class AppSearchImpl implements Closeable {
      *                    prevent data loss without needing data recovery.
      * @throws AppSearchException on any error that AppSearch persist data to disk.
      */
-    public void persistToDisk(@NonNull PersistType.Code persistType) throws AppSearchException {
+    public void persistToDisk(PersistType.@NonNull Code persistType) throws AppSearchException {
         mReadWriteLock.writeLock().lock();
         try {
             throwIfClosedLocked();
@@ -2703,7 +2679,7 @@ public final class AppSearchImpl implements Closeable {
      * @throws AppSearchException on IcingSearchEngine error.
      */
     @GuardedBy("mReadWriteLock")
-    private void resetLocked(@Nullable InitializeStats.Builder initStatsBuilder)
+    private void resetLocked(InitializeStats.@Nullable Builder initStatsBuilder)
             throws AppSearchException {
         LogUtil.piiTrace(TAG, "icingSearchEngine.reset, request");
         ResetResultProto resetResultProto = mIcingSearchEngineLocked.reset();
@@ -2759,7 +2735,7 @@ public final class AppSearchImpl implements Closeable {
      */
     @VisibleForTesting
     static RewrittenSchemaResults rewriteSchema(@NonNull String prefix,
-            @NonNull SchemaProto.Builder existingSchema,
+            SchemaProto.@NonNull Builder existingSchema,
             @NonNull SchemaProto newSchema) throws AppSearchException {
         HashMap<String, SchemaTypeConfigProto> newTypesToProto = new HashMap<>();
         // Rewrite the schema type to include the typePrefix.
@@ -3026,7 +3002,7 @@ public final class AppSearchImpl implements Closeable {
      *                     {@link IcingSearchEngine#getOptimizeInfo()} will be triggered and the
      *                     counter will be reset.
      */
-    public void checkForOptimize(int mutationSize, @Nullable OptimizeStats.Builder builder)
+    public void checkForOptimize(int mutationSize, OptimizeStats.@Nullable Builder builder)
             throws AppSearchException {
         mReadWriteLock.writeLock().lock();
         try {
@@ -3048,7 +3024,7 @@ public final class AppSearchImpl implements Closeable {
      * <p>{@link IcingSearchEngine#optimize()} should be called only if
      * {@link OptimizeStrategy#shouldOptimize(GetOptimizeInfoResultProto)} return true.
      */
-    public void checkForOptimize(@Nullable OptimizeStats.Builder builder)
+    public void checkForOptimize(OptimizeStats.@Nullable Builder builder)
             throws AppSearchException {
         mReadWriteLock.writeLock().lock();
         try {
@@ -3067,7 +3043,7 @@ public final class AppSearchImpl implements Closeable {
     }
 
     /** Triggers {@link IcingSearchEngine#optimize()} directly. */
-    public void optimize(@Nullable OptimizeStats.Builder builder) throws AppSearchException {
+    public void optimize(OptimizeStats.@Nullable Builder builder) throws AppSearchException {
         mReadWriteLock.writeLock().lock();
         try {
             LogUtil.piiTrace(TAG, "optimize, request");
@@ -3134,8 +3110,7 @@ public final class AppSearchImpl implements Closeable {
      *
      * <p>This method is inefficient to call repeatedly.
      */
-    @NonNull
-    public List<String> getAllPrefixedSchemaTypes() {
+    public @NonNull List<String> getAllPrefixedSchemaTypes() {
         mReadWriteLock.readLock().lock();
         try {
             return mSchemaCacheLocked.getAllPrefixedSchemaTypes();
@@ -3149,8 +3124,7 @@ public final class AppSearchImpl implements Closeable {
      *
      * <p>This method is inefficient to call repeatedly.
      */
-    @NonNull
-    public List<String> getAllPrefixedBlobNamespaces() {
+    public @NonNull List<String> getAllPrefixedBlobNamespaces() {
         mReadWriteLock.readLock().lock();
         try {
             return mNamespaceCacheLocked.getAllPrefixedBlobNamespaces();

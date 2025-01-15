@@ -73,13 +73,17 @@ class WindowSizeClass(
     }
 
     @Suppress("DEPRECATION")
-    @Deprecated("Use either isWidthAtLeast or isAtLeast to check matching bounds.")
+    @Deprecated(
+        "Use either isWidthAtLeastBreakpoint or isAtLeastBreakpoint to check matching bounds."
+    )
     /** Returns the [WindowWidthSizeClass] that corresponds to the widthDp of the window. */
     val windowWidthSizeClass: WindowWidthSizeClass
         get() = WindowWidthSizeClass.compute(minWidthDp.toFloat())
 
     @Suppress("DEPRECATION")
-    @Deprecated("Use either isHeightAtLeast or isAtLeast to check matching bounds.")
+    @Deprecated(
+        "Use either isHeightAtLeastBreakpoint or isAtLeastBreakpoint to check matching bounds."
+    )
     /** Returns the [WindowHeightSizeClass] that corresponds to the heightDp of the window. */
     val windowHeightSizeClass: WindowHeightSizeClass
         get() = WindowHeightSizeClass.compute(minHeightDp.toFloat())

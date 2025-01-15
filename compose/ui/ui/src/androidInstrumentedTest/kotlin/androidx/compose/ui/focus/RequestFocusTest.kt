@@ -690,4 +690,54 @@ class RequestFocusTest {
         }
         rule.runOnIdle { assertThat(focusDirection).isEqualTo(FocusDirection.Exit) }
     }
+
+    @Test
+    fun requestFocus_eventSequence() {
+        // Arrange.
+        val initialFocus = FocusRequester()
+        val focusRequester = FocusRequester()
+        val eventSequence = mutableListOf<String>()
+        rule.setFocusableContent {
+            Box(Modifier.onFocusChanged { eventSequence.add("1 $it") }.focusTarget()) {
+                Box(Modifier.onFocusChanged { eventSequence.add("2 $it") }.focusTarget()) {
+                    Box(
+                        Modifier.focusRequester(initialFocus)
+                            .onFocusChanged { eventSequence.add("3 $it") }
+                            .focusTarget()
+                    )
+                }
+                Box(Modifier.onFocusChanged { eventSequence.add("4 $it") }.focusTarget()) {
+                    Box(
+                        Modifier.focusRequester(focusRequester)
+                            .onFocusChanged { eventSequence.add("5 $it") }
+                            .focusTarget()
+                    )
+                }
+            }
+        }
+        rule.runOnIdle { eventSequence.clear() }
+
+        // Act.
+        rule.runOnIdle { initialFocus.requestFocus() }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(eventSequence)
+                .containsExactly("1 ActiveParent", "2 ActiveParent", "3 Active")
+                .inOrder()
+        }
+
+        // Act.
+        rule.runOnIdle {
+            eventSequence.clear()
+            focusRequester.requestFocus()
+        }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(eventSequence)
+                .containsExactly("3 Inactive", "2 Inactive", "4 ActiveParent", "5 Active")
+                .inOrder()
+        }
+    }
 }

@@ -22,6 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.AndroidXConfig
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.ProjectLayoutType
 import androidx.build.LibraryType
@@ -113,6 +114,7 @@ androidXMultiplatform {
             KonanTarget.MACOS_X64,
             KonanTarget.MINGW_X64,
             KonanTarget.LINUX_X64,
+            KonanTarget.LINUX_ARM64,
     ].collect { it.INSTANCE } // Use INSTANCE to get object class instance from kotlin
 
     // Define C compilation of SQLite (sqlite3.c)
@@ -240,7 +242,7 @@ androidXMultiplatform {
 }
 
 android {
-    namespace "androidx.sqlite.driver.bundled"
+    namespace = "androidx.sqlite.driver.bundled"
 }
 
 androidx {
@@ -248,6 +250,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "The implementation of SQLite library using the bundled SQLite."
-    metalavaK2UastEnabled = false
-    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

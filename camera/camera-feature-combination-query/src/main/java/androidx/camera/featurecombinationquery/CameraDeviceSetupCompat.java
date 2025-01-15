@@ -21,8 +21,9 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.params.SessionConfiguration;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -52,9 +53,8 @@ public interface CameraDeviceSetupCompat {
      *                               encountered a fatal error.
      * @see CameraDevice.CameraDeviceSetup#isSessionConfigurationSupported
      */
-    @NonNull
-    SupportQueryResult isSessionConfigurationSupported(@NonNull SessionConfiguration sessionConfig)
-            throws CameraAccessException;
+    @NonNull SupportQueryResult isSessionConfigurationSupported(
+            @NonNull SessionConfiguration sessionConfig) throws CameraAccessException;
 
     /**
      * Result of a {@link CameraDeviceSetupCompat#isSessionConfigurationSupported} query.

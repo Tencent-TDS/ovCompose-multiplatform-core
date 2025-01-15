@@ -16,12 +16,13 @@
 
 package androidx.camera.testing.impl;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.impl.CameraRepository;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
 import java.util.List;

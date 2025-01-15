@@ -40,7 +40,7 @@ import androidx.benchmark.json.BenchmarkData
 import androidx.benchmark.macro.MacrobenchmarkScope.KillFlushMode
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig.InitialProcessState
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assume.assumeFalse
 
@@ -263,7 +263,7 @@ private fun macrobenchmark(
     val macrobenchPackageName = InstrumentationRegistry.getInstrumentation().context.packageName
     val iterationResults = mutableListOf<IterationResult>()
 
-    PerfettoTraceProcessor.runServer {
+    TraceProcessor.runServer {
         scope.withKillFlushMode(
             current = KillFlushMode.None,
             override =

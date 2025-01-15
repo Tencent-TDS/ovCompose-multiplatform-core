@@ -24,11 +24,12 @@ import static java.util.Collections.unmodifiableList;
 import android.media.CamcorderProfile;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -109,16 +110,14 @@ public class Quality {
      * <p>{@link #HIGHEST} and {@link #LOWEST} are not included.
      */
     @RestrictTo(Scope.LIBRARY)
-    @NonNull
-    public static List<Quality> getSortedQualities() {
+    public static @NonNull List<Quality> getSortedQualities() {
         return new ArrayList<>(QUALITIES_ORDER_BY_SIZE);
     }
 
     @RestrictTo(Scope.LIBRARY)
     @AutoValue
     public abstract static class ConstantQuality extends Quality {
-        @NonNull
-        static ConstantQuality of(int value, @NonNull String name,
+        static @NonNull ConstantQuality of(int value, @NonNull String name,
                 @NonNull List<Size> typicalSizes) {
             return new AutoValue_Quality_ConstantQuality(value, name, typicalSizes);
         }
@@ -127,12 +126,10 @@ public class Quality {
         public abstract int getValue();
 
         /** Gets the quality name. */
-        @NonNull
-        public abstract String getName();
+        public abstract @NonNull String getName();
 
         /** Gets the typical sizes of the quality. */
         @SuppressWarnings("AutoValueImmutableFields")
-        @NonNull
-        public abstract List<Size> getTypicalSizes();
+        public abstract @NonNull List<Size> getTypicalSizes();
     }
 }

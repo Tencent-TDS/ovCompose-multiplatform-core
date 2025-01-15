@@ -21,7 +21,6 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
 import androidx.build.LibraryType
 
 plugins {
@@ -58,12 +57,12 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.tiles.testing"
+    namespace = "androidx.wear.tiles.testing"
 }
 
 androidx {

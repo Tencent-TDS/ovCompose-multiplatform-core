@@ -29,13 +29,13 @@ import androidx.room.processor.ProcessorErrors.INDEX_COLUMNS_CANNOT_BE_EMPTY
 import androidx.room.processor.ProcessorErrors.INVALID_INDEX_ORDERS_SIZE
 import androidx.room.processor.ProcessorErrors.RELATION_IN_ENTITY
 import androidx.room.processor.cache.Cache
+import androidx.room.vo.DataClass
 import androidx.room.vo.EmbeddedField
 import androidx.room.vo.Entity
 import androidx.room.vo.Field
 import androidx.room.vo.Fields
 import androidx.room.vo.ForeignKey
 import androidx.room.vo.Index
-import androidx.room.vo.Pojo
 import androidx.room.vo.PrimaryKey
 import androidx.room.vo.Warning
 import androidx.room.vo.columnNames
@@ -87,7 +87,7 @@ internal constructor(
         )
 
         val pojo =
-            PojoProcessor.createFor(
+            DataClassProcessor.createFor(
                     context = context,
                     element = element,
                     bindingScope = FieldProcessor.BindingScope.TWO_WAY,
@@ -214,7 +214,7 @@ internal constructor(
     /** Does a validation on foreign keys except the parent table's columns. */
     private fun validateAndCreateForeignKeyReferences(
         foreignKeyInputs: List<ForeignKeyInput>,
-        pojo: Pojo
+        dataClass: DataClass
     ): List<ForeignKey> {
         return foreignKeyInputs
             .map {
@@ -260,13 +260,13 @@ internal constructor(
                 val tableName = extractTableName(parentElement, parentAnnotation.value)
                 val fields =
                     it.childColumns.mapNotNull { columnName ->
-                        val field = pojo.findFieldByColumnName(columnName)
+                        val field = dataClass.findFieldByColumnName(columnName)
                         if (field == null) {
                             context.logger.e(
-                                pojo.element,
+                                dataClass.element,
                                 ProcessorErrors.foreignKeyChildColumnDoesNotExist(
                                     columnName,
-                                    pojo.columnNames
+                                    dataClass.columnNames
                                 )
                             )
                         }
@@ -432,13 +432,13 @@ internal constructor(
         return embeddedFields.mapNotNull { embeddedField ->
             embeddedField.field.element.getAnnotation(androidx.room.PrimaryKey::class)?.let {
                 context.checker.check(
-                    !it.value.autoGenerate || embeddedField.pojo.fields.size == 1,
+                    !it.value.autoGenerate || embeddedField.dataClass.fields.size == 1,
                     embeddedField.field.element,
                     ProcessorErrors.AUTO_INCREMENT_EMBEDDED_HAS_MULTIPLE_FIELDS
                 )
                 PrimaryKey(
                     declaredIn = embeddedField.field.element.enclosingElement,
-                    fields = embeddedField.pojo.fields,
+                    fields = embeddedField.dataClass.fields,
                     autoGenerateId = it.value.autoGenerate
                 )
             }
@@ -484,7 +484,10 @@ internal constructor(
         }
     }
 
-    private fun validateAndCreateIndices(inputs: List<IndexInput>, pojo: Pojo): List<Index> {
+    private fun validateAndCreateIndices(
+        inputs: List<IndexInput>,
+        dataClass: DataClass
+    ): List<Index> {
         // check for columns
         val indices =
             inputs.mapNotNull { input ->
@@ -495,11 +498,14 @@ internal constructor(
                 )
                 val fields =
                     input.columnNames.mapNotNull { columnName ->
-                        val field = pojo.findFieldByColumnName(columnName)
+                        val field = dataClass.findFieldByColumnName(columnName)
                         context.checker.check(
                             field != null,
                             element,
-                            ProcessorErrors.indexColumnDoesNotExist(columnName, pojo.columnNames)
+                            ProcessorErrors.indexColumnDoesNotExist(
+                                columnName,
+                                dataClass.columnNames
+                            )
                         )
                         field
                     }
@@ -529,8 +535,8 @@ internal constructor(
             .forEach { context.logger.e(element, ProcessorErrors.duplicateIndexInEntity(it.key)) }
 
         // see if any embedded field is an entity with indices, if so, report a warning
-        pojo.embeddedFields.forEach { embedded ->
-            val embeddedElement = embedded.pojo.element
+        dataClass.embeddedFields.forEach { embedded ->
+            val embeddedElement = embedded.dataClass.element
             embeddedElement.getAnnotation(androidx.room.Entity::class)?.let {
                 val subIndices = extractIndices(it, "")
                 if (subIndices.isNotEmpty()) {
@@ -538,7 +544,7 @@ internal constructor(
                         Warning.INDEX_FROM_EMBEDDED_ENTITY_IS_DROPPED,
                         embedded.field.element,
                         ProcessorErrors.droppedEmbeddedIndex(
-                            entityName = embedded.pojo.typeName.toString(context.codeLanguage),
+                            entityName = embedded.dataClass.typeName.toString(context.codeLanguage),
                             fieldPath = embedded.field.getPath(),
                             grandParent = element.qualifiedName
                         )

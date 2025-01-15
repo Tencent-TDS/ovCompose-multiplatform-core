@@ -243,7 +243,7 @@ public abstract class TileService extends Service {
      * <p>Note that this is called from your app's main thread, which is usually also the UI thread.
      *
      * @param requestParams Parameters about the request. See {@link TileEnterEvent} for more info.
-     * @deprecated use {@link #processRecentInteractionEvents(List)}.
+     * @deprecated use {@link #onRecentInteractionEvents(List)}.
      */
     @MainThread
     @Deprecated
@@ -255,7 +255,7 @@ public abstract class TileService extends Service {
      * <p>Note that this is called from your app's main thread, which is usually also the UI thread.
      *
      * @param requestParams Parameters about the request. See {@link TileLeaveEvent} for more info.
-     * @deprecated use {@link #processRecentInteractionEvents(List)}.
+     * @deprecated use {@link #onRecentInteractionEvents(List)}.
      */
     @MainThread
     @Deprecated
@@ -271,7 +271,7 @@ public abstract class TileService extends Service {
      * @param events A list of {@link TileInteractionEvent} representing interactions that occurred.
      */
     @MainThread
-    protected void processRecentInteractionEvents(@NonNull List<TileInteractionEvent> events) {}
+    protected void onRecentInteractionEvents(@NonNull List<TileInteractionEvent> events) {}
 
     /**
      * Gets an instance of {@link TileUpdateRequester} to allow a Tile Provider to notify the tile's
@@ -615,7 +615,7 @@ public abstract class TileService extends Service {
                                 tileService.markTileAsActiveLegacy(evt.getTileId());
 
                                 tileService.onTileEnterEvent(evt);
-                                tileService.processRecentInteractionEvents(
+                                tileService.onRecentInteractionEvents(
                                         List.of(
                                                 new TileInteractionEvent.Builder(
                                                                 evt.getTileId(),
@@ -651,7 +651,7 @@ public abstract class TileService extends Service {
                                 tileService.markTileAsActiveLegacy(evt.getTileId());
 
                                 tileService.onTileLeaveEvent(evt);
-                                tileService.processRecentInteractionEvents(
+                                tileService.onRecentInteractionEvents(
                                         List.of(
                                                 new TileInteractionEvent.Builder(
                                                                 evt.getTileId(),
@@ -688,7 +688,7 @@ public abstract class TileService extends Service {
                                         .filter(Optional::isPresent)
                                         .map(Optional::get)
                                         .collect(Collectors.toList());
-                        tileService.processRecentInteractionEvents(events);
+                        tileService.onRecentInteractionEvents(events);
                     });
         }
 

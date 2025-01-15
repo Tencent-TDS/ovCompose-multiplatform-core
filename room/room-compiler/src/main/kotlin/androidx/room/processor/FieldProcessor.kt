@@ -96,7 +96,7 @@ class FieldProcessor(
         when (bindingScope) {
             BindingScope.TWO_WAY -> {
                 field.statementBinder = adapter
-                field.cursorValueReader = adapter
+                field.statementValueReader = adapter
                 field.affinity = adapterAffinity
                 if (adapter == null) {
                     onBindingError(field, ProcessorErrors.CANNOT_FIND_COLUMN_TYPE_ADAPTER)
@@ -109,10 +109,10 @@ class FieldProcessor(
                     onBindingError(field, ProcessorErrors.CANNOT_FIND_STMT_BINDER)
                 }
             }
-            BindingScope.READ_FROM_CURSOR -> {
-                field.cursorValueReader =
-                    context.typeAdapterStore.findCursorValueReader(field.type, field.affinity)
-                if (field.cursorValueReader == null) {
+            BindingScope.READ_FROM_STMT -> {
+                field.statementValueReader =
+                    context.typeAdapterStore.findStatementValueReader(field.type, field.affinity)
+                if (field.statementValueReader == null) {
                     onBindingError(field, ProcessorErrors.CANNOT_FIND_STMT_READER)
                 }
             }
@@ -156,7 +156,7 @@ class FieldProcessor(
     enum class BindingScope {
         TWO_WAY, // both bind and read.
         BIND_TO_STMT, // just value to statement
-        READ_FROM_CURSOR // just cursor to value
+        READ_FROM_STMT // just statement to value
     }
 }
 

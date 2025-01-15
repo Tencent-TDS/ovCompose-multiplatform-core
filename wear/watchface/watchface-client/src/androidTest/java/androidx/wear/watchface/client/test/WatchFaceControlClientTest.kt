@@ -1483,7 +1483,7 @@ class WatchFaceControlClientTest : WatchFaceControlClientTestBase() {
 class WatchFaceControlClientScreenshotTest : WatchFaceControlClientTestBase() {
     @get:Rule
     val screenshotRule: AndroidXScreenshotTestRule =
-        AndroidXScreenshotTestRule("wear/wear-watchface-client")
+        AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
     private val exampleOpenGLWatchFaceComponentName =
         componentOf<ExampleOpenGLBackgroundInitWatchFaceService>()

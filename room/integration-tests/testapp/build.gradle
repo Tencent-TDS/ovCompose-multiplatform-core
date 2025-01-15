@@ -63,9 +63,9 @@ android {
         // For testing Java records
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
     }
-    namespace "androidx.room.integration.testapp"
+    namespace = "androidx.room.integration.testapp"
 }
 
 dependencies {
@@ -86,7 +86,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
 
     // Annotation processor / compiler dependencies:
-    withoutExpandProjectionAnnotationProcessor(project(path: ":room:room-compiler"))
+    withoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
     withNullAwareTypeConverterAnnotationProcessor(project(":room:room-compiler"))
     withPreKmpCompilerAnnotationProcessor("androidx.room:room-compiler:2.6.1")
     androidTestWithoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
@@ -134,4 +134,9 @@ room {
 // See b/198431380
 tasks.withType(JavaCompile) {
     options.compilerArgs << "-parameters"
+}
+
+androidx {
+    // TODO: b/326456246
+    optOutJSpecify = true
 }

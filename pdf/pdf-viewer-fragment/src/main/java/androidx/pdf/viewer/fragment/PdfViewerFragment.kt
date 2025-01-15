@@ -331,6 +331,7 @@ public open class PdfViewerFragment : Fragment() {
         arguments?.let { args ->
             documentUri = BundleCompat.getParcelable(args, KEY_DOCUMENT_URI, Uri::class.java)
             isTextSearchActive = args.getBoolean(KEY_TEXT_SEARCH_ACTIVE)
+            isToolboxVisible = args.getBoolean(KEY_TOOLBOX_VISIBILITY)
         }
 
         pdfLoaderCallbacks =
@@ -994,10 +995,15 @@ public open class PdfViewerFragment : Fragment() {
     }
 
     private fun performEdit() {
+        setAnnotationIntentResolvability()
+        // TODO: Fix the behavior of immersiveMode to be independent of isAnnotationIntentResolvable
+        if (!isAnnotationIntentResolvable) {
+            annotationButton?.hide()
+            return
+        }
         val intent = AnnotationUtils.getAnnotationIntent(localUri!!)
         intent.setData(localUri)
         intent.putExtra(EXTRA_PDF_FILE_NAME, getFileName(localUri!!))
-        // TODO: Pass current page number to restore it in edit mode.
         intent.putExtra(EXTRA_STARTING_PAGE, getStartingPageNumber())
         startActivity(intent)
     }

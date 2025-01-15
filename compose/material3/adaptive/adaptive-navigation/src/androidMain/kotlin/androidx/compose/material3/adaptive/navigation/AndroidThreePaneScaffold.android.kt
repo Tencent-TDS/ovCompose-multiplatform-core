@@ -16,7 +16,6 @@
 
 package androidx.compose.material3.adaptive.navigation
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
@@ -26,10 +25,7 @@ import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 
 /**
  * A version of [ListDetailPaneScaffold] that supports navigation and predictive back handling out
@@ -67,16 +63,13 @@ fun <T> NavigableListDetailPaneScaffold(
         null,
     paneExpansionState: PaneExpansionState? = null,
 ) {
-    val predictiveBackScale = remember { Animatable(initialValue = 1f) }
-
     ThreePaneScaffoldPredictiveBackHandler(
         navigator = navigator,
         backBehavior = defaultBackBehavior,
-        scale = predictiveBackScale,
     )
 
     ListDetailPaneScaffold(
-        modifier = modifier.predictiveBackTransform(predictiveBackScale::value),
+        modifier = modifier,
         directive = navigator.scaffoldDirective,
         scaffoldState = navigator.scaffoldState,
         detailPane = detailPane,
@@ -122,16 +115,13 @@ fun <T> NavigableSupportingPaneScaffold(
         null,
     paneExpansionState: PaneExpansionState? = null,
 ) {
-    val predictiveBackScale = remember { Animatable(initialValue = 1f) }
-
     ThreePaneScaffoldPredictiveBackHandler(
         navigator = navigator,
         backBehavior = defaultBackBehavior,
-        scale = predictiveBackScale,
     )
 
     SupportingPaneScaffold(
-        modifier = modifier.predictiveBackTransform(predictiveBackScale::value),
+        modifier = modifier,
         directive = navigator.scaffoldDirective,
         scaffoldState = navigator.scaffoldState,
         mainPane = mainPane,
@@ -141,12 +131,3 @@ fun <T> NavigableSupportingPaneScaffold(
         paneExpansionState = paneExpansionState,
     )
 }
-
-private fun Modifier.predictiveBackTransform(scale: () -> Float): Modifier = graphicsLayer {
-    val scaleValue = scale()
-    scaleX = scaleValue
-    scaleY = scaleValue
-    transformOrigin = TransformOriginTopCenter
-}
-
-private val TransformOriginTopCenter = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0f)

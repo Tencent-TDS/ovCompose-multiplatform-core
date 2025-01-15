@@ -16,8 +16,9 @@
 // @exportToFramework:copyToPath(../../../cts/tests/appsearch/testutils/src/android/app/appsearch/testutil/external/AppSearchConfigImpl.java)
 package androidx.appsearch.localstorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An implementation of AppSearchConfig that returns configurations based what is specified in

@@ -20,10 +20,10 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
-import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
 import androidx.privacysandbox.ui.core.SessionObserverFactory
+import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 
 class PlayerViewabilityHandler {
 
@@ -75,7 +75,7 @@ class PlayerViewabilityHandler {
         private val TAG = PlayerViewabilityHandler::class.simpleName
 
         fun addObserverFactoryToAdapter(
-            adapter: SandboxedUiAdapter,
+            adapter: AbstractSandboxedUiAdapter,
             playerViewProvider: PlayerViewProvider
         ) {
             return adapter.addObserverFactory(SessionObserverFactoryImpl(playerViewProvider))

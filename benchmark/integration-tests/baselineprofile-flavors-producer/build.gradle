@@ -32,8 +32,7 @@ plugins {
 
 android {
     defaultConfig {
-        minSdkVersion 23
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        minSdk = 23
     }
     testOptions.managedDevices.allDevices {
         pixel6Api31(ManagedVirtualDevice) {
@@ -51,7 +50,7 @@ android {
         // not in this producer to test baseline profile matching fallback.
     }
     targetProjectPath = ":benchmark:integration-tests:baselineprofile-flavors-consumer"
-    namespace "androidx.benchmark.integration.baselineprofile.flavors.producer"
+    namespace = "androidx.benchmark.integration.baselineprofile.flavors.producer"
 }
 
 dependencies {

@@ -18,20 +18,26 @@ package androidx.wear.protolayout.material3
 
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.wear.protolayout.ActionBuilders
-import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.DeviceParametersBuilders
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.LayoutElementBuilders
 import androidx.wear.protolayout.LayoutElementBuilders.Box
-import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ModifiersBuilders.Background
 import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.Modifiers
-import androidx.wear.protolayout.material3.EdgeButtonDefaults.filled
-import androidx.wear.protolayout.material3.EdgeButtonDefaults.filledTonal
-import androidx.wear.protolayout.material3.EdgeButtonDefaults.filledVariant
+import androidx.wear.protolayout.material3.AppCardStyle.Companion.largeAppCardStyle
+import androidx.wear.protolayout.material3.ButtonDefaults.filledButtonColors
+import androidx.wear.protolayout.material3.ButtonDefaults.filledTonalButtonColors
+import androidx.wear.protolayout.material3.ButtonDefaults.filledVariantButtonColors
+import androidx.wear.protolayout.material3.CardDefaults.filledVariantCardColors
+import androidx.wear.protolayout.material3.DataCardStyle.Companion.smallCompactDataCardStyle
 import androidx.wear.protolayout.material3.MaterialGoldenTest.Companion.pxToDp
+import androidx.wear.protolayout.material3.TitleContentPlacementInDataCard.Companion.Bottom
+import androidx.wear.protolayout.modifiers.LayoutModifier
+import androidx.wear.protolayout.modifiers.clickable
+import androidx.wear.protolayout.modifiers.contentDescription
+import androidx.wear.protolayout.types.LayoutColor
+import androidx.wear.protolayout.types.layoutString
 import com.google.common.collect.ImmutableMap
 
 private const val CONTENT_DESCRIPTION_PLACEHOLDER = "Description"
@@ -62,11 +68,7 @@ object TestCasesGenerator {
                 .setFontScale(1f)
                 .setScreenShape(DeviceParametersBuilders.SCREEN_SHAPE_RECT)
                 .build()
-        val clickable: ModifiersBuilders.Clickable =
-            ModifiersBuilders.Clickable.Builder()
-                .setOnClick(ActionBuilders.LaunchAction.Builder().build())
-                .setId("action_id")
-                .build()
+        val clickable = clickable(id = "action_id")
         val testCases: HashMap<String, LayoutElementBuilders.LayoutElement> = HashMap()
 
         testCases["primarylayout_edgebuttonfilled_buttongroup_iconoverride_golden$goldenSuffix"] =
@@ -78,20 +80,65 @@ object TestCasesGenerator {
                 primaryLayoutWithOverrideIcon(
                     mainSlot = {
                         text(
-                            text = "Text in the main slot that overflows".prop(),
+                            text = "Text in the main slot that overflows".layoutString,
                             color = colorScheme.secondary
                         )
                     },
                     bottomSlot = {
                         textEdgeButton(
                             onClick = clickable,
-                            labelContent = { text("Action".prop()) },
-                            contentDescription = CONTENT_DESCRIPTION_PLACEHOLDER.prop(),
-                            colors = filled()
+                            labelContent = { text("Action".layoutString) },
+                            modifier =
+                                LayoutModifier.contentDescription(CONTENT_DESCRIPTION_PLACEHOLDER),
+                            colors = filledButtonColors()
                         )
                     },
-                    titleSlot = { text("Title".prop()) },
+                    titleSlot = { text("Title".layoutString) },
                     overrideIcon = true
+                )
+            }
+        testCases["primarylayout_graphcard_golden$goldenSuffix"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                deviceParameters,
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = {
+                        graphicDataCard(
+                            onClick = clickable,
+                            modifier = LayoutModifier.contentDescription("Graphic Data Card"),
+                            height = expand(),
+                            horizontalAlignment = LayoutElementBuilders.HORIZONTAL_ALIGN_START,
+                            title = {
+                                text(
+                                    "1234".layoutString,
+                                )
+                            },
+                            content = {
+                                text(
+                                    "steps".layoutString,
+                                )
+                            },
+                            // TODO: b/368272767 - Update this to CPI
+                            graphic = {
+                                Box.Builder()
+                                    .setWidth(expand())
+                                    .setHeight(expand())
+                                    .setModifiers(
+                                        Modifiers.Builder()
+                                            .setBackground(
+                                                Background.Builder()
+                                                    .setCorner(shapes.full)
+                                                    .setColor(colorScheme.background.prop)
+                                                    .build()
+                                            )
+                                            .build()
+                                    )
+                                    .build()
+                            }
+                        )
+                    },
                 )
             }
         testCases["primarylayout_edgebuttonfilledvariant_iconoverride_golden$NORMAL_SCALE_SUFFIX"] =
@@ -104,15 +151,38 @@ object TestCasesGenerator {
                     mainSlot = {
                         buttonGroup {
                             buttonGroupItem {
-                                coloredBox(color = colorScheme.secondary, shape = shapes.full)
+                                iconDataCard(
+                                    onClick = clickable,
+                                    modifier = LayoutModifier.contentDescription("Data Card"),
+                                    title = { text("MM".layoutString) },
+                                    content = { text("Min".layoutString) },
+                                    secondaryIcon = { icon(ICON_ID) },
+                                    shape = shapes.full
+                                )
                             }
                             buttonGroupItem {
-                                coloredBox(color = colorScheme.secondaryDim, shape = shapes.small)
+                                iconDataCard(
+                                    onClick = clickable,
+                                    modifier = LayoutModifier.contentDescription("Data Card"),
+                                    title = { text("MM".layoutString) },
+                                    content = { text("Min".layoutString) },
+                                    secondaryIcon = { icon(ICON_ID) },
+                                    titleContentPlacement = Bottom
+                                )
                             }
                             buttonGroupItem {
-                                coloredBox(
-                                    color = colorScheme.secondaryContainer,
-                                    shape = shapes.large
+                                textDataCard(
+                                    onClick = clickable,
+                                    modifier = LayoutModifier.contentDescription("Data Card"),
+                                    title = { text("MM".layoutString) },
+                                    content = { text("Min".layoutString) },
+                                    secondaryText = { text("Label".layoutString) },
+                                    colors =
+                                        CardColors(
+                                            background = colorScheme.onSecondary,
+                                            title = colorScheme.secondary,
+                                            content = colorScheme.secondaryDim
+                                        )
                                 )
                             }
                         }
@@ -120,9 +190,10 @@ object TestCasesGenerator {
                     bottomSlot = {
                         textEdgeButton(
                             onClick = clickable,
-                            labelContent = { text("Action that overflows".prop()) },
-                            contentDescription = CONTENT_DESCRIPTION_PLACEHOLDER.prop(),
-                            colors = filledVariant()
+                            labelContent = { text("Action that overflows".layoutString) },
+                            modifier =
+                                LayoutModifier.contentDescription(CONTENT_DESCRIPTION_PLACEHOLDER),
+                            colors = filledVariantButtonColors()
                         )
                     },
                     overrideIcon = true
@@ -138,13 +209,15 @@ object TestCasesGenerator {
                     mainSlot = {
                         card(
                             onClick = clickable,
-                            contentDescription = "Card".prop(),
+                            modifier = LayoutModifier.contentDescription("Card"),
                             width = expand(),
                             height = expand(),
-                            background = { backgroundImage(protoLayoutResourceId = IMAGE_ID) }
+                            backgroundContent = {
+                                backgroundImage(protoLayoutResourceId = IMAGE_ID)
+                            }
                         ) {
                             text(
-                                "Card with image background".prop(),
+                                "Card with image background".layoutString,
                                 color = colorScheme.onBackground
                             )
                         }
@@ -153,14 +226,17 @@ object TestCasesGenerator {
                         iconEdgeButton(
                             onClick = clickable,
                             iconContent = { icon(ICON_ID) },
-                            contentDescription = CONTENT_DESCRIPTION_PLACEHOLDER.prop(),
-                            colors = filledTonal()
+                            modifier =
+                                LayoutModifier.contentDescription(CONTENT_DESCRIPTION_PLACEHOLDER),
+                            colors = filledTonalButtonColors()
                         )
                     },
-                    titleSlot = { text("Title that overflows".prop(), color = colorScheme.error) }
+                    titleSlot = {
+                        text("Title that overflows".layoutString, color = colorScheme.error)
+                    }
                 )
             }
-        testCases["primarylayout_bottomslot_golden$goldenSuffix"] =
+        testCases["primarylayout_titlecard_bottomslot_golden$goldenSuffix"] =
             materialScope(
                 ApplicationProvider.getApplicationContext(),
                 deviceParameters,
@@ -168,10 +244,23 @@ object TestCasesGenerator {
             ) {
                 primaryLayout(
                     mainSlot = {
-                        coloredBox(color = colorScheme.onSecondary, shape = shapes.medium)
+                        titleCard(
+                            onClick = clickable,
+                            modifier = LayoutModifier.contentDescription("Card"),
+                            height = expand(),
+                            title = {
+                                this.text(
+                                    "Title Card text that will overflow after 2 max lines of text"
+                                        .layoutString
+                                )
+                            },
+                            time = { text("Now".layoutString) },
+                            content = { text("Default title card".layoutString) },
+                            colors = filledVariantCardColors()
+                        )
                     },
-                    bottomSlot = { text("Bottom Slot that overflows".prop()) },
-                    titleSlot = { text("Title".prop(), color = colorScheme.secondaryDim) }
+                    bottomSlot = { text("Bottom Slot that overflows".layoutString) },
+                    titleSlot = { text("TitleCard".layoutString, color = colorScheme.secondaryDim) }
                 )
             }
         testCases["primarylayout_bottomslot_withlabel_golden$goldenSuffix"] =
@@ -182,11 +271,26 @@ object TestCasesGenerator {
             ) {
                 primaryLayout(
                     mainSlot = {
-                        coloredBox(color = colorScheme.errorContainer, shape = shapes.extraLarge)
+                        iconDataCard(
+                            onClick = clickable,
+                            modifier = LayoutModifier.contentDescription("Data card labels only"),
+                            title = { text("000".layoutString) },
+                            content = { text("PM".layoutString) },
+                            style = smallCompactDataCardStyle(),
+                            colors =
+                                CardColors(
+                                    background = colorScheme.errorContainer,
+                                    title = colorScheme.onErrorContainer,
+                                    content = colorScheme.onError
+                                ),
+                            height = expand()
+                        )
                     },
-                    bottomSlot = { text("Bottom Slot".prop()) },
-                    labelForBottomSlot = { text("Label in bottom slot overflows".prop()) },
-                    titleSlot = { text("Title".prop(), color = colorScheme.secondaryContainer) }
+                    bottomSlot = { text("Bottom Slot".layoutString) },
+                    labelForBottomSlot = { text("Label in bottom slot overflows".layoutString) },
+                    titleSlot = {
+                        text("Title".layoutString, color = colorScheme.secondaryContainer)
+                    }
                 )
             }
         testCases["primarylayout_nobottomslot_golden$goldenSuffix"] =
@@ -197,10 +301,56 @@ object TestCasesGenerator {
             ) {
                 primaryLayout(
                     mainSlot = {
-                        coloredBox(color = colorScheme.tertiaryContainer, shape = shapes.extraLarge)
+                        appCard(
+                            onClick = clickable,
+                            modifier = LayoutModifier.contentDescription("Card"),
+                            title = {
+                                this.text(
+                                    "Default App Card text that will overflow after 1 line of text"
+                                        .layoutString
+                                )
+                            },
+                            time = { text("Now".layoutString) },
+                            content = { text("Default app card".layoutString) },
+                            label = { text("Label in card".layoutString) },
+                            avatar = { avatarImage(IMAGE_ID) }
+                        )
                     },
-                    labelForBottomSlot = { text("Ignored Label in bottom slot".prop()) },
-                    titleSlot = { text("Title".prop(), color = colorScheme.secondaryContainer) }
+                    labelForBottomSlot = { text("Ignored Label in bottom slot".layoutString) },
+                    titleSlot = {
+                        text("Title".layoutString, color = colorScheme.secondaryContainer)
+                    }
+                )
+            }
+        testCases["primarylayout_largeappcard_nobottomslot_golden$goldenSuffix"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                deviceParameters,
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = {
+                        appCard(
+                            onClick = clickable,
+                            modifier = LayoutModifier.contentDescription("Card"),
+                            title = {
+                                this.text(
+                                    "Large App Card text that will overflow after 1 line of text"
+                                        .layoutString
+                                )
+                            },
+                            time = { text("Now".layoutString) },
+                            content = { text("Large app card".layoutString) },
+                            label = { text("Label in card".layoutString) },
+                            avatar = { avatarImage(IMAGE_ID) },
+                            colors = filledVariantCardColors(),
+                            style = largeAppCardStyle()
+                        )
+                    },
+                    labelForBottomSlot = { text("Ignored Label in bottom slot".layoutString) },
+                    titleSlot = {
+                        text("Title".layoutString, color = colorScheme.secondaryContainer)
+                    }
                 )
             }
         testCases["primarylayout_nobottomslotnotitle_golden$NORMAL_SCALE_SUFFIX"] =
@@ -219,13 +369,15 @@ object TestCasesGenerator {
         return collectTestCases(testCases)
     }
 
-    private fun coloredBox(color: ColorProp, shape: Corner) =
+    private fun coloredBox(color: LayoutColor, shape: Corner) =
         Box.Builder()
             .setWidth(expand())
             .setHeight(expand())
             .setModifiers(
                 Modifiers.Builder()
-                    .setBackground(Background.Builder().setColor(color).setCorner(shape).build())
+                    .setBackground(
+                        Background.Builder().setColor(color.prop).setCorner(shape).build()
+                    )
                     .build()
             )
             .build()

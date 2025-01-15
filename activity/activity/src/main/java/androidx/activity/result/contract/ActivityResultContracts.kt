@@ -601,7 +601,7 @@ class ActivityResultContracts private constructor() {
              * Note that this does not check for any Intent handled by
              * [ACTION_SYSTEM_FALLBACK_PICK_IMAGES].
              */
-            @SuppressLint("ClassVerificationFailure", "NewApi")
+            @SuppressLint("NewApi")
             @Deprecated(
                 message =
                     "This method is deprecated in favor of isPhotoPickerAvailable(context) " +
@@ -687,7 +687,7 @@ class ActivityResultContracts private constructor() {
              * Android version, the SDK extension version or the picker provided by a system app
              * implementing [ACTION_SYSTEM_FALLBACK_PICK_IMAGES].
              */
-            @SuppressLint("ClassVerificationFailure", "NewApi")
+            @SuppressLint("NewApi")
             @JvmStatic
             fun isPhotoPickerAvailable(context: Context): Boolean {
                 return isSystemPickerAvailable() || isSystemFallbackPickerAvailable(context)
@@ -700,7 +700,7 @@ class ActivityResultContracts private constructor() {
              * Note that this does not check for any Intent handled by
              * [ACTION_SYSTEM_FALLBACK_PICK_IMAGES].
              */
-            @SuppressLint("ClassVerificationFailure", "NewApi")
+            @SuppressLint("NewApi")
             @JvmStatic
             internal fun isSystemPickerAvailable(): Boolean {
                 return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -871,7 +871,7 @@ class ActivityResultContracts private constructor() {
         }
 
         @CallSuper
-        @SuppressLint("NewApi", "ClassVerificationFailure")
+        @SuppressLint("NewApi")
         override fun createIntent(context: Context, input: PickVisualMediaRequest): Intent {
             // Check to see if the photo picker is available
             return if (PickVisualMedia.isSystemPickerAvailable()) {
@@ -949,7 +949,7 @@ class ActivityResultContracts private constructor() {
              *
              * @see MediaStore.EXTRA_PICK_IMAGES_MAX
              */
-            @SuppressLint("NewApi", "ClassVerificationFailure")
+            @SuppressLint("NewApi")
             internal fun getMaxItems() =
                 if (PickVisualMedia.isSystemPickerAvailable()) {
                     MediaStore.getPickImagesMaxLimit()

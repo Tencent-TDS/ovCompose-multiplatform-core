@@ -22,10 +22,11 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.accessibility.AccessibilityEvent;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.R;
 import androidx.core.view.ViewCompat.ScrollAxis;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Helper for accessing features in {@link ViewGroup}.

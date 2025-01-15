@@ -22,26 +22,27 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.camera.core.MeteringPoint
-import androidx.camera.core.SurfaceOrientedMeteringPointFactory
-import androidx.camera.core.UseCase
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
-import androidx.camera.core.internal.CameraUseCaseAdapter
 import androidx.camera.core.internal.CameraUseCaseAdapter.CameraException
-import androidx.camera.testing.impl.CameraAvailabilityUtil
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.lifecycle.awaitInstance
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CameraUtil.PreTestCameraIdList
-import androidx.camera.testing.impl.CameraXUtil
+import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.util.concurrent.ListenableFuture
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert
 import org.junit.Assume
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -73,55 +74,44 @@ class CameraControlDeviceTest(
         CameraUtil.grantCameraPermissionAndPreTestAndPostTest(PreTestCameraIdList(cameraConfig))
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
-    private var camera: CameraUseCaseAdapter? = null
-    private var boundUseCase: UseCase? = null
-    private var meteringPoint1: MeteringPoint? = null
     private val analyzer = ImageAnalysis.Analyzer { obj: ImageProxy -> obj.close() }
+    private lateinit var cameraProvider: ProcessCameraProvider
+    private val lifecycleOwner = FakeLifecycleOwner().also { it.startAndResume() }
 
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        CameraXUtil.initialize(context, cameraConfig).get()
-        val cameraX = CameraXUtil.getOrCreateInstance(context, null).get()
-        Assume.assumeTrue(
-            CameraAvailabilityUtil.hasCamera(cameraX.cameraRepository, cameraSelector)
-        )
-        val factory = SurfaceOrientedMeteringPointFactory(1f, 1f)
-        meteringPoint1 = factory.createPoint(0f, 0f)
-        val useCase = ImageAnalysis.Builder().build()
-        camera =
-            CameraUtil.createCameraAndAttachUseCase(
-                context,
-                cameraSelector,
-                useCase.also { boundUseCase = it }
-            )
-        useCase.setAnalyzer(CameraXExecutors.ioExecutor(), analyzer)
+        ProcessCameraProvider.configureInstance(cameraConfig)
+        cameraProvider = ProcessCameraProvider.awaitInstance(context)
+        assumeTrue(cameraProvider.hasCamera(cameraSelector))
     }
 
     @After
     fun tearDown() {
-        instrumentation.runOnMainSync {
-            // TODO: The removeUseCases() call might be removed after clarifying the
-            // abortCaptures() issue in b/162314023.
-            camera?.removeUseCases(camera!!.useCases)
+        if (::cameraProvider.isInitialized) {
+            cameraProvider.shutdownAsync()[10000, TimeUnit.MILLISECONDS]
         }
-        CameraXUtil.shutdown()[10000, TimeUnit.MILLISECONDS]
     }
 
     @Test
-    fun rebindAndEnableTorch_futureCompletes() {
+    fun rebindAndEnableTorch_futureCompletes() = runBlocking {
         Assume.assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
-        instrumentation.runOnMainSync {
-            try {
-                camera!!.removeUseCases(setOf(boundUseCase))
-                val useCase = ImageAnalysis.Builder().build()
-                camera!!.addUseCases(setOf<UseCase>(useCase.also { boundUseCase = it }))
-                useCase.setAnalyzer(CameraXExecutors.ioExecutor(), analyzer)
-            } catch (e: CameraException) {
-                throw IllegalArgumentException(e)
+        val camera =
+            withContext(Dispatchers.Main) {
+                try {
+                    val useCase1 = ImageAnalysis.Builder().build()
+                    useCase1.setAnalyzer(CameraXExecutors.ioExecutor(), analyzer)
+                    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, useCase1)
+                    cameraProvider.unbindAll()
+
+                    val useCase2 = ImageAnalysis.Builder().build()
+                    useCase2.setAnalyzer(CameraXExecutors.ioExecutor(), analyzer)
+                    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, useCase2)
+                } catch (e: CameraException) {
+                    throw IllegalArgumentException(e)
+                }
             }
-        }
-        val result = camera!!.cameraControl.enableTorch(true)
+        val result = camera.cameraControl.enableTorch(true)
         assertFutureCompletes(result)
     }
 

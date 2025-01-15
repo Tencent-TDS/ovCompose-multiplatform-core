@@ -38,8 +38,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -58,9 +56,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Test of {@link MediaSessionCompat#getCurrentControllerInfo()} with all
- * {@link MediaController} methods.
+ * Test of {@link android.support.v4.media.session.MediaSessionCompat#getCurrentControllerInfo()}
+ * with all {@link MediaController} methods.
  */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = 22) // b/278620526
 @LargeTest
@@ -73,7 +72,7 @@ public class RemoteUserInfoWithMediaControllerTest {
     private static final long TIMEOUT_MS = 1_000;
 
     private String mServiceVersion;
-    private MediaBrowserCompat mMediaBrowser;
+    private android.support.v4.media.MediaBrowserCompat mMediaBrowser;
     private MediaController mMediaController;
     private ControllerCallback mMediaControllerCallback;
 
@@ -84,41 +83,51 @@ public class RemoteUserInfoWithMediaControllerTest {
         Log.d(TAG, "Service app version: " + mServiceVersion);
         Context context = getInstrumentation().getContext();
         CountDownLatch connectionLatch = new CountDownLatch(1);
-        AtomicReference<MediaSessionCompat.Token> tokenRef = new AtomicReference<>();
-        getInstrumentation().runOnMainSync(() -> {
-            if (Looper.getMainLooper() == null) {
-                Looper.prepareMainLooper();
-            }
+        AtomicReference<android.support.v4.media.session.MediaSessionCompat.Token> tokenRef =
+                new AtomicReference<>();
+        getInstrumentation()
+                .runOnMainSync(
+                        () -> {
+                            if (Looper.getMainLooper() == null) {
+                                Looper.prepareMainLooper();
+                            }
 
-            MediaBrowserCompat.ConnectionCallback connectionCallback =
-                    new MediaBrowserCompat.ConnectionCallback() {
-                @Override
-                public void onConnected() {
-                    tokenRef.set(mMediaBrowser.getSessionToken());
-                    connectionLatch.countDown();
-                }
+                            android.support.v4.media.MediaBrowserCompat.ConnectionCallback
+                                    connectionCallback =
+                                            new android.support.v4.media.MediaBrowserCompat
+                                                    .ConnectionCallback() {
+                                                @Override
+                                                public void onConnected() {
+                                                    tokenRef.set(mMediaBrowser.getSessionToken());
+                                                    connectionLatch.countDown();
+                                                }
 
-                @Override
-                public void onConnectionSuspended() {
-                    connectionLatch.countDown();
-                }
+                                                @Override
+                                                public void onConnectionSuspended() {
+                                                    connectionLatch.countDown();
+                                                }
 
-                @Override
-                public void onConnectionFailed() {
-                    connectionLatch.countDown();
-                }
-            };
-            Bundle rootHints = new Bundle();
-            rootHints.putString(ROOT_HINT_EXTRA_KEY_CALLER_PKG, context.getPackageName());
-            rootHints.putInt(ROOT_HINT_EXTRA_KEY_CALLER_UID, Process.myUid());
-            mMediaBrowser = new MediaBrowserCompat(getInstrumentation().getTargetContext(),
-                    TEST_BROWSER_SERVICE, connectionCallback, rootHints);
-            mMediaBrowser.connect();
-        });
+                                                @Override
+                                                public void onConnectionFailed() {
+                                                    connectionLatch.countDown();
+                                                }
+                                            };
+                            Bundle rootHints = new Bundle();
+                            rootHints.putString(
+                                    ROOT_HINT_EXTRA_KEY_CALLER_PKG, context.getPackageName());
+                            rootHints.putInt(ROOT_HINT_EXTRA_KEY_CALLER_UID, Process.myUid());
+                            mMediaBrowser =
+                                    new android.support.v4.media.MediaBrowserCompat(
+                                            getInstrumentation().getTargetContext(),
+                                            TEST_BROWSER_SERVICE,
+                                            connectionCallback,
+                                            rootHints);
+                            mMediaBrowser.connect();
+                        });
         assertTrue("Failed to connect to service",
                 connectionLatch.await(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
-        MediaSessionCompat.Token token = tokenRef.get();
+        android.support.v4.media.session.MediaSessionCompat.Token token = tokenRef.get();
         assertNotNull(token);
         mMediaController = new MediaController(context, (MediaSession.Token) token.getToken());
         mMediaControllerCallback = new ControllerCallback();

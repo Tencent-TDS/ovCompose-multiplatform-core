@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 
 /** Creates a [TransformingLazyColumnState] that is remembered across compositions. */
 @Composable
-fun rememberTransformingLazyColumnState() =
+public fun rememberTransformingLazyColumnState(): TransformingLazyColumnState =
     rememberSaveable(saver = TransformingLazyColumnState.Saver) { TransformingLazyColumnState() }
 
 /**
@@ -50,7 +50,7 @@ fun rememberTransformingLazyColumnState() =
  *
  * In most cases, this will be created via [rememberTransformingLazyColumnState].
  */
-class TransformingLazyColumnState() : ScrollableState {
+public class TransformingLazyColumnState() : ScrollableState {
     override val isScrollInProgress: Boolean
         get() = scrollableState.isScrollInProgress
 
@@ -83,7 +83,7 @@ class TransformingLazyColumnState() : ScrollableState {
      * some side effects like sending an analytics event or updating a state based on this value
      * consider using "snapshotFlow":
      */
-    val layoutInfo: TransformingLazyColumnLayoutInfo
+    public val layoutInfo: TransformingLazyColumnLayoutInfo
         get() = layoutInfoState.value
 
     internal val density: Density
@@ -111,7 +111,7 @@ class TransformingLazyColumnState() : ScrollableState {
      *
      * @sample androidx.wear.compose.foundation.samples.UsingListAnchorItemPositionInCompositionSample
      */
-    var anchorItemIndex by mutableIntStateOf(0)
+    public var anchorItemIndex: Int by mutableIntStateOf(0)
         private set
 
     /**
@@ -123,7 +123,7 @@ class TransformingLazyColumnState() : ScrollableState {
      *
      * @see anchorItemIndex for samples with the recommended usage patterns.
      */
-    var anchorItemScrollOffset by mutableIntStateOf(0)
+    public var anchorItemScrollOffset: Int by mutableIntStateOf(0)
         private set
 
     internal var nearestRange: IntRange by
@@ -155,7 +155,7 @@ class TransformingLazyColumnState() : ScrollableState {
         layoutInfoState.value = measureResult
         canScrollBackward = measureResult.canScrollBackward
         canScrollForward = measureResult.canScrollForward
-        nearestRange = calculateNearestItemsRange(anchorItemIndex)
+        nearestRange = calculateNearestItemsRange(measureResult.anchorItemIndex)
     }
 
     internal companion object {
@@ -215,7 +215,7 @@ class TransformingLazyColumnState() : ScrollableState {
      * @param scrollOffset The offset between the center of the screen and item's center. Positive
      *   offset means the item will be scrolled up.
      */
-    suspend fun scrollToItem(
+    public suspend fun scrollToItem(
         @androidx.annotation.IntRange(from = 0) index: Int,
         scrollOffset: Int = 0
     ) {
@@ -241,7 +241,7 @@ class TransformingLazyColumnState() : ScrollableState {
      * @param scrollOffset The offset between the center of the screen and item's center. Positive
      *   offset means the item will be scrolled up.
      */
-    fun requestScrollToItem(
+    public fun requestScrollToItem(
         @androidx.annotation.IntRange(from = 0) index: Int,
         scrollOffset: Int = 0
     ) {
@@ -265,7 +265,7 @@ class TransformingLazyColumnState() : ScrollableState {
      * @param scrollOffset The offset between the center of the screen and item's center. Positive
      *   offset means the item will be scrolled up.
      */
-    suspend fun animateScrollToItem(
+    public suspend fun animateScrollToItem(
         @androidx.annotation.IntRange(from = 0) index: Int,
         scrollOffset: Int = 0
     ) {
@@ -289,7 +289,7 @@ class TransformingLazyColumnState() : ScrollableState {
         nearestRange = calculateNearestItemsRange(anchorItemIndex)
     }
 
-    private fun onScroll(distance: Float): Float {
+    internal fun onScroll(distance: Float): Float {
         if (distance < 0 && !canScrollForward || distance > 0 && !canScrollBackward) {
             return 0f
         }

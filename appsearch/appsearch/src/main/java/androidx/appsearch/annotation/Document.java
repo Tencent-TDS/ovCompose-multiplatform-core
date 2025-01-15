@@ -16,11 +16,12 @@
 // @exportToFramework:skipFile()
 package androidx.appsearch.annotation;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.EmbeddingVector;
 import androidx.appsearch.app.LongSerializer;
 import androidx.appsearch.app.StringSerializer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -168,7 +169,9 @@ public @interface Document {
      * <p>The document will be automatically deleted {@link TtlMillis} milliseconds after
      * {@link CreationTimestampMillis}.
      *
-     * <p>This field is not required. If not present or not set, the document will never expire.
+     * <p>This field is not required. If not present, not set, or set to {@code 0}, the document
+     * will never expire or be auto-deleted until the app is uninstalled or
+     * {@link androidx.appsearch.app.AppSearchSession#removeAsync} is called.
      *
      * <p>If present, the field must be of type {@code long} or {@link Long}.
      *
@@ -302,14 +305,12 @@ public @interface Document {
 
         final class DefaultSerializer implements StringSerializer<String> {
             @Override
-            @NonNull
-            public String serialize(@NonNull String instance) {
+            public @NonNull String serialize(@NonNull String instance) {
                 return instance;
             }
 
             @Override
-            @NonNull
-            public String deserialize(@NonNull String string) {
+            public @NonNull String deserialize(@NonNull String string) {
                 return string;
             }
         }
@@ -451,14 +452,13 @@ public @interface Document {
 
         final class DefaultSerializer implements LongSerializer<Long> {
             @Override
-            public long serialize(@NonNull @SuppressWarnings("AutoBoxing") Long value) {
+            public long serialize(@SuppressWarnings("AutoBoxing") @NonNull Long value) {
                 return value;
             }
 
             @Override
-            @NonNull
             @SuppressWarnings("AutoBoxing")
-            public Long deserialize(long value) {
+            public @NonNull Long deserialize(long value) {
                 return value;
             }
         }

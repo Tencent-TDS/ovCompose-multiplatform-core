@@ -17,16 +17,21 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 
+@Preview
 @Sampled
 @Composable
 fun ScaffoldSample() {
@@ -39,10 +44,54 @@ fun ScaffoldSample() {
         // For this sample, we will define a single screen inline.
         val listState = rememberScalingLazyListState()
 
-        // By default, ScreenScaffold will handle transitions showing/hiding ScrollIndicator
-        // and showing/hiding/scrolling away TimeText.
-        ScreenScaffold(scrollState = listState) {
-            ScalingLazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        // By default, ScreenScaffold will handle transitions showing/hiding ScrollIndicator,
+        // showing/hiding/scrolling away TimeText and optionally hosting the EdgeButton.
+        ScreenScaffold(scrollState = listState, contentPadding = PaddingValues(10.dp)) {
+            contentPadding ->
+            ScalingLazyColumn(
+                state = listState,
+                contentPadding = contentPadding,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(10) {
+                    Button(
+                        onClick = {},
+                        label = { Text("Item ${it + 1}") },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Preview
+@Sampled
+@Composable
+fun ScaffoldWithEdgeButtonSample() {
+    // Declare just one [AppScaffold] per app such as in the activity.
+    // [AppScaffold] allows static screen elements (i.e. [TimeText]) to remain visible
+    // during in-app transitions such as swipe-to-dismiss.
+    AppScaffold {
+        // Define the navigation hierarchy within the AppScaffold,
+        // such as using SwipeDismissableNavHost.
+        // For this sample, we will define a single screen inline.
+        val listState = rememberScalingLazyListState()
+
+        // By default, ScreenScaffold will handle transitions showing/hiding ScrollIndicator,
+        // showing/hiding/scrolling away TimeText and optionally hosting the EdgeButton.
+        ScreenScaffold(
+            scrollState = listState,
+            // Define custom spacing between [EdgeButton] and [ScalingLazyColumn].
+            edgeButtonSpacing = 15.dp,
+            edgeButton = { EdgeButton(onClick = {}) { Text("Clear All") } },
+        ) { contentPadding ->
+            ScalingLazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                autoCentering = null,
+                // Bottom spacing is derived from [ScreenScaffold.edgeButtonSpacing].
+                contentPadding = contentPadding
+            ) {
                 items(10) {
                     Button(
                         onClick = {},

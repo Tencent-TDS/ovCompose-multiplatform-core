@@ -16,23 +16,44 @@
 
 package androidx.pdf.viewer.fragment
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.widget.LinearLayout.GONE
+import android.widget.LinearLayout.VISIBLE
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.annotation.CallSuper
 import androidx.annotation.RestrictTo
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.pdf.view.PdfView
+import androidx.pdf.view.ToolBoxView
+import androidx.pdf.view.search.PdfSearchView
+import androidx.pdf.viewer.PdfPasswordDialog
+import androidx.pdf.viewer.PdfPasswordDialog.KEY_CANCELABLE
+import androidx.pdf.viewer.fragment.insets.TranslateInsetsAnimationCallback
 import androidx.pdf.viewer.fragment.model.PdfFragmentUiState.DocumentError
 import androidx.pdf.viewer.fragment.model.PdfFragmentUiState.DocumentLoaded
 import androidx.pdf.viewer.fragment.model.PdfFragmentUiState.Loading
 import androidx.pdf.viewer.fragment.model.PdfFragmentUiState.PasswordRequested
+import androidx.pdf.viewer.fragment.search.PdfSearchViewManager
+import androidx.pdf.viewer.fragment.util.getCenter
+import androidx.pdf.viewer.fragment.view.PdfViewManager
+import com.google.android.material.color.MaterialColors
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -68,7 +89,7 @@ public open class PdfViewerFragmentV2 : Fragment() {
     public var isTextSearchActive: Boolean
         get() = documentViewModel.isTextSearchActiveFromState
         set(value) {
-            documentViewModel.onSearchViewToggle(value)
+            documentViewModel.updateSearchState(value)
         }
 
     /**
@@ -81,7 +102,7 @@ public open class PdfViewerFragmentV2 : Fragment() {
     public var isToolboxVisible: Boolean
         get() = documentViewModel.isToolboxVisibleFromState
         set(value) {
-            documentViewModel.onToolboxViewToggle(value)
+            documentViewModel.updateToolboxState(value)
         }
 
     /**
@@ -128,6 +149,37 @@ public open class PdfViewerFragmentV2 : Fragment() {
     }
 
     private lateinit var pdfView: PdfView
+    private lateinit var toolboxView: ToolBoxView
+    private lateinit var errorView: TextView
+    private lateinit var loadingView: ProgressBar
+    private lateinit var pdfSearchView: PdfSearchView
+    private lateinit var pdfViewManager: PdfViewManager
+    private lateinit var pdfSearchViewManager: PdfSearchViewManager
+
+    private var searchStateCollector: Job? = null
+    private var highlightStateCollector: Job? = null
+
+    // Provides visible pages in viewport both end inclusive.
+    private val PdfView.visiblePages: IntRange
+        get() = IntRange(firstVisiblePage, firstVisiblePage + visiblePagesCount - 1)
+
+    private val searchQueryTextWatcher =
+        object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // No-Op.
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                documentViewModel.searchDocument(
+                    query = s.toString(),
+                    visiblePageRange = pdfView.visiblePages
+                )
+            }
+
+            override fun afterTextChanged(s: Editable?) {
+                // No-Op.
+            }
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -135,22 +187,160 @@ public open class PdfViewerFragmentV2 : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
-        val root = inflater.inflate(R.layout.pdf_viewer_fragment, container, false)
-        pdfView = root.findViewById(R.id.pdfView)
-
-        return root
+        return inflater.inflate(R.layout.pdf_viewer_fragment, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            /**
-             * [repeatOnLifecycle] launches the block in a new coroutine every time the lifecycle is
-             * in the STARTED state (or above) and cancels it when it's STOPPED.
-             */
-            repeatOnLifecycle(Lifecycle.State.STARTED) { collectFragmentUiScreenState() }
+        with(view) {
+            pdfView = findViewById(R.id.pdfView)
+            errorView = findViewById(R.id.errorTextView)
+            loadingView = findViewById(R.id.pdfLoadingProgressBar)
+            pdfSearchView = findViewById(R.id.pdfSearchView)
+            toolboxView = findViewById(R.id.toolBoxView)
         }
+        pdfViewManager =
+            PdfViewManager(
+                pdfView = pdfView,
+                // TODO(b/385684706): Update colors for highlights
+                selectedHighlightColor =
+                    MaterialColors.getColor(
+                        pdfView,
+                        com.google.android.material.R.attr.colorPrimaryFixed,
+                        requireContext().getColor(R.color.selected_highlight_color)
+                    ),
+                highlightColor =
+                    MaterialColors.getColor(
+                        pdfView,
+                        com.google.android.material.R.attr.colorSecondaryFixedDim,
+                        requireContext().getColor(R.color.highlight_color)
+                    )
+            )
+        pdfSearchViewManager = PdfSearchViewManager(pdfSearchView)
+
+        onPdfSearchViewCreated(pdfSearchView)
+
+        collectFlowOnLifecycleScope { collectFragmentUiScreenState() }
+
+        toolboxView.setOnCurrentPageRequested { pdfView.visiblePages.getCenter() }
+    }
+
+    /**
+     * Called from Fragment.onViewCreated(). This gives subclasses a chance to customize component.
+     */
+    protected fun onPdfSearchViewCreated(pdfSearchView: PdfSearchView) {
+        setupSearchViewListeners(pdfSearchView)
+        val windowManager = activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+
+        activity?.let {
+            // Attach the callback to the decorView to reliably receive insets animation events,
+            // such as those triggered by soft keyboard input.
+            ViewCompat.setWindowInsetsAnimationCallback(
+                it.window.decorView,
+                TranslateInsetsAnimationCallback(
+                    view = pdfSearchView,
+                    windowManager = windowManager,
+                    pdfContainer = view,
+                    // As the decorView is a top-level view, insets must not be consumed here.
+                    // They must be propagated to child views for adjustments at their level.
+                    dispatchMode = DISPATCH_MODE_CONTINUE_ON_SUBTREE
+                )
+            )
+        }
+    }
+
+    private fun setupSearchViewListeners(pdfSearchView: PdfSearchView) {
+        with(pdfSearchView) {
+            searchQueryBox.addTextChangedListener(searchQueryTextWatcher)
+
+            searchQueryBox.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    performSearch()
+                }
+                true // IME action consumed
+            }
+            findPrevButton.setOnClickListener {
+                searchQueryBox.clearFocus()
+                documentViewModel.findPreviousMatch()
+            }
+            findNextButton.setOnClickListener {
+                searchQueryBox.clearFocus()
+                documentViewModel.findNextMatch()
+            }
+            closeButton.setOnClickListener { isTextSearchActive = false }
+        }
+    }
+
+    private fun PdfSearchView.performSearch() {
+        searchQueryBox.clearFocus()
+
+        searchDocument(searchQueryBox.text.toString())
+    }
+
+    private fun searchDocument(query: String) {
+        documentViewModel.searchDocument(query = query, visiblePageRange = pdfView.visiblePages)
+    }
+
+    private fun collectViewStates() {
+        searchStateCollector = collectFlowOnLifecycleScope {
+            documentViewModel.searchViewUiState.collect { uiState ->
+                pdfSearchViewManager.setState(uiState)
+            }
+        }
+
+        highlightStateCollector = collectFlowOnLifecycleScope {
+            documentViewModel.highlightsFlow.collect { highlightData ->
+                pdfViewManager.apply {
+                    setHighlights(highlightData)
+                    scrollToCurrentSearchResult(highlightData)
+                }
+            }
+        }
+    }
+
+    private fun cancelViewStateCollection() {
+        searchStateCollector?.cancel()
+        searchStateCollector = null
+        highlightStateCollector?.cancel()
+        highlightStateCollector = null
+    }
+
+    private fun getPasswordDialog(): PdfPasswordDialog {
+        return (childFragmentManager.findFragmentByTag(PASSWORD_DIALOG_TAG) as? PdfPasswordDialog)
+            ?: PdfPasswordDialog().apply {
+                arguments = Bundle().apply { putBoolean(KEY_CANCELABLE, false) }
+            }
+    }
+
+    private fun dismissPasswordDialog() {
+        val passwordDialog =
+            childFragmentManager.findFragmentByTag(PASSWORD_DIALOG_TAG) as? PdfPasswordDialog
+        passwordDialog?.dismiss()
+    }
+
+    private fun requestPassword(isPasswordIncorrectRetry: Boolean) {
+
+        val passwordDialog = getPasswordDialog()
+        if (!passwordDialog.isAdded) {
+            passwordDialog.show(childFragmentManager, PASSWORD_DIALOG_TAG)
+        }
+        if (isPasswordIncorrectRetry) {
+            passwordDialog.showIncorrectMessage()
+        }
+
+        passwordDialog.setListener(
+            object : PdfPasswordDialog.PasswordDialogEventsListener {
+                override fun onPasswordSubmit(password: String) {
+                    documentViewModel.loadDocument(uri = documentUri, password = password)
+                }
+
+                override fun onDialogCancelled() {
+                    documentViewModel.passwordDialogCancelled()
+                }
+
+                override fun onDialogShown() {}
+            }
+        )
     }
 
     /**
@@ -163,25 +353,81 @@ public open class PdfViewerFragmentV2 : Fragment() {
     private suspend fun collectFragmentUiScreenState() {
         documentViewModel.fragmentUiScreenState.collect { uiState ->
             when (uiState) {
-                is Loading -> {
-                    // TODO: Implement loading view b/379226011
-                    // Hide all views except loading progress bar
-                    // Show progress bar
-                }
-                is PasswordRequested -> {
-                    // TODO: Implement password dialog b/373252814
-                    // Utilize retry param to show incorrect password on PasswordDialog
-                }
-                is DocumentLoaded -> {
-                    onLoadDocumentSuccess()
-                    pdfView.pdfDocument = uiState.pdfDocument
-                    // TODO: Implement PdfView b/379053734
-                }
-                is DocumentError -> {
-                    onLoadDocumentError(uiState.exception)
-                    // TODO: Implement error view b/379055053
-                }
+                is Loading -> handleLoading()
+                is PasswordRequested -> handlePasswordRequested(uiState)
+                is DocumentLoaded -> handleDocumentLoaded(uiState)
+                is DocumentError -> handleDocumentError(uiState)
             }
         }
+    }
+
+    private fun handleLoading() {
+        setViewVisibility(
+            pdfView = GONE,
+            loadingView = VISIBLE,
+            errorView = GONE,
+            toolboxView = GONE
+        )
+        // Cancel view state collection upon new document load.
+        // These state should only be relevant if document is loaded successfully.
+        cancelViewStateCollection()
+    }
+
+    private fun handlePasswordRequested(uiState: PasswordRequested) {
+        requestPassword(uiState.passwordFailed)
+        setViewVisibility(pdfView = GONE, loadingView = GONE, errorView = GONE, toolboxView = GONE)
+        // Utilize retry param to show incorrect password on PasswordDialog
+    }
+
+    private fun handleDocumentLoaded(uiState: DocumentLoaded) {
+        dismissPasswordDialog()
+        onLoadDocumentSuccess()
+        pdfView.pdfDocument = uiState.pdfDocument
+        toolboxView.setPdfDocument(uiState.pdfDocument)
+        setViewVisibility(
+            pdfView = VISIBLE,
+            loadingView = GONE,
+            errorView = GONE,
+            toolboxView = VISIBLE
+        )
+        // Start collection of view states like search, toolbox, etc. once document is loaded.
+        collectViewStates()
+    }
+
+    private fun handleDocumentError(uiState: DocumentError) {
+        dismissPasswordDialog()
+        onLoadDocumentError(uiState.exception)
+        setViewVisibility(
+            pdfView = GONE,
+            loadingView = GONE,
+            errorView = VISIBLE,
+            toolboxView = GONE
+        )
+    }
+
+    private fun setViewVisibility(
+        pdfView: Int,
+        loadingView: Int,
+        errorView: Int,
+        toolboxView: Int
+    ) {
+        this.pdfView.visibility = pdfView
+        this.loadingView.visibility = loadingView
+        this.errorView.visibility = errorView
+        this.toolboxView.visibility = toolboxView
+    }
+
+    private fun collectFlowOnLifecycleScope(block: suspend () -> Unit): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            /**
+             * [repeatOnLifecycle] launches the block in a new coroutine every time the lifecycle is
+             * in the STARTED state (or above) and cancels it when it's STOPPED.
+             */
+            repeatOnLifecycle(Lifecycle.State.STARTED) { block() }
+        }
+    }
+
+    private companion object {
+        private const val PASSWORD_DIALOG_TAG = "password-dialog"
     }
 }

@@ -26,11 +26,11 @@ dependencies {
     androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.mockitoCore)
     androidTestImplementation(libs.dexmakerMockito)
-    androidTestImplementation project(':internal-testutils-runtime')
+    androidTestImplementation(project(":internal-testutils-runtime"))
 }
 
 android {
-    namespace "androidx.emoji2.viewsintegration"
+    namespace = "androidx.emoji2.viewsintegration"
 }
 
 androidx {

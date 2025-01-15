@@ -7,7 +7,6 @@
  */
 
 import androidx.build.LibraryType
-import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -25,7 +24,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.fragment"
+    namespace = "androidx.fragment"
 }
 
 dependencies {

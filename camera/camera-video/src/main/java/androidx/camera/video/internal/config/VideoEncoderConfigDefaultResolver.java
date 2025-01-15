@@ -19,7 +19,6 @@ package androidx.camera.video.internal.config;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.SurfaceRequest;
@@ -29,6 +28,8 @@ import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderDataSpace;
 import androidx.camera.video.internal.utils.DynamicRangeUtil;
 import androidx.core.util.Supplier;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -88,8 +89,7 @@ public class VideoEncoderConfigDefaultResolver implements Supplier<VideoEncoderC
     }
 
     @Override
-    @NonNull
-    public VideoEncoderConfig get() {
+    public @NonNull VideoEncoderConfig get() {
         int resolvedFrameRate = resolveFrameRate();
         Logger.d(TAG, "Resolved VIDEO frame rate: " + resolvedFrameRate + "fps");
 

@@ -17,7 +17,6 @@
 
 package androidx.camera.viewfinder.core
 
-import android.annotation.SuppressLint
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraMetadata
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest.Companion.MIRROR_MODE_HORIZONTAL
@@ -30,7 +29,6 @@ import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest.Companion.MIRROR
  * orientation and [ImplementationMode]. If the hardware level is legacy, the [ImplementationMode]
  * will be set to [ImplementationMode.EMBEDDED].
  */
-@SuppressLint("ClassVerificationFailure")
 fun ViewfinderSurfaceRequest.Builder.populateFromCharacteristics(
     cameraCharacteristics: CameraCharacteristics
 ): ViewfinderSurfaceRequest.Builder {

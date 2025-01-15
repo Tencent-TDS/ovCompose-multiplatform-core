@@ -20,6 +20,7 @@ import androidx.annotation.RestrictTo
 import androidx.paging.PagingSource
 import androidx.paging.PagingSource.LoadParams
 import androidx.paging.PagingSource.LoadResult
+import androidx.paging.PagingState
 import androidx.room.RoomDatabase
 import androidx.room.RoomRawQuery
 import androidx.room.Transactor.SQLiteTransactionType
@@ -50,6 +51,10 @@ public expect abstract class LimitOffsetPagingSource<Value : Any>(
     public val db: RoomDatabase
 
     public val itemCount: Int
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value>
+
+    override fun getRefreshKey(state: PagingState<Int, Value>): Int?
 
     protected open suspend fun convertRows(
         limitOffsetQuery: RoomRawQuery,

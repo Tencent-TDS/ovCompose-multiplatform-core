@@ -23,8 +23,6 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest.Result;
 import androidx.camera.viewfinder.core.impl.utils.executor.ViewfinderExecutors;
@@ -38,6 +36,9 @@ import androidx.core.util.Preconditions;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * The {@link TextureView} implementation for {@link CameraViewfinder}
  */
@@ -46,27 +47,22 @@ final class TextureViewImplementation extends ViewfinderImplementation {
     private static final String TAG = "TextureViewImpl";
 
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    ViewfinderSurfaceRequest mSurfaceRequest;
+    @Nullable ViewfinderSurfaceRequest mSurfaceRequest;
 
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    SurfaceTexture mDetachedSurfaceTexture;
+    @Nullable SurfaceTexture mDetachedSurfaceTexture;
 
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    SurfaceTexture mSurfaceTexture;
+    @Nullable SurfaceTexture mSurfaceTexture;
 
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    ListenableFuture<Result> mSurfaceReleaseFuture;
+    @Nullable ListenableFuture<Result> mSurfaceReleaseFuture;
 
     boolean mIsSurfaceTextureDetachedFromView = false;
 
     // Synthetic Accessor
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    TextureView mTextureView;
+    @Nullable TextureView mTextureView;
 
     TextureViewImplementation(@NonNull FrameLayout parent,
             @NonNull ViewfinderTransformation viewfinderTransformation) {
@@ -83,7 +79,7 @@ final class TextureViewImplementation extends ViewfinderImplementation {
         mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
             @SuppressWarnings("ObjectToString")
             @Override
-            public void onSurfaceTextureAvailable(@NonNull final SurfaceTexture surfaceTexture,
+            public void onSurfaceTextureAvailable(final @NonNull SurfaceTexture surfaceTexture,
                     final int width, final int height) {
                 Logger.d(TAG, "SurfaceTexture available. Size: "
                         + width + "x" + height);
@@ -102,13 +98,13 @@ final class TextureViewImplementation extends ViewfinderImplementation {
             }
 
             @Override
-            public void onSurfaceTextureSizeChanged(@NonNull final SurfaceTexture surfaceTexture,
+            public void onSurfaceTextureSizeChanged(final @NonNull SurfaceTexture surfaceTexture,
                     final int width, final int height) {
                 Logger.d(TAG, "SurfaceTexture size changed: " + width + "x" + height);
             }
 
             @Override
-            public boolean onSurfaceTextureDestroyed(@NonNull final SurfaceTexture surfaceTexture) {
+            public boolean onSurfaceTextureDestroyed(final @NonNull SurfaceTexture surfaceTexture) {
                 mSurfaceTexture = null;
 
                 // If the camera is still using the surface, prevent the TextureView from
@@ -147,7 +143,7 @@ final class TextureViewImplementation extends ViewfinderImplementation {
             }
 
             @Override
-            public void onSurfaceTextureUpdated(@NonNull final SurfaceTexture surfaceTexture) {
+            public void onSurfaceTextureUpdated(final @NonNull SurfaceTexture surfaceTexture) {
             }
         });
 
@@ -185,15 +181,13 @@ final class TextureViewImplementation extends ViewfinderImplementation {
         mIsSurfaceTextureDetachedFromView = true;
     }
 
-    @Nullable
     @Override
-    View getViewfinder() {
+    @Nullable View getViewfinder() {
         return mTextureView;
     }
 
-    @Nullable
     @Override
-    Bitmap getViewfinderBitmap() {
+    @Nullable Bitmap getViewfinderBitmap() {
         // If textureView is still null or its SurfaceTexture isn't available yet, return null
         if (mTextureView == null || !mTextureView.isAvailable()) {
             return null;

@@ -27,6 +27,7 @@ import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.Handle
+import androidx.compose.foundation.text.KeyCommand
 import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.LocalAutofillHighlightColor
@@ -368,6 +369,22 @@ internal class TextFieldDecoratorModifierNode(
         }
 
     /**
+     * A handler dedicated for Clipboard related key commands. We extracted it from
+     * [textFieldKeyEventHandler] because Clipboard actions require a [coroutineScope] which is
+     * available here.
+     */
+    private val clipboardKeyCommandsHandler = ClipboardKeyCommandsHandler { keyCommand ->
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            when (keyCommand) {
+                KeyCommand.COPY -> textFieldSelectionState.copy(false)
+                KeyCommand.CUT -> textFieldSelectionState.cut()
+                KeyCommand.PASTE -> textFieldSelectionState.paste()
+                else -> Unit
+            }
+        }
+    }
+
+    /**
      * A coroutine job that observes text and layout changes in selection state to react to those
      * changes.
      */
@@ -586,19 +603,19 @@ internal class TextFieldDecoratorModifierNode(
         }
         if (!selection.collapsed && !isPassword) {
             copyText {
-                textFieldSelectionState.copy()
+                coroutineScope.launch { textFieldSelectionState.copy() }
                 true
             }
             if (enabled && !readOnly) {
                 cutText {
-                    textFieldSelectionState.cut()
+                    coroutineScope.launch { textFieldSelectionState.cut() }
                     true
                 }
             }
         }
         if (editable) {
             pasteText {
-                textFieldSelectionState.paste()
+                coroutineScope.launch { textFieldSelectionState.paste() }
                 true
             }
         }
@@ -684,9 +701,10 @@ internal class TextFieldDecoratorModifierNode(
             textFieldState = textFieldState,
             textLayoutState = textLayoutState,
             textFieldSelectionState = textFieldSelectionState,
+            clipboardKeyCommandsHandler = clipboardKeyCommandsHandler,
             editable = enabled && !readOnly,
             singleLine = singleLine,
-            onSubmit = { onImeActionPerformed(keyboardOptions.imeActionOrDefault) }
+            onSubmit = { onImeActionPerformed(keyboardOptions.imeActionOrDefault) },
         )
     }
 

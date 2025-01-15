@@ -42,5 +42,6 @@ androidx {
 }
 
 android {
-    namespace "androidx.constraintlayout.compose.samples"
+    compileSdk = 35
+    namespace = "androidx.constraintlayout.compose.samples"
 }

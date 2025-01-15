@@ -268,6 +268,13 @@ public class MacrobenchmarkScope(
             return
         }
 
+        if (!Shell.isPackageAlive(packageName)) {
+            throw IllegalStateException(
+                "Target package $packageName is not running," +
+                    " check logcat to verify the activity launched correctly"
+            )
+        }
+
         // `am start -W` doesn't reliably wait for process to complete and renderthread to produce
         // a new frame (b/226179160), so we use `dumpsys gfxinfo <package> framestats` to determine
         // when the next frame is produced.

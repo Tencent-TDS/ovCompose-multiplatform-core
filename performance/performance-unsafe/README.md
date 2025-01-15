@@ -1,2 +1,2 @@
-This library is a **compile-time** only dependency for Android.
+This library is a dependency for Android only.
 It is not to be used for other targets.

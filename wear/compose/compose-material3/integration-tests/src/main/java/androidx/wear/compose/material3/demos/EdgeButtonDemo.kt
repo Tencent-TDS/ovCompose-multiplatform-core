@@ -18,6 +18,7 @@ package androidx.wear.compose.material3.demos
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,7 +49,6 @@ import androidx.wear.compose.material3.EdgeButtonDefaults
 import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.RadioButton
 import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.ScreenScaffoldDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
@@ -71,6 +71,7 @@ fun EdgeButtonBelowLazyColumnDemo() {
         val state = rememberLazyListState()
         ScreenScaffold(
             scrollState = state,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 20.dp),
             edgeButton = {
                 EdgeButton(
                     onClick = {},
@@ -80,19 +81,12 @@ fun EdgeButtonBelowLazyColumnDemo() {
                     Text(labels[selectedLabel.intValue], color = Color.White)
                 }
             }
-        ) {
+        ) { contentPadding ->
             LazyColumn(
                 state = state,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                contentPadding =
-                    ScreenScaffoldDefaults.contentPaddingWithEdgeButton(
-                        edgeButtonSize = EdgeButtonSize.Large,
-                        10.dp,
-                        20.dp,
-                        10.dp,
-                        10.dp
-                    ),
+                contentPadding = contentPadding,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(labels.size) {
@@ -126,6 +120,7 @@ fun EdgeButtonBelowScalingLazyColumnDemo() {
         val state = rememberScalingLazyListState()
         ScreenScaffold(
             scrollState = state,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 20.dp),
             edgeButton = {
                 EdgeButton(
                     onClick = {},
@@ -135,19 +130,12 @@ fun EdgeButtonBelowScalingLazyColumnDemo() {
                     Text(labels[selectedLabel.intValue], color = Color.White)
                 }
             }
-        ) {
+        ) { contentPadding ->
             ScalingLazyColumn(
                 state = state,
                 modifier = Modifier.fillMaxSize(),
                 autoCentering = null,
-                contentPadding =
-                    ScreenScaffoldDefaults.contentPaddingWithEdgeButton(
-                        edgeButtonSize = EdgeButtonSize.Medium,
-                        10.dp,
-                        20.dp,
-                        10.dp,
-                        10.dp
-                    ),
+                contentPadding = contentPadding,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 items(labels.size) {
@@ -270,6 +258,7 @@ fun EdgeButtonConfigurableDemo() {
         val state = rememberScalingLazyListState()
         ScreenScaffold(
             scrollState = state,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 20.dp),
             edgeButton = {
                 EdgeButton(
                     onClick = {},
@@ -293,18 +282,12 @@ fun EdgeButtonConfigurableDemo() {
                     }
                 }
             }
-        ) {
+        ) { contentPadding ->
             ScalingLazyColumn(
                 state = state,
                 modifier = Modifier.fillMaxSize(),
                 autoCentering = null,
-                contentPadding =
-                    ScreenScaffoldDefaults.contentPaddingWithEdgeButton(
-                        sizes[selectedSize].second,
-                        10.dp,
-                        20.dp,
-                        10.dp
-                    ),
+                contentPadding = contentPadding,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 selection(

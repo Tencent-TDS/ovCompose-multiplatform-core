@@ -17,7 +17,6 @@
 package androidx.wear.protolayout.material3
 
 import android.content.Context
-import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.ColorBuilders.argb
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
@@ -34,6 +33,8 @@ import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.material3.Typography.TypographyToken
 import androidx.wear.protolayout.material3.tokens.ColorTokens
 import androidx.wear.protolayout.material3.tokens.ShapeTokens
+import androidx.wear.protolayout.types.LayoutColor
+import androidx.wear.protolayout.types.argb
 
 /**
  * Receiver scope which is used by all ProtoLayout Material3 components and layout to support
@@ -71,6 +72,7 @@ internal constructor(
     internal val defaultTextElementStyle: TextElementStyle,
     internal val defaultIconStyle: IconStyle,
     internal val defaultBackgroundImageStyle: BackgroundImageStyle,
+    internal val defaultAvatarImageStyle: AvatarImageStyle,
 ) {
     /** Color Scheme used within this scope and its components. */
     public val colorScheme: ColorScheme = theme.colorScheme
@@ -81,7 +83,8 @@ internal constructor(
     internal fun withStyle(
         defaultTextElementStyle: TextElementStyle = this.defaultTextElementStyle,
         defaultIconStyle: IconStyle = this.defaultIconStyle,
-        defaultBackgroundImageStyle: BackgroundImageStyle = this.defaultBackgroundImageStyle
+        defaultBackgroundImageStyle: BackgroundImageStyle = this.defaultBackgroundImageStyle,
+        defaultAvatarImageStyle: AvatarImageStyle = this.defaultAvatarImageStyle
     ): MaterialScope =
         MaterialScope(
             context = context,
@@ -90,7 +93,8 @@ internal constructor(
             allowDynamicTheme = allowDynamicTheme,
             defaultTextElementStyle = defaultTextElementStyle,
             defaultIconStyle = defaultIconStyle,
-            defaultBackgroundImageStyle = defaultBackgroundImageStyle
+            defaultBackgroundImageStyle = defaultBackgroundImageStyle,
+            defaultAvatarImageStyle = defaultAvatarImageStyle
         )
 }
 
@@ -135,7 +139,8 @@ public fun materialScope(
                 ),
             defaultTextElementStyle = TextElementStyle(),
             defaultIconStyle = IconStyle(),
-            defaultBackgroundImageStyle = BackgroundImageStyle()
+            defaultBackgroundImageStyle = BackgroundImageStyle(),
+            defaultAvatarImageStyle = AvatarImageStyle()
         )
         .layout()
 
@@ -143,7 +148,7 @@ public fun materialScope(
 
 internal class TextElementStyle(
     @TypographyToken val typography: Int = Typography.BODY_MEDIUM,
-    val color: ColorProp = argb(ColorTokens.PRIMARY),
+    val color: LayoutColor = ColorTokens.PRIMARY.argb,
     val italic: Boolean = false,
     val underline: Boolean = false,
     val scalable: Boolean = TypographyFontSelection.getFontScalability(typography),
@@ -154,16 +159,24 @@ internal class TextElementStyle(
 
 internal class IconStyle(
     val size: ImageDimension = 24.toDp(),
-    val tintColor: ColorProp = argb(ColorTokens.PRIMARY),
+    val tintColor: LayoutColor = ColorTokens.PRIMARY.argb,
 )
 
 internal class BackgroundImageStyle(
     val width: ImageDimension = expand(),
     val height: ImageDimension = expand(),
-    val overlayColor: ColorProp = argb(ColorTokens.BACKGROUND).withOpacity(/* ratio= */ 0.6f),
+    val overlayColor: LayoutColor = ColorTokens.BACKGROUND.argb.withOpacity(/* ratio= */ 0.6f),
     val overlayWidth: ContainerDimension = expand(),
     val overlayHeight: ContainerDimension = expand(),
     val shape: Corner = ShapeTokens.CORNER_LARGE,
+    @ContentScaleMode
+    val contentScaleMode: Int = LayoutElementBuilders.CONTENT_SCALE_MODE_FILL_BOUNDS
+)
+
+internal class AvatarImageStyle(
+    val width: ImageDimension = 24.toDp(),
+    val height: ImageDimension = 24.toDp(),
+    val shape: Corner = ShapeTokens.CORNER_FULL,
     @ContentScaleMode
     val contentScaleMode: Int = LayoutElementBuilders.CONTENT_SCALE_MODE_FILL_BOUNDS
 )

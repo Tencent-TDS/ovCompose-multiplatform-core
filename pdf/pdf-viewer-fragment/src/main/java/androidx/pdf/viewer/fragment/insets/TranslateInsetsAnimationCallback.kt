@@ -17,11 +17,9 @@
 package androidx.pdf.viewer.fragment.insets
 
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 
 /**
  * A callback that will update bottom margin for provided view as per keyboard visibility.
@@ -72,12 +70,14 @@ internal class TranslateInsetsAnimationCallback(
             keyboardTop = screenHeight - keyboardInsets.bottom
         }
 
-        // Net margin wrt pdf container bottom
-        val margin =
-            if (absoluteContainerBottom >= keyboardTop) absoluteContainerBottom - keyboardTop else 0
+        // Calculate the required translationY value for the view
+        val translationY =
+            if (absoluteContainerBottom >= keyboardTop)
+                (keyboardTop - absoluteContainerBottom).toFloat()
+            else 0f
 
-        // Update bottom margin for view
-        view.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = margin }
+        // Apply the translationY to the view
+        view.translationY = translationY
 
         return insets
     }

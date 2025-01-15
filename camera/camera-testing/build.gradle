@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     // ensuring implementation versions stay consistent with androidTestImplementation
     def testCoreVersion = "1.5.0"
     def testRunnerVersion = "1.5.2"
@@ -40,7 +41,7 @@ dependencies {
     implementation("androidx.test:runner:$testRunnerVersion")
 
     api("androidx.annotation:annotation:1.8.1")
-    implementation(project(':camera:camera-camera2-pipe-integration'))
+    implementation(project(":camera:camera-camera2-pipe-integration"))
     api(project(":camera:camera-core"))
     api(project(":camera:camera-lifecycle"))
     api(project(":camera:camera-video"))
@@ -78,6 +79,8 @@ dependencies {
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
         externalNativeBuild {
             cmake {
@@ -97,10 +100,10 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version libs.versions.cmake.get()
+            version = libs.versions.cmake.get()
         }
     }
-    namespace "androidx.camera.testing"
+    namespace = "androidx.camera.testing"
 }
 
 androidx {

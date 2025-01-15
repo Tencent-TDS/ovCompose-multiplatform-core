@@ -20,6 +20,7 @@ import android.graphics.Point
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -33,10 +34,8 @@ import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.EdgeButton
-import androidx.wear.compose.material3.EdgeButtonSize
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.ScreenScaffoldDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.scrollTransform
 import kotlinx.coroutines.launch
@@ -50,6 +49,7 @@ val TransformingLazyColumnBenchmark =
                 AppScaffold {
                     ScreenScaffold(
                         state,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 20.dp),
                         edgeButton = {
                             EdgeButton(
                                 onClick = { coroutineScope.launch { state.scrollToItem(1) } }
@@ -57,17 +57,10 @@ val TransformingLazyColumnBenchmark =
                                 Text("To top")
                             }
                         }
-                    ) {
+                    ) { contentPadding ->
                         TransformingLazyColumn(
                             state = state,
-                            contentPadding =
-                                ScreenScaffoldDefaults.contentPaddingWithEdgeButton(
-                                    EdgeButtonSize.Small,
-                                    start = 10.dp,
-                                    end = 10.dp,
-                                    top = 20.dp,
-                                    extraBottom = 20.dp
-                                ),
+                            contentPadding = contentPadding,
                             modifier =
                                 Modifier.background(MaterialTheme.colorScheme.background)
                                     .semantics { contentDescription = CONTENT_DESCRIPTION }

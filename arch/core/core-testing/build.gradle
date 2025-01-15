@@ -52,5 +52,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.arch.core.testing"
+    namespace = "androidx.arch.core.testing"
 }

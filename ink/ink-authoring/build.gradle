@@ -18,56 +18,54 @@ import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
 plugins {
-  id("AndroidXPlugin")
-  id("com.android.library")
+    id("AndroidXPlugin")
+    id("com.android.library")
 }
 
 androidXMultiplatform {
-  android()
+    android()
 
-  defaultPlatform(PlatformIdentifier.ANDROID)
+    defaultPlatform(PlatformIdentifier.ANDROID)
 
-  sourceSets {
+    sourceSets {
 
-    androidMain {
-      dependencies {
-        implementation("androidx.collection:collection:1.4.3")
-        implementation("androidx.graphics:graphics-core:1.0.2")
-        implementation("androidx.fragment:fragment-ktx:1.3.0")
-        implementation("androidx.test.espresso:espresso-idling-resource:3.5.0")
-        implementation("androidx.core:core:1.1.0")
-        implementation("androidx.core:core-ktx:1.12.0")
-        implementation(project(":ink:ink-nativeloader"))
-        implementation(project(":ink:ink-geometry"))
-        implementation(project(":ink:ink-brush"))
-        implementation(project(":ink:ink-strokes"))
-        implementation(project(":ink:ink-rendering"))
-      }
+        androidMain {
+            dependencies {
+                implementation("androidx.collection:collection:1.4.3")
+                implementation("androidx.graphics:graphics-core:1.0.2")
+                implementation("androidx.fragment:fragment-ktx:1.3.0")
+                implementation("androidx.test.espresso:espresso-idling-resource:3.5.0")
+                implementation("androidx.core:core:1.1.0")
+                implementation("androidx.core:core-ktx:1.12.0")
+                implementation(project(":ink:ink-nativeloader"))
+                implementation(project(":ink:ink-geometry"))
+                implementation(project(":ink:ink-brush"))
+                implementation(project(":ink:ink-strokes"))
+                implementation(project(":ink:ink-rendering"))
+            }
+        }
+
+        androidInstrumentedTest {
+            dependencies {
+                implementation(libs.testExtJunit)
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
+                implementation(libs.espressoCore)
+                implementation(libs.junit)
+                implementation(libs.kotlinTest)
+                implementation(libs.mockitoCore4)
+                implementation(libs.mockitoKotlin4)
+                implementation(libs.dexmakerMockito)
+                implementation(libs.truth)
+                implementation(project(":test:screenshot:screenshot"))
+            }
+        }
     }
-
-    androidInstrumentedTest {
-      dependencies {
-        implementation(libs.testExtJunit)
-        implementation(libs.testRules)
-        implementation(libs.testRunner)
-        implementation(libs.espressoCore)
-        implementation(libs.junit)
-        implementation(libs.kotlinTest)
-        implementation(libs.mockitoCore4)
-        implementation(libs.mockitoKotlin4)
-        implementation(libs.dexmakerMockito)
-        implementation(libs.truth)
-        implementation(project(":test:screenshot:screenshot"))
-      }
-    }
-  }
 }
 
 android {
-  namespace = "androidx.ink.authoring"
-  compileSdk = 35
-  sourceSets.androidTest.assets.srcDirs +=
-      project.rootDir.absolutePath + "/../../golden/ink/ink-authoring"
+    namespace = "androidx.ink.authoring"
+    compileSdk = 35
 }
 
 androidx {
@@ -75,4 +73,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Author beautiful strokes"
+    addGoldenImageAssets()
 }

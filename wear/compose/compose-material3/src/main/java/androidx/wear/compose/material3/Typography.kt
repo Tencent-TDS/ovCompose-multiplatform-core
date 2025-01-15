@@ -110,31 +110,31 @@ import androidx.wear.compose.material3.tokens.TypographyTokens
  */
 // TODO(b/273526150) Review documentation for typography, add examples for each size.
 @Immutable
-class Typography
+public class Typography
 internal constructor(
-    val arcLarge: TextStyle,
-    val arcMedium: TextStyle,
-    val arcSmall: TextStyle,
-    val displayLarge: TextStyle,
-    val displayMedium: TextStyle,
-    val displaySmall: TextStyle,
-    val titleLarge: TextStyle,
-    val titleMedium: TextStyle,
-    val titleSmall: TextStyle,
-    val labelLarge: TextStyle,
-    val labelMedium: TextStyle,
-    val labelSmall: TextStyle,
-    val bodyLarge: TextStyle,
-    val bodyMedium: TextStyle,
-    val bodySmall: TextStyle,
-    val bodyExtraSmall: TextStyle,
-    val numeralExtraLarge: TextStyle,
-    val numeralLarge: TextStyle,
-    val numeralMedium: TextStyle,
-    val numeralSmall: TextStyle,
-    val numeralExtraSmall: TextStyle,
+    public val arcLarge: TextStyle,
+    public val arcMedium: TextStyle,
+    public val arcSmall: TextStyle,
+    public val displayLarge: TextStyle,
+    public val displayMedium: TextStyle,
+    public val displaySmall: TextStyle,
+    public val titleLarge: TextStyle,
+    public val titleMedium: TextStyle,
+    public val titleSmall: TextStyle,
+    public val labelLarge: TextStyle,
+    public val labelMedium: TextStyle,
+    public val labelSmall: TextStyle,
+    public val bodyLarge: TextStyle,
+    public val bodyMedium: TextStyle,
+    public val bodySmall: TextStyle,
+    public val bodyExtraSmall: TextStyle,
+    public val numeralExtraLarge: TextStyle,
+    public val numeralLarge: TextStyle,
+    public val numeralMedium: TextStyle,
+    public val numeralSmall: TextStyle,
+    public val numeralExtraSmall: TextStyle,
 ) {
-    constructor(
+    public constructor(
         defaultFontFamily: FontFamily = FontFamily.Default,
         arcLarge: TextStyle = TypographyTokens.ArcLarge,
         arcMedium: TextStyle = TypographyTokens.ArcMedium,
@@ -182,7 +182,7 @@ internal constructor(
     )
 
     /** Returns a copy of this Typography, optionally overriding some of the values. */
-    fun copy(
+    public fun copy(
         arcLarge: TextStyle = this.arcLarge,
         arcMedium: TextStyle = this.arcMedium,
         arcSmall: TextStyle = this.arcSmall,

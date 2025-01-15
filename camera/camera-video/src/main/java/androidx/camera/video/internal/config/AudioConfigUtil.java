@@ -19,8 +19,6 @@ package androidx.camera.video.internal.config;
 import android.util.Range;
 import android.util.Rational;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.EncoderProfilesProxy.AudioProfileProxy;
 import androidx.camera.core.impl.Timebase;
@@ -31,6 +29,9 @@ import androidx.camera.video.internal.audio.AudioSettings;
 import androidx.camera.video.internal.audio.AudioSource;
 import androidx.camera.video.internal.encoder.AudioEncoderConfig;
 import androidx.core.util.Supplier;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,8 +65,7 @@ public final class AudioConfigUtil {
      *                         there is no relevant encoder profiles.
      * @return the audio MimeInfo.
      */
-    @NonNull
-    public static AudioMimeInfo resolveAudioMimeInfo(@NonNull MediaSpec mediaSpec,
+    public static @NonNull AudioMimeInfo resolveAudioMimeInfo(@NonNull MediaSpec mediaSpec,
             @Nullable VideoValidatedEncoderProfilesProxy encoderProfiles) {
         String mediaSpecAudioMime = MediaSpec.outputFormatToAudioMime(mediaSpec.getOutputFormat());
         int mediaSpecAudioProfile =
@@ -123,8 +123,7 @@ public final class AudioConfigUtil {
      * @param audioSpec     the audio spec.
      * @return an AudioSettings.
      */
-    @NonNull
-    public static AudioSettings resolveAudioSettings(@NonNull AudioMimeInfo audioMimeInfo,
+    public static @NonNull AudioSettings resolveAudioSettings(@NonNull AudioMimeInfo audioMimeInfo,
             @NonNull AudioSpec audioSpec) {
         Supplier<AudioSettings> settingsSupplier;
         AudioProfileProxy compatibleAudioProfile = audioMimeInfo.getCompatibleAudioProfile();
@@ -147,10 +146,9 @@ public final class AudioConfigUtil {
      * @param audioSpec           the audio spec.
      * @return a AudioEncoderConfig.
      */
-    @NonNull
-    public static AudioEncoderConfig resolveAudioEncoderConfig(@NonNull AudioMimeInfo audioMimeInfo,
-            @NonNull Timebase inputTimebase, @NonNull AudioSettings audioSettings,
-            @NonNull AudioSpec audioSpec) {
+    public static @NonNull AudioEncoderConfig resolveAudioEncoderConfig(
+            @NonNull AudioMimeInfo audioMimeInfo, @NonNull Timebase inputTimebase,
+            @NonNull AudioSettings audioSettings, @NonNull AudioSpec audioSpec) {
         Supplier<AudioEncoderConfig> configSupplier;
         AudioProfileProxy compatibleAudioProfile = audioMimeInfo.getCompatibleAudioProfile();
         if (compatibleAudioProfile != null) {

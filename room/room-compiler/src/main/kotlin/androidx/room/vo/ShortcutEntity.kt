@@ -19,7 +19,7 @@ package androidx.room.vo
 /** Represents a shortcut method parameter entity. */
 data class ShortcutEntity(
     private val entity: Entity, // the actual entity
-    private val partialEntity: Pojo? // the partial entity
+    private val partialEntity: DataClass? // the partial entity
 ) {
     val tableName = entity.tableName
     val entityClassName = entity.className
@@ -35,6 +35,6 @@ data class ShortcutEntity(
             entity.primaryKey.copy(fields = Fields(partialEntityPrimaryKeyFields))
         }
     }
-    val pojo = partialEntity ?: entity
+    val dataClass = partialEntity ?: entity
     val isPartialEntity = partialEntity != null
 }

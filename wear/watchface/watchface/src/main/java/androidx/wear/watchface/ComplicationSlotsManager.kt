@@ -17,6 +17,7 @@
 package androidx.wear.watchface
 
 import android.annotation.SuppressLint
+import android.app.ActivityOptions
 import android.app.PendingIntent.CanceledException
 import android.content.ComponentName
 import android.content.Context
@@ -484,7 +485,18 @@ public class ComplicationSlotsManager(
         }
 
         try {
-            data.tapAction?.send()
+            // BAL Opt-in as a pending intent sender. See:
+            // https://developer.android.com/guide/components/activities/background-starts#sender-pendingintent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val options: ActivityOptions =
+                    ActivityOptions.makeBasic()
+                        .setPendingIntentBackgroundActivityStartMode(
+                            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                data.tapAction?.send(options.toBundle())
+            } else {
+                data.tapAction?.send()
+            }
         } catch (e: CanceledException) {
             // In case the PendingIntent is no longer able to execute the request.
             // We don't need to do anything here.

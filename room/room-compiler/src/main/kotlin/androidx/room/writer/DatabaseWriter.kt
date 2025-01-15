@@ -40,7 +40,7 @@ import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.decapitalize
 import androidx.room.ext.stripNonJava
 import androidx.room.solver.CodeGenScope
-import androidx.room.vo.DaoMethod
+import androidx.room.vo.DaoFunction
 import androidx.room.vo.Database
 import java.util.Locale
 import javax.lang.model.element.Modifier
@@ -112,7 +112,7 @@ class DatabaseWriter(
                         KotlinCollectionMemberNames.MUTABLE_MAP_OF
                     )
             }
-            database.daoMethods.forEach {
+            database.daoFunctions.forEach {
                 addStatement(
                     "%L.put(%L, %T.%L())",
                     typeConvertersVar,
@@ -121,7 +121,7 @@ class DatabaseWriter(
                         CodeLanguage.KOTLIN -> XCodeBlock.ofKotlinClassLiteral(it.dao.typeName)
                     },
                     it.dao.implTypeName,
-                    DaoWriter.GET_LIST_OF_TYPE_CONVERTERS_METHOD
+                    DaoWriter.GET_LIST_OF_TYPE_CONVERTERS_FUNCTION
                 )
             }
             addStatement("return %L", typeConvertersVar)
@@ -351,7 +351,7 @@ class DatabaseWriter(
 
     private fun addDaoImpls(builder: XTypeSpec.Builder) {
         val scope = CodeGenScope(this)
-        database.daoMethods.forEach { method ->
+        database.daoFunctions.forEach { method ->
             val name =
                 method.dao.typeName.simpleNames.first().decapitalize(Locale.US).stripNonJava()
             val privateDaoProperty =
@@ -411,7 +411,7 @@ class DatabaseWriter(
         }
     }
 
-    private fun createDaoGetter(method: DaoMethod, daoProperty: XPropertySpec): XFunSpec {
+    private fun createDaoGetter(method: DaoFunction, daoProperty: XPropertySpec): XFunSpec {
         val body =
             XCodeBlock.builder().applyTo { language ->
                 // For Java we implement the memoization logic in the Dao getter, meanwhile for

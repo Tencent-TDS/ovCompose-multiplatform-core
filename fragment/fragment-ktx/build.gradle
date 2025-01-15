@@ -61,5 +61,5 @@ androidx {
 }
 
 android {
-    namespace "androidx.fragment.ktx"
+    namespace = "androidx.fragment.ktx"
 }

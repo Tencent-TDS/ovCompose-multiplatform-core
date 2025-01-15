@@ -26,14 +26,15 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.UiThread;
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
 import androidx.camera.viewfinder.internal.utils.Logger;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The SurfaceView implementation for {@link CameraViewfinder}.
@@ -44,13 +45,11 @@ final class SurfaceViewImplementation extends ViewfinderImplementation {
 
     // Synthetic Accessor
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    SurfaceView mSurfaceView;
+    @Nullable SurfaceView mSurfaceView;
 
     // Synthetic Accessor
     @SuppressWarnings("WeakerAccess")
-    @NonNull
-    final SurfaceRequestCallback mSurfaceRequestCallback = new SurfaceRequestCallback();
+    final @NonNull SurfaceRequestCallback mSurfaceRequestCallback = new SurfaceRequestCallback();
 
     SurfaceViewImplementation(@NonNull FrameLayout parent,
             @NonNull ViewfinderTransformation viewfinderTransformation) {
@@ -95,9 +94,8 @@ final class SurfaceViewImplementation extends ViewfinderImplementation {
      * levels below 24.
      */
     @RequiresApi(24)
-    @Nullable
     @Override
-    Bitmap getViewfinderBitmap() {
+    @Nullable Bitmap getViewfinderBitmap() {
         // If the viewfinder surface isn't ready yet or isn't valid, return null
         if (mSurfaceView == null || mSurfaceView.getHolder().getSurface() == null
                 || !mSurfaceView.getHolder().getSurface().isValid()) {
@@ -121,9 +119,8 @@ final class SurfaceViewImplementation extends ViewfinderImplementation {
         return bitmap;
     }
 
-    @Nullable
     @Override
-    View getViewfinder() {
+    @Nullable View getViewfinder() {
         return mSurfaceView;
     }
 
@@ -138,18 +135,15 @@ final class SurfaceViewImplementation extends ViewfinderImplementation {
         // Target Surface size. Only complete the SurfaceRequest when the size of the Surface
         // matches this value.
         // Guarded by the UI thread.
-        @Nullable
-        private Size mTargetSize;
+        private @Nullable Size mTargetSize;
 
         // SurfaceRequest to set when the target size is met.
         // Guarded by the UI thread.
-        @Nullable
-        private ViewfinderSurfaceRequest mSurfaceRequest;
+        private @Nullable ViewfinderSurfaceRequest mSurfaceRequest;
 
         // The cached size of the current Surface.
         // Guarded by the UI thread.
-        @Nullable
-        private Size mCurrentSurfaceSize;
+        private @Nullable Size mCurrentSurfaceSize;
 
         // Guarded by the UI thread.
         private boolean mWasSurfaceProvided = false;
@@ -270,7 +264,7 @@ final class SurfaceViewImplementation extends ViewfinderImplementation {
         }
 
         static void pixelCopyRequest(@NonNull SurfaceView source, @NonNull Bitmap dest,
-                @NonNull PixelCopy.OnPixelCopyFinishedListener listener, @NonNull Handler handler) {
+                PixelCopy.@NonNull OnPixelCopyFinishedListener listener, @NonNull Handler handler) {
             PixelCopy.request(source, dest, listener, handler);
         }
     }

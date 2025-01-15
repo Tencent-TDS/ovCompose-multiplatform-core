@@ -27,6 +27,7 @@ import androidx.annotation.RestrictTo
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.pdf.idlingresource.PdfIdlingResource
+import androidx.pdf.metrics.EventCallback
 import androidx.pdf.testapp.R
 import androidx.pdf.viewer.fragment.PdfViewerFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -40,6 +41,17 @@ internal class TestPdfViewerFragment : PdfViewerFragment() {
 
     var documentLoaded = false
     var documentError: Throwable? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        super.setEventCallback(
+            object : EventCallback {
+                override fun onPasswordRequested() {
+                    pdfLoadingIdlingResource.decrement()
+                }
+            }
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

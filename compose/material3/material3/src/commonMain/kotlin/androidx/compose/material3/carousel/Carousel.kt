@@ -119,7 +119,7 @@ fun HorizontalMultiBrowseCarousel(
                     density = this,
                     carouselMainAxisSize = availableSpace,
                     preferredItemSize = preferredItemWidth.toPx(),
-                    itemCount = state.itemCountState.value.invoke(),
+                    itemCount = state.pagerState.pageCountState.value.invoke(),
                     itemSpacing = itemSpacingPx,
                     minSmallItemSize = minSmallItemWidth.toPx(),
                     maxSmallItemSize = maxSmallItemWidth.toPx(),

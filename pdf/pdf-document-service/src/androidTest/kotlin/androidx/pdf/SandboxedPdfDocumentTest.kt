@@ -33,6 +33,7 @@ import com.google.common.truth.Truth.assertThat
 import junit.framework.TestCase.assertFalse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -148,6 +149,21 @@ class SandboxedPdfDocumentTest {
             assertThat(results[0].size == expectedFirstPageResults).isTrue()
             assertThat(results[1].size == expectedSecondPageResults).isTrue()
             assertThat(results[2].size == expectedThirdPageResults).isTrue()
+        }
+    }
+
+    @Test
+    fun searchDocument_fullDocumentSearch_withSinglePageResults() = runTest {
+        withDocument(PDF_DOCUMENT) { document ->
+            val query = "pages are all the same size"
+            val pageRange = 0..2
+
+            val results = document.searchDocument(query, pageRange)
+
+            // Assert sparse array doesn't contain empty result lists
+            assertEquals(1, results.size())
+            // Assert single result on first page
+            assertEquals(1, results[0].size)
         }
     }
 

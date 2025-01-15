@@ -1,6 +1,13 @@
 // Signature format: 4.0
 package androidx.browser.auth {
 
+  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public interface AuthTabCallback {
+    method public void onExtraCallback(String, android.os.Bundle);
+    method public android.os.Bundle onExtraCallbackWithResult(String, android.os.Bundle);
+    method public void onNavigationEvent(int, android.os.Bundle);
+    method public void onWarmupCompleted(android.os.Bundle);
+  }
+
   public final class AuthTabColorSchemeParams {
     method @ColorInt public Integer? getNavigationBarColor();
     method @ColorInt public Integer? getNavigationBarDividerColor();
@@ -17,6 +24,8 @@ package androidx.browser.auth {
 
   @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public class AuthTabIntent {
     method public static androidx.browser.auth.AuthTabColorSchemeParams getColorSchemeParams(android.content.Intent, @IntRange(from=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_LIGHT, to=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_DARK) int);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabSession.PendingSession? getPendingSession();
+    method public androidx.browser.auth.AuthTabSession? getSession();
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalEphemeralBrowsing public boolean isEphemeralBrowsingEnabled();
     method public void launch(androidx.activity.result.ActivityResultLauncher<android.content.Intent!>, android.net.Uri, String);
     method public void launch(androidx.activity.result.ActivityResultLauncher<android.content.Intent!>, android.net.Uri, String, String);
@@ -45,6 +54,22 @@ package androidx.browser.auth {
     method public androidx.browser.auth.AuthTabIntent.Builder setColorSchemeParams(@IntRange(from=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_LIGHT, to=androidx.browser.customtabs.CustomTabsIntent.COLOR_SCHEME_DARK) int, androidx.browser.auth.AuthTabColorSchemeParams);
     method public androidx.browser.auth.AuthTabIntent.Builder setDefaultColorSchemeParams(androidx.browser.auth.AuthTabColorSchemeParams);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalEphemeralBrowsing public androidx.browser.auth.AuthTabIntent.Builder setEphemeralBrowsingEnabled(boolean);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabIntent.Builder setPendingSession(androidx.browser.auth.AuthTabSession.PendingSession);
+    method public androidx.browser.auth.AuthTabIntent.Builder setSession(androidx.browser.auth.AuthTabSession);
+  }
+
+  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public final class AuthTabSession {
+  }
+
+  @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static class AuthTabSession.PendingSession {
+  }
+
+  @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public class AuthTabSessionToken {
+    method public androidx.browser.auth.AuthTabCallback? getCallback();
+    method public android.app.PendingIntent? getId();
+    method public static androidx.browser.auth.AuthTabSessionToken? getSessionTokenFromIntent(android.content.Intent);
+    method public boolean hasId();
+    method public boolean isAssociatedWith(androidx.browser.auth.AuthTabSession);
   }
 
   @SuppressCompatibility @RequiresOptIn @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) public @interface ExperimentalAuthTab {
@@ -150,6 +175,7 @@ package androidx.browser.customtabs {
   }
 
   public class CustomTabsClient {
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.auth.AuthTabSession? attachAuthTabSession(androidx.browser.auth.AuthTabSession.PendingSession);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public androidx.browser.customtabs.CustomTabsSession? attachSession(androidx.browser.customtabs.CustomTabsSession.PendingSession);
     method public static boolean bindCustomTabsService(android.content.Context, String?, androidx.browser.customtabs.CustomTabsServiceConnection);
     method public static boolean bindCustomTabsServicePreservePriority(android.content.Context, String?, androidx.browser.customtabs.CustomTabsServiceConnection);
@@ -158,6 +184,9 @@ package androidx.browser.customtabs {
     method public static String? getPackageName(android.content.Context, java.util.List<java.lang.String!>?);
     method public static String? getPackageName(android.content.Context, java.util.List<java.lang.String!>?, boolean);
     method public static boolean isSetNetworkSupported(android.content.Context, String);
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?);
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab public androidx.browser.auth.AuthTabSession? newAuthTabSession(androidx.browser.auth.AuthTabCallback?, java.util.concurrent.Executor?, int);
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.auth.AuthTabSession.PendingSession newPendingAuthTabSession(android.content.Context, int, java.util.concurrent.Executor?, androidx.browser.auth.AuthTabCallback?);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPendingSession public static androidx.browser.customtabs.CustomTabsSession.PendingSession newPendingSession(android.content.Context, androidx.browser.customtabs.CustomTabsCallback?, int);
     method public androidx.browser.customtabs.CustomTabsSession? newSession(androidx.browser.customtabs.CustomTabsCallback?);
     method public androidx.browser.customtabs.CustomTabsSession? newSession(androidx.browser.customtabs.CustomTabsCallback?, int);
@@ -313,10 +342,13 @@ package androidx.browser.customtabs {
 
   public abstract class CustomTabsService extends android.app.Service {
     ctor public CustomTabsService();
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab protected boolean cleanUpSession(androidx.browser.auth.AuthTabSessionToken);
     method protected boolean cleanUpSession(androidx.browser.customtabs.CustomTabsSessionToken);
     method protected abstract android.os.Bundle? extraCommand(String, android.os.Bundle?);
     method protected boolean isEngagementSignalsApiAvailable(androidx.browser.customtabs.CustomTabsSessionToken, android.os.Bundle);
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalEphemeralBrowsing protected boolean isEphemeralBrowsingSupported(android.os.Bundle);
     method protected abstract boolean mayLaunchUrl(androidx.browser.customtabs.CustomTabsSessionToken, android.net.Uri?, android.os.Bundle?, java.util.List<android.os.Bundle!>?);
+    method @SuppressCompatibility @androidx.browser.auth.ExperimentalAuthTab protected boolean newAuthTabSession(androidx.browser.auth.AuthTabSessionToken);
     method protected abstract boolean newSession(androidx.browser.customtabs.CustomTabsSessionToken);
     method public android.os.IBinder onBind(android.content.Intent?);
     method @androidx.browser.customtabs.CustomTabsService.Result protected abstract int postMessage(androidx.browser.customtabs.CustomTabsSessionToken, String, android.os.Bundle?);
@@ -362,6 +394,7 @@ package androidx.browser.customtabs {
   public final class CustomTabsSession {
     method @VisibleForTesting public static androidx.browser.customtabs.CustomTabsSession createMockSessionForTesting(android.content.ComponentName);
     method public boolean isEngagementSignalsApiAvailable(android.os.Bundle) throws android.os.RemoteException;
+    method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalEphemeralBrowsing public boolean isEphemeralBrowsingSupported(android.os.Bundle) throws android.os.RemoteException;
     method public boolean mayLaunchUrl(android.net.Uri?, android.os.Bundle?, java.util.List<android.os.Bundle!>?);
     method @androidx.browser.customtabs.CustomTabsService.Result public int postMessage(String, android.os.Bundle?);
     method @SuppressCompatibility @androidx.browser.customtabs.ExperimentalPrefetch public void prefetch(android.net.Uri, androidx.browser.customtabs.PrefetchOptions);

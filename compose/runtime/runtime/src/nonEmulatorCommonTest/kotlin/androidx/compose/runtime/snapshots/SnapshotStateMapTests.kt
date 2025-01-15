@@ -24,15 +24,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import androidx.compose.runtime.runTest
-import kotlinx.test.IgnoreJsAndNative
+import kotlinx.coroutines.test.runTest
+import kotlinx.test.IgnoreJsTarget
 
 class SnapshotStateMapTests {
     @Test
@@ -133,10 +133,7 @@ class SnapshotStateMapTests {
     }
 
     @Test
-    @IgnoreJsAndNative
-    // Ignored on js and native:
-    // test passes if the order is changed to
-    // assertEquals(entries.first, entries.second)
+    @IgnoreJsTarget
     fun validateEntriesIterator() {
         validateRead { map, normalMap ->
             for (entries in map.entries.zip(normalMap.entries)) {
@@ -382,11 +379,7 @@ class SnapshotStateMapTests {
         }
     }
 
-    @Test @IgnoreJsAndNative
-    // Ignored for native:
-    // SnapshotStateMap removes a correct element (same as on jvm and js) - entry(key=1,value=1f)
-    // The test fails because MutableMap (normalMap) removes entry(key=1, value=5f)
-    // due to an entry search by value starting from the end of an array (in native HashMap impl).
+    @Test
     fun validateValuesRemove() {
         validateWrite { map ->
             map.values.remove(1f)
@@ -479,8 +472,9 @@ class SnapshotStateMapTests {
     }
 
     @Test
+    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_new() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_new() = runTest {
         repeat(100) {
             val map = mutableStateMapOf<Int, String>()
             coroutineScope {
@@ -492,8 +486,9 @@ class SnapshotStateMapTests {
     }
 
     @Test
+    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_replace() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_replace() = runTest {
         repeat(100) {
             val map = mutableStateMapOf(*Array(100) { it to "default" })
             coroutineScope {
@@ -513,60 +508,64 @@ class SnapshotStateMapTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentMixingWriteApply_set() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) { index ->
-                        maps.fastForEach { map -> map[index] = index }
+    @IgnoreJsTarget // Not relevant in a single threaded environment
+    fun concurrentMixingWriteApply_set() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) { index ->
+                            maps.fastForEach { map -> map[index] = index }
 
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                            // Simulate the write observer
+                            channel.trySend(Unit)
+                        }
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentMixingWriteApply_clear() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) {
-                        maps.fastForEach { map ->
-                            repeat(10) { index -> map[index] = index }
-                            map.clear()
+    @IgnoreJsTarget // Not relevant in a single threaded environment
+    fun concurrentMixingWriteApply_clear() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) {
+                            maps.fastForEach { map ->
+                                repeat(10) { index -> map[index] = index }
+                                map.clear()
+                            }
+
+                            // Simulate the write observer
+                            channel.trySend(Unit)
                         }
-
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     fun toStringOfSnapshotStateMapDoesNotTriggerReadObserver() {

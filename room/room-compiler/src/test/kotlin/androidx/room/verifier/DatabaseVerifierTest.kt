@@ -399,7 +399,7 @@ class DatabaseVerifierTest(private val useLocalizedCollation: Boolean) {
             type = mock(XType::class.java),
             entities = entities,
             views = views,
-            daoMethods = emptyList(),
+            daoFunctions = emptyList(),
             version = -1,
             exportSchema = false,
             enableForeignKeys = false,

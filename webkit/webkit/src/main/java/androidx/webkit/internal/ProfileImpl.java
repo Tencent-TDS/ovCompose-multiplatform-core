@@ -16,12 +16,12 @@
 
 package androidx.webkit.internal;
 
+import android.os.CancellationSignal;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.ServiceWorkerController;
 import android.webkit.WebStorage;
 
-import androidx.core.os.CancellationSignal;
 import androidx.webkit.OutcomeReceiverCompat;
 import androidx.webkit.PrefetchException;
 import androidx.webkit.Profile;
@@ -33,6 +33,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationHandler;
+import java.util.concurrent.Executor;
 
 
 /**
@@ -106,6 +107,7 @@ public class ProfileImpl implements Profile {
     @Override
     public void prefetchUrlAsync(@NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull SpeculativeLoadingParameters params,
             @NonNull OutcomeReceiverCompat<Void, PrefetchException> callback) {
         ApiFeature.NoFramework feature = WebViewFeatureInternal.PROFILE_URL_PREFETCH;
@@ -114,13 +116,10 @@ public class ProfileImpl implements Profile {
                     BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
                             new SpeculativeLoadingParametersAdapter(params));
 
-            mProfileImpl.prefetchUrl(url, paramsBoundaryInterface,
+            mProfileImpl.prefetchUrl(url, cancellationSignal, callbackExecutor,
+                    paramsBoundaryInterface,
                     PrefetchOperationCallbackAdapter.buildInvocationHandler(callback));
 
-            if (cancellationSignal != null) {
-                cancellationSignal.setOnCancelListener(() -> mProfileImpl.cancelPrefetch(url,
-                        null));
-            }
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }
@@ -129,16 +128,12 @@ public class ProfileImpl implements Profile {
     @Override
     public void prefetchUrlAsync(@NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull OutcomeReceiverCompat<Void, PrefetchException> callback) {
         ApiFeature.NoFramework feature = WebViewFeatureInternal.PROFILE_URL_PREFETCH;
         if (feature.isSupportedByWebView()) {
-            mProfileImpl.prefetchUrl(url,
+            mProfileImpl.prefetchUrl(url, cancellationSignal, callbackExecutor,
                     PrefetchOperationCallbackAdapter.buildInvocationHandler(callback));
-
-            if (cancellationSignal != null) {
-                cancellationSignal.setOnCancelListener(() -> mProfileImpl.cancelPrefetch(url,
-                        null));
-            }
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }
@@ -146,10 +141,11 @@ public class ProfileImpl implements Profile {
 
     @Override
     public void clearPrefetchAsync(@NonNull String url,
+            @NonNull Executor callbackExecutor,
             @NonNull OutcomeReceiverCompat<Void, PrefetchException> callback) {
         ApiFeature.NoFramework feature = WebViewFeatureInternal.PROFILE_URL_PREFETCH;
         if (feature.isSupportedByWebView()) {
-            mProfileImpl.clearPrefetch(url,
+            mProfileImpl.clearPrefetch(url, callbackExecutor,
                     PrefetchOperationCallbackAdapter.buildInvocationHandler(callback));
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();

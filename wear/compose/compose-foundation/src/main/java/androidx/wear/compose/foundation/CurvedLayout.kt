@@ -40,15 +40,15 @@ import kotlin.math.sin
 /** Specifies how components will be laid down with respect to the anchor. */
 @kotlin.jvm.JvmInline
 public value class AnchorType internal constructor(internal val ratio: Float) {
-    companion object {
+    public companion object {
         /** Start the content of the [CurvedLayout] on the anchor */
-        val Start = AnchorType(0f)
+        public val Start: AnchorType = AnchorType(0f)
 
         /** Center the content of the [CurvedLayout] around the anchor */
-        val Center = AnchorType(0.5f)
+        public val Center: AnchorType = AnchorType(0.5f)
 
         /** End the content of the [CurvedLayout] on the anchor */
-        val End = AnchorType(1f)
+        public val End: AnchorType = AnchorType(1f)
     }
 
     override fun toString(): String {

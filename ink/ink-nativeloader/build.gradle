@@ -65,5 +65,4 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Native dependencies for Ink"
-    metalavaK2UastEnabled = false
 }

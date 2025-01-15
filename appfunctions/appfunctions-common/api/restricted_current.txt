@@ -1,0 +1,60 @@
+// Signature format: 4.0
+package androidx.appfunctions {
+
+  public interface AppFunctionContext {
+    method public String getCallingPackageName();
+    method public android.content.pm.SigningInfo getCallingPackageSigningInfo();
+    method public android.content.Context getContext();
+    property public abstract String callingPackageName;
+    property public abstract android.content.pm.SigningInfo callingPackageSigningInfo;
+    property public abstract android.content.Context context;
+  }
+
+  public final class AppFunctionException {
+    ctor public AppFunctionException(int errorCode, optional String? errorMessage);
+    method public int getErrorCategory();
+    method public int getErrorCode();
+    method public String? getErrorMessage();
+    property public final int errorCategory;
+    property public final int errorCode;
+    property public final String? errorMessage;
+    field public static final androidx.appfunctions.AppFunctionException.Companion Companion;
+    field public static final int ERROR_APP_UNKNOWN_ERROR = 3000; // 0xbb8
+    field public static final int ERROR_CANCELLED = 2001; // 0x7d1
+    field public static final int ERROR_CATEGORY_APP = 3; // 0x3
+    field public static final int ERROR_CATEGORY_REQUEST_ERROR = 1; // 0x1
+    field public static final int ERROR_CATEGORY_SYSTEM = 2; // 0x2
+    field public static final int ERROR_CATEGORY_UNKNOWN = 0; // 0x0
+    field public static final int ERROR_DENIED = 1000; // 0x3e8
+    field public static final int ERROR_DISABLED = 1002; // 0x3ea
+    field public static final int ERROR_FUNCTION_NOT_FOUND = 1003; // 0x3eb
+    field public static final int ERROR_INVALID_ARGUMENT = 1001; // 0x3e9
+    field public static final int ERROR_LIMIT_EXCEEDED = 1501; // 0x5dd
+    field public static final int ERROR_NOT_SUPPORTED = 3501; // 0xdad
+    field public static final int ERROR_PERMISSION_REQUIRED = 3500; // 0xdac
+    field public static final int ERROR_RESOURCE_ALREADY_EXISTS = 1502; // 0x5de
+    field public static final int ERROR_RESOURCE_NOT_FOUND = 1500; // 0x5dc
+    field public static final int ERROR_SYSTEM_ERROR = 2000; // 0x7d0
+  }
+
+  public static final class AppFunctionException.Companion {
+    property public static final int ERROR_APP_UNKNOWN_ERROR;
+    property public static final int ERROR_CANCELLED;
+    property public static final int ERROR_CATEGORY_APP;
+    property public static final int ERROR_CATEGORY_REQUEST_ERROR;
+    property public static final int ERROR_CATEGORY_SYSTEM;
+    property public static final int ERROR_CATEGORY_UNKNOWN;
+    property public static final int ERROR_DENIED;
+    property public static final int ERROR_DISABLED;
+    property public static final int ERROR_FUNCTION_NOT_FOUND;
+    property public static final int ERROR_INVALID_ARGUMENT;
+    property public static final int ERROR_LIMIT_EXCEEDED;
+    property public static final int ERROR_NOT_SUPPORTED;
+    property public static final int ERROR_PERMISSION_REQUIRED;
+    property public static final int ERROR_RESOURCE_ALREADY_EXISTS;
+    property public static final int ERROR_RESOURCE_NOT_FOUND;
+    property public static final int ERROR_SYSTEM_ERROR;
+  }
+
+}
+

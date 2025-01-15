@@ -34,19 +34,18 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
 import androidx.core.graphics.Insets;
 import androidx.core.test.R;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
-
 
 @RunWith(AndroidJUnit4.class)
 @MediumTest
@@ -136,9 +135,9 @@ public class ViewGroupCompatTest extends BaseInstrumentationTestCase<ViewCompatA
             // View.OnApplyWindowInsetsListener set by ViewGroupCompat#installCompatInsetsDispatch
             ViewCompat.setWindowInsetsAnimationCallback(mViewGroup,
                     new WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
-                        @NonNull
                         @Override
-                        public WindowInsetsCompat onProgress(@NonNull WindowInsetsCompat insets,
+                        public @NonNull WindowInsetsCompat onProgress(
+                                @NonNull WindowInsetsCompat insets,
                                 @NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
                             return insets;
                         }

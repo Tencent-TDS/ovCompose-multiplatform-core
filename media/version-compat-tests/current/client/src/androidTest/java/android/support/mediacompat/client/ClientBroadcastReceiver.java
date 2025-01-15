@@ -17,10 +17,8 @@
 package android.support.mediacompat.client;
 
 import static android.support.mediacompat.testlib.MediaControllerConstants.ADD_QUEUE_ITEM;
-import static android.support.mediacompat.testlib.MediaControllerConstants
-        .ADD_QUEUE_ITEM_WITH_CUSTOM_PARCELABLE;
-import static android.support.mediacompat.testlib.MediaControllerConstants
-        .ADD_QUEUE_ITEM_WITH_INDEX;
+import static android.support.mediacompat.testlib.MediaControllerConstants.ADD_QUEUE_ITEM_WITH_CUSTOM_PARCELABLE;
+import static android.support.mediacompat.testlib.MediaControllerConstants.ADD_QUEUE_ITEM_WITH_INDEX;
 import static android.support.mediacompat.testlib.MediaControllerConstants.ADJUST_VOLUME;
 import static android.support.mediacompat.testlib.MediaControllerConstants.DISPATCH_MEDIA_BUTTON;
 import static android.support.mediacompat.testlib.MediaControllerConstants.FAST_FORWARD;
@@ -38,8 +36,7 @@ import static android.support.mediacompat.testlib.MediaControllerConstants.REWIN
 import static android.support.mediacompat.testlib.MediaControllerConstants.SEEK_TO;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SEND_COMMAND;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SEND_CUSTOM_ACTION;
-import static android.support.mediacompat.testlib.MediaControllerConstants
-        .SEND_CUSTOM_ACTION_PARCELABLE;
+import static android.support.mediacompat.testlib.MediaControllerConstants.SEND_CUSTOM_ACTION_PARCELABLE;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SET_CAPTIONING_ENABLED;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SET_PLAYBACK_SPEED;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SET_RATING;
@@ -50,10 +47,8 @@ import static android.support.mediacompat.testlib.MediaControllerConstants.SKIP_
 import static android.support.mediacompat.testlib.MediaControllerConstants.SKIP_TO_PREVIOUS;
 import static android.support.mediacompat.testlib.MediaControllerConstants.SKIP_TO_QUEUE_ITEM;
 import static android.support.mediacompat.testlib.MediaControllerConstants.STOP;
-import static android.support.mediacompat.testlib.util.IntentUtil
-        .ACTION_CALL_MEDIA_CONTROLLER_METHOD;
-import static android.support.mediacompat.testlib.util.IntentUtil
-        .ACTION_CALL_TRANSPORT_CONTROLS_METHOD;
+import static android.support.mediacompat.testlib.util.IntentUtil.ACTION_CALL_MEDIA_CONTROLLER_METHOD;
+import static android.support.mediacompat.testlib.util.IntentUtil.ACTION_CALL_TRANSPORT_CONTROLS_METHOD;
 import static android.support.mediacompat.testlib.util.IntentUtil.KEY_ARGUMENT;
 import static android.support.mediacompat.testlib.util.IntentUtil.KEY_METHOD_ID;
 import static android.support.mediacompat.testlib.util.IntentUtil.KEY_SESSION_TOKEN;
@@ -64,17 +59,12 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ResultReceiver;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaControllerCompat.TransportControls;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 
 import androidx.media.test.lib.CustomParcelable;
 
+@SuppressWarnings("deprecation")
 public class ClientBroadcastReceiver extends BroadcastReceiver {
     private static final String TAG = "ClientBroadcastReceiver";
 
@@ -82,8 +72,11 @@ public class ClientBroadcastReceiver extends BroadcastReceiver {
     @SuppressWarnings("deprecation")
     public void onReceive(Context context, Intent intent) {
         Bundle extras = intent.getExtras();
-        MediaControllerCompat controller = new MediaControllerCompat(context,
-                (MediaSessionCompat.Token) extras.getParcelable(KEY_SESSION_TOKEN));
+        android.support.v4.media.session.MediaControllerCompat controller =
+                new android.support.v4.media.session.MediaControllerCompat(
+                        context,
+                        (android.support.v4.media.session.MediaSessionCompat.Token)
+                                extras.getParcelable(KEY_SESSION_TOKEN));
         int method = extras.getInt(KEY_METHOD_ID, 0);
         Log.d(TAG, "action=" + intent.getAction() + ", method=" + method);
 
@@ -99,17 +92,20 @@ public class ClientBroadcastReceiver extends BroadcastReceiver {
                     break;
                 case ADD_QUEUE_ITEM:
                     controller.addQueueItem(
-                            (MediaDescriptionCompat) extras.getParcelable(KEY_ARGUMENT));
+                            (android.support.v4.media.MediaDescriptionCompat)
+                                    extras.getParcelable(KEY_ARGUMENT));
                     break;
                 case ADD_QUEUE_ITEM_WITH_INDEX:
                     arguments = extras.getBundle(KEY_ARGUMENT);
                     controller.addQueueItem(
-                            (MediaDescriptionCompat) arguments.getParcelable("description"),
+                            (android.support.v4.media.MediaDescriptionCompat)
+                                    arguments.getParcelable("description"),
                             arguments.getInt("index"));
                     break;
                 case REMOVE_QUEUE_ITEM:
                     controller.removeQueueItem(
-                            (MediaDescriptionCompat) extras.getParcelable(KEY_ARGUMENT));
+                            (android.support.v4.media.MediaDescriptionCompat)
+                                    extras.getParcelable(KEY_ARGUMENT));
                     break;
                 case SET_VOLUME_TO:
                     controller.setVolumeTo(extras.getInt(KEY_ARGUMENT), 0);
@@ -125,17 +121,19 @@ public class ClientBroadcastReceiver extends BroadcastReceiver {
                     int testValue = extras.getInt(KEY_ARGUMENT);
                     Bundle descExtras = new Bundle();
                     descExtras.putParcelable("customParcelable", new CustomParcelable(testValue));
-                    MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
-                            .setMediaId("testMediaId")
-                            .setExtras(descExtras)
-                            .build();
+                    android.support.v4.media.MediaDescriptionCompat desc =
+                            new android.support.v4.media.MediaDescriptionCompat.Builder()
+                                    .setMediaId("testMediaId")
+                                    .setExtras(descExtras)
+                                    .build();
                     controller.addQueueItem(desc);
                     break;
                 }
             }
         } else if (ACTION_CALL_TRANSPORT_CONTROLS_METHOD.equals(intent.getAction())
                 && extras != null) {
-            TransportControls controls = controller.getTransportControls();
+            android.support.v4.media.session.MediaControllerCompat.TransportControls controls =
+                    controller.getTransportControls();
             Bundle arguments;
             switch (method) {
                 case PLAY:
@@ -163,7 +161,9 @@ public class ClientBroadcastReceiver extends BroadcastReceiver {
                     controls.seekTo(extras.getLong(KEY_ARGUMENT));
                     break;
                 case SET_RATING:
-                    controls.setRating((RatingCompat) extras.getParcelable(KEY_ARGUMENT));
+                    controls.setRating(
+                            (android.support.v4.media.RatingCompat)
+                                    extras.getParcelable(KEY_ARGUMENT));
                     break;
                 case PLAY_FROM_MEDIA_ID:
                     arguments = extras.getBundle(KEY_ARGUMENT);
@@ -192,7 +192,7 @@ public class ClientBroadcastReceiver extends BroadcastReceiver {
                 case SEND_CUSTOM_ACTION_PARCELABLE:
                     arguments = extras.getBundle(KEY_ARGUMENT);
                     controls.sendCustomAction(
-                            (PlaybackStateCompat.CustomAction)
+                            (android.support.v4.media.session.PlaybackStateCompat.CustomAction)
                                     arguments.getParcelable("action"),
                             arguments.getBundle("extras"));
                     break;

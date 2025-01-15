@@ -22,11 +22,11 @@ plugins {
 }
 
 android {
-    namespace "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
-    compileSdk 35
-    compileSdkExtension 14
-    minSdk 21
-    buildToolsVersion AndroidXConfig.getDefaultAndroidConfig(project).buildToolsVersion
+    namespace = "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
+    compileSdk = 35
+    compileSdkExtension = 14
+    minSdk = 21
+    buildToolsVersion = AndroidXConfig.getDefaultAndroidConfig(project).buildToolsVersion
 
     bundle {
         packageName = "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"

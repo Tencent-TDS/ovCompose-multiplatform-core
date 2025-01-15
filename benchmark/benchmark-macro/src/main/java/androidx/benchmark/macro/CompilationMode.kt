@@ -341,7 +341,8 @@ sealed class CompilationMode {
                 if (installErrorString == null) {
                     // baseline profile install success, kill process before compiling
                     Log.d(TAG, "Killing process $packageName")
-                    scope.killProcess()
+                    // We don't really need to flush ART profiles here, but its safer to do it.
+                    scope.killProcessAndFlushArtProfiles()
                     cmdPackageCompile(packageName, "speed-profile")
                 } else {
                     if (baselineProfileMode == BaselineProfileMode.Require) {

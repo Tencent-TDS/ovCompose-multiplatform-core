@@ -40,7 +40,7 @@ internal class SplitPairRuleTest {
 
     @Test
     fun test_builderMatchesConstruction() {
-        val splitAttributes = SplitAttributes()
+        val splitAttributes = SplitAttributes.Builder().build()
         val filterSet = setOf(createSplitPairFilter())
         val expected = SplitPairRule(filterSet, splitAttributes)
 

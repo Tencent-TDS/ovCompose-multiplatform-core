@@ -17,6 +17,7 @@ package androidx.camera.integration.core
 
 import android.Manifest
 import android.content.Context
+import android.util.Log
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.Camera
@@ -37,6 +38,7 @@ import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.SurfaceTextureProvider.createAutoDrainingSurfaceTextureProvider
 import androidx.camera.testing.impl.WakelockEmptyActivityRule
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.mocks.MockScreenFlash
 import androidx.camera.testing.impl.video.AudioChecker
 import androidx.camera.testing.impl.video.RecordingSession
 import androidx.camera.video.FileOutputOptions
@@ -94,7 +96,6 @@ class UseCaseCombinationTest(
     @get:Rule val wakelockEmptyActivityRule = WakelockEmptyActivityRule()
 
     companion object {
-        private const val TAG = "UseCaseCombinationTest"
 
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
@@ -316,7 +317,18 @@ class UseCaseCombinationTest(
     }
 
     @Test
-    fun previewCombinesVideoCaptureAndImageCapture() {
+    fun previewCombinesVideoCaptureAndImageCapture_withoutRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        imageCapture.waitForCapturing()
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndImageCapture_withRecording() {
         // Arrange.
         checkAndPrepareVideoCaptureSources()
         checkAndBindUseCases(preview, videoCapture, imageCapture)
@@ -325,6 +337,29 @@ class UseCaseCombinationTest(
         previewMonitor.waitForStream()
         recordingSession.createRecording().recordAndVerify()
         imageCapture.waitForCapturing()
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndFlashImageCapture_withoutRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        imageCapture.waitForCapturing(useFlash = true)
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndFlashImageCapture_withRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        recordingSession.createRecording().recordAndVerify()
+        imageCapture.waitForCapturing(useFlash = true)
     }
 
     @Test
@@ -435,6 +470,28 @@ class UseCaseCombinationTest(
         imageCapture.waitForCapturing()
     }
 
+    @Test
+    fun previewImageCaptureZSL() {
+        // Arrange.
+        assumeTrue(cameraInfo.isZslSupported) // Only test when ZSL is supported
+
+        val imageCaptureZSL =
+            ImageCapture.Builder()
+                .apply { setCaptureMode(ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG) }
+                .build()
+        assumeTrue(camera.isUseCasesCombinationSupported(preview, imageCaptureZSL))
+        bindUseCases(preview, imageCaptureZSL)
+
+        // Capture images with ZSL and verify each capture.
+        for (i in 10 downTo 0) {
+            previewMonitor.waitForStream()
+            imageCaptureZSL.waitForCapturing()
+            Log.d("UseCaseCombinationTest", "Test ZSL capture round: $i")
+            // Verifies the preview is still outputting after capture
+            previewMonitor.waitForStream()
+        }
+    }
+
     // Possible for QR code scanning use case.
     @Test
     fun sequentialBindPreviewAndImageAnalysis() {
@@ -464,7 +521,7 @@ class UseCaseCombinationTest(
         return ImageCapture.Builder().build()
     }
 
-    private fun ImageCapture.waitForCapturing(timeMillis: Long = 5000) {
+    private fun ImageCapture.waitForCapturing(timeMillis: Long = 10000, useFlash: Boolean = false) {
         val callback =
             object : ImageCapture.OnImageCapturedCallback() {
                 val latch = CountDownLatch(1)
@@ -481,12 +538,26 @@ class UseCaseCombinationTest(
                 }
             }
 
+        if (useFlash) {
+            if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                screenFlash = MockScreenFlash()
+                flashMode = ImageCapture.FLASH_MODE_SCREEN
+            } else {
+                flashMode = ImageCapture.FLASH_MODE_ON
+            }
+        } else {
+            flashMode = ImageCapture.FLASH_MODE_OFF
+        }
+
         takePicture(Dispatchers.Main.asExecutor(), callback)
 
         assertThat(
                 callback.latch.await(timeMillis, TimeUnit.MILLISECONDS) && callback.errors.isEmpty()
             )
             .isTrue()
+
+        // Just in case same imageCapture is bound to rear camera later
+        screenFlash = null
     }
 
     class PreviewMonitor {

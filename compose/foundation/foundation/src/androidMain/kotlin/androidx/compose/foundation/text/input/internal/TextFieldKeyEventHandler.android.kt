@@ -96,6 +96,7 @@ internal class AndroidTextFieldKeyEventHandler : TextFieldKeyEventHandler() {
         textFieldState: TransformedTextFieldState,
         textLayoutState: TextLayoutState,
         textFieldSelectionState: TextFieldSelectionState,
+        clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
         editable: Boolean,
         singleLine: Boolean,
         onSubmit: () -> Unit
@@ -112,9 +113,10 @@ internal class AndroidTextFieldKeyEventHandler : TextFieldKeyEventHandler() {
             textFieldState,
             textLayoutState,
             textFieldSelectionState,
+            clipboardKeyCommandsHandler,
             editable,
             singleLine,
-            onSubmit
+            onSubmit,
         )
     }
 }

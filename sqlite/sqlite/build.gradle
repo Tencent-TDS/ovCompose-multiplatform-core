@@ -22,6 +22,8 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -53,7 +55,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
-                api(project(":annotation:annotation"))
+                api("androidx.annotation:annotation:1.8.1")
             }
         }
         commonTest {
@@ -95,6 +97,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "SQLite API"
-    metalavaK2UastEnabled = true
-    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

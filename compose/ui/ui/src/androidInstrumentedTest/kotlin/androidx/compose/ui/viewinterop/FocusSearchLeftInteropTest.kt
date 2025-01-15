@@ -456,6 +456,7 @@ class FocusSearchLeftInteropTest(private val moveFocusProgrammatically: Boolean)
                 AndroidView({ FocusableView(it).apply { view = this } })
             }
         }
+        rule.waitForIdle()
 
         // Act.
         rule.focusSearchLeft()

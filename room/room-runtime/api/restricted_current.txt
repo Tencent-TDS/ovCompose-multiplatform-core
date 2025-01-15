@@ -377,6 +377,7 @@ package androidx.room {
     method public void bindLong(int index, long value);
     method public void bindNull(int index);
     method public void bindString(int index, String value);
+    method public void bindText(int index, String value);
     method public void bindTo(androidx.sqlite.db.SupportSQLiteProgram statement);
     method public void bindTo(androidx.sqlite.SQLiteStatement statement);
     method public void clearBindings();
@@ -485,7 +486,8 @@ package androidx.room.paging {
     ctor protected LimitOffsetDataSource(androidx.room.RoomDatabase, androidx.room.RoomSQLiteQuery, boolean, java.lang.String!...);
     ctor protected LimitOffsetDataSource(androidx.room.RoomDatabase, androidx.sqlite.db.SupportSQLiteQuery, boolean, boolean, java.lang.String!...);
     ctor protected LimitOffsetDataSource(androidx.room.RoomDatabase, androidx.sqlite.db.SupportSQLiteQuery, boolean, java.lang.String!...);
-    method protected abstract java.util.List<T!> convertRows(android.database.Cursor);
+    method protected java.util.List<T!> convertRows(android.database.Cursor);
+    method protected java.util.List<T!> convertRows(androidx.sqlite.SQLiteStatement);
     method public void loadInitial(androidx.paging.PositionalDataSource.LoadInitialParams, androidx.paging.PositionalDataSource.LoadInitialCallback<T!>);
     method public void loadRange(androidx.paging.PositionalDataSource.LoadRangeParams, androidx.paging.PositionalDataSource.LoadRangeCallback<T!>);
   }
@@ -521,6 +523,7 @@ package androidx.room.util {
     method @Deprecated @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static android.database.Cursor query(androidx.room.RoomDatabase db, androidx.sqlite.db.SupportSQLiteQuery sqLiteQuery, boolean maybeCopy);
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static android.database.Cursor query(androidx.room.RoomDatabase db, androidx.sqlite.db.SupportSQLiteQuery sqLiteQuery, boolean maybeCopy, android.os.CancellationSignal? signal);
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) @kotlin.jvm.Throws(exceptionClasses=IOException::class) public static int readVersion(java.io.File databaseFile) throws java.io.IOException;
+    method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static androidx.sqlite.SQLiteConnection toSQLiteConnection(androidx.sqlite.db.SupportSQLiteDatabase db);
   }
 
   @RestrictTo({androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX}) public final class FileUtil {

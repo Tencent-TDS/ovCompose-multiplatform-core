@@ -37,6 +37,6 @@ androidx {
     description = "Contains the sample code for the AndroidX Biometric library"
 }
 android {
-    compileSdk 35
-    namespace "androidx.biometric.samples"
+    compileSdk = 35
+    namespace = "androidx.biometric.samples"
 }

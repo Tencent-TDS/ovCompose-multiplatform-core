@@ -16,8 +16,8 @@
 
 package androidx.camera.viewfinder;
 
-import static androidx.camera.viewfinder.internal.utils.TransformUtils.createTransformInfo;
 import static androidx.camera.viewfinder.core.ViewfinderSurfaceRequest.MIRROR_MODE_HORIZONTAL;
+import static androidx.camera.viewfinder.internal.utils.TransformUtils.createTransformInfo;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -37,8 +37,6 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.AnyThread;
 import androidx.annotation.ColorRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.viewfinder.core.ImplementationMode;
@@ -53,6 +51,9 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Base viewfinder widget that can display the camera feed for Camera2.
@@ -70,28 +71,24 @@ public final class CameraViewfinder extends FrameLayout {
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
-    @NonNull
-    final ViewfinderTransformation mViewfinderTransformation = new ViewfinderTransformation();
+    final @NonNull ViewfinderTransformation mViewfinderTransformation =
+            new ViewfinderTransformation();
 
     @SuppressWarnings("WeakerAccess")
-    @NonNull
-    private final DisplayRotationListener mDisplayRotationListener = new DisplayRotationListener();
+    private final @NonNull DisplayRotationListener mDisplayRotationListener =
+            new DisplayRotationListener();
 
-    @NonNull
-    private final Looper mRequiredLooper = Looper.myLooper();
+    private final @NonNull Looper mRequiredLooper = Looper.myLooper();
 
-    @NonNull
-    ImplementationMode mImplementationMode;
+    @NonNull ImplementationMode mImplementationMode;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    ViewfinderImplementation mImplementation;
+    @Nullable ViewfinderImplementation mImplementation;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
-    @Nullable
-    ViewfinderSurfaceRequest mCurrentSurfaceRequest;
+    @Nullable ViewfinderSurfaceRequest mCurrentSurfaceRequest;
 
     private final OnLayoutChangeListener mOnLayoutChangeListener =
             (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
@@ -217,8 +214,7 @@ public final class CameraViewfinder extends FrameLayout {
      * {@link CameraViewfinder}.
      */
     @UiThread
-    @NonNull
-    public ImplementationMode getSurfaceImplementationMode() {
+    public @NonNull ImplementationMode getSurfaceImplementationMode() {
         checkUiThread();
         return mImplementationMode;
     }
@@ -240,7 +236,7 @@ public final class CameraViewfinder extends FrameLayout {
      * @attr name app:scaleType
      */
     @UiThread
-    public void setScaleType(@NonNull final ScaleType scaleType) {
+    public void setScaleType(final @NonNull ScaleType scaleType) {
         checkUiThread();
         mViewfinderTransformation.setScaleType(scaleType);
         redrawViewfinder();
@@ -254,8 +250,7 @@ public final class CameraViewfinder extends FrameLayout {
      * @return The {@link ScaleType} currently applied to the viewfinder.
      */
     @UiThread
-    @NonNull
-    public ScaleType getScaleType() {
+    public @NonNull ScaleType getScaleType() {
         checkUiThread();
         return mViewfinderTransformation.getScaleType();
     }
@@ -300,8 +295,7 @@ public final class CameraViewfinder extends FrameLayout {
      * @see ViewfinderSurfaceRequest
      */
     @UiThread
-    @NonNull
-    public ListenableFuture<Surface> requestSurfaceAsync(
+    public @NonNull ListenableFuture<Surface> requestSurfaceAsync(
             @NonNull ViewfinderSurfaceRequest surfaceRequest) {
         checkUiThread();
 
@@ -340,8 +334,7 @@ public final class CameraViewfinder extends FrameLayout {
      * yet.
      */
     @UiThread
-    @Nullable
-    public Bitmap getBitmap() {
+    public @Nullable Bitmap getBitmap() {
         checkUiThread();
         return mImplementation == null ? null : mImplementation.getBitmap();
     }
@@ -375,7 +368,7 @@ public final class CameraViewfinder extends FrameLayout {
 
     @VisibleForTesting
     static boolean shouldUseTextureView(
-            @NonNull final ImplementationMode implementationMode
+            final @NonNull ImplementationMode implementationMode
     ) {
         boolean hasSurfaceViewQuirk = DeviceQuirks.get(SurfaceViewStretchedQuirk.class) != null
                 ||  DeviceQuirks.get(SurfaceViewNotCroppedByParentQuirk.class) != null;
@@ -450,8 +443,7 @@ public final class CameraViewfinder extends FrameLayout {
         displayManager.unregisterDisplayListener(mDisplayRotationListener);
     }
 
-    @Nullable
-    private DisplayManager getDisplayManager() {
+    private @Nullable DisplayManager getDisplayManager() {
         Context context = getContext();
         if (context == null) {
             return null;

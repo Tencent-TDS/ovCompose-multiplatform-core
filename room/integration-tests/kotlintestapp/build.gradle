@@ -46,7 +46,7 @@ android {
             dimension "processorConfiguration"
         }
     }
-    namespace "androidx.room.integration.kotlintestapp"
+    namespace = "androidx.room.integration.kotlintestapp"
 }
 
 dependencies {
@@ -138,4 +138,8 @@ tasks.withType(KspTask).configureEach { kspTask ->
             provider { kspTask.name.contains("GenKotlin") }
         )
     )
+}
+
+ksp {
+    useKsp2 = true
 }

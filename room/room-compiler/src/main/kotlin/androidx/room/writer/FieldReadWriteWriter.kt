@@ -26,10 +26,10 @@ import androidx.room.ext.defaultValue
 import androidx.room.solver.CodeGenScope
 import androidx.room.vo.CallType
 import androidx.room.vo.Constructor
+import androidx.room.vo.DataClass
 import androidx.room.vo.EmbeddedField
 import androidx.room.vo.Field
 import androidx.room.vo.FieldWithIndex
-import androidx.room.vo.Pojo
 import androidx.room.vo.RelationCollector
 import java.util.Locale
 
@@ -141,7 +141,7 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
 
         /**
          * Just constructs the given item, does NOT DECLARE. Declaration happens outside the reading
-         * statement since we may never read if the cursor does not have necessary columns.
+         * statement since we may never read if the statement does not have necessary columns.
          */
         private fun construct(
             outVar: String,
@@ -179,10 +179,10 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
         }
 
         /** Reads the row into the given variable. It does not declare it but constructs it. */
-        fun readFromCursor(
+        fun readFromStatement(
             outVar: String,
-            outPojo: Pojo,
-            cursorVar: String,
+            outDataClass: DataClass,
+            stmtVar: String,
             fieldsWithIndices: List<FieldWithIndex>,
             scope: CodeGenScope,
             relationCollectors: List<RelationCollector>
@@ -197,7 +197,7 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                             .associateBy { fwi ->
                                 FieldReadWriteWriter(fwi)
                                     .readIntoTmpVar(
-                                        cursorVar,
+                                        stmtVar,
                                         fwi.field.setter.type.asTypeName(),
                                         scope
                                     )
@@ -210,7 +210,7 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                             .filter { (relation) -> relation.field.parent === fieldParent }
                             .associate {
                                 it.writeReadCollectionIntoTmpVar(
-                                    cursorVarName = cursorVar,
+                                    stmtVarName = stmtVar,
                                     fieldsWithIndices = fieldsWithIndices,
                                     scope = scope
                                 )
@@ -220,7 +220,7 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                     if (fieldParent != null) {
                         construct(
                             outVar = node.varName,
-                            constructor = fieldParent.pojo.constructor,
+                            constructor = fieldParent.dataClass.constructor,
                             typeName = fieldParent.field.typeName,
                             localEmbeddeds = node.subNodes,
                             localRelations = relationFields,
@@ -230,8 +230,8 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                     } else {
                         construct(
                             outVar = node.varName,
-                            constructor = outPojo.constructor,
-                            typeName = outPojo.typeName,
+                            constructor = outDataClass.constructor,
+                            typeName = outDataClass.typeName,
                             localEmbeddeds = node.subNodes,
                             localRelations = relationFields,
                             localVariableNames = constructorFields,
@@ -243,9 +243,9 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                         .filterNot { it.field.setter.callType == CallType.CONSTRUCTOR }
                         .forEach { fwi ->
                             FieldReadWriteWriter(fwi)
-                                .readFromCursor(
+                                .readFromStatement(
                                     ownerVar = node.varName,
-                                    cursorVar = cursorVar,
+                                    stmtVar = stmtVar,
                                     scope = scope
                                 )
                         }
@@ -291,9 +291,9 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                         val allNullCheck =
                             myDescendants.joinToString(" && ") {
                                 if (it.alwaysExists) {
-                                    "$cursorVar.isNull(${it.indexVar})"
+                                    "$stmtVar.isNull(${it.indexVar})"
                                 } else {
-                                    "(${it.indexVar} == -1 || $cursorVar.isNull(${it.indexVar}))"
+                                    "(${it.indexVar} == -1 || $stmtVar.isNull(${it.indexVar}))"
                                 }
                             }
                         scope.builder.apply {
@@ -324,13 +324,13 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
     /**
      * @param ownerVar The entity / pojo variable that owns this field. It must own this field (not
      *   the container pojo)
-     * @param cursorVar The cursor variable
+     * @param stmtVar The statement variable
      * @param scope The code generation scope
      */
-    private fun readFromCursor(ownerVar: String, cursorVar: String, scope: CodeGenScope) {
+    private fun readFromStatement(ownerVar: String, stmtVar: String, scope: CodeGenScope) {
         fun doRead() {
-            val reader = field.cursorValueReader ?: return
-            field.setter.writeSetFromCursor(ownerVar, cursorVar, indexVar, reader, scope)
+            val reader = field.statementValueReader ?: return
+            field.setter.writeSetFromStatement(ownerVar, stmtVar, indexVar, reader, scope)
         }
         if (alwaysExists) {
             doRead()
@@ -343,12 +343,12 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
     }
 
     /** Reads the value into a temporary local variable. */
-    fun readIntoTmpVar(cursorVar: String, typeName: XTypeName, scope: CodeGenScope): String {
+    fun readIntoTmpVar(stmtVar: String, typeName: XTypeName, scope: CodeGenScope): String {
         val tmpField = scope.getTmpVar("_tmp${field.name.capitalize(Locale.US)}")
         scope.builder.apply {
             addLocalVariable(tmpField, typeName)
             if (alwaysExists) {
-                field.cursorValueReader?.readFromCursor(tmpField, cursorVar, indexVar, scope)
+                field.statementValueReader?.readFromStatement(tmpField, stmtVar, indexVar, scope)
             } else {
                 beginControlFlow("if (%L == -1)", indexVar).applyTo { language ->
                     val defaultValue = typeName.defaultValue()
@@ -367,7 +367,12 @@ class FieldReadWriteWriter(fieldWithIndex: FieldWithIndex) {
                     }
                 }
                 nextControlFlow("else").apply {
-                    field.cursorValueReader?.readFromCursor(tmpField, cursorVar, indexVar, scope)
+                    field.statementValueReader?.readFromStatement(
+                        tmpField,
+                        stmtVar,
+                        indexVar,
+                        scope
+                    )
                 }
                 endControlFlow()
             }

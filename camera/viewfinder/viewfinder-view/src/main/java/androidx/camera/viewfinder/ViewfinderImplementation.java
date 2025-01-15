@@ -21,9 +21,10 @@ import android.util.Size;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Wraps the underlying handling of the {@link android.view.Surface} used for viewfinder, which is
@@ -32,11 +33,11 @@ import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
  */
 abstract class ViewfinderImplementation {
 
-    @NonNull protected final FrameLayout mParent;
+    protected final @NonNull FrameLayout mParent;
 
-    @Nullable protected Size mResolution;
+    protected @Nullable Size mResolution;
 
-    @NonNull private final ViewfinderTransformation mViewfinderTransformation;
+    private final @NonNull ViewfinderTransformation mViewfinderTransformation;
 
     private boolean mWasSurfaceProvided = false;
 
@@ -48,8 +49,7 @@ abstract class ViewfinderImplementation {
 
     abstract void initializeViewfinder();
 
-    @Nullable
-    abstract View getViewfinder();
+    abstract @Nullable View getViewfinder();
 
     abstract void onSurfaceRequested(@NonNull ViewfinderSurfaceRequest surfaceRequest);
 
@@ -83,8 +83,7 @@ abstract class ViewfinderImplementation {
                 mParent.getHeight()), mParent.getLayoutDirection(), viewfinder);
     }
 
-    @Nullable
-    Bitmap getBitmap() {
+    @Nullable Bitmap getBitmap() {
         final Bitmap bitmap = getViewfinderBitmap();
         if (bitmap == null) {
             return null;
@@ -94,6 +93,5 @@ abstract class ViewfinderImplementation {
                 mParent.getLayoutDirection());
     }
 
-    @Nullable
-    abstract Bitmap getViewfinderBitmap();
+    abstract @Nullable Bitmap getViewfinderBitmap();
 }

@@ -89,16 +89,27 @@ internal data class TransformationSpec(
     /** Configuration for the width of the container. */
     val containerWidth: TransformVariableSpec,
 
-    // TBD
-    val morphHeight: Float,
-    val morphHeightDriftFactor: Float,
-    val morphPivotX: Float,
-    val morphPivotY: Float,
+    /**
+     * Configuration for the screen point where the height morphing starts (item is touching this
+     * screen point with its bottom edge).
+     */
+    val growthStartScreenFraction: Float,
+
+    /**
+     * Configuration for the screen point where the height morphing ends and item is fully expanded
+     * (item is touching this screen point with its bottom edge).
+     */
+    val growthEndScreenFraction: Float,
 ) {
     init {
         // The element height range must be non-empty.
         require(minElementHeight < maxElementHeight) {
             "minElementHeight must be smaller than maxElementHeight"
+        }
+
+        // Morphing start point should be below the growth end.
+        require(growthEndScreenFraction < growthStartScreenFraction) {
+            "growthEndScreenFraction must be smaller than growthStartScreenFraction"
         }
     }
 }
@@ -122,6 +133,13 @@ internal data class TransformVariableSpec(
      * the top side.
      */
     val topValue: Float,
+
+    /**
+     * The value this variable will have when the item is not in either transformation zone, and is
+     * in the "center" of the screen, i.e. the top edge is above the bottom transformation zone, and
+     * the bottom edge is below the top transformation zone.
+     */
+    val targetValue: Float = 1f,
 
     /**
      * The value this variable will have when the item's top edge is below the bottom transformation
@@ -184,10 +202,21 @@ internal fun rememberResponsiveTransformationSpec(
 
 private fun lerp(start: TransformVariableSpec, stop: TransformVariableSpec, progress: Float) =
     TransformVariableSpec(
-        lerp(start.bottomValue, stop.bottomValue, progress),
-        lerp(start.topValue, stop.topValue, progress),
-        lerp(start.transformationZoneEnterFraction, stop.transformationZoneEnterFraction, progress),
-        lerp(start.transformationZoneExitFraction, stop.transformationZoneExitFraction, progress)
+        topValue = lerp(start.topValue, stop.topValue, progress),
+        targetValue = lerp(start.targetValue, stop.targetValue, progress),
+        bottomValue = lerp(start.bottomValue, stop.bottomValue, progress),
+        transformationZoneEnterFraction =
+            lerp(
+                start.transformationZoneEnterFraction,
+                stop.transformationZoneEnterFraction,
+                progress
+            ),
+        transformationZoneExitFraction =
+            lerp(
+                start.transformationZoneExitFraction,
+                stop.transformationZoneExitFraction,
+                progress
+            ),
     )
 
 private fun lerp(start: TransformationSpec, stop: TransformationSpec, progress: Float) =
@@ -203,27 +232,27 @@ private fun lerp(start: TransformationSpec, stop: TransformationSpec, progress: 
         lerp(start.contentAlpha, stop.contentAlpha, progress),
         lerp(start.scale, stop.scale, progress),
         lerp(start.containerWidth, stop.containerWidth, progress),
-        lerp(start.morphHeight, stop.morphHeight, progress),
-        lerp(start.morphHeightDriftFactor, stop.morphHeightDriftFactor, progress),
-        lerp(start.morphPivotX, stop.morphPivotX, progress),
-        lerp(start.morphPivotY, stop.morphPivotY, progress)
+        lerp(start.growthStartScreenFraction, stop.growthStartScreenFraction, progress),
+        lerp(start.growthEndScreenFraction, stop.growthEndScreenFraction, progress),
     )
 
 /**
  * Computes the appropriate [TransformationSpec] for a given screen size, given one or more
  * [TransformationSpec]s for different screen sizes.
  */
-private fun responsiveTransformationSpec(
+internal fun responsiveTransformationSpec(
     screenSizeDp: Int,
     specs: List<Pair<Int, TransformationSpec>>
 ): TransformationSpec {
+    require(specs.isNotEmpty()) { "Must provide at least one TransformationSpec" }
+
     val sortedSpecs = specs.sortedBy { it.first }
 
-    var ix = 0
-    while (ix < sortedSpecs.size && screenSizeDp > sortedSpecs[ix].first) ix++
+    if (screenSizeDp <= sortedSpecs.first().first) return sortedSpecs.first().second
+    if (screenSizeDp >= sortedSpecs.last().first) return sortedSpecs.last().second
 
-    if (ix == 0) return sortedSpecs.first().second
-    if (ix == sortedSpecs.size) return sortedSpecs.last().second
+    var ix = 1 // We checked and it's greater than the first element's screen size.
+    while (ix < sortedSpecs.size && screenSizeDp > sortedSpecs[ix].first) ix++
 
     return lerp(
         sortedSpecs[ix - 1].second,

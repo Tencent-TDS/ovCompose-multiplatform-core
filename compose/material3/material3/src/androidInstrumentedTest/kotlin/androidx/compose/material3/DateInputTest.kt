@@ -192,7 +192,8 @@ class DateInputTest {
             val initialDateMillis = dayInUtcMilliseconds(year = 2022, month = 9, dayOfMonth = 10)
             state =
                 DatePickerState(
-                    locale = Locale.forLanguageTag("ar"),
+                    // Arabic locale with Arabic-Indic digits and symbols
+                    locale = Locale.forLanguageTag("ar-u-nu-arab"),
                     initialSelectedDateMillis = initialDateMillis,
                     initialDisplayMode = DisplayMode.Input
                 )

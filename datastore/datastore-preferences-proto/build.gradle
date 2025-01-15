@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.RunApiTasks
 
 plugins {
     id("AndroidXPlugin")

@@ -24,14 +24,14 @@ import androidx.window.RequiresWindowSdkExtension
  * @property animationBackground the animation background to use during the animation of the split
  *   involving this `EmbeddingAnimationParams` object if the animation requires a background. The
  *   default is to use the current theme window background color.
+ * @see Builder
  * @see SplitAttributes.animationParams
  * @see EmbeddingAnimationBackground
  * @see EmbeddingAnimationBackground.createColorBackground
  * @see EmbeddingAnimationBackground.DEFAULT
  */
 class EmbeddingAnimationParams
-@JvmOverloads
-constructor(
+private constructor(
     val animationBackground: EmbeddingAnimationBackground = EmbeddingAnimationBackground.DEFAULT,
 ) {
     /**

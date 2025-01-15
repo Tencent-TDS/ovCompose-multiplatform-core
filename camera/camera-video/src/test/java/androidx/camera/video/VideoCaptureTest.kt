@@ -1847,6 +1847,74 @@ class VideoCaptureTest {
         )
     }
 
+    @Test
+    fun verifySelectedQuality_matchConfiguredResolution() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_720P,
+            qualitySelector = QualitySelector.fromOrderedList(listOf(FHD, HD, SD)),
+            expectedQuality = HD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_setHighestQuality_returnSpecificQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_1080P,
+            qualitySelector = QualitySelector.from(HIGHEST),
+            expectedQuality = FHD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_setLowestQuality_returnSpecificQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_480P,
+            qualitySelector = QualitySelector.from(LOWEST),
+            expectedQuality = SD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_configuredResolutionNotMatch_returnNearestQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = Size(1920, 1000),
+            qualitySelector = QualitySelector.fromOrderedList(listOf(FHD, HD, SD)),
+            expectedQuality = FHD,
+        )
+    }
+
+    private fun testSelectedQualityIsExpected(
+        streamSpecConfiguredResolution: Size,
+        streamSpecResolution: Size = streamSpecConfiguredResolution,
+        qualitySelector: QualitySelector,
+        profiles: Map<Int, EncoderProfilesProxy> = FULL_QUALITY_PROFILES_MAP,
+        videoCapabilities: VideoCapabilities = FULL_QUALITY_VIDEO_CAPABILITIES,
+        expectedQuality: Quality?
+    ) {
+        // Arrange.
+        setupCamera(profiles = profiles)
+        createCameraUseCaseAdapter()
+        setSuggestedStreamSpec(
+            resolution = streamSpecResolution,
+            originalConfiguredResolution = streamSpecConfiguredResolution
+        )
+        val videoOutput =
+            createVideoOutput(
+                videoCapabilities = videoCapabilities,
+                mediaSpec =
+                    MediaSpec.builder()
+                        .configureVideo { it.setQualitySelector(qualitySelector) }
+                        .build()
+            )
+        val videoCapture = createVideoCapture(videoOutput = videoOutput)
+
+        // Act.
+        addAndAttachUseCases(videoCapture)
+
+        // Assert.
+        assertThat(videoCapture.selectedQuality).isEqualTo(expectedQuality)
+    }
+
     private fun testResolutionInfoContainsExpected(
         resolution: Size,
         sensorRotationDegrees: Int,
@@ -2101,6 +2169,7 @@ class VideoCaptureTest {
 
     private fun setSuggestedStreamSpec(
         resolution: Size,
+        originalConfiguredResolution: Size? = null,
         expectedFrameRate: Range<Int> = StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED,
         dynamicRange: DynamicRange? = null
     ) {
@@ -2109,6 +2178,9 @@ class VideoCaptureTest {
                 .apply {
                     setExpectedFrameRateRange(expectedFrameRate)
                     dynamicRange?.let { setDynamicRange(dynamicRange) }
+                    originalConfiguredResolution?.let {
+                        setOriginalConfiguredResolution(originalConfiguredResolution)
+                    }
                 }
                 .build()
         )

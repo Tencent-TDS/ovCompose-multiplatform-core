@@ -99,7 +99,7 @@ import kotlinx.coroutines.coroutineScope
  *   Pager. This is where the UI elements that should appear within each page should be placed.
  */
 @Composable
-fun HorizontalPager(
+public fun HorizontalPager(
     state: PagerState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -224,7 +224,7 @@ fun HorizontalPager(
  *   Pager. This is where the UI elements that should appear within each page should be placed.
  */
 @Composable
-fun VerticalPager(
+public fun VerticalPager(
     state: PagerState,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -268,7 +268,7 @@ fun VerticalPager(
 }
 
 /** Contains the default values used by [Pager]. These are optimised for Wear. */
-object PagerDefaults {
+public object PagerDefaults {
     /**
      * Default fling behavior for pagers on Wear, snaps at most one page at a time.
      *
@@ -297,12 +297,11 @@ object PagerDefaults {
      *   the next page in the direction of the fling.
      */
     @Composable
-    fun snapFlingBehavior(
+    public fun snapFlingBehavior(
         state: PagerState,
         pagerSnapDistance: PagerSnapDistance = PagerSnapDistance.atMost(1),
         decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay(),
-        snapAnimationSpec: AnimationSpec<Float> =
-            spring(Spring.DampingRatioNoBouncy, PagerDefaults.Stiffness),
+        snapAnimationSpec: AnimationSpec<Float> = PagerDefaults.SnapAnimationSpec,
         @FloatRange(from = 0.0, to = 1.0) snapPositionalThreshold: Float = 0.5f
     ): TargetedFlingBehavior {
         return ComposePagerDefaults.flingBehavior(
@@ -315,23 +314,30 @@ object PagerDefaults {
     }
 
     /**
+     * The recommended medium-high stiffness used by default for the spring stiffness parameter in
+     * the Pager's snap animation.
+     */
+    private val MediumHighStiffness: Float = 2000f
+
+    /**
+     * The default spring animation used for the Pager's snap animation spec - a spring based
+     * animation with medium-high stiffness and no bounce.
+     */
+    public val SnapAnimationSpec: AnimationSpec<Float> =
+        spring(Spring.DampingRatioNoBouncy, MediumHighStiffness)
+
+    /**
      * The default value of swipeToDismissEdgeZoneFraction used to configure the size of the edge
      * zone in a [HorizontalPager].
      */
-    const val SwipeToDismissEdgeZoneFraction: Float = 0.15f
+    public val SwipeToDismissEdgeZoneFraction: Float = 0.15f
 
     /**
      * The default value of beyondViewportPageCount used to specify the number of pages to compose
      * and layout before and after the visible pages. It does not include the pages automatically
      * composed and laid out by the pre-fetcher in the direction of the scroll during scroll events.
      */
-    const val BeyondViewportPageCount = 0
-
-    /**
-     * The recommended medium-high stiffness used by default for the spring stiffness parameter in
-     * the Pager's snap animation
-     */
-    const val Stiffness = 2000f
+    public val BeyondViewportPageCount: Int = 0
 }
 
-internal const val CustomTouchSlopMultiplier = 1.10f
+internal val CustomTouchSlopMultiplier = 1.10f

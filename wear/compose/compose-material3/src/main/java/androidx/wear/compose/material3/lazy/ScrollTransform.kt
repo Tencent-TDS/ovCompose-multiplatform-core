@@ -19,7 +19,6 @@ package androidx.wear.compose.material3.lazy
 import androidx.compose.animation.core.Easing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +34,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.lerp
+import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
@@ -49,40 +50,49 @@ import androidx.wear.compose.foundation.lazy.inverseLerp
  * [TransformingLazyColumnItemScrollProgress] of the item inside the [TransformingLazyColumn]. It
  * adjusts the height, position, applies scaling and morphing effects as the item scrolls.
  *
+ * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
+ *
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  * @param backgroundColor Color of the background.
  * @param shape Shape of the background.
  */
 @Composable
-fun Modifier.scrollTransform(
+public fun Modifier.scrollTransform(
     scope: TransformingLazyColumnItemScope,
     backgroundColor: Color,
     shape: Shape = RectangleShape
 ): Modifier =
-    with(scope) {
-        var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-        val spec =
-            remember(scope) { TransformingLazyColumnScrollTransformBehavior { minMorphingHeight } }
-        val painter =
-            remember(scope, backgroundColor, shape) {
-                ScalingMorphingBackgroundPainter(
-                    spec,
-                    shape,
-                    border = null,
-                    backgroundPainter = ColorPainter(backgroundColor)
-                ) {
-                    scrollProgress
+    if (LocalReduceMotion.current.enabled()) this
+    else
+        with(scope) {
+            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
+            val spec =
+                remember(scope) {
+                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
                 }
-            }
-        this@scrollTransform then
-            TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                .paint(painter)
-                .transformedHeight { height, scrollProgress ->
-                    with(spec) { scrollProgress.placementHeight(height.toFloat()).fastRoundToInt() }
+            val painter =
+                remember(scope, backgroundColor, shape) {
+                    ScalingMorphingBackgroundPainter(
+                        spec,
+                        shape,
+                        border = null,
+                        backgroundPainter = ColorPainter(backgroundColor)
+                    ) {
+                        scrollProgress
+                    }
                 }
-                .graphicsLayer { contentTransformation(spec) { scrollProgress } }
-    }
+            this@scrollTransform then
+                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
+                    .paint(painter)
+                    .transformedHeight { height, scrollProgress ->
+                        with(spec) {
+                            scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
+                        }
+                    }
+                    .graphicsLayer { contentTransformation(spec) { scrollProgress } }
+        }
 
 /**
  * A modifier that enables Material3 Motion transformations for content within a
@@ -93,36 +103,47 @@ fun Modifier.scrollTransform(
  * [TransformingLazyColumnItemScope]. It adjusts the height, position, applies scaling and morphing
  * effects as the item scrolls.
  *
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
+ * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
+ *
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  * @param shape [Shape] of the background.
  * @param painter [Painter] to use for the background.
  * @param border Border to draw around the background, or null if no border is needed.
  */
 @Composable
-fun Modifier.scrollTransform(
+public fun Modifier.scrollTransform(
     scope: TransformingLazyColumnItemScope,
     shape: Shape,
     painter: Painter,
     border: BorderStroke? = null
 ): Modifier =
-    with(scope) {
-        var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-        val spec =
-            remember(scope) { TransformingLazyColumnScrollTransformBehavior { minMorphingHeight } }
-        val morphingPainter =
-            remember(scope, painter, shape, border) {
-                ScalingMorphingBackgroundPainter(spec, shape, border, painter) { scrollProgress }
-            }
-        this@scrollTransform then
-            TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                .paint(morphingPainter)
-                .transformedHeight { height, scrollProgress ->
-                    with(spec) { scrollProgress.placementHeight(height.toFloat()).fastRoundToInt() }
+    if (LocalReduceMotion.current.enabled()) this
+    else
+        with(scope) {
+            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
+            val spec =
+                remember(scope) {
+                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
                 }
-                .graphicsLayer { contentTransformation(spec) { scrollProgress } }
-                .clip(shape)
-    }
+            val morphingPainter =
+                remember(scope, painter, shape, border) {
+                    ScalingMorphingBackgroundPainter(spec, shape, border, painter) {
+                        scrollProgress
+                    }
+                }
+            this@scrollTransform then
+                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
+                    .paint(morphingPainter)
+                    .transformedHeight { height, scrollProgress ->
+                        with(spec) {
+                            scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
+                        }
+                    }
+                    .graphicsLayer { contentTransformation(spec) { scrollProgress } }
+                    .clip(shape)
+        }
 
 /**
  * A modifier that enables Material3 Motion transformations for content within a
@@ -137,25 +158,34 @@ fun Modifier.scrollTransform(
  * [Shape] and background [Color] (or [Painter]) so the modifier can do the background drawing and
  * apply specific effects to background and content, as in the Material spec.
  *
- * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
+ * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
+ *
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  */
 @Composable
-fun Modifier.scrollTransform(
+public fun Modifier.scrollTransform(
     scope: TransformingLazyColumnItemScope,
 ): Modifier =
-    with(scope) {
-        var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-        val spec =
-            remember(scope) { TransformingLazyColumnScrollTransformBehavior { minMorphingHeight } }
-
-        this@scrollTransform then
-            TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                .transformedHeight { height, scrollProgress ->
-                    with(spec) { scrollProgress.placementHeight(height.toFloat()).fastRoundToInt() }
+    if (LocalReduceMotion.current.enabled()) this
+    else
+        with(scope) {
+            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
+            val spec =
+                remember(scope) {
+                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
                 }
-                .graphicsLayer { contentTransformation(spec) { scrollProgress } }
-    }
+
+            this@scrollTransform then
+                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
+                    .transformedHeight { height, scrollProgress ->
+                        with(spec) {
+                            scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
+                        }
+                    }
+                    .graphicsLayer { contentTransformation(spec) { scrollProgress } }
+        }
 
 /**
  * A modifier that enables Material3 Motion transformations for content within a
@@ -166,6 +196,58 @@ fun Modifier.scrollTransform(
  * [TransformingLazyColumnItemScope]. It adjusts the height, position, applies scaling and morphing
  * effects as the item scrolls.
  *
+ * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
+ *
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
+ * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
+ * @param spec [TransformationSpec] to specify all needed parameters for the transformations.
+ */
+@Composable
+internal fun Modifier.scrollTransform(
+    scope: TransformingLazyColumnItemScope,
+    spec: TransformationSpec,
+): Modifier =
+    if (LocalReduceMotion.current.enabled()) this
+    else
+        with(scope) {
+            val minMorphingHeight = remember(scope) { mutableStateOf<Float?>(null) }
+            val transformation = remember { mutableStateOf<TransformationState?>(null) }
+            val updatedSpec by rememberUpdatedState(spec)
+
+            this@scrollTransform then
+                TargetMorphingHeightConsumerModifierElement {
+                        minMorphingHeight.value = it?.toFloat()
+                    }
+                    .transformedHeight { height, scrollProgress ->
+                        // TODO: may be better to create once and update. Still need to ensure
+                        // readers
+                        // are reading a state so they register to updates.
+                        transformationState(
+                                spec = updatedSpec,
+                                itemHeight = height.toFloat(),
+                                minMorphingHeight = minMorphingHeight.value,
+                                scrollProgress = scrollProgress
+                            )
+                            .also { transformation.value = it }
+                            .placementHeight
+                            .fastRoundToInt()
+                    }
+                    .graphicsLayer { contentTransformation(transformation.value) }
+        }
+
+/**
+ * A modifier that enables Material3 Motion transformations for content within a
+ * [TransformingLazyColumn] item.
+ *
+ * This modifier calculates and applies transformations to the content and background based on the
+ * [TransformingLazyColumnItemScrollProgress] of the item inside the
+ * [TransformingLazyColumnItemScope]. It adjusts the height, position, applies scaling and morphing
+ * effects as the item scrolls.
+ *
+ * When [ReduceMotion] is enabled, this modifier will not apply any transformations.
+ *
+ * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnReducedMotionSample
  * @sample androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
  * @param scope The [TransformingLazyColumnItemScope] provides access to the item's index and key.
  * @param spec [TransformationSpec] to specify all needed parameters for the transformations.
@@ -181,60 +263,46 @@ internal fun Modifier.scrollTransform(
     painter: Painter,
     border: BorderStroke? = null
 ): Modifier =
-    with(scope) {
-        val minMorphingHeight = remember(scope) { mutableStateOf<Float?>(null) }
-        val transformation = remember { mutableStateOf<TransformationState?>(null) }
-        val morphingPainter =
-            remember(scope, spec, painter, shape, border) {
-                BackgroundPainter(transformation, shape, border, painter)
-            }
-        val updatedSpec by rememberUpdatedState(spec)
-
-        this@scrollTransform then
-            TargetMorphingHeightConsumerModifierElement { minMorphingHeight.value = it?.toFloat() }
-                .paint(morphingPainter)
-                // TODO: We need to ensure that `transformedHeight` is only called during the
-                //  measure phase by TLC, so when this is done, the graphics layer and draw
-                //  modifiers can work properly without triggering an invalidation.
-                .transformedHeight { height, scrollProgress ->
-                    // TODO: may be better to create once and update. Still need to ensure readers
-                    // are reading a state so they register to updates.
-                    val transformProgress = transformProgress(scrollProgress, updatedSpec)
-                    val scale = transformProgress.compute(updatedSpec.scale, updatedSpec.easing)
-                    val morphedHeight = height.toFloat() // TODO: Implement morphing
-                    transformation.value =
-                        TransformationState(
-                            scale = scale,
-                            containerAlpha =
-                                transformProgress.compute(
-                                    updatedSpec.containerAlpha,
-                                    updatedSpec.easing
-                                ),
-                            contentAlpha =
-                                transformProgress.compute(
-                                    updatedSpec.contentAlpha,
-                                    updatedSpec.easing
-                                ),
-                            morphWidth =
-                                transformProgress.compute(
-                                    updatedSpec.containerWidth,
-                                    updatedSpec.easing
-                                ),
-                            minMorphingHeight = minMorphingHeight,
-                            morphedHeight = morphedHeight
-                        )
-                    (morphedHeight * scale).fastRoundToInt()
+    if (LocalReduceMotion.current.enabled()) this
+    else
+        with(scope) {
+            val minMorphingHeight = remember(scope) { mutableStateOf<Float?>(null) }
+            val transformation = remember { mutableStateOf<TransformationState?>(null) }
+            val morphingPainter =
+                remember(scope, spec, painter, shape, border) {
+                    BackgroundPainter(transformation, shape, border, painter)
                 }
-                .graphicsLayer { contentTransformation(transformation) }
-                .clip(shape)
-    }
+            val updatedSpec by rememberUpdatedState(spec)
+
+            this@scrollTransform then
+                TargetMorphingHeightConsumerModifierElement {
+                        minMorphingHeight.value = it?.toFloat()
+                    }
+                    .paint(morphingPainter)
+                    .transformedHeight { height, scrollProgress ->
+                        // TODO: may be better to create once and update. Still need to ensure
+                        // readers
+                        // are reading a state so they register to updates.
+                        transformationState(
+                                spec = updatedSpec,
+                                itemHeight = height.toFloat(),
+                                minMorphingHeight = minMorphingHeight.value,
+                                scrollProgress = scrollProgress
+                            )
+                            .also { transformation.value = it }
+                            .placementHeight
+                            .fastRoundToInt()
+                    }
+                    .graphicsLayer { contentTransformation(transformState = transformation.value) }
+                    .clip(shape)
+        }
 
 /**
  * Class that represents where in the transition areas a given item is. This can be either in the
  * top transition area, the bottom transition area, or neither.
  */
 @JvmInline
-private value class TransitionAreaProgress(private val encodedProgress: Float) {
+internal value class TransitionAreaProgress(private val encodedProgress: Float) {
     // encodedProgress is, going from top to bottom:
     // -1 to 0 for top transition
     // 0 in the center of the screen, no transition
@@ -263,11 +331,7 @@ private value class TransitionAreaProgress(private val encodedProgress: Float) {
                 variable.transformationZoneExitFraction,
                 progress
             )
-        return androidx.compose.ui.util.lerp(
-            edgeValue,
-            1f,
-            easing.transform(transformationZoneProgress)
-        )
+        return lerp(edgeValue, 1f, easing.transform(transformationZoneProgress))
     }
 
     companion object {
@@ -288,6 +352,34 @@ private value class TransitionAreaProgress(private val encodedProgress: Float) {
     }
 }
 
+/** Uses a TransformationSpec to compute a TransformationState. */
+internal fun transformationState(
+    spec: TransformationSpec,
+    itemHeight: Float,
+    minMorphingHeight: Float?,
+    scrollProgress: TransformingLazyColumnItemScrollProgress
+): TransformationState {
+    val transformProgress = transformProgress(scrollProgress, spec)
+    val scale = transformProgress.compute(spec.scale, spec.easing)
+    val morphedHeight =
+        minMorphingHeight?.let {
+            morphedHeight(
+                scrollProgress = scrollProgress,
+                spec = spec,
+                itemHeight = itemHeight,
+                minMorphingHeight = it
+            )
+        } ?: itemHeight
+
+    return TransformationState(
+        scale = scale,
+        containerAlpha = transformProgress.compute(spec.containerAlpha, spec.easing),
+        contentAlpha = transformProgress.compute(spec.contentAlpha, spec.easing),
+        morphWidth = transformProgress.compute(spec.containerWidth, spec.easing),
+        morphedHeight = morphedHeight
+    )
+}
+
 /** Uses a TransformationSpec to convert a scrollProgress into a transitionProgress. */
 private fun transformProgress(
     scrollProgress: TransformingLazyColumnItemScrollProgress?,
@@ -306,8 +398,7 @@ private fun transformProgress(
 
         // Size of each transition area.
         val scalingLine =
-            androidx.compose.ui.util
-                .lerp(spec.minTransitionArea, spec.maxTransitionArea, sizeRatio)
+            lerp(spec.minTransitionArea, spec.maxTransitionArea, sizeRatio)
                 // Ensure the top & bottom transition areas don't overlap.
                 .coerceAtMost((1f + relativeItemHeight) / 2f)
 
@@ -319,14 +410,43 @@ private fun transformProgress(
         }
     }
 
+/** Compute new morphing height for the item based on its size and position on the screen. */
+private fun morphedHeight(
+    scrollProgress: TransformingLazyColumnItemScrollProgress,
+    spec: TransformationSpec,
+    itemHeight: Float,
+    minMorphingHeight: Float
+): Float {
+    // Size of the item, relative to the screen
+    val relativeItemHeight = scrollProgress.bottomOffsetFraction - scrollProgress.topOffsetFraction
+    val screenSize = itemHeight / relativeItemHeight
+
+    val growthStartTopOffsetFraction =
+        spec.growthStartScreenFraction - minMorphingHeight / screenSize
+    val growthEndTopOffsetFraction = spec.growthEndScreenFraction - relativeItemHeight
+    // Fraction of how item has grown so far.
+    val heightMorphProgress =
+        // growthStartTopOffsetFraction > growthEndTopOffsetFraction since item has minimum size at
+        // the bottom of the screen.
+        inverseLerp(
+                growthStartTopOffsetFraction,
+                growthEndTopOffsetFraction,
+                scrollProgress.topOffsetFraction
+            )
+            .coerceIn(0f, 1f)
+    return lerp(minMorphingHeight, itemHeight, heightMorphProgress)
+}
+
 // TODO: Decide what we want to compute & store vs compute when needed.
 internal data class TransformationState(
     val containerAlpha: Float,
     val contentAlpha: Float,
     val scale: Float,
     val morphWidth: Float,
-    val minMorphingHeight: State<Float?>,
     val morphedHeight: Float, // Height after morphing, before scaling
-    val contentXOffsetFraction: Float = 0f, // TODO: Implement morphing
-    val backgroundXOffsetFraction: Float = 1f // TODO: Implement morphing
-)
+    val contentXOffsetFraction: Float = 0f, // TODO: Implement horizontal morphing
+    val backgroundXOffsetFraction: Float = 1f // TODO: Implement horizontal morphing
+) {
+    internal val placementHeight: Float
+        get() = morphedHeight * scale
+}

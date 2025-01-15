@@ -27,13 +27,14 @@ import android.view.ViewGroup;
 import android.widget.Checkable;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.collection.ArraySet;
 import androidx.leanback.widget.VerticalGridView;
 import androidx.preference.DialogPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.MultiSelectListPreference;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collections;
 import java.util.HashSet;

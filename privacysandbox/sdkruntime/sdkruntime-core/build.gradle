@@ -55,7 +55,7 @@ android {
         disable("BanKeepAnnotation")
     }
 
-    namespace "androidx.privacysandbox.sdkruntime.core"
+    namespace = "androidx.privacysandbox.sdkruntime.core"
     compileSdk = 35
     compileSdkExtension = 14
 }

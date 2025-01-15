@@ -25,7 +25,6 @@ import static com.google.auto.common.MoreTypes.asTypeElement;
 
 import static javax.lang.model.type.TypeKind.DECLARED;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.annotationwrapper.DataPropertyAnnotation;
 import androidx.appsearch.compiler.annotationwrapper.DocumentPropertyAnnotation;
 import androidx.appsearch.compiler.annotationwrapper.EmbeddingPropertyAnnotation;
@@ -40,6 +39,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ class SchemaCodeGenerator {
     public static void generate(
             @NonNull ProcessingEnvironment env,
             @NonNull DocumentModel model,
-            @NonNull TypeSpec.Builder classBuilder) throws ProcessingException {
+            TypeSpec.@NonNull Builder classBuilder) throws ProcessingException {
         new SchemaCodeGenerator(model, env).generate(classBuilder);
     }
 
@@ -74,8 +75,7 @@ class SchemaCodeGenerator {
         mDependencyDocumentClasses = computeDependencyClasses(model, env);
     }
 
-    @NonNull
-    private static LinkedHashSet<TypeElement> computeDependencyClasses(
+    private static @NonNull LinkedHashSet<TypeElement> computeDependencyClasses(
             @NonNull DocumentModel model,
             @NonNull ProcessingEnvironment env) {
         LinkedHashSet<TypeElement> dependencies = new LinkedHashSet<>(model.getParentTypes());
@@ -90,7 +90,7 @@ class SchemaCodeGenerator {
         return dependencies;
     }
 
-    private void generate(@NonNull TypeSpec.Builder classBuilder) throws ProcessingException {
+    private void generate(TypeSpec.@NonNull Builder classBuilder) throws ProcessingException {
         classBuilder.addField(
                 FieldSpec.builder(String.class, "SCHEMA_NAME")
                         .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
@@ -117,8 +117,7 @@ class SchemaCodeGenerator {
         classBuilder.addMethod(createDependencyClassesMethod());
     }
 
-    @NonNull
-    private MethodSpec createDependencyClassesMethod() {
+    private @NonNull MethodSpec createDependencyClassesMethod() {
         TypeName listOfClasses = ParameterizedTypeName.get(ClassName.get("java.util", "List"),
                 ParameterizedTypeName.get(ClassName.get(Class.class),
                         WildcardTypeName.subtypeOf(Object.class)));
@@ -304,8 +303,7 @@ class SchemaCodeGenerator {
     /**
      * Creates an expr like {@code .setCardinality(PropertyConfig.CARDINALITY_REPEATED)}.
      */
-    @NonNull
-    private static CodeBlock createSetCardinalityExpr(
+    private static @NonNull CodeBlock createSetCardinalityExpr(
             @NonNull DataPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) {
         AnnotatedGetterOrField.ElementTypeCategory typeCategory =
@@ -330,8 +328,7 @@ class SchemaCodeGenerator {
     /**
      * Creates an expr like {@code .setTokenizerType(StringPropertyConfig.TOKENIZER_TYPE_PLAIN)}.
      */
-    @NonNull
-    private static CodeBlock createSetTokenizerTypeExpr(
+    private static @NonNull CodeBlock createSetTokenizerTypeExpr(
             @NonNull StringPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) throws ProcessingException {
         String enumName;
@@ -365,8 +362,7 @@ class SchemaCodeGenerator {
     /**
      * Creates an expr like {@code .setIndexingType(StringPropertyConfig.INDEXING_TYPE_PREFIXES)}.
      */
-    @NonNull
-    private static CodeBlock createSetIndexingTypeExpr(
+    private static @NonNull CodeBlock createSetIndexingTypeExpr(
             @NonNull StringPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) throws ProcessingException {
         String enumName;
@@ -392,8 +388,7 @@ class SchemaCodeGenerator {
     /**
      * Creates an expr like {@code .setShouldIndexNestedProperties(true)}.
      */
-    @NonNull
-    private static CodeBlock createSetShouldIndexNestedPropertiesExpr(
+    private static @NonNull CodeBlock createSetShouldIndexNestedPropertiesExpr(
             @NonNull DocumentPropertyAnnotation annotation) {
         return CodeBlock.of("\n.setShouldIndexNestedProperties($L)",
                 annotation.shouldIndexNestedProperties());
@@ -402,8 +397,7 @@ class SchemaCodeGenerator {
     /**
      * Creates an expr like {@code .setIndexingType(LongPropertyConfig.INDEXING_TYPE_RANGE)}.
      */
-    @NonNull
-    private static CodeBlock createSetIndexingTypeExpr(
+    private static @NonNull CodeBlock createSetIndexingTypeExpr(
             @NonNull LongPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) throws ProcessingException {
         String enumName;
@@ -427,8 +421,7 @@ class SchemaCodeGenerator {
      * Creates an expr like
      * {@code .setIndexingType(EmbeddingPropertyConfig.INDEXING_TYPE_SIMILARITY)}.
      */
-    @NonNull
-    private static CodeBlock createSetIndexingTypeExpr(
+    private static @NonNull CodeBlock createSetIndexingTypeExpr(
             @NonNull EmbeddingPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) throws ProcessingException {
         String enumName;
@@ -452,8 +445,7 @@ class SchemaCodeGenerator {
      * Creates an expr like
      * {@code .setJoinableValueType(StringPropertyConfig.JOINABLE_VALUE_TYPE_QUALIFIED_ID)}.
      */
-    @NonNull
-    private static CodeBlock createSetJoinableValueTypeExpr(
+    private static @NonNull CodeBlock createSetJoinableValueTypeExpr(
             @NonNull StringPropertyAnnotation annotation,
             @NonNull AnnotatedGetterOrField getterOrField) throws ProcessingException {
         String enumName;

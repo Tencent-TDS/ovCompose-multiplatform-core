@@ -31,6 +31,7 @@ import androidx.room.solver.QueryResultBinderProvider
 import androidx.room.solver.TypeAdapterExtras
 import androidx.room.solver.query.result.ListQueryResultAdapter
 import androidx.room.solver.query.result.MultiTypedPagingSourceQueryResultBinder
+import androidx.room.solver.query.result.Paging3PagingSourceQueryResultBinder
 import androidx.room.solver.query.result.QueryResultBinder
 
 class MultiTypedPagingSourceQueryResultBinderProvider(
@@ -70,8 +71,8 @@ class MultiTypedPagingSourceQueryResultBinderProvider(
             ((listAdapter?.accessedTableNames() ?: emptyList()) + query.tables.map { it.name })
                 .toSet()
 
-        val convertRowsOverrideInfo =
-            if (pagingSourceTypeName == PagingTypeNames.PAGING_SOURCE) {
+        return if (pagingSourceTypeName == PagingTypeNames.PAGING_SOURCE) {
+            val convertRowsOverrideInfo =
                 ConvertRowsOverrideInfo(
                     method = convertExecutableElement,
                     continuationParamName = convertExecutableElement.parameters.last().name,
@@ -79,16 +80,19 @@ class MultiTypedPagingSourceQueryResultBinderProvider(
                         context.processingEnv.getDeclaredType(roomPagingSourceTypeElement, typeArg),
                     returnTypeName = LIST.parametrizedBy(typeArg.asTypeName())
                 )
-            } else {
-                null
-            }
-
-        return MultiTypedPagingSourceQueryResultBinder(
-            listAdapter = listAdapter,
-            tableNames = tableNames,
-            className = roomPagingClassName,
-            convertRowsOverrideInfo = convertRowsOverrideInfo
-        )
+            Paging3PagingSourceQueryResultBinder(
+                listAdapter = listAdapter,
+                tableNames = tableNames,
+                className = roomPagingClassName,
+                convertRowsOverrideInfo = convertRowsOverrideInfo
+            )
+        } else {
+            MultiTypedPagingSourceQueryResultBinder(
+                listAdapter = listAdapter,
+                tableNames = tableNames,
+                className = roomPagingClassName
+            )
+        }
     }
 
     override fun matches(declared: XType): Boolean {

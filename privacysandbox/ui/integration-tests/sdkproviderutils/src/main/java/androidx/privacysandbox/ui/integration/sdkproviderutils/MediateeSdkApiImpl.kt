@@ -20,55 +20,69 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.annotation.RequiresApi
-import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.testaidl.IMediateeSdkApi
+import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.privacysandbox.ui.provider.toCoreLibInfo
 
 class MediateeSdkApiImpl(private val sdkContext: Context) : IMediateeSdkApi.Stub() {
-
-    private val testAdapters = TestAdapters(sdkContext)
-    private val mediationDescription =
-        if (CompatImpl.isAppOwnedMediatee()) {
-            "App Owned Mediation"
-        } else "Runtime Mediation"
-
     override fun loadBannerAd(
         @AdType adType: Int,
         waitInsideOnDraw: Boolean,
         drawViewability: Boolean
     ): Bundle {
-        val adapter: SandboxedUiAdapter =
-            when (adType) {
-                AdType.BASIC_WEBVIEW -> loadWebViewBannerAd()
-                AdType.WEBVIEW_FROM_LOCAL_ASSETS -> loadWebViewBannerAdFromLocalAssets()
-                AdType.NON_WEBVIEW_VIDEO -> loadVideoAd()
-                else -> loadNonWebViewBannerAd(mediationDescription, waitInsideOnDraw)
-            }
-        ViewabilityHandler.addObserverFactoryToAdapter(adapter, drawViewability)
-        return adapter.toCoreLibInfo(sdkContext)
+        return loadBannerAdUtil(adType, waitInsideOnDraw, drawViewability, sdkContext)
     }
 
-    private fun loadWebViewBannerAd(): SandboxedUiAdapter {
-        return testAdapters.WebViewBannerAd()
-    }
+    companion object {
+        fun loadBannerAdUtil(
+            @AdType adType: Int,
+            waitInsideOnDraw: Boolean,
+            drawViewability: Boolean,
+            sdkContext: Context
+        ): Bundle {
+            val testAdapters = TestAdapters(sdkContext)
+            val mediationDescription =
+                if (CompatImpl.isAppOwnedMediatee()) {
+                    "App Owned Mediation"
+                } else "Runtime Mediation"
+            val adapter: AbstractSandboxedUiAdapter =
+                when (adType) {
+                    AdType.BASIC_WEBVIEW -> loadWebViewBannerAd(testAdapters)
+                    AdType.WEBVIEW_FROM_LOCAL_ASSETS ->
+                        loadWebViewBannerAdFromLocalAssets(testAdapters)
+                    AdType.NON_WEBVIEW_VIDEO -> loadVideoAd(testAdapters)
+                    else ->
+                        loadNonWebViewBannerAd(testAdapters, mediationDescription, waitInsideOnDraw)
+                }
+            ViewabilityHandler.addObserverFactoryToAdapter(adapter, drawViewability)
+            return adapter.toCoreLibInfo(sdkContext)
+        }
 
-    private fun loadWebViewBannerAdFromLocalAssets(): SandboxedUiAdapter {
-        return testAdapters.WebViewAdFromLocalAssets()
-    }
+        private fun loadWebViewBannerAd(testAdapters: TestAdapters): AbstractSandboxedUiAdapter {
+            return testAdapters.WebViewBannerAd()
+        }
 
-    private fun loadVideoAd(): SandboxedUiAdapter {
-        val playerViewProvider = PlayerViewProvider()
-        val adapter = testAdapters.VideoBannerAd(playerViewProvider)
-        PlayerViewabilityHandler.addObserverFactoryToAdapter(adapter, playerViewProvider)
-        return adapter
-    }
+        private fun loadWebViewBannerAdFromLocalAssets(
+            testAdapters: TestAdapters
+        ): AbstractSandboxedUiAdapter {
+            return testAdapters.WebViewAdFromLocalAssets()
+        }
 
-    private fun loadNonWebViewBannerAd(
-        text: String,
-        waitInsideOnDraw: Boolean
-    ): SandboxedUiAdapter {
-        return testAdapters.TestBannerAd(text, waitInsideOnDraw)
+        private fun loadVideoAd(testAdapters: TestAdapters): AbstractSandboxedUiAdapter {
+            val playerViewProvider = PlayerViewProvider()
+            val adapter = testAdapters.VideoBannerAd(playerViewProvider)
+            PlayerViewabilityHandler.addObserverFactoryToAdapter(adapter, playerViewProvider)
+            return adapter
+        }
+
+        private fun loadNonWebViewBannerAd(
+            testAdapters: TestAdapters,
+            text: String,
+            waitInsideOnDraw: Boolean
+        ): AbstractSandboxedUiAdapter {
+            return testAdapters.TestBannerAd(text, waitInsideOnDraw)
+        }
     }
 
     private object CompatImpl {

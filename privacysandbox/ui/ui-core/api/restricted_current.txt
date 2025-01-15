@@ -4,11 +4,9 @@ package androidx.privacysandbox.ui.core {
   @SuppressCompatibility @androidx.privacysandbox.ui.core.ExperimentalFeatures.DelegatingAdapterApi public final class DelegatingSandboxedUiAdapter implements androidx.privacysandbox.ui.core.SandboxedUiAdapter {
     ctor public DelegatingSandboxedUiAdapter(android.os.Bundle delegate);
     method public void addDelegateChangeListener(androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter.DelegateChangeListener listener);
-    method public void addObserverFactory(androidx.privacysandbox.ui.core.SessionObserverFactory sessionObserverFactory);
     method public android.os.Bundle getDelegate();
     method public void openSession(android.content.Context context, android.os.IBinder windowInputToken, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
     method public void removeDelegateChangeListener(androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter.DelegateChangeListener listener);
-    method public void removeObserverFactory(androidx.privacysandbox.ui.core.SessionObserverFactory sessionObserverFactory);
     method public suspend Object? updateDelegate(android.os.Bundle delegate, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   }
 
@@ -43,9 +41,7 @@ package androidx.privacysandbox.ui.core {
   }
 
   public interface SandboxedUiAdapter {
-    method public void addObserverFactory(androidx.privacysandbox.ui.core.SessionObserverFactory sessionObserverFactory);
     method public void openSession(android.content.Context context, android.os.IBinder windowInputToken, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
-    method public void removeObserverFactory(androidx.privacysandbox.ui.core.SessionObserverFactory sessionObserverFactory);
   }
 
   public static interface SandboxedUiAdapter.Session extends java.lang.AutoCloseable {
@@ -64,10 +60,6 @@ package androidx.privacysandbox.ui.core {
     method public void onResizeRequested(int width, int height);
     method public void onSessionError(Throwable throwable);
     method public void onSessionOpened(androidx.privacysandbox.ui.core.SandboxedUiAdapter.Session session);
-  }
-
-  @Deprecated public interface SdkActivityLauncher {
-    method @Deprecated public suspend Object? launchSdkActivity(android.os.IBinder sdkActivityHandlerToken, kotlin.coroutines.Continuation<? super java.lang.Boolean>);
   }
 
   public final class SdkRuntimeUiLibVersions {

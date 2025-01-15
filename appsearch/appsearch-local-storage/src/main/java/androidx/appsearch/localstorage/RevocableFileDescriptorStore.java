@@ -18,9 +18,10 @@ package androidx.appsearch.localstorage;
 
 import android.os.ParcelFileDescriptor;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.exceptions.AppSearchException;
+
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 
@@ -48,8 +49,7 @@ public interface RevocableFileDescriptorStore {
      * @param parcelFileDescriptor The original ParcelFileDescriptor to be wrapped.
      * @return A ParcelFileDescriptor that can be revoked by the store.
      */
-    @NonNull
-    ParcelFileDescriptor wrapToRevocableFileDescriptor(@NonNull String packageName,
+    @NonNull ParcelFileDescriptor wrapToRevocableFileDescriptor(@NonNull String packageName,
             @NonNull ParcelFileDescriptor parcelFileDescriptor) throws IOException;
 
     /**

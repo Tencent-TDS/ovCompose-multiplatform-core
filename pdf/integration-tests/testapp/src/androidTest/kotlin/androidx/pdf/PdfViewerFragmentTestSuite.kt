@@ -42,7 +42,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiSelector
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -139,6 +142,7 @@ class PdfViewerFragmentTestSuite {
 
     @Test
     fun testPdfViewerFragment_isTextSearchActive_toggleMenu() {
+        val uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val scenario =
             scenarioLoadDocument(
                 TEST_DOCUMENT_FILE,
@@ -166,6 +170,9 @@ class PdfViewerFragmentTestSuite {
 
         // Prev/next search results
         onView(withId(R.id.find_prev_btn)).perform(click())
+        val keyboard = uiDevice.findObject(UiSelector().descriptionContains(KEYBOARD_CONTENT_DESC))
+        // Assert keyboard is dismissed on clicking prev/next
+        assertFalse(keyboard.exists())
         onView(withId(R.id.match_status_textview)).check(searchViewAssertion.matchPrevious())
         onView(withId(R.id.find_next_btn)).perform(click())
         onView(withId(R.id.match_status_textview)).check(searchViewAssertion.matchNext())
@@ -264,7 +271,7 @@ class PdfViewerFragmentTestSuite {
         private const val TEST_PROTECTED_DOCUMENT_FILE = "sample-protected.pdf"
         private const val TEST_CORRUPTED_DOCUMENT_FILE = "corrupted.pdf"
         private const val PROTECTED_DOCUMENT_PASSWORD = "abcd1234"
-        private const val DELAY_TIME_MS = 500L
         private const val SEARCH_QUERY = "ipsum"
+        private const val KEYBOARD_CONTENT_DESC = "keyboard"
     }
 }

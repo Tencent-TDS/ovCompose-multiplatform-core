@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api(project(":camera:viewfinder:viewfinder-core"))
     implementation("androidx.annotation:annotation-experimental:1.4.1")
@@ -72,7 +73,7 @@ android {
     }
 
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.viewfinder"
+    namespace = "androidx.camera.viewfinder"
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }

@@ -40,21 +40,25 @@ dependencies {
     implementation(project(":compose:ui:ui"))
     implementation(project(":tv:tv-foundation"))
     implementation(project(":tv:tv-material"))
+
+    var media3Version = "1.5.0"
+    implementation("androidx.media3:media3-common-ktx:$media3Version")
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     defaultConfig {
-        minSdkVersion 28
+        minSdk = 28
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android.txt')
-            signingConfig signingConfigs.debug
         }
     }
-    namespace "androidx.tv.integration.playground"
+    namespace = "androidx.tv.integration.playground"
 }

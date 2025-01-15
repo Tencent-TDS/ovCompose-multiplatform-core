@@ -39,8 +39,6 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraSelector;
@@ -65,6 +63,9 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -105,8 +106,7 @@ public class CameraControllerFragment extends Fragment {
     private RotationProvider mRotationProvider;
     private int mRotation;
     private final RotationProvider.Listener mRotationListener = rotation -> mRotation = rotation;
-    @Nullable
-    private Recording mActiveRecording = null;
+    private @Nullable Recording mActiveRecording = null;
     private final Consumer<VideoRecordEvent> mVideoRecordEventListener = videoRecordEvent -> {
         if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
             VideoRecordEvent.Finalize finalize = (VideoRecordEvent.Finalize) videoRecordEvent;
@@ -123,8 +123,7 @@ public class CameraControllerFragment extends Fragment {
     };
 
     // Wrapped analyzer for tests to receive callbacks.
-    @Nullable
-    private ImageAnalysis.Analyzer mWrappedAnalyzer;
+    private ImageAnalysis.@Nullable Analyzer mWrappedAnalyzer;
 
     private final ImageAnalysis.Analyzer mAnalyzer = image -> {
         byte[] bytes = new byte[image.getPlanes()[0].getBuffer().remaining()];
@@ -144,8 +143,7 @@ public class CameraControllerFragment extends Fragment {
         image.close();
     };
 
-    @NonNull
-    private MediaStoreOutputOptions getNewVideoOutputMediaStoreOptions() {
+    private @NonNull MediaStoreOutputOptions getNewVideoOutputMediaStoreOptions() {
         String videoFileName = "video_" + System.currentTimeMillis();
         ContentResolver resolver = requireContext().getContentResolver();
         ContentValues contentValues = new ContentValues();
@@ -159,9 +157,8 @@ public class CameraControllerFragment extends Fragment {
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    @NonNull
     @Override
-    public View onCreateView(
+    public @NonNull View onCreateView(
             @NonNull LayoutInflater inflater,
             @Nullable ViewGroup container,
             @Nullable Bundle savedInstanceState) {
@@ -513,7 +510,7 @@ public class CameraControllerFragment extends Fragment {
     /**
      */
     @VisibleForTesting
-    void setWrappedAnalyzer(@Nullable ImageAnalysis.Analyzer analyzer) {
+    void setWrappedAnalyzer(ImageAnalysis.@Nullable Analyzer analyzer) {
         mWrappedAnalyzer = analyzer;
     }
 

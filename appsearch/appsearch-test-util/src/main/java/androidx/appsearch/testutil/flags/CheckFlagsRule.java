@@ -16,9 +16,8 @@
 // @exportToFramework:skipFile()
 package androidx.appsearch.testutil.flags;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -30,8 +29,7 @@ import org.junit.runners.model.Statement;
  */
 public final class CheckFlagsRule implements TestRule {
     @Override
-    @NonNull
-    public Statement apply(@NonNull Statement base, @Nullable Description description) {
+    public @NonNull Statement apply(@NonNull Statement base, @Nullable Description description) {
         return base;
     }
 }

@@ -248,14 +248,6 @@ constructor(
         ) {
             quirks.add(ImageCaptureFailedForVideoSnapshotQuirk())
         }
-        if (
-            quirkSettings.shouldEnableQuirk(
-                LockAeAndCaptureImageBreakCameraQuirk::class.java,
-                LockAeAndCaptureImageBreakCameraQuirk.isEnabled(cameraMetadata)
-            )
-        ) {
-            quirks.add(LockAeAndCaptureImageBreakCameraQuirk())
-        }
 
         Quirks(quirks).also {
             Logger.d(TAG, "camera2-pipe-integration CameraQuirks = " + Quirks.toString(it))

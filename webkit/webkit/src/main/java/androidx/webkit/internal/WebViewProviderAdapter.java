@@ -18,11 +18,16 @@ package androidx.webkit.internal;
 
 import android.annotation.SuppressLint;
 import android.net.Uri;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.core.os.CancellationSignal;
+import androidx.webkit.PrerenderException;
+import androidx.webkit.PrerenderOperationCallback;
 import androidx.webkit.Profile;
+import androidx.webkit.SpeculativeLoadingParameters;
 import androidx.webkit.WebMessageCompat;
 import androidx.webkit.WebMessagePortCompat;
 import androidx.webkit.WebViewCompat;
@@ -187,5 +192,58 @@ public class WebViewProviderAdapter {
      */
     public void setAudioMuted(boolean mute) {
         mImpl.setAudioMuted(mute);
+    }
+
+    /**
+     * Adapter method for
+     * {@link WebViewCompat#prerenderUrlAsync(WebView, String, CancellationSignal,
+     * PrerenderOperationCallback)}.
+     */
+    public void prerenderUrlAsync(
+            @NonNull String url,
+            @Nullable CancellationSignal cancellationSignal,
+            @NonNull PrerenderOperationCallback callback) {
+
+        ValueCallback<Void> activationCallback = (value) -> {
+            // value will always be null.
+            callback.onPrerenderActivated();
+        };
+        ValueCallback<Throwable> errorCallback = (throwable) -> {
+            callback.onError(new PrerenderException("Prerender operation failed", throwable));
+        };
+        mImpl.prerenderUrl(
+                url,
+                cancellationSignal,
+                activationCallback,
+                errorCallback);
+    }
+
+    /**
+     * Adapter method for
+     * {@link WebViewCompat#prerenderUrlAsync(WebView, String, CancellationSignal,
+     * SpeculativeLoadingParameters, PrerenderOperationCallback)}.
+     */
+    public void prerenderUrlAsync(
+            @NonNull String url,
+            @Nullable CancellationSignal cancellationSignal,
+            @NonNull SpeculativeLoadingParameters params,
+            @NonNull PrerenderOperationCallback callback) {
+
+        InvocationHandler paramsBoundaryInterface =
+                BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
+                        new SpeculativeLoadingParametersAdapter(params));
+        ValueCallback<Void> activationCallback = (value) -> {
+            // value will always be null.
+            callback.onPrerenderActivated();
+        };
+        ValueCallback<Throwable> errorCallback = (throwable) -> {
+            callback.onError(new PrerenderException("Prerender operation failed", throwable));
+        };
+        mImpl.prerenderUrl(
+                url,
+                cancellationSignal,
+                paramsBoundaryInterface,
+                activationCallback,
+                errorCallback);
     }
 }

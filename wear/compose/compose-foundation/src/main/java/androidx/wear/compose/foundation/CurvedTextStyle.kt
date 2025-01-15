@@ -55,15 +55,15 @@ internal val DefaultCurvedTextStyles =
  *   style cannot be found in the provided font family.
  * @param letterSpacing The amount of space (in em) to add between each letter.
  */
-class CurvedTextStyle(
-    val background: Color = Color.Unspecified,
-    val color: Color = Color.Unspecified,
-    val fontSize: TextUnit = TextUnit.Unspecified,
-    val fontFamily: FontFamily? = null,
-    val fontWeight: FontWeight? = null,
-    val fontStyle: FontStyle? = null,
-    val fontSynthesis: FontSynthesis? = null,
-    val letterSpacing: TextUnit = TextUnit.Unspecified,
+public class CurvedTextStyle(
+    public val background: Color = Color.Unspecified,
+    public val color: Color = Color.Unspecified,
+    public val fontSize: TextUnit = TextUnit.Unspecified,
+    public val fontFamily: FontFamily? = null,
+    public val fontWeight: FontWeight? = null,
+    public val fontStyle: FontStyle? = null,
+    public val fontSynthesis: FontSynthesis? = null,
+    public val letterSpacing: TextUnit = TextUnit.Unspecified,
 ) {
     /**
      * Styling configuration for a curved text.
@@ -79,7 +79,7 @@ class CurvedTextStyle(
             "Wear OS 1.0. A newer overload is available with additional font parameters.",
         level = DeprecationLevel.HIDDEN
     )
-    constructor(
+    public constructor(
         background: Color = Color.Unspecified,
         color: Color = Color.Unspecified,
         fontSize: TextUnit = TextUnit.Unspecified
@@ -102,7 +102,7 @@ class CurvedTextStyle(
             "parameter.",
         level = DeprecationLevel.HIDDEN
     )
-    constructor(
+    public constructor(
         background: Color = Color.Unspecified,
         color: Color = Color.Unspecified,
         fontSize: TextUnit = TextUnit.Unspecified,
@@ -119,7 +119,7 @@ class CurvedTextStyle(
      * [TextStyle.fontSize], [TextStyle.background], [TextStyle.fontFamily], [TextStyle.fontWeight],
      * [TextStyle.fontStyle], [TextStyle.fontSynthesis] and [TextStyle.letterSpacing].
      */
-    constructor(
+    public constructor(
         style: TextStyle
     ) : this(
         style.background,
@@ -142,7 +142,7 @@ class CurvedTextStyle(
      *
      * If the given curved text style is null, returns this curved text style.
      */
-    fun merge(other: CurvedTextStyle? = null): CurvedTextStyle {
+    public fun merge(other: CurvedTextStyle? = null): CurvedTextStyle {
         if (other == null) return this
 
         return CurvedTextStyle(
@@ -159,14 +159,14 @@ class CurvedTextStyle(
     }
 
     /** Plus operator overload that applies a [merge]. */
-    operator fun plus(other: CurvedTextStyle): CurvedTextStyle = this.merge(other)
+    public operator fun plus(other: CurvedTextStyle): CurvedTextStyle = this.merge(other)
 
     @Deprecated(
         "This overload is provided for backwards compatibility with Compose for " +
             "Wear OS 1.0. A newer overload is available with additional font parameters.",
         level = DeprecationLevel.HIDDEN
     )
-    fun copy(
+    public fun copy(
         background: Color = this.background,
         color: Color = this.color,
         fontSize: TextUnit = this.fontSize,
@@ -188,7 +188,7 @@ class CurvedTextStyle(
             "Wear OS 1.4. A newer overload is available with additional letter spacing parameter.",
         level = DeprecationLevel.HIDDEN
     )
-    fun copy(
+    public fun copy(
         background: Color = this.background,
         color: Color = this.color,
         fontSize: TextUnit = this.fontSize,
@@ -209,7 +209,7 @@ class CurvedTextStyle(
         )
     }
 
-    fun copy(
+    public fun copy(
         background: Color = this.background,
         color: Color = this.color,
         fontSize: TextUnit = this.fontSize,

@@ -16,7 +16,7 @@
 
 import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
+import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
 plugins {
@@ -61,7 +61,7 @@ android {
 
 androidx {
     name = "Performance - Annotation"
-    publish = Publish.NONE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Provides source annotations for performance optimizations."
     kotlinTarget = KotlinTarget.KOTLIN_1_9

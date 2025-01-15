@@ -18,49 +18,46 @@ import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
 plugins {
-  id("AndroidXPlugin")
-  id("com.android.library")
+    id("AndroidXPlugin")
+    id("com.android.library")
 }
 
 androidXMultiplatform {
-  android()
+    android()
 
-  defaultPlatform(PlatformIdentifier.ANDROID)
+    defaultPlatform(PlatformIdentifier.ANDROID)
 
-  sourceSets {
+    sourceSets {
+        androidMain {
+            dependencies {
+                implementation("androidx.collection:collection:1.4.3")
+                implementation("androidx.core:core:1.1.0")
+                implementation("androidx.core:core-ktx:1.12.0")
+                implementation(project(":ink:ink-nativeloader"))
+                implementation(project(":ink:ink-geometry"))
+                implementation(project(":ink:ink-brush"))
+                implementation(project(":ink:ink-strokes"))
+            }
+        }
 
-    androidMain {
-      dependencies {
-        implementation("androidx.collection:collection:1.4.3")
-        implementation("androidx.core:core:1.1.0")
-        implementation("androidx.core:core-ktx:1.12.0")
-        implementation(project(":ink:ink-nativeloader"))
-        implementation(project(":ink:ink-geometry"))
-        implementation(project(":ink:ink-brush"))
-        implementation(project(":ink:ink-strokes"))
-      }
+        androidInstrumentedTest {
+            dependencies {
+                implementation(libs.testExtJunit)
+                implementation(libs.testRules)
+                implementation(libs.testRunner)
+                implementation(libs.espressoCore)
+                implementation(libs.junit)
+                implementation(libs.truth)
+                implementation(project(":core:core-ktx"))
+                implementation(project(":test:screenshot:screenshot"))
+            }
+        }
     }
-
-    androidInstrumentedTest {
-      dependencies {
-        implementation(libs.testExtJunit)
-        implementation(libs.testRules)
-        implementation(libs.testRunner)
-        implementation(libs.espressoCore)
-        implementation(libs.junit)
-        implementation(libs.truth)
-        implementation(project(":core:core-ktx"))
-	implementation(project(":test:screenshot:screenshot"))
-      }
-    }
-  }
 }
 
 android {
-  namespace = "androidx.ink.rendering"
-  compileSdk = 35
-  sourceSets.androidTest.assets.srcDirs +=
-      project.rootDir.absolutePath + "/../../golden/ink/ink-rendering"
+    namespace = "androidx.ink.rendering"
+    compileSdk = 35
 }
 
 androidx {
@@ -68,4 +65,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Display beautiful strokes"
+    addGoldenImageAssets()
 }

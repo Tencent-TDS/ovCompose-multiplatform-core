@@ -25,7 +25,7 @@ import androidx.room.compiler.processing.XTypeElement
 import androidx.room.compiler.processing.util.Source
 import androidx.room.ext.RoomTypeNames.ROOM_SQL_QUERY
 import androidx.room.ext.RoomTypeNames.STRING_UTIL
-import androidx.room.processor.QueryMethodProcessor
+import androidx.room.processor.QueryFunctionProcessor
 import androidx.room.runProcessorTestWithK1
 import androidx.room.testing.context
 import androidx.room.writer.QueryWriter
@@ -86,7 +86,7 @@ class QueryWriterTest {
                 if (name == null) {
                   _stmt.bindNull(_argIndex);
                 } else {
-                  _stmt.bindString(_argIndex, name);
+                  _stmt.bindText(_argIndex, name);
                 }
                 """
                     .trimIndent()
@@ -375,7 +375,7 @@ class QueryWriterTest {
                     }
                     .first { it.second.isNotEmpty() }
             val parser =
-                QueryMethodProcessor(
+                QueryFunctionProcessor(
                     baseContext = invocation.context,
                     containing = owner.type,
                     executableElement = methods.first()

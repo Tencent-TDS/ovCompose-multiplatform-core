@@ -30,7 +30,7 @@ class MaterialGoldenTest(private val expected: String, private val testCase: Run
     @JvmField
     @Rule
     var mScreenshotRule: AndroidXScreenshotTestRule =
-        AndroidXScreenshotTestRule("wear/wear-protolayout-material3")
+        AndroidXScreenshotTestRule("wear/protolayout/protolayout-material3")
 
     @Test
     fun test() {

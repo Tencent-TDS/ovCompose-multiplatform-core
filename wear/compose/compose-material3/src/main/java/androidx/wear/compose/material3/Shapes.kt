@@ -57,15 +57,15 @@ import androidx.wear.compose.material3.tokens.ShapeTokens
  */
 // TODO(b/273226734) Review documentation with references to components that use the shape themes.
 @Immutable
-class Shapes(
-    val extraSmall: CornerBasedShape = ShapeDefaults.ExtraSmall,
-    val small: CornerBasedShape = ShapeDefaults.Small,
-    val medium: CornerBasedShape = ShapeDefaults.Medium,
-    val large: CornerBasedShape = ShapeDefaults.Large,
-    val extraLarge: CornerBasedShape = ShapeDefaults.ExtraLarge,
+public class Shapes(
+    public val extraSmall: CornerBasedShape = ShapeDefaults.ExtraSmall,
+    public val small: CornerBasedShape = ShapeDefaults.Small,
+    public val medium: CornerBasedShape = ShapeDefaults.Medium,
+    public val large: CornerBasedShape = ShapeDefaults.Large,
+    public val extraLarge: CornerBasedShape = ShapeDefaults.ExtraLarge,
 ) {
     /** Returns a copy of this Shapes, optionally overriding some of the values. */
-    fun copy(
+    public fun copy(
         extraSmall: CornerBasedShape = this.extraSmall,
         small: CornerBasedShape = this.small,
         medium: CornerBasedShape = this.medium,
@@ -111,22 +111,22 @@ class Shapes(
 }
 
 /** Contains the default values used by [Shapes] */
-object ShapeDefaults {
+public object ShapeDefaults {
 
     /** Extra small sized corner shape */
-    val ExtraSmall = ShapeTokens.CornerExtraSmall
+    public val ExtraSmall: RoundedCornerShape = ShapeTokens.CornerExtraSmall
 
     /** Small sized corner shape */
-    val Small = ShapeTokens.CornerSmall
+    public val Small: RoundedCornerShape = ShapeTokens.CornerSmall
 
     /** Medium sized corner shape */
-    val Medium = ShapeTokens.CornerMedium
+    public val Medium: RoundedCornerShape = ShapeTokens.CornerMedium
 
     /** Large sized corner shape */
-    val Large = ShapeTokens.CornerLarge
+    public val Large: RoundedCornerShape = ShapeTokens.CornerLarge
 
     /** Extra large sized corner shape */
-    val ExtraLarge = ShapeTokens.CornerExtraLarge
+    public val ExtraLarge: RoundedCornerShape = ShapeTokens.CornerExtraLarge
 }
 
 /**

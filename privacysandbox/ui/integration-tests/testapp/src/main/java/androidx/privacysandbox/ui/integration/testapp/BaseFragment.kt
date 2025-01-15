@@ -30,7 +30,8 @@ import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.client.view.SandboxedSdkViewEventListener
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
-import androidx.privacysandbox.ui.integration.testaidl.ISdkApi
+import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApi
+import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApiFactory
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -57,7 +58,10 @@ abstract class BaseFragment : Fragment() {
                 loadedSdk = sdkSandboxManager.loadSdk(SDK_NAME, Bundle())
                 sdkSandboxManager.loadSdk(MEDIATEE_SDK_NAME, Bundle())
             }
-            sdkApi = ISdkApi.Stub.asInterface(loadedSdk.getInterface())
+            sdkApi =
+                ISdkApiFactory.wrapToISdkApi(
+                    checkNotNull(loadedSdk.getInterface()) { "Cannot find Sdk Service!" }
+                )
         }
     }
 
@@ -105,9 +109,11 @@ abstract class BaseFragment : Fragment() {
         drawViewabilityLayer: Boolean,
         waitInsideOnDraw: Boolean = false
     ) {
-        val sdkBundle =
-            sdkApi.loadBannerAd(adType, mediationOption, waitInsideOnDraw, drawViewabilityLayer)
-        sandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(sdkBundle))
+        runBlocking {
+            val sdkBundle =
+                sdkApi.loadBannerAd(adType, mediationOption, waitInsideOnDraw, drawViewabilityLayer)
+            sandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(sdkBundle))
+        }
     }
 
     open fun handleDrawerStateChange(isDrawerOpen: Boolean) {

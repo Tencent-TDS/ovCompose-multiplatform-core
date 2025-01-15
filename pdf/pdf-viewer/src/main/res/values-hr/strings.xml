@@ -29,8 +29,10 @@
     <string name="desc_page_single" msgid="8459583146661044094">"stranica <xliff:g id="PAGE">%1$d</xliff:g> od <xliff:g id="TOTAL">%2$d</xliff:g>"</string>
     <string name="desc_zoom" msgid="7318480946145947242">"zumiranje <xliff:g id="FIRST">%1$d</xliff:g> posto"</string>
     <string name="desc_goto_link" msgid="2461368384824849714">"Idite na stranicu <xliff:g id="PAGE_NUMBER">%1$d</xliff:g>"</string>
-    <string name="desc_page" msgid="5684226167093594168">"stranica <xliff:g id="PAGE">%1$d</xliff:g>"</string>
+    <!-- no translation found for desc_page (6702471448987833953) -->
+    <skip />
     <string name="desc_empty_page" msgid="5041794048330057239">"Prazna stranica"</string>
+    <string name="desc_page_with_text" msgid="2564017005407577604">"Stranica <xliff:g id="PAGE_NUMBER">%1$d</xliff:g>: <xliff:g id="PAGE_TEXT">%2$s</xliff:g>"</string>
     <string name="error_file_format_pdf" msgid="7567006188638831878">"PDF se ne može prikazati (format <xliff:g id="TITLE">%1$s</xliff:g> nije važeći)"</string>
     <string name="error_on_page" msgid="1592475819957182385">"Stranica <xliff:g id="PAGE">%1$d</xliff:g> ne može se prikazati (pogreška datoteke)"</string>
     <string name="desc_web_link_shortened_to_domain" msgid="3323639528531061592">"Veza: web-stranica na domeni <xliff:g id="DESTINATION_DOMAIN">%1$s</xliff:g>"</string>

@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.os.RemoteException
 import android.os.ext.SdkExtensions
 import android.util.Log
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -56,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var triggerSandboxDeathButton: Button
     private lateinit var zOrderToggleButton: SwitchMaterial
     private lateinit var viewabilityToggleButton: SwitchMaterial
+    private lateinit var composeToggleButton: SwitchMaterial
     private lateinit var mediationDropDownMenu: Spinner
     private lateinit var adTypeDropDownMenu: Spinner
     private lateinit var titleBar: TextView
@@ -75,6 +77,9 @@ class MainActivity : AppCompatActivity() {
     private val drawViewabilityLayer
         get() = viewabilityToggleButton.isChecked
 
+    private var useCompose = false
+    private var selectedCUJMenuId = R.id.item_resize
+
     // TODO(b/257429573): Remove this line once fixed.
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 5)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         drawerLayout = findViewById(R.id.drawer)
         navigationView = findViewById(R.id.navigation_view)
         zOrderToggleButton = findViewById(R.id.zorder_below_switch)
+        composeToggleButton = findViewById(R.id.compose_switch)
         viewabilityToggleButton = findViewById(R.id.display_viewability_switch)
         triggerSandboxDeathButton = findViewById(R.id.trigger_sandbox_death)
         mediationDropDownMenu = findViewById(R.id.mediation_dropdown_menu)
@@ -177,6 +183,7 @@ class MainActivity : AppCompatActivity() {
         initializeMediationDropDown()
         initializeAdTypeDropDown()
         initializeZOrderToggleButton()
+        initializeComposeToggleButton()
     }
 
     private fun disableAllControls() {
@@ -184,6 +191,7 @@ class MainActivity : AppCompatActivity() {
         adTypeDropDownMenu.isEnabled = false
         viewabilityToggleButton.isEnabled = false
         zOrderToggleButton.isEnabled = false
+        composeToggleButton.isEnabled = false
     }
 
     private fun enableAllControls() {
@@ -191,6 +199,7 @@ class MainActivity : AppCompatActivity() {
         adTypeDropDownMenu.isEnabled = true
         viewabilityToggleButton.isEnabled = true
         zOrderToggleButton.isEnabled = true
+        composeToggleButton.isEnabled = true
     }
 
     private fun initializeViewabilityToggleButton() {
@@ -232,6 +241,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun initializeComposeToggleButton() {
+        composeToggleButton.setOnCheckedChangeListener { _, isChecked ->
+            useCompose = isChecked
+            selectCuj(navigationView.menu.findItem(selectedCUJMenuId))
+        }
+    }
+
     private fun initializeOptionsButton() {
         val button: Button = findViewById(R.id.toggle_drawer_button)
         button.setOnClickListener {
@@ -266,17 +282,29 @@ class MainActivity : AppCompatActivity() {
             }
         )
         navigationView.setNavigationItemSelectedListener {
-            val itemId = it.itemId
-            when (itemId) {
-                R.id.item_resize -> switchContentFragment(ResizeFragment(), it.title)
-                R.id.item_scroll -> switchContentFragment(ScrollFragment(), it.title)
-                R.id.item_pooling_container ->
-                    switchContentFragment(PoolingContainerFragment(), it.title)
-                R.id.item_fullscreen -> switchContentFragment(FullscreenSetupFragment(), it.title)
-                else -> {
-                    Log.e(TAG, "Invalid fragment option")
-                    true
+            selectCuj(it)
+            selectedCUJMenuId = it.itemId
+            true
+        }
+    }
+
+    private fun selectCuj(menuItem: MenuItem) {
+        when (menuItem.itemId) {
+            R.id.item_resize -> switchContentFragment(ResizeFragment(), menuItem.title)
+            R.id.item_scroll -> switchContentFragment(ScrollFragment(), menuItem.title)
+            R.id.item_pooling_container ->
+                switchContentFragment(PoolingContainerFragment(), menuItem.title)
+            R.id.item_fullscreen ->
+                if (useCompose) {
+                    switchContentFragment(
+                        FullscreenSetupComposeFragment(),
+                        getString(R.string.fullscreen_compose_cuj)
+                    )
+                } else {
+                    switchContentFragment(FullscreenSetupFragment(), menuItem.title)
                 }
+            else -> {
+                Log.e(TAG, "Invalid fragment option")
             }
         }
     }

@@ -27,7 +27,6 @@ import androidx.room.paging.CommonLimitOffsetImpl.Companion.BUG_LINK
 import androidx.room.paging.util.getClippedRefreshKey
 import androidx.room.util.performSuspending
 import androidx.sqlite.db.SupportSQLiteQuery
-import androidx.sqlite.use
 
 /**
  * An implementation of [PagingSource] to perform a LIMIT OFFSET query
@@ -67,10 +66,11 @@ actual constructor(
     override val jumpingSupported: Boolean
         get() = true
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value> =
+    actual override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value> =
         implementation.load(params)
 
-    override fun getRefreshKey(state: PagingState<Int, Value>): Int? = state.getClippedRefreshKey()
+    actual override fun getRefreshKey(state: PagingState<Int, Value>): Int? =
+        state.getClippedRefreshKey()
 
     protected open fun convertRows(cursor: Cursor): List<Value> {
         throw NotImplementedError(

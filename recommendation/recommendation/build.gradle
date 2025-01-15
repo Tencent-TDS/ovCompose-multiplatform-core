@@ -13,11 +13,12 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
 }
 
 android {
-    namespace "androidx.recommendation"
+    namespace = "androidx.recommendation"
 }
 
 androidx {
@@ -26,5 +27,4 @@ androidx {
     inceptionYear = "2015"
     description = "Android Support Recommendation"
     failOnDeprecationWarnings = false
-    metalavaK2UastEnabled = true
 }

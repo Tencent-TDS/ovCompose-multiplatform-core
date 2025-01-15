@@ -96,7 +96,7 @@ import kotlinx.coroutines.launch
  *   animated. Defaults to [OpenOnPhoneDialogDefaults.OpenOnPhoneIcon].
  */
 @Composable
-fun OpenOnPhoneDialog(
+public fun OpenOnPhoneDialog(
     show: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
@@ -209,14 +209,14 @@ fun OpenOnPhoneDialog(
 }
 
 /** Contains the default values used by [OpenOnPhoneDialog]. */
-object OpenOnPhoneDialogDefaults {
+public object OpenOnPhoneDialogDefaults {
 
     /**
      * A default composable used in [OpenOnPhoneDialog] that displays an open on phone icon with an
      * animation.
      */
     @OptIn(ExperimentalAnimationGraphicsApi::class)
-    val OpenOnPhoneIcon: @Composable BoxScope.() -> Unit = {
+    public val OpenOnPhoneIcon: @Composable BoxScope.() -> Unit = {
         val animation =
             AnimatedImageVector.animatedVectorResource(R.drawable.wear_m3c_open_on_phone_animation)
         var atEnd by remember { mutableStateOf(false) }
@@ -241,7 +241,7 @@ object OpenOnPhoneDialogDefaults {
      *   CurvedTextStyle(MaterialTheme.typography.titleLarge).
      */
     @Composable
-    fun curvedText(
+    public fun curvedText(
         text: String = LocalContext.current.resources.getString(R.string.wear_m3c_open_on_phone),
         style: CurvedTextStyle = CurvedTextStyle(MaterialTheme.typography.titleLarge)
     ): CurvedScope.() -> Unit = {
@@ -258,7 +258,9 @@ object OpenOnPhoneDialogDefaults {
      * Creates a [OpenOnPhoneDialogColors] that represents the default colors used in
      * [OpenOnPhoneDialog].
      */
-    @Composable fun colors() = MaterialTheme.colorScheme.defaultOpenOnPhoneDialogColors
+    @Composable
+    public fun colors(): OpenOnPhoneDialogColors =
+        MaterialTheme.colorScheme.defaultOpenOnPhoneDialogColors
 
     /**
      * Creates a [OpenOnPhoneDialogColors] with modified colors used in [OpenOnPhoneDialog].
@@ -270,13 +272,13 @@ object OpenOnPhoneDialogDefaults {
      * @param textColor The text color.
      */
     @Composable
-    fun colors(
+    public fun colors(
         iconColor: Color = Color.Unspecified,
         iconContainerColor: Color = Color.Unspecified,
         progressIndicatorColor: Color = Color.Unspecified,
         progressTrackColor: Color = Color.Unspecified,
         textColor: Color = Color.Unspecified
-    ) =
+    ): OpenOnPhoneDialogColors =
         MaterialTheme.colorScheme.defaultOpenOnPhoneDialogColors.copy(
             iconColor = iconColor,
             iconContainerColor = iconContainerColor,
@@ -286,7 +288,7 @@ object OpenOnPhoneDialogDefaults {
         )
 
     /** Default timeout for the [OpenOnPhoneDialog] dialog, in milliseconds. */
-    const val DurationMillis = 4000L
+    public const val DurationMillis: Long = 4000L
 
     private val ColorScheme.defaultOpenOnPhoneDialogColors: OpenOnPhoneDialogColors
         get() {
@@ -314,12 +316,12 @@ object OpenOnPhoneDialogDefaults {
  * @param progressTrackColor Color used to draw the track of progress indicator.
  * @param textColor Color used to draw the text.
  */
-class OpenOnPhoneDialogColors(
-    val iconColor: Color,
-    val iconContainerColor: Color,
-    val progressIndicatorColor: Color,
-    val progressTrackColor: Color,
-    val textColor: Color
+public class OpenOnPhoneDialogColors(
+    public val iconColor: Color,
+    public val iconContainerColor: Color,
+    public val progressIndicatorColor: Color,
+    public val progressTrackColor: Color,
+    public val textColor: Color
 ) {
     /**
      * Returns a copy of this OpenOnPhoneDialogColors optionally overriding some of the values.
@@ -330,13 +332,13 @@ class OpenOnPhoneDialogColors(
      * @param progressTrackColor Color used to draw the track of progress indicator.
      * @param textColor Color used to draw the text.
      */
-    fun copy(
+    public fun copy(
         iconColor: Color = this.iconColor,
         iconContainerColor: Color = this.iconContainerColor,
         progressIndicatorColor: Color = this.progressIndicatorColor,
         progressTrackColor: Color = this.progressTrackColor,
         textColor: Color = this.textColor
-    ) =
+    ): OpenOnPhoneDialogColors =
         OpenOnPhoneDialogColors(
             iconColor = iconColor.takeOrElse { this.iconColor },
             iconContainerColor = iconContainerColor.takeOrElse { this.iconContainerColor },
@@ -393,7 +395,7 @@ private fun iconContainer(
             .background(iconContainerColor)
     )
 
-    CircularProgressIndicatorContent(
+    CircularProgressIndicatorStatic(
         modifier = Modifier.graphicsLayer { alpha = progressAlphaAnimationFraction.value },
         progress = progress,
         strokeWidth = strokeWidth,

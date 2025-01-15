@@ -21,6 +21,9 @@ import static org.hamcrest.Matchers.greaterThan;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.webkit.test.common.PollingCheck;
+import androidx.webkit.test.common.WebkitUtils;
+import androidx.webkit.test.common.WebViewOnUiThread;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -56,7 +59,7 @@ public class TracingControllerTest {
     public void setUp() {
         WebkitUtils.checkFeature(WebViewFeature.TRACING_CONTROLLER_BASIC_USAGE);
 
-        mWebViewOnUiThread = new androidx.webkit.WebViewOnUiThread();
+        mWebViewOnUiThread = new WebViewOnUiThread();
         mSingleThreadExecutor = Executors.newSingleThreadExecutor(getCustomThreadFactory());
         mTracingController = TracingController.getInstance();
         Assert.assertNotNull(mTracingController);

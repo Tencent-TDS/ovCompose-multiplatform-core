@@ -76,11 +76,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Test connection between framework {@link MediaBrowser} and
- * {@link androidx.media.MediaBrowserServiceCompat}.
+ * Test connection between framework {@link MediaBrowser} and {@link
+ * androidx.media.MediaBrowserServiceCompat}.
  *
- * TODO: Lower the minSdkVersion of this test to LOLLIPOP.
+ * <p>TODO: Lower the minSdkVersion of this test to LOLLIPOP.
  */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = 21)
 public class MediaBrowserTest {

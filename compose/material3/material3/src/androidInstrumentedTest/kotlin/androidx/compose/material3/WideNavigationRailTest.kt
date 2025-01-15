@@ -16,6 +16,7 @@
 
 package androidx.compose.material3
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -538,7 +539,7 @@ class WideNavigationRailTest {
         rule.setMaterialContent(lightColorScheme()) {
             WideNavigationRail(
                 modifier = Modifier.testTag("rail"),
-                arrangement = WideNavigationRailArrangement.Center,
+                arrangement = Arrangement.Center,
                 header = { Box(Modifier.testTag("header").size(10.dp)) }
             ) {
                 WideNavigationRailItem(
@@ -570,7 +571,7 @@ class WideNavigationRailTest {
         rule.setMaterialContent(lightColorScheme()) {
             WideNavigationRail(
                 modifier = Modifier.testTag("rail"),
-                arrangement = WideNavigationRailArrangement.Bottom,
+                arrangement = Arrangement.Bottom,
                 header = { Box(Modifier.testTag("header").size(10.dp)) }
             ) {
                 WideNavigationRailItem(

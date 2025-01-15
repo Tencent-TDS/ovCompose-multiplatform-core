@@ -81,38 +81,38 @@ import androidx.wear.compose.material3.tokens.ColorTokens
  */
 @Immutable
 @Stable
-class ColorScheme(
-    val primary: Color = ColorTokens.Primary,
-    val primaryDim: Color = ColorTokens.PrimaryDim,
-    val primaryContainer: Color = ColorTokens.PrimaryContainer,
-    val onPrimary: Color = ColorTokens.OnPrimary,
-    val onPrimaryContainer: Color = ColorTokens.OnPrimaryContainer,
-    val secondary: Color = ColorTokens.Secondary,
-    val secondaryDim: Color = ColorTokens.SecondaryDim,
-    val secondaryContainer: Color = ColorTokens.SecondaryContainer,
-    val onSecondary: Color = ColorTokens.OnSecondary,
-    val onSecondaryContainer: Color = ColorTokens.OnSecondaryContainer,
-    val tertiary: Color = ColorTokens.Tertiary,
-    val tertiaryDim: Color = ColorTokens.TertiaryDim,
-    val tertiaryContainer: Color = ColorTokens.TertiaryContainer,
-    val onTertiary: Color = ColorTokens.OnTertiary,
-    val onTertiaryContainer: Color = ColorTokens.OnTertiaryContainer,
-    val surfaceContainerLow: Color = ColorTokens.SurfaceContainerLow,
-    val surfaceContainer: Color = ColorTokens.SurfaceContainer,
-    val surfaceContainerHigh: Color = ColorTokens.SurfaceContainerHigh,
-    val onSurface: Color = ColorTokens.OnSurface,
-    val onSurfaceVariant: Color = ColorTokens.OnSurfaceVariant,
-    val outline: Color = ColorTokens.Outline,
-    val outlineVariant: Color = ColorTokens.OutlineVariant,
-    val background: Color = ColorTokens.Background,
-    val onBackground: Color = ColorTokens.OnBackground,
-    val error: Color = ColorTokens.Error,
-    val onError: Color = ColorTokens.OnError,
-    val errorContainer: Color = ColorTokens.ErrorContainer,
-    val onErrorContainer: Color = ColorTokens.OnErrorContainer,
+public class ColorScheme(
+    public val primary: Color = ColorTokens.Primary,
+    public val primaryDim: Color = ColorTokens.PrimaryDim,
+    public val primaryContainer: Color = ColorTokens.PrimaryContainer,
+    public val onPrimary: Color = ColorTokens.OnPrimary,
+    public val onPrimaryContainer: Color = ColorTokens.OnPrimaryContainer,
+    public val secondary: Color = ColorTokens.Secondary,
+    public val secondaryDim: Color = ColorTokens.SecondaryDim,
+    public val secondaryContainer: Color = ColorTokens.SecondaryContainer,
+    public val onSecondary: Color = ColorTokens.OnSecondary,
+    public val onSecondaryContainer: Color = ColorTokens.OnSecondaryContainer,
+    public val tertiary: Color = ColorTokens.Tertiary,
+    public val tertiaryDim: Color = ColorTokens.TertiaryDim,
+    public val tertiaryContainer: Color = ColorTokens.TertiaryContainer,
+    public val onTertiary: Color = ColorTokens.OnTertiary,
+    public val onTertiaryContainer: Color = ColorTokens.OnTertiaryContainer,
+    public val surfaceContainerLow: Color = ColorTokens.SurfaceContainerLow,
+    public val surfaceContainer: Color = ColorTokens.SurfaceContainer,
+    public val surfaceContainerHigh: Color = ColorTokens.SurfaceContainerHigh,
+    public val onSurface: Color = ColorTokens.OnSurface,
+    public val onSurfaceVariant: Color = ColorTokens.OnSurfaceVariant,
+    public val outline: Color = ColorTokens.Outline,
+    public val outlineVariant: Color = ColorTokens.OutlineVariant,
+    public val background: Color = ColorTokens.Background,
+    public val onBackground: Color = ColorTokens.OnBackground,
+    public val error: Color = ColorTokens.Error,
+    public val onError: Color = ColorTokens.OnError,
+    public val errorContainer: Color = ColorTokens.ErrorContainer,
+    public val onErrorContainer: Color = ColorTokens.OnErrorContainer,
 ) {
     /** Returns a copy of this Colors, optionally overriding some of the values. */
-    fun copy(
+    public fun copy(
         primary: Color = this.primary,
         primaryDim: Color = this.primaryDim,
         primaryContainer: Color = this.primaryContainer,
@@ -262,9 +262,9 @@ class ColorScheme(
     internal var defaultLevelIndicatorColorsCached: LevelIndicatorColors? = null
 
     // Confirmation
-    internal var defaultConfirmationColorsCached: ConfirmationColors? = null
-    internal var defaultSuccessConfirmationColorsCached: ConfirmationColors? = null
-    internal var defaultFailureConfirmationColorsCached: ConfirmationColors? = null
+    internal var defaultConfirmationColorsCached: ConfirmationDialogColors? = null
+    internal var defaultSuccessConfirmationColorsCached: ConfirmationDialogColors? = null
+    internal var defaultFailureConfirmationColorsCached: ConfirmationDialogColors? = null
 
     // Open on Phone dialog
     internal var mDefaultOpenOnPhoneDialogColorsCached: OpenOnPhoneDialogColors? = null
@@ -290,7 +290,7 @@ class ColorScheme(
  *   the theme's [ColorScheme], then returns [Color.Unspecified].
  * @see contentColorFor
  */
-fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
+public fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
     return when (backgroundColor) {
         primary,
         primaryDim -> onPrimary
@@ -329,7 +329,7 @@ fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
  */
 @Composable
 @ReadOnlyComposable
-fun contentColorFor(backgroundColor: Color): Color =
+public fun contentColorFor(backgroundColor: Color): Color =
     MaterialTheme.colorScheme.contentColorFor(backgroundColor).takeOrElse {
         LocalContentColor.current
     }

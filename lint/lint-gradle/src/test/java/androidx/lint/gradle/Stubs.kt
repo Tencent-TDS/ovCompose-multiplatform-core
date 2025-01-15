@@ -102,8 +102,15 @@ internal val STUBS =
                 import org.gradle.api.tasks.TaskContainer
                 import java.lang.Class
 
+                interface IsolatedProject {
+                    fun getRootProject(): IsolatedProject
+                    val tasks: TaskContainer
+                }
+
                 class Project {
                     val tasks: TaskContainer
+                    fun getIsolated(): IsolatedProject
+                    fun getRootProject(): Project = Project()
                     fun findProperty(propertyName: String): Object? = null
                 }
 

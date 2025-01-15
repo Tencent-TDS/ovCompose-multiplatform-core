@@ -40,14 +40,14 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     aaptOptions {
         additionalParameters "--no-version-transitions"
     }
-    namespace "androidx.transition"
+    namespace = "androidx.transition"
 }
 
 androidx {

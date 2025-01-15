@@ -218,6 +218,8 @@ actual abstract class RoomDatabase {
     @CallSuper
     @OptIn(ExperimentalCoroutinesApi::class) // For limitedParallelism(1)
     actual open fun init(configuration: DatabaseConfiguration) {
+        useTempTrackingTable = configuration.useTempTrackingTable
+
         connectionManager = createConnectionManager(configuration)
         internalTracker = createInvalidationTracker()
         validateAutoMigrations(configuration)
@@ -279,8 +281,6 @@ actual abstract class RoomDatabase {
                 configuration.multiInstanceInvalidationServiceIntent
             )
         }
-
-        useTempTrackingTable = configuration.useTempTrackingTable
     }
 
     /**

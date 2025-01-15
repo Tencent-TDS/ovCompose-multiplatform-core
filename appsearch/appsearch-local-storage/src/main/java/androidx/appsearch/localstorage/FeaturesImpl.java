@@ -16,11 +16,12 @@
 // @exportToFramework:copyToPath(../../../cts/tests/appsearch/testutils/src/android/app/appsearch/testutil/external/FeaturesImpl.java)
 package androidx.appsearch.localstorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.app.Features;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An implementation of {@link Features} available on the local backend.
@@ -97,13 +98,15 @@ public class FeaturesImpl implements Features {
                 // fall through
             case Features.SEARCH_RESULT_PARENT_TYPES:
                 // fall through
-            case Features.SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM:
                 return true;
             case Features.INDEXER_MOBILE_APPLICATIONS:
                 // The Apps Indexer is only available on platform storage and some versions of
                 // GMSCore AppSearch. It can't be ran by local storage because local storage
                 // does not have a service component or any background jobs. It would also
                 // duplicate documents already indexed and available in PlatformStorage.
+                return false;
+            case Features.SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM:
+                // TODO(b/384947619): enable this feature once it is ready.
                 return false;
             default:
                 return false;

@@ -35,7 +35,7 @@ dependencies {
 
     implementation "androidx.lifecycle:lifecycle-runtime:2.2.0"
     implementation "androidx.lifecycle:lifecycle-common-java8:2.2.0"
-    implementation 'androidx.annotation:annotation:1.1.0'
+    implementation("androidx.annotation:annotation:1.1.0")
     implementation(libs.robolectric)
     implementation("androidx.annotation:annotation-experimental:1.4.1")
     api(libs.kotlinStdlib)
@@ -57,7 +57,7 @@ android {
     lintOptions {
         disable("InvalidPackage")
     }
-    namespace "androidx.car.app.testing"
+    namespace = "androidx.car.app.testing"
 }
 
 androidx {

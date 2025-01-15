@@ -45,23 +45,7 @@ class BasicPdfFragment : Fragment(), OpCancellationHandler {
 
     @VisibleForTesting
     var filePicker: ActivityResultLauncher<String> =
-        registerForActivityResult(GetContent()) { uri: Uri? ->
-            uri?.let {
-                if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.S) >= 13) {
-                    if (!isPdfViewInitialized) {
-                        setPdfView()
-                        isPdfViewInitialized = true
-                    }
-                    pdfViewerFragment?.documentUri = uri
-                } else {
-                    /**
-                     * Send an intent to other apps who support opening PDFs in case PdfViewer
-                     * library is not supported due to SdkExtension limitations.
-                     */
-                    sendIntentToOpenPdf(uri)
-                }
-            }
-        }
+        registerForActivityResult(GetContent()) { uri: Uri? -> uri?.let { setDocumentUri(uri) } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,6 +104,23 @@ class BasicPdfFragment : Fragment(), OpCancellationHandler {
     private fun setFindInFileViewVisible() {
         if (pdfViewerFragment != null) {
             pdfViewerFragment!!.isTextSearchActive = true
+        }
+    }
+
+    @VisibleForTesting
+    public fun setDocumentUri(uri: Uri) {
+        if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.S) >= 13) {
+            if (!isPdfViewInitialized) {
+                setPdfView()
+                isPdfViewInitialized = true
+            }
+            pdfViewerFragment?.documentUri = uri
+        } else {
+            /**
+             * Send an intent to other apps who support opening PDFs in case PdfViewer library is
+             * not supported due to SdkExtension limitations.
+             */
+            sendIntentToOpenPdf(uri)
         }
     }
 

@@ -20,8 +20,8 @@ import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.view.Display;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Helper for accessing features in {@link android.hardware.display.DisplayManager}.
@@ -52,8 +52,7 @@ public final class DisplayManagerCompat {
     /**
      * Gets an instance of the display manager given the context.
      */
-    @NonNull
-    public static DisplayManagerCompat getInstance(@NonNull Context context) {
+    public static @NonNull DisplayManagerCompat getInstance(@NonNull Context context) {
         return new DisplayManagerCompat(context);
     }
 
@@ -66,9 +65,8 @@ public final class DisplayManagerCompat {
      * @param displayId The logical display id.
      * @return The display object, or null if there is no valid display with the given id.
      */
-    @Nullable
     @SuppressWarnings("deprecation")
-    public Display getDisplay(int displayId) {
+    public @Nullable Display getDisplay(int displayId) {
         DisplayManager displayManager =
                 (DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE);
         return displayManager.getDisplay(displayId);
@@ -80,8 +78,7 @@ public final class DisplayManagerCompat {
      * @return An array containing all displays.
      */
     @SuppressWarnings("deprecation")
-    @NonNull
-    public Display[] getDisplays() {
+    public Display @NonNull [] getDisplays() {
         return ((DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE)).getDisplays();
     }
 
@@ -101,9 +98,8 @@ public final class DisplayManagerCompat {
      *
      * @see #DISPLAY_CATEGORY_PRESENTATION
      */
-    @NonNull
     @SuppressWarnings("deprecation")
-    public Display[] getDisplays(@Nullable String category) {
+    public Display @NonNull [] getDisplays(@Nullable String category) {
         return ((DisplayManager) mContext.getSystemService(Context.DISPLAY_SERVICE)).getDisplays();
     }
 }

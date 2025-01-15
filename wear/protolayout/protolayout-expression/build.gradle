@@ -51,10 +51,10 @@ dependencies {
 }
 
 android {
-    namespace "androidx.wear.protolayout.expression"
+    namespace = "androidx.wear.protolayout.expression"
 
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"

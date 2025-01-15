@@ -16,8 +16,9 @@
 
 package androidx.camera.testing.impl;
 
-import androidx.annotation.NonNull;
 import androidx.camera.core.ImageProxy;
+
+import org.jspecify.annotations.NonNull;
 
 import java.nio.ByteBuffer;
 
@@ -38,8 +39,7 @@ public final class ImageProxyUtil {
      * @param incrementValue true if the data value will increment by position, e.g. 1, 2, 3, etc,.
      * @return image planes in image proxy.
      */
-    @NonNull
-    public static ImageProxy.PlaneProxy[] createYUV420ImagePlanes(
+    public static ImageProxy.PlaneProxy @NonNull [] createYUV420ImagePlanes(
             final int width,
             final int height,
             final int pixelStrideY,
@@ -77,8 +77,7 @@ public final class ImageProxyUtil {
      * @param incrementValue true if the data value will increment by position, e.g. 1, 2, 3, etc,.
      * @return image planes in image proxy.
      */
-    @NonNull
-    public static ImageProxy.PlaneProxy[] createRawImagePlanes(
+    public static ImageProxy.PlaneProxy @NonNull [] createRawImagePlanes(
             final int width,
             final int height,
             final int pixelStride,
@@ -90,8 +89,7 @@ public final class ImageProxyUtil {
         return planes;
     }
 
-    @NonNull
-    private static ImageProxy.PlaneProxy createPlane(
+    private static ImageProxy.@NonNull PlaneProxy createPlane(
             final int width,
             final int height,
             final int pixelStride,
@@ -112,15 +110,13 @@ public final class ImageProxyUtil {
             }
 
             @Override
-            @NonNull
-            public ByteBuffer getBuffer() {
+            public @NonNull ByteBuffer getBuffer() {
                 return mBuffer;
             }
         };
     }
 
-    @NonNull
-    private static ByteBuffer createBuffer(
+    private static @NonNull ByteBuffer createBuffer(
             final int width,
             final int height,
             final int pixelStride,

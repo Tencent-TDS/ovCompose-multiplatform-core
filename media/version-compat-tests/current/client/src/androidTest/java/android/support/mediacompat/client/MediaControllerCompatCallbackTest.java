@@ -50,7 +50,6 @@ import static android.support.mediacompat.testlib.VersionConstants.KEY_SERVICE_V
 import static android.support.mediacompat.testlib.util.IntentUtil.SERVICE_PACKAGE_NAME;
 import static android.support.mediacompat.testlib.util.IntentUtil.callMediaSessionMethod;
 import static android.support.mediacompat.testlib.util.TestUtil.assertBundleEquals;
-import static android.support.v4.media.MediaMetadataCompat.METADATA_KEY_RATING;
 
 import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.platform.app.InstrumentationRegistry.getArguments;
@@ -74,18 +73,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.mediacompat.testlib.util.PollingCheck;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.MediaSessionCompat.QueueItem;
-import android.support.v4.media.session.ParcelableVolumeInfo;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
-import androidx.media.VolumeProviderCompat;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
@@ -102,9 +91,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Test {@link MediaControllerCompat.Callback}.
- */
+/** Test {@link android.support.v4.media.session.MediaControllerCompat.Callback}. */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 public class MediaControllerCompatCallbackTest {
 
@@ -124,11 +112,11 @@ public class MediaControllerCompatCallbackTest {
     private String mServiceVersion;
 
     // MediaBrowserCompat object to get the session token.
-    private MediaBrowserCompat mMediaBrowser;
+    private android.support.v4.media.MediaBrowserCompat mMediaBrowser;
     private ConnectionCallback mConnectionCallback = new ConnectionCallback();
 
-    private MediaSessionCompat.Token mSessionToken;
-    private MediaControllerCompat mController;
+    private android.support.v4.media.session.MediaSessionCompat.Token mSessionToken;
+    private android.support.v4.media.session.MediaControllerCompat mController;
     private MediaControllerCallback mMediaControllerCallback = new MediaControllerCallback();
 
     @Before
@@ -137,13 +125,19 @@ public class MediaControllerCompatCallbackTest {
         mServiceVersion = getArguments().getString(KEY_SERVICE_VERSION, "");
         Log.d(TAG, "Service app version: " + mServiceVersion);
 
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mMediaBrowser = new MediaBrowserCompat(getInstrumentation().getTargetContext(),
-                        TEST_BROWSER_SERVICE, mConnectionCallback, new Bundle());
-            }
-        });
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mMediaBrowser =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                getInstrumentation().getTargetContext(),
+                                                TEST_BROWSER_SERVICE,
+                                                mConnectionCallback,
+                                                new Bundle());
+                            }
+                        });
 
         synchronized (mConnectionCallback.mWaitLock) {
             mMediaBrowser.connect();
@@ -153,7 +147,9 @@ public class MediaControllerCompatCallbackTest {
             }
         }
         mSessionToken = mMediaBrowser.getSessionToken();
-        mController = new MediaControllerCompat(getApplicationContext(), mSessionToken);
+        mController =
+                new android.support.v4.media.session.MediaControllerCompat(
+                        getApplicationContext(), mSessionToken);
         mController.registerCallback(mMediaControllerCallback, mHandler);
     }
 
@@ -178,9 +174,7 @@ public class MediaControllerCompatCallbackTest {
         assertTrue(mController.isSessionReady());
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setExtras}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setExtras}. */
     @Test
     @MediumTest
     public void testSetExtras() throws Exception {
@@ -198,9 +192,7 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setFlags}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setFlags}. */
     @SuppressWarnings("deprecation")
     @Test
     @SmallTest
@@ -213,33 +205,41 @@ public class MediaControllerCompatCallbackTest {
                 @Override
                 public boolean check() {
                     int expectedFlags = TEST_FLAGS;
-                    expectedFlags |= MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS;
-                    expectedFlags |= MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS;
+                    expectedFlags |=
+                            android.support.v4.media.session.MediaSessionCompat
+                                    .FLAG_HANDLES_MEDIA_BUTTONS;
+                    expectedFlags |=
+                            android.support.v4.media.session.MediaSessionCompat
+                                    .FLAG_HANDLES_TRANSPORT_CONTROLS;
                     return expectedFlags == mController.getFlags();
                 }
             }.run();
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setMetadata}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setMetadata}. */
     @Test
     @MediumTest
     public void testSetMetadata() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            RatingCompat rating = RatingCompat.newHeartRating(true);
-            MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
-                    .putString(TEST_KEY, TEST_VALUE)
-                    .putRating(METADATA_KEY_RATING, rating)
-                    .build();
+            android.support.v4.media.RatingCompat rating =
+                    android.support.v4.media.RatingCompat.newHeartRating(true);
+            android.support.v4.media.MediaMetadataCompat metadata =
+                    new android.support.v4.media.MediaMetadataCompat.Builder()
+                            .putString(TEST_KEY, TEST_VALUE)
+                            .putRating(
+                                    android.support.v4.media.MediaMetadataCompat
+                                            .METADATA_KEY_RATING,
+                                    rating)
+                            .build();
 
             callMediaSessionMethod(SET_METADATA, metadata, getApplicationContext());
             mWaitLock.wait(TIME_OUT_MS);
             assertTrue(mMediaControllerCallback.mOnMetadataChangedCalled);
 
-            MediaMetadataCompat metadataOut = mMediaControllerCallback.mMediaMetadata;
+            android.support.v4.media.MediaMetadataCompat metadataOut =
+                    mMediaControllerCallback.mMediaMetadata;
             assertNotNull(metadataOut);
             assertEquals(TEST_VALUE, metadataOut.getString(TEST_KEY));
 
@@ -247,15 +247,20 @@ public class MediaControllerCompatCallbackTest {
             assertNotNull(metadataOut);
             assertEquals(TEST_VALUE, metadataOut.getString(TEST_KEY));
 
-            assertNotNull(metadataOut.getRating(METADATA_KEY_RATING));
-            RatingCompat ratingOut = metadataOut.getRating(METADATA_KEY_RATING);
+            assertNotNull(
+                    metadataOut.getRating(
+                            android.support.v4.media.MediaMetadataCompat.METADATA_KEY_RATING));
+            android.support.v4.media.RatingCompat ratingOut =
+                    metadataOut.getRating(
+                            android.support.v4.media.MediaMetadataCompat.METADATA_KEY_RATING);
             assertEquals(rating.getRatingStyle(), ratingOut.getRatingStyle());
             assertEquals(rating.getPercentRating(), ratingOut.getPercentRating(), 0.0f);
         }
     }
 
     /**
-     * Tests {@link MediaSessionCompat#setMetadata} with artwork bitmaps.
+     * Tests {@link android.support.v4.media.session.MediaSessionCompat#setMetadata} with artwork
+     * bitmaps.
      */
     @Test
     @SmallTest
@@ -266,20 +271,26 @@ public class MediaControllerCompatCallbackTest {
 
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            MediaMetadataCompat metadata = new MediaMetadataCompat.Builder()
-                    .putString(TEST_KEY, TEST_VALUE)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, bitmapSmall)
-                    .build();
+            android.support.v4.media.MediaMetadataCompat metadata =
+                    new android.support.v4.media.MediaMetadataCompat.Builder()
+                            .putString(TEST_KEY, TEST_VALUE)
+                            .putBitmap(
+                                    android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ART,
+                                    bitmapSmall)
+                            .build();
 
             callMediaSessionMethod(SET_METADATA, metadata, getApplicationContext());
             mWaitLock.wait(TIME_OUT_MS);
             assertTrue(mMediaControllerCallback.mOnMetadataChangedCalled);
 
-            MediaMetadataCompat metadataOut = mMediaControllerCallback.mMediaMetadata;
+            android.support.v4.media.MediaMetadataCompat metadataOut =
+                    mMediaControllerCallback.mMediaMetadata;
             assertNotNull(metadataOut);
             assertEquals(TEST_VALUE, metadataOut.getString(TEST_KEY));
 
-            Bitmap bitmapSmallOut = metadataOut.getBitmap(MediaMetadataCompat.METADATA_KEY_ART);
+            Bitmap bitmapSmallOut =
+                    metadataOut.getBitmap(
+                            android.support.v4.media.MediaMetadataCompat.METADATA_KEY_ART);
             assertNotNull(bitmapSmallOut);
             assertEquals(bitmapSmall.getHeight(), bitmapSmallOut.getHeight());
             assertEquals(bitmapSmall.getWidth(), bitmapSmallOut.getWidth());
@@ -290,16 +301,14 @@ public class MediaControllerCompatCallbackTest {
         bitmapSmall.recycle();
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setPlaybackState}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setPlaybackState}. */
     @Test
     @SmallTest
     public void testSetPlaybackState() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            PlaybackStateCompat state =
-                    new PlaybackStateCompat.Builder()
+            android.support.v4.media.session.PlaybackStateCompat state =
+                    new android.support.v4.media.session.PlaybackStateCompat.Builder()
                             .setActions(TEST_ACTION)
                             .setErrorMessage(TEST_ERROR_CODE, TEST_ERROR_MSG)
                             .build();
@@ -308,7 +317,8 @@ public class MediaControllerCompatCallbackTest {
             mWaitLock.wait(TIME_OUT_MS);
             assertTrue(mMediaControllerCallback.mOnPlaybackStateChangedCalled);
 
-            PlaybackStateCompat stateOut = mMediaControllerCallback.mPlaybackState;
+            android.support.v4.media.session.PlaybackStateCompat stateOut =
+                    mMediaControllerCallback.mPlaybackState;
             assertNotNull(stateOut);
             assertEquals(TEST_ACTION, stateOut.getActions());
             assertEquals(TEST_ERROR_CODE, stateOut.getErrorCode());
@@ -323,21 +333,31 @@ public class MediaControllerCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat#setQueue} and {@link MediaSessionCompat#setQueueTitle}.
+     * Tests {@link android.support.v4.media.session.MediaSessionCompat#setQueue} and {@link
+     * android.support.v4.media.session.MediaSessionCompat#setQueueTitle}.
      */
     @Test
     @SmallTest
     public void testSetQueueAndSetQueueTitle() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            List<QueueItem> queue = new ArrayList<>();
+            List<android.support.v4.media.session.MediaSessionCompat.QueueItem> queue =
+                    new ArrayList<>();
 
-            MediaDescriptionCompat description1 =
-                    new MediaDescriptionCompat.Builder().setMediaId(TEST_MEDIA_ID_1).build();
-            MediaDescriptionCompat description2 =
-                    new MediaDescriptionCompat.Builder().setMediaId(TEST_MEDIA_ID_2).build();
-            QueueItem item1 = new MediaSessionCompat.QueueItem(description1, TEST_QUEUE_ID_1);
-            QueueItem item2 = new MediaSessionCompat.QueueItem(description2, TEST_QUEUE_ID_2);
+            android.support.v4.media.MediaDescriptionCompat description1 =
+                    new android.support.v4.media.MediaDescriptionCompat.Builder()
+                            .setMediaId(TEST_MEDIA_ID_1)
+                            .build();
+            android.support.v4.media.MediaDescriptionCompat description2 =
+                    new android.support.v4.media.MediaDescriptionCompat.Builder()
+                            .setMediaId(TEST_MEDIA_ID_2)
+                            .build();
+            android.support.v4.media.session.MediaSessionCompat.QueueItem item1 =
+                    new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                            description1, TEST_QUEUE_ID_1);
+            android.support.v4.media.session.MediaSessionCompat.QueueItem item2 =
+                    new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                            description2, TEST_QUEUE_ID_2);
             queue.add(item1);
             queue.add(item2);
 
@@ -371,9 +391,7 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setSessionActivity}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setSessionActivity}. */
     @Test
     @SmallTest
     public void testSessionActivity() throws Exception {
@@ -394,9 +412,7 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setCaptioningEnabled}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setCaptioningEnabled}. */
     @Test
     @SmallTest
     public void testSetCaptioningEnabled() throws Exception {
@@ -417,15 +433,14 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setRepeatMode}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setRepeatMode}. */
     @Test
     @MediumTest
     public void testSetRepeatMode() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            final int repeatMode = PlaybackStateCompat.REPEAT_MODE_ALL;
+            final int repeatMode =
+                    android.support.v4.media.session.PlaybackStateCompat.REPEAT_MODE_ALL;
             callMediaSessionMethod(SET_REPEAT_MODE, repeatMode, getApplicationContext());
             mWaitLock.wait(TIME_OUT_MS);
             assertTrue(mMediaControllerCallback.mOnRepeatModeChangedCalled);
@@ -434,13 +449,12 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setShuffleMode}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setShuffleMode}. */
     @Test
     @MediumTest
     public void testSetShuffleMode() throws Exception {
-        final int shuffleMode = PlaybackStateCompat.SHUFFLE_MODE_ALL;
+        final int shuffleMode =
+                android.support.v4.media.session.PlaybackStateCompat.SHUFFLE_MODE_ALL;
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
             callMediaSessionMethod(SET_SHUFFLE_MODE, shuffleMode, getApplicationContext());
@@ -451,9 +465,7 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#sendSessionEvent}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#sendSessionEvent}. */
     @Test
     @SmallTest
     public void testSendSessionEvent() throws Exception {
@@ -475,9 +487,7 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#release}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#release}. */
     @Test
     @SmallTest
     public void testRelease() throws Exception {
@@ -490,50 +500,62 @@ public class MediaControllerCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat#setPlaybackToLocal} and
-     * {@link MediaSessionCompat#setPlaybackToRemote}.
+     * Tests {@link android.support.v4.media.session.MediaSessionCompat#setPlaybackToLocal} and
+     * {@link android.support.v4.media.session.MediaSessionCompat#setPlaybackToRemote}.
      */
     @LargeTest
     public void testPlaybackToLocalAndRemote() throws Exception {
         synchronized (mWaitLock) {
             mMediaControllerCallback.resetLocked();
-            ParcelableVolumeInfo volumeInfo = new ParcelableVolumeInfo(
-                    MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE,
-                    STREAM_MUSIC,
-                    VolumeProviderCompat.VOLUME_CONTROL_FIXED,
-                    TEST_MAX_VOLUME,
-                    TEST_CURRENT_VOLUME);
+            android.support.v4.media.session.ParcelableVolumeInfo volumeInfo =
+                    new android.support.v4.media.session.ParcelableVolumeInfo(
+                            android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                                    .PLAYBACK_TYPE_REMOTE,
+                            STREAM_MUSIC,
+                            androidx.media.VolumeProviderCompat.VOLUME_CONTROL_FIXED,
+                            TEST_MAX_VOLUME,
+                            TEST_CURRENT_VOLUME);
 
             callMediaSessionMethod(SET_PLAYBACK_TO_REMOTE, volumeInfo, getApplicationContext());
-            MediaControllerCompat.PlaybackInfo info = null;
+            android.support.v4.media.session.MediaControllerCompat.PlaybackInfo info = null;
             for (int i = 0; i < MAX_AUDIO_INFO_CHANGED_CALLBACK_COUNT; ++i) {
                 mMediaControllerCallback.mOnAudioInfoChangedCalled = false;
                 mWaitLock.wait(TIME_OUT_MS);
                 assertTrue(mMediaControllerCallback.mOnAudioInfoChangedCalled);
                 info = mMediaControllerCallback.mPlaybackInfo;
-                if (info != null && info.getCurrentVolume() == TEST_CURRENT_VOLUME
+                if (info != null
+                        && info.getCurrentVolume() == TEST_CURRENT_VOLUME
                         && info.getMaxVolume() == TEST_MAX_VOLUME
-                        && info.getVolumeControl() == VolumeProviderCompat.VOLUME_CONTROL_FIXED
+                        && info.getVolumeControl()
+                                == androidx.media.VolumeProviderCompat.VOLUME_CONTROL_FIXED
                         && info.getPlaybackType()
-                        == MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE) {
+                                == android.support.v4.media.session.MediaControllerCompat
+                                        .PlaybackInfo.PLAYBACK_TYPE_REMOTE) {
                     break;
                 }
             }
             assertNotNull(info);
-            assertEquals(MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE,
+            assertEquals(
+                    android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                            .PLAYBACK_TYPE_REMOTE,
                     info.getPlaybackType());
             assertEquals(TEST_MAX_VOLUME, info.getMaxVolume());
             assertEquals(TEST_CURRENT_VOLUME, info.getCurrentVolume());
-            assertEquals(VolumeProviderCompat.VOLUME_CONTROL_FIXED,
+            assertEquals(
+                    androidx.media.VolumeProviderCompat.VOLUME_CONTROL_FIXED,
                     info.getVolumeControl());
 
             info = mController.getPlaybackInfo();
             assertNotNull(info);
-            assertEquals(MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_REMOTE,
+            assertEquals(
+                    android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                            .PLAYBACK_TYPE_REMOTE,
                     info.getPlaybackType());
             assertEquals(TEST_MAX_VOLUME, info.getMaxVolume());
             assertEquals(TEST_CURRENT_VOLUME, info.getCurrentVolume());
-            assertEquals(VolumeProviderCompat.VOLUME_CONTROL_FIXED, info.getVolumeControl());
+            assertEquals(
+                    androidx.media.VolumeProviderCompat.VOLUME_CONTROL_FIXED,
+                    info.getVolumeControl());
 
             // test setPlaybackToLocal
             mMediaControllerCallback.mOnAudioInfoChangedCalled = false;
@@ -550,7 +572,9 @@ public class MediaControllerCompatCallbackTest {
 
             info = mController.getPlaybackInfo();
             assertNotNull(info);
-            assertEquals(MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_LOCAL,
+            assertEquals(
+                    android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                            .PLAYBACK_TYPE_LOCAL,
                     info.getPlaybackType());
         }
     }
@@ -558,15 +582,20 @@ public class MediaControllerCompatCallbackTest {
     @Test
     @SmallTest
     public void testGetRatingType() {
-        assertEquals("Default rating type of a session must be RatingCompat.RATING_NONE",
-                RatingCompat.RATING_NONE, mController.getRatingType());
+        assertEquals(
+                "Default rating type of a session must be RatingCompat.RATING_NONE",
+                android.support.v4.media.RatingCompat.RATING_NONE,
+                mController.getRatingType());
 
-        callMediaSessionMethod(SET_RATING_TYPE, RatingCompat.RATING_5_STARS,
+        callMediaSessionMethod(
+                SET_RATING_TYPE,
+                android.support.v4.media.RatingCompat.RATING_5_STARS,
                 getApplicationContext());
         new PollingCheck(TIME_OUT_MS) {
             @Override
             public boolean check() {
-                return RatingCompat.RATING_5_STARS == mController.getRatingType();
+                return android.support.v4.media.RatingCompat.RATING_5_STARS
+                        == mController.getRatingType();
             }
         }.run();
     }
@@ -579,22 +608,27 @@ public class MediaControllerCompatCallbackTest {
         mController = null;
         final SessionReadyCallback callback = new SessionReadyCallback();
         synchronized (callback.mWaitLock) {
-            getInstrumentation().runOnMainSync(new Runnable() {
-                @SuppressWarnings("deprecation")
-                @Override
-                public void run() {
-                    try {
-                        mController = new MediaControllerCompat(
-                                getInstrumentation().getTargetContext(),
-                                mSessionToken /* This token has an extra binder in it */);
-                        mController.registerCallback(callback, new Handler());
-                        assertTrue(mController.isSessionReady());
-                        assertFalse(callback.mOnSessionReadyCalled);
-                    } catch (Exception e) {
-                        fail();
-                    }
-                }
-            });
+            getInstrumentation()
+                    .runOnMainSync(
+                            new Runnable() {
+                                @SuppressWarnings("deprecation")
+                                @Override
+                                public void run() {
+                                    try {
+                                        mController =
+                                                new android.support.v4.media.session
+                                                        .MediaControllerCompat(
+                                                        getInstrumentation().getTargetContext(),
+                                                        /* This token has an extra binder in it */
+                                                        mSessionToken);
+                                        mController.registerCallback(callback, new Handler());
+                                        assertTrue(mController.isSessionReady());
+                                        assertFalse(callback.mOnSessionReadyCalled);
+                                    } catch (Exception e) {
+                                        fail();
+                                    }
+                                }
+                            });
             callback.mWaitLock.wait(TIME_OUT_MS);
             assertTrue(callback.mOnSessionReadyCalled);
             assertTrue(mController.isSessionReady());
@@ -608,28 +642,35 @@ public class MediaControllerCompatCallbackTest {
             throws Exception {
         mController = null;
         final SessionReadyCallback callback = new SessionReadyCallback();
-        final MediaSessionCompat.Token tokenWithoutExtraBinder =
-                MediaSessionCompat.Token.fromToken(mSessionToken.getToken());
+        final android.support.v4.media.session.MediaSessionCompat.Token tokenWithoutExtraBinder =
+                android.support.v4.media.session.MediaSessionCompat.Token.fromToken(
+                        mSessionToken.getToken());
         synchronized (callback.mWaitLock) {
-            getInstrumentation().runOnMainSync(new Runnable() {
-                @SuppressWarnings("deprecation")
-                @Override
-                public void run() {
-                    try {
-                        // onSessionReady() should be posted when the controller receives the
-                        // extra binder from session.
-                        mController = new MediaControllerCompat(
-                                getInstrumentation().getTargetContext(),
-                                tokenWithoutExtraBinder);
-                        mController.registerCallback(callback, new Handler());
-                        // Since mController.isSessionReady() can be both true/false,
-                        // we don't check the return value at this point.
-                        assertFalse(callback.mOnSessionReadyCalled);
-                    } catch (Exception e) {
-                        fail();
-                    }
-                }
-            });
+            getInstrumentation()
+                    .runOnMainSync(
+                            new Runnable() {
+                                @SuppressWarnings("deprecation")
+                                @Override
+                                public void run() {
+                                    try {
+                                        // onSessionReady() should be posted when the controller
+                                        // receives the
+                                        // extra binder from session.
+                                        mController =
+                                                new android.support.v4.media.session
+                                                        .MediaControllerCompat(
+                                                        getInstrumentation().getTargetContext(),
+                                                        tokenWithoutExtraBinder);
+                                        mController.registerCallback(callback, new Handler());
+                                        // Since mController.isSessionReady() can be both
+                                        // true/false,
+                                        // we don't check the return value at this point.
+                                        assertFalse(callback.mOnSessionReadyCalled);
+                                    } catch (Exception e) {
+                                        fail();
+                                    }
+                                }
+                            });
             callback.mWaitLock.wait(TIME_OUT_MS);
             assertTrue(callback.mOnSessionReadyCalled);
             assertTrue(mController.isSessionReady());
@@ -643,24 +684,29 @@ public class MediaControllerCompatCallbackTest {
         mController = null;
         final SessionReadyCallback callback = new SessionReadyCallback();
         synchronized (callback.mWaitLock) {
-            getInstrumentation().runOnMainSync(new Runnable() {
-                @SuppressWarnings("deprecation")
-                @Override
-                public void run() {
-                    try {
-                        // No extra binder exists in API 19. (i.e. session is always ready.)
-                        // onSessionReady() should be posted by registerCallback().
-                        mController = new MediaControllerCompat(
-                                getInstrumentation().getTargetContext(),
-                                mSessionToken);
-                        mController.registerCallback(callback, new Handler());
-                        assertTrue(mController.isSessionReady());
-                        assertFalse(callback.mOnSessionReadyCalled);
-                    } catch (Exception e) {
-                        fail();
-                    }
-                }
-            });
+            getInstrumentation()
+                    .runOnMainSync(
+                            new Runnable() {
+                                @SuppressWarnings("deprecation")
+                                @Override
+                                public void run() {
+                                    try {
+                                        // No extra binder exists in API 19. (i.e. session is always
+                                        // ready.)
+                                        // onSessionReady() should be posted by registerCallback().
+                                        mController =
+                                                new android.support.v4.media.session
+                                                        .MediaControllerCompat(
+                                                        getInstrumentation().getTargetContext(),
+                                                        mSessionToken);
+                                        mController.registerCallback(callback, new Handler());
+                                        assertTrue(mController.isSessionReady());
+                                        assertFalse(callback.mOnSessionReadyCalled);
+                                    } catch (Exception e) {
+                                        fail();
+                                    }
+                                }
+                            });
             callback.mWaitLock.wait(TIME_OUT_MS);
             assertTrue(callback.mOnSessionReadyCalled);
             assertTrue(mController.isSessionReady());
@@ -676,23 +722,30 @@ public class MediaControllerCompatCallbackTest {
                 "TestFwkSession");
         final SessionReadyCallback callback = new SessionReadyCallback();
         synchronized (callback.mWaitLock) {
-            getInstrumentation().runOnMainSync(new Runnable() {
-                @SuppressWarnings("deprecation")
-                @Override
-                public void run() {
-                    try {
-                        // No extra binder exists in API 19. (i.e. session is always ready.)
-                        // onSessionReady() should be posted by registerCallback().
-                        MediaSession.Token fwkToken = session.getSessionToken();
-                        mController = new MediaControllerCompat(
-                                getInstrumentation().getTargetContext(),
-                                MediaSessionCompat.Token.fromToken(fwkToken));
-                        mController.registerCallback(callback, new Handler());
-                    } catch (Exception e) {
-                        fail();
-                    }
-                }
-            });
+            getInstrumentation()
+                    .runOnMainSync(
+                            new Runnable() {
+                                @SuppressWarnings("deprecation")
+                                @Override
+                                public void run() {
+                                    try {
+                                        // No extra binder exists in API 19. (i.e. session is always
+                                        // ready.)
+                                        // onSessionReady() should be posted by registerCallback().
+                                        MediaSession.Token fwkToken = session.getSessionToken();
+                                        mController =
+                                                new android.support.v4.media.session
+                                                        .MediaControllerCompat(
+                                                        getInstrumentation().getTargetContext(),
+                                                        android.support.v4.media.session
+                                                                .MediaSessionCompat.Token.fromToken(
+                                                                fwkToken));
+                                        mController.registerCallback(callback, new Handler());
+                                    } catch (Exception e) {
+                                        fail();
+                                    }
+                                }
+                            });
             callback.mWaitLock.wait(TIME_OUT_MS);
             assertFalse(mController.isSessionReady());
             assertFalse(callback.mOnSessionReadyCalled);
@@ -706,16 +759,20 @@ public class MediaControllerCompatCallbackTest {
         Bundle arguments = new Bundle();
         arguments.putString("event", TEST_SESSION_EVENT);
 
-        final MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
-                .setMediaId("testMediaId")
-                .build();
-        final MediaSessionCompat.QueueItem queueItem =
-                new MediaSessionCompat.QueueItem(desc, 1 /* flags */);
-        final MediaBrowserCompat.MediaItem mediaItem =
-                new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
-        final PlaybackStateCompat state = new PlaybackStateCompat.Builder()
-                .setBufferedPosition(1000)
-                .build();
+        final android.support.v4.media.MediaDescriptionCompat desc =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId("testMediaId")
+                        .build();
+        final android.support.v4.media.session.MediaSessionCompat.QueueItem queueItem =
+                new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                        desc, 1 /* flags */);
+        final android.support.v4.media.MediaBrowserCompat.MediaItem mediaItem =
+                new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                        desc, android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
+        final android.support.v4.media.session.PlaybackStateCompat state =
+                new android.support.v4.media.session.PlaybackStateCompat.Builder()
+                        .setBufferedPosition(1000)
+                        .build();
 
         Bundle extras = new Bundle();
         extras.putParcelable("description", desc);
@@ -739,16 +796,20 @@ public class MediaControllerCompatCallbackTest {
             assertNotNull(extrasOut);
             assertNotNull(extrasOut.getClassLoader());
 
-            MediaDescriptionCompat descOut = extrasOut.getParcelable("description");
+            android.support.v4.media.MediaDescriptionCompat descOut =
+                    extrasOut.getParcelable("description");
             assertEquals(desc.getMediaId(), descOut.getMediaId());
 
-            MediaSessionCompat.QueueItem queueItemOut = extrasOut.getParcelable("queueItem");
+            android.support.v4.media.session.MediaSessionCompat.QueueItem queueItemOut =
+                    extrasOut.getParcelable("queueItem");
             assertEquals(queueItem.getQueueId(), queueItemOut.getQueueId());
 
-            MediaBrowserCompat.MediaItem mediaItemOut = extrasOut.getParcelable("mediaItem");
+            android.support.v4.media.MediaBrowserCompat.MediaItem mediaItemOut =
+                    extrasOut.getParcelable("mediaItem");
             assertEquals(mediaItem.getFlags(), mediaItemOut.getFlags());
 
-            PlaybackStateCompat stateOut = extrasOut.getParcelable("state");
+            android.support.v4.media.session.PlaybackStateCompat stateOut =
+                    extrasOut.getParcelable("state");
             assertEquals(state.getBufferedPosition(), stateOut.getBufferedPosition());
         }
     }
@@ -797,7 +858,8 @@ public class MediaControllerCompatCallbackTest {
     }
 
     /**
-     * Tests callbacks are not called after {@link MediaSessionCompat#release}.
+     * Tests callbacks are not called after {@link
+     * android.support.v4.media.session.MediaSessionCompat#release}.
      */
     @Test
     @LargeTest
@@ -805,23 +867,29 @@ public class MediaControllerCompatCallbackTest {
         final CountDownLatch latchForDestroy = new CountDownLatch(1);
         final CountDownLatch latchForPlaybackState = new CountDownLatch(1);
 
-        mController.registerCallback(new MediaControllerCompat.Callback() {
-            @Override
-            public void onSessionDestroyed() {
-                latchForDestroy.countDown();
-            }
-            @Override
-            public void onPlaybackStateChanged(PlaybackStateCompat state) {
-                latchForPlaybackState.countDown();
-            }
-        }, mHandler);
+        mController.registerCallback(
+                new android.support.v4.media.session.MediaControllerCompat.Callback() {
+                    @Override
+                    public void onSessionDestroyed() {
+                        latchForDestroy.countDown();
+                    }
+
+                    @Override
+                    public void onPlaybackStateChanged(
+                            android.support.v4.media.session.PlaybackStateCompat state) {
+                        latchForPlaybackState.countDown();
+                    }
+                },
+                mHandler);
 
         callMediaSessionMethod(RELEASE_AND_THEN_SET_PLAYBACK_STATE, null, getApplicationContext());
         assertTrue(latchForDestroy.await(TIME_OUT_MS, TimeUnit.MILLISECONDS));
         assertFalse(latchForPlaybackState.await(1000, TimeUnit.MILLISECONDS));
     }
 
-    private void assertQueueEquals(List<QueueItem> expected, List<QueueItem> observed) {
+    private void assertQueueEquals(
+            List<android.support.v4.media.session.MediaSessionCompat.QueueItem> expected,
+            List<android.support.v4.media.session.MediaSessionCompat.QueueItem> observed) {
         if (expected == null || observed == null) {
             assertTrue(expected == observed);
             return;
@@ -829,8 +897,10 @@ public class MediaControllerCompatCallbackTest {
 
         assertEquals(expected.size(), observed.size());
         for (int i = 0; i < expected.size(); i++) {
-            QueueItem expectedItem = expected.get(i);
-            QueueItem observedItem = observed.get(i);
+            android.support.v4.media.session.MediaSessionCompat.QueueItem expectedItem =
+                    expected.get(i);
+            android.support.v4.media.session.MediaSessionCompat.QueueItem observedItem =
+                    observed.get(i);
 
             assertEquals(expectedItem.getQueueId(), observedItem.getQueueId());
             assertEquals(expectedItem.getDescription().getMediaId(),
@@ -838,7 +908,8 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    private class MediaControllerCallback extends MediaControllerCompat.Callback {
+    private class MediaControllerCallback
+            extends android.support.v4.media.session.MediaControllerCompat.Callback {
         private volatile boolean mOnPlaybackStateChangedCalled;
         private volatile boolean mOnMetadataChangedCalled;
         private volatile boolean mOnQueueChangedCalled;
@@ -851,13 +922,14 @@ public class MediaControllerCompatCallbackTest {
         private volatile boolean mOnRepeatModeChangedCalled;
         private volatile boolean mOnShuffleModeChangedCalled;
 
-        private volatile PlaybackStateCompat mPlaybackState;
-        private volatile MediaMetadataCompat mMediaMetadata;
-        private volatile List<QueueItem> mQueue;
+        private volatile android.support.v4.media.session.PlaybackStateCompat mPlaybackState;
+        private volatile android.support.v4.media.MediaMetadataCompat mMediaMetadata;
+        private volatile List<android.support.v4.media.session.MediaSessionCompat.QueueItem> mQueue;
         private volatile CharSequence mTitle;
         private volatile String mEvent;
         private volatile Bundle mExtras;
-        private volatile MediaControllerCompat.PlaybackInfo mPlaybackInfo;
+        private volatile android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                mPlaybackInfo;
         private volatile boolean mCaptioningEnabled;
         private volatile int mRepeatMode;
         private volatile int mShuffleMode;
@@ -881,12 +953,13 @@ public class MediaControllerCompatCallbackTest {
             mExtras = null;
             mPlaybackInfo = null;
             mCaptioningEnabled = false;
-            mRepeatMode = PlaybackStateCompat.REPEAT_MODE_NONE;
-            mShuffleMode = PlaybackStateCompat.SHUFFLE_MODE_NONE;
+            mRepeatMode = android.support.v4.media.session.PlaybackStateCompat.REPEAT_MODE_NONE;
+            mShuffleMode = android.support.v4.media.session.PlaybackStateCompat.SHUFFLE_MODE_NONE;
         }
 
         @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat state) {
+        public void onPlaybackStateChanged(
+                android.support.v4.media.session.PlaybackStateCompat state) {
             synchronized (mWaitLock) {
                 mOnPlaybackStateChangedCalled = true;
                 mPlaybackState = state;
@@ -895,7 +968,7 @@ public class MediaControllerCompatCallbackTest {
         }
 
         @Override
-        public void onMetadataChanged(MediaMetadataCompat metadata) {
+        public void onMetadataChanged(android.support.v4.media.MediaMetadataCompat metadata) {
             synchronized (mWaitLock) {
                 mOnMetadataChangedCalled = true;
                 mMediaMetadata = metadata;
@@ -904,7 +977,8 @@ public class MediaControllerCompatCallbackTest {
         }
 
         @Override
-        public void onQueueChanged(List<QueueItem> queue) {
+        public void onQueueChanged(
+                List<android.support.v4.media.session.MediaSessionCompat.QueueItem> queue) {
             synchronized (mWaitLock) {
                 mOnQueueChangedCalled = true;
                 mQueue = queue;
@@ -931,7 +1005,8 @@ public class MediaControllerCompatCallbackTest {
         }
 
         @Override
-        public void onAudioInfoChanged(MediaControllerCompat.PlaybackInfo info) {
+        public void onAudioInfoChanged(
+                android.support.v4.media.session.MediaControllerCompat.PlaybackInfo info) {
             synchronized (mWaitLock) {
                 mOnAudioInfoChangedCalled = true;
                 mPlaybackInfo = info;
@@ -985,7 +1060,8 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    private class MediaControllerMultipleCallback extends MediaControllerCompat.Callback {
+    private class MediaControllerMultipleCallback
+            extends android.support.v4.media.session.MediaControllerCompat.Callback {
         private CountDownLatch mLatch;
 
         MediaControllerMultipleCallback(CountDownLatch latch) {
@@ -998,7 +1074,8 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    private class SessionReadyCallback extends MediaControllerCompat.Callback {
+    private class SessionReadyCallback
+            extends android.support.v4.media.session.MediaControllerCompat.Callback {
         final Object mWaitLock = new Object();
         private volatile boolean mOnSessionReadyCalled;
 
@@ -1011,7 +1088,8 @@ public class MediaControllerCompatCallbackTest {
         }
     }
 
-    private class ConnectionCallback extends MediaBrowserCompat.ConnectionCallback {
+    private class ConnectionCallback
+            extends android.support.v4.media.MediaBrowserCompat.ConnectionCallback {
         final Object mWaitLock = new Object();
 
         @Override

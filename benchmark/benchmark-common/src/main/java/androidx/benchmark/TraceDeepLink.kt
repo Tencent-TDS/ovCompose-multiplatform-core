@@ -26,7 +26,8 @@ import java.util.zip.Deflater
 data class TraceDeepLink(
     /** Output relative path of trace file */
     private val outputRelativePath: String,
-    private val selectionParams: SelectionParams?,
+    private val perfettoUiParams: SelectionParams?,
+    private val studioParams: StudioSelectionParams?
 ) {
     fun createMarkdownLink(label: String, linkFormat: LinkFormat) =
         when (linkFormat) {
@@ -34,13 +35,36 @@ data class TraceDeepLink(
                 Markdown.createFileLink(label = label, path = outputRelativePath)
             }
             LinkFormat.V3 -> {
+                if (perfettoUiParams != null || studioParams != null) {}
+
                 Markdown.createLink(
                     label = label,
                     uri =
-                        if (selectionParams != null) {
-                            "uri://$outputRelativePath?enablePlugins=${selectionParams.pluginId}&selectionParams=${selectionParams.encodeParamString()}"
-                        } else {
-                            "uri://$outputRelativePath"
+                        buildString {
+                            // insert ? or & as parameter delimiters
+                            var firstDelimiter = true
+                            fun appendDelimiter() {
+                                if (firstDelimiter) {
+                                    append("?")
+                                    firstDelimiter = false
+                                } else {
+                                    append("&")
+                                }
+                            }
+
+                            append("uri://$outputRelativePath")
+                            if (perfettoUiParams != null) {
+                                appendDelimiter()
+                                append("enablePlugins=${perfettoUiParams.pluginId}")
+                                appendDelimiter()
+                                append(
+                                    "${perfettoUiParams.pluginId}:selectionParams=${perfettoUiParams.encodeParamString()}"
+                                )
+                            }
+                            if (studioParams != null) {
+                                appendDelimiter()
+                                append("selectionParams=${studioParams.encodeParamString()}")
+                            }
                         }
                 )
             }
@@ -76,21 +100,26 @@ data class TraceDeepLink(
         }
     }
 
-    /**
-     * Parameters for startup deep link, given a specific time range, process, thread, and reasonId
-     */
-    data class StartupSelectionParams(
-        val packageName: String,
+    /** Parameters for general Studio deep link, given a specific tid, ts, and dur */
+    data class StudioSelectionParams(
+        val ts: Long?,
+        val dur: Long?,
         val tid: Int?,
-        val selectionStart: Long?, // only needed for Studio
-        val selectionEnd: Long?, // only needed for Studio
-        val reasonId: String?
-    ) : SelectionParams("android_startup") {
+    ) : SelectionParams(pluginId = "" /* Studio */) {
+        override fun buildInnerParamString() =
+            buildString {
+                    if (ts != null) append("&ts=$ts")
+                    if (dur != null) append("&dur=$dur")
+                    if (tid != null) append("&tid=$tid")
+                }
+                .removePrefix("&")
+    }
+
+    /** Parameters for startup deep link, given a specific process and reasonId */
+    data class StartupSelectionParams(val packageName: String, val reasonId: String?) :
+        SelectionParams("android_startup") {
         override fun buildInnerParamString() = buildString {
             append("packageName=$packageName")
-            if (tid != null) append("&tid=$tid")
-            if (selectionStart != null) append("&selection_start=$selectionStart")
-            if (selectionEnd != null) append("&selection_end=$selectionEnd")
             if (reasonId != null) {
                 append("&reason_id=$reasonId")
             }

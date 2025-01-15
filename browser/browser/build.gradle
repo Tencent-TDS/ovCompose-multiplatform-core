@@ -19,11 +19,11 @@ android {
     }
     buildTypes.configureEach {
         stableAidl {
-            version 1
+            version = 1
         }
     }
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.browser"
+    namespace = "androidx.browser"
 }
 
 dependencies {

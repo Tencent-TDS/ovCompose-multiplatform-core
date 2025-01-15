@@ -803,9 +803,10 @@ public class LayoutElementBuildersTest {
         LayoutElementProto.DashedLinePattern brush = dashedArcLine.getLinePattern().toProto();
         assertThat(brush.getGapSize().getValue()).isEqualTo(4.5F);
         List<DimensionProto.DegreesProp> gapLocations =brush.getGapLocationsList();
-        assertThat(gapLocations.get(0).getValue()).isEqualTo(111F);
-        assertThat(gapLocations.get(1).getValue()).isEqualTo(222F);
-        assertThat(gapLocations.get(2).getValue()).isEqualTo(333F);
+        assertThat(gapLocations.get(0).getValue()).isEqualTo(0F);
+        assertThat(gapLocations.get(1).getValue()).isEqualTo(111F);
+        assertThat(gapLocations.get(2).getValue()).isEqualTo(222F);
+        assertThat(gapLocations.get(3).getValue()).isEqualTo(333F);
     }
 
     @Test

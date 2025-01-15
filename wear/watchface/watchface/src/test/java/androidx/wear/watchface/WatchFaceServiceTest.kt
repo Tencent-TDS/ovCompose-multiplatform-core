@@ -171,8 +171,7 @@ internal enum class Priority {
     Interactive
 }
 
-@Config(manifest = Config.NONE)
-@RequiresApi(Build.VERSION_CODES.O)
+@Config(manifest = Config.NONE, sdk = [31, 32, 33, 34, 35])
 @RunWith(WatchFaceTestRunner::class)
 public class WatchFaceServiceTest {
 

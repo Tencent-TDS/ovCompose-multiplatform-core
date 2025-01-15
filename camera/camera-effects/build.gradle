@@ -21,6 +21,7 @@ plugins {
     id("kotlin-android")
 }
 dependencies {
+    api(libs.jspecify)
     api(project(":camera:camera-core"))
     implementation(libs.autoValueAnnotations)
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
@@ -48,8 +49,9 @@ dependencies {
     androidTestImplementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
 }
 android {
+    compileSdk = 35
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.effects"
+    namespace = "androidx.camera.effects"
 }
 androidx {
     name = "Camera Effects"

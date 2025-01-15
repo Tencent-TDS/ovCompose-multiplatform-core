@@ -19,12 +19,13 @@ package androidx.appsearch.compiler.annotationwrapper;
 import static androidx.appsearch.compiler.IntrospectionHelper.APPSEARCH_SCHEMA_CLASS;
 import static androidx.appsearch.compiler.IntrospectionHelper.DOCUMENT_ANNOTATION_CLASS;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.IntrospectionHelper;
 import androidx.appsearch.compiler.ProcessingException;
 
 import com.google.auto.value.AutoValue;
 import com.squareup.javapoet.ClassName;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 
@@ -55,8 +56,7 @@ public abstract class EmbeddingPropertyAnnotation extends DataPropertyAnnotation
      *                    params do not mention an explicit name.
      * @throws ProcessingException If the annotation points to an Illegal serializer class.
      */
-    @NonNull
-    static EmbeddingPropertyAnnotation parse(
+    static @NonNull EmbeddingPropertyAnnotation parse(
             @NonNull Map<String, Object> annotationParams,
             @NonNull String defaultName) throws ProcessingException {
         String name = (String) annotationParams.get("name");
@@ -71,15 +71,14 @@ public abstract class EmbeddingPropertyAnnotation extends DataPropertyAnnotation
      */
     public abstract int getIndexingType();
 
-    @NonNull
     @Override
-    public final Kind getDataPropertyKind() {
+    public final @NonNull Kind getDataPropertyKind() {
         return Kind.EMBEDDING_PROPERTY;
     }
 
-    @NonNull
     @Override
-    public TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper) {
+    public @NonNull TypeMirror getUnderlyingTypeWithinGenericDoc(
+            @NonNull IntrospectionHelper helper) {
         return helper.mEmbeddingType;
     }
 }

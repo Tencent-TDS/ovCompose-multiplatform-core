@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.webkit.ValueCallback;
 import android.webkit.WebResourceRequest;
@@ -29,7 +30,6 @@ import android.webkit.WebView;
 
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
-import androidx.core.os.CancellationSignal;
 import androidx.webkit.OutcomeReceiverCompat;
 import androidx.webkit.Profile;
 import androidx.webkit.ProfileStore;
@@ -642,11 +642,17 @@ public class WebViewFeatureInternal {
             new ApiFeature.NoFramework(WebViewFeature.BACK_FORWARD_CACHE,
                     Features.BACK_FORWARD_CACHE);
 
+
+    public static final ApiFeature.NoFramework DELETE_BROWSING_DATA = new ApiFeature.NoFramework(
+            WebViewFeature.DELETE_BROWSING_DATA, Features.WEB_STORAGE_DELETE_BROWSING_DATA
+    );
+
     /**
      * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
      * This feature covers
-     * {@link androidx.webkit.Profile#prefetchUrlAsync(String, CancellationSignal, SpeculativeLoadingParameters, OutcomeReceiverCompat)}
-     * {@link androidx.webkit.Profile#clearPrefetchAsync(String, OutcomeReceiverCompat)}
+     * {@link androidx.webkit.Profile#prefetchUrlAsync(String, CancellationSignal, Executor, SpeculativeLoadingParameters, OutcomeReceiverCompat)}
+     * {@link androidx.webkit.Profile#prefetchUrlAsync(String, CancellationSignal, Executor, OutcomeReceiverCompat)}
+     * {@link androidx.webkit.Profile#clearPrefetchAsync(String, Executor, OutcomeReceiverCompat)}
      */
     public static final ApiFeature.NoFramework PROFILE_URL_PREFETCH =
             new ApiFeature.NoFramework(WebViewFeature.PROFILE_URL_PREFETCH,
@@ -679,6 +685,16 @@ public class WebViewFeatureInternal {
     public static final ApiFeature.NoFramework DEFAULT_TRAFFICSTATS_TAGGING =
             new ApiFeature.NoFramework(WebViewFeature.DEFAULT_TRAFFICSTATS_TAGGING,
                     Features.DEFAULT_TRAFFICSTATS_TAGGING);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers {@link androidx.webkit.WebViewCompat#prerenderUrlAsync(WebView, String,
+     * SpeculativeLoadingParameters, CancellationSignal, PrerenderOperationCallback)}}
+     */
+    public static final ApiFeature.NoFramework PRERENDER_WITH_URL =
+            new ApiFeature.NoFramework(WebViewFeature.PRERENDER_WITH_URL,
+                    Features.PRERENDER_WITH_URL);
+
 
     // --- Add new feature constants above this line ---
 

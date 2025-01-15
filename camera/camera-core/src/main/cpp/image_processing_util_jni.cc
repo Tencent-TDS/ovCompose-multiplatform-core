@@ -28,6 +28,7 @@
 #include "libyuv/convert_argb.h"
 #include "libyuv/rotate_argb.h"
 #include "libyuv/convert.h"
+#include "libyuv/planar_functions.h"
 
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "YuvToRgbJni", __VA_ARGS__)
 
@@ -517,7 +518,6 @@ JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeRotateYUV(
     int halfwidth = (width + 1) >> 1;
     int halfheight = (height + 1) >> 1;
 
-    // TODO(b/203141655): avoid unnecessary memory copy by merging libyuv API for rotation.
     uint8_t *rotated_y_ptr =
             static_cast<uint8_t *>(env->GetDirectBufferAddress(rotated_buffer_y));
     uint8_t *rotated_u_ptr =
@@ -532,90 +532,100 @@ JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeRotateYUV(
     int rotated_stride_u = flip_wh ? halfheight : halfwidth;
     int rotated_stride_v = flip_wh ? halfheight : halfwidth;
 
+    int result = 0;
+
+    // Converts Android420 to I420 format with rotation applied
+    result = libyuv::Android420ToI420Rotate(
+            src_y_ptr,
+            src_stride_y,
+            src_u_ptr,
+            src_stride_u,
+            src_v_ptr,
+            src_stride_v,
+            src_pixel_stride_uv,
+            rotated_y_ptr,
+            rotated_stride_y,
+            rotated_u_ptr,
+            rotated_stride_u,
+            rotated_v_ptr,
+            rotated_stride_v,
+            width,
+            height,
+            mode);
+
+    if (result != 0) {
+        return result;
+    }
+
+    // Convert to the required output format
     int rotated_width = flip_wh ? height : width;
     int rotated_height = flip_wh ? width : height;
     int rotated_halfwidth = flip_wh ? halfheight : halfwidth;
     int rotated_halfheight = flip_wh ? halfwidth : halfheight;
+    const ptrdiff_t vu_off = dst_v_ptr - dst_u_ptr;
 
-    int result = 0;
-    const ptrdiff_t vu_off = src_v_ptr - src_u_ptr;
-
-    if (src_pixel_stride_uv == 1) {
-        // I420
-        result = libyuv::I420Rotate(src_y_ptr,
-                                    src_stride_y,
-                                    src_u_ptr,
-                                    src_stride_u,
-                                    src_v_ptr,
-                                    src_stride_v,
-                                    rotated_y_ptr,
-                                    rotated_stride_y,
-                                    rotated_u_ptr,
-                                    rotated_stride_u,
-                                    rotated_v_ptr,
-                                    rotated_stride_v,
-                                    width,
-                                    height,
-                                    mode);
-    } else if (src_pixel_stride_uv == 2 && vu_off == -1 &&
-               src_stride_u == src_stride_v) {
+    if (dst_pixel_stride_u == 2 && vu_off == -1) {
         // NV21
-        result = libyuv::NV12ToI420Rotate(src_y_ptr,
-                                          src_stride_y,
-                                          src_v_ptr,
-                                          src_stride_v,
-                                          rotated_y_ptr,
-                                          rotated_stride_y,
-                                          rotated_v_ptr,
-                                          rotated_stride_v,
-                                          rotated_u_ptr,
-                                          rotated_stride_u,
-                                          width,
-                                          height,
-                                          mode);
-    } else if (src_pixel_stride_uv == 2 && vu_off == 1 && src_stride_u == src_stride_v) {
+        result = libyuv::I420ToNV21(
+                /* src_y= */ rotated_y_ptr,
+                /* src_stride_y= */ rotated_width,
+                /* src_u= */ rotated_u_ptr,
+                /* src_stride_u= */ rotated_halfwidth,
+                /* src_v= */ rotated_v_ptr,
+                /* src_stride_v= */ rotated_halfwidth,
+                /* dst_y= */ dst_y_ptr,
+                /* dst_stride_y= */ dst_stride_y,
+                /* dst_uv= */ dst_v_ptr,
+                /* dst_stride_uv= */ dst_stride_v,
+                /* width= */ rotated_width,
+                /* height= */ rotated_height
+        );
+    } else if (dst_pixel_stride_u == 2 && vu_off == 1) {
         // NV12
-        result = libyuv::NV12ToI420Rotate(src_y_ptr,
-                                          src_stride_y,
-                                          src_u_ptr,
-                                          src_stride_u,
-                                          rotated_y_ptr,
-                                          rotated_stride_y,
-                                          rotated_u_ptr,
-                                          rotated_stride_u,
-                                          rotated_v_ptr,
-                                          rotated_stride_v,
-                                          width,
-                                          height,
-                                          mode);
+        result = libyuv::I420ToNV12(
+                /* src_y= */ rotated_y_ptr,
+                /* src_stride_y= */ rotated_width,
+                /* src_u= */ rotated_u_ptr,
+                /* src_stride_u= */ rotated_halfwidth,
+                /* src_v= */ rotated_v_ptr,
+                /* src_stride_v= */ rotated_halfwidth,
+                /* dst_y= */ dst_y_ptr,
+                /* dst_stride_y= */ dst_stride_y,
+                /* dst_uv= */ dst_u_ptr,
+                /* dst_stride_uv= */ dst_stride_u,
+                /* width= */ rotated_width,
+                /* height= */ rotated_height
+        );
+    } else if (dst_pixel_stride_u == 1 && dst_pixel_stride_v == 1) {
+        // I420
+        // Copies Y plane
+        libyuv::CopyPlane(
+                /* src_y= */ rotated_y_ptr,
+                /* src_stride_y= */ rotated_width,
+                /* dst_y= */ dst_y_ptr,
+                /* dst_stride_y= */ dst_stride_y,
+                /* width= */ rotated_width,
+                /* height= */ rotated_height);
+        // Copies U plane
+        libyuv::CopyPlane(
+                /* src_y= */ rotated_u_ptr,
+                /* src_stride_y= */ rotated_halfwidth,
+                /* dst_y= */ dst_u_ptr,
+                /* dst_stride_y= */ dst_stride_u,
+                /* width= */ rotated_halfwidth,
+                /* height= */ rotated_halfheight);
+        // Copies V plane
+        libyuv::CopyPlane(
+                /* src_y= */ rotated_v_ptr,
+                /* src_stride_y= */ rotated_halfwidth,
+                /* dst_y= */ dst_v_ptr,
+                /* dst_stride_y= */ dst_stride_v,
+                /* width= */ rotated_halfwidth,
+                /* height= */ rotated_halfheight);
     } else {
-        // General case fallback creates NV12
-        align_buffer_64(plane_uv, halfwidth * 2 * halfheight);
-        uint8_t* dst_uv = plane_uv;
-        for (int y = 0; y < halfheight; y++) {
-            weave_pixels(src_u_ptr, src_v_ptr, src_pixel_stride_uv, dst_uv, halfwidth);
-            src_u_ptr += src_stride_u;
-            src_v_ptr += src_stride_v;
-            dst_uv += halfwidth * 2;
-        }
+        // Fall backs to directly copy according to the dst stride and pixel_stride values if
+        // it is none of the above cases.
 
-        result = libyuv::NV12ToI420Rotate(src_y_ptr,
-                                          src_stride_y,
-                                          plane_uv,
-                                          halfwidth * 2,
-                                          rotated_y_ptr,
-                                          rotated_stride_y,
-                                          rotated_u_ptr,
-                                          rotated_stride_u,
-                                          rotated_v_ptr,
-                                          rotated_stride_v,
-                                          width,
-                                          height,
-                                          mode);
-        free_aligned_buffer_64(plane_uv);
-    }
-
-    if (result == 0) {
         // Y
         uint8_t *dst_y = rotated_y_ptr;
         int rotated_pixel_stride_y = 1;
@@ -625,7 +635,6 @@ JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeRotateYUV(
                         dst_y[i * rotated_stride_y + j * rotated_pixel_stride_y];
             }
         }
-
         // U
         uint8_t *dst_u = rotated_u_ptr;
         int rotated_pixel_stride_u = 1;
@@ -635,7 +644,6 @@ JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeRotateYUV(
                         dst_u[i * rotated_stride_u + j * rotated_pixel_stride_u];
             }
         }
-
         // V
         uint8_t *dst_v = rotated_v_ptr;
         int rotated_pixel_stride_v = 1;
@@ -648,6 +656,38 @@ JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeRotateYUV(
     }
 
     return result;
+}
+
+JNIEXPORT jint Java_androidx_camera_core_ImageProcessingUtil_nativeGetYUVImageVUOff(
+        JNIEnv* env,
+        jclass,
+        jobject byte_buffer_v,
+        jobject byte_buffer_u) {
+    uint8_t *byte_buffer_v_ptr =
+            static_cast<uint8_t *>(env->GetDirectBufferAddress(byte_buffer_v));
+    uint8_t *byte_buffer_u_ptr =
+            static_cast<uint8_t *>(env->GetDirectBufferAddress(byte_buffer_u));
+    return byte_buffer_v_ptr - byte_buffer_u_ptr;
+}
+
+JNIEXPORT jobject Java_androidx_camera_core_ImageProcessingUtil_nativeCreateNV21ByteBuffers(
+        JNIEnv *env,
+        jclass,
+        jobject byte_buffer,
+        jint vu_data_length) {
+
+    uint8_t *byte_buffer_ptr =
+            static_cast<uint8_t *>(env->GetDirectBufferAddress(byte_buffer));
+
+    // Create the ByteBuffers
+    jobject vByteBuffer = env->NewDirectByteBuffer(byte_buffer_ptr, vu_data_length);
+    jobject uByteBuffer = env->NewDirectByteBuffer(byte_buffer_ptr + 1, vu_data_length);
+
+    jclass pairClass = env->FindClass("android/util/Pair");
+    jmethodID pairConstructor = env->GetMethodID(pairClass, "<init>",
+                                                 "(Ljava/lang/Object;Ljava/lang/Object;)V");
+
+    return env->NewObject(pairClass, pairConstructor, uByteBuffer, vByteBuffer);
 }
 
 }  // extern "C"

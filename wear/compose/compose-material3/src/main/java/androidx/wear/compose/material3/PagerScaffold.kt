@@ -86,14 +86,14 @@ import kotlin.math.absoluteValue
  *   the content to be displayed on that page.
  */
 @Composable
-fun HorizontalPagerScaffold(
+public fun HorizontalPagerScaffold(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     pageIndicator: (@Composable BoxScope.() -> Unit)? = { HorizontalPageIndicator(pagerState) },
     pageIndicatorAnimationSpec: AnimationSpec<Float>? = null,
     rotaryScrollableBehavior: RotaryScrollableBehavior? = null,
     content: @Composable PagerScope.(page: Int) -> Unit,
-) =
+): Unit =
     PagerScaffoldImpl(
         scrollInfoProvider = ScrollInfoProvider(pagerState),
         pagerContent = {
@@ -142,7 +142,7 @@ fun HorizontalPagerScaffold(
  *   the content to be displayed on that page.
  */
 @Composable
-fun VerticalPagerScaffold(
+public fun VerticalPagerScaffold(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
     pageIndicator: (@Composable BoxScope.() -> Unit)? = { VerticalPageIndicator(pagerState) },
@@ -150,7 +150,7 @@ fun VerticalPagerScaffold(
     rotaryScrollableBehavior: RotaryScrollableBehavior? =
         RotaryScrollableDefaults.snapBehavior(pagerState),
     content: @Composable PagerScope.(page: Int) -> Unit,
-) =
+): Unit =
     PagerScaffoldImpl(
         scrollInfoProvider = ScrollInfoProvider(pagerState),
         pagerContent = {
@@ -167,12 +167,13 @@ fun VerticalPagerScaffold(
     )
 
 /** Contains default values used for [HorizontalPagerScaffold] and [VerticalPagerScaffold]. */
-object PagerScaffoldDefaults {
+public object PagerScaffoldDefaults {
     /**
      * The default value for the indicator fade out animation spec. Use this to fade out the page
      * indicator when paging has stopped.
      */
-    val FadeOutAnimation: AnimationSpec<Float> = spring(stiffness = Spring.StiffnessMediumLow)
+    public val FadeOutAnimation: AnimationSpec<Float> =
+        spring(stiffness = Spring.StiffnessMediumLow)
 }
 
 @Composable

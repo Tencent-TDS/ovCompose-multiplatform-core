@@ -21,21 +21,19 @@ package androidx.health.connect.client.impl.platform.aggregate
 import androidx.annotation.RequiresApi
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.impl.converters.datatype.RECORDS_CLASS_NAME_MAP
-import androidx.health.connect.client.impl.platform.toInstantWithDefaultZoneFallback
-import androidx.health.connect.client.impl.platform.useLocalTime
 import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
-import androidx.health.connect.client.records.IntervalRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Duration
-import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -54,48 +52,96 @@ private val AGGREGATION_FALLBACK_RECORD_TYPES =
 internal suspend fun HealthConnectClient.aggregateFallback(
     request: AggregateRequest
 ): AggregationResult {
-    var aggregationResult = emptyAggregationResult()
+    val aggregationResult =
+        AGGREGATION_FALLBACK_RECORD_TYPES.associateWith { recordType ->
+                request.withFilteredMetrics {
+                    it.dataTypeName == RECORDS_CLASS_NAME_MAP[recordType]!!
+                }
+            }
+            .filterValues { it.metrics.isNotEmpty() }
+            .map {
+                val recordType = it.key
+                val recordTypeRequest = it.value
 
-    for (recordType in AGGREGATION_FALLBACK_RECORD_TYPES) {
-        aggregationResult +=
-            aggregate(recordType, request.withFilteredMetrics { !it.isPlatformSupportedMetric() })
-    }
-
-    return aggregationResult
+                // Calculate the aggregation result for a single record type
+                when (recordType) {
+                    BloodPressureRecord::class -> aggregateBloodPressure(recordTypeRequest)
+                    CyclingPedalingCadenceRecord::class ->
+                        aggregateSeriesRecord(
+                            CyclingPedalingCadenceRecord::class,
+                            recordTypeRequest
+                        )
+                    NutritionRecord::class -> aggregateNutritionTransFatTotal(recordTypeRequest)
+                    SpeedRecord::class ->
+                        aggregateSeriesRecord(SpeedRecord::class, recordTypeRequest)
+                    StepsCadenceRecord::class ->
+                        aggregateSeriesRecord(StepsCadenceRecord::class, recordTypeRequest)
+                    else -> error("Invalid record type for aggregation fallback: $recordType")
+                }
+            }
+            .reduceOrNull {
+                // Reduce into a single AggregationResult containing metrics across all the record
+                // types above
+                accumulator,
+                element ->
+                accumulator + element
+            }
+    return aggregationResult ?: AggregationResult(emptyMap(), emptyMap(), emptySet())
 }
 
-private suspend fun <T : Record> HealthConnectClient.aggregate(
-    recordType: KClass<T>,
-    request: AggregateRequest,
-): AggregationResult {
-    val dataTypeName = RECORDS_CLASS_NAME_MAP[recordType]
-    val recordTypeRequest = request.withFilteredMetrics { it.dataTypeName == dataTypeName }
+internal suspend fun HealthConnectClient.aggregateFallback(
+    request: AggregateGroupByPeriodRequest
+): List<AggregationResultGroupedByPeriod> {
+    return AGGREGATION_FALLBACK_RECORD_TYPES.associateWith { recordType ->
+            request.withFilteredMetrics { it.dataTypeName == RECORDS_CLASS_NAME_MAP[recordType]!! }
+        }
+        .filterValues { it.metrics.isNotEmpty() }
+        .flatMap {
+            val recordType = it.key
+            val recordTypeRequest = it.value
 
-    if (recordTypeRequest.metrics.isEmpty()) {
-        return emptyAggregationResult()
-    }
+            val buckets: List<AggregationResultGroupedByPeriod> =
+                when (recordType) {
+                    BloodPressureRecord::class -> aggregateBloodPressure(recordTypeRequest)
+                    CyclingPedalingCadenceRecord::class ->
+                        aggregateSeriesRecord(
+                            CyclingPedalingCadenceRecord::class,
+                            recordTypeRequest
+                        )
+                    NutritionRecord::class -> aggregateNutritionTransFatTotal(recordTypeRequest)
+                    SpeedRecord::class ->
+                        aggregateSeriesRecord(SpeedRecord::class, recordTypeRequest)
+                    StepsCadenceRecord::class ->
+                        aggregateSeriesRecord(StepsCadenceRecord::class, recordTypeRequest)
+                    else -> error("Invalid record type for aggregation fallback: $recordType")
+                }
 
-    return when (recordType) {
-        BloodPressureRecord::class -> aggregateBloodPressure(recordTypeRequest)
-        CyclingPedalingCadenceRecord::class ->
-            aggregateSeriesRecord(CyclingPedalingCadenceRecord::class, recordTypeRequest) {
-                samples.map { SampleInfo(it.time, it.revolutionsPerMinute) }
-            }
-        NutritionRecord::class -> aggregateNutritionTransFatTotal(recordTypeRequest)
-        SpeedRecord::class ->
-            aggregateSeriesRecord(SpeedRecord::class, recordTypeRequest) {
-                samples.map { SampleInfo(it.time, it.speed.inMetersPerSecond) }
-            }
-        StepsCadenceRecord::class ->
-            aggregateSeriesRecord(StepsCadenceRecord::class, recordTypeRequest) {
-                samples.map { SampleInfo(it.time, it.rate) }
-            }
-        else -> error("Invalid record type for aggregation fallback: $recordType")
+            buckets
+        }
+        .groupingBy { it.startTime }
+        .reduce { _, accumulator, element ->
+            AggregationResultGroupedByPeriod(
+                startTime = accumulator.startTime,
+                endTime = accumulator.endTime,
+                result = accumulator.result + element.result
+            )
+        }
+        .values
+        .sortedBy { it.startTime }
+}
+
+internal suspend fun <T : Record, R> HealthConnectClient.aggregate(
+    readRecordsRequest: ReadRecordsRequest<T>,
+    aggregator: Aggregator<T, R>
+): R {
+    readRecordsFlow(readRecordsRequest).collect { records ->
+        records.forEach { aggregator.filterAndAggregate(it) }
     }
+    return aggregator.getResult()
 }
 
 /** Reads all existing records that satisfy [request]. */
-fun <T : Record> HealthConnectClient.readRecordsFlow(
+internal fun <T : Record> HealthConnectClient.readRecordsFlow(
     request: ReadRecordsRequest<T>
 ): Flow<List<T>> {
     return flow {
@@ -108,29 +154,6 @@ fun <T : Record> HealthConnectClient.readRecordsFlow(
     }
 }
 
-internal fun IntervalRecord.overlaps(timeRangeFilter: TimeRangeFilter): Boolean {
-    val startTimeOverlaps: Boolean
-    val endTimeOverlaps: Boolean
-    if (timeRangeFilter.useLocalTime()) {
-        startTimeOverlaps =
-            timeRangeFilter.localEndTime == null ||
-                startTime.isBefore(
-                    timeRangeFilter.localEndTime.toInstantWithDefaultZoneFallback(startZoneOffset)
-                )
-        endTimeOverlaps =
-            timeRangeFilter.localStartTime == null ||
-                endTime.isAfter(
-                    timeRangeFilter.localStartTime.toInstantWithDefaultZoneFallback(endZoneOffset)
-                )
-    } else {
-        startTimeOverlaps =
-            timeRangeFilter.endTime == null || startTime.isBefore(timeRangeFilter.endTime)
-        endTimeOverlaps =
-            timeRangeFilter.startTime == null || endTime.isAfter(timeRangeFilter.startTime)
-    }
-    return startTimeOverlaps && endTimeOverlaps
-}
-
 internal fun TimeRangeFilter.withBufferedStart(): TimeRangeFilter {
     return TimeRangeFilter(
         startTime = startTime?.minus(RECORD_START_TIME_BUFFER),
@@ -139,9 +162,6 @@ internal fun TimeRangeFilter.withBufferedStart(): TimeRangeFilter {
         localEndTime = localEndTime
     )
 }
-
-internal fun emptyAggregationResult() =
-    AggregationResult(longValues = mapOf(), doubleValues = mapOf(), dataOrigins = setOf())
 
 internal data class AvgData(var count: Int = 0, var total: Double = 0.0) {
     operator fun plusAssign(value: Double) {

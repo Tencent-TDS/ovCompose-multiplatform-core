@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.lazy.LocalTransformingLazyColumnItemScope
 import androidx.wear.compose.material3.lazy.scrollTransform
 
@@ -55,7 +56,12 @@ internal fun Modifier.container(
     border: BorderStroke? = null
 ): Modifier {
     val borderModifier = if (border != null) border(border = border, shape = shape) else this
-    val itemScope = LocalTransformingLazyColumnItemScope.current
+    val itemScope =
+        if (LocalReduceMotion.current.enabled()) {
+            null
+        } else {
+            LocalTransformingLazyColumnItemScope.current
+        }
     return itemScope?.let { tlcScope -> scrollTransform(tlcScope, shape, painter, border) }
         ?: borderModifier
             .clip(shape = shape)
@@ -85,7 +91,12 @@ internal fun Modifier.container(
     border: BorderStroke? = null
 ): Modifier {
     val borderModifier = if (border != null) border(border = border, shape = shape) else this
-    val itemScope = LocalTransformingLazyColumnItemScope.current
+    val itemScope =
+        if (LocalReduceMotion.current.enabled()) {
+            null
+        } else {
+            LocalTransformingLazyColumnItemScope.current
+        }
     return itemScope?.let { tlcScope ->
         scrollTransform(tlcScope, shape, ColorPainter(color), border)
     } ?: borderModifier.clip(shape = shape).background(color = color)

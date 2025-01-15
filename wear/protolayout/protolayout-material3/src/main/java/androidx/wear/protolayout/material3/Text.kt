@@ -16,15 +16,14 @@
 
 package androidx.wear.protolayout.material3
 
-import androidx.wear.protolayout.ColorBuilders.ColorProp
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
-import androidx.wear.protolayout.LayoutElementBuilders.Text
 import androidx.wear.protolayout.LayoutElementBuilders.TextAlignment
 import androidx.wear.protolayout.LayoutElementBuilders.TextOverflow
-import androidx.wear.protolayout.ModifiersBuilders.Modifiers
-import androidx.wear.protolayout.TypeBuilders.StringLayoutConstraint
-import androidx.wear.protolayout.TypeBuilders.StringProp
+import androidx.wear.protolayout.layout.basicText
 import androidx.wear.protolayout.material3.Typography.TypographyToken
+import androidx.wear.protolayout.modifiers.LayoutModifier
+import androidx.wear.protolayout.types.LayoutColor
+import androidx.wear.protolayout.types.LayoutString
 
 /**
  * ProtoLayout component that represents text object holding any information.
@@ -33,8 +32,6 @@ import androidx.wear.protolayout.material3.Typography.TypographyToken
  * [Typography].
  *
  * @param text The text content for this component.
- * @param stringLayoutConstraint The layout constraints used to correctly measure Text view size and
- *   align text when `text` has dynamic value.
  * @param typography The typography from [Typography] to be applied to this text. This will have
  *   predefined default value specified by each components that uses this text, to achieve the
  *   recommended look.
@@ -46,36 +43,32 @@ import androidx.wear.protolayout.material3.Typography.TypographyToken
  * @param maxLines The maximum number of lines that text can occupy.
  * @param multilineAlignment The horizontal alignment of the multiple lines of text.
  * @param overflow The overflow strategy when text doesn't have enough space to be shown.
- * @param modifiers The additional [Modifiers] for this text.
+ * @param modifiers Modifiers to set to this element.
  * @sample androidx.wear.protolayout.material3.samples.helloWorldTextDefault
  * @sample androidx.wear.protolayout.material3.samples.helloWorldTextDynamicCustom
  */
 public fun MaterialScope.text(
-    text: StringProp,
-    stringLayoutConstraint: StringLayoutConstraint =
-        StringLayoutConstraint.Builder(text.value).build(),
+    text: LayoutString,
     @TypographyToken typography: Int = defaultTextElementStyle.typography,
-    color: ColorProp = defaultTextElementStyle.color,
+    color: LayoutColor = defaultTextElementStyle.color,
     italic: Boolean = defaultTextElementStyle.italic,
     underline: Boolean = defaultTextElementStyle.underline,
     scalable: Boolean = defaultTextElementStyle.scalable,
     maxLines: Int = defaultTextElementStyle.maxLines,
     @TextAlignment multilineAlignment: Int = defaultTextElementStyle.multilineAlignment,
     @TextOverflow overflow: Int = defaultTextElementStyle.overflow,
-    modifiers: Modifiers = Modifiers.Builder().build()
+    modifiers: LayoutModifier = LayoutModifier
 ): LayoutElement =
-    Text.Builder()
-        .setText(text)
-        .setLayoutConstraintsForDynamicText(stringLayoutConstraint)
-        .setFontStyle(
+    basicText(
+        text = text,
+        fontStyle =
             createFontStyleBuilder(typographyToken = typography, deviceConfiguration, scalable)
-                .setColor(color)
+                .setColor(color.prop)
                 .setItalic(italic)
                 .setUnderline(underline)
-                .build()
-        )
-        .setMaxLines(maxLines)
-        .setMultilineAlignment(multilineAlignment)
-        .setOverflow(overflow)
-        .setModifiers(modifiers)
-        .build()
+                .build(),
+        maxLines = maxLines,
+        multilineAlignment = multilineAlignment,
+        overflow = overflow,
+        modifier = modifiers
+    )

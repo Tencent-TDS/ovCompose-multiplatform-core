@@ -50,7 +50,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            version libs.versions.cmake.get()
+            version = libs.versions.cmake.get()
             path "src/main/cpp/CMakeLists.txt"
         }
     }
@@ -58,6 +58,6 @@ android {
     buildFeatures {
         prefab = true
     }
-    namespace "androidx.test.ext.junitgtesttest"
+    namespace = "androidx.test.ext.junitgtesttest"
 }
 

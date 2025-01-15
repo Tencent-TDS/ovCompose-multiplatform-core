@@ -248,7 +248,7 @@ class FieldProcessorTest {
                 )
             )
             assertThat(
-                (field.cursorValueReader as? ColumnTypeAdapter)?.typeAffinity,
+                (field.statementValueReader as? ColumnTypeAdapter)?.typeAffinity,
                 `is`(SQLTypeAffinity.TEXT)
             )
         }

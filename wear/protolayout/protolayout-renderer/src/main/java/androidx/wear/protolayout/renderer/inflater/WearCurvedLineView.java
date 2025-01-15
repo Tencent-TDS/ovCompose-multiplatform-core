@@ -17,6 +17,8 @@
 package androidx.wear.protolayout.renderer.inflater;
 
 import static androidx.wear.protolayout.renderer.inflater.ProtoLayoutInflater.isRtlLayoutDirectionFromLocale;
+import static androidx.wear.protolayout.renderer.inflater.ArcWidgetHelper.getSignForClockwise;
+import static androidx.wear.protolayout.renderer.inflater.ArcWidgetHelper.isPointInsideArcArea;
 
 import static java.lang.Math.min;
 
@@ -183,7 +185,7 @@ public class WearCurvedLineView extends View implements ArcLayout.Widget {
                             bounds,
                             clampedSweepAngle,
                             mBasePaint.getStrokeWidth(),
-                            getSignForClockwise(mLineDirection, /* defaultValue= */ 1),
+                            getSignForClockwise(this, mLineDirection, /* defaultValue= */ 1),
                             mBasePaint,
                             mSweepGradientHelper,
                             mCapShadow);
@@ -338,35 +340,8 @@ public class WearCurvedLineView extends View implements ArcLayout.Widget {
 
     @Override
     public boolean isPointInsideClickArea(float x, float y) {
-        // Stolen from WearCurvedTextView...
-        float radius2 = min(getWidth(), getHeight()) / 2f - getPaddingTop();
-        float radius1 = radius2 - mBasePaint.getStrokeWidth();
-
-        float dx = x - getWidth() / 2f;
-        float dy = y - getHeight() / 2f;
-
-        float r2 = dx * dx + dy * dy;
-        if (r2 < radius1 * radius1 || r2 > radius2 * radius2) {
-            return false;
-        }
-
-        // Since we are symmetrical on the Y-axis, we can constrain the angle to the x>=0 quadrants.
-        float angle = (float) Math.toDegrees(Math.atan2(Math.abs(dx), -dy));
-        return angle < resolveSweepAngleDegrees() / 2;
-    }
-
-    static int getSignForClockwise(@NonNull ArcDirection arcDirection, int defaultValue) {
-        switch (arcDirection) {
-            case ARC_DIRECTION_CLOCKWISE:
-                return 1;
-            case ARC_DIRECTION_COUNTER_CLOCKWISE:
-                return -1;
-            case ARC_DIRECTION_NORMAL:
-                return isRtlLayoutDirectionFromLocale() ? -1 : 1;
-            case UNRECOGNIZED:
-                return defaultValue;
-        }
-        return defaultValue;
+        return isPointInsideArcArea(
+                this, x, y, mBasePaint.getStrokeWidth(), resolveSweepAngleDegrees());
     }
 
     static class SweepGradientHelper {

@@ -26,7 +26,6 @@ import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-import androidx.build.Publish
 import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
@@ -136,7 +135,6 @@ androidx {
     type = LibraryType.PUBLISHED_TEST_LIBRARY
     inceptionYear = "2022"
     description = "Test artifact for Paging implementation"
-    metalavaK2UastEnabled = false
     kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 

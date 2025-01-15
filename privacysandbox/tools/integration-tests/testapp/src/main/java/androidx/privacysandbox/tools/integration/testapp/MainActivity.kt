@@ -69,7 +69,6 @@ class MainActivity : AppCompatActivity() {
         val sandboxedSdkView = findViewById<SandboxedSdkView>(R.id.sandboxedSdkView)
 
         runOnUiThread {
-            sandboxedSdkView.setAdapter(textViewAd)
             class TestEventListener : SandboxedSdkViewEventListener {
                 override fun onUiDisplayed() {
                     idlingResource.decrement()
@@ -80,6 +79,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onUiClosed() {}
             }
             sandboxedSdkView.setEventListener(TestEventListener())
+            sandboxedSdkView.setAdapter(textViewAd)
         }
     }
 }

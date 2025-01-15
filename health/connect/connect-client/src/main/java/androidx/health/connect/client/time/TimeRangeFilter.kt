@@ -144,6 +144,10 @@ constructor(
     internal fun isOpenEnded(): Boolean =
         (localStartTime == null || localEndTime == null) && (startTime == null || endTime == null)
 
+    internal fun isBasedOnLocalTime(): Boolean {
+        return localStartTime != null || localEndTime != null
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is TimeRangeFilter) return false

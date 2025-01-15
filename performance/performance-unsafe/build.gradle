@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -28,7 +28,7 @@ java {
 
 androidx {
     name = "Performance - Unsafe"
-    publish = Publish.NONE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Compile-time support for sun.misc.Unsafe."
 }

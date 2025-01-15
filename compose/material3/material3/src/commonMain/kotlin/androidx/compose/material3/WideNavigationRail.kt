@@ -27,13 +27,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -94,11 +94,9 @@ import androidx.compose.ui.unit.constrain
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastFirst
-import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMap
-import androidx.compose.ui.util.fastSumBy
 import androidx.compose.ui.util.lerp
-import kotlin.jvm.JvmInline
 import kotlin.math.min
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -132,9 +130,8 @@ import kotlinx.coroutines.launch
  *
  * For a modal variation of the wide navigation rail, see [ModalWideNavigationRail].
  *
- * Finally, the [WideNavigationRail] supports setting a [WideNavigationRailArrangement] for the
- * items, so that the items can be grouped at the top (the default), at the middle, or at the bottom
- * of the rail. The header will always be at the top.
+ * Finally, the [WideNavigationRail] supports setting an [Arrangement.Vertical] for the items, with
+ * [Arrangement.Top] being the default. The header will always be at the top.
  *
  * See [WideNavigationRailItem] for configuration specific to each item, and not the overall
  * [WideNavigationRail] component.
@@ -146,7 +143,9 @@ import kotlinx.coroutines.launch
  *   wide navigation rail. See [WideNavigationRailDefaults.colors]
  * @param header optional header that may hold a [FloatingActionButton] or a logo
  * @param windowInsets a window insets of the wide navigation rail
- * @param arrangement the [WideNavigationRailArrangement] of this wide navigation rail
+ * @param arrangement the [Arrangement.Vertical] of this wide navigation rail for its content. Note
+ *   that if there's a header present, the items will be arranged on the remaining space below it,
+ *   except for the center arrangement which considers the entire height of the container
  * @param content the content of this wide navigation rail, typically [WideNavigationRailItem]s
  */
 @ExperimentalMaterial3ExpressiveApi
@@ -158,7 +157,7 @@ fun WideNavigationRail(
     colors: WideNavigationRailColors = WideNavigationRailDefaults.colors(),
     header: @Composable (() -> Unit)? = null,
     windowInsets: WindowInsets = WideNavigationRailDefaults.windowInsets,
-    arrangement: WideNavigationRailArrangement = WideNavigationRailDefaults.Arrangement,
+    arrangement: Arrangement.Vertical = WideNavigationRailDefaults.arrangement,
     content: @Composable () -> Unit
 ) {
     WideNavigationRailLayout(
@@ -174,7 +173,6 @@ fun WideNavigationRail(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WideNavigationRailLayout(
     modifier: Modifier,
@@ -184,7 +182,7 @@ private fun WideNavigationRailLayout(
     shape: Shape,
     header: @Composable (() -> Unit)?,
     windowInsets: WindowInsets,
-    arrangement: WideNavigationRailArrangement,
+    arrangement: Arrangement.Vertical,
     content: @Composable () -> Unit
 ) {
     var currentWidth by remember { mutableIntStateOf(0) }
@@ -212,6 +210,11 @@ private fun WideNavigationRailLayout(
     val itemVerticalSpacedBy by
         animateDpAsState(
             targetValue = if (!expanded) NavigationRailCollapsedTokens.ItemVerticalSpace else 0.dp,
+            animationSpec = animationSpec
+        )
+    val itemMinHeight by
+        animateDpAsState(
+            targetValue = if (!expanded) TopIconItemMinHeight else minimumA11ySize,
             animationSpec = animationSpec
         )
 
@@ -288,10 +291,7 @@ private fun WideNavigationRailLayout(
                                             .constrain(
                                                 Constraints.fitPrioritizingWidth(
                                                     minWidth = minimumA11ySize.roundToPx(),
-                                                    minHeight =
-                                                        if (!expanded)
-                                                            TopIconItemMinHeight.roundToPx()
-                                                        else minimumA11ySize.roundToPx(),
+                                                    minHeight = itemMinHeight.roundToPx(),
                                                     maxWidth = itemMaxWidthConstraint,
                                                     maxHeight = looseConstraints.maxHeight,
                                                 )
@@ -343,34 +343,39 @@ private fun WideNavigationRailLayout(
                         currentWidth = width
 
                         return layout(width, height) {
-                            var y = 0
-                            var headerHeight = 0
+                            val railHeight = height - WNRVerticalPadding.roundToPx()
+                            var headerOffset = 0
                             if (headerPlaceable != null && headerPlaceable.height > 0) {
-                                headerPlaceable.placeRelative(0, y)
-                                headerHeight = headerPlaceable.height
-                                if (arrangement == WideNavigationRailArrangement.Top) {
-                                    y += headerHeight + WNRHeaderPadding.roundToPx()
-                                }
+                                headerPlaceable.placeRelative(0, 0)
+                                headerOffset +=
+                                    headerPlaceable.height + WNRHeaderPadding.roundToPx()
                             }
 
-                            val itemsHeight = itemsPlaceables?.fastSumBy { it.height } ?: 0
-                            val verticalPadding = itemVerticalSpacedBy.roundToPx()
-                            if (arrangement == WideNavigationRailArrangement.Center) {
-                                y =
-                                    (height -
-                                        WNRVerticalPadding.roundToPx() -
-                                        (itemsHeight + (itemsCount - 1) * verticalPadding)) / 2
-                                y = y.coerceAtLeast(headerHeight)
-                            } else if (arrangement == WideNavigationRailArrangement.Bottom) {
-                                y =
-                                    height -
-                                        WNRVerticalPadding.roundToPx() -
-                                        (itemsHeight + (itemsCount - 1) * verticalPadding)
-                                y = y.coerceAtLeast(headerHeight)
-                            }
-                            itemsPlaceables?.fastForEach { item ->
-                                item.placeRelative(0, y)
-                                y += item.height + verticalPadding
+                            if (itemsPlaceables != null) {
+                                val layoutSize =
+                                    if (arrangement == Arrangement.Center) {
+                                        // For centered arrangement the items will be centered in
+                                        // the container, not in the remaining space below the
+                                        // header.
+                                        railHeight
+                                    } else {
+                                        railHeight - headerOffset
+                                    }
+                                val sizes = IntArray(itemsPlaceables.size)
+                                itemsPlaceables.fastForEachIndexed { index, item ->
+                                    sizes[index] = item.height
+                                    if (index < itemsPlaceables.size - 1) {
+                                        sizes[index] += itemVerticalSpacedBy.roundToPx()
+                                    }
+                                }
+                                val y = IntArray(itemsPlaceables.size)
+                                with(arrangement) { arrange(layoutSize, sizes, y) }
+
+                                val offset =
+                                    if (arrangement == Arrangement.Center) 0 else headerOffset
+                                itemsPlaceables.fastForEachIndexed { index, item ->
+                                    item.placeRelative(0, y[index] + offset)
+                                }
                             }
                         }
                     }
@@ -417,7 +422,7 @@ private fun WideNavigationRailLayout(
  * @param expandedHeaderTopPadding the padding to be applied to the top of the rail. It's usually
  *   needed in order to align the content of the rail between the collapsed and expanded animation
  * @param windowInsets a window insets of the wide navigation rail
- * @param arrangement the [WideNavigationRailArrangement] of this wide navigation rail
+ * @param arrangement the [Arrangement.Vertical] of this wide navigation rail
  * @param expandedProperties [ModalWideNavigationRailProperties] for further customization of the
  *   expanded modal wide navigation rail's window behavior
  * @param content the content of this modal wide navigation rail, usually [WideNavigationRailItem]s
@@ -434,7 +439,7 @@ fun ModalWideNavigationRail(
     header: @Composable (() -> Unit)? = null,
     expandedHeaderTopPadding: Dp = 0.dp,
     windowInsets: WindowInsets = WideNavigationRailDefaults.windowInsets,
-    arrangement: WideNavigationRailArrangement = WideNavigationRailDefaults.Arrangement,
+    arrangement: Arrangement.Vertical = WideNavigationRailDefaults.arrangement,
     expandedProperties: ModalWideNavigationRailProperties =
         ModalWideNavigationRailDefaults.Properties,
     content: @Composable () -> Unit
@@ -652,30 +657,6 @@ fun WideNavigationRailItem(
     )
 }
 
-/** Class that describes the different supported item arrangements of the [WideNavigationRail]. */
-@ExperimentalMaterial3ExpressiveApi
-@JvmInline
-value class WideNavigationRailArrangement private constructor(private val value: Int) {
-    companion object {
-        /* The items are grouped at the top on the wide navigation Rail. */
-        val Top = WideNavigationRailArrangement(0)
-
-        /* The items are centered on the wide navigation Rail. */
-        val Center = WideNavigationRailArrangement(1)
-
-        /* The items are grouped at the bottom on the wide navigation Rail. */
-        val Bottom = WideNavigationRailArrangement(2)
-    }
-
-    override fun toString() =
-        when (this) {
-            Top -> "Top"
-            Center -> "Center"
-            Bottom -> "Bottom"
-            else -> "Unknown"
-        }
-}
-
 /**
  * Represents the colors of the various elements of a wide navigation rail.
  *
@@ -747,8 +728,8 @@ object WideNavigationRailDefaults {
         @Composable get() = NavigationRailExpandedTokens.ModalContainerShape.value
 
     /** Default arrangement for a wide navigation rail. */
-    val Arrangement: WideNavigationRailArrangement
-        get() = WideNavigationRailArrangement.Top
+    val arrangement: Arrangement.Vertical
+        get() = Arrangement.Top
 
     /** Default window insets for a wide navigation rail. */
     val windowInsets: WindowInsets
@@ -930,7 +911,7 @@ private fun ModalWideNavigationRailContent(
     header: @Composable (() -> Unit)?,
     windowInsets: WindowInsets,
     gesturesEnabled: Boolean,
-    arrangement: WideNavigationRailArrangement,
+    arrangement: Arrangement.Vertical,
     content: @Composable () -> Unit
 ) {
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -1092,7 +1073,6 @@ private val WNRHeaderPadding: Dp = NavigationRailBaselineItemTokens.HeaderSpaceM
 private val CollapsedRailWidth = NavigationRailCollapsedTokens.ContainerWidth
 private val ExpandedRailMinWidth = NavigationRailExpandedTokens.ContainerWidthMinimum
 private val ExpandedRailMaxWidth = NavigationRailExpandedTokens.ContainerWidthMaximum
-private val ItemMinWidth = NavigationRailCollapsedTokens.ContainerWidth
 private val TopIconItemMinHeight = NavigationRailBaselineItemTokens.ContainerHeight
 private val ItemTopIconIndicatorVerticalPadding =
     (NavigationRailVerticalItemTokens.ActiveIndicatorHeight -

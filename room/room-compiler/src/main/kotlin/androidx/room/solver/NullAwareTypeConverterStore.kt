@@ -197,20 +197,23 @@ class NullAwareTypeConverterStore(
         return null
     }
 
-    override fun findConverterFromCursor(columnTypes: List<XType>?, output: XType): TypeConverter? {
+    override fun findConverterFromStatement(
+        columnTypes: List<XType>?,
+        output: XType
+    ): TypeConverter? {
         @Suppress("NAME_SHADOWING") // intentional
         val columnTypes = columnTypes ?: knownColumnTypes
         // prefer nullable when reading from database, regardless of the output type
         getColumnTypesInPreferenceBuckets(nullability = NULLABLE, explicitColumnTypes = columnTypes)
             .forEach { types ->
-                findConverterFromCursorInternal(columnTypes = types, output = output)?.let {
+                findConverterFromStatementInternal(columnTypes = types, output = output)?.let {
                     return it.getOrCreateConverter()
                 }
             }
 
         // if type is non-null, try to find nullable and add null check
         return if (output.nullability == NONNULL) {
-            findConverterFromCursorInternal(
+            findConverterFromStatementInternal(
                     columnTypes = columnTypes,
                     output = output.makeNullable()
                 )
@@ -220,7 +223,7 @@ class NullAwareTypeConverterStore(
         }
     }
 
-    private fun findConverterFromCursorInternal(
+    private fun findConverterFromStatementInternal(
         columnTypes: List<XType>,
         output: XType
     ): TypeConverterEntry? {

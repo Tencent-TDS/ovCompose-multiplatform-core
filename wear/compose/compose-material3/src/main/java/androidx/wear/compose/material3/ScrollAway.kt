@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
  *   items are shown when the screen is new, then scrolled away or hidden when scrolling, and
  *   finally shown again when idle.
  */
-fun Modifier.scrollAway(
+public fun Modifier.scrollAway(
     scrollInfoProvider: ScrollInfoProvider,
     screenStage: () -> ScreenStage
 ): Modifier = this then ScrollAwayModifierElement(scrollInfoProvider, screenStage)
@@ -64,30 +64,30 @@ fun Modifier.scrollAway(
  */
 @Immutable
 @JvmInline
-value class ScreenStage internal constructor(internal val value: Int) {
-    companion object {
+public value class ScreenStage internal constructor(internal val value: Int) {
+    public companion object {
         /**
          * Initial stage for a screen when first displayed. It is expected that the [TimeText] and
          * [ScrollIndicator] are displayed when initially showing a screen.
          */
-        val New = ScreenStage(0)
+        public val New: ScreenStage = ScreenStage(0)
 
         /**
          * Stage when both the screen is not scrolling and some time has passed after the screen was
          * initially shown. At this stage, the [TimeText] is expected to be displayed and the
          * [ScrollIndicator] will be hidden.
          */
-        val Idle = ScreenStage(1)
+        public val Idle: ScreenStage = ScreenStage(1)
 
         /**
          * Stage when the screen is being scrolled. At this stage, it is expected that the
          * [ScrollIndicator] will be shown and [TimeText] will be scrolled away by the scroll
          * operation.
          */
-        val Scrolling = ScreenStage(2)
+        public val Scrolling: ScreenStage = ScreenStage(2)
     }
 
-    override fun toString() =
+    override fun toString(): String =
         when (this) {
             New -> "New"
             Idle -> "Idle"

@@ -23,7 +23,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.DocumentClassFactoryRegistry;
@@ -41,6 +40,7 @@ import androidx.collection.ArrayMap;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;

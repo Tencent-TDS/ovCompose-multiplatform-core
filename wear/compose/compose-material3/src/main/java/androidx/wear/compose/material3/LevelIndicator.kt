@@ -45,7 +45,7 @@ import kotlin.math.sin
  * @param reverseDirection Reverses direction of PositionIndicator if true
  */
 @Composable
-fun LevelIndicator(
+public fun LevelIndicator(
     value: () -> Float,
     modifier: Modifier = Modifier,
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
@@ -98,7 +98,7 @@ fun LevelIndicator(
  * @param reverseDirection Reverses direction of PositionIndicator if true
  */
 @Composable
-fun LevelIndicator(
+public fun LevelIndicator(
     value: () -> Int,
     valueProgression: IntProgression,
     modifier: Modifier = Modifier,
@@ -121,12 +121,14 @@ fun LevelIndicator(
 }
 
 /** Contains the default values used for [LevelIndicator]. */
-object LevelIndicatorDefaults {
+public object LevelIndicatorDefaults {
     /**
      * Creates a [LevelIndicatorColors] that represents the default colors used in a
      * [LevelIndicator].
      */
-    @Composable fun colors() = MaterialTheme.colorScheme.defaultLevelIndicatorColors
+    @Composable
+    public fun colors(): LevelIndicatorColors =
+        MaterialTheme.colorScheme.defaultLevelIndicatorColors
 
     /**
      * Creates a [LevelIndicatorColors] with modified colors used in [LevelIndicator].
@@ -137,12 +139,12 @@ object LevelIndicatorDefaults {
      * @param disabledTrackColor The disabled track color.
      */
     @Composable
-    fun colors(
+    public fun colors(
         indicatorColor: Color = Color.Unspecified,
         trackColor: Color = Color.Unspecified,
         disabledIndicatorColor: Color = Color.Unspecified,
         disabledTrackColor: Color = Color.Unspecified,
-    ) =
+    ): LevelIndicatorColors =
         MaterialTheme.colorScheme.defaultLevelIndicatorColors.copy(
             indicatorColor = indicatorColor,
             trackColor = trackColor,
@@ -154,10 +156,10 @@ object LevelIndicatorDefaults {
      * The sweep angle for the curved [LevelIndicator], measured up to the centers of the stroke
      * caps. The default value of 72 degrees equates to 20% of the circumference, i.e. 360/5.
      */
-    const val SweepAngle = 72f
+    public const val SweepAngle: Float = 72f
 
     /** The default stroke width for the indicator and track strokes */
-    val StrokeWidth = 6.dp
+    public val StrokeWidth: Dp = 6.dp
 
     internal val edgePadding = PaddingDefaults.edgePadding
 
@@ -188,11 +190,11 @@ object LevelIndicatorDefaults {
  * @param disabledTrackColor Color used to draw the track of [LevelIndicator] when it is not
  *   enabled.
  */
-class LevelIndicatorColors(
-    val indicatorColor: Color,
-    val trackColor: Color,
-    val disabledIndicatorColor: Color,
-    val disabledTrackColor: Color
+public class LevelIndicatorColors(
+    public val indicatorColor: Color,
+    public val trackColor: Color,
+    public val disabledIndicatorColor: Color,
+    public val disabledTrackColor: Color
 ) {
     /**
      * Returns a copy of this LevelIndicatorColors optionally overriding some of the values.
@@ -204,12 +206,12 @@ class LevelIndicatorColors(
      * @param disabledTrackColor Color used to draw the track of [LevelIndicator] when it is not
      *   enabled.
      */
-    fun copy(
+    public fun copy(
         indicatorColor: Color = this.indicatorColor,
         trackColor: Color = this.trackColor,
         disabledIndicatorColor: Color = this.disabledIndicatorColor,
         disabledTrackColor: Color = this.disabledTrackColor,
-    ) =
+    ): LevelIndicatorColors =
         LevelIndicatorColors(
             indicatorColor = indicatorColor.takeOrElse { this.indicatorColor },
             trackColor = trackColor.takeOrElse { this.trackColor },

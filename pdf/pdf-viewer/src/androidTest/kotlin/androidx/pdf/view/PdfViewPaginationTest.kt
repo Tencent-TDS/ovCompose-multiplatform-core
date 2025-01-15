@@ -42,8 +42,8 @@ class PdfViewPaginationTest {
 
     @Test
     fun testPageVisibility() = runTest {
-        // Layout at 500x1000, and expect to see pages [0, 4] at 100x200
-        val pdfDocument = FakePdfDocument(List(10) { Point(100, 200) })
+        // Layout at 500x1000, and expect to see pages [0, 4] at 500x200
+        val pdfDocument = FakePdfDocument(List(10) { Point(500, 200) })
         setupPdfView(500, 1000, pdfDocument)
 
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
@@ -67,8 +67,8 @@ class PdfViewPaginationTest {
 
     @Test
     fun testPageVisibility_onSizeDecreased() = runTest {
-        // Layout at 500x1000 initially, and expect to see pages [0, 3] at 100x300
-        val pdfDocument = FakePdfDocument(List(10) { Point(100, 300) })
+        // Layout at 500x1000 initially, and expect to see pages [0, 3] at 500x300
+        val pdfDocument = FakePdfDocument(List(10) { Point(500, 300) })
         setupPdfView(500, 1000, pdfDocument)
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
             pdfDocument.waitForLayout(untilPage = 3)
@@ -94,8 +94,8 @@ class PdfViewPaginationTest {
 
     @Test
     fun testPageVisibility_onScrollChanged() = runTest {
-        // Layout at 1000x2000 initially, and expect to see pages [0, 3] at 200x500
-        val pdfDocument = FakePdfDocument(List(10) { Point(200, 500) })
+        // Layout at 1000x2000 initially, and expect to see pages [0, 3] at 1000x500
+        val pdfDocument = FakePdfDocument(List(10) { Point(1000, 500) })
         setupPdfView(1000, 2000, pdfDocument)
 
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
@@ -115,8 +115,8 @@ class PdfViewPaginationTest {
 
     @Test
     fun testPageVisibility_onZoomChanged() = runTest {
-        // Layout at 100x500 initially, and expect to see pages [0, 5] at 30x80
-        val pdfDocument = FakePdfDocument(List(10) { Point(30, 80) })
+        // Layout at 100x500 initially, and expect to see pages [0, 5] at 100x80
+        val pdfDocument = FakePdfDocument(List(10) { Point(100, 80) })
         setupPdfView(100, 500, pdfDocument)
 
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
@@ -135,7 +135,7 @@ class PdfViewPaginationTest {
 
     @Test
     fun testScrollToPage() = runTest {
-        val pdfDocument = FakePdfDocument(List(10) { Point(100, 300) })
+        val pdfDocument = FakePdfDocument(List(10) { Point(500, 1000) })
         setupPdfView(500, 1000, pdfDocument)
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
 
@@ -152,7 +152,7 @@ class PdfViewPaginationTest {
 
     @Test
     fun testScrollToPosition() = runTest {
-        val pdfDocument = FakePdfDocument(List(10) { Point(100, 300) })
+        val pdfDocument = FakePdfDocument(List(10) { Point(500, 1000) })
         setupPdfView(500, 1000, pdfDocument)
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
 

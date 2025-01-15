@@ -16,10 +16,10 @@
 
 package androidx.benchmark.macro.perfetto
 
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
-import androidx.benchmark.perfetto.Slice
-import androidx.benchmark.perfetto.processNameLikePkg
-import androidx.benchmark.perfetto.toSlices
+import androidx.benchmark.traceprocessor.Slice
+import androidx.benchmark.traceprocessor.TraceProcessor
+import androidx.benchmark.traceprocessor.processNameLikePkg
+import androidx.benchmark.traceprocessor.toSlices
 
 internal object FrameTimingQuery {
     private fun getFullQuery(packageName: String) =
@@ -146,7 +146,7 @@ internal object FrameTimingQuery {
     }
 
     internal fun getFrameData(
-        session: PerfettoTraceProcessor.Session,
+        session: TraceProcessor.Session,
         captureApiLevel: Int,
         packageName: String,
     ): List<FrameData> {

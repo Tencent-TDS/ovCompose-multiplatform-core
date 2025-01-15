@@ -16,8 +16,6 @@
 
 package androidx.wear.compose.material3.demos
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -41,7 +39,6 @@ import androidx.wear.compose.material3.samples.TimePickerWithSecondsSample
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-@RequiresApi(Build.VERSION_CODES.O)
 val TimePickerDemos =
     listOf(
         ComposableDemo("Time HH:MM:SS") { TimePickerWithSecondsSample() },
@@ -50,7 +47,6 @@ val TimePickerDemos =
         ComposableDemo("Time System time format") { TimePickerSample() },
     )
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun TimePicker24hWithoutSecondsDemo() {
     var showTimePicker by remember { mutableStateOf(true) }

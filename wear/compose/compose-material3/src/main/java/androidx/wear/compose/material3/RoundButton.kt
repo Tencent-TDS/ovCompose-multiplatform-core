@@ -40,8 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -67,7 +65,6 @@ internal fun RoundButton(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val borderStroke = border(enabled)
-    val hapticFeedback = LocalHapticFeedback.current
 
     Box(
         contentAlignment = Alignment.Center,
@@ -77,13 +74,7 @@ internal fun RoundButton(
                 .clip(shape) // Clip for the touch area (e.g. for Ripple).
                 .combinedClickable(
                     onClick = onClick,
-                    onLongClick =
-                        onLongClick?.let {
-                            {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                it()
-                            }
-                        },
+                    onLongClick = onLongClick, // NB combinedClickable calls LongPress haptic
                     onLongClickLabel = onLongClickLabel,
                     enabled = enabled,
                     interactionSource = interactionSource,

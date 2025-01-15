@@ -32,6 +32,9 @@ open annotation class androidx.room/BuiltInTypeConverters : kotlin/Annotation { 
         enum entry ENABLED // androidx.room/BuiltInTypeConverters.State.ENABLED|null[0]
         enum entry INHERITED // androidx.room/BuiltInTypeConverters.State.INHERITED|null[0]
 
+        final val entries // androidx.room/BuiltInTypeConverters.State.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/BuiltInTypeConverters.State> // androidx.room/BuiltInTypeConverters.State.entries.<get-entries>|<get-entries>#static(){}[0]
+
         final fun valueOf(kotlin/String): androidx.room/BuiltInTypeConverters.State // androidx.room/BuiltInTypeConverters.State.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/BuiltInTypeConverters.State> // androidx.room/BuiltInTypeConverters.State.values|values#static(){}[0]
     }
@@ -254,6 +257,9 @@ open annotation class androidx.room/Index : kotlin/Annotation { // androidx.room
     final enum class Order : kotlin/Enum<androidx.room/Index.Order> { // androidx.room/Index.Order|null[0]
         enum entry ASC // androidx.room/Index.Order.ASC|null[0]
         enum entry DESC // androidx.room/Index.Order.DESC|null[0]
+
+        final val entries // androidx.room/Index.Order.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/Index.Order> // androidx.room/Index.Order.entries.<get-entries>|<get-entries>#static(){}[0]
 
         final fun valueOf(kotlin/String): androidx.room/Index.Order // androidx.room/Index.Order.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/Index.Order> // androidx.room/Index.Order.values|values#static(){}[0]
@@ -492,6 +498,9 @@ final object androidx.room/FtsOptions { // androidx.room/FtsOptions|null[0]
         enum entry FTS3 // androidx.room/FtsOptions.MatchInfo.FTS3|null[0]
         enum entry FTS4 // androidx.room/FtsOptions.MatchInfo.FTS4|null[0]
 
+        final val entries // androidx.room/FtsOptions.MatchInfo.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/FtsOptions.MatchInfo> // androidx.room/FtsOptions.MatchInfo.entries.<get-entries>|<get-entries>#static(){}[0]
+
         final fun valueOf(kotlin/String): androidx.room/FtsOptions.MatchInfo // androidx.room/FtsOptions.MatchInfo.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/FtsOptions.MatchInfo> // androidx.room/FtsOptions.MatchInfo.values|values#static(){}[0]
     }
@@ -499,6 +508,9 @@ final object androidx.room/FtsOptions { // androidx.room/FtsOptions|null[0]
     final enum class Order : kotlin/Enum<androidx.room/FtsOptions.Order> { // androidx.room/FtsOptions.Order|null[0]
         enum entry ASC // androidx.room/FtsOptions.Order.ASC|null[0]
         enum entry DESC // androidx.room/FtsOptions.Order.DESC|null[0]
+
+        final val entries // androidx.room/FtsOptions.Order.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.room/FtsOptions.Order> // androidx.room/FtsOptions.Order.entries.<get-entries>|<get-entries>#static(){}[0]
 
         final fun valueOf(kotlin/String): androidx.room/FtsOptions.Order // androidx.room/FtsOptions.Order.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.room/FtsOptions.Order> // androidx.room/FtsOptions.Order.values|values#static(){}[0]

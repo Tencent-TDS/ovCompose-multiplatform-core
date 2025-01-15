@@ -29,10 +29,10 @@ dependencies {
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
     }
-    namespace "com.example.android.support.vectordrawable"
+    namespace = "com.example.android.support.vectordrawable"
 }
 

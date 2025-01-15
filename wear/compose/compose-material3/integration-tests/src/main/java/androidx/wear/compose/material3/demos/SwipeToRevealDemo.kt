@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.RevealActionType
 import androidx.wear.compose.foundation.RevealValue
@@ -65,12 +67,13 @@ fun SwipeToRevealBothDirectionsNonAnchoring() {
                         onClick = { /* This block is called when the primary action is executed. */
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     undoPrimaryAction(
                         onClick = { /* This block is called when the undo primary action is executed. */
                         },
-                        label = "Undo Delete"
+                        text = { Text("Undo Delete") },
                     )
                 }
             ) {
@@ -98,6 +101,7 @@ fun SwipeToRevealBothDirections() {
                         onClick = { /* This block is called when the primary action is executed. */
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     secondaryAction(
@@ -109,12 +113,12 @@ fun SwipeToRevealBothDirections() {
                     undoPrimaryAction(
                         onClick = { /* This block is called when the undo primary action is executed. */
                         },
-                        label = "Undo Delete"
+                        text = { Text("Undo Delete") },
                     )
                     undoSecondaryAction(
                         onClick = { /* This block is called when the undo secondary action is executed. */
                         },
-                        label = "Undo Secondary"
+                        text = { Text("Undo Secondary") },
                     )
                 }
             ) {
@@ -154,6 +158,7 @@ fun SwipeToRevealTwoActionsWithUndo() {
                             }
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     secondaryAction(
@@ -181,7 +186,7 @@ fun SwipeToRevealTwoActionsWithUndo() {
                                     .show()
                             }
                         },
-                        label = "Undo Delete"
+                        text = { Text("Undo Delete") },
                     )
                     undoSecondaryAction(
                         onClick = {
@@ -194,7 +199,7 @@ fun SwipeToRevealTwoActionsWithUndo() {
                                     .show()
                             }
                         },
-                        label = "Undo Lock"
+                        text = { Text("Undo Lock") },
                     )
                 }
             ) {
@@ -244,6 +249,7 @@ fun SwipeToRevealInList() {
                             }
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     secondaryAction(
@@ -258,7 +264,7 @@ fun SwipeToRevealInList() {
                         icon = { Icon(Icons.Filled.Add, contentDescription = "Duplicate") },
                         label = "Duplicate"
                     )
-                    undoPrimaryAction(onClick = {}, label = "Undo Delete")
+                    undoPrimaryAction(onClick = {}, text = { Text("Undo Delete") })
                 }
             ) {
                 Button({}, Modifier.fillMaxWidth().padding(horizontal = 4.dp)) { Text(name) }
@@ -282,12 +288,13 @@ fun SwipeToRevealSingleButtonWithAnchoring() {
                         onClick = { /* This block is called when the primary action is executed. */
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
+                        text = { Text("Delete") },
                         label = "Delete"
                     )
                     undoPrimaryAction(
                         onClick = { /* This block is called when the undo primary action is executed. */
                         },
-                        label = "Undo Delete"
+                        text = { Text("Undo Delete") },
                     )
                 }
             ) {
@@ -314,19 +321,34 @@ fun SwipeToRevealWithLongLabels() {
                         onClick = { /* This block is called when the primary action is executed. */
                         },
                         icon = { Icon(Icons.Outlined.Delete, contentDescription = "Delete") },
-                        label = "Delete action with an extremely long label that should truncate."
+                        text = {
+                            Text("Delete action with an extremely long label that should truncate.")
+                        },
+                        label = "Delete"
                     )
                     secondaryAction(
                         onClick = { /* This block is called when the secondary action is executed. */
                         },
-                        icon = { Icon(Icons.Outlined.MoreVert, contentDescription = "Options") },
-                        label = "Options"
+                        icon = { Icon(Icons.Outlined.Lock, contentDescription = "Lock") },
+                        label = "Lock"
                     )
                     undoPrimaryAction(
                         onClick = { /* This block is called when the undo primary action is executed. */
                         },
-                        label =
-                            "Undo Delete action with an extremely long label that should truncate."
+                        text = {
+                            Text(
+                                "Undo Delete action with an extremely long label that should truncate."
+                            )
+                        },
+                    )
+                    undoSecondaryAction(
+                        onClick = { /* This block is called when the undo secondary action is executed. */
+                        },
+                        text = {
+                            Text(
+                                "Undo Lock action with an extremely long label that should truncate."
+                            )
+                        },
                     )
                 }
             ) {
@@ -335,6 +357,88 @@ fun SwipeToRevealWithLongLabels() {
                         "This Button has actions with extremely long labels that should truncate.",
                         modifier = Modifier.fillMaxSize()
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SwipeToRevealWithCustomIcons() {
+    ScalingLazyDemo {
+        item {
+            SwipeToReveal(
+                // Use the double action anchor width when revealing two actions
+                revealState =
+                    rememberRevealState(
+                        anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                    ),
+                actions = {
+                    primaryAction(
+                        onClick = { /* This block is called when the primary action is executed. */
+                        },
+                        icon = {
+                            // Although this practice is not recommended, this demo deliberately
+                            // passes Text in the icon slot so that this edge case can be
+                            // visualised.
+                            Text(
+                                "🗑",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        text = { Text("Delete") },
+                        label = "Delete"
+                    )
+                    secondaryAction(
+                        onClick = { /* This block is called when the secondary action is executed. */
+                        },
+                        icon = {
+                            // Although this practice is not recommended, this demo deliberately
+                            // passes Text in the icon slot so that this edge case can be
+                            // visualised.
+                            Text(
+                                "U",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        label = "Update"
+                    )
+                    undoPrimaryAction(
+                        onClick = { /* This block is called when the undo primary action is executed. */
+                        },
+                        icon = {
+                            // Although this practice is not recommended, this demo deliberately
+                            // passes Text in the icon slot so that this edge case can be
+                            // visualised.
+                            Text(
+                                "<",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        text = { Text("Undo Delete") },
+                    )
+                    undoSecondaryAction(
+                        onClick = { /* This block is called when the undo secondary action is executed. */
+                        },
+                        icon = {
+                            // Although this practice is not recommended, this demo deliberately
+                            // passes Text in the icon slot so that this edge case can be
+                            // visualised.
+                            Text(
+                                text = "🔙",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        text = { Text("Undo Update") },
+                    )
+                }
+            ) {
+                Button(modifier = Modifier.fillMaxWidth(), onClick = {}) {
+                    Text("This Button has two actions.", modifier = Modifier.fillMaxSize())
                 }
             }
         }
