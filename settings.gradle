@@ -262,3 +262,4 @@ includeBuild("placeholder")
 
 includeProject(":mpp")
 includeProject(":window:window-core")
+includeProject(":performance:performance-annotation")
