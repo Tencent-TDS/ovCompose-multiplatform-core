@@ -202,6 +202,9 @@ kotlin {
 
         val wasmJsMain by getting {
             dependsOn(webMain)
+            dependencies {
+                api(libs.kotlinXw3c)
+            }
         }
 
         val nativeMain by creating { dependsOn(skikoMain) }
