@@ -44,10 +44,6 @@ kotlin {
 
     sourceSets {
         commonMain {
-            def isItForPublication = project.findProperty("jetbrains.publication.libraries")
-                    ?.toString()
-                    ?.contains("NAVIGATION") == true
-
             dependencies {
                 api project(":core:core-bundle")
                 implementation "org.jetbrains.compose.foundation:foundation-layout:1.7.1"
@@ -60,15 +56,9 @@ kotlin {
                  * So we will need to rebuild the dependencies and to re-pin them.
                  * For now, to make the :mpp:demo run, let's use project dependencies.
                  */
-                if (isItForPublication) {
-                    implementation "org.jetbrains.compose.animation:animation-core:1.7.1"
-                    api "org.jetbrains.compose.runtime:runtime:1.7.1"
-                    api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
-                } else {
-                    implementation(project(":compose:animation:animation-core"))
-                    api(project(":compose:runtime:runtime"))
-                    api(project(":annotation:annotation"))
-                }
+                implementation(project(":compose:animation:animation-core"))
+                api(project(":compose:runtime:runtime"))
+                api(project(":annotation:annotation"))
 
                 api "org.jetbrains.compose.animation:animation:1.7.1"
                 api "org.jetbrains.compose.runtime:runtime-saveable:1.7.1"
