@@ -317,9 +317,6 @@ internal fun CoreTextField(
     manager.editable = !readOnly
     manager.enabled = enabled
 
-    val coroutineScope = rememberCoroutineScope()
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-
     rememberClipboardEventsHandler(
         isEnabled = state.hasFocus,
         onCopy = { manager.onCopyWithResult() },

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,19 @@
  * limitations under the License.
  */
 
-package androidx.compose.material3
+package androidx.compose.ui.platform
 
-@RequiresOptIn(
-    "This material3 API is experimental and is likely to change or to be removed in the" +
-        " future."
-)
-@Retention(AnnotationRetention.BINARY)
-annotation class ExperimentalMaterial3ComponentOverrideApi
+internal class PlatformClipboard
+internal constructor(private val clipboardManager: PlatformClipboardManager) : Clipboard {
+
+    override suspend fun getClipEntry(): ClipEntry? {
+        return clipboardManager.getClip()
+    }
+
+    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        clipboardManager.setClip(clipEntry)
+    }
+
+    override val nativeClipboard: NativeClipboard
+        get() = clipboardManager.nativeClipboard
+}

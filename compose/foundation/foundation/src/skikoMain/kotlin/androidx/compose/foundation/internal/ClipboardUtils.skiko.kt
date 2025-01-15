@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.material3
+package androidx.compose.foundation.internal
 
-@RequiresOptIn(
-    "This material3 API is experimental and is likely to change or to be removed in the" +
-        " future."
-)
-@Retention(AnnotationRetention.BINARY)
-annotation class ExperimentalMaterial3ComponentOverrideApi
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.text.AnnotatedString
+
+// TODO https://youtrack.jetbrains.com/issue/CMP-7402
+internal actual fun ClipEntry.readText(): String? = null
+internal actual fun ClipEntry.readAnnotatedString(): AnnotatedString? = null
+internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? = null
+internal actual fun ClipEntry?.hasText(): Boolean = false

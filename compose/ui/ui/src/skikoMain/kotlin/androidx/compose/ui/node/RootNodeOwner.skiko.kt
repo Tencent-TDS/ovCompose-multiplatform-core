@@ -58,10 +58,12 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
 import androidx.compose.ui.platform.GraphicsLayerOwnerLayer
+import androidx.compose.ui.platform.PlatformClipboard
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
@@ -155,7 +157,7 @@ internal class RootNodeOwner(
             isTraversalGroup = true
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
-    val semanticsOwner = SemanticsOwner(owner.root, rootSemanticsNode)
+    val semanticsOwner get() = owner.semanticsOwner
     var size: IntSize? = size
         set(value) {
             field = value
@@ -343,6 +345,7 @@ internal class RootNodeOwner(
         override val hapticFeedBack = DefaultHapticFeedback()
         override val inputModeManager get() = platformContext.inputModeManager
         override val clipboardManager = PlatformClipboardManager()
+        override val clipboard = PlatformClipboard(clipboardManager)
         override val accessibilityManager = DefaultAccessibilityManager()
         override val graphicsContext get() = this@RootNodeOwner.graphicsContext
         override val textToolbar get() = platformContext.textToolbar
@@ -362,6 +365,7 @@ internal class RootNodeOwner(
 
         override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
         override val pointerIconService = PointerIconServiceImpl()
+        override val semanticsOwner = SemanticsOwner(root, rootSemanticsNode, layoutNodes)
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo
         // TODO: 1.8.0-alpha02 Implement ComposeUiFlags.isRectTrackingEnabled
@@ -383,8 +387,11 @@ internal class RootNodeOwner(
 
         override fun requestFocus() = platformContext.requestFocus()
 
-        override fun onAttach(node: LayoutNode) {
+        override fun onPreAttach(node: LayoutNode) {
             layoutNodes[node.semanticsId] = node
+        }
+
+        override fun onPostAttach(node: LayoutNode) {
         }
 
         override fun onDetach(node: LayoutNode) {
@@ -568,7 +575,7 @@ internal class RootNodeOwner(
         override val density get() = this@RootNodeOwner.density
         @Suppress("OVERRIDE_DEPRECATION")
         override val textInputService get() = owner.textInputService
-        override val semanticsOwner get() = this@RootNodeOwner.semanticsOwner
+        override val semanticsOwner get() = owner.semanticsOwner
         override val visibleBounds: Rect
             get() {
                 val windowRect = platformContext.windowInfo.containerSize.toIntRect().toRect()

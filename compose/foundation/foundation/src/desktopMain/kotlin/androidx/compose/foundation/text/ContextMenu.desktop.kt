@@ -105,7 +105,8 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
         }
 
     override val paste: (() -> Unit)? get() =
-        if (editable && clipboardManager?.getText() != null) {
+        // TODO https://youtrack.jetbrains.com/issue/CMP-7402
+        if (editable/* && clipboardManager?.getText() != null */) {
             {
                 paste()
                 focusRequester?.requestFocus()

@@ -21,19 +21,34 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import kotlin.jvm.JvmInline
 
-@Immutable
-@JvmInline
-internal expect value class Strings(val value: Int) {
-    companion object {
-        val defaultPaneExpansionDragHandleContentDescription: Strings
-        val defaultPaneExpansionDragHandleActionDescription: Strings
-        val defaultPaneExpansionProportionAnchorDescription: Strings
-        val defaultPaneExpansionOffsetAnchorDescription: Strings
-    }
-}
-
-@Composable @ReadOnlyComposable internal expect fun getString(string: Strings): String
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7403
 
 @Composable
 @ReadOnlyComposable
-internal expect fun getString(string: Strings, vararg formatArgs: Any): String
+internal actual fun getString(string: Strings): String {
+    return ""
+}
+
+@Composable
+@ReadOnlyComposable
+internal actual fun getString(string: Strings, vararg formatArgs: Any): String {
+    return ""
+}
+
+@JvmInline
+@Immutable
+internal actual value class Strings(val value: Int) {
+    actual companion object {
+        actual inline val defaultPaneExpansionDragHandleContentDescription
+            get() = Strings(0)
+
+        actual inline val defaultPaneExpansionDragHandleActionDescription
+            get() = Strings(0)
+
+        actual inline val defaultPaneExpansionProportionAnchorDescription
+            get() = Strings(0)
+
+        actual inline val defaultPaneExpansionOffsetAnchorDescription
+            get() = Strings(0)
+    }
+}
