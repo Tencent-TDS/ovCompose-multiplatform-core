@@ -59,7 +59,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 
-
 /**
  * NOTICE: Fork from androidx.compose.foundation.BasicTooltip box since those are experimental
  *
@@ -169,50 +168,51 @@ private fun TooltipPopup(
 private fun Modifier.handleGestures(enabled: Boolean, state: TooltipState): Modifier =
     if (enabled) {
         this.pointerInput(state) {
-            coroutineScope {
-                awaitEachGesture {
-                    // Long press will finish before or after show so keep track of it, in a
-                    // flow to handle both cases
-                    val isLongPressedFlow: MutableStateFlow<Boolean> = MutableStateFlow(false)
-                    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
-                    val pass = PointerEventPass.Initial
+                coroutineScope {
+                    awaitEachGesture {
+                        // Long press will finish before or after show so keep track of it, in a
+                        // flow to handle both cases
+                        val isLongPressedFlow: MutableStateFlow<Boolean> = MutableStateFlow(false)
+                        val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+                        val pass = PointerEventPass.Initial
+                        // wait for the first down press
+                        val inputType = awaitFirstDown(pass = pass).type
 
-                    // wait for the first down press
-                    val inputType = awaitFirstDown(pass = pass).type
-
-                    if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
-                        try {
-                            // listen to if there is up gesture
-                            // within the longPressTimeout limit
-                            withTimeout(longPressTimeout) {
-                                waitForUpOrCancellation(pass = pass)
-                            }
-                        } catch (_: PointerEventTimeoutCancellationException) {
-                            // handle long press - Show the tooltip
-                            launch(start = CoroutineStart.UNDISPATCHED) {
-                                try {
-                                    isLongPressedFlow.tryEmit(true)
-                                    state.show(MutatePriority.PreventUserInput)
-                                } finally {
-                                    isLongPressedFlow.collectLatest { isLongPressed ->
-                                        if (!isLongPressed) {
-                                            state.dismiss()
+                        if (inputType == PointerType.Touch || inputType == PointerType.Stylus) {
+                            try {
+                                // listen to if there is up gesture
+                                // within the longPressTimeout limit
+                                withTimeout(longPressTimeout) {
+                                    waitForUpOrCancellation(pass = pass)
+                                }
+                            } catch (_: PointerEventTimeoutCancellationException) {
+                                // handle long press - Show the tooltip
+                                launch(start = CoroutineStart.UNDISPATCHED) {
+                                    try {
+                                        isLongPressedFlow.tryEmit(true)
+                                        state.show(MutatePriority.PreventUserInput)
+                                    } finally {
+                                        if (state.isVisible) {
+                                            isLongPressedFlow.collectLatest { isLongPressed ->
+                                                if (!isLongPressed) {
+                                                    state.dismiss()
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            // consume the children's click handling
-                            // Long press may still be in progress
-                            val upEvent = waitForUpOrCancellation(pass = pass)
-                            upEvent?.consume()
-                        } finally {
-                            isLongPressedFlow.tryEmit(false)
+                                // consume the children's click handling
+                                // Long press may still be in progress
+                                val upEvent = waitForUpOrCancellation(pass = pass)
+                                upEvent?.consume()
+                            } finally {
+                                isLongPressedFlow.tryEmit(false)
+                            }
                         }
                     }
                 }
             }
-        }
             .pointerInput(state) {
                 coroutineScope {
                     awaitPointerEventScope {
@@ -373,10 +373,9 @@ internal object BasicTooltipDefaults {
     const val TooltipDuration = 1500L
 }
 
+@Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 internal expect object BasicTooltipStrings {
-    @Composable
-    fun label(): String
+    @Composable fun label(): String
 
-    @Composable
-    fun description(): String
+    @Composable fun description(): String
 }

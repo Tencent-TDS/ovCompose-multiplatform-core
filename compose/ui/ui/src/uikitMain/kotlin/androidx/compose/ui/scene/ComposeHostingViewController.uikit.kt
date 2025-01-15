@@ -26,11 +26,11 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
+import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformWindowContext
-import androidx.compose.ui.platform.isGlobalAccessibilityEnabled
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
 import androidx.compose.ui.uikit.InterfaceOrientation
 import androidx.compose.ui.uikit.LocalInterfaceOrientation
@@ -71,6 +71,7 @@ import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSSelectorFromString
+import platform.UIKit.UIAccessibilityIsVoiceOverRunning
 import platform.UIKit.UIAccessibilityVoiceOverStatusChanged
 import platform.UIKit.UIAccessibilityVoiceOverStatusDidChangeNotification
 import platform.UIKit.UIApplication
@@ -472,7 +473,7 @@ internal class ComposeHostingViewController(
 
     private fun ComposeSceneMediator.updateInteractionRect() {
         interactionBounds = with(density) {
-            view.bounds.useContents { asDpRect() }.toRect().roundToIntRect()
+            view.bounds.asDpRect().toRect().roundToIntRect()
         }
     }
 }
@@ -490,3 +491,12 @@ private fun getLayoutDirection() =
         UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
         else -> LayoutDirection.Ltr
     }
+
+@OptIn(ExperimentalComposeApi::class)
+private val AccessibilitySyncOptions.isGlobalAccessibilityEnabled
+    get() =
+        when (this) {
+            AccessibilitySyncOptions.Never -> false
+            AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> UIAccessibilityIsVoiceOverRunning()
+            AccessibilitySyncOptions.Always -> true
+        }

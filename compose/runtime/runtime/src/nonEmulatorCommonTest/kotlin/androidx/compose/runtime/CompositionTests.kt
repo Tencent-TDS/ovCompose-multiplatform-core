@@ -73,7 +73,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
 import kotlinx.coroutines.withContext
-import kotlinx.test.IgnoreJsAndNative
 
 @Composable fun Container(content: @Composable () -> Unit) = content()
 
@@ -3718,8 +3717,6 @@ class CompositionTests {
     }
 
     @Test // Regression test for b/249050560
-    @IgnoreJsTarget
-    // TODO(o.k.): fails due to old js-only change in ComposerLambdaMemoization.rememberExpression
     fun testFunctionInstances() = compositionTest {
         var state by mutableStateOf(0)
         functionInstance = { -1 }

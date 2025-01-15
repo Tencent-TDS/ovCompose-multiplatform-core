@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.window.window.toSize
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
@@ -556,7 +557,7 @@ class DialogWindowTest {
                         // toInt() because this is how ComposeWindow rounds decimal sizes
                         // (see ComposeBridge.updateSceneSize)
                         actualCanvasSize = size.toInt()
-                        expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().roundToIntSize()
                     }
                 }
             }

@@ -16,7 +16,6 @@
 
 package androidx.compose.mpp.demo
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,12 +30,16 @@ import androidx.navigation.bindToNavigation
 import kotlin.wasm.unsafe.UnsafeWasmMemoryApi
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import kotlinx.browser.window
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.asDeferred
 import kotlinx.coroutines.await
+import kotlinx.coroutines.awaitAll
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Int8Array
 import org.w3c.fetch.Response
 
-private val notoColorEmoji = "./NotoColorEmoji.ttf"
+private const val notoColorEmoji = "./NotoColorEmoji.ttf"
+private const val notoSansSC = "./NotoSansSC-Regular.ttf"
 
 @OptIn(ExperimentalComposeUiApi::class)
 @ExperimentalBrowserHistoryApi
@@ -57,20 +60,28 @@ fun main() {
         }
 
         LaunchedEffect(Unit) {
-            val notoEmojisBytes = loadRes(notoColorEmoji).toByteArray()
-            val fontFamily = FontFamily(listOf(Font("NotoColorEmoji", notoEmojisBytes)))
-            fontFamilyResolver.preload(fontFamily)
+            val fontsDeferred = awaitAll(loadResAsync(notoColorEmoji), loadResAsync(notoSansSC)).zip(listOf(
+                "NotoColorEmoji",
+                "NotoSansSC"
+            ))
+
+            fontsDeferred.forEach { (font, name) ->
+                val fontFamily = FontFamily(listOf(Font(name, font.toByteArray())))
+                fontFamilyResolver.preload(fontFamily)
+            }
+
             fontsLoaded.value = true
         }
 
     }
 }
 
-@Composable
-internal fun returnsNullable(): Any? = null
+private suspend fun loadResAsync(url: String): Deferred<ArrayBuffer> {
+    return window.fetch(url).await<Response>().arrayBuffer().asDeferred()
+}
 
 suspend fun loadRes(url: String): ArrayBuffer {
-    return window.fetch(url).await<Response>().arrayBuffer().await()
+    return loadResAsync(url).await()
 }
 
 fun ArrayBuffer.toByteArray(): ByteArray {
@@ -78,14 +89,11 @@ fun ArrayBuffer.toByteArray(): ByteArray {
     return jsInt8ArrayToKotlinByteArray(source)
 }
 
-@JsFun(
-    """ (src, size, dstAddr) => {
-        const mem8 = new Int8Array(wasmExports.memory.buffer, dstAddr, size);
-        mem8.set(src);
-    }
-"""
-)
-internal external fun jsExportInt8ArrayToWasm(src: Int8Array, size: Int, dstAddr: Int)
+private fun wasmExportsMemoryBuffer(): ArrayBuffer = js("wasmExports.memory.buffer")
+private fun jsExportInt8ArrayToWasm(destination: ArrayBuffer, src: Int8Array, size: Int, dstAddr: Int) {
+    val mem8 = Int8Array(destination, dstAddr, size)
+    mem8.set(src)
+}
 
 internal fun jsInt8ArrayToKotlinByteArray(x: Int8Array): ByteArray {
     val size = x.length
@@ -94,7 +102,7 @@ internal fun jsInt8ArrayToKotlinByteArray(x: Int8Array): ByteArray {
     return withScopedMemoryAllocator { allocator ->
         val memBuffer = allocator.allocate(size)
         val dstAddress = memBuffer.address.toInt()
-        jsExportInt8ArrayToWasm(x, size, dstAddress)
+        jsExportInt8ArrayToWasm(wasmExportsMemoryBuffer(),  x, size, dstAddress)
         ByteArray(size) { i -> (memBuffer + i).loadByte() }
     }
 }

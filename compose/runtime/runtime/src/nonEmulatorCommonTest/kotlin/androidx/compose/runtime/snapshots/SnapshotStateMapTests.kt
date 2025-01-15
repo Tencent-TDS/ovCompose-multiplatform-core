@@ -33,8 +33,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import androidx.compose.runtime.runTest
 import kotlinx.test.IgnoreJsAndNative
-import kotlinx.test.IgnoreJsTarget
-import kotlinx.test.IgnoreNativeTarget
 
 class SnapshotStateMapTests {
     @Test
@@ -481,7 +479,6 @@ class SnapshotStateMapTests {
     }
 
     @Test
-    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
     fun concurrentModificationInGlobal_put_new() = runTest(UnconfinedTestDispatcher()) {
         repeat(100) {
@@ -495,7 +492,6 @@ class SnapshotStateMapTests {
     }
 
     @Test
-    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
     fun concurrentModificationInGlobal_put_replace() = runTest(UnconfinedTestDispatcher()) {
         repeat(100) {
@@ -517,7 +513,6 @@ class SnapshotStateMapTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentMixingWriteApply_set() = runTest(timeoutMs = 30_000) {
         repeat(10) {
             val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
@@ -545,7 +540,6 @@ class SnapshotStateMapTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    @IgnoreJsTarget // Not relevant in a single threaded environment
     fun concurrentMixingWriteApply_clear() = runTest(timeoutMs = 30_000) {
         repeat(10) {
             val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.Surface
@@ -520,7 +521,48 @@ class SkiaGraphicsLayerTest {
                     return shadowCount > 0
                 }
                 with(pixmap) {
+                    // Verify that pixels above top edge have some shadow
                     assertTrue(
+                        hasShadowPixels(
+                            targetColor,
+                            left,
+                            top - 4,
+                            right,
+                            top
+                        )
+                    )
+                    // Verify that pixels to the left of the left edge have some shadow
+                    assertTrue(
+                        hasShadowPixels(
+                            targetColor,
+                            left - 4,
+                            top,
+                            left,
+                            bottom
+                        )
+                    )
+                    // Verify that pixels to the right of the right edge have some shadow
+                    assertTrue(
+                        hasShadowPixels(
+                            targetColor,
+                            right,
+                            top,
+                            right + 4,
+                            bottom
+                        )
+                    )
+                    // Verify that pixels to the below the bottom edge have some shadow
+                    assertTrue(
+                        hasShadowPixels(
+                            targetColor,
+                            left,
+                            bottom,
+                            right,
+                            bottom + 4
+                        )
+                    )
+                    // Verify that interior top left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -529,7 +571,8 @@ class SkiaGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior top right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -538,7 +581,8 @@ class SkiaGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -547,7 +591,8 @@ class SkiaGraphicsLayerTest {
                             bottom
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -557,7 +602,7 @@ class SkiaGraphicsLayerTest {
                         )
                     )
                 }
-            }
+            },
         )
     }
 
@@ -911,9 +956,9 @@ class SkiaGraphicsLayerTest {
                 val fullSize = size
                 val layerSize =
                     Size(
-                            fullSize.width.roundToInt() - inset * 2,
-                            fullSize.height.roundToInt() - inset * 2
-                        )
+                        fullSize.width.roundToInt() - inset * 2,
+                        fullSize.height.roundToInt() - inset * 2
+                    )
                         .toIntSize()
 
                 val layer =
@@ -971,6 +1016,14 @@ class SkiaGraphicsLayerTest {
         val graphicsContext = SkiaGraphicsContext()
         val surfaceWidth = TEST_WIDTH * 2
         val surfaceHeight = TEST_HEIGHT * 2
+        graphicsContext.setLightingInfo(
+            centerX = surfaceWidth / 2f,
+            centerY = 0f,
+            centerZ = 600f,
+            radius = 800f,
+            ambientShadowAlpha = 0.039f,
+            spotShadowAlpha = 0.19f
+        )
         val surface = Surface.makeRasterN32Premul(surfaceWidth, surfaceHeight)
         val canvas = surface.canvas
         val drawScope = CanvasDrawScope()

@@ -421,10 +421,6 @@ public final class androidx/compose/ui/graphics/ImageBitmapKt {
 	public static synthetic fun toPixelMap$default (Landroidx/compose/ui/graphics/ImageBitmap;IIII[IIIILjava/lang/Object;)Landroidx/compose/ui/graphics/PixelMap;
 }
 
-public final class androidx/compose/ui/graphics/ImageBitmap_skikoKt {
-	public static final fun createImageBitmap ([B)Landroidx/compose/ui/graphics/ImageBitmap;
-}
-
 public class androidx/compose/ui/graphics/Interval {
 	public fun <init> (FFLjava/lang/Object;)V
 	public synthetic fun <init> (FFLjava/lang/Object;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -1001,10 +997,13 @@ public final class androidx/compose/ui/graphics/SkiaColorFilter_skikoKt {
 
 public final class androidx/compose/ui/graphics/SkiaGraphicsContext : androidx/compose/ui/graphics/GraphicsContext {
 	public fun <init> ()V
+	public fun <init> (Z)V
+	public synthetic fun <init> (ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun createGraphicsLayer ()Landroidx/compose/ui/graphics/layer/GraphicsLayer;
 	public final fun dispose ()V
-	public final fun getActiveGraphicsLayersCount ()I
 	public fun releaseGraphicsLayer (Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
+	public final fun setLightingInfo (FFFFFF)V
+	public static synthetic fun setLightingInfo$default (Landroidx/compose/ui/graphics/SkiaGraphicsContext;FFFFFFILjava/lang/Object;)V
 }
 
 public final class androidx/compose/ui/graphics/SkiaImageAsset_skikoKt {

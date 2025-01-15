@@ -109,7 +109,6 @@ class RecomposerTests {
     }
 
     @Test
-    //@IgnoreJsTarget
     fun testRecomposition() = compositionTest {
         val counter = Counter()
         val triggers =

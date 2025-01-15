@@ -27,7 +27,6 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.IntSize
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 
 /**
@@ -87,10 +86,8 @@ private class HoverableNode(private var interactionSource: MutableInteractionSou
     ) {
         if (pass == PointerEventPass.Main) {
             when (pointerEvent.type) {
-                PointerEventType.Enter -> coroutineScope
-                    .launch(start = CoroutineStart.UNDISPATCHED) { emitEnter() }
-                PointerEventType.Exit -> coroutineScope
-                    .launch(start = CoroutineStart.UNDISPATCHED) { emitExit() }
+                PointerEventType.Enter -> coroutineScope.launch { emitEnter() }
+                PointerEventType.Exit -> coroutineScope.launch { emitExit() }
             }
         }
     }

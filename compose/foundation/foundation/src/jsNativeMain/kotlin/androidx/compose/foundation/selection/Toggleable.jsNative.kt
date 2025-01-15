@@ -27,17 +27,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
 
-private val SPACE_KEY_CODE = Spacebar.keyCode
-/**
- * Whether the specified [KeyEvent] represents a user intent to perform a toggle.
- * (eg. When you press Space on a focused checkbox, it should perform a toggle).
- */
-internal actual val KeyEvent.isToggle: Boolean
-    get() = type == KeyEventType.KeyUp && when (key.keyCode) {
-        SPACE_KEY_CODE -> true
-        else -> false
-    }
-
 @Deprecated("Maintained for binary compatibility", level = DeprecationLevel.HIDDEN)
 fun Modifier.toggleable(
     value: Boolean,
