@@ -49,7 +49,7 @@ actual constructor() : Navigator<Destination>(NAME) {
         isPop.value = false
     }
 
-    override fun createDestination(): Destination {
+    actual override fun createDestination(): Destination {
         return Destination(this) {}
     }
 

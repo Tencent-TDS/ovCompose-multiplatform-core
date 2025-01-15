@@ -18,7 +18,6 @@ package androidx.compose.ui
 
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
-import kotlinx.coroutines.CancellationException
 
 internal expect fun areObjectsOfSameType(a: Any, b: Any): Boolean
 
@@ -50,6 +49,6 @@ internal expect fun removePost(token: Any?)
  */
 internal expect abstract class PlatformOptimizedCancellationException(
     message: String? = null
-) : CancellationException
+) : kotlinx.coroutines.CancellationException
 
 internal expect fun getCurrentThreadId(): Long
