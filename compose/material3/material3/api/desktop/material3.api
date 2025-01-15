@@ -855,6 +855,25 @@ public abstract interface annotation class androidx/compose/material3/Experiment
 public abstract interface annotation class androidx/compose/material3/ExperimentalMaterial3ExpressiveApi : java/lang/annotation/Annotation {
 }
 
+public final class androidx/compose/material3/ExposedDropdownMenuAnchorType {
+	public static final field Companion Landroidx/compose/material3/ExposedDropdownMenuAnchorType$Companion;
+	public static final synthetic fun box-impl (Ljava/lang/String;)Landroidx/compose/material3/ExposedDropdownMenuAnchorType;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class androidx/compose/material3/ExposedDropdownMenuAnchorType$Companion {
+	public final fun getPrimaryEditable-oYjWRB4 ()Ljava/lang/String;
+	public final fun getPrimaryNotEditable-oYjWRB4 ()Ljava/lang/String;
+	public final fun getSecondaryEditable-oYjWRB4 ()Ljava/lang/String;
+}
+
 public abstract class androidx/compose/material3/ExposedDropdownMenuBoxScope {
 	public static final field $stable I
 	public final synthetic fun ExposedDropdownMenu (ZLkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
@@ -863,8 +882,8 @@ public abstract class androidx/compose/material3/ExposedDropdownMenuBoxScope {
 	public abstract fun exposedDropdownSize (Landroidx/compose/ui/Modifier;Z)Landroidx/compose/ui/Modifier;
 	public static synthetic fun exposedDropdownSize$default (Landroidx/compose/material3/ExposedDropdownMenuBoxScope;Landroidx/compose/ui/Modifier;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public final fun menuAnchor (Landroidx/compose/ui/Modifier;)Landroidx/compose/ui/Modifier;
-	public abstract fun menuAnchor-fsE2BvY (Landroidx/compose/ui/Modifier;Ljava/lang/String;Z)Landroidx/compose/ui/Modifier;
-	public static synthetic fun menuAnchor-fsE2BvY$default (Landroidx/compose/material3/ExposedDropdownMenuBoxScope;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public abstract fun menuAnchor-2Hz36ac (Landroidx/compose/ui/Modifier;Ljava/lang/String;Z)Landroidx/compose/ui/Modifier;
+	public static synthetic fun menuAnchor-2Hz36ac$default (Landroidx/compose/material3/ExposedDropdownMenuBoxScope;Landroidx/compose/ui/Modifier;Ljava/lang/String;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/material3/ExposedDropdownMenuDefaults {
@@ -881,7 +900,7 @@ public final class androidx/compose/material3/ExposedDropdownMenuDefaults {
 	public final synthetic fun textFieldColors-tN0la-I (JJJJJJJJLandroidx/compose/foundation/text/selection/TextSelectionColors;JJJJJJJJJJJJJJJJJJJJJJJJJJJJLandroidx/compose/runtime/Composer;IIIIII)Landroidx/compose/material3/TextFieldColors;
 }
 
-public final class androidx/compose/material3/ExposedDropdownMenu_skikoKt {
+public final class androidx/compose/material3/ExposedDropdownMenuKt {
 	public static final fun ExposedDropdownMenuBox (ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
@@ -1325,25 +1344,6 @@ public final class androidx/compose/material3/MaterialThemeKt {
 	public static final fun MaterialTheme (Landroidx/compose/material3/ColorScheme;Landroidx/compose/material3/Shapes;Landroidx/compose/material3/Typography;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
-public final class androidx/compose/material3/MenuAnchorType {
-	public static final field Companion Landroidx/compose/material3/MenuAnchorType$Companion;
-	public static final synthetic fun box-impl (Ljava/lang/String;)Landroidx/compose/material3/MenuAnchorType;
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
-	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
-	public fun hashCode ()I
-	public static fun hashCode-impl (Ljava/lang/String;)I
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()Ljava/lang/String;
-}
-
-public final class androidx/compose/material3/MenuAnchorType$Companion {
-	public final fun getPrimaryEditable-Mg6Rgbw ()Ljava/lang/String;
-	public final fun getPrimaryNotEditable-Mg6Rgbw ()Ljava/lang/String;
-	public final fun getSecondaryEditable-Mg6Rgbw ()Ljava/lang/String;
-}
-
 public final class androidx/compose/material3/MenuDefaults {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/material3/MenuDefaults;
@@ -1595,10 +1595,6 @@ public final class androidx/compose/material3/NavigationRailKt {
 	public static final fun NavigationRail-qi6gXK8 (Landroidx/compose/ui/Modifier;JJLkotlin/jvm/functions/Function3;Landroidx/compose/foundation/layout/WindowInsets;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun NavigationRailItem (ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;Landroidx/compose/ui/Modifier;ZLkotlin/jvm/functions/Function2;ZLandroidx/compose/material3/NavigationRailItemColors;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/runtime/Composer;II)V
 	public static final fun getLocalNavigationRailComponentOverride ()Landroidx/compose/runtime/ProvidableCompositionLocal;
-}
-
-public final class androidx/compose/material3/OpticalCenteringKt {
-	public static final fun opticalCentering (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/shape/CornerBasedShape;Landroidx/compose/foundation/layout/PaddingValues;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/material3/OutlinedTextFieldDefaults {
@@ -2146,17 +2142,11 @@ public final class androidx/compose/material3/SplitButtonKt {
 public final class androidx/compose/material3/SplitButtonShapes {
 	public static final field $stable I
 	public fun <init> (Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;)V
-	public final fun component1 ()Landroidx/compose/ui/graphics/Shape;
-	public final fun component2 ()Landroidx/compose/ui/graphics/Shape;
-	public final fun component3 ()Landroidx/compose/ui/graphics/Shape;
-	public final fun copy (Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;)Landroidx/compose/material3/SplitButtonShapes;
-	public static synthetic fun copy$default (Landroidx/compose/material3/SplitButtonShapes;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;Landroidx/compose/ui/graphics/Shape;ILjava/lang/Object;)Landroidx/compose/material3/SplitButtonShapes;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCheckedShape ()Landroidx/compose/ui/graphics/Shape;
 	public final fun getPressedShape ()Landroidx/compose/ui/graphics/Shape;
 	public final fun getShape ()Landroidx/compose/ui/graphics/Shape;
 	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
 }
 
 public final class androidx/compose/material3/SuggestionChipDefaults {
@@ -2632,7 +2622,8 @@ public final class androidx/compose/material3/TooltipKt {
 	public static final fun PlainTooltip-m9Er-Xc (Landroidx/compose/material3/TooltipScope;Landroidx/compose/ui/Modifier;JFLandroidx/compose/ui/graphics/Shape;JJFFLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun RichTooltip-ZuUcA3Q (Landroidx/compose/material3/TooltipScope;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;JFLandroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/RichTooltipColors;FFLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;III)V
 	public static final synthetic fun RichTooltip-yDvdmqw (Landroidx/compose/material3/TooltipScope;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function2;JLandroidx/compose/ui/graphics/Shape;Landroidx/compose/material3/RichTooltipColors;FFLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
-	public static final fun TooltipBox (Landroidx/compose/ui/window/PopupPositionProvider;Lkotlin/jvm/functions/Function3;Landroidx/compose/material3/TooltipState;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun TooltipBox (Landroidx/compose/ui/window/PopupPositionProvider;Lkotlin/jvm/functions/Function3;Landroidx/compose/material3/TooltipState;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function0;ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun TooltipBox (Landroidx/compose/ui/window/PopupPositionProvider;Lkotlin/jvm/functions/Function3;Landroidx/compose/material3/TooltipState;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun TooltipState (ZZLandroidx/compose/foundation/MutatorMutex;)Landroidx/compose/material3/TooltipState;
 	public static synthetic fun TooltipState$default (ZZLandroidx/compose/foundation/MutatorMutex;ILjava/lang/Object;)Landroidx/compose/material3/TooltipState;
 	public static final fun rememberTooltipState (ZZLandroidx/compose/foundation/MutatorMutex;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material3/TooltipState;
@@ -2884,8 +2875,9 @@ public final class androidx/compose/material3/WideNavigationRailKt {
 public abstract interface class androidx/compose/material3/WideNavigationRailState {
 	public abstract fun collapse (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun expand (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getCurrentValue ()Landroidx/compose/material3/WideNavigationRailValue;
+	public abstract fun getTargetValue ()Landroidx/compose/material3/WideNavigationRailValue;
 	public abstract fun isAnimating ()Z
-	public abstract fun isExpanded ()Z
 	public abstract fun snapTo (Landroidx/compose/material3/WideNavigationRailValue;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun toggle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
