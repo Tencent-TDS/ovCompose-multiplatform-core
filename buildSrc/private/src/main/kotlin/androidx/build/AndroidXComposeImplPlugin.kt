@@ -16,8 +16,6 @@
 
 package androidx.build
 
-import androidx.build.dependencies.KOTLIN_NATIVE_VERSION
-import androidx.build.dependencies.kotlinVersion
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.AppPlugin
@@ -299,10 +297,6 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
          * resolved.
          */
         private fun Project.configureForMultiplatform() {
-            // This is to allow K/N not matching the kotlinVersion
-            (this.rootProject.property("ext") as ExtraPropertiesExtension)
-                .set("kotlin.native.version", KOTLIN_NATIVE_VERSION)
-
             val multiplatformExtension = checkNotNull(multiplatformExtension) {
                 "Unable to configureForMultiplatform() when " +
                     "multiplatformExtension is null (multiplatform plugin not enabled?)"
