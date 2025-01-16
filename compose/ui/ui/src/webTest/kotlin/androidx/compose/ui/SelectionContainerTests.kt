@@ -68,6 +68,7 @@ class SelectionContainerTests : OnCanvasTests {
                     selection = it
                     syncChannel.sendFromScope(it)
                 },
+                // TODO: investigate why explicit @Composable is needed https://youtrack.jetbrains.com/issue/CMP-7410
                 children = @Composable {
                     Column {
                         Text("qwerty uiopasdfghjklzxcvbnm")
