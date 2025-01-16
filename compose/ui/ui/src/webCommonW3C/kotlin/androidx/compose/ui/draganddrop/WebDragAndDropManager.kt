@@ -100,7 +100,7 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
             previousDragEventIsStart = true
             event as DragEvent
 
-            val scope = InternalStartTransferScope(density, transferData = null)
+            val scope = InternalStartTransferScope(density)
 
             if (scope.startTransfer(event)) {
                 scope.ghostImage?.let { ghostImage ->
@@ -182,23 +182,20 @@ private fun IntArray.toUint8ClampedArray(): Uint8ClampedArray {
 }
 
 private class InternalStartTransferScope(
-    private val density: Density,
-    var transferData: DragAndDropTransferData?
+    private val density: Density
 ) : PlatformDragAndDropSource.StartTransferScope {
     /**
      * Context for an ongoing drag session initiated from Compose.
      */
     var ghostImage: HTMLCanvasElement? = null
+    var transferData: DragAndDropTransferData? = null
 
     fun isActive(): Boolean = transferData != null
 
-    override fun startDragAndDropTransfer(
-        transferData: DragAndDropTransferData,
+    private fun captureAsImageData(
         decorationSize: Size,
         drawDragDecoration: DrawScope.() -> Unit
-    ): Boolean {
-        this.transferData = transferData
-
+    ): ImageData {
         val imageBitmap = ImageBitmap(
             width = decorationSize.width.roundToInt(),
             height = decorationSize.height.roundToInt()
@@ -214,27 +211,39 @@ private class InternalStartTransferScope(
 
         val uint8ClampedArray = intArray.toUint8ClampedArray()
 
-        val imageData = ImageData(uint8ClampedArray, imageBitmap.width, imageBitmap.height)
+        return ImageData(uint8ClampedArray, imageBitmap.width, imageBitmap.height)
+    }
 
+    fun ImageData.asHtmlCanvas(): HTMLCanvasElement {
         val canvasConverter = document.createElement("canvas") as HTMLCanvasElement
 
+        canvasConverter.width = width
+        canvasConverter.height = height
+
         val scale = density.density
-
-        canvasConverter.width = imageBitmap.width
-        canvasConverter.height = imageBitmap.height
-
         require(scale > 0f)
 
-        val width = (decorationSize.width / scale).toInt()
-        val height = (decorationSize.height / scale).toInt()
+        val widthNormalized = (width / scale).toInt()
+        val heightNormalized = (height / scale).toInt()
 
-        canvasConverter.style.width = "${width}px"
-        canvasConverter.style.height = "${height}px"
+        canvasConverter.style.width = "${widthNormalized}px"
+        canvasConverter.style.height = "${heightNormalized}px"
 
         val canvasConverterContext = canvasConverter.getContext("2d") as CanvasRenderingContext2D
-        canvasConverterContext.putImageData(imageData, 0.0, 0.0)
+        canvasConverterContext.putImageData(this, 0.0, 0.0)
 
-        ghostImage = canvasConverter
+        return canvasConverter
+    }
+
+    override fun startDragAndDropTransfer(
+        transferData: DragAndDropTransferData,
+        decorationSize: Size,
+        drawDragDecoration: DrawScope.() -> Unit
+    ): Boolean {
+        this.transferData = transferData
+
+        val imageData = captureAsImageData(decorationSize, drawDragDecoration)
+        ghostImage = imageData.asHtmlCanvas()
 
         return true
     }
