@@ -22,28 +22,22 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
-import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.SkiaBackedCanvas
-import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.graphics.asSkiaColorFilter
 import androidx.compose.ui.graphics.asSkiaPath
-import androidx.compose.ui.graphics.copyInto
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.draw
-import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.prepareTransformationMatrix
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toSkia
 import androidx.compose.ui.graphics.toSkiaRRect
@@ -53,49 +47,45 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.toSize
-import org.jetbrains.skia.Canvas as SkCanvas
-import org.jetbrains.skia.Matrix44 as SkMatrix44
 import org.jetbrains.skia.Paint as SkPaint
-import org.jetbrains.skia.Picture
-import org.jetbrains.skia.PictureRecorder
-import org.jetbrains.skia.Point3
-import org.jetbrains.skia.RTreeFactory
+import org.jetbrains.skia.Point
 import org.jetbrains.skia.Rect as SkRect
-import org.jetbrains.skia.ShadowUtils
+import org.jetbrains.skiko.node.RenderNode
 
 actual class GraphicsLayer internal constructor(
-    private val context: SkiaGraphicsContext,
+    private val renderNode: RenderNode,
 ) {
     private val pictureDrawScope = CanvasDrawScope()
-    private val pictureRecorder = PictureRecorder()
-    private var picture: Picture? = null
-    private var placeholder: Picture? = null
 
-    // Use factory for BBoxHierarchy to track real bounds of drawn content
-    private val bbhFactory = if (context.measureDrawBounds) RTreeFactory() else null
-
-    private var matrixDirty = true
-    private var matrixIdentity = true
-    private val matrix = Matrix()
-    private val matrixSkia = SkMatrix44(*matrix.values)
-
-    actual var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
-
-    private var internalOutline: Outline? = null
     private var outlineDirty = true
     private var roundRectOutlineTopLeft: Offset = Offset.Zero
     private var roundRectOutlineSize: Size = Size.Unspecified
     private var roundRectCornerRadius: Float = 0f
+
+    private var internalOutline: Outline? = null
     private var outlinePath: Path? = null
 
     private var parentLayerUsages = 0
     private val childDependenciesTracker = ChildLayerDependenciesTracker()
 
+    actual var compositingStrategy: CompositingStrategy = CompositingStrategy.Auto
+        set(value) {
+            if (field != value) {
+                field = value
+                updateLayerProperties()
+            }
+        }
+
     actual var topLeft: IntOffset = IntOffset.Zero
         set(value) {
             if (field != value) {
                 field = value
-                updateLayerConfiguration()
+                renderNode.bounds = SkRect.makeXYWH(
+                    value.x.toFloat(),
+                    value.y.toFloat(),
+                    size.width.toFloat(),
+                    size.height.toFloat()
+                )
             }
         }
 
@@ -103,79 +93,219 @@ actual class GraphicsLayer internal constructor(
         private set(value) {
             if (field != value) {
                 field = value
-                updatePlaceholder()
+                renderNode.bounds = SkRect.makeXYWH(
+                    topLeft.x.toFloat(),
+                    topLeft.y.toFloat(),
+                    value.width.toFloat(),
+                    value.height.toFloat()
+                )
+                if (roundRectOutlineSize.isUnspecified) {
+                    outlineDirty = true
+                    configureOutlineAndClip()
+                }
             }
         }
 
-    private val bounds: SkRect
-        get() = SkRect.makeLTRB(0f, 0f, size.width.toFloat(), size.height.toFloat())
+    actual var pivotOffset: Offset = Offset.Unspecified
+        set(value) {
+            if (field != value) {
+                field = value
+                renderNode.pivot = Point(value.x, value.y)
+            }
+        }
 
     actual var alpha: Float = 1f
+        set(value) {
+            if (field != value) {
+                field = value
+                renderNode.alpha = value
+                updateLayerProperties()
+            }
+        }
 
     actual var scaleX: Float = 1f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.scaleX = value
+            }
         }
+
     actual var scaleY: Float = 1f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.scaleY = value
+            }
         }
+
     actual var translationX: Float = 0f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.translationX = value
+            }
         }
     actual var translationY: Float = 0f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.translationY = value
+            }
         }
+
     actual var shadowElevation: Float = 0f
+        set(value) {
+            if (field != value) {
+                field = value
+                renderNode.shadowElevation = value
+                outlineDirty = true
+                configureOutlineAndClip()
+            }
+        }
+
+    actual var ambientShadowColor: Color = Color.Black
+        set(value) {
+            if (field != value) {
+                field = value
+                renderNode.ambientShadowColor = value.toArgb()
+            }
+        }
+
+    actual var spotShadowColor: Color = Color.Black
+        set(value) {
+            if (field != value) {
+                field = value
+                renderNode.spotShadowColor = value.toArgb()
+            }
+        }
+
+    actual var blendMode: BlendMode = BlendMode.SrcOver
+        set(value) {
+            if (field != value) {
+                field = value
+                updateLayerProperties()
+            }
+        }
+
+    actual var colorFilter: ColorFilter? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                updateLayerProperties()
+            }
+        }
+
+    actual val outline: Outline
+        get() {
+            val tmpOutline = internalOutline
+            val tmpPath = outlinePath
+            return if (tmpOutline != null) {
+                tmpOutline
+            } else if (tmpPath != null) {
+                Outline.Generic(tmpPath).also { internalOutline = it }
+            } else {
+                resolveOutlinePosition { outlineTopLeft, outlineSize ->
+                    val left = outlineTopLeft.x
+                    val top = outlineTopLeft.y
+                    val right = left + outlineSize.width
+                    val bottom = top + outlineSize.height
+                    val cornerRadius = this.roundRectCornerRadius
+                    if (cornerRadius > 0f) {
+                        Outline.Rounded(
+                            RoundRect(left, top, right, bottom, CornerRadius(cornerRadius))
+                        )
+                    } else {
+                        Outline.Rectangle(Rect(left, top, right, bottom))
+                    }
+                }.also { internalOutline = it }
+            }
+        }
+
+    private fun resetOutlineParams() {
+        internalOutline = null
+        outlinePath = null
+        roundRectOutlineSize = Size.Unspecified
+        roundRectOutlineTopLeft = Offset.Zero
+        roundRectCornerRadius = 0f
+        outlineDirty = true
+    }
+
+    actual fun setPathOutline(path: Path) {
+        resetOutlineParams()
+        this.outlinePath = path
+        configureOutlineAndClip()
+    }
+
+    actual fun setRoundRectOutline(topLeft: Offset, size: Size, cornerRadius: Float) {
+        if (this.roundRectOutlineTopLeft != topLeft ||
+            this.roundRectOutlineSize != size ||
+            this.roundRectCornerRadius != cornerRadius ||
+            this.outlinePath != null
+        ) {
+            resetOutlineParams()
+            this.roundRectOutlineTopLeft = topLeft
+            this.roundRectOutlineSize = size
+            this.roundRectCornerRadius = cornerRadius
+            configureOutlineAndClip()
+        }
+    }
+
+    actual fun setRectOutline(topLeft: Offset, size: Size) {
+        setRoundRectOutline(topLeft, size, 0f)
+    }
 
     actual var rotationX: Float = 0f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.rotationX = value
+            }
         }
+
     actual var rotationY: Float = 0f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.rotationY = value
+            }
         }
+
     actual var rotationZ: Float = 0f
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.rotationZ = value
+            }
         }
 
     actual var cameraDistance: Float = DefaultCameraDistance
         set(value) {
-            field = value
-            invalidateMatrix()
+            if (field != value) {
+                field = value
+                renderNode.cameraDistance = value
+            }
+        }
+
+    actual var clip: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                outlineDirty = true
+                configureOutlineAndClip()
+            }
         }
 
     actual var renderEffect: RenderEffect? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                updateLayerProperties()
+            }
+        }
 
-    private var density: Density = Density(1f)
-
-    private fun invalidateMatrix() {
-        matrixDirty = true
-    }
-
-    private fun updateLayerConfiguration() {
-        this.outlineDirty = true
-        invalidateMatrix()
-    }
-
-    // Note: Updating of placeholder REQUIRES parent layer invalidation
-    private fun updatePlaceholder() {
-        context.layerManager.unregisterPlaceholder(placeholder)
-        placeholder?.close()
-        placeholder = Picture.makePlaceholder(bounds)
-        context.layerManager.registerPlaceholder(placeholder!!, this)
-    }
+    actual var isReleased: Boolean = false
+        private set
 
     actual fun record(
         density: Density,
@@ -183,43 +313,29 @@ actual class GraphicsLayer internal constructor(
         size: IntSize,
         block: DrawScope.() -> Unit
     ) {
-        // Close previous picture
-        picture?.close()
-        picture = null
-
-        this.density = density
         this.size = size
-        updateLayerConfiguration()
-        val measureDrawBounds = !clip || shadowElevation > 0
-        val bounds = size.toSize().toRect()
-        val canvas = pictureRecorder.beginRecording(
-            bounds = if (measureDrawBounds) PICTURE_BOUNDS else bounds.toSkiaRect(),
-            bbh = if (measureDrawBounds) bbhFactory else null
-        )
-        val skiaCanvas = canvas.asComposeCanvas() as SkiaBackedCanvas
-        skiaCanvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
-            this@GraphicsLayer.alpha
-        } else {
-            1.0f
-        }
-        trackRecord {
+        recordWithTracking { canvas ->
             pictureDrawScope.draw(
-                density,
-                layoutDirection,
-                skiaCanvas,
-                size.toSize(),
-                this,
-                block
+                density = density,
+                layoutDirection = layoutDirection,
+                canvas = canvas,
+                size = size.toSize(),
+                graphicsLayer = this,
+                block = block
             )
         }
-        picture = pictureRecorder.finishRecordingAsPicture()
     }
 
-    private fun trackRecord(block: () -> Unit) {
-        childDependenciesTracker.withTracking(
-            onDependencyRemoved = { it.onRemovedFromParentLayer() },
-            block = block
-        )
+    private fun recordWithTracking(block: (SkiaBackedCanvas) -> Unit) {
+        val recordingCanvas = renderNode.beginRecording()
+        try {
+            val composeCanvas = recordingCanvas.asComposeCanvas() as SkiaBackedCanvas
+            childDependenciesTracker.withTracking(
+                onDependencyRemoved = { it.onRemovedFromParentLayer() },
+            ) { block(composeCanvas) }
+        } finally {
+            renderNode.endRecording()
+        }
     }
 
     private fun addSubLayer(graphicsLayer: GraphicsLayer) {
@@ -228,111 +344,11 @@ actual class GraphicsLayer internal constructor(
         }
     }
 
-    actual var clip: Boolean = false
-
-    private inline fun createOutlineWithPosition(
-        outlineTopLeft: Offset,
-        outlineSize: Size,
-        block: (Offset, Size) -> Outline
-    ): Outline {
-        val targetSize = if (outlineSize.isUnspecified) {
-            this.size.toSize()
-        } else {
-            outlineSize
-        }
-        return block(outlineTopLeft, targetSize)
-    }
-
-    private fun configureOutline(): Outline {
-        var tmpOutline = internalOutline
-        if (outlineDirty || tmpOutline == null) {
-            val tmpPath = outlinePath
-            tmpOutline = if (tmpPath != null) {
-                Outline.Generic(tmpPath)
-            } else {
-                createOutlineWithPosition(
-                    roundRectOutlineTopLeft,
-                    roundRectOutlineSize
-                ) { outlineTopLeft, outlineSize ->
-                    if (roundRectCornerRadius > 0f) {
-                        Outline.Rounded(
-                            RoundRect(
-                                left = outlineTopLeft.x,
-                                top = outlineTopLeft.y,
-                                right = outlineTopLeft.x + outlineSize.width,
-                                bottom = outlineTopLeft.y + outlineSize.height,
-                                cornerRadius = CornerRadius(roundRectCornerRadius)
-                            )
-                        )
-                    } else {
-                        Outline.Rectangle(
-                            Rect(
-                                left = outlineTopLeft.x,
-                                top = outlineTopLeft.y,
-                                right = outlineTopLeft.x + outlineSize.width,
-                                bottom = outlineTopLeft.y + outlineSize.height
-                            )
-                        )
-                    }
-                }
-            }
-            internalOutline = tmpOutline
-            outlineDirty = false
-        }
-        return tmpOutline
-    }
-
     internal actual fun draw(canvas: Canvas, parentLayer: GraphicsLayer?) {
         if (isReleased) return
+        configureOutlineAndClip()
         parentLayer?.addSubLayer(this)
-
-        // Do any recalculation in [drawPlaceholder] because this block will be run only in case
-        // of parent layer invalidation. Things like transform should be applied without it.
-
-        placeholder?.let {
-            canvas.nativeCanvas.drawPicture(it, null, null)
-        }
-    }
-
-    internal fun drawPlaceholder(canvas: SkCanvas) {
-        val recordedPicture = picture ?: return
-
-        configureOutline()
-        updateMatrix()
-
-        val restoreCount = canvas.save()
-
-        if (!matrixIdentity) {
-            canvas.concat(matrixSkia)
-        }
-        canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
-
-        if (shadowElevation > 0) {
-            drawShadow(canvas)
-        }
-
-        if (clip) {
-            canvas.save()
-            canvas.clipOutline(internalOutline, bounds)
-        }
-
-        val useLayer = requiresLayer()
-        if (useLayer) {
-            canvas.saveLayer(
-                bounds,
-                SkPaint().apply {
-                    setAlphaf(this@GraphicsLayer.alpha)
-                    imageFilter = this@GraphicsLayer.renderEffect?.asSkiaImageFilter()
-                    colorFilter = this@GraphicsLayer.colorFilter?.asSkiaColorFilter()
-                    blendMode = this@GraphicsLayer.blendMode.toSkia()
-                }
-            )
-        } else {
-            canvas.save()
-        }
-
-        canvas.drawPicture(recordedPicture, null, null)
-        canvas.restoreToCount(restoreCount)
+        renderNode.drawInto(canvas.nativeCanvas)
     }
 
     private fun onAddedToParentLayer() {
@@ -344,6 +360,38 @@ actual class GraphicsLayer internal constructor(
         discardContentIfReleasedAndHaveNoParentLayerUsages()
     }
 
+    private fun configureOutlineAndClip() {
+        if (!outlineDirty) return
+        val outlineIsNeeded = clip || shadowElevation > 0f
+        if (!outlineIsNeeded) {
+            renderNode.clip = false
+            renderNode.setClipPath(null)
+        } else {
+            renderNode.clip = clip
+            val tmpOutline = outline
+            when (tmpOutline) {
+                is Outline.Rectangle -> renderNode.setClipRect(tmpOutline.rect.toSkiaRect())
+                is Outline.Rounded -> renderNode.setClipRRect(tmpOutline.roundRect.toSkiaRRect())
+                is Outline.Generic -> renderNode.setClipPath(tmpOutline.path.asSkiaPath())
+            }
+        }
+        outlineDirty = false
+    }
+
+    private inline fun <T> resolveOutlinePosition(block: (Offset, Size) -> T): T {
+        val layerSize = this.size.toSize()
+        val rRectTopLeft = roundRectOutlineTopLeft
+        val rRectSize = roundRectOutlineSize
+
+        val outlineSize =
+            if (rRectSize.isUnspecified) {
+                layerSize
+            } else {
+                rRectSize
+            }
+        return block(rRectTopLeft, outlineSize)
+    }
+
     internal fun release() {
         if (!isReleased) {
             isReleased = true
@@ -351,99 +399,30 @@ actual class GraphicsLayer internal constructor(
         }
     }
 
-    actual var pivotOffset: Offset = Offset.Unspecified
-        set(value) {
-            field = value
-            invalidateMatrix()
-        }
-
-    actual var blendMode: BlendMode = BlendMode.SrcOver
-
-    actual var colorFilter: ColorFilter? = null
-
-    private fun resetOutlineParams() {
-        internalOutline = null
-        outlinePath = null
-        roundRectOutlineSize = Size.Unspecified
-        roundRectOutlineTopLeft = Offset.Zero
-        roundRectCornerRadius = 0f
-        outlineDirty = true
-    }
-
-    actual fun setRoundRectOutline(
-        topLeft: Offset,
-        size: Size,
-        cornerRadius: Float
-    ) {
-        resetOutlineParams()
-        this.roundRectOutlineTopLeft = topLeft
-        this.roundRectOutlineSize = size
-        this.roundRectCornerRadius = cornerRadius
-    }
-
-    actual fun setPathOutline(path: Path) {
-        resetOutlineParams()
-        this.outlinePath = path
-    }
-
-    actual val outline: Outline
-        get() = configureOutline()
-
-    actual fun setRectOutline(
-        topLeft: Offset,
-        size: Size
-    ) {
-        setRoundRectOutline(topLeft, size, 0f)
-    }
-
-    private fun updateMatrix() {
-        if (!matrixDirty) return
-
-        val pivotX: Float
-        val pivotY: Float
-        if (pivotOffset.isUnspecified) {
-            pivotX = size.width / 2f
-            pivotY = size.height / 2f
-        } else {
-            pivotX = pivotOffset.x
-            pivotY = pivotOffset.y
-        }
-        prepareTransformationMatrix(
-            matrix = matrix,
-            pivotX = pivotX,
-            pivotY = pivotY,
-            translationX = translationX,
-            translationY = translationY,
-            rotationX = rotationX,
-            rotationY = rotationY,
-            rotationZ = rotationZ,
-            scaleX = scaleX,
-            scaleY = scaleY,
-            cameraDistance = cameraDistance
-        )
-        matrixDirty = false
-        matrixIdentity = matrix.isIdentity()
-        matrix.copyInto(matrixSkia)
-    }
-
-    actual var isReleased: Boolean = false
-        private set
-
     private fun discardContentIfReleasedAndHaveNoParentLayerUsages() {
         if (isReleased && parentLayerUsages == 0) {
-            picture?.close()
-            pictureRecorder.close()
-
             // discarding means we don't draw children layer anymore and need to remove dependencies:
-            childDependenciesTracker.removeDependencies {
-                it.onRemovedFromParentLayer()
-            }
+            childDependenciesTracker.removeDependencies { it.onRemovedFromParentLayer() }
+
+            renderNode?.close()
         }
     }
 
-    actual var ambientShadowColor: Color = Color.Black
+    actual suspend fun toImageBitmap(): ImageBitmap =
+        ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 
-    actual var spotShadowColor: Color = Color.Black
+    private fun updateLayerProperties() {
+        renderNode.layerPaint = if (requiresLayer()) {
+            SkPaint().also {
+                it.setAlphaf(alpha)
+                it.imageFilter = renderEffect?.asSkiaImageFilter()
+                it.colorFilter = colorFilter?.asSkiaColorFilter()
+                it.blendMode = blendMode.toSkia()
+            }
+        } else {
+            null
+        }
+    }
 
     private fun requiresLayer(): Boolean {
         val alphaNeedsLayer = alpha < 1f && compositingStrategy != CompositingStrategy.ModulateAlpha
@@ -454,60 +433,4 @@ actual class GraphicsLayer internal constructor(
         return alphaNeedsLayer || hasColorFilter || hasBlendMode || hasRenderEffect ||
             offscreenBufferRequested
     }
-
-    private fun drawShadow(canvas: SkCanvas) {
-        val path = when (val tmpOutline = internalOutline) {
-            is Outline.Rectangle -> Path().apply { addRect(tmpOutline.rect) }
-            is Outline.Rounded -> Path().apply { addRoundRect(tmpOutline.roundRect) }
-            is Outline.Generic -> tmpOutline.path
-            else -> return
-        }
-
-        val zParams = Point3(0f, 0f, shadowElevation)
-        val ambientAlpha = context.lightInfo.ambientShadowAlpha * alpha
-        val spotAlpha = context.lightInfo.spotShadowAlpha * alpha
-        val ambientColor = ambientShadowColor.copy(alpha = ambientAlpha)
-        val spotColor = spotShadowColor.copy(alpha = spotAlpha)
-
-        return ShadowUtils.drawShadow(
-            canvas = canvas,
-            path = path.asSkiaPath(),
-            zPlaneParams = zParams,
-            lightPos = context.lightGeometry.center,
-            lightRadius = context.lightGeometry.radius,
-            ambientColor = ambientColor.toArgb(),
-            spotColor = spotColor.toArgb(),
-            transparentOccluder = alpha < 1f,
-            geometricOnly = false
-        )
-    }
-
-    actual suspend fun toImageBitmap(): ImageBitmap =
-        ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 }
-
-
-private fun SkCanvas.clipOutline(outline: Outline?, bounds: SkRect) = when (outline) {
-    is Outline.Rectangle -> clipRect(outline.rect.toSkiaRect(), antiAlias = true)
-    is Outline.Rounded -> clipRRect(outline.roundRect.toSkiaRRect(), antiAlias = true)
-    is Outline.Generic -> clipPath(outline.path.asSkiaPath(), antiAlias = true)
-    null -> clipRect(bounds, antiAlias = true)
-}
-
-// The goal with selecting the size of the rectangle here is to avoid limiting the
-// drawable area as much as possible.
-// Due to https://partnerissuetracker.corp.google.com/issues/324465764 we have to
-// leave room for scale between the values we specify here and Float.MAX_VALUE.
-// The maximum possible scale that can be applied to the canvas will be
-// Float.MAX_VALUE divided by the largest value below.
-// 2^30 was chosen because it's big enough, leaves quite a lot of room between it
-// and Float.MAX_VALUE, and also lets the width and height fit into int32 (just in
-// case).
-private const val PICTURE_MIN_VALUE = -(1 shl 30).toFloat()
-private const val PICTURE_MAX_VALUE = ((1 shl 30)-1).toFloat()
-private val PICTURE_BOUNDS = SkRect.makeLTRB(
-    l = PICTURE_MIN_VALUE,
-    t = PICTURE_MIN_VALUE,
-    r = PICTURE_MAX_VALUE,
-    b = PICTURE_MAX_VALUE
-)

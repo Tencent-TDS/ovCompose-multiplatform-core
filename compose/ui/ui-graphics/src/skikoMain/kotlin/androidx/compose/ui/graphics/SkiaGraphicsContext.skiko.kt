@@ -18,19 +18,20 @@ package androidx.compose.ui.graphics
 
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.graphics.layer.LayerManager
-import org.jetbrains.skia.Matrix33
-import org.jetbrains.skia.Paint
-import org.jetbrains.skia.Picture
-import org.jetbrains.skia.Point3
+import org.jetbrains.skiko.node.RenderNode
+import org.jetbrains.skiko.node.RenderNodeContext
 
 @InternalComposeUiApi
 class SkiaGraphicsContext(
-    internal val measureDrawBounds: Boolean = false,
+    measureDrawBounds: Boolean = false,
 ): GraphicsContext {
-    internal val layerManager = LayerManager()
-    internal val lightGeometry = LightGeometry()
-    internal val lightInfo = LightInfo()
+    private val renderNodeContext = RenderNodeContext(
+        measureDrawBounds = measureDrawBounds,
+    )
+
+    fun dispose() {
+        renderNodeContext.close()
+    }
 
     fun setLightingInfo(
         centerX: Float = Float.MIN_VALUE,
@@ -40,42 +41,25 @@ class SkiaGraphicsContext(
         ambientShadowAlpha: Float = 0f,
         spotShadowAlpha: Float = 0f
     ) {
-        lightGeometry.center = Point3(centerX, centerY, centerZ)
-        lightGeometry.radius = radius
-        lightInfo.ambientShadowAlpha = ambientShadowAlpha
-        lightInfo.spotShadowAlpha = spotShadowAlpha
+        renderNodeContext.setLightingInfo(
+            centerX,
+            centerY,
+            centerZ,
+            radius,
+            ambientShadowAlpha,
+            spotShadowAlpha
+        )
     }
 
     fun drawIntoCanvas(canvas: Canvas, block: (Canvas) -> Unit) {
-        val pictureFilterCanvas = PictureFilterCanvas(canvas)
-        block(pictureFilterCanvas.asComposeCanvas())
-        pictureFilterCanvas.close()
+        block(canvas)
     }
 
-    override fun createGraphicsLayer() = GraphicsLayer(this)
+    override fun createGraphicsLayer() = GraphicsLayer(
+        renderNode = RenderNode(renderNodeContext)
+    )
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
         layer.release()
     }
-
-    private inner class PictureFilterCanvas(
-        canvas: Canvas
-    ) : org.jetbrains.skia.PictureFilterCanvas(canvas.nativeCanvas) {
-        override fun onDrawPicture(
-            picture: Picture,
-            matrix: Matrix33?,
-            paint: Paint?
-        ): Boolean = layerManager.drawPlaceholder(picture, this)
-    }
 }
-
-// Adoption of frameworks/base/libs/hwui/Lighting.h
-internal data class LightGeometry(
-    var center: Point3 = Point3(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE),
-    var radius: Float = 0f
-)
-
-internal data class LightInfo(
-    var ambientShadowAlpha: Float = 0f,
-    var spotShadowAlpha: Float = 0f
-)
