@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.draganddrop
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 
 /**
@@ -23,6 +24,8 @@ import androidx.compose.ui.geometry.Offset
  */
 actual class DragAndDropEvent internal constructor(
     internal val offset: Offset,
+
+    @property:ExperimentalComposeUiApi
     val transferData: DragAndDropTransferData?
 )
 
