@@ -126,6 +126,7 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
                         graphicsContext,
                         layoutMinOffset,
                         layoutMaxOffset,
+                        item.crossAxisOffset,
                     )
                     keyToItemInfoMap[item.key] = newItemInfo
                     if (item.index != previousIndex && previousIndex != -1) {
@@ -153,6 +154,7 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
                             graphicsContext,
                             layoutMinOffset,
                             layoutMaxOffset,
+                            item.crossAxisOffset,
                         )
                         itemInfo.animations.forEach { animation ->
                             if (
@@ -490,7 +492,7 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
             graphicsContext: GraphicsContext,
             layoutMinOffset: Int,
             layoutMaxOffset: Int,
-            crossAxisOffset: Int = positionedItem.crossAxisOffset
+            crossAxisOffset: Int
         ) {
             if (!isRunningPlacement) {
                 this.layoutMinOffset = layoutMinOffset
