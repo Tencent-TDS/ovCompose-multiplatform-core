@@ -52,7 +52,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import org.jetbrains.skia.Picture
 import org.jetbrains.skia.PictureRecorder
@@ -210,12 +209,6 @@ actual class GraphicsLayer internal constructor(
         } else {
             1.0f
         }
-
-        // TODO: Move to [draw] for right shadow positioning after fixing invalidation issues
-        if (shadowElevation > 0) {
-            drawShadow(skiaCanvas)
-        }
-
         trackRecord {
             pictureDrawScope.draw(
                 density,
@@ -328,9 +321,9 @@ actual class GraphicsLayer internal constructor(
             canvas.concat(matrix)
             canvas.translate(topLeft.x.toFloat(), topLeft.y.toFloat())
 
-//            if (shadowElevation > 0) {
-//                drawShadow(canvas)
-//            }
+            if (shadowElevation > 0) {
+                drawShadow(canvas)
+            }
 
             if (clip) {
                 canvas.save()
@@ -512,7 +505,7 @@ actual class GraphicsLayer internal constructor(
             offscreenBufferRequested
     }
 
-    private fun drawShadow(canvas: Canvas) = with(density) {
+    private fun drawShadow(canvas: Canvas) {
         val path = when (val tmpOutline = internalOutline) {
             is Outline.Rectangle -> Path().apply { addRect(tmpOutline.rect) }
             is Outline.Rounded -> Path().apply { addRoundRect(tmpOutline.roundRect) }
@@ -526,15 +519,12 @@ actual class GraphicsLayer internal constructor(
         val ambientColor = ambientShadowColor.copy(alpha = ambientAlpha)
         val spotColor = spotShadowColor.copy(alpha = spotAlpha)
 
-        // TODO: Switch to right shadow positioning after fixing invalidation issues
-        val lightPos = Point3(0f, -300.dp.toPx(), 600.dp.toPx())
-        val lightRad = 800.dp.toPx()
-        ShadowUtils.drawShadow(
+        return ShadowUtils.drawShadow(
             canvas = canvas.nativeCanvas,
             path = path.asSkiaPath(),
             zPlaneParams = zParams,
-            lightPos = lightPos, // context.lightGeometry.center,
-            lightRadius = lightRad, // context.lightGeometry.radius,
+            lightPos = context.lightGeometry.center,
+            lightRadius = context.lightGeometry.radius,
             ambientColor = ambientColor.toArgb(),
             spotColor = spotColor.toArgb(),
             transparentOccluder = alpha < 1f,
