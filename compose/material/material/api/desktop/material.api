@@ -284,8 +284,6 @@ public final class androidx/compose/material/ColorsKt {
 
 public final class androidx/compose/material/ComposableSingletons$AppBarKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$AppBarKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
-	public static field lambda-2 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda-2$material ()Lkotlin/jvm/functions/Function3;
@@ -293,16 +291,12 @@ public final class androidx/compose/material/ComposableSingletons$AppBarKt {
 
 public final class androidx/compose/material/ComposableSingletons$BackdropScaffoldKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$BackdropScaffoldKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class androidx/compose/material/ComposableSingletons$BottomSheetScaffoldKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$BottomSheetScaffoldKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
-	public static field lambda-2 Lkotlin/jvm/functions/Function2;
-	public static field lambda-3 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda-2$material ()Lkotlin/jvm/functions/Function2;
@@ -311,14 +305,6 @@ public final class androidx/compose/material/ComposableSingletons$BottomSheetSca
 
 public final class androidx/compose/material/ComposableSingletons$ScaffoldKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$ScaffoldKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function2;
-	public static field lambda-2 Lkotlin/jvm/functions/Function2;
-	public static field lambda-3 Lkotlin/jvm/functions/Function3;
-	public static field lambda-4 Lkotlin/jvm/functions/Function2;
-	public static field lambda-5 Lkotlin/jvm/functions/Function2;
-	public static field lambda-6 Lkotlin/jvm/functions/Function2;
-	public static field lambda-7 Lkotlin/jvm/functions/Function3;
-	public static field lambda-8 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-2$material ()Lkotlin/jvm/functions/Function2;
@@ -332,15 +318,12 @@ public final class androidx/compose/material/ComposableSingletons$ScaffoldKt {
 
 public final class androidx/compose/material/ComposableSingletons$SnackbarHostKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$SnackbarHostKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class androidx/compose/material/ComposableSingletons$TabRowKt {
 	public static final field INSTANCE Landroidx/compose/material/ComposableSingletons$TabRowKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function2;
-	public static field lambda-2 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$material ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-2$material ()Lkotlin/jvm/functions/Function2;

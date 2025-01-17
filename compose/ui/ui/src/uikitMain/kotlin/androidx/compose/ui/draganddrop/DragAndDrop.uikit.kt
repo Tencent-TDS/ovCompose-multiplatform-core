@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.draganddrop
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.asDpOffset
@@ -35,6 +36,10 @@ actual class DragAndDropEvent internal constructor(
 
     internal val session: UIDropSessionProtocol
         get() = dropSessionContext.session
+
+    @ExperimentalComposeUiApi
+    val items: List<UIDragItem>
+        get() = session.items.filterIsInstance<UIDragItem>()
 }
 
 /**
@@ -42,8 +47,11 @@ actual class DragAndDropEvent internal constructor(
  * information about how data can be transferred across processes boundaries and an optional
  * local object to be used in the same app.
  */
-actual class DragAndDropTransferData internal constructor (
-    internal val items: List<UIDragItem>
+actual class DragAndDropTransferData
+@ExperimentalComposeUiApi
+constructor(
+    @property:ExperimentalComposeUiApi
+    val items: List<UIDragItem>
 )
 
 /**

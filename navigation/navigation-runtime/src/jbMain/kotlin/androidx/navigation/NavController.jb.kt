@@ -672,8 +672,13 @@ public actual open class NavController {
 
     @MainThread
     public actual open fun navigateUp(): Boolean {
-        // TODO If there's only one entry, then we may have deep linked into a specific destination
-        return popBackStack()
+        if (destinationCountOnBackStack == 1) {
+            // opposite to the android implementation, we don't start a new window for deep links,
+            // so we mustn't reopen an initial screen here
+            return false
+        } else {
+            return popBackStack()
+        }
     }
 
     /** Gets the number of non-NavGraph destinations on the back stack */

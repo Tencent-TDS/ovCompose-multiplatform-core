@@ -68,10 +68,12 @@ class LayersAccessibilityTest {
                 label = "Root"
             }
             node {
-                label = "Popup 1"
-            }
-            node {
-                label = "Popup 2"
+                node {
+                    label = "Popup 1"
+                }
+                node {
+                    label = "Popup 2"
+                }
             }
         }
 

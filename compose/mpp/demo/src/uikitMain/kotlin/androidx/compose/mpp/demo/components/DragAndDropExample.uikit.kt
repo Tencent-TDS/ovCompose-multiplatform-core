@@ -16,7 +16,6 @@
 
 package androidx.compose.mpp.demo.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -38,14 +37,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.uikit.fromString
+import androidx.compose.ui.uikit.loadString
 import androidx.compose.ui.unit.dp
+import platform.UIKit.UIDragItem
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun DragAndDropExample() {
     Column(
@@ -74,15 +77,10 @@ actual fun DragAndDropExample() {
                 .padding(16.dp)
                 .fillMaxWidth(1f)
                 .height(200.dp)
-                .dragAndDropSource(
-                    drawDragDecoration = {
-                        drawRect(Color.Gray, Offset(0f, 0f), size)
-                    },
-                    transferData = { offset ->
-                        // TODO: Implement iOS specific transfer data creation
-                        null
-                    }
-                )
+                .dragAndDropSource {
+                    addLog("Sent: $text")
+                    DragAndDropTransferData(listOf(UIDragItem.fromString(text)))
+                }
                 .background(Color.DarkGray),
             color = Color.White,
             text = text
@@ -102,20 +100,11 @@ actual fun DragAndDropExample() {
                     shouldStartDragAndDrop = { true },
                     target = object : DragAndDropTarget {
                         override fun onDrop(event: DragAndDropEvent): Boolean {
-                            // TODO: finalize event and transferable API
-
-                            // stubs for `DragAndDropEvent` UIDragItem integration support
-//                            CoroutineScope(Dispatchers.Main).launch {
-//                                for (item in event.session.items) {
-//                                    val dragItem = item as UIDragItem
-//                                    dragItem.decodeString()?.let {
-//                                        dropText = it
-//                                    }
-//                                }
-//                            }
-
-                            addLog("DragAndDropTarget.onDrop with $event")
-
+                            addLog("Dropped")
+                            event.forEachString {
+                                dropText = it
+                                addLog("Received: $it")
+                            }
                             return true
                         }
                     }
@@ -129,6 +118,15 @@ actual fun DragAndDropExample() {
             items(logs) { log ->
                 Text(log)
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun DragAndDropEvent.forEachString(block: (String) -> Unit) {
+    items.forEach {
+        it.loadString { s, _ ->
+            s?.let(block)
         }
     }
 }

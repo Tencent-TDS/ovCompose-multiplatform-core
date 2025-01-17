@@ -22,6 +22,7 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.draganddrop.WebDragAndDropManager
 import androidx.compose.ui.events.EventTargetListener
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -41,10 +42,12 @@ import androidx.compose.ui.input.pointer.composeButtons
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.CanvasLayersComposeScene
+import androidx.compose.ui.scene.ComposeSceneDragAndDropNode
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
@@ -70,10 +73,10 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoRenderDelegate
 import org.w3c.dom.AddEventListenerOptions
+import org.w3c.dom.DragEvent
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
-import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.HTMLTitleElement
 import org.w3c.dom.MediaQueryListEvent
 import org.w3c.dom.TouchEvent
@@ -181,6 +184,11 @@ internal class ComposeWindow(
         override val windowInfo get() = _windowInfo
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
+
+        override val dragAndDropManager: PlatformDragAndDropManager = object : WebDragAndDropManager(canvasEvents, state.globalEvents, density) {
+            override val rootDragAndDropNode: ComposeSceneDragAndDropNode
+                get() = scene.rootDragAndDropNode
+        }
 
         override val textInputService = object : WebTextInputService() {
 
@@ -318,6 +326,7 @@ internal class ComposeWindow(
         state.init()
 
         canvas.setAttribute("tabindex", "0")
+        canvas.setAttribute("draggable", "true")
 
         scene.density = density
 

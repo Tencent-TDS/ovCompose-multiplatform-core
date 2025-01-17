@@ -18,5 +18,5 @@ package androidx.compose.ui.graphics
 
 import org.jetbrains.skia.Image
 
-actual fun createImageBitmap(bytes: ByteArray): ImageBitmap =
+internal actual fun createImageBitmap(bytes: ByteArray): ImageBitmap =
     Image.makeFromEncoded(bytes).toComposeImageBitmap()

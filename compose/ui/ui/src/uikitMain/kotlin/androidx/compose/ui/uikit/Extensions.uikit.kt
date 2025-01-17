@@ -94,15 +94,6 @@ internal fun Color.toUIColor(): UIColor? =
         )
     }
 
-internal fun CValue<CGRect>.toDpRect() = useContents {
-    DpRect(
-        left = origin.x.dp,
-        top = origin.y.dp,
-        right = origin.x.dp + size.width.dp,
-        bottom = origin.y.dp + size.height.dp,
-    )
-}
-
 internal fun NSTimeInterval.toNanoSeconds(): Long {
     // The calculation is split in two instead of
     // `(targetTimestamp * 1e9).toLong()`

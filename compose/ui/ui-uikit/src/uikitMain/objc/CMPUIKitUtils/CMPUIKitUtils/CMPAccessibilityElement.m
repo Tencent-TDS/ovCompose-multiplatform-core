@@ -18,41 +18,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation CMPAccessibilityElement {
-    BOOL _inDealloc;
-}
-
-- (instancetype)initWithAccessibilityContainer:(id)container {
-    self = [super initWithAccessibilityContainer:container];
-    
-    if (self) {
-        _inDealloc = NO;
-    }
-    
-    return self;
-}
-
-- (void)dealloc {
-    _inDealloc = YES;
-}
+@implementation CMPAccessibilityElement
 
 - (void)setAccessibilityContainer:(__nullable id)accessibilityContainer {
     // NoOp
 }
 
-// Overrides default accessibilityContainer implementation.
 - (__nullable id)accessibilityContainer {
-    // see https://github.com/flutter/flutter/issues/87247
-    // TODO: investigate if this bug is still present on iOS versions supported by Compose, if it's not, fuse `accessibilityContainer` and `resolveAccessibilityContainer` implementations into a single one (like in `CMPAccessibilityContainer`)
-    if (_inDealloc) {
-        return nil;
-    }
-    
-    return [self resolveAccessibilityContainer];
-}
-
-- (__nullable id)resolveAccessibilityContainer {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [self accessibilityContainer];
 }
 
 + (__nullable id)accessibilityContainerOfObject:(id)object {
@@ -61,43 +34,51 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityCustomActions];
 }
 
 - (UIAccessibilityTraits)accessibilityTraits {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityTraits];
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityIdentifier];
 }
 
 - (NSString *__nullable)accessibilityHint {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityHint];
 }
 
 - (NSString *__nullable)accessibilityLabel {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityLabel];
 }
 
 - (NSString *__nullable)accessibilityValue {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityValue];
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityFrame];
 }
 
 - (BOOL)isAccessibilityElement {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super isAccessibilityElement];
 }
 
 - (BOOL)accessibilityActivate {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityActivate];
+}
+
+- (void)accessibilityIncrement {
+    [super accessibilityIncrement];
+}
+
+- (void)accessibilityDecrement {
+    [super accessibilityDecrement];
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return [super accessibilityScroll:direction];
 }
 
 - (BOOL)accessibilityPerformEscape {
@@ -105,11 +86,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityScrollToVisible {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return NO;
 }
 
 - (BOOL)accessibilityScrollToVisibleWithChild:(id)child {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    return NO;
 }
 
 - (void)accessibilityElementDidBecomeFocused {
@@ -118,6 +99,18 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)accessibilityElementDidLoseFocus {
     [super accessibilityElementDidLoseFocus];
+}
+
+- (NSInteger)accessibilityElementCount {
+    return [super accessibilityElementCount];
+}
+
+- (NSInteger)indexOfAccessibilityElement:(nonnull id)element {
+    return [super indexOfAccessibilityElement:element];
+}
+
+- (id _Nullable)accessibilityElementAtIndex:(NSInteger)index {
+    return [super accessibilityElementAtIndex:index];
 }
 
 @end

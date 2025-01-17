@@ -119,7 +119,7 @@ internal fun FocusEvent.isFocusGainedHandledBySwingPanel(container: Container) =
  * @param key The unique identifier for the panel container.
  * @param focusComponent The component that should receive focus.
  */
-private class SwingInteropViewGroup(
+internal class SwingInteropViewGroup(
     key: Int,
     private val focusComponent: Component
 ) : JPanel() {

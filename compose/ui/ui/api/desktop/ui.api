@@ -130,8 +130,6 @@ public final class androidx/compose/ui/CombinedModifier : androidx/compose/ui/Mo
 
 public final class androidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoKt {
 	public static final field INSTANCE Landroidx/compose/ui/ComposableSingletons$ImageComposeScene_skikoKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function2;
-	public static field lambda-2 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$ui ()Lkotlin/jvm/functions/Function2;
 	public final fun getLambda-2$ui ()Lkotlin/jvm/functions/Function2;
@@ -2488,7 +2486,6 @@ public final class androidx/compose/ui/layout/BeyondBoundsLayoutKt {
 
 public final class androidx/compose/ui/layout/ComposableSingletons$SubcomposeLayoutKt {
 	public static final field INSTANCE Landroidx/compose/ui/layout/ComposableSingletons$SubcomposeLayoutKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$ui ()Lkotlin/jvm/functions/Function2;
 }
@@ -4264,7 +4261,6 @@ public final class androidx/compose/ui/window/AwtWindow_desktopKt {
 
 public final class androidx/compose/ui/window/ComposableSingletons$Tray_desktopKt {
 	public static final field INSTANCE Landroidx/compose/ui/window/ComposableSingletons$Tray_desktopKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$ui ()Lkotlin/jvm/functions/Function3;
 }

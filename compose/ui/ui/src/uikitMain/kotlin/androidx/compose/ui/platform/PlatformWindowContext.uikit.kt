@@ -166,9 +166,7 @@ internal class PlatformWindowContext {
             fromView.convertRect(
                 rect = rect.toDpRect(density).asCGRect(),
                 toView = toView,
-            ).useContents {
-                asDpRect().toRect(density)
-            }
+            ).asDpRect().toRect(density)
         } else {
             rect
         }

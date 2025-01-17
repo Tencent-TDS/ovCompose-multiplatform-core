@@ -26,10 +26,12 @@ import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.isIdentity
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
@@ -41,7 +43,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-
+import androidx.compose.ui.unit.dp
 
 internal class GraphicsLayerOwnerLayer(
     private var graphicsLayer: GraphicsLayer,
@@ -58,7 +60,8 @@ internal class GraphicsLayerOwnerLayer(
     private val matrixCache = Matrix()
     private var inverseMatrixCache: Matrix? = null
 
-    private var isDirty = false
+    private var isDirty = true
+    private var isParentLayerInvalidated = false
 
     private var density = Density(1f)
     private var layoutDirection = LayoutDirection.Ltr
@@ -210,6 +213,7 @@ internal class GraphicsLayerOwnerLayer(
             }
             graphicsLayer.record(density, layoutDirection, size, recordLambda)
             isDirty = false
+            isParentLayerInvalidated = false
         }
     }
 
@@ -220,10 +224,12 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun invalidate() {
-        if (!isDirty && !isDestroyed) {
+        if (isDestroyed) return
+        isDirty = true
+        if (!isParentLayerInvalidated) {
             // Parent layer caches drawing into skia's picture, so we need to reset it
             invalidateParentLayer?.invoke()
-            isDirty = true
+            isParentLayerInvalidated = true
         }
     }
 
@@ -332,28 +338,64 @@ internal class GraphicsLayerOwnerLayer(
         }
     }
 
-    private fun updateMatrix() = with(graphicsLayer) {
-        val pivotX: Float
-        val pivotY: Float
-        if (pivotOffset.isUnspecified) {
-            pivotX = size.width / 2f
-            pivotY = size.height / 2f
-        } else {
-            pivotX = pivotOffset.x
-            pivotY = pivotOffset.y
+    private fun updateMatrix() {
+        if (!isMatrixDirty) return
+        with(graphicsLayer) {
+            val pivotX: Float
+            val pivotY: Float
+            if (pivotOffset.isUnspecified) {
+                pivotX = size.width / 2f
+                pivotY = size.height / 2f
+            } else {
+                pivotX = pivotOffset.x
+                pivotY = pivotOffset.y
+            }
+            prepareTransformationMatrix(
+                matrix = matrixCache,
+                pivotX = pivotX,
+                pivotY = pivotY,
+                translationX = translationX,
+                translationY = translationY,
+                rotationX = rotationX,
+                rotationY = rotationY,
+                rotationZ = rotationZ,
+                scaleX = scaleX,
+                scaleY = scaleY,
+                cameraDistance = cameraDistance
+            )
         }
-        prepareTransformationMatrix(
-            matrix = matrixCache,
-            pivotX = pivotX,
-            pivotY = pivotY,
-            translationX = translationX,
-            translationY = translationY,
-            rotationX = rotationX,
-            rotationY = rotationY,
-            rotationZ = rotationZ,
-            scaleX = scaleX,
-            scaleY = scaleY,
-            cameraDistance = cameraDistance
-        )
+        isMatrixDirty = false
+        isIdentity = matrixCache.isIdentity()
     }
 }
+
+internal fun SkiaGraphicsContext.setLightingInfo(
+    canvasOffset: Offset,
+    density: Density,
+    containerSize: IntSize
+) = with(density) {
+    // Adoption of android.view.ThreadedRenderer.setLightCenter
+    val lightX = containerSize.width / 2f - canvasOffset.x
+    val lightY = LIGHT_Y.toPx() - canvasOffset.y
+    // To prevent shadow distortion on larger screens, scale the z position of the light source
+    // relative to the smallest screen dimension.
+    val zRatio = kotlin.math.min(containerSize.width, containerSize.height).toFloat() / 450.dp.toPx()
+    val zWeightedAdjustment = (zRatio + 2) / 3f
+    val lightZ = LIGHT_Z.toPx() * zWeightedAdjustment
+
+    setLightingInfo(
+        centerX = lightX,
+        centerY = lightY,
+        centerZ = lightZ,
+        radius = LIGHT_RADIUS.toPx(),
+        ambientShadowAlpha = AMBIENT_SHADOW_ALPHA,
+        spotShadowAlpha = SPOT_SHADOW_ALPHA
+    )
+}
+
+// Values from core/res/res/values/dimens.xml
+private val LIGHT_Y = 0.dp
+private val LIGHT_Z = 500.dp
+private val LIGHT_RADIUS = 800.dp
+private const val AMBIENT_SHADOW_ALPHA = 0.039f
+private const val SPOT_SHADOW_ALPHA = 0.19f

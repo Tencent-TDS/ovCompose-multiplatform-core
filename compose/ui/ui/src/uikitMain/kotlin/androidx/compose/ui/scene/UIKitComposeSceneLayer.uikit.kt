@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
@@ -124,7 +125,7 @@ internal class UIKitComposeSceneLayer(
 
     fun render(canvas: Canvas, nanoTime: Long) {
         if (scrimColor != null) {
-            val rect = metalView.bounds.useContents { with(density) { asDpRect().toRect() } }
+            val rect = metalView.bounds.asDpRect().toRect(density)
 
             canvas.drawRect(rect, scrimPaint)
         }

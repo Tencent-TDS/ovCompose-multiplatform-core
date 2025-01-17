@@ -51,6 +51,8 @@ public expect class DialogNavigator() : Navigator<Destination> {
 
     internal fun onTransitionComplete(entry: NavBackStackEntry)
 
+    override fun createDestination(): Destination
+
     /**
      * NavDestination specific to [DialogNavigator]
      */
