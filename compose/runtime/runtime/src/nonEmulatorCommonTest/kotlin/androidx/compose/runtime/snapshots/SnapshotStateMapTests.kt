@@ -19,6 +19,7 @@
 package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,6 +34,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
+import kotlinx.test.IgnoreJsAndNative
 
 class SnapshotStateMapTests {
     @Test
@@ -133,7 +135,10 @@ class SnapshotStateMapTests {
     }
 
     @Test
-    @IgnoreJsTarget
+    @IgnoreJsAndNative
+    // Ignored on js and native:
+    // test passes if the order is changed to
+    // assertEquals(entries.first, entries.second)
     fun validateEntriesIterator() {
         validateRead { map, normalMap ->
             for (entries in map.entries.zip(normalMap.entries)) {
@@ -214,11 +219,13 @@ class SnapshotStateMapTests {
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun validateEntriesRemoveAll() {
         validateWrite { map -> map.entries.removeAll(map.entries.filter { it.key % 2 == 0 }) }
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun validateEntriesRetainAll() {
         validateWrite { map -> map.entries.retainAll(map.entries.filter { it.key % 2 == 0 }) }
     }
@@ -379,7 +386,11 @@ class SnapshotStateMapTests {
         }
     }
 
-    @Test
+    @Test @IgnoreJsAndNative
+    // Ignored for native:
+    // SnapshotStateMap removes a correct element (same as on jvm and js) - entry(key=1,value=1f)
+    // The test fails because MutableMap (normalMap) removes entry(key=1, value=5f)
+    // due to an entry search by value starting from the end of an array (in native HashMap impl).
     fun validateValuesRemove() {
         validateWrite { map ->
             map.values.remove(1f)

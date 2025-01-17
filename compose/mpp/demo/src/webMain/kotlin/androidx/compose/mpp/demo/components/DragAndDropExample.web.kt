@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -38,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
@@ -50,8 +50,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import org.w3c.dom.DataTransfer
+import androidx.compose.ui.draganddrop.domDataTransferOrNull
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 actual fun DragAndDropExample() {
     val exportedText = "Hello, DnD!"
     Row(
@@ -105,7 +108,9 @@ actual fun DragAndDropExample() {
                             )
                         }
                     ) { offset ->
-                        DragAndDropTransferData()
+                        val dataTransfer = createDataTransfer()
+                        dataTransfer.setData("text/plain", "box A")
+                        DragAndDropTransferData(dataTransfer)
                     }
             ) {
                 Text("Drag Me", Modifier.align(Alignment.Center))
@@ -154,7 +159,9 @@ actual fun DragAndDropExample() {
                             )
                         }
                     ) { offset ->
-                        DragAndDropTransferData()
+                        val dataTransfer = createDataTransfer()
+                        dataTransfer.setData("text/plain", "box B")
+                        DragAndDropTransferData(dataTransfer)
                     }
             ) {
                 Text("Nope, Drag Me!!!", Modifier.align(Alignment.Center))
@@ -177,9 +184,6 @@ actual fun DragAndDropExample() {
                     showTargetBorder = false
                 }
 
-                override fun onMoved(event: DragAndDropEvent) {
-                }
-
                 override fun onEntered(event: DragAndDropEvent) {
                     showHovered = true
                 }
@@ -190,6 +194,9 @@ actual fun DragAndDropExample() {
 
                 override fun onDrop(event: DragAndDropEvent): Boolean {
                     showHovered = false
+                    event.transferData?.domDataTransferOrNull?.let { dataTransfer ->
+                        println("drag transfer data stats: files[${dataTransfer?.files?.length}], items[${dataTransfer?.items?.length}]")
+                    }
                     dragCounter++
                     return true
                 }
@@ -212,3 +219,5 @@ actual fun DragAndDropExample() {
         }
     }
 }
+
+private fun createDataTransfer(): DataTransfer =  js("new DataTransfer()")
