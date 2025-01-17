@@ -26,7 +26,6 @@ import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
-import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
@@ -60,8 +59,6 @@ import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -69,11 +66,6 @@ import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSSelectorFromString
-import platform.UIKit.UIAccessibilityIsVoiceOverRunning
-import platform.UIKit.UIAccessibilityVoiceOverStatusChanged
-import platform.UIKit.UIAccessibilityVoiceOverStatusDidChangeNotification
 import platform.UIKit.UIApplication
 import platform.UIKit.UIEvent
 import platform.UIKit.UIStatusBarAnimation
@@ -187,13 +179,6 @@ internal class ComposeHostingViewController(
 
         configuration.delegate.viewDidLoad()
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
-
-        NSNotificationCenter.defaultCenter.addObserver(
-            observer = this,
-            selector = NSSelectorFromString(::onAccessibilityChanged.name),
-            name = UIAccessibilityVoiceOverStatusDidChangeNotification,
-            `object` = null
-        )
     }
 
     override fun viewDidLayoutSubviews() {
@@ -402,10 +387,8 @@ internal class ComposeHostingViewController(
      * Enables or disables accessibility for each layer, as well as the root mediator, taking into
      * account layer order and ability to overlay underlying content.
      */
-    @ObjCAction
     private fun onAccessibilityChanged() {
-        var isAccessibilityEnabled =
-            configuration.accessibilitySyncOptions.isGlobalAccessibilityEnabled
+        var isAccessibilityEnabled = true
         layers.withLayers {
             it.fastForEachReversed { layer ->
                 layer.isAccessibilityEnabled = isAccessibilityEnabled
@@ -437,12 +420,6 @@ internal class ComposeHostingViewController(
         mediator = null
 
         layers.dispose(hasViewAppeared)
-
-        NSNotificationCenter.defaultCenter.removeObserver(
-            observer = this,
-            name = UIAccessibilityVoiceOverStatusChanged,
-            `object` = null
-        )
     }
 
     private fun attachLayer(layer: UIKitComposeSceneLayer) {
@@ -491,12 +468,3 @@ private fun getLayoutDirection() =
         UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
         else -> LayoutDirection.Ltr
     }
-
-@OptIn(ExperimentalComposeApi::class)
-private val AccessibilitySyncOptions.isGlobalAccessibilityEnabled
-    get() =
-        when (this) {
-            AccessibilitySyncOptions.Never -> false
-            AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> UIAccessibilityIsVoiceOverRunning()
-            AccessibilitySyncOptions.Always -> true
-        }
