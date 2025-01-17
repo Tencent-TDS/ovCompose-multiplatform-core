@@ -20,6 +20,7 @@ package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
