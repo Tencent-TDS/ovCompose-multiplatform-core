@@ -19,17 +19,19 @@ package androidx.build
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import org.gradle.api.Project
-import org.gradle.api.attributes.Attribute
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Exec
 import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.getValue
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.native.DefaultSimulatorTestRun
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.tomlj.Toml
@@ -124,15 +126,16 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
         }
 
-        val fetchSkikoWasmRuntime = project.tasks.register("fetchSkikoWasmRuntime", Copy::class.java) {
-            it.destinationDir = project.file(resourcesDir)
-            it.from(skikoWasm.map { artifact ->
-                project.zipTree(artifact)
-                    .matching { pattern ->
-                        pattern.include("skiko.wasm", "skiko.mjs")
-                    }
-            })
-        }
+        val fetchSkikoWasmRuntime =
+            project.tasks.register("fetchSkikoWasmRuntime", Copy::class.java) {
+                it.destinationDir = project.file(resourcesDir)
+                it.from(skikoWasm.map { artifact ->
+                    project.zipTree(artifact)
+                        .matching { pattern ->
+                            pattern.include("skiko.wasm", "skiko.mjs")
+                        }
+                })
+            }
 
         project.tasks.getByName("wasmJsBrowserTest").apply {
             dependsOn(fetchSkikoWasmRuntime)
@@ -267,9 +270,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         }
     }
 
-    // https://youtrack.jetbrains.com/issue/KT-55751/MPP-Gradle-Consumable-configurations-must-have-unique-attributes
-    private val instrumentedTestAttribute = Attribute.of("instrumentedTest", String::class.java)
-    private val instrumentedTestCompilationAttribute = Attribute.of("instrumentedTestCompilation", String::class.java)
     override fun iosInstrumentedTest(): Unit =
         multiplatformExtension.run {
             fun getDeviceName(): String? {
@@ -293,42 +293,43 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             }
 
             fun KotlinNativeTargetWithSimulatorTests.configureTestRun() {
-                attributes.attribute(instrumentedTestAttribute, "test")
-                testRuns.forEach {
-                    (it as DefaultSimulatorTestRun).executionTask.configure { task ->
+                val instrumentedTest = "instrumentedTest"
+                binaries.test(instrumentedTest, setOf(NativeBuildType.DEBUG)) {
+                    compilation = compilations.create(instrumentedTest)
+                }
+                testRuns.create(instrumentedTest) { testRun ->
+                    val executable = binaries.getTest(
+                        namePrefix = instrumentedTest,
+                        buildType = NativeBuildType.DEBUG
+                    )
+                    testRun.setExecutionSourceFrom(executable)
+                    (testRun as DefaultSimulatorTestRun).executionTask.configure { task ->
                         task.dependsOn(bootTask)
                         task.standalone.set(false)
                         task.device.set(getDeviceName())
                     }
                 }
-                compilations.forEach {
-                    it.attributes.attribute(instrumentedTestCompilationAttribute, "test")
-                }
             }
 
-            iosX64("uikitInstrumentedX64") {
-                configureTestRun()
-            }
-            // Testing on real iOS devices is not supported.
-            // iosArm64("uikitInstrumentedArm64") { ... }
-            iosSimulatorArm64("uikitInstrumentedSimArm64") {
-                configureTestRun()
-            }
-
-            val uikitMain = sourceSets.getByName("uikitMain")
-            val uikitInstrumentedMain = sourceSets.create("uikitInstrumentedMain")
-            val uikitInstrumentedX64Main = sourceSets.getByName("uikitInstrumentedX64Main")
-            val uikitInstrumentedSimArm64Main = sourceSets.getByName("uikitInstrumentedSimArm64Main")
-            uikitInstrumentedMain.dependsOn(uikitMain)
-            uikitInstrumentedX64Main.dependsOn(uikitInstrumentedMain)
-            uikitInstrumentedSimArm64Main.dependsOn(uikitInstrumentedMain)
+            testableTargets.getByName(
+                "uikitX64",
+                KotlinNativeTargetWithSimulatorTests::class,
+                KotlinNativeTargetWithSimulatorTests::configureTestRun
+            )
+            testableTargets.getByName(
+                "uikitSimArm64",
+                KotlinNativeTargetWithSimulatorTests::class,
+                KotlinNativeTargetWithSimulatorTests::configureTestRun
+            )
 
             val commonTest = sourceSets.getByName("commonTest")
+            val uikitMain = sourceSets.getByName("uikitMain")
             val uikitInstrumentedTest = sourceSets.create("uikitInstrumentedTest")
-            val uikitInstrumentedX64Test = sourceSets.getByName("uikitInstrumentedX64Test")
-            val uikitInstrumentedSimArm64Test = sourceSets.getByName("uikitInstrumentedSimArm64Test")
+            val uikitX64InstrumentedTest = sourceSets.getByName("uikitX64InstrumentedTest")
+            val uikitSimArm64InstrumentedTest = sourceSets.getByName("uikitSimArm64InstrumentedTest")
             uikitInstrumentedTest.dependsOn(commonTest)
-            uikitInstrumentedX64Test.dependsOn(uikitInstrumentedTest)
-            uikitInstrumentedSimArm64Test.dependsOn(uikitInstrumentedTest)
+            uikitInstrumentedTest.dependsOn(uikitMain)
+            uikitX64InstrumentedTest.dependsOn(uikitInstrumentedTest)
+            uikitSimArm64InstrumentedTest.dependsOn(uikitInstrumentedTest)
         }
 }
