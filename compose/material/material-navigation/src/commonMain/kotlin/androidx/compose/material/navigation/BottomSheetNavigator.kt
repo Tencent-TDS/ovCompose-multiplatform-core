@@ -114,8 +114,6 @@ public expect class BottomSheetNavigator(
      */
     internal val sheetContent: @Composable ColumnScope.() -> Unit
 
-    override fun createDestination(): Destination
-
     /**
      * [NavDestination] specific to [BottomSheetNavigator]
      */

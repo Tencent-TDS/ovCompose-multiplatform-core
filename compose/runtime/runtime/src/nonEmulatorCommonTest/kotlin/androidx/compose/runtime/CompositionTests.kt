@@ -4325,7 +4325,6 @@ class CompositionTests {
 
     // Regression test for b/288717411
     @Test
-    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun test_forgottenValue_isFreedFromSlotTable() = compositionTest {
         val value = Any()
         var rememberValue by mutableStateOf(false)

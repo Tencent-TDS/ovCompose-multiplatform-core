@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation
 
+import kotlin.coroutines.cancellation.CancellationException
+
 internal actual abstract class PlatformOptimizedCancellationException actual constructor(
     message: String?
-) : kotlinx.coroutines.CancellationException(message)
+) : CancellationException(message)

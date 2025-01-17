@@ -172,12 +172,15 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
 //            }
 //        }
 
+        // We Use languageVersion 1.9 for now to align with Jetpack Compose
+        val lv = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
             project.extensions.configure(KotlinMultiplatformExtension::class.java) {
                 it.compilerOptions {
-                    languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
-                    apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+                    languageVersion.set(lv)
+                    apiVersion.set(lv)
                 }
             }
         }

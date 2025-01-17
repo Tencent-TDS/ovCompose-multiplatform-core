@@ -58,8 +58,6 @@ public expect class ComposeNavigator() : Navigator<Destination> {
      */
     public fun prepareForTransition(entry: NavBackStackEntry)
 
-    public override fun createDestination(): Destination
-
     /**
      * Callback to mark a navigation in transition as complete.
      *

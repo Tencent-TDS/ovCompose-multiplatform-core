@@ -45,7 +45,7 @@ actual constructor() : Navigator<Destination>(NAME) {
         entries.forEach { entry -> state.push(entry) }
     }
 
-    actual override fun createDestination(): Destination {
+    override fun createDestination(): Destination {
         return Destination(this) {}
     }
 

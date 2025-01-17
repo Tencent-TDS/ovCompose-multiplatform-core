@@ -17,4 +17,4 @@ package kotlinx.test
 
 annotation class DoNothing
 
-expect annotation class IgnoreWasmTarget()
+expect annotation class IgnoreWasmTarget
