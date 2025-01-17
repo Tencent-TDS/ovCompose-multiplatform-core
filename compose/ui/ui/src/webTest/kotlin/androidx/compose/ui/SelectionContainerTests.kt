@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.text.selection.Selection
 import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,7 +68,8 @@ class SelectionContainerTests : OnCanvasTests {
                     selection = it
                     syncChannel.sendFromScope(it)
                 },
-                children = {
+                // TODO: investigate why explicit @Composable is needed https://youtrack.jetbrains.com/issue/CMP-7410
+                children = @Composable {
                     Column {
                         Text("qwerty uiopasdfghjklzxcvbnm")
                         Text("mnbvcxzlkjhgfdsapoiuytrewq")
@@ -129,7 +131,7 @@ class SelectionContainerTests : OnCanvasTests {
                     selection = it
                     syncChannel.sendFromScope(it)
                 },
-                children = {
+                children = @Composable {
                     Column {
                         Text("012345 uiopasdfghjklzxcvbnm")
                         Text("mnbvcxzlkjhgfdsapoiuytrewq")
@@ -182,7 +184,7 @@ class SelectionContainerTests : OnCanvasTests {
                     syncChannel.sendFromScope(it)
                     selectionCallbackCounter++
                 },
-                children = {
+                children = @Composable {
                     Column {
                         Text("asdfgh uiopasdfghjklzxcvbnm")
                         Text("mnbvcxzlkjhgfdsapoiuytrewq")

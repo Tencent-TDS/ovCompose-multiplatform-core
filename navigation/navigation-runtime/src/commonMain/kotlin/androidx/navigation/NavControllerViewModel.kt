@@ -26,6 +26,8 @@ import kotlin.jvm.JvmStatic
 internal expect class NavControllerViewModel : ViewModel, NavViewModelStoreProvider {
     fun clear(backStackEntryId: String)
 
+    override fun getViewModelStore(backStackEntryId: String): ViewModelStore
+
     companion object {
         @JvmStatic
         fun getInstance(viewModelStore: ViewModelStore): NavControllerViewModel

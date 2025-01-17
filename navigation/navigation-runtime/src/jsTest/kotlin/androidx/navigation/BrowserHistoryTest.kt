@@ -21,6 +21,7 @@ import androidx.testutils.TestNavigator
 import androidx.testutils.test
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlinx.browser.window
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,6 +31,7 @@ import kotlinx.coroutines.test.runTest
 import org.w3c.dom.AddEventListenerOptions
 
 @OptIn(ExperimentalBrowserHistoryApi::class, ExperimentalCoroutinesApi::class)
+@Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7399
 class BrowserHistoryTest {
 
     private fun NavController.createGraph() =
