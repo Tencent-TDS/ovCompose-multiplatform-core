@@ -174,6 +174,7 @@ fun SearchBar(
     windowInsets: WindowInsets = SearchBarDefaults.windowInsets,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val animationProgress = remember { Animatable(initialValue = if (expanded) 1f else 0f) }
     val finalBackProgress = remember { mutableFloatStateOf(Float.NaN) }
     val firstBackEvent = remember { mutableStateOf<BackEventCompat?>(null) }
@@ -211,13 +212,15 @@ fun SearchBar(
                 finalBackProgress.floatValue = animationProgress.value
                 onExpandedChange(false)
             } catch (e: CancellationException) {
-                animationProgress.animateTo(
-                    targetValue = 1f,
-                    animationSpec = AnimationPredictiveBackExitFloatSpec
-                )
-                finalBackProgress.floatValue = Float.NaN
-                firstBackEvent.value = null
-                currentBackEvent.value = null
+                coroutineScope.launch {
+                    animationProgress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = AnimationPredictiveBackExitFloatSpec
+                    )
+                    finalBackProgress.floatValue = Float.NaN
+                    firstBackEvent.value = null
+                    currentBackEvent.value = null
+                }
             }
         }
     }
