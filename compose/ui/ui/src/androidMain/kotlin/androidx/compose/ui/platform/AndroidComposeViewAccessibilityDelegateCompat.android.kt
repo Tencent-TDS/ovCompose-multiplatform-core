@@ -58,7 +58,6 @@ import androidx.compose.ui.contentcapture.ContentCaptureManager
 import androidx.compose.ui.focus.FocusDirection.Companion.Exit
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.toComposeRect
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.positionInRoot
@@ -84,9 +83,13 @@ import androidx.compose.ui.semantics.SemanticsActions.PageRight
 import androidx.compose.ui.semantics.SemanticsActions.PageUp
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsNodeWithAdjustedBounds
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertiesAndroid
+import androidx.compose.ui.semantics.getAllUncoveredSemanticsNodesToIntObjectMap
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.isHidden
+import androidx.compose.ui.semantics.isImportantForAccessibility
 import androidx.compose.ui.semantics.subtreeSortedByGeometryGrouping
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
@@ -95,6 +98,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.platform.URLSpanCache
 import androidx.compose.ui.text.platform.toAccessibilitySpannableString
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastForEach
@@ -310,7 +314,10 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
         get() {
             if (currentSemanticsNodesInvalidated) { // first instance of retrieving all nodes
                 currentSemanticsNodesInvalidated = false
-                field = view.semanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap()
+                field =
+                    view.semanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap(
+                        customRootNodeId = AccessibilityNodeProviderCompat.HOST_VIEW_ID
+                    )
                 if (isEnabled) {
                     setTraversalValues(field, idToBeforeMap, idToAfterMap, view.context.resources)
                 }
@@ -402,7 +409,7 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             // avoid overlapping siblings. Because position is a float (touch event can happen in-
             // between pixels), convert the int-based Android Rect to a float-based Compose Rect
             // before doing the comparison.
-            if (!node.adjustedBounds.toComposeRect().contains(position)) {
+            if (!node.adjustedBounds.toRect().contains(position)) {
                 return@forEachValue
             }
 
