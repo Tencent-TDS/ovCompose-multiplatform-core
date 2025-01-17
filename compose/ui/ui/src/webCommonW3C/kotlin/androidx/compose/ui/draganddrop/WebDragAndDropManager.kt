@@ -29,61 +29,7 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
 
     abstract val rootDragAndDropNode: ComposeSceneDragAndDropNode
 
-    private val startTransferScope = object : PlatformDragAndDropSource.StartTransferScope {
-        /**
-         * Context for an ongoing drag session initiated from Compose.
-         */
-        var dragSessionContext: DragSessionContext? = null
-
-
-        override fun startDragAndDropTransfer(
-            transferData: DragAndDropTransferData,
-            decorationSize: Size,
-            drawDragDecoration: DrawScope.() -> Unit
-        ): Boolean {
-            dragSessionContext = DragSessionContext()
-
-            val imageBitmap = ImageBitmap(
-                width = decorationSize.width.roundToInt(),
-                height = decorationSize.height.roundToInt()
-            )
-
-            val canvas = Canvas(imageBitmap)
-            val canvasScope = CanvasDrawScope()
-
-            canvasScope.draw(density, LayoutDirection.Ltr, canvas, decorationSize, drawDragDecoration)
-
-            val intArray = IntArray(imageBitmap.width * imageBitmap.height)
-            imageBitmap.readPixels(intArray)
-
-            val uint8ClampedArray = intArray.toUint8ClampedArray()
-
-            val imageData = ImageData(uint8ClampedArray, imageBitmap.width, imageBitmap.height)
-
-            val canvasConverter = document.createElement("canvas") as HTMLCanvasElement
-
-            val scale = density.density
-
-            canvasConverter.width = imageBitmap.width
-            canvasConverter.height = imageBitmap.height
-
-            require(scale > 0f)
-
-            val width = (decorationSize.width / scale).toInt()
-            val height = (decorationSize.height / scale).toInt()
-
-            canvasConverter.style.width = "${width}px"
-            canvasConverter.style.height = "${height}px"
-
-            val canvasConverterContext = canvasConverter.getContext("2d") as CanvasRenderingContext2D
-            canvasConverterContext.putImageData(imageData, 0.0, 0.0)
-
-            dragSessionContext?.ghostImage = canvasConverter
-
-            return true
-        }
-    }
-
+    private var startTransferScope: InternalStartTransferScope? = null
 
     init {
         initEvents(eventListener, globalEventsListener)
@@ -112,45 +58,88 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
         }
     }
 
-    private fun initEvents(eventListener: EventTargetListener, globalEventsListener: EventTargetListener) {
-        eventListener.addDisposableEvent("dragstart") { event ->
-            event as DragEvent
+    private fun InternalStartTransferScope.startTransfer(dragEvent: DragEvent): Boolean {
+        with (rootDragAndDropNode) {
+            startDragAndDropTransfer(dragEvent.offset) {
+                isActive()
+            }
 
-            with (rootDragAndDropNode) {
-                startTransferScope.startDragAndDropTransfer(event.offset) {
-                    startTransferScope.dragSessionContext != null
-                }
-
-                if (startTransferScope.dragSessionContext != null) {
-                    val dragEvent = DragAndDropEvent(event.offset)
-                    val acceptedTransfer = acceptDragAndDropTransfer(dragEvent)
-
-                    if (acceptedTransfer) {
-                        onStarted(dragEvent)
-                        onEntered(dragEvent)
-
-                        startTransferScope.dragSessionContext?.ghostImage?.let { ghostImage ->
-                            event.setAsDragImage(ghostImage)
-                        }
-                    }
-                } else {
-                    event.preventDefault()
-                }
+            if (isActive()) {
+                return acceptTransfer(dragEvent)
             }
         }
 
-        eventListener.addDisposableEvent("drag") { event ->
-            event as DragEvent
-            rootDragAndDropNode.onMoved(DragAndDropEvent(event.offset))
+        dragEvent.preventDefault()
+        return false
+    }
+
+
+    private fun acceptTransfer(dragEvent: DragEvent): Boolean {
+        var acceptedTransfer = false
+
+        with (rootDragAndDropNode) {
+            val evt = DragAndDropEvent(dragEvent.offset, transferData = DragAndDropTransferData(dragEvent.dataTransfer))
+            acceptedTransfer = acceptDragAndDropTransfer(evt)
+
+            if (acceptedTransfer) {
+                onStarted(evt)
+                onEntered(evt)
+            }
         }
 
-        eventListener.addDisposableEvent("dragend") { event ->
+        return acceptedTransfer
+    }
+
+    private fun initEvents(eventListener: EventTargetListener, globalEventsListener: EventTargetListener) {
+        var previousDragEventIsStart = false
+
+        eventListener.addDisposableEvent("dragstart") { event ->
+            // Both internal (starting from within the application)
+            // and external (triggered by dragging something for the outer world)
+            // trigger the "dragenter" event but we can not set drag image anywhere apart dragstart
+            previousDragEventIsStart = true
             event as DragEvent
-            val dragAndDropEvent = DragAndDropEvent(event.offset)
+
+            val scope = InternalStartTransferScope(density)
+
+            if (scope.startTransfer(event)) {
+                scope.ghostImage?.let { ghostImage ->
+                    event.setAsDragImage(ghostImage)
+                }
+                startTransferScope = scope
+            }
+        }
+
+        eventListener.addDisposableEvent("dragenter") { event ->
+            // We have to ignore dragenter if last drag event was "dragstart"
+            if (!previousDragEventIsStart) {
+                event as DragEvent
+                acceptTransfer(event)
+            }
+            previousDragEventIsStart = false
+        }
+
+        eventListener.addDisposableEvent("dragover") { event ->
+            // This event always should be prevent-defaulted whenever we rely on the "drop" event
+            // see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drop_event
+            event.preventDefault()
+            event as DragEvent
+            rootDragAndDropNode.onMoved(DragAndDropEvent(event.offset, null))
+        }
+
+        eventListener.addDisposableEvent("drop") { event ->
+            event.preventDefault()
+            event as DragEvent
+
+            val dragAndDropEvent = DragAndDropEvent(
+                event.offset,
+            startTransferScope?.transferData ?: DragAndDropTransferData(event.dataTransfer)
+            )
+
             rootDragAndDropNode.onDrop(dragAndDropEvent)
             rootDragAndDropNode.onEnded(dragAndDropEvent)
 
-            startTransferScope.dragSessionContext = null
+            startTransferScope = null
         }
 
         globalEventsListener.addDisposableEvent("dragover") { event ->
@@ -165,10 +154,6 @@ internal abstract class WebDragAndDropManager(eventListener: EventTargetListener
         y = offsetY.toFloat()
     ) * density.density
 }
-
-private class DragSessionContext(
-    var ghostImage: HTMLCanvasElement? = null
-)
 
 @Suppress("UNUSED_PARAMETER")
 private fun setMethodImplForUint8ClampedArray(obj: Uint8ClampedArray, index: Int, value: Int) { js("obj[index] = value;") }
@@ -194,4 +179,72 @@ private fun IntArray.toUint8ClampedArray(): Uint8ClampedArray {
     }
 
     return uint8ClampedArray
+}
+
+private class InternalStartTransferScope(
+    private val density: Density
+) : PlatformDragAndDropSource.StartTransferScope {
+    /**
+     * Context for an ongoing drag session initiated from Compose.
+     */
+    var ghostImage: HTMLCanvasElement? = null
+    var transferData: DragAndDropTransferData? = null
+
+    fun isActive(): Boolean = transferData != null
+
+    private fun captureAsImageData(
+        decorationSize: Size,
+        drawDragDecoration: DrawScope.() -> Unit
+    ): ImageData {
+        val imageBitmap = ImageBitmap(
+            width = decorationSize.width.roundToInt(),
+            height = decorationSize.height.roundToInt()
+        )
+
+        val canvas = Canvas(imageBitmap)
+        val canvasScope = CanvasDrawScope()
+
+        canvasScope.draw(density, LayoutDirection.Ltr, canvas, decorationSize, drawDragDecoration)
+
+        val intArray = IntArray(imageBitmap.width * imageBitmap.height)
+        imageBitmap.readPixels(intArray)
+
+        val uint8ClampedArray = intArray.toUint8ClampedArray()
+
+        return ImageData(uint8ClampedArray, imageBitmap.width, imageBitmap.height)
+    }
+
+    fun ImageData.asHtmlCanvas(): HTMLCanvasElement {
+        val canvasConverter = document.createElement("canvas") as HTMLCanvasElement
+
+        canvasConverter.width = width
+        canvasConverter.height = height
+
+        val scale = density.density
+        require(scale > 0f)
+
+        val widthNormalized = (width / scale).toInt()
+        val heightNormalized = (height / scale).toInt()
+
+        canvasConverter.style.width = "${widthNormalized}px"
+        canvasConverter.style.height = "${heightNormalized}px"
+
+        val canvasConverterContext = canvasConverter.getContext("2d") as CanvasRenderingContext2D
+        canvasConverterContext.putImageData(this, 0.0, 0.0)
+
+        return canvasConverter
+    }
+
+    override fun startDragAndDropTransfer(
+        transferData: DragAndDropTransferData,
+        decorationSize: Size,
+        drawDragDecoration: DrawScope.() -> Unit
+    ): Boolean {
+        this.transferData = transferData
+
+        val imageData = captureAsImageData(decorationSize, drawDragDecoration)
+        ghostImage = imageData.asHtmlCanvas()
+
+        return true
+    }
 }
