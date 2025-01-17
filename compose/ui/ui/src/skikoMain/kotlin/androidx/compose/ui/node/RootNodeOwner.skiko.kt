@@ -720,12 +720,10 @@ internal class RootNodeOwner(
             dirtyLayers.clear()
 
             // Draw root node
-            graphicsContext.drawIntoCanvas(canvas) {
-                owner.root.draw(
-                    canvas = it,
-                    graphicsLayer = null // the root node will provide the root graphics layer
-                )
-            }
+            owner.root.draw(
+                canvas = canvas,
+                graphicsLayer = null // the root node will provide the root graphics layer
+            )
 
             // updateDisplayList operations performed above (during root.draw and during the explicit
             // layer.updateDisplayList() calls) can result in the same layers being invalidated. These

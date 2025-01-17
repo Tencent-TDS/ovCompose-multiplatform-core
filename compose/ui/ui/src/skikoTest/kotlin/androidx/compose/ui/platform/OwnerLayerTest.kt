@@ -501,13 +501,12 @@ class OwnerLayerTest {
             )
 
             val surface = Surface.makeRasterN32Premul(100, 100)
+            val canvas = surface.canvas
             val stateObserver = SnapshotStateObserver { it.invoke() }
 
             fun draw() {
                 stateObserver.observeReads(Unit, { layer.invalidate() }) {
-                    graphicsContext!!.drawIntoCanvas(surface.canvas.asComposeCanvas()) { canvas ->
-                        layer.drawLayer(canvas, null)
-                    }
+                    layer.drawLayer(canvas.asComposeCanvas(), null)
                 }
             }
 

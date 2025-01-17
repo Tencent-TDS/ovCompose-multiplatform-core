@@ -51,10 +51,6 @@ class SkiaGraphicsContext(
         )
     }
 
-    fun drawIntoCanvas(canvas: Canvas, block: (Canvas) -> Unit) {
-        block(canvas)
-    }
-
     override fun createGraphicsLayer() = GraphicsLayer(
         renderNode = RenderNode(renderNodeContext)
     )
