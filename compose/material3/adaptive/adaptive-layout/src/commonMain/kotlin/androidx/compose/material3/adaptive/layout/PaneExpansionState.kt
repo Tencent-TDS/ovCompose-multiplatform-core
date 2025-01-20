@@ -32,7 +32,6 @@ import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.PaneExpansionState.Companion.DefaultAnchoringAnimationSpec
 import androidx.compose.material3.adaptive.layout.PaneExpansionState.Companion.Unspecified
-import androidx.compose.material3.adaptive.layout.internal.identityHashCode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,7 +54,6 @@ import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.packInts
 import androidx.compose.ui.util.unpackInt1
 import androidx.compose.ui.util.unpackInt2
-import kotlin.jvm.JvmInline
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
@@ -84,7 +82,7 @@ sealed interface PaneExpansionStateKey {
         }
 
         override fun hashCode(): Int {
-            return identityHashCode(this)
+            return System.identityHashCode(this)
         }
     }
 

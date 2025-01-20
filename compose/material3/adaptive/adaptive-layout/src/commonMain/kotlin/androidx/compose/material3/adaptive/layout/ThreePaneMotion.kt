@@ -22,7 +22,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastForEachIndexed
-import kotlin.jvm.JvmStatic
 
 /**
  * The class that provides motion settings for three pane scaffolds like [ListDetailPaneScaffold]
