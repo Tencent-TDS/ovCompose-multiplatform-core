@@ -40,10 +40,14 @@ import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalLocalization
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.getSelectedText
 import java.awt.Component
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.UnsupportedFlavorException
+import java.io.IOException
 import javax.swing.JPopupMenu
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -105,8 +109,7 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
         }
 
     override val paste: (() -> Unit)? get() =
-        // TODO https://youtrack.jetbrains.com/issue/CMP-7402
-        if (editable/* && clipboardManager?.getText() != null */) {
+        if (editable && clipboard?.nativeClipboard?.hasText() == true) {
             {
                 paste()
                 focusRequester?.requestFocus()
@@ -127,6 +130,21 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
 
     override fun selectWordAtPositionIfNotAlreadySelected(offset: Offset) {
         this@textManager.selectWordAtPositionIfNotAlreadySelected(offset)
+    }
+}
+
+// Here we rely on the NativeClipboard directly instead of using ClipEntry,
+// because getClipEntry is a suspend function, but above we have an older code
+// expecting a synchronous execution.
+private fun NativeClipboard.hasText(): Boolean {
+    return try {
+        (getData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
+    } catch (_: UnsupportedFlavorException) {
+        false
+    } catch (_: IllegalStateException) {
+        false
+    } catch (_: IOException) {
+        false
     }
 }
 

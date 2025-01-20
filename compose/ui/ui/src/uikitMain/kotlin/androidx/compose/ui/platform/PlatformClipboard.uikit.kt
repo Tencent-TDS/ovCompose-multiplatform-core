@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.internal
+package androidx.compose.ui.platform
 
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.text.AnnotatedString
+import platform.UIKit.UIPasteboard
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-7402
-//internal actual fun ClipEntry.readText(): String? = null
-//internal actual fun ClipEntry.readAnnotatedString(): AnnotatedString? = null
-//internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? = null
-//internal actual fun ClipEntry?.hasText(): Boolean = false
+actual typealias NativeClipboard = platform.UIKit.UIPasteboard
+
+internal class UiKitPlatformClipboard internal constructor() : Clipboard {
+    override suspend fun getClipEntry(): ClipEntry? {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        TODO("Not yet implemented")
+    }
+
+    override val nativeClipboard: NativeClipboard
+        get() = UIPasteboard.generalPasteboard
+}

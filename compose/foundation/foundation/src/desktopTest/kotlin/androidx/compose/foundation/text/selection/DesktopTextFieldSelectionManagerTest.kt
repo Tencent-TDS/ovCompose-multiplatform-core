@@ -23,7 +23,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutInput
@@ -66,6 +66,7 @@ class DesktopTextFieldSelectionManagerTest {
     private val layoutResultProxy: TextLayoutResultProxy = mock()
     private lateinit var manager: TextFieldSelectionManager
 
+    private val clipboard = mock<Clipboard>()
     private val textToolbar = mock<TextToolbar>()
     private val hapticFeedback = mock<HapticFeedback>()
     private val focusRequester = mock<FocusRequester>()
@@ -77,6 +78,7 @@ class DesktopTextFieldSelectionManagerTest {
         manager.offsetMapping = offsetMapping
         manager.onValueChange = lambda
         manager.value = value
+        manager.clipboard = clipboard
         manager.textToolbar = textToolbar
         manager.hapticFeedBack = hapticFeedback
         manager.focusRequester = focusRequester
