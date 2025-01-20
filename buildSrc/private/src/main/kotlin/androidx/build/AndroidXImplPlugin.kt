@@ -876,6 +876,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                     // w: Mimalloc allocator isn't supported on target <target>. Used standard mode.
 
                     // TODO: Remove when the issue is fixed in KGP
+                    // https://youtrack.jetbrains.com/issue/KT-74564
                     // it.freeCompilerArgs += "-Xallocator=std"
                     //
                     // Fixes problem when instrumented tests compilation is not properly applied to

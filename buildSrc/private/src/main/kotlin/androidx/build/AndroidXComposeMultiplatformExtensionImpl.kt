@@ -254,6 +254,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
                 }
 
                 // TODO: Remove when the issue is fixed in KGP
+                // https://youtrack.jetbrains.com/issue/KT-74564
                 // it.freeCompilerArgs += flags
                 //
                 // Fixes problem when instrumented tests compilation is not properly applied to
