@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.internal
 
 internal actual fun getCurrentThreadId(): Long = Thread.currentThread().id
