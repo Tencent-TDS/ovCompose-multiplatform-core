@@ -19,57 +19,12 @@ package androidx.compose.ui.graphics
 import androidx.compose.ui.InternalComposeUiApi
 import kotlin.math.abs
 import org.jetbrains.skia.Matrix33
-import org.jetbrains.skia.Matrix44
 
 internal fun identityMatrix33() = Matrix33(
     1f, 0f, 0f,
     0f, 1f, 0f,
     0f, 0f, 1f
 )
-
-internal fun Matrix.toSkiaMatrix44() = Matrix44(
-    this[0, 0],
-    this[1, 0],
-    this[2, 0],
-    this[3, 0],
-
-    this[0, 1],
-    this[1, 1],
-    this[2, 1],
-    this[3, 1],
-
-    this[0, 2],
-    this[1, 2],
-    this[2, 2],
-    this[3, 2],
-
-    this[0, 3],
-    this[1, 3],
-    this[2, 3],
-    this[3, 3]
-)
-
-internal fun Matrix.copyInto(matrix44: Matrix44) {
-    matrix44.mat[0] = this[0, 0]
-    matrix44.mat[1] = this[1, 0]
-    matrix44.mat[2] = this[2, 0]
-    matrix44.mat[3] = this[3, 0]
-
-    matrix44.mat[4] = this[0, 1]
-    matrix44.mat[5] = this[1, 1]
-    matrix44.mat[6] = this[2, 1]
-    matrix44.mat[7] = this[3, 1]
-
-    matrix44.mat[8] = this[0, 2]
-    matrix44.mat[9] = this[1, 2]
-    matrix44.mat[10] = this[2, 2]
-    matrix44.mat[11] = this[3, 2]
-
-    matrix44.mat[12] = this[0, 3]
-    matrix44.mat[13] = this[1, 3]
-    matrix44.mat[14] = this[2, 3]
-    matrix44.mat[15] = this[3, 3]
-}
 
 @InternalComposeUiApi
 fun prepareTransformationMatrix(
