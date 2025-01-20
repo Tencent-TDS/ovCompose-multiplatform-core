@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui
+package androidx.compose.ui.internal
 
 internal expect fun getCurrentThreadId(): Long

@@ -20,5 +20,3 @@ internal actual fun currentTimeMillis(): Long {
     // TODO https://youtrack.jetbrains.com/issue/CMP-7152/Implement-currentTimeMillis-for-web
     return 0
 }
-
-internal actual fun getCurrentThreadId(): Long = 0
