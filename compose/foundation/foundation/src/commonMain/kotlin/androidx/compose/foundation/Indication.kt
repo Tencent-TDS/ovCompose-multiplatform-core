@@ -29,22 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.DrawModifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.InputMode
-import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.input.InputModeManager
-import androidx.compose.ui.modifier.modifierLocalOf
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.debugInspectorInfo
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 /**
@@ -172,18 +164,7 @@ interface IndicationInstance {
  * @param indication [Indication] used to draw visual effects. If `null`, no visual effects will be
  *   shown for this component.
  */
-fun Modifier.indication(
-    interactionSource: InteractionSource,
-    indication: Indication?
-): Modifier = indicationImpl(
-    interactionSource,
-    platformIndication(indication)
-)
-
-private fun Modifier.indicationImpl(
-    interactionSource: InteractionSource,
-    indication: Indication?
-): Modifier {
+fun Modifier.indication(interactionSource: InteractionSource, indication: Indication?): Modifier {
     if (indication == null) return this
     // Fast path - ideally we should never break into the composed path below.
     if (indication is IndicationNodeFactory) {
@@ -364,9 +345,3 @@ private const val IndicationInstanceDeprecationMessage =
         "instead use Modifier.Node APIs, and should be returned from " +
         "IndicationNodeFactory#create. For a migration guide and background information, " +
         "please visit developer.android.com"
-
-/**
- * Some platforms add additional logic to the indication.
- * For example, desktop/web in Compose Multiplatform hide focus indication depending on [InputMode]
- */
-internal expect fun platformIndication(indication: Indication?): Indication?

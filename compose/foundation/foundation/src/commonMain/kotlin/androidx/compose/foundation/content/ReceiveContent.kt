@@ -52,11 +52,8 @@ import androidx.compose.ui.platform.InspectorInfo
  */
 @Suppress("ExecutorRegistration")
 @ExperimentalFoundationApi
-fun Modifier.contentReceiver(receiveContentListener: ReceiveContentListener): Modifier {
-    // TODO https://youtrack.jetbrains.com/issue/COMPOSE-1263/Implement-Modifier.receiveContent
-    println("Modifier.receiveContent isn't supported in Compose Multiplatform yet")
-    return then(ReceiveContentElement(receiveContentListener = receiveContentListener))
-}
+fun Modifier.contentReceiver(receiveContentListener: ReceiveContentListener): Modifier =
+    then(ReceiveContentElement(receiveContentListener = receiveContentListener))
 
 @OptIn(ExperimentalFoundationApi::class)
 internal data class ReceiveContentElement(val receiveContentListener: ReceiveContentListener) :

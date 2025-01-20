@@ -147,10 +147,6 @@ internal object Nodes {
     @JvmStatic
     inline val BringIntoView
         get() = NodeKind<BringIntoViewModifierNode>(0b1 shl 19)
-
-    @JvmStatic
-    inline val Unplaced
-        get() = NodeKind<OnUnplacedModifierNode>(0b1 shl 20)
     // ...
 }
 
@@ -256,9 +252,6 @@ internal fun calculateNodeKindSetFrom(node: Modifier.Node): Int {
         }
         if (node is BringIntoViewModifierNode) {
             mask = mask or Nodes.BringIntoView
-        }
-        if (node is OnUnplacedModifierNode) {
-            mask = mask or Nodes.Unplaced
         }
         mask
     }

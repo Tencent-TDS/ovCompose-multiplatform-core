@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation
+package androidx.compose.ui.node
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-5814/Review-Request-focus-on-click-feature
-internal expect fun isRequestFocusOnClickEnabled(): Boolean
+internal expect class TreeSet<E>(comparator: Comparator<in E>) {
+    fun add(element: E): Boolean
+
+    fun remove(element: E): Boolean
+
+    fun first(): E
+
+    fun contains(element: E): Boolean
+
+    fun isEmpty(): Boolean
+}

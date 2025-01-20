@@ -27,9 +27,7 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.focus.FocusRequesterModifierNode
 import androidx.compose.ui.focus.Focusability
-import androidx.compose.ui.focus.requestFocus
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -219,6 +217,9 @@ fun Modifier.clickable(
  * If you are only creating this combinedClickable modifier inside composition, consider using the
  * other overload and explicitly passing `LocalIndication.current` for improved performance. For
  * more information see the documentation on the other overload.
+ *
+ * Note, if the modifier instance gets re-used between a key down and key up events, the ongoing
+ * input will be aborted.
  *
  * ***Note*** Any removal operations on Android Views from `clickable` should wrap `onClick` in a
  * `post { }` block to guarantee the event dispatch completes before executing the removal. (You do
@@ -456,10 +457,7 @@ internal inline fun Modifier.clickableWithIndicationIfNeeded(
     return this.then(
         when {
             // Fast path - indication is managed internally
-            indication is IndicationNodeFactory -> createClickable(
-                interactionSource,
-                platformIndication(indication) as IndicationNodeFactory
-            )
+            indication is IndicationNodeFactory -> createClickable(interactionSource, indication)
             // Fast path - no need for indication
             indication == null -> createClickable(interactionSource, null)
             // Non-null Indication (not IndicationNodeFactory) with a non-null InteractionSource
@@ -504,14 +502,14 @@ internal expect fun DelegatableNode.isComposeRootInScrollableContainer(): Boolea
  * Whether the specified [KeyEvent] should trigger a press for a clickable component, i.e. whether
  * it is associated with a press of an enter key or dpad centre.
  */
-internal val KeyEvent.isPress: Boolean
+private val KeyEvent.isPress: Boolean
     get() = type == KeyDown && isEnter
 
 /**
  * Whether the specified [KeyEvent] should trigger a click for a clickable component, i.e. whether
  * it is associated with a release of an enter key or dpad centre.
  */
-internal val KeyEvent.isClick: Boolean
+private val KeyEvent.isClick: Boolean
     get() = type == KeyUp && isEnter
 
 private val KeyEvent.isEnter: Boolean
@@ -695,7 +693,6 @@ internal open class ClickableNode(
         detectTapAndPress(
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenInMouseInputMode()
                     handlePressInteraction(offset)
                 }
             },
@@ -756,15 +753,11 @@ private class CombinedClickableNode(
         detectTapGestures(
             onDoubleTap =
                 if (enabled && onDoubleClick != null) {
-                    {
-                        requestFocusWhenInMouseInputMode()
-                        onDoubleClick?.invoke()
-                    }
+                    { onDoubleClick?.invoke() }
                 } else null,
             onLongPress =
                 if (enabled && onLongClick != null) {
                     {
-                        requestFocusWhenInMouseInputMode()
                         onLongClick?.invoke()
                         if (hapticFeedbackEnabled) {
                             currentValueOf(LocalHapticFeedback)
@@ -774,7 +767,6 @@ private class CombinedClickableNode(
                 } else null,
             onPress = { offset ->
                 if (enabled) {
-                    requestFocusWhenInMouseInputMode()
                     handlePressInteraction(offset)
                 }
             },
@@ -974,7 +966,6 @@ internal abstract class AbstractClickableNode(
     DelegatingNode(),
     PointerInputModifierNode,
     KeyInputModifierNode,
-    FocusRequesterModifierNode,
     SemanticsModifierNode,
     TraversableNode {
     protected var enabled = enabled
@@ -991,7 +982,6 @@ internal abstract class AbstractClickableNode(
             focusability = Focusability.SystemDefined,
             onFocusChange = ::onFocusChange
         )
-
 
     private var pointerInputNode: SuspendingPointerInputModifierNode? = null
     private var indicationNode: DelegatableNode? = null
@@ -1333,10 +1323,4 @@ internal fun TraversableNode.hasScrollableContainer(): Boolean {
         !hasScrollable
     }
     return hasScrollable
-}
-
-private fun FocusRequesterModifierNode.requestFocusWhenInMouseInputMode() {
-    if (isRequestFocusOnClickEnabled()) {
-        requestFocus()
-    }
 }

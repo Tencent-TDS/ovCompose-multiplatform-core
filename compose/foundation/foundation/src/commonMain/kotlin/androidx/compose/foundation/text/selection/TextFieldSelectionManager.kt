@@ -41,6 +41,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
@@ -141,17 +142,17 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
      * is stopped.
      */
     var draggingHandle: Handle? by mutableStateOf(null)
-        internal set
+        private set
 
     /** The current position of a drag, in decoration box coordinates. */
     var currentDragPosition: Offset? by mutableStateOf(null)
-        internal set
+        private set
 
     /**
      * The previous offset of a drag, before selection adjustments. Only update when a selection
      * layout change has occurred, or set to -1 if a new drag begins.
      */
-    internal var previousRawDragOffset: Int = -1
+    private var previousRawDragOffset: Int = -1
 
     /**
      * The old [TextFieldValue] before entering the selection mode on long press. Used to exit the
@@ -160,7 +161,7 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
     private var oldValue: TextFieldValue = TextFieldValue()
 
     /** The previous [SelectionLayout] where [SelectionLayout.shouldRecomputeSelection] was true. */
-    internal var previousSelectionLayout: SelectionLayout? = null
+    private var previousSelectionLayout: SelectionLayout? = null
 
     /** [TextDragObserver] for long press and drag to select in TextField. */
     internal val touchSelectionObserver =
@@ -465,10 +466,7 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
                 updateFloatingToolbar(show = true)
             }
 
-            override fun onCancel() {
-                draggingHandle = null
-                currentDragPosition = null
-            }
+            override fun onCancel() {}
         }
 
     /** [TextDragObserver] for dragging the cursor to change the selection in TextField. */
@@ -627,22 +625,6 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
         setHandleState(None)
     }
 
-    internal fun onCopyWithResult(cancelSelection: Boolean = true): String? {
-        if (value.selection.collapsed) return null
-        val selectedText = value.getSelectedText().text
-
-        if (!cancelSelection) return selectedText
-
-        val newCursorOffset = value.selection.max
-        val newValue = createTextFieldValue(
-            annotatedString = value.annotatedString,
-            selection = TextRange(newCursorOffset, newCursorOffset)
-        )
-        onValueChange(newValue)
-        setHandleState(HandleState.None)
-        return selectedText
-    }
-
     /**
      * The method for pasting text.
      *
@@ -667,21 +649,6 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
             )
         onValueChange(newValue)
         setHandleState(None)
-        undoManager?.forceNextSnapshot()
-    }
-
-    internal fun paste(text: AnnotatedString) {
-        val newText = value.getTextBeforeSelection(value.text.length) +
-            text +
-            value.getTextAfterSelection(value.text.length)
-        val newCursorOffset = value.selection.min + text.length
-
-        val newValue = createTextFieldValue(
-            annotatedString = newText,
-            selection = TextRange(newCursorOffset, newCursorOffset)
-        )
-        onValueChange(newValue)
-        setHandleState(HandleState.None)
         undoManager?.forceNextSnapshot()
     }
 
@@ -712,25 +679,6 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
         onValueChange(newValue)
         setHandleState(None)
         undoManager?.forceNextSnapshot()
-    }
-
-    internal fun onCutWithResult(): String? {
-        if (value.selection.collapsed) return null
-        val selectedText = value.getSelectedText().text
-
-        val newText = value.getTextBeforeSelection(value.text.length) +
-            value.getTextAfterSelection(value.text.length)
-        val newCursorOffset = value.selection.min
-
-        val newValue = createTextFieldValue(
-            annotatedString = newText,
-            selection = TextRange(newCursorOffset, newCursorOffset)
-        )
-        onValueChange(newValue)
-        setHandleState(HandleState.None)
-        undoManager?.forceNextSnapshot()
-
-        return selectedText
     }
 
     /*@VisibleForTesting*/
@@ -1083,16 +1031,14 @@ internal fun TextFieldSelectionHandle(
 }
 
 /** Whether the selection handle is in the visible bound of the TextField. */
-internal expect fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
-    isStartHandle: Boolean
-): Boolean
-
-
-internal fun TextFieldSelectionManager.isSelectionHandleInVisibleBoundDefault(
+internal fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
     isStartHandle: Boolean
 ): Boolean =
     state?.layoutCoordinates?.visibleBounds()?.containsInclusive(getHandlePosition(isStartHandle))
         ?: false
+
+// TODO(b/180075467) it should be part of PointerEvent API in one way or another
+internal expect val PointerEvent.isShiftPressed: Boolean
 
 /**
  * Optionally shows a magnifier widget, if the current platform supports it, for the current state

@@ -83,5 +83,3 @@ internal expect class SnapshotIdArrayBuilder(array: SnapshotIdArray?) {
 }
 
 internal expect fun Int.toSnapshotId(): SnapshotId
-
-internal expect fun Long.toSnapshotId(): SnapshotId

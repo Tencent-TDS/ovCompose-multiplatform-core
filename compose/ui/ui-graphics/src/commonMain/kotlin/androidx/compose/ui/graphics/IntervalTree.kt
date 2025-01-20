@@ -176,15 +176,15 @@ class IntervalTree<T> {
 
     operator fun iterator(): Iterator<Interval<T>> {
         return object : Iterator<Interval<T>> {
-            var _next = root.lowestNode()
+            var next = root.lowestNode()
 
             override fun hasNext(): Boolean {
-                return _next !== terminator
+                return next !== terminator
             }
 
             override fun next(): Interval<T> {
-                val node = _next
-                _next = _next.next()
+                val node = next
+                next = next.next()
                 return node
             }
         }

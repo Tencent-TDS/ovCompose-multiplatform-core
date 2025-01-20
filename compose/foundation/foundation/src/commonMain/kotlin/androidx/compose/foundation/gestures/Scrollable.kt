@@ -20,6 +20,7 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.ComposeFoundationFlags.NewNestedFlingPropagationEnabled
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -27,7 +28,6 @@ import androidx.compose.foundation.FocusedBoundsObserverNode
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.OverscrollEffect
-import androidx.compose.foundation.PlatformOptimizedCancellationException
 import androidx.compose.foundation.gestures.Orientation.Horizontal
 import androidx.compose.foundation.gestures.Orientation.Vertical
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberPlatformOverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.focus.FocusTargetModifierNode
@@ -79,7 +80,6 @@ import androidx.compose.ui.util.fastAny
 import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -284,7 +284,8 @@ internal class ScrollableNode(
     private val scrollableContainerNode = delegate(ScrollableContainerNode(enabled))
 
     // Place holder fling behavior, we'll initialize it when the density is available.
-    private val defaultFlingBehavior = platformDefaultFlingBehavior()
+    // TODO: It should differ between platforms, move it under expect/actual
+    private val defaultFlingBehavior = DefaultFlingBehavior(splineBasedDecay(UnityDensity))
 
     private val scrollingLogic =
         ScrollingLogic(
@@ -538,7 +539,10 @@ object ScrollableDefaults {
     /** Create and remember default [FlingBehavior] that will represent natural fling curve. */
     // TODO: It should differ between platforms, move it under expect/actual
     @Composable
-    fun flingBehavior(): FlingBehavior = rememberPlatformDefaultFlingBehavior()
+    fun flingBehavior(): FlingBehavior {
+        val flingSpec = rememberSplineBasedDecay<Float>()
+        return remember(flingSpec) { DefaultFlingBehavior(flingSpec) }
+    }
 
     /**
      * Returns a remembered [OverscrollEffect] created from the current value of
@@ -559,7 +563,7 @@ object ScrollableDefaults {
         return rememberPlatformOverscrollEffect() ?: NoOpOverscrollEffect
     }
 
-    internal object NoOpOverscrollEffect : OverscrollEffect {
+    private object NoOpOverscrollEffect : OverscrollEffect {
         override fun applyToScroll(
             delta: Offset,
             source: NestedScrollSource,
@@ -623,8 +627,6 @@ internal expect fun CompositionLocalConsumerModifierNode.platformScrollConfig():
 private val CanDragCalculation: (PointerInputChange) -> Boolean = { change ->
     change.type != PointerType.Mouse
 }
-
-private val NoOpOnDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit = {}
 
 /**
  * Holds all scrolling related logic: controls nested scrolling, flinging, overscroll and delta
@@ -750,7 +752,9 @@ internal class ScrollingLogic(
         val performFling: suspend (Velocity) -> Velocity = { velocity ->
             val preConsumedByParent = nestedScrollDispatcher.dispatchPreFling(velocity)
             val available = velocity - preConsumedByParent
+
             val velocityLeft = doFlingAnimation(available)
+
             val consumedPost =
                 nestedScrollDispatcher.dispatchPostFling((available - velocityLeft), velocityLeft)
             val totalLeft = velocityLeft - consumedPost
@@ -927,18 +931,8 @@ internal interface ScrollableDefaultFlingBehavior : FlingBehavior {
  *   [androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior].
  */
 private val FlingBehavior.shouldBeTriggeredByMouseWheel
-    get() = this !is ScrollableDefaultFlingBehavior
-
-/**
- * This method returns [ScrollableDefaultFlingBehavior] whose density will be managed by the
- * [ScrollableElement] because it's not created inside [Composable] context.
- * This is different from [rememberPlatformDefaultFlingBehavior] which creates [FlingBehavior] whose density
- * depends on [LocalDensity] and is automatically resolved.
- */
-internal expect fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior
-
-@Composable
-internal expect fun rememberPlatformDefaultFlingBehavior(): FlingBehavior
+    // TODO: Figure out more precise condition to trigger fling by mouse wheel.
+    get() = false // this !is ScrollableDefaultFlingBehavior
 
 internal class DefaultFlingBehavior(
     private var flingDecay: DecayAnimationSpec<Float>,
@@ -1009,7 +1003,7 @@ internal class ScrollableContainerNode(enabled: Boolean) : Modifier.Node(), Trav
     }
 }
 
-internal val UnityDensity =
+private val UnityDensity =
     object : Density {
         override val density: Float
             get() = 1f
@@ -1044,6 +1038,4 @@ private suspend fun ScrollingLogic.semanticsScrollBy(offset: Offset): Offset {
     return previousValue.toOffset()
 }
 
-internal class FlingCancellationException() : PlatformOptimizedCancellationException(
-    message = "The fling animation was cancelled"
-)
+internal expect class FlingCancellationException() : CancellationException

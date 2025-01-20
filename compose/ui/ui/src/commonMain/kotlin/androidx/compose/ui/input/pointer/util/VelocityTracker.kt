@@ -31,7 +31,7 @@ import kotlin.math.sign
 import kotlin.math.sqrt
 
 private const val AssumePointerMoveStoppedMilliseconds: Int = 40
-internal expect val HistorySize: Int
+private const val HistorySize: Int = 20
 
 // TODO(b/204895043): Keep value in sync with VelocityPathFinder.HorizonMilliSeconds
 private const val HorizonMilliseconds: Int = 100
@@ -143,15 +143,15 @@ internal constructor(
 
     /**
      * Constructor to create a new velocity tracker. It allows to specify whether or not the tracker
-     * should consider the data points provided via [addDataPoint] as differential or
+     * should consider the data ponits provided via [addDataPoint] as differential or
      * non-differential.
      *
-     * Differential data points represent change in displacement. For instance, differential data
+     * Differential data ponits represent change in displacement. For instance, differential data
      * points of [2, -1, 5] represent: the object moved by "2" units, then by "-1" units, then by
      * "5" units. An example use case for differential data points is when tracking velocity for an
      * object whose displacements (or change in positions) over time are known.
      *
-     * Non-differential data points represent position of the object whose velocity is tracked. For
+     * Non-differential data ponits represent position of the object whose velocity is tracked. For
      * instance, non-differential data points of [2, -1, 5] represent: the object was at position
      * "2", then at position "-1", then at position "5". An example use case for non-differential
      * data points is when tracking velocity for an object whose positions on a geometrical axis
@@ -232,7 +232,6 @@ internal constructor(
         val newestSample: DataPointAtTime = samples[index] ?: return 0f
 
         var previousSample: DataPointAtTime = newestSample
-        var afterPointerStop = false
 
         // Starting with the most recent PointAtTime sample, iterate backwards while
         // the samples represent continuous motion.
@@ -247,11 +246,7 @@ internal constructor(
                 } else {
                     newestSample
                 }
-            if (delta > AssumePointerMoveStoppedMilliseconds) {
-                afterPointerStop = true
-                break
-            }
-            if (age > HorizonMilliseconds) {
+            if (age > HorizonMilliseconds || delta > AssumePointerMoveStoppedMilliseconds) {
                 break
             }
 
@@ -262,13 +257,7 @@ internal constructor(
             sampleCount += 1
         } while (sampleCount < HistorySize)
 
-        if (sampleCount >= minSampleSize && shouldUseDataPoints(
-                dataPoints,
-                time,
-                sampleCount,
-                afterPointerStop
-            )
-        ) {
+        if (sampleCount >= minSampleSize) {
             // Choose computation logic based on strategy.
             return when (strategy) {
                 Strategy.Impulse -> {
@@ -354,17 +343,6 @@ private fun Array<DataPointAtTime?>.set(index: Int, time: Long, dataPoint: Float
         currentEntry.dataPoint = dataPoint
     }
 }
-
-/**
- * Some platforms (e.g. iOS) ignore certain events during velocity calculation.
- */
-internal expect fun VelocityTracker1D.shouldUseDataPoints(
-    points: FloatArray,
-    times: FloatArray,
-    count: Int,
-    afterPointerStop: Boolean
-): Boolean
-
 
 /**
  * Track the positions and timestamps inside this event change.
@@ -571,7 +549,7 @@ internal fun polyFitLeastSquares(
  * should be provided in reverse chronological order. The returned velocity is in "units/ms", where
  * "units" is unit of the [dataPoints].
  *
- * Calculates the resulting velocity based on the total impulse provided by the data points.
+ * Calculates the resulting velocity based on the total immpulse provided by the data ponits.
  *
  * The moving object in these calculations is the touchscreen (if we are calculating touch
  * velocity), or any input device from which the data points are generated. We refer to this object

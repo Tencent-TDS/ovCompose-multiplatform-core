@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,12 @@
 
 package androidx.compose.foundation.text
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.offset
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -56,16 +53,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastRoundToInt
 import kotlin.math.min
 
-@ExperimentalFoundationApi
-@Composable
-internal expect fun rememberTextFieldOverscrollEffect(): OverscrollEffect?
-
 // Scrollable
 internal fun Modifier.textFieldScrollable(
     scrollerPosition: TextFieldScrollerPosition,
     interactionSource: MutableInteractionSource? = null,
-    enabled: Boolean = true,
-    overscrollEffect: OverscrollEffect? = null
+    enabled: Boolean = true
 ) =
     composed(
         inspectorInfo =
@@ -108,7 +100,6 @@ internal fun Modifier.textFieldScrollable(
             Modifier.scrollable(
                 orientation = scrollerPosition.orientation,
                 reverseDirection = reverseDirection,
-                overscrollEffect = overscrollEffect,
                 state = wrappedScrollableState,
                 interactionSource = interactionSource,
                 enabled = enabled && scrollerPosition.maximum != 0f

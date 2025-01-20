@@ -33,7 +33,6 @@ import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.DragEvent.DragDelta
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.snapFlingBehavior
-import androidx.compose.foundation.PlatformOptimizedCancellationException
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.internal.requirePrecondition
@@ -1537,7 +1536,7 @@ private fun Float.coerceToTarget(target: Float): Float {
     return if (target > 0) coerceAtMost(target) else coerceAtLeast(target)
 }
 
-private class AnchoredDragFinishedSignal : PlatformOptimizedCancellationException()
+internal expect class AnchoredDragFinishedSignal() : CancellationException
 
 private suspend fun <I> restartable(inputs: () -> I, block: suspend (I) -> Unit) {
     try {
@@ -1570,7 +1569,7 @@ private class DefaultDraggableAnchors<T>(
 ) : DraggableAnchors<T> {
 
     init {
-        require(keys.size == anchors.size) {
+        assertOnJvm(keys.size == anchors.size) {
             "DraggableAnchors were constructed with " +
                 "inconsistent key-value sizes. Keys: $keys | Anchors: ${anchors.toList()}"
         }
@@ -1650,6 +1649,8 @@ private class DefaultDraggableAnchors<T>(
         append("})")
     }
 }
+
+internal expect inline fun assertOnJvm(statement: Boolean, message: () -> String): Unit
 
 internal val AnchoredDraggableMinFlingVelocity = 125.dp
 

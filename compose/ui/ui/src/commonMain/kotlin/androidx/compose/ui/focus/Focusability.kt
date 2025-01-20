@@ -64,16 +64,10 @@ value class Focusability private constructor(private val value: Int) {
     internal fun canFocus(node: CompositionLocalConsumerModifierNode): Boolean {
         return when (this@Focusability) {
             Always -> true
-            SystemDefined -> systemDefinedCanFocus(node)
+            SystemDefined ->
+                with(node) { currentValueOf(LocalInputModeManager).inputMode != InputMode.Touch }
             Never -> false
             else -> error("Unknown Focusability")
         }
     }
 }
-
-// TODO https://youtrack.jetbrains.com/issue/CMP-6794/Fix-a-conflict-between-Request-focus-on-click-and-Reset-focus-on-Touch-mode-features
-// should be always true if foundaton.isRequestFocusOnClickEnabled is true
-internal expect fun systemDefinedCanFocus(node: CompositionLocalConsumerModifierNode): Boolean
-
-internal fun mobilePlatformSystemDefinedCanFocus(node: CompositionLocalConsumerModifierNode) =
-    with(node) { currentValueOf(LocalInputModeManager).inputMode != InputMode.Touch }
