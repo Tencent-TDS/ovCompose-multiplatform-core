@@ -315,6 +315,11 @@ actual class GraphicsLayer internal constructor(
     ) {
         this.size = size
         recordWithTracking { canvas ->
+            canvas.alphaMultiplier = if (compositingStrategy == CompositingStrategy.ModulateAlpha) {
+                this@GraphicsLayer.alpha
+            } else {
+                1.0f
+            }
             pictureDrawScope.draw(
                 density = density,
                 layoutDirection = layoutDirection,
