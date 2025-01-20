@@ -23,6 +23,7 @@ import kotlin.native.internal.test.TestSuite
 import kotlinx.cinterop.Arena
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ObjCAction
+import kotlinx.cinterop.UnsafeNumber
 import kotlinx.cinterop.cstr
 import platform.Foundation.NSClassFromString
 import platform.Foundation.NSCocoaErrorDomain
@@ -107,10 +108,11 @@ internal class XCTestCaseWrapper(val testCase: TestCase) : XCTestCase(dummyInvoc
         }
     }
 
+    @OptIn(UnsafeNumber::class)
     @ObjCAction
     private fun run() {
         if (ignored) {
-            // FIXME: to skip the test XCTSkip() should be used.
+            // TODO: to skip the test XCTSkip() should be used.
             //  But it is not possible to do that due to the KT-43719 and not implemented exception importing.
             //  For example, _XCTSkipHandler(testName, 0U, "Test $testName is ignored") fails with 'Uncaught Kotlin exception'.
             //  So, just don't run the test. It will be seen as passed in XCode, but K/N TestListener correctly processes that.

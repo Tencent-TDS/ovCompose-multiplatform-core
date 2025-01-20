@@ -252,7 +252,16 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
                     addAll(darwinFlags)
                     if (isIOS) addAll(iosFlags)
                 }
-                it.freeCompilerArgs = it.freeCompilerArgs + flags
+
+                // TODO: Remove when the issue is fixed in KGP
+                // it.freeCompilerArgs += flags
+                //
+                // Fixes problem when instrumented tests compilation is not properly applied to
+                // the framework configuration.
+                it.linkTaskProvider.configure {
+                    @Suppress("DEPRECATION")
+                    it.kotlinOptions.freeCompilerArgs += flags
+                }
             }
         }
         multiplatformExtension.run {
@@ -266,19 +275,18 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     override fun iosInstrumentedTest() {
         multiplatformExtension.run {
-            val commonTest = sourceSets.getByName("commonTest")
             val uikitMain = sourceSets.getByName("uikitMain")
             val uikitInstrumentedTest = sourceSets.create("uikitInstrumentedTest")
             uikitInstrumentedTest.dependsOn(uikitMain)
 
             fun KotlinNativeTargetWithSimulatorTests.configureTestRun() {
-                val cmp = compilations.create("instrumentedTest") {
+                val testCompilation = compilations.create("instrumentedTest") {
                     it.associateWith(compilations.getByName("main"))
                     it.defaultSourceSet.dependsOn(uikitInstrumentedTest)
                 }
-                binaries.framework("TestLauncher") {
-                    compilation = cmp
-                    baseName = "TestLauncher"
+                binaries.framework("InstrumentedTest", setOf(DEBUG)) {
+                    compilation = testCompilation
+                    baseName = "InstrumentedTest"
                     isStatic = true
                 }
             }
@@ -292,17 +300,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
                 KotlinNativeTargetWithSimulatorTests::class,
                 KotlinNativeTargetWithSimulatorTests::configureTestRun
             )
-
-//            val commonTest = sourceSets.getByName("commonTest")
-//            val uikitMain = sourceSets.getByName("uikitMain")
-//            val uikitInstrumentedTest = sourceSets.create("uikitInstrumentedTest")
-//            val uikitX64InstrumentedTest = sourceSets.getByName("uikitX64InstrumentedTest")
-//            val uikitSimArm64InstrumentedTest =
-//                sourceSets.getByName("uikitSimArm64InstrumentedTest")
-//            uikitInstrumentedTest.dependsOn(commonTest)
-//            uikitInstrumentedTest.dependsOn(uikitMain)
-//            uikitX64InstrumentedTest.dependsOn(uikitInstrumentedTest)
-//            uikitSimArm64InstrumentedTest.dependsOn(uikitInstrumentedTest)
         }
     }
 }

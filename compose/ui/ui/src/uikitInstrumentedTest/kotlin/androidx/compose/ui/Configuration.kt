@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-import XCTest
-import InstrumentedTest
 
-class TestLauncher: XCTestCase {
-    override class var defaultTestSuite: XCTestSuite {
-        KotlinInt.Self
-//        ConfigurationKt.testSuite()
+package androidx.compose.ui
+
+import androidx.compose.xctest.setupXCTestSuite
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.XCTest.XCTestSuite
+
+
+class Configuration {
+    companion object {
+        @OptIn(ExperimentalForeignApi::class)
+        fun testSuite(): XCTestSuite = setupXCTestSuite()
     }
 }
