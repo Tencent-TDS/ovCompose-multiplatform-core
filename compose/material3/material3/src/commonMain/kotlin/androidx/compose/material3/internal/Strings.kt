@@ -92,11 +92,13 @@ internal expect value class Strings constructor(val value: Int) {
         val TimePickerMinuteTextField: Strings
         val TooltipPaneDescription: Strings
         val WideNavigationRailPaneTitle: Strings
-        // When adding values here, make sure to also add them in material3/build.gradle,
-        // updateTranslations task (stringByResourceName parameter), and re-run the task
     }
 }
 
 @Composable @ReadOnlyComposable internal expect fun getString(string: Strings): String
+
+@Composable
+@ReadOnlyComposable
+internal expect fun getString(string: Strings, vararg formatArgs: Any): String
 
 internal expect fun String.format(vararg formatArgs: Any?): String

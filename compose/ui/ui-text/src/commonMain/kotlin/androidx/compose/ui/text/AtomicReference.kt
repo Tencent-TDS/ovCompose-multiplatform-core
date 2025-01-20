@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.text.input
+package androidx.compose.ui.text
 
-/**
- *
- * Workaround to bypass bug https://youtrack.jetbrains.com/issue/KT-52336/Differs-on-JVM-and-Native-in-stringBuilder-append-charArray-0-1
- * On JVM and Android this function work's as StringBuilder.append(char[], int offset, int len)
- */
-internal expect fun StringBuilder.appendPartOfCharArray(charArray: CharArray, offset: Int, len: Int)
+internal expect class AtomicReference<V>(value: V) {
+    fun get(): V
+
+    fun set(value: V)
+
+    fun getAndSet(value: V): V
+
+    fun compareAndSet(expect: V, newValue: V): Boolean
+}
+
