@@ -41,7 +41,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.PredictiveBackHandler
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -59,6 +61,7 @@ import androidx.navigation.get
 import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 private class ComposeViewModelStoreOwner: ViewModelStoreOwner {
@@ -475,6 +478,7 @@ public fun NavHost(
  * @param popExitTransition callback to define popExit transitions for destination in this host
  * @param sizeTransform callback to define the size transform for destinations in this host
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 public fun NavHost(
     navController: NavHostController,
@@ -525,7 +529,6 @@ public fun NavHost(
 
     var progress by remember { mutableFloatStateOf(0f) }
     var inPredictiveBack by remember { mutableStateOf(false) }
-    /* TODO: Support PredictiveBackHandler on multiplatform
     PredictiveBackHandler(currentBackStack.size > 1) { backEvent ->
         progress = 0f
         val currentBackStackEntry = currentBackStack.lastOrNull()
@@ -543,7 +546,6 @@ public fun NavHost(
             inPredictiveBack = false
         }
     }
-    */
 
     DisposableEffect(lifecycleOwner) {
         // Setup the navController with proper owners
