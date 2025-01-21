@@ -24,6 +24,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.backhandler.LocalBackGestureDispatcher
+import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -38,6 +40,7 @@ import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.roundToIntRect
@@ -114,6 +117,11 @@ internal class ComposeHostingViewController(
     private val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
     private val layoutDirection get() = getLayoutDirection()
     private var hasViewAppeared: Boolean = false
+
+    private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        density = rootView.density,
+        getTopLeftOffsetInWindow = { IntOffset.Zero } //full screen
+    )
 
     fun hasInvalidations(): Boolean {
         return mediator?.hasInvalidations == true || layers.hasInvalidations
@@ -196,6 +204,7 @@ internal class ComposeHostingViewController(
     }
 
     private fun onDidMoveToWindow(window: UIWindow?) {
+        backGestureDispatcher.onDidMoveToWindow(window, rootView)
         val windowContainer = window ?: return
 
         updateInterfaceOrientationState()
@@ -325,7 +334,7 @@ internal class ComposeHostingViewController(
                 val layer = UIKitComposeSceneLayer(
                     onClosed = ::detachLayer,
                     createComposeSceneContext = ::createComposeSceneContext,
-                    providingCompositionLocals = { ProvideContainerCompositionLocals(it) },
+                    hostCompositionLocals = { ProvideContainerCompositionLocals(it) },
                     metalView = layers.metalView,
                     onGestureEvent = layers::onGestureEvent,
                     initDensity = density,
@@ -445,6 +454,7 @@ internal class ComposeHostingViewController(
             LocalSystemTheme provides systemThemeState.value,
             LocalLifecycleOwner provides lifecycleOwner,
             LocalInternalViewModelStoreOwner provides lifecycleOwner,
+            LocalBackGestureDispatcher provides backGestureDispatcher,
             content = content
         )
 
