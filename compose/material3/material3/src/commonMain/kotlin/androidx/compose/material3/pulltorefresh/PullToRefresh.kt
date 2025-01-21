@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.internal.FloatProducer
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.tokens.ElevationTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
@@ -327,22 +328,22 @@ internal class PullToRefreshModifierNode(
             onRefresh()
         }
 
-        animateToHidden()
-
         val consumed =
             when {
                 // We are flinging without having dragged the pull refresh (for example a fling
-                // inside
-                // a list) - don't consume
+                // inside a list) - don't consume
                 distancePulled == 0f -> 0f
                 // If the velocity is negative, the fling is upwards, and we don't want to prevent
-                // the
                 // the list from scrolling
                 velocity < 0f -> 0f
                 // We are showing the indicator, and the fling is downwards - consume everything
                 else -> velocity
             }
+
+        animateToHidden()
+
         distancePulled = 0f
+
         return consumed
     }
 
@@ -705,7 +706,7 @@ private constructor(private val anim: Animatable<Float, AnimationVector1D>) : Pu
 /** The default pull indicator for [PullToRefreshBox] */
 @Composable
 private fun CircularArrowProgressIndicator(
-    progress: () -> Float,
+    progress: FloatProducer,
     color: Color,
 ) {
     val path = remember { Path().apply { fillType = PathFillType.EvenOdd } }

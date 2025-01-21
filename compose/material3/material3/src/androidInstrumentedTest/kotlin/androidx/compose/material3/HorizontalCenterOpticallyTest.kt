@@ -19,10 +19,14 @@ package androidx.compose.material3
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.testutils.assertIsEqualTo
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -36,14 +40,14 @@ import org.junit.runner.RunWith
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
-class OpticalCenteringTest {
+class HorizontalCenterOpticallyTest {
     private val TextTag = "text"
     private val ContainerTag = "container"
     @get:Rule val rule = createComposeRule()
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Test
-    fun opticalCentering_contentPadding_asymmetricShape() {
+    fun horizontalCenterOptically_contentPadding_asymmetricShape() {
         val shape =
             RoundedCornerShape(
                 topStart = 20.dp,
@@ -55,8 +59,19 @@ class OpticalCenteringTest {
         val expectedStartPadding = 20.dp + (0.11f * 20f).dp
         val expectedEndPadding = 20.dp - (0.11f * 20f).dp
         rule.setContent {
+            val layoutDirection = LocalLayoutDirection.current
             Box(modifier = Modifier.clip(shape).testTag(ContainerTag)) {
-                Row(modifier = Modifier.opticalCentering(shape, baseContentPadding)) {
+                Row(
+                    modifier =
+                        Modifier.horizontalCenterOptically(
+                                shape = shape,
+                                maxStartOffset =
+                                    baseContentPadding.calculateStartPadding(layoutDirection),
+                                maxEndOffset =
+                                    baseContentPadding.calculateEndPadding(layoutDirection)
+                            )
+                            .padding(baseContentPadding)
+                ) {
                     Text(text = "Test", modifier = Modifier.testTag(TextTag))
                 }
             }
@@ -71,13 +86,24 @@ class OpticalCenteringTest {
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Test
-    fun opticalCentering_contentPadding_symmetricShape() {
+    fun horizontalCenterOptically_contentPadding_symmetricShape() {
         val shape = RoundedCornerShape(0.dp)
         val baseContentPadding = PaddingValues(horizontal = 20.dp)
         val expectedPadding = 20.dp
         rule.setContent {
+            val layoutDirection = LocalLayoutDirection.current
             Box(modifier = Modifier.clip(shape).testTag(ContainerTag)) {
-                Row(modifier = Modifier.opticalCentering(shape, baseContentPadding)) {
+                Row(
+                    modifier =
+                        Modifier.horizontalCenterOptically(
+                                shape = shape,
+                                maxStartOffset =
+                                    baseContentPadding.calculateStartPadding(layoutDirection),
+                                maxEndOffset =
+                                    baseContentPadding.calculateEndPadding(layoutDirection)
+                            )
+                            .padding(baseContentPadding)
+                ) {
                     Text(text = "Test", modifier = Modifier.testTag(TextTag))
                 }
             }

@@ -21,11 +21,15 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 
 /** Scope for the panes of [ThreePaneScaffold]. */
@@ -41,12 +45,10 @@ sealed interface ThreePaneScaffoldPaneScope :
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal class ThreePaneScaffoldScopeImpl(
-    motionScope: PaneScaffoldMotionScope,
     transitionScope: PaneScaffoldTransitionScope<ThreePaneScaffoldRole, ThreePaneScaffoldValue>,
     lookaheadScope: LookaheadScope
 ) :
     ThreePaneScaffoldScope,
-    PaneScaffoldMotionScope by motionScope,
     PaneScaffoldTransitionScope<ThreePaneScaffoldRole, ThreePaneScaffoldValue> by transitionScope,
     LookaheadScope by lookaheadScope,
     PaneScaffoldScopeImpl() {
@@ -55,7 +57,8 @@ internal class ThreePaneScaffoldScopeImpl(
     override fun Modifier.paneExpansionDraggable(
         state: PaneExpansionState,
         minTouchTargetSize: Dp,
-        interactionSource: MutableInteractionSource
+        interactionSource: MutableInteractionSource,
+        semanticsProperties: (SemanticsPropertyReceiver.() -> Unit)
     ): Modifier =
         this.draggable(
                 state = state.draggableState,
@@ -69,8 +72,19 @@ internal class ThreePaneScaffoldScopeImpl(
                 animateFraction = { motionProgress },
                 lookaheadScope = this@ThreePaneScaffoldScopeImpl
             )
+            .semantics(mergeDescendants = true, properties = semanticsProperties)
             .then(MinTouchTargetSizeElement(minTouchTargetSize))
 }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+internal fun rememberThreePaneScaffoldPaneScope(
+    paneRole: ThreePaneScaffoldRole,
+    scaffoldScope: ThreePaneScaffoldScope,
+    paneMotion: PaneMotion
+): ThreePaneScaffoldPaneScope =
+    remember(scaffoldScope) { ThreePaneScaffoldPaneScopeImpl(paneRole, scaffoldScope) }
+        .apply { this.paneMotion = paneMotion }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal class ThreePaneScaffoldPaneScopeImpl(
@@ -78,16 +92,12 @@ internal class ThreePaneScaffoldPaneScopeImpl(
     scaffoldScope: ThreePaneScaffoldScope,
 ) : ThreePaneScaffoldPaneScope, ThreePaneScaffoldScope by scaffoldScope {
     override var paneMotion: PaneMotion by mutableStateOf(PaneMotion.ExitToLeft)
-        private set
-
-    fun updatePaneMotion(paneMotions: ThreePaneMotion) {
-        paneMotion = paneMotions[paneRole]
-    }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-internal class ThreePaneScaffoldTransitionScopeImpl :
-    PaneScaffoldTransitionScope<ThreePaneScaffoldRole, ThreePaneScaffoldValue> {
+internal class ThreePaneScaffoldTransitionScopeImpl(
+    override val motionDataProvider: PaneScaffoldMotionDataProvider<ThreePaneScaffoldRole>
+) : PaneScaffoldTransitionScope<ThreePaneScaffoldRole, ThreePaneScaffoldValue> {
     override val motionProgress: Float
         get() =
             if (transitionState.currentState == transitionState.targetState) {

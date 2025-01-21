@@ -36,7 +36,7 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O, maxSdkVersion = 32)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 class ButtonGroupScreenshotTest {
     @get:Rule val rule = createComposeRule()
@@ -84,7 +84,7 @@ class ButtonGroupScreenshotTest {
         assertAgainstGolden("buttonGroup_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun buttonGroup_firstPressed_lightTheme() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -113,7 +113,7 @@ class ButtonGroupScreenshotTest {
         assertAgainstGolden("buttonGroup_firstPressed_lightTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun buttonGroup_secondPressed_lightTheme() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -142,7 +142,7 @@ class ButtonGroupScreenshotTest {
         assertAgainstGolden("buttonGroup_secondPressed_lightTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun buttonGroup_thirdPressed_lightTheme() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -171,7 +171,7 @@ class ButtonGroupScreenshotTest {
         assertAgainstGolden("buttonGroup_thirdPressed_lightTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun buttonGroup_fourthPressed_lightTheme() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -200,7 +200,7 @@ class ButtonGroupScreenshotTest {
         assertAgainstGolden("buttonGroup_fourthPressed_lightTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun buttonGroup_fifthPressed_lightTheme() {
         rule.setMaterialContent(lightColorScheme()) {

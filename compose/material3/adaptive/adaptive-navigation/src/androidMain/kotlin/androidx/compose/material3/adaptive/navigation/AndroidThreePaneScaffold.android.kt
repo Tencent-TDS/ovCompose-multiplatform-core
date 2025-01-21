@@ -16,7 +16,6 @@
 
 package androidx.compose.material3.adaptive.navigation
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
@@ -25,12 +24,8 @@ import androidx.compose.material3.adaptive.layout.SupportingPaneScaffold
 import androidx.compose.material3.adaptive.layout.SupportingPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldPaneScope
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldScope
-import androidx.compose.material3.adaptive.layout.rememberPaneExpansionState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 
 /**
  * A version of [ListDetailPaneScaffold] that supports navigation and predictive back handling out
@@ -51,7 +46,9 @@ import androidx.compose.ui.graphics.graphicsLayer
  *   happens. See [BackNavigationBehavior] for the use cases of each behavior.
  * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
  *   pane expansion state, `null` by default.
- * @param paneExpansionState the state object of pane expansion.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
@@ -64,18 +61,15 @@ fun <T> NavigableListDetailPaneScaffold(
     defaultBackBehavior: BackNavigationBehavior = BackNavigationBehavior.PopUntilContentChange,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(navigator.scaffoldValue),
+    paneExpansionState: PaneExpansionState? = null,
 ) {
-    val predictiveBackScale = remember { Animatable(initialValue = 1f) }
-
     ThreePaneScaffoldPredictiveBackHandler(
         navigator = navigator,
         backBehavior = defaultBackBehavior,
-        scale = predictiveBackScale,
     )
 
     ListDetailPaneScaffold(
-        modifier = modifier.predictiveBackTransform(predictiveBackScale::value),
+        modifier = modifier,
         directive = navigator.scaffoldDirective,
         scaffoldState = navigator.scaffoldState,
         detailPane = detailPane,
@@ -104,7 +98,9 @@ fun <T> NavigableListDetailPaneScaffold(
  *   happens. See [BackNavigationBehavior] for the use cases of each behavior.
  * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
  *   pane expansion state, `null` by default.
- * @param paneExpansionState the state object of pane expansion.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
@@ -117,18 +113,15 @@ fun <T> NavigableSupportingPaneScaffold(
     defaultBackBehavior: BackNavigationBehavior = BackNavigationBehavior.PopUntilContentChange,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(navigator.scaffoldValue),
+    paneExpansionState: PaneExpansionState? = null,
 ) {
-    val predictiveBackScale = remember { Animatable(initialValue = 1f) }
-
     ThreePaneScaffoldPredictiveBackHandler(
         navigator = navigator,
         backBehavior = defaultBackBehavior,
-        scale = predictiveBackScale,
     )
 
     SupportingPaneScaffold(
-        modifier = modifier.predictiveBackTransform(predictiveBackScale::value),
+        modifier = modifier,
         directive = navigator.scaffoldDirective,
         scaffoldState = navigator.scaffoldState,
         mainPane = mainPane,
@@ -138,12 +131,3 @@ fun <T> NavigableSupportingPaneScaffold(
         paneExpansionState = paneExpansionState,
     )
 }
-
-private fun Modifier.predictiveBackTransform(scale: () -> Float): Modifier = graphicsLayer {
-    val scaleValue = scale()
-    scaleX = scaleValue
-    scaleY = scaleValue
-    transformOrigin = TransformOriginTopCenter
-}
-
-private val TransformOriginTopCenter = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0f)

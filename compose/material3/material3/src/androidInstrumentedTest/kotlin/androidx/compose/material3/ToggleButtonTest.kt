@@ -290,7 +290,7 @@ class ToggleButtonTest {
                 )
                 .isEqualTo(
                     ToggleButtonColors(
-                        containerColor = OutlinedButtonTokens.UnselectedPressedOutlineColor.value,
+                        containerColor = Color.Transparent,
                         contentColor = OutlinedButtonTokens.UnselectedLabelTextColor.value,
                         disabledContainerColor =
                             OutlinedButtonTokens.DisabledOutlineColor.value.copy(

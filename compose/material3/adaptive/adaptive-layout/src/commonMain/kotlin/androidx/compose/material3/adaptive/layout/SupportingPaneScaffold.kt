@@ -22,9 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
- * the provided three panes in a canonical [supporting pane layout](
- * https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
+ * A three pane layout that follows the Material guidelines, displaying the provided panes in a
+ * canonical
+ * [supporting pane layout](https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
  *
  * This overload takes a [ThreePaneScaffoldValue] describing the adapted value of each pane within
  * the scaffold.
@@ -43,7 +43,9 @@ import androidx.compose.ui.Modifier
  *   [SupportingPaneScaffoldRole.Extra].
  * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
  *   pane expansion state, `null` by default.
- * @param paneExpansionState the state object of pane expansion.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
@@ -56,8 +58,14 @@ fun SupportingPaneScaffold(
     extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(value),
+    paneExpansionState: PaneExpansionState? = null,
 ) {
+    val expansionState =
+        paneExpansionState
+            ?: rememberDefaultPaneExpansionState(
+                keyProvider = { value },
+                mutable = paneExpansionDragHandle != null
+            )
     ThreePaneScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldDirective = directive,
@@ -66,15 +74,15 @@ fun SupportingPaneScaffold(
         secondaryPane = supportingPane,
         tertiaryPane = extraPane,
         paneExpansionDragHandle = paneExpansionDragHandle,
-        paneExpansionState = paneExpansionState,
+        paneExpansionState = expansionState,
         primaryPane = mainPane
     )
 }
 
 /**
- * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
- * the provided three panes in a canonical [supporting pane layout](
- * https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
+ * A three pane layout that follows the Material guidelines, displaying the provided panes in a
+ * canonical
+ * [supporting pane layout](https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
  *
  * This overload takes a [ThreePaneScaffoldState] describing the current [ThreePaneScaffoldValue]
  * and any pane transitions or animations in progress.
@@ -93,7 +101,9 @@ fun SupportingPaneScaffold(
  *   [SupportingPaneScaffoldRole.Extra].
  * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
  *   pane expansion state, `null` by default.
- * @param paneExpansionState the state object of pane expansion.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
@@ -106,8 +116,14 @@ fun SupportingPaneScaffold(
     extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(scaffoldState.targetState),
+    paneExpansionState: PaneExpansionState? = null,
 ) {
+    val expansionState =
+        paneExpansionState
+            ?: rememberDefaultPaneExpansionState(
+                keyProvider = { scaffoldState.targetState },
+                mutable = paneExpansionDragHandle != null
+            )
     ThreePaneScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldDirective = directive,
@@ -116,7 +132,7 @@ fun SupportingPaneScaffold(
         secondaryPane = supportingPane,
         tertiaryPane = extraPane,
         paneExpansionDragHandle = paneExpansionDragHandle,
-        paneExpansionState = paneExpansionState,
+        paneExpansionState = expansionState,
         primaryPane = mainPane
     )
 }

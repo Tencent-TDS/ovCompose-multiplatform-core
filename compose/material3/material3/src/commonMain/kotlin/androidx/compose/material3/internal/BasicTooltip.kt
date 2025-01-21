@@ -87,6 +87,7 @@ internal fun BasicTooltipBox(
     tooltip: @Composable () -> Unit,
     state: TooltipState,
     modifier: Modifier = Modifier,
+    onDismissRequest: (() -> Unit)? = null,
     focusable: Boolean = true,
     enableUserInput: Boolean = true,
     content: @Composable () -> Unit
@@ -97,6 +98,7 @@ internal fun BasicTooltipBox(
             TooltipPopup(
                 positionProvider = positionProvider,
                 state = state,
+                onDismissRequest = onDismissRequest,
                 scope = scope,
                 focusable = focusable,
                 content = tooltip
@@ -137,6 +139,7 @@ private fun WrappedAnchor(
 private fun TooltipPopup(
     positionProvider: PopupPositionProvider,
     state: TooltipState,
+    onDismissRequest: (() -> Unit)?,
     scope: CoroutineScope,
     focusable: Boolean,
     content: @Composable () -> Unit
@@ -145,12 +148,15 @@ private fun TooltipPopup(
     Popup(
         popupPositionProvider = positionProvider,
         onDismissRequest = {
-            if (state.isVisible) {
-                scope.launch { state.dismiss() }
+            if (onDismissRequest == null) {
+                if (state.isVisible) {
+                    scope.launch { state.dismiss() }
+                }
+            } else {
+                onDismissRequest()
             }
         },
-        // TODO(https://youtrack.jetbrains.com/issue/COMPOSE-963/Discuss-fix-Tooltipfocusable-true-API) Discuss how to support focusable
-        properties = PopupProperties(focusable = false),
+        properties = PopupProperties(focusable = focusable)
     ) {
         Box(
             modifier =
@@ -243,7 +249,7 @@ private fun Modifier.anchorSemantics(
     scope: CoroutineScope
 ): Modifier =
     if (enabled) {
-        this.semantics(mergeDescendants = true) {
+        this.parentSemantics {
             onLongClick(
                 label = label,
                 action = {

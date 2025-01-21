@@ -114,7 +114,7 @@ import kotlin.math.roundToInt
  * @param windowInsets a window insets of the navigation rail.
  * @param content the content of this navigation rail, typically 3-7 [NavigationRailItem]s
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ComponentOverrideApi::class)
 @Composable
 fun NavigationRail(
     modifier: Modifier = Modifier,
@@ -765,7 +765,7 @@ private val IndicatorVerticalPaddingNoLabel: Dp =
         NavigationRailBaselineItemTokens.IconSize) / 2
 
 /** Interface that allows libraries to override the behavior of the [NavigationRail] component. */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 interface NavigationRailComponentOverride {
     /** Behavior function that is called by the [NavigationRail] component. */
     @Composable fun NavigationRailComponentOverrideContext.NavigationRail()
@@ -784,7 +784,7 @@ interface NavigationRailComponentOverride {
  * @param windowInsets a window insets of the navigation rail.
  * @param content the content of this navigation rail, typically 3-7 [NavigationRailItem]s
  */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 class NavigationRailComponentOverrideContext
 internal constructor(
     val modifier: Modifier = Modifier,
@@ -796,7 +796,7 @@ internal constructor(
 )
 
 /** [NavigationRailComponentOverride] used when no override is specified. */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 object DefaultNavigationRailComponentOverride : NavigationRailComponentOverride {
     @Composable
     override fun NavigationRailComponentOverrideContext.NavigationRail() {
@@ -827,8 +827,8 @@ object DefaultNavigationRailComponentOverride : NavigationRailComponentOverride 
 
 /** CompositionLocal containing the currently-selected [NavigationRailComponentOverride]. */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-@get:ExperimentalMaterial3Api
-@ExperimentalMaterial3Api
+@get:ExperimentalMaterial3ComponentOverrideApi
+@ExperimentalMaterial3ComponentOverrideApi
 val LocalNavigationRailComponentOverride:
     ProvidableCompositionLocal<NavigationRailComponentOverride> =
     compositionLocalOf {

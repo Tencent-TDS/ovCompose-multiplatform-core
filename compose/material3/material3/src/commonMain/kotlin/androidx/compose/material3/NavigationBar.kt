@@ -109,7 +109,7 @@ import kotlin.math.roundToInt
  * @param windowInsets a window insets of the navigation bar.
  * @param content the content of this navigation bar, typically 3-5 [NavigationBarItem]s
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ComponentOverrideApi::class)
 @Composable
 fun NavigationBar(
     modifier: Modifier = Modifier,
@@ -595,7 +595,12 @@ private fun MeasureScope.placeIcon(
     indicatorPlaceable: Placeable?,
     constraints: Constraints
 ): MeasureResult {
-    val width = constraints.maxWidth
+    val width =
+        if (constraints.maxWidth == Constraints.Infinity) {
+            iconPlaceable.width + NavigationBarItemToIconMinimumPadding.roundToPx() * 2
+        } else {
+            constraints.maxWidth
+        }
     val height = constraints.constrainHeight(NavigationBarHeight.roundToPx())
 
     val iconX = (width - iconPlaceable.width) / 2
@@ -684,7 +689,12 @@ private fun MeasureScope.placeLabelAndIcon(
             IndicatorVerticalPadding.toPx() +
             NavigationBarIndicatorToLabelPadding.toPx()
 
-    val containerWidth = constraints.maxWidth
+    val containerWidth =
+        if (constraints.maxWidth == Constraints.Infinity) {
+            iconPlaceable.width + NavigationBarItemToIconMinimumPadding.roundToPx() * 2
+        } else {
+            constraints.maxWidth
+        }
 
     val labelX = (containerWidth - labelPlaceable.width) / 2
     val iconX = (containerWidth - iconPlaceable.width) / 2
@@ -733,8 +743,11 @@ internal val IndicatorVerticalPadding: Dp =
 
 private val IndicatorVerticalOffset: Dp = 12.dp
 
+/*@VisibleForTesting*/
+internal val NavigationBarItemToIconMinimumPadding: Dp = 44.dp
+
 /** Interface that allows libraries to override the behavior of the [NavigationBar] component. */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 interface NavigationBarComponentOverride {
     /** Behavior function that is called by the [NavigationBar] component. */
     @Composable fun NavigationBarComponentOverrideContext.NavigationBar()
@@ -755,7 +768,7 @@ interface NavigationBarComponentOverride {
  * @param windowInsets a window insets of the navigation bar.
  * @param content the content of this navigation bar, typically 3-5 [NavigationBarItem]s
  */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 class NavigationBarComponentOverrideContext
 internal constructor(
     val modifier: Modifier = Modifier,
@@ -767,7 +780,7 @@ internal constructor(
 )
 
 /** [NavigationBarComponentOverride] used when no override is specified. */
-@ExperimentalMaterial3Api
+@ExperimentalMaterial3ComponentOverrideApi
 object DefaultNavigationBarComponentOverride : NavigationBarComponentOverride {
     @Composable
     override fun NavigationBarComponentOverrideContext.NavigationBar() {
@@ -793,8 +806,8 @@ object DefaultNavigationBarComponentOverride : NavigationBarComponentOverride {
 
 /** CompositionLocal containing the currently-selected [NavigationBarComponentOverride]. */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-@get:ExperimentalMaterial3Api
-@ExperimentalMaterial3Api
+@get:ExperimentalMaterial3ComponentOverrideApi
+@ExperimentalMaterial3ComponentOverrideApi
 val LocalNavigationBarComponentOverride:
     ProvidableCompositionLocal<NavigationBarComponentOverride> =
     compositionLocalOf {

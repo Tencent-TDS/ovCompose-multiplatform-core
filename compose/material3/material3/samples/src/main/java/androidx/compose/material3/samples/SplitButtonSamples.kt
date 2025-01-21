@@ -68,7 +68,7 @@ fun FilledSplitButtonSample() {
                 onCheckedChange = { checked = it },
                 modifier =
                     Modifier.semantics {
-                        stateDescription = if (checked) "Checked" else "Unchecked"
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
                         contentDescription = "Toggle Button"
                     },
             ) {
@@ -148,11 +148,11 @@ fun TonalSplitButtonSample() {
             SplitButtonDefaults.TonalTrailingButton(
                 checked = checked,
                 onCheckedChange = { checked = it },
-                //                modifier =
-                //                    Modifier.semantics {
-                //                        stateDescription = if (checked) "Checked" else "Unchecked"
-                //                        contentDescription = "Toggle Button"
-                //                    },
+                modifier =
+                    Modifier.semantics {
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
+                        contentDescription = "Toggle Button"
+                    },
             ) {
                 val rotation: Float by
                     animateFloatAsState(
@@ -199,7 +199,7 @@ fun ElevatedSplitButtonSample() {
                 onCheckedChange = { checked = it },
                 modifier =
                     Modifier.semantics {
-                        stateDescription = if (checked) "Checked" else "Unchecked"
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
                         contentDescription = "Toggle Button"
                     },
             ) {
@@ -248,7 +248,7 @@ fun OutlinedSplitButtonSample() {
                 onCheckedChange = { checked = it },
                 modifier =
                     Modifier.semantics {
-                        stateDescription = if (checked) "Checked" else "Unchecked"
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
                         contentDescription = "Toggle Button"
                     },
             ) {
@@ -288,7 +288,12 @@ fun SplitButtonWithTextSample() {
         trailingButton = {
             SplitButtonDefaults.TrailingButton(
                 checked = checked,
-                onCheckedChange = { checked = it }
+                onCheckedChange = { checked = it },
+                modifier =
+                    Modifier.semantics {
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
+                        contentDescription = "Toggle Button"
+                    },
             ) {
                 val rotation: Float by
                     animateFloatAsState(
@@ -330,7 +335,12 @@ fun SplitButtonWithIconSample() {
         trailingButton = {
             SplitButtonDefaults.TrailingButton(
                 checked = checked,
-                onCheckedChange = { checked = it }
+                onCheckedChange = { checked = it },
+                modifier =
+                    Modifier.semantics {
+                        stateDescription = if (checked) "Expanded" else "Collapsed"
+                        contentDescription = "Toggle Button"
+                    },
             ) {
                 val rotation: Float by
                     animateFloatAsState(

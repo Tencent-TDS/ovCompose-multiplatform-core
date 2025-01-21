@@ -48,13 +48,13 @@ import androidx.compose.ui.unit.offset
  * <a href="https://m3.material.io/foundations/layout/understanding-layout/" class="external"
  * target="_blank">Material Design layout</a>.
  *
- * Scaffold implements the basic material design visual layout structure.
+ * Scaffold implements the basic Material Design visual layout structure.
  *
- * This component provides API to put together several material components to construct your screen,
+ * This component provides API to put together several Material components to construct your screen,
  * by ensuring proper layout strategy for them and collecting necessary data so these components
  * will work together correctly.
  *
- * Simple example of a Scaffold with [SmallTopAppBar], [FloatingActionButton]:
+ * Simple example of a Scaffold with [TopAppBar] and [FloatingActionButton]:
  *
  * @sample androidx.compose.material3.samples.SimpleScaffoldWithTopBar
  *
@@ -62,7 +62,7 @@ import androidx.compose.ui.unit.offset
  *
  * @sample androidx.compose.material3.samples.ScaffoldWithSimpleSnackbar
  * @param modifier the [Modifier] to be applied to this scaffold
- * @param topBar top app bar of the screen, typically a [SmallTopAppBar]
+ * @param topBar top app bar of the screen, typically a [TopAppBar]
  * @param bottomBar bottom bar of the screen, typically a [NavigationBar]
  * @param snackbarHost component to host [Snackbar]s that are pushed to be shown via
  *   [SnackbarHostState.showSnackbar], typically a [SnackbarHost]

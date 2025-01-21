@@ -25,6 +25,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -52,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -83,7 +86,7 @@ import androidx.compose.ui.unit.dp
  * @sample androidx.compose.material3.samples.MediumToggleButtonWithIconSample
  * @sample androidx.compose.material3.samples.LargeToggleButtonWithIconSample
  * @sample androidx.compose.material3.samples.XLargeToggleButtonWithIconSample
- * @sample androidx.compose.material3.samples.RoundToggleButtonSample
+ * @sample androidx.compose.material3.samples.SquareToggleButtonSample
  * @param checked whether the toggle button is toggled on or off.
  * @param onCheckedChange called when the toggle button is clicked.
  * @param modifier the [Modifier] to be applied to the toggle button.
@@ -132,7 +135,7 @@ fun ToggleButton(
     val containerColor = colors.containerColor(enabled, checked)
     val contentColor = colors.contentColor(enabled, checked)
     val shadowElevation = elevation?.shadowElevation(enabled, interactionSource)?.value ?: 0.dp
-
+    val layoutDirection = LocalLayoutDirection.current
     val buttonShape = shapeByInteraction(shapes, pressed, checked, defaultAnimationSpec)
 
     Surface(
@@ -155,23 +158,30 @@ fun ToggleButton(
                 Modifier.defaultMinSize(minHeight = ToggleButtonDefaults.MinHeight)
                     .then(
                         when (buttonShape) {
-                            is ShapeWithOpticalCentering -> {
-                                Modifier.opticalCentering(
+                            is ShapeWithHorizontalCenterOptically -> {
+                                Modifier.horizontalCenterOptically(
                                     shape = buttonShape,
-                                    basePadding = contentPadding
+                                    maxStartOffset =
+                                        contentPadding.calculateStartPadding(layoutDirection),
+                                    maxEndOffset =
+                                        contentPadding.calculateEndPadding(layoutDirection)
                                 )
                             }
                             is CornerBasedShape -> {
-                                Modifier.opticalCentering(
+                                Modifier.horizontalCenterOptically(
                                     shape = buttonShape,
-                                    basePadding = contentPadding
+                                    maxStartOffset =
+                                        contentPadding.calculateStartPadding(layoutDirection),
+                                    maxEndOffset =
+                                        contentPadding.calculateEndPadding(layoutDirection)
                                 )
                             }
                             else -> {
-                                Modifier.padding(contentPadding)
+                                Modifier
                             }
                         }
-                    ),
+                    )
+                    .padding(contentPadding),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 content = content
@@ -375,7 +385,7 @@ fun OutlinedToggleButton(
     shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.outlinedToggleButtonColors(),
     elevation: ButtonElevation? = null,
-    border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
+    border: BorderStroke? = if (!checked) ButtonDefaults.outlinedButtonBorder(enabled) else null,
     contentPadding: PaddingValues = ToggleButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit
@@ -476,7 +486,7 @@ object ToggleButtonDefaults {
 
     /** The default unchecked shape for [ToggleButton] */
     val shape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
+        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
 
     /** The default pressed shape for [ToggleButton] */
     val pressedShape: Shape
@@ -484,7 +494,7 @@ object ToggleButtonDefaults {
 
     /** The default checked shape for [ToggleButton] */
     val checkedShape: Shape
-        @Composable get() = ButtonSmallTokens.SelectedContainerShapeRound.value
+        @Composable get() = ButtonSmallTokens.SelectedContainerShapeSquare.value
 
     /** The default square shape for a extra small toggle button */
     val XSmallSquareShape: Shape
@@ -746,8 +756,7 @@ object ToggleButtonDefaults {
         get() {
             return defaultOutlinedToggleButtonColorsCached
                 ?: ToggleButtonColors(
-                        containerColor =
-                            fromToken(OutlinedButtonTokens.UnselectedPressedOutlineColor),
+                        containerColor = Color.Transparent,
                         contentColor = fromToken(OutlinedButtonTokens.UnselectedLabelTextColor),
                         disabledContainerColor =
                             fromToken(OutlinedButtonTokens.DisabledOutlineColor)

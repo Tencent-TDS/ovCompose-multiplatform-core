@@ -60,6 +60,7 @@ import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.PaneExpansionAnchor
 import androidx.compose.material3.adaptive.layout.PaneExpansionState
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldScope
+import androidx.compose.material3.adaptive.layout.defaultDragHandleSemantics
 import androidx.compose.material3.adaptive.layout.rememberPaneExpansionState
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
@@ -213,7 +214,8 @@ fun ListDetailPaneScaffoldSampleWithExtraPane() {
                     Modifier.paneExpansionDraggable(
                         state,
                         LocalMinimumInteractiveComponentSize.current,
-                        interactionSource
+                        interactionSource,
+                        state.defaultDragHandleSemantics()
                     ),
                 interactionSource = interactionSource
             )
@@ -234,7 +236,8 @@ fun ThreePaneScaffoldScope.PaneExpansionDragHandleSample(
             Modifier.paneExpansionDraggable(
                 state,
                 LocalMinimumInteractiveComponentSize.current,
-                interactionSource
+                interactionSource,
+                state.defaultDragHandleSemantics()
             ),
         interactionSource = interactionSource
     )
