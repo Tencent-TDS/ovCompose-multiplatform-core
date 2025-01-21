@@ -55,12 +55,12 @@ androidXMultiplatform {
             dependencies {
                 api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
                 api "org.jetbrains.compose.collection-internal:collection:1.7.1"
-                api project(":core:core-bundle")
-                api project(":core:core-uri")
-                api project(":lifecycle:lifecycle-common")
-                api project(":lifecycle:lifecycle-runtime")
-                api project(":lifecycle:lifecycle-viewmodel")
-                api project(":lifecycle:lifecycle-viewmodel-savedstate")
+                api "org.jetbrains.androidx.core:core-bundle:1.1.0-alpha02"
+                api "org.jetbrains.androidx.core:core-uri:1.1.0-alpha02"
+                api "org.jetbrains.androidx.lifecycle:lifecycle-common:2.9.0-alpha02"
+                api "org.jetbrains.androidx.lifecycle:lifecycle-runtime:2.9.0-alpha02"
+                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.9.0-alpha02"
+                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate:2.9.0-alpha02"
                 api "org.jetbrains.androidx.savedstate:savedstate:1.2.2"
 
                 api(libs.kotlinStdlib)
