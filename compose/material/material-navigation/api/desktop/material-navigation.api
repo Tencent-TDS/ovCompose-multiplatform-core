@@ -1,5 +1,6 @@
 public final class androidx/compose/material/navigation/BottomSheetKt {
-	public static final fun ModalBottomSheetLayout-4erKP6g (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun ModalBottomSheetLayout-4erKP6g (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ModalBottomSheetLayout-BzaUkTc (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;ZLandroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/material/navigation/BottomSheetNavigator : androidx/navigation/Navigator {
