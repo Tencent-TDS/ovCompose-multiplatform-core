@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.accessibility.AccessibilityScrollEventResult
@@ -30,6 +29,7 @@ import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
 import androidx.compose.ui.platform.accessibility.unclippedBoundsInWindow
+import androidx.compose.ui.scene.ComposeSceneMediatorView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -38,8 +38,8 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
 import androidx.compose.ui.unit.asCGRect
-import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.asDpRect
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
@@ -302,6 +302,35 @@ private object CachedAccessibilityPropertyKeys {
 
 @OptIn(BetaInteropApi::class)
 @ExportObjCClass
+private class AccessibilityRoot(
+    val mediator: AccessibilityMediator
+) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
+    var element: AccessibilityElement? = null
+        set(value) {
+            field = value
+            field?.parent = this
+        }
+
+    override fun isAccessibilityElement(): Boolean = false
+
+    override fun accessibilityElementCount(): NSInteger = if (mediator.isEnabled) 1 else 0
+
+    override fun accessibilityElementAtIndex(index: NSInteger): Any? =
+        if (mediator.isEnabled) {
+            mediator.activateAccessibilityIfNeeded()
+            element
+        } else {
+            null
+        }
+
+    override fun accessibilityContainer() = mediator.view
+
+    override fun accessibilityFrame(): CValue<CGRect> =
+        mediator.view.convertRect(mediator.view.bounds, toView = null)
+}
+
+@OptIn(BetaInteropApi::class)
+@ExportObjCClass
 private class AccessibilityElement(
     private var node: AccessibilityNode,
     children: List<AccessibilityElement>
@@ -532,29 +561,6 @@ private class NodesSyncResult(
 )
 
 /**
- * A sealed class that represents the options for syncing the Compose SemanticsNode tree with the iOS UIAccessibility tree.
- */
-@ExperimentalComposeApi
-enum class AccessibilitySyncOptions {
-    /**
-     * Never sync the tree.
-     */
-    Never,
-
-    /**
-     * Sync the tree only when the accessibility services are running.
-     */
-    WhenRequiredByAccessibilityServices,
-
-    /**
-     * Always sync the tree, can be quite handy for debugging and testing.
-     * Be aware that there is a significant overhead associated with doing it that can degrade
-     * the visual performance of the app.
-     */
-    Always
-}
-
-/**
  * An interface for logging accessibility debug messages.
  */
 internal interface AccessibilityDebugLogger {
@@ -606,12 +612,11 @@ private sealed interface AccessibilityElementFocusMode {
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
 internal class AccessibilityMediator(
-    val view: UIView,
+    val view: ComposeSceneMediatorView,
     val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
     val performEscape: () -> Boolean
-): NSObject() {
-
+) {
     private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {
             field = value
@@ -633,10 +638,6 @@ internal class AccessibilityMediator(
      */
     private val invalidationChannel = Channel<Unit>(1, onBufferOverflow = BufferOverflow.DROP_LATEST)
 
-    /**
-     * Remembered [AccessibilityDebugLogger] after last sync, if logging is enabled according to
-     * [AccessibilitySyncOptions].
-     */
     var debugLogger: AccessibilityDebugLogger? = null
         private set
 
@@ -650,7 +651,7 @@ internal class AccessibilityMediator(
      */
     private val coroutineScope = CoroutineScope(coroutineContext + job)
 
-    private var rootElement: AccessibilityElement? = null
+    private val root = AccessibilityRoot(mediator = this)
 
     /**
      * A map of all [AccessibilityElementKey] currently present in the tree to corresponding
@@ -678,13 +679,18 @@ internal class AccessibilityMediator(
     init {
         accessibilityDebugLogger?.log("AccessibilityMediator for $view created")
 
-        view.accessibilityElements = listOf<NSObject>()
+        view.accessibilityElements = listOf(root)
         coroutineScope.launch {
             // The main loop that listens for invalidations and performs the tree syncing
             // Will exit on CancellationException from within await on `invalidationChannel.receive()`
             // when [job] is cancelled
             while (true) {
                 invalidationChannel.receive()
+
+                // Estimated delay between the iOS Accessibility Engine sync intervals.
+                // There is no reason to post change notifications more frequently because the iOS
+                // Accessibility Engine will ignore them.
+                delay(100)
 
                 while (invalidationChannel.tryReceive().isSuccess) {
                     // Do nothing, just consume the channel
@@ -694,31 +700,56 @@ internal class AccessibilityMediator(
                 debugLogger = accessibilityDebugLogger.takeIf { isEnabled }
 
                 if (isEnabled) {
-                    val result: NodesSyncResult
-
-                    val time = measureTime {
-                        result = sync(invalidationKind)
+                    if (isAccessibilityActive) {
+                        scheduleAccessibilityDisablingAndCleanup()
+                        val time = measureTime {
+                            sync(invalidationKind)
+                        }
+                        debugLogger?.log("AccessibilityMediator.sync took $time")
                     }
-
-                    debugLogger?.log("AccessibilityMediator.sync took $time")
-                    debugLogger?.log("LayoutChanged, newElementToFocus: ${result.newElementToFocus}")
-
-                    val notificationName = if (result.isScreenChange) {
-                        UIAccessibilityScreenChangedNotification
-                    } else {
-                        UIAccessibilityLayoutChangedNotification
-                    }
-                    UIAccessibilityPostNotification(notificationName, result.newElementToFocus)
-                } else {
-                    if (view.accessibilityElements?.isEmpty() != true) {
-                        view.accessibilityElements = listOf<NSObject>()
-                        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
-                    }
+                } else if (root.element != null) {
+                    root.element = null
+                    UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
                 }
 
                 invalidationKind = SemanticsTreeInvalidationKind.BOUNDS
             }
         }
+    }
+
+    /**
+     * Indicates that accessibility has recently been requested and can be considered active.
+     * The flag is set to false if no accessibility tree reads occur for some time.
+     */
+    private var isAccessibilityActive: Boolean = false
+
+    private var disableAccessibilityJob: Job? = null
+
+    private fun scheduleAccessibilityDisablingAndCleanup() {
+        if (disableAccessibilityJob != null) {
+            return
+        }
+        disableAccessibilityJob = coroutineScope.launch {
+            // Allow some time for the iOS Accessibility Engine to read the updated accessibility
+            // elements tree. If no new reads occur during this time, it is assumed that iOS
+            // Accessibility has been disabled and resources can be cleaned up.
+            delay(2000)
+
+            cleanUp()
+        }
+    }
+
+    private fun cancelAccessibilityDisabling() {
+        disableAccessibilityJob?.cancel()
+        disableAccessibilityJob = null
+    }
+
+    fun activateAccessibilityIfNeeded() {
+        isAccessibilityActive = true
+        if (root.element == null) {
+            completeSync().postNotification()
+        }
+        cancelAccessibilityDisabling()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -779,12 +810,21 @@ internal class AccessibilityMediator(
 
     fun dispose() {
         job.cancel()
+        disableAccessibilityJob?.cancel()
         view.accessibilityElements = listOf<NSObject>()
 
         for (element in accessibilityElementsMap.values) {
             element.dispose()
         }
-        rootElement = null
+
+        cleanUp()
+    }
+
+    private fun cleanUp() {
+        disableAccessibilityJob = null
+        isAccessibilityActive = false
+
+        root.element = null
         accessibilityElementsMap.clear()
     }
 
@@ -885,8 +925,7 @@ internal class AccessibilityMediator(
             "Root view must not be an accessibility element"
         }
 
-        rootElement = traverseSemanticsTree(rootSemanticsNode)
-        view.accessibilityElements = listOfNotNull(rootElement)
+        root.element = traverseSemanticsTree(rootSemanticsNode)
 
         debugLogger?.let {
             debugTraverse(it, view)
@@ -912,7 +951,7 @@ internal class AccessibilityMediator(
                 if (element != null && !CGRectIsEmpty(element.accessibilityFrame())) {
                     NodesSyncResult(element.takeIf { it !== focusedElement }, isScreenChange = false)
                 } else if (focusedElement is AccessibilityElement) {
-                    val newFocusedElement = rootElement?.let { findFocusableElement(it) }
+                    val newFocusedElement = root.element?.let { findFocusableElement(it) }
 
                     focusMode = if (newFocusedElement is AccessibilityElement) {
                         AccessibilityElementFocusMode.KeepFocus(newFocusedElement.key)
@@ -958,10 +997,7 @@ internal class AccessibilityMediator(
             return null
         }
 
-        rootElement?.let {
-            @Suppress("CAST_NEVER_SUCCEEDS")
-            findElement(it as NSObject, centerPoint)
-        }
+        findElement(root as NSObject, centerPoint)
 
         return closestElement?.second
     }
@@ -1003,6 +1039,15 @@ internal class AccessibilityMediator(
         }
         return null
     }
+
+    private fun NodesSyncResult.postNotification() {
+        val notificationName = if (isScreenChange) {
+            UIAccessibilityScreenChangedNotification
+        } else {
+            UIAccessibilityLayoutChangedNotification
+        }
+        UIAccessibilityPostNotification(notificationName, newElementToFocus)
+    }
 }
 
 /**
@@ -1037,6 +1082,13 @@ private fun debugTraverse(debugLogger: AccessibilityDebugLogger, accessibilityOb
             }
         }
 
+        is AccessibilityRoot -> {
+            debugLogger.log("${indent}Root")
+            accessibilityObject.element?.let {
+                debugTraverse(debugLogger, it, depth + 1)
+            }
+        }
+
         else -> {
             throw IllegalStateException("Unexpected accessibility object type: ${accessibilityObject::class}")
         }
@@ -1052,6 +1104,11 @@ private fun debugContainmentChain(accessibilityObject: Any): String {
         when (val constCurrentObject = currentObject) {
             is AccessibilityElement -> {
                 currentObject = constCurrentObject.parent
+            }
+
+            is AccessibilityRoot -> {
+                strings.add("Root")
+                currentObject = constCurrentObject.accessibilityContainer()
             }
 
             is UIView -> {
