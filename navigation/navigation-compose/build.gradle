@@ -40,8 +40,6 @@ androidXComposeMultiplatform {
 }
 
 kotlin {
-    wasmJs { browser() }
-
     sourceSets {
         commonMain {
             dependencies {
