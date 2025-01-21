@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.node.elementOf
@@ -31,17 +33,40 @@ import androidx.compose.ui.node.requireLayoutNode
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 @SmallTest
-@RunWith(AndroidJUnit4::class)
-class SemanticsModifierNodeTest {
+@RunWith(Parameterized::class)
+class SemanticsModifierNodeTest(private val precomputedSemantics: Boolean) {
     @get:Rule val rule = createComposeRule()
+
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "pre-computed semantics = {0}")
+        fun initParameters() = listOf(false, true)
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    private val previousFlagValue = ComposeUiFlags.isSemanticAutofillEnabled
+
+    @Before
+    fun enableAutofill() {
+        @OptIn(ExperimentalComposeUiApi::class)
+        ComposeUiFlags.isSemanticAutofillEnabled = precomputedSemantics
+    }
+
+    @After
+    fun disableAutofill() {
+        @OptIn(ExperimentalComposeUiApi::class)
+        ComposeUiFlags.isSemanticAutofillEnabled = previousFlagValue
+    }
 
     @Test
     fun applySemantics_firstComposition() {
@@ -50,7 +75,15 @@ class SemanticsModifierNodeTest {
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(0) }
+        rule.runOnIdle {
+            if (precomputedSemantics) {
+                // One invocation when the modifier node calls autoInvalidateNodeSelf and another
+                // when the Layout node is attached.
+                assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(2)
+            } else {
+                assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(0)
+            }
+        }
     }
 
     @Test
@@ -58,12 +91,16 @@ class SemanticsModifierNodeTest {
         // Arrange.
         val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.onNodeWithTag("TestTag").assertExists()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 0 else 1)
+        }
     }
 
     @Test
@@ -71,12 +108,16 @@ class SemanticsModifierNodeTest {
         // Arrange.
         val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.onNodeWithTag("TestTag").fetchSemanticsNode()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 0 else 1)
+        }
     }
 
     @Test
@@ -84,6 +125,7 @@ class SemanticsModifierNodeTest {
         // Arrange.
         val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.onNodeWithTag("TestTag").fetchSemanticsNode()
@@ -91,7 +133,10 @@ class SemanticsModifierNodeTest {
         rule.onNodeWithTag("TestTag").fetchSemanticsNode()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 0 else 1)
+        }
     }
 
     @Test
@@ -99,12 +144,16 @@ class SemanticsModifierNodeTest {
         // Arrange.
         val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.runOnIdle { semanticsModifier.invalidateSemantics() }
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(0) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 1 else 0)
+        }
     }
 
     @Test
@@ -112,6 +161,7 @@ class SemanticsModifierNodeTest {
         // Arrange.
         val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.onNodeWithTag("TestTag").assertExists()
@@ -119,7 +169,10 @@ class SemanticsModifierNodeTest {
         rule.onNodeWithTag("TestTag").assertExists()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(2) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 1 else 2)
+        }
     }
 
     @Test
@@ -139,7 +192,10 @@ class SemanticsModifierNodeTest {
         rule.onNodeWithTag("TestTag").assertExists()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(2) }
+        rule.runOnIdle {
+            assertThat(semanticsModifier.applySemanticsInvocations)
+                .isEqualTo(if (precomputedSemantics) 8 else 2)
+        }
     }
 
     @Test
@@ -215,7 +271,7 @@ class SemanticsModifierNodeTest {
         // Assert.
         rule.onNodeWithTag("0").assertDoesNotExist()
         assertThat(semanticsModifiers[0].applySemanticsInvocations).isEqualTo(0)
-        assertThat(semanticsModifiers[0].requireLayoutNode().collapsedSemantics).isNull()
+        assertThat(semanticsModifiers[0].requireLayoutNode().semanticsConfiguration).isNull()
         assertThat(semanticsModifiers[0].applySemanticsInvocations).isEqualTo(0)
     }
 
@@ -237,7 +293,7 @@ class SemanticsModifierNodeTest {
 
         // Assert.
         rule.onNodeWithTag("0").assertDoesNotExist()
-        assertThat(semanticsModifiers[0].requireLayoutNode().collapsedSemantics).isNull()
+        assertThat(semanticsModifiers[0].requireLayoutNode().semanticsConfiguration).isNull()
     }
 
     @Test
@@ -249,12 +305,17 @@ class SemanticsModifierNodeTest {
             semanticsModifier.invalidateSemantics()
         }
         rule.setContent { Box(Modifier.elementOf(semanticsModifier)) }
+        rule.runOnIdle { semanticsModifier.resetCounters() }
 
         // Act.
         rule.onNodeWithTag("tag").assertExists()
 
         // Assert.
-        rule.runOnIdle { assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1) }
+        if (precomputedSemantics) {
+            assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(0)
+        } else {
+            assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1)
+        }
     }
 
     private class TestSemanticsModifier(

@@ -1999,7 +1999,8 @@ class AndroidViewTest {
                 framesAtSameValue = 0
             }
             lastBottom = bottomInset
-            framesAtSameValue > 2
+            rule.runOnUiThread { composeView.invalidate() }
+            framesAtSameValue > 3
         }
         rule.runOnIdle {
             assertThat(topInset).isEqualTo(outerTopInset)

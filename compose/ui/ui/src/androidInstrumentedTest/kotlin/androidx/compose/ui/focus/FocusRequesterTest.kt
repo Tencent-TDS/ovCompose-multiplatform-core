@@ -350,7 +350,7 @@ class FocusRequesterTest(private val modifierNodeVersion: Boolean) {
                     Modifier.focusRequester(focusRequester)
                         .focusProperties {
                             canFocus = false
-                            onEnter = { cancelFocus() }
+                            onEnter = { cancelFocusChange() }
                         }
                         .focusTarget()
             ) {

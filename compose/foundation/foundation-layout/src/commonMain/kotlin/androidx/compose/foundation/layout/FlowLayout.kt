@@ -788,8 +788,8 @@ private data class FlowMeasurePolicy(
     ) =
         minIntrinsicMainAxisSize(
             measurables,
-            mainAxisSize = minMainAxisIntrinsicItemSize,
-            crossAxisSize = minCrossAxisIntrinsicItemSize,
+            mainAxisSize = { _, size -> minMainAxisIntrinsicItemSize(size) },
+            crossAxisSize = { _, size -> minCrossAxisIntrinsicItemSize(size) },
             crossAxisAvailable,
             mainAxisSpacing,
             crossAxisSpacing,
@@ -805,7 +805,7 @@ private data class FlowMeasurePolicy(
     ) =
         maxIntrinsicMainAxisSize(
             measurables,
-            maxMainAxisIntrinsicItemSize,
+            { _, size -> maxMainAxisIntrinsicItemSize(size) },
             height,
             arrangementSpacing,
             maxItemsInMainAxis
@@ -822,8 +822,8 @@ private data class FlowMeasurePolicy(
     ) =
         intrinsicCrossAxisSize(
                 measurables,
-                mainAxisSize = minMainAxisIntrinsicItemSize,
-                crossAxisSize = minCrossAxisIntrinsicItemSize,
+                mainAxisSize = { _, size -> minMainAxisIntrinsicItemSize(size) },
+                crossAxisSize = { _, size -> minCrossAxisIntrinsicItemSize(size) },
                 mainAxisAvailable,
                 mainAxisSpacing,
                 crossAxisSpacing,
@@ -833,20 +833,17 @@ private data class FlowMeasurePolicy(
             )
             .first
 
-    val maxMainAxisIntrinsicItemSize: IntrinsicMeasurable.(Int, Int) -> Int =
-        if (isHorizontal) { _, h -> maxIntrinsicWidth(h) } else { _, w -> maxIntrinsicHeight(w) }
+    fun IntrinsicMeasurable.maxMainAxisIntrinsicItemSize(size: Int): Int =
+        if (isHorizontal) maxIntrinsicWidth(size) else maxIntrinsicHeight(size)
 
-    val maxCrossAxisIntrinsicItemSize: IntrinsicMeasurable.(Int, Int) -> Int =
-        if (isHorizontal) { _, w -> maxIntrinsicHeight(w) } else { _, h -> maxIntrinsicWidth(h) }
+    fun IntrinsicMeasurable.minCrossAxisIntrinsicItemSize(size: Int): Int =
+        if (isHorizontal) minIntrinsicHeight(size) else minIntrinsicWidth(size)
 
-    val minCrossAxisIntrinsicItemSize: IntrinsicMeasurable.(Int, Int) -> Int =
-        if (isHorizontal) { _, w -> minIntrinsicHeight(w) } else { _, h -> minIntrinsicWidth(h) }
-
-    val minMainAxisIntrinsicItemSize: IntrinsicMeasurable.(Int, Int) -> Int =
-        if (isHorizontal) { _, h -> minIntrinsicWidth(h) } else { _, w -> minIntrinsicHeight(w) }
+    fun IntrinsicMeasurable.minMainAxisIntrinsicItemSize(size: Int): Int =
+        if (isHorizontal) minIntrinsicWidth(size) else minIntrinsicHeight(size)
 }
 
-private fun maxIntrinsicMainAxisSize(
+private inline fun maxIntrinsicMainAxisSize(
     children: List<IntrinsicMeasurable>,
     mainAxisSize: IntrinsicMeasurable.(Int, Int) -> Int,
     crossAxisAvailable: Int,
@@ -875,8 +872,9 @@ private fun maxIntrinsicMainAxisSize(
  * Slower algorithm but needed to determine the minimum main axis size Uses a binary search to
  * search different scenarios to see the minimum main axis size
  */
+@Suppress("BanInlineOptIn")
 @OptIn(ExperimentalLayoutApi::class)
-private fun minIntrinsicMainAxisSize(
+private inline fun minIntrinsicMainAxisSize(
     children: List<IntrinsicMeasurable>,
     mainAxisSize: IntrinsicMeasurable.(Int, Int) -> Int,
     crossAxisSize: IntrinsicMeasurable.(Int, Int) -> Int,
@@ -994,7 +992,7 @@ private fun intrinsicCrossAxisSize(
  * FlowRow: Intrinsic height (cross Axis) is based on a specified width
  * * FlowColumn: Intrinsic width (crossAxis) based on a specified height
  */
-private fun intrinsicCrossAxisSize(
+private inline fun intrinsicCrossAxisSize(
     children: List<IntrinsicMeasurable>,
     mainAxisSize: IntrinsicMeasurable.(Int, Int) -> Int,
     crossAxisSize: IntrinsicMeasurable.(Int, Int) -> Int,

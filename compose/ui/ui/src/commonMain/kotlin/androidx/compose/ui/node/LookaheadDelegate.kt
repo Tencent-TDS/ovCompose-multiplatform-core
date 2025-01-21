@@ -61,6 +61,24 @@ internal abstract class LookaheadCapablePlaceable :
      */
     override var isPlacedUnderMotionFrameOfReference: Boolean = false
 
+    override fun updatePlacedUnderMotionFrameOfReference(newMFR: Boolean) {
+        val parentNode = parent?.layoutNode
+        if (parentNode == layoutNode) {
+            isPlacedUnderMotionFrameOfReference = newMFR
+        } else {
+            // This node is the beginning of the chain (i.e. outerCoordinator), check if this
+            // placement call comes from the parent
+            if (
+                parentNode?.layoutState == LayoutNode.LayoutState.LayingOut ||
+                    parentNode?.layoutState == LayoutNode.LayoutState.LookaheadLayingOut
+            ) {
+                isPlacedUnderMotionFrameOfReference = newMFR
+            }
+            // If the node is simply being replaced without parent, we need to maintain the flag
+            // from last time when `placeChildren` lambda was run. Therefore no op.
+        }
+    }
+
     val rulerScope: RulerScope
         get() {
             return _rulerScope
