@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.InternalComposeApi
 import org.jetbrains.skia.ClipMode as SkClipMode
 import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
@@ -52,6 +53,13 @@ fun org.jetbrains.skia.Canvas.asComposeCanvas(): Canvas = SkiaBackedCanvas(this)
 
 actual val Canvas.nativeCanvas: NativeCanvas get() = (this as SkiaBackedCanvas).skia
 
+// This was added for internal usage from old render layers (another submodule),
+// but wasn't properly marked as internal. Keep it as deprecated for some time to be safe.
+@InternalComposeApi
+@Deprecated(
+    level = DeprecationLevel.ERROR,
+    message = "This API is not supposed to be used outside of Compose UI package"
+)
 var Canvas.alphaMultiplier: Float
     get() = (this as SkiaBackedCanvas).alphaMultiplier
     set(value) { (this as SkiaBackedCanvas).alphaMultiplier = value }

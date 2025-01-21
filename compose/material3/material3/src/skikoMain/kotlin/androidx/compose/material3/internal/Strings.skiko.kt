@@ -125,6 +125,11 @@ internal actual fun getString(string: Strings): String {
     return translation[string] ?: error("Missing translation for $string")
 }
 
+@Composable
+@ReadOnlyComposable
+internal actual fun getString(string: Strings, vararg formatArgs: Any): String =
+    getString(string).format(*formatArgs)
+
 /**
  * A single translation; should contain all the [Strings].
  */

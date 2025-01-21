@@ -18,7 +18,7 @@ package androidx.compose.ui.node
 
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.platform.makeSynchronizedObject
-import androidx.compose.ui.getCurrentThreadId
+import androidx.compose.ui.internal.getCurrentThreadId
 import androidx.compose.ui.platform.synchronized
 import kotlinx.atomicfu.atomic
 
