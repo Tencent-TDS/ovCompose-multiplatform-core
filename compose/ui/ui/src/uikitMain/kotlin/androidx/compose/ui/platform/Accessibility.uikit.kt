@@ -617,7 +617,7 @@ internal class AccessibilityMediator(
     coroutineContext: CoroutineContext,
     val performEscape: () -> Boolean
 ) {
-    private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.None
+    private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {
             field = value
             debugLogger?.log("Focus mode: $focusMode")
