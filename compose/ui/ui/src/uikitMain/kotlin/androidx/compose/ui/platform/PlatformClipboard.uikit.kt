@@ -22,13 +22,42 @@ actual typealias NativeClipboard = platform.UIKit.UIPasteboard
 
 internal class UiKitPlatformClipboard internal constructor() : Clipboard {
     override suspend fun getClipEntry(): ClipEntry? {
-        TODO("Not yet implemented")
+        if (nativeClipboard.items.isEmpty()) return null
+        return ClipEntry().apply {
+            plainText = nativeClipboard.string
+        }
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        TODO("Not yet implemented")
+        if (clipEntry == null) {
+            nativeClipboard.items = emptyList<Map<String, Any>>()
+        } else {
+            nativeClipboard.string = clipEntry.plainText
+        }
     }
 
     override val nativeClipboard: NativeClipboard
         get() = UIPasteboard.generalPasteboard
+}
+
+internal actual fun createPlatformClipboard(): Clipboard {
+    return UiKitPlatformClipboard()
+}
+
+
+actual class ClipEntry internal constructor() {
+
+    // TODO https://youtrack.jetbrains.com/issue/CMP-1260/ClipboardManager.-Implement-getClip-getClipMetadata-setClip
+    actual val clipMetadata: ClipMetadata
+        get() = TODO("ClipMetadata is not implemented. Consider using nativeClipboard")
+
+    internal var plainText: String? = null
+
+    fun getPlainText(): String? = plainText
+
+    companion object {
+        fun withPlainText(text: String): ClipEntry = ClipEntry().apply {
+            plainText = text
+        }
+    }
 }
