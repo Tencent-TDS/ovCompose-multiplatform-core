@@ -54,7 +54,7 @@ internal class AwtPlatformClipboard internal constructor() : Clipboard {
 actual class ClipEntry(val transferable: Transferable) {
     // TODO https://youtrack.jetbrains.com/issue/CMP-1260/ClipboardManager.-Implement-getClip-getClipMetadata-setClip
     actual val clipMetadata: ClipMetadata
-        get() = TODO("Not yet implemented")
+        get() = TODO("ClipMetadata is not implemented. Consider using nativeClipboard")
 }
 
 private object EmptyTransferable : Transferable {
