@@ -36,7 +36,6 @@ import java.util.List;
 
 @SmallTest
 @RunWith(RobolectricTestRunner.class)
-
 public class SelectedMatchTest {
 
     @Test

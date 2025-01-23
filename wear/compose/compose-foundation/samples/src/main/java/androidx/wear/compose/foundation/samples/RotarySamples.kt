@@ -31,25 +31,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastSumBy
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.RotarySnapLayoutInfoProvider
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Sampled
 @Composable
 fun RotaryScrollSample() {
     val scrollableState = rememberLazyListState()
     val focusRequester = rememberActiveFocusRequester()
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .rotaryScrollable(
-                behavior = RotaryScrollableDefaults.behavior(scrollableState),
-                focusRequester = focusRequester
-            ),
+        modifier =
+            Modifier.fillMaxSize()
+                .rotaryScrollable(
+                    behavior = RotaryScrollableDefaults.behavior(scrollableState),
+                    focusRequester = focusRequester
+                ),
         horizontalAlignment = Alignment.CenterHorizontally,
         state = scrollableState
     ) {
@@ -63,56 +61,52 @@ fun RotaryScrollSample() {
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Sampled
 @Composable
 fun RotarySnapSample() {
     val scrollableState = rememberLazyListState()
     val focusRequester = rememberActiveFocusRequester()
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .rotaryScrollable(
-                behavior = RotaryScrollableDefaults.snapBehavior(
-                    scrollableState,
-                    // This sample has a custom implementation of RotarySnapLayoutInfoProvider
-                    // which is required for snapping behavior. ScalingLazyColumn has it built-in,
-                    // so it's not required there.
-                    remember(scrollableState) {
-                        object : RotarySnapLayoutInfoProvider {
+        modifier =
+            Modifier.fillMaxSize()
+                .rotaryScrollable(
+                    behavior =
+                        RotaryScrollableDefaults.snapBehavior(
+                            scrollableState,
+                            // This sample has a custom implementation of
+                            // RotarySnapLayoutInfoProvider
+                            // which is required for snapping behavior. ScalingLazyColumn has it
+                            // built-in,
+                            // so it's not required there.
+                            remember(scrollableState) {
+                                object : RotarySnapLayoutInfoProvider {
 
-                            override val averageItemSize: Float
-                                get() {
-                                val items = scrollableState.layoutInfo.visibleItemsInfo
-                                return (items.fastSumBy { it.size } / items.size).toFloat()
+                                    override val averageItemSize: Float
+                                        get() {
+                                            val items = scrollableState.layoutInfo.visibleItemsInfo
+                                            return (items.fastSumBy { it.size } / items.size)
+                                                .toFloat()
+                                        }
+
+                                    override val currentItemIndex: Int
+                                        get() = scrollableState.firstVisibleItemIndex
+
+                                    override val currentItemOffset: Float
+                                        get() =
+                                            scrollableState.firstVisibleItemScrollOffset.toFloat()
+
+                                    override val totalItemCount: Int
+                                        get() = scrollableState.layoutInfo.totalItemsCount
+                                }
                             }
-
-                            override val currentItemIndex: Int
-                                get() =
-                                scrollableState.firstVisibleItemIndex
-
-                            override val currentItemOffset: Float
-                                get() =
-                                scrollableState.firstVisibleItemScrollOffset.toFloat()
-
-                            override val totalItemCount: Int
-                                get() =
-                                scrollableState.layoutInfo.totalItemsCount
-                        }
-                    }
+                        ),
+                    focusRequester = focusRequester
                 ),
-                focusRequester = focusRequester
-            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         state = scrollableState
     ) {
         items(300) {
-            BasicText(
-                text = "item $it",
-                modifier = Modifier
-                    .background(Color.Gray)
-                    .height(30.dp)
-            )
+            BasicText(text = "item $it", modifier = Modifier.background(Color.Gray).height(30.dp))
         }
     }
 }

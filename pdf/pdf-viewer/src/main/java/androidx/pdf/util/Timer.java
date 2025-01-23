@@ -20,11 +20,7 @@ import android.os.SystemClock;
 
 import androidx.annotation.RestrictTo;
 
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import com.google.errorprone.annotations.FormatMethod;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Simple timer for profiling methods.
@@ -35,7 +31,7 @@ public class Timer {
     private final long mStartTimeMs;
 
     /** Start a new timer right now. */
-    public static Timer start() {
+    public static @NonNull Timer start() {
         return new Timer();
     }
 
@@ -51,80 +47,5 @@ public class Timer {
     /** Returns the number of milliseconds elapsed since some fixed past time. */
     private static long getElapsedTimeMs() {
         return SystemClock.elapsedRealtime();
-    }
-
-    /** A logger that times every event it receives and outputs all events and their timestamp. */
-    public static class LogBuilder {
-
-        /** Using a StringBuffer because we need this to be thread-safe. */
-        private final StringBuilder mLog = new StringBuilder();
-
-        private final Timer mTimer = Timer.start();
-
-        {
-            track("Created");
-        }
-
-        /**
-         *
-         */
-        @CanIgnoreReturnValue
-        public LogBuilder track(String event) {
-            mLog.append(event).append(":").append(mTimer.time()).append("; ");
-            return this;
-        }
-
-        /**
-         *
-         */
-        @CanIgnoreReturnValue
-        @FormatMethod
-        public LogBuilder trackFmt(String eventFmt, Object... args) {
-            mLog.append(String.format(eventFmt, args)).append(":").append(mTimer.time()).append(
-                    "; ");
-            return this;
-        }
-
-        /**
-         *
-         */
-        @Override
-        public String toString() {
-            return mLog.toString();
-        }
-    }
-
-    /** Keeps a concurrent collection of loggers and allows them to be easily retrieved. */
-    public static class Loggers {
-        private final Map<String, LogBuilder> mNameToTimer = new ConcurrentHashMap<>();
-
-        /**
-         *
-         */
-        public void start(String key) {
-            mNameToTimer.put(key, new LogBuilder());
-        }
-
-        /**
-         *
-         */
-        public void track(String key, String event) {
-            LogBuilder logger = mNameToTimer.get(key);
-            if (logger != null) {
-                logger.track(event);
-            }
-        }
-
-        /**
-         *
-         */
-        public String stop(String key) {
-            LogBuilder logger = mNameToTimer.remove(key);
-            if (logger != null) {
-                return logger.toString();
-            } else {
-                return "No logger for key " + key;
-            }
-        }
     }
 }

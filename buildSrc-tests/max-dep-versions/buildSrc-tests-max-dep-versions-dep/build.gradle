@@ -6,7 +6,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -14,7 +13,7 @@ plugins {
 }
 
 android {
-    namespace "androidx.buildSrc.tests.lib"
+    namespace = "androidx.buildSrc.tests.lib"
 }
 
 androidx {

@@ -20,11 +20,11 @@ import static androidx.appsearch.compiler.IntrospectionHelper.BUILDER_PRODUCER_C
 
 import static java.util.stream.Collectors.joining;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableMap;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -104,21 +104,19 @@ public abstract class DocumentClassCreationInfo {
     /**
      * The creation method.
      */
-    @NonNull
-    public abstract CreationMethod getCreationMethod();
+    public abstract @NonNull CreationMethod getCreationMethod();
 
     /**
      * Maps an annotated getter/field to the corresponding setter/field on the object returned by
      * the {@link CreationMethod}.
      */
-    @NonNull
-    public abstract ImmutableMap<AnnotatedGetterOrField, SetterOrField> getSettersAndFields();
+    public abstract @NonNull ImmutableMap<AnnotatedGetterOrField, SetterOrField>
+            getSettersAndFields();
 
     /**
      * Infers the {@link DocumentClassCreationInfo} for a specified document class.
      */
-    @NonNull
-    public static DocumentClassCreationInfo infer(
+    public static @NonNull DocumentClassCreationInfo infer(
             @NonNull TypeElement documentClass,
             @NonNull Set<AnnotatedGetterOrField> annotatedGettersAndFields,
             @NonNull IntrospectionHelper helper) throws ProcessingException {
@@ -196,8 +194,7 @@ public abstract class DocumentClassCreationInfo {
      *
      * @throws ProcessingException if no suitable setter was found within the specified class.
      */
-    @NonNull
-    private static ExecutableElement findSetter(
+    private static @NonNull ExecutableElement findSetter(
             @NonNull TypeElement clazz,
             @NonNull AnnotatedGetterOrField getterOrField,
             @NonNull IntrospectionHelper helper) throws ProcessingException {
@@ -239,8 +236,7 @@ public abstract class DocumentClassCreationInfo {
         throw exception;
     }
 
-    @NonNull
-    private static Set<String> getAcceptableSetterNames(
+    private static @NonNull Set<String> getAcceptableSetterNames(
             @NonNull AnnotatedGetterOrField getterOrField) {
         // String mField -> {field(String), setField(String)}
         // String getProp() -> {prop(String), setProp(String)}
@@ -362,8 +358,7 @@ public abstract class DocumentClassCreationInfo {
             mBuilderType = builderType;
         }
 
-        @Nullable
-        static BuilderProducer tryCreate(
+        static @Nullable BuilderProducer tryCreate(
                 @NonNull TypeElement documentClass,
                 @NonNull IntrospectionHelper helper) throws ProcessingException {
             List<? extends Element> annotatedElements = documentClass.getEnclosedElements().stream()
@@ -402,8 +397,7 @@ public abstract class DocumentClassCreationInfo {
         /**
          * The static method/nested class annotated with {@code @Document.BuilderProducer}.
          */
-        @NonNull
-        Element getElement() {
+        @NonNull Element getElement() {
             return mElement;
         }
 
@@ -414,8 +408,7 @@ public abstract class DocumentClassCreationInfo {
         /**
          * The return type of the annotated method or the annotated builder class.
          */
-        @NonNull
-        DeclaredType getBuilderType() {
+        @NonNull DeclaredType getBuilderType() {
             return mBuilderType;
         }
 

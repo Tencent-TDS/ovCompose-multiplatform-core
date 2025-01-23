@@ -23,23 +23,26 @@ import androidx.window.layout.FoldingFeature
  * Calculates the [Posture] for a given list of [FoldingFeature]s. This methods converts framework
  * folding info into the Material-opinionated posture info.
  */
-@ExperimentalMaterial3AdaptiveApi
 fun calculatePosture(foldingFeatures: List<FoldingFeature>): Posture {
     var isTableTop = false
     val hingeList = mutableListOf<HingeInfo>()
     @Suppress("ListIterator")
     foldingFeatures.forEach {
-        if (it.orientation == FoldingFeature.Orientation.HORIZONTAL &&
-            it.state == FoldingFeature.State.HALF_OPENED) {
+        if (
+            it.orientation == FoldingFeature.Orientation.HORIZONTAL &&
+                it.state == FoldingFeature.State.HALF_OPENED
+        ) {
             isTableTop = true
         }
-        hingeList.add(HingeInfo(
-            bounds = it.bounds.toComposeRect(),
-            isFlat = it.state == FoldingFeature.State.FLAT,
-            isVertical = it.orientation == FoldingFeature.Orientation.VERTICAL,
-            isSeparating = it.isSeparating,
-            isOccluding = it.occlusionType == FoldingFeature.OcclusionType.FULL
-        ))
+        hingeList.add(
+            HingeInfo(
+                bounds = it.bounds.toComposeRect(),
+                isFlat = it.state == FoldingFeature.State.FLAT,
+                isVertical = it.orientation == FoldingFeature.Orientation.VERTICAL,
+                isSeparating = it.isSeparating,
+                isOccluding = it.occlusionType == FoldingFeature.OcclusionType.FULL
+            )
+        )
     }
     return Posture(isTableTop, hingeList)
 }

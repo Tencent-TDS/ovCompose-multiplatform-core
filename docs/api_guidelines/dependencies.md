@@ -236,15 +236,19 @@ dependencies {
 }
 ```
 
-### System health {#dependencies-health}
+### Dependency considerations {#dependencies-health}
 
 Generally, Jetpack libraries should avoid dependencies that negatively impact
 developers without providing substantial benefit. Libraries should consider the
-system health implications of their dependencies, including:
+implications of their dependencies, including:
 
 -   Large dependencies where only a small portion is needed (e.g. APK bloat)
 -   Dependencies that slow down build times through annotation processing or
     compiler overhead
+-   Dependencies which do not maintain binary compatibility and conflict with
+    semantic versioning guarantees
+-   Dependencies that are intended for server environments and don't interact
+    well with the Android build toolchain (e.g. R8) or runtime (e.g. ART)
 
 #### Kotlin {#dependencies-kotlin}
 
@@ -267,6 +271,13 @@ Java-based libraries *may* migrate to Kotlin, but they must be careful to
 maintain binary compatibility during the migration. Metalava does not cover all
 possible aspects of migration, so some manual work will be required.
 
+#### Kotlin reflect {#dependencies-kotlin-reflect}
+
+Reflection in libraries is
+[only allowed for backwards compatibility support](/docs/api_guidelines#sdk-reflection)
+and those users should use Java reflection. `kotlin-reflect` is very costly at
+runtime and should never be used.
+
 #### Kotlin coroutines {#dependencies-coroutines}
 
 The Kotlin coroutines library adds around 100kB post-shrinking. New libraries
@@ -280,6 +291,12 @@ dependencies {
     implementation(libs.kotlinCoroutinesAndroid)
 }
 ```
+
+#### GSON {#dependencies-gson}
+
+GSON relies heavily on reflection and interacts poorly with app optimization
+tools like R8. Instead, consider using `org.json` which is included in the
+Android platform SDK.
 
 #### Guava {#dependencies-guava}
 

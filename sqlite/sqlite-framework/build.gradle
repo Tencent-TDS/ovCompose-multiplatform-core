@@ -22,6 +22,8 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -69,7 +71,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.annotation:annotation:1.8.1")
                 api(project(":sqlite:sqlite"))
             }
         }
@@ -92,19 +94,21 @@ androidXMultiplatform {
         }
         nativeMain {
             dependsOn(commonMain)
+            // For usage of C interop APIs
+            // See: https://kotlinlang.org/docs/whatsnew19.html#explicit-c-interoperability-stability-guarantees
+            languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
         }
         nativeTest {
             dependsOn(commonTest)
         }
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 def main = target.compilations["main"]
                 main.defaultSourceSet {
                     dependsOn(nativeMain)
+                    // Aligns dependants of nativeMain to have same language settings.
+                    languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
                 }
-                // For usage of C interop APIs
-                // See: https://kotlinlang.org/docs/whatsnew19.html#explicit-c-interoperability-stability-guarantees
-                main.compilerOptions.options.optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
                 main.cinterops {
                     sqlite3 { cInteropSettings ->
                         includeDirs(configurations.sqliteSources.incoming.files)
@@ -144,7 +148,7 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "The implementation of SQLite library using the framework code."
-    metalavaK2UastEnabled = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {

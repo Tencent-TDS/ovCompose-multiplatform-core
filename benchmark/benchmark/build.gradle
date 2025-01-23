@@ -40,18 +40,21 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinStdlib)
+    androidTestImplementation(libs.kotlinTest)
 }
 
 android {
-    namespace "androidx.benchmark.benchmark"
+    namespace = "androidx.benchmark.benchmark"
     buildTypes.release {
         androidTest {
             enableMinification = false
             testProguardFiles "proguard-rules.pro"
         }
     }
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false 
 }
 
 androidx {
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = LibraryType.BENCHMARK
 }

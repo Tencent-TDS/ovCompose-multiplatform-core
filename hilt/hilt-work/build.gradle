@@ -32,11 +32,12 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.hilt.work"
+    namespace = "androidx.hilt.work"
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":hilt:hilt-common"))
     api("androidx.work:work-runtime:2.3.4")
     api(libs.hiltAndroid)
@@ -49,5 +50,4 @@ androidx {
     mavenVersion = LibraryVersions.HILT
     inceptionYear = "2020"
     description = "Android Lifecycle WorkManager Hilt Extension"
-    metalavaK2UastEnabled = true
 }

@@ -20,6 +20,7 @@
 package androidx.room.util
 
 import androidx.annotation.RestrictTo
+import androidx.collection.LongSparseArray
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
 
@@ -31,7 +32,7 @@ import kotlin.jvm.JvmName
  * @param isRelationCollection - True if [V] is a [Collection] which means it is non null.
  * @param fetchBlock - A lambda for calling the generated _fetchRelationship function.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 fun <K : Any, V> recursiveFetchMap(
     map: MutableMap<K, V>,
     isRelationCollection: Boolean,
@@ -70,7 +71,42 @@ fun <K : Any, V> recursiveFetchMap(
     }
 }
 
-/**
- * Unfortunately, we cannot read this value so we are only setting it to the SQLite default.
- */
+/** Same as [recursiveFetchMap] but for [LongSparseArray]. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+fun <V> recursiveFetchLongSparseArray(
+    map: LongSparseArray<V>,
+    isRelationCollection: Boolean,
+    fetchBlock: (LongSparseArray<V>) -> Unit
+) {
+    val tmpMap = LongSparseArray<V>(MAX_BIND_PARAMETER_CNT)
+    var count = 0
+    var mapIndex = 0
+    val limit = map.size()
+    while (mapIndex < limit) {
+        if (isRelationCollection) {
+            tmpMap.put(map.keyAt(mapIndex), map.valueAt(mapIndex))
+        } else {
+            // Safe because `V` is a nullable type arg when isRelationCollection == false
+            @Suppress("UNCHECKED_CAST") tmpMap.put(map.keyAt(mapIndex), null as V)
+        }
+        mapIndex++
+        count++
+        if (count == MAX_BIND_PARAMETER_CNT) {
+            fetchBlock(tmpMap)
+            if (!isRelationCollection) {
+                map.putAll(tmpMap)
+            }
+            tmpMap.clear()
+            count = 0
+        }
+    }
+    if (count > 0) {
+        fetchBlock(tmpMap)
+        if (!isRelationCollection) {
+            map.putAll(tmpMap)
+        }
+    }
+}
+
+/** Unfortunately, we cannot read this value so we are only setting it to the SQLite default. */
 internal const val MAX_BIND_PARAMETER_CNT = 999

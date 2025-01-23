@@ -20,11 +20,14 @@ import androidx.annotation.RestrictTo;
 import androidx.pdf.viewer.loader.PdfPageLoader.GetPageLinksTask;
 import androidx.pdf.viewer.loader.PdfPageLoader.GetPageTextTask;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Utility to disable tasks that are causing crashes.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public final class TaskDenyList {
+
     public static boolean sDisableLinks = false;
 
     public static boolean sDisableAltText = false;
@@ -36,7 +39,7 @@ public final class TaskDenyList {
     /**
      * Disable some of the less important features if they are causing crashes.
      */
-    public static void maybeDenyListTask(String task) {
+    public static void maybeDenyListTask(@NonNull String task) {
         if (GetPageLinksTask.class.getSimpleName().equals(task)) {
             sDisableLinks = true;
         } else if (GetPageTextTask.class.getSimpleName().equals(task)) {

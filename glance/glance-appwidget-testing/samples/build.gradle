@@ -53,7 +53,8 @@ androidx {
 
 android {
     defaultConfig {
-        minSdkVersion 23
+        minSdk = 23
+        compileSdk = 35
     }
-    namespace "androidx.glance.appwidget.testing.samples"
+    namespace = "androidx.glance.appwidget.testing.samples"
 }

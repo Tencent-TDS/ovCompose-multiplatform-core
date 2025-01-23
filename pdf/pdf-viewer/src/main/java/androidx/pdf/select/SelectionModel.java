@@ -22,6 +22,8 @@ import androidx.pdf.util.ObservableValue;
 import androidx.pdf.util.Observables;
 import androidx.pdf.util.Observables.ExposedValue;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Stores data relevant to the current selection.
  *
@@ -36,14 +38,14 @@ public abstract class SelectionModel<S> {
     /**
      *
      */
-    public ObservableValue<S> selection() {
+    public @NonNull ObservableValue<S> selection() {
         return mSelection;
     }
 
     /**
      *
      */
-    public abstract String getText();
+    public abstract @NonNull String getText();
 
     /** Synchronous update - the exact selection is already known. */
     public void setSelection(S newSelection) {
@@ -53,7 +55,8 @@ public abstract class SelectionModel<S> {
     /**
      *
      */
-    public void updateSelectionAsync(SelectionBoundary start, SelectionBoundary stop) {
+    public void updateSelectionAsync(@NonNull SelectionBoundary start,
+            @NonNull SelectionBoundary stop) {
         throw new UnsupportedOperationException("No support for updating selection");
     }
 }

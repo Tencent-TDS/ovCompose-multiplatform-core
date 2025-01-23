@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 
 plugins {
@@ -42,13 +44,15 @@ androidx {
     name = "Samples library for androidx.tv.material3 package"
     type = LibraryType.SAMPLES
     mavenVersion = LibraryVersions.TV_MATERIAL
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2022"
     description = "Contains the sample code for the APIs in the androidx.tv.material3 library"
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
-        minSdkVersion 28
+        minSdk = 28
     }
-    namespace "androidx.tv.material3.samples"
+    namespace = "androidx.tv.material3.samples"
 }

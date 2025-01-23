@@ -19,8 +19,8 @@ package androidx.biometric;
 import android.content.Context;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Utilities related to biometric authentication errors.
@@ -73,8 +73,7 @@ class ErrorUtils {
      * Only needs to provide a subset of the fingerprint error strings since the rest are translated
      * in FingerprintManager
      */
-    @NonNull
-    static String getFingerprintErrorString(@Nullable Context context, int errorCode) {
+    static @NonNull String getFingerprintErrorString(@Nullable Context context, int errorCode) {
         if (context == null) {
             return "";
         }

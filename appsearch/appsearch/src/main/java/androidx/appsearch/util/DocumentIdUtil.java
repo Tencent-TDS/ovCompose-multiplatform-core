@@ -16,9 +16,10 @@
 
 package androidx.appsearch.util;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.app.GenericDocument;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A util class with methods for working with document ids.
@@ -47,8 +48,7 @@ public class DocumentIdUtil {
      *
      * @see #createQualifiedId(String, String, String, String)
      */
-    @NonNull
-    public static String createQualifiedId(@NonNull String packageName,
+    public static @NonNull String createQualifiedId(@NonNull String packageName,
             @NonNull String databaseName, @NonNull GenericDocument document) {
         return createQualifiedId(packageName, databaseName, document.getNamespace(),
                 document.getId());
@@ -68,8 +68,7 @@ public class DocumentIdUtil {
      * @return the qualified id of a document
      */
      // TODO(b/256022027): Add @link to QUALIFIED_ID and JoinSpec
-    @NonNull
-    public static String createQualifiedId(@NonNull String packageName,
+    public static @NonNull String createQualifiedId(@NonNull String packageName,
             @NonNull String databaseName, @NonNull String namespace, @NonNull String id) {
         Preconditions.checkNotNull(packageName);
         Preconditions.checkNotNull(databaseName);

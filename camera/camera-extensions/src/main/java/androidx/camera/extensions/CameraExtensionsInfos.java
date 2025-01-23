@@ -16,17 +16,16 @@
 
 package androidx.camera.extensions;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.CameraInfo;
-import androidx.camera.core.impl.RestrictedCameraInfo;
+import androidx.camera.core.impl.AdapterCameraInfo;
 import androidx.camera.core.impl.SessionProcessor;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Utility methods for operating on {@link CameraExtensionsInfo} instances.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class CameraExtensionsInfos {
     private static final CameraExtensionsInfo NORMAL_MODE_CAMERA_EXTENSIONS_INFO =
             new CameraExtensionsInfo() {
@@ -35,14 +34,13 @@ class CameraExtensionsInfos {
     /**
      * Returns a {@link CameraExtensionsInfo} instance converted from a {@link CameraInfo} object.
      */
-    @NonNull
-    static CameraExtensionsInfo from(@NonNull CameraInfo cameraInfo) {
-        Preconditions.checkArgument(cameraInfo instanceof RestrictedCameraInfo, "The input camera"
+    static @NonNull CameraExtensionsInfo from(@NonNull CameraInfo cameraInfo) {
+        Preconditions.checkArgument(cameraInfo instanceof AdapterCameraInfo, "The input camera"
                 + " info must be an instance retrieved from the camera that is returned "
                 + "by invoking CameraProvider#bindToLifecycle() with an extension enabled camera "
                 + "selector.");
         SessionProcessor sessionProcessor =
-                ((RestrictedCameraInfo) cameraInfo).getSessionProcessor();
+                ((AdapterCameraInfo) cameraInfo).getSessionProcessor();
         if (sessionProcessor instanceof CameraExtensionsInfo) {
             return (CameraExtensionsInfo) sessionProcessor;
         } else {

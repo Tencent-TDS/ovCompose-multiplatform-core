@@ -16,9 +16,7 @@
 
 package androidx.pdf.util;
 
-import android.util.Log;
-
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -51,8 +49,7 @@ public class Utils {
         if (closeable != null) {
             try {
                 closeable.close();
-            } catch (Exception ex) {
-                Log.e(TAG, "i/o error while closing", ex);
+            } catch (Exception ignored) {
             }
         }
     }

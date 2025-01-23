@@ -20,28 +20,56 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.LayoutDirection
 
-/**
- * Represents the horizontal order of panes in a [ThreePaneScaffold] from start to end. Note that
- * the values of [firstPane], [secondPane] and [thirdPane] have to be different, otherwise
- * [IllegalArgumentException] will be thrown.
- *
- * @constructor create an instance of [ThreePaneScaffoldHorizontalOrder]
- * @param firstPane The first pane from the start of the [ThreePaneScaffold]
- * @param secondPane The second pane from the start of the [ThreePaneScaffold]
- * @param thirdPane The third pane from the start of the [ThreePaneScaffold]
- */
+/** Represents the horizontal order of panes in a [ThreePaneScaffold] from start to end. */
 @ExperimentalMaterial3AdaptiveApi
 @Immutable
-internal class ThreePaneScaffoldHorizontalOrder(
-    val firstPane: ThreePaneScaffoldRole,
-    val secondPane: ThreePaneScaffoldRole,
-    val thirdPane: ThreePaneScaffoldRole
-) {
+class ThreePaneScaffoldHorizontalOrder
+internal constructor(
+    internal val firstPane: ThreePaneScaffoldRole,
+    internal val secondPane: ThreePaneScaffoldRole,
+    internal val thirdPane: ThreePaneScaffoldRole
+) : PaneScaffoldHorizontalOrder<ThreePaneScaffoldRole> {
     init {
         require(firstPane != secondPane && secondPane != thirdPane && firstPane != thirdPane) {
             "invalid ThreePaneScaffoldHorizontalOrder($firstPane, $secondPane, $thirdPane)" +
                 " - panes must be unique"
         }
+    }
+
+    override val size = 3
+
+    operator fun get(index: Int) =
+        when (index) {
+            0 -> firstPane
+            1 -> secondPane
+            2 -> thirdPane
+            else -> throw IndexOutOfBoundsException("Invalid pane index $index")
+        }
+
+    override fun indexOf(role: ThreePaneScaffoldRole) =
+        when (role) {
+            firstPane -> 0
+            secondPane -> 1
+            thirdPane -> 2
+            else -> -1
+        }
+
+    override fun forEach(action: (ThreePaneScaffoldRole) -> Unit) {
+        action(firstPane)
+        action(secondPane)
+        action(thirdPane)
+    }
+
+    override fun forEachIndexed(action: (Int, ThreePaneScaffoldRole) -> Unit) {
+        action(0, firstPane)
+        action(1, secondPane)
+        action(2, thirdPane)
+    }
+
+    override fun forEachIndexedReversed(action: (Int, ThreePaneScaffoldRole) -> Unit) {
+        action(2, thirdPane)
+        action(1, secondPane)
+        action(0, firstPane)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -62,55 +90,22 @@ internal class ThreePaneScaffoldHorizontalOrder(
 }
 
 /**
- * Converts a bidirectional order to a left-to-right order.
+ * Converts a bidirectional [ThreePaneScaffoldHorizontalOrder] to a left-to-right order.
+ *
+ * @param layoutDirection the current [LayoutDirection]
  */
 @ExperimentalMaterial3AdaptiveApi
 internal fun ThreePaneScaffoldHorizontalOrder.toLtrOrder(
     layoutDirection: LayoutDirection
 ): ThreePaneScaffoldHorizontalOrder {
     return if (layoutDirection == LayoutDirection.Rtl) {
-        ThreePaneScaffoldHorizontalOrder(
-            thirdPane,
-            secondPane,
-            firstPane
-        )
+        ThreePaneScaffoldHorizontalOrder(thirdPane, secondPane, firstPane)
     } else {
         this
     }
 }
 
-@ExperimentalMaterial3AdaptiveApi
-internal inline fun ThreePaneScaffoldHorizontalOrder.forEach(
-    action: (ThreePaneScaffoldRole) -> Unit
-) {
-    action(firstPane)
-    action(secondPane)
-    action(thirdPane)
-}
-
-@ExperimentalMaterial3AdaptiveApi
-internal inline fun ThreePaneScaffoldHorizontalOrder.forEachIndexed(
-    action: (Int, ThreePaneScaffoldRole) -> Unit
-) {
-    action(0, firstPane)
-    action(1, secondPane)
-    action(2, thirdPane)
-}
-
-@ExperimentalMaterial3AdaptiveApi
-internal fun ThreePaneScaffoldHorizontalOrder.indexOf(role: ThreePaneScaffoldRole): Int {
-    forEachIndexed { i, r ->
-        if (r == role) {
-            return i
-        }
-    }
-    // should never reach this far
-    return 0
-}
-
-/**
- * The set of the available pane roles of [ThreePaneScaffold].
- */
+/** The set of the available pane roles of [ThreePaneScaffold]. */
 enum class ThreePaneScaffoldRole {
     /**
      * The primary pane of [ThreePaneScaffold]. It is supposed to have the highest priority during

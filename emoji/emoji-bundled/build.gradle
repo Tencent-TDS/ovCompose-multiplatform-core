@@ -20,10 +20,11 @@ android {
     sourceSets {
         main.assets.srcDirs new File(fontDir, "font").getAbsolutePath()
     }
-    namespace "androidx.emoji.bundled"
+    namespace = "androidx.emoji.bundled"
 }
 
 dependencies {
+    api(libs.jspecify)
     api(project(":emoji:emoji"))
 }
 
@@ -33,7 +34,6 @@ androidx {
     mavenVersion = LibraryVersions.EMOJI
     inceptionYear = "2017"
     description = "Library bundled with assets to enable emoji compatibility in Kitkat and newer devices to avoid the empty emoji characters."
-    metalavaK2UastEnabled = true
 
     extraLicense {
         name = "SIL Open Font License, Version 1.1"

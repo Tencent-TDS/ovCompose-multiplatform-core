@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 
 plugins {
@@ -38,7 +40,7 @@ dependencies {
 }
 
 android {
-    namespace "androidx.window.samples"
+    namespace = "androidx.window.samples"
 }
 
 androidx {
@@ -46,4 +48,5 @@ androidx {
     type = LibraryType.SAMPLES
     inceptionYear = "2022"
     description = "Code samples for WindowManager Jetpack library."
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

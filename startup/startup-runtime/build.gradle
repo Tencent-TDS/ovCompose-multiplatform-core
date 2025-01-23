@@ -32,17 +32,17 @@ plugins {
 android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
-        multiDexKeepProguard file("multidex-rules.pro")
     }
-    namespace "androidx.startup"
+    namespace = "androidx.startup"
 }
 
 dependencies {
+    api(libs.jspecify)
     // Ideally startup would depend on profileinstaller so startup gets the benefit of its
     // baseline profile rules, but profileinstaller calls startup APIs, so we have to avoid
     // the circular dependency
 
-    implementation("androidx.annotation:annotation:1.1.0")
+    implementation("androidx.annotation:annotation:1.8.1")
     implementation("androidx.tracing:tracing:1.0.0")
     lintPublish(project(":startup:startup-runtime-lint"))
     androidTestImplementation(libs.kotlinStdlib)
@@ -50,8 +50,8 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     testImplementation(libs.junit)
 }
 
@@ -60,5 +60,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android App Startup Runtime"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

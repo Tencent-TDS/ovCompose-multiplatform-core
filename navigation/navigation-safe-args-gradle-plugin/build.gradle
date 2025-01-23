@@ -21,6 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.SdkResourceGenerator
 
@@ -39,19 +40,21 @@ configurations {
 }
 
 dependencies {
-    implementation("com.android.tools.build:gradle:7.3.0")
-    implementation(libs.kotlinGradlePluginz)
-    api(project(":navigation:navigation-safe-args-generator"))
-    api(gradleApi())
+    compileOnly("com.android.tools.build:gradle:7.3.0")
+    implementation(libs.kotlinStdlib)
+    implementation(project(":navigation:navigation-safe-args-generator"))
+    implementation(gradleApi())
     implementation(libs.gson)
+
     testImplementation(gradleTestKit())
     testImplementation(project(":internal-testutils-gradle-plugin"))
+    testImplementation(libs.hamcrestCore)
     testImplementation(libs.junit)
-    testPlugin("com.android.tools.build:gradle:7.3.0")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043:linux")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043:osx")
-    testPlugin("com.android.tools.lint:lint-gradle:30.3.0")
+    testPlugin("com.android.tools.build:gradle:8.1.0")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469:linux")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469:osx")
+    testPlugin(libs.kotlinGradlePlugin)
 }
 
 tasks.withType(PluginUnderTestMetadata.class).named("pluginUnderTestMetadata").configure {
@@ -84,4 +87,5 @@ androidx {
     type = LibraryType.GRADLE_PLUGIN
     inceptionYear = "2017"
     description = "Android Navigation TypeSafe Arguments Gradle Plugin"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

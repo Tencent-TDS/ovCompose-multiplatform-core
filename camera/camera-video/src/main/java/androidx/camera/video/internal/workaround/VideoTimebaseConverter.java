@@ -18,13 +18,13 @@ package androidx.camera.video.internal.workaround;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.Timebase;
 import androidx.camera.video.internal.compat.quirk.CameraUseInconsistentTimebaseQuirk;
 import androidx.camera.video.internal.encoder.TimeProvider;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Converts the video timestamps to {@link Timebase#UPTIME} if video buffer contains
@@ -42,7 +42,6 @@ import androidx.camera.video.internal.encoder.TimeProvider;
  *
  * @see CameraUseInconsistentTimebaseQuirk
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class VideoTimebaseConverter {
     private static final String TAG = "VideoTimebaseConverter";
 
@@ -54,8 +53,7 @@ public class VideoTimebaseConverter {
     private final CameraUseInconsistentTimebaseQuirk mCameraUseInconsistentTimebaseQuirk;
 
     private long mUptimeToRealtimeOffsetUs = -1L;
-    @Nullable
-    private Timebase mResolvedInputTimebase;
+    private @Nullable Timebase mResolvedInputTimebase;
 
     /**
      * Constructs the VideoTimebaseConverter.
@@ -97,8 +95,7 @@ public class VideoTimebaseConverter {
         }
     }
 
-    @NonNull
-    private Timebase resolveInputTimebase(long timestampUs) {
+    private @NonNull Timebase resolveInputTimebase(long timestampUs) {
         boolean isSystemTimeDiverged = false;
         if (mCameraUseInconsistentTimebaseQuirk != null) {
             Logger.w(TAG, "CameraUseInconsistentTimebaseQuirk is enabled");

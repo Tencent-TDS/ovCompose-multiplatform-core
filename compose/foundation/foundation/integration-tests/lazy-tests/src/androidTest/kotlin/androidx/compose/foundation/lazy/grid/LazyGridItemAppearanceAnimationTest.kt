@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,8 +58,7 @@ import org.junit.Test
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 class LazyGridItemAppearanceAnimationTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private val itemSize: Int = 4
     private var itemSizeDp: Dp = Dp.Infinity
@@ -82,16 +82,10 @@ class LazyGridItemAppearanceAnimationTest {
     fun oneItemAdded() {
         var list by mutableStateOf(emptyList<Color>())
         rule.setContent {
-            LazyGrid(containerSize = itemSizeDp) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
-            }
+            LazyGrid(containerSize = itemSizeDp) { items(list, key = { it.toArgb() }) { Item(it) } }
         }
 
-        rule.runOnUiThread {
-            list = listOf(Color.Black)
-        }
+        rule.runOnUiThread { list = listOf(Color.Black) }
 
         onAnimationFrame { fraction ->
             assertPixels(mainAxisSize = itemSize) { _, _ -> Color.Black.copy(alpha = fraction) }
@@ -102,9 +96,7 @@ class LazyGridItemAppearanceAnimationTest {
     fun noAnimationForInitialList() {
         rule.setContent {
             LazyGrid(containerSize = itemSizeDp) {
-                items(listOf(Color.Black), key = { it.toArgb() }) {
-                    Item(it)
-                }
+                items(listOf(Color.Black), key = { it.toArgb() }) { Item(it) }
             }
         }
 
@@ -116,15 +108,11 @@ class LazyGridItemAppearanceAnimationTest {
         var list by mutableStateOf(listOf(Color.Black))
         rule.setContent {
             LazyGrid(containerSize = itemSizeDp * 3) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
+                items(list, key = { it.toArgb() }) { Item(it) }
             }
         }
 
-        rule.runOnUiThread {
-            list = listOf(Color.Black, Color.Red, Color.Green)
-        }
+        rule.runOnUiThread { list = listOf(Color.Black, Color.Red, Color.Green) }
 
         onAnimationFrame { fraction ->
             assertPixels(itemSize * 3) { _, offset ->
@@ -148,9 +136,7 @@ class LazyGridItemAppearanceAnimationTest {
             }
         }
 
-        rule.runOnUiThread {
-            list = listOf(Color.Black, Color.Red)
-        }
+        rule.runOnUiThread { list = listOf(Color.Black, Color.Red) }
 
         onAnimationFrame { fraction ->
             assertPixels(itemSize * 2) { _, offset ->
@@ -167,9 +153,7 @@ class LazyGridItemAppearanceAnimationTest {
         var list by mutableStateOf(listOf(Color.Black, Color.Red, Color.Green))
         rule.setContent {
             LazyGrid(containerSize = itemSizeDp * 2) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
+                items(list, key = { it.toArgb() }) { Item(it) }
             }
         }
 
@@ -200,49 +184,31 @@ class LazyGridItemAppearanceAnimationTest {
     fun animatedItemChangesTheContainerSize() {
         var list by mutableStateOf(listOf(Color.Black))
         rule.setContent {
-            LazyGrid(containerSize = null) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
-            }
+            LazyGrid(containerSize = null) { items(list, key = { it.toArgb() }) { Item(it) } }
         }
 
-        rule.onNodeWithTag(ContainerTag)
-            .assertHeightIsEqualTo(itemSizeDp)
+        rule.onNodeWithTag(ContainerTag).assertHeightIsEqualTo(itemSizeDp)
 
-        rule.runOnUiThread {
-            list = listOf(Color.Black, Color.Red)
-        }
+        rule.runOnUiThread { list = listOf(Color.Black, Color.Red) }
 
-        onAnimationFrame {
-            rule.onNodeWithTag(ContainerTag)
-                .assertHeightIsEqualTo(itemSizeDp * 2)
-        }
+        onAnimationFrame { rule.onNodeWithTag(ContainerTag).assertHeightIsEqualTo(itemSizeDp * 2) }
     }
 
     @Test
     fun removeItemBeingAnimated() {
         var list by mutableStateOf(emptyList<Color>())
         rule.setContent {
-            LazyGrid(containerSize = itemSizeDp) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
-            }
+            LazyGrid(containerSize = itemSizeDp) { items(list, key = { it.toArgb() }) { Item(it) } }
         }
 
-        rule.runOnUiThread {
-            list = listOf(Color.Black)
-        }
+        rule.runOnUiThread { list = listOf(Color.Black) }
 
         onAnimationFrame { fraction ->
             if (fraction < 0.5f) {
                 assertPixels(itemSize) { _, _ -> Color.Black.copy(alpha = fraction) }
             } else {
                 if (fraction.isCloseTo(0.5f)) {
-                    rule.runOnUiThread {
-                        list = emptyList()
-                    }
+                    rule.runOnUiThread { list = emptyList() }
                 }
                 assertPixels(itemSize) { _, _ -> Color.Transparent }
             }
@@ -254,9 +220,7 @@ class LazyGridItemAppearanceAnimationTest {
         var list by mutableStateOf(listOf(Color.Black, Color.Green, Color.Blue, Color.Yellow))
         rule.setContent {
             LazyGrid(containerSize = itemSizeDp * 2) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
+                items(list, key = { it.toArgb() }) { Item(it) }
             }
         }
 
@@ -288,11 +252,7 @@ class LazyGridItemAppearanceAnimationTest {
                 }
             } else {
                 if (fraction.isCloseTo(0.75f)) {
-                    rule.runOnUiThread {
-                        runBlocking {
-                            state.scrollBy(-itemSize * 1.5f)
-                        }
-                    }
+                    rule.runOnUiThread { runBlocking { state.scrollBy(-itemSize * 1.5f) } }
                 }
                 assertPixels(itemSize * 2) { _, offset ->
                     // red item is not displayed anywhere
@@ -313,15 +273,11 @@ class LazyGridItemAppearanceAnimationTest {
         val containerSizeDp = itemSizeDp * 2
         rule.setContent {
             LazyGrid(cells = 2, containerSize = containerSizeDp, crossAxisSize = containerSizeDp) {
-                items(list, key = { it.toArgb() }) {
-                    Item(it)
-                }
+                items(list, key = { it.toArgb() }) { Item(it) }
             }
         }
 
-        rule.runOnUiThread {
-            list = listOf(Color.Green, Color.Red, Color.Blue, Color.Black)
-        }
+        rule.runOnUiThread { list = listOf(Color.Green, Color.Red, Color.Blue, Color.Black) }
 
         onAnimationFrame { fraction ->
             assertPixels(containerSize, containerSize) { x, y ->
@@ -337,16 +293,30 @@ class LazyGridItemAppearanceAnimationTest {
         }
     }
 
+    @Test
+    fun snapToPosition_noAnimation() {
+        val items = List(200) { Color.Black }
+        rule.setContent {
+            LazyGrid(containerSize = itemSizeDp) {
+                items(items, key = { it.toArgb() }) { Item(it) }
+            }
+        }
+
+        rule.runOnIdle { runBlocking { state.scrollToItem(200) } }
+
+        assertPixels(itemSize) { _, _ -> Color.Black }
+    }
+
     private fun assertPixels(
         mainAxisSize: Int,
         crossAxisSize: Int = this.crossAxisSize,
         expectedColorProvider: (x: Int, y: Int) -> Color?
     ) {
-        rule.onNodeWithTag(ContainerTag)
-            .captureToImage()
-            .assertPixels(IntSize(crossAxisSize, mainAxisSize)) {
-                expectedColorProvider(it.x, it.y)?.compositeOver(Color.White)
-            }
+        rule.onNodeWithTag(ContainerTag).captureToImage().assertPixels(
+            IntSize(crossAxisSize, mainAxisSize)
+        ) {
+            expectedColorProvider(it.x, it.y)?.compositeOver(Color.White)
+        }
     }
 
     private fun onAnimationFrame(duration: Long = Duration, onFrame: (fraction: Float) -> Unit) {
@@ -378,23 +348,23 @@ class LazyGridItemAppearanceAnimationTest {
         LazyVerticalGrid(
             GridCells.Fixed(cells),
             state = state,
-            modifier = Modifier
-                .then(
-                    if (containerSize != null) {
-                        Modifier.requiredHeight(containerSize)
-                    } else {
-                        Modifier
-                    }
-                )
-                .background(Color.White)
-                .then(
-                    if (crossAxisSize != Dp.Unspecified) {
-                        Modifier.requiredWidth(crossAxisSize)
-                    } else {
-                        Modifier.fillMaxWidth()
-                    }
-                )
-                .testTag(ContainerTag),
+            modifier =
+                Modifier.then(
+                        if (containerSize != null) {
+                            Modifier.requiredHeight(containerSize)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .background(Color.White)
+                    .then(
+                        if (crossAxisSize != Dp.Unspecified) {
+                            Modifier.requiredWidth(crossAxisSize)
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
+                    )
+                    .testTag(ContainerTag),
             content = content
         )
     }
@@ -407,12 +377,7 @@ class LazyGridItemAppearanceAnimationTest {
         animSpec: FiniteAnimationSpec<Float>? = AnimSpec
     ) {
         Box(
-            Modifier
-                .animateItem(
-                    fadeInSpec = animSpec,
-                    placementSpec = null,
-                    fadeOutSpec = null
-                )
+            Modifier.animateItem(fadeInSpec = animSpec, placementSpec = null, fadeOutSpec = null)
                 .background(color)
                 .requiredHeight(size)
                 .requiredWidth(crossAxisSize)

@@ -282,6 +282,7 @@ package androidx.wear.protolayout.expression {
   @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static interface DynamicBuilders.DynamicString extends androidx.wear.protolayout.expression.DynamicBuilders.DynamicType {
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public default androidx.wear.protolayout.expression.DynamicBuilders.DynamicString concat(androidx.wear.protolayout.expression.DynamicBuilders.DynamicString);
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static androidx.wear.protolayout.expression.DynamicBuilders.DynamicString constant(String);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static androidx.wear.protolayout.expression.DynamicBuilders.DynamicString format(String, java.lang.Object!...);
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public static androidx.wear.protolayout.expression.DynamicBuilders.DynamicString from(androidx.wear.protolayout.expression.DynamicDataKey<androidx.wear.protolayout.expression.DynamicBuilders.DynamicString!>);
     method public static androidx.wear.protolayout.expression.DynamicBuilders.DynamicString fromByteArray(byte[]);
     method public static androidx.wear.protolayout.expression.DynamicBuilders.DynamicString fromByteArray(byte[], int, int);
@@ -382,7 +383,7 @@ package androidx.wear.protolayout.expression {
   @SuppressCompatibility @RequiresOptIn(level=androidx.annotation.RequiresOptIn.Level.ERROR) @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.FIELD}) public @interface ProtoLayoutExperimental {
   }
 
-  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.CONSTRUCTOR, java.lang.annotation.ElementType.FIELD}) @kotlin.annotation.MustBeDocumented public @interface RequiresSchemaVersion {
+  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.CLASS) @java.lang.annotation.Target({java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.METHOD, java.lang.annotation.ElementType.CONSTRUCTOR, java.lang.annotation.ElementType.FIELD, java.lang.annotation.ElementType.PARAMETER}) @kotlin.annotation.MustBeDocumented public @interface RequiresSchemaVersion {
     method public abstract int major();
     method public abstract int minor();
   }
@@ -401,6 +402,25 @@ package androidx.wear.protolayout.expression {
     method public androidx.wear.protolayout.expression.VersionBuilders.VersionInfo build();
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public androidx.wear.protolayout.expression.VersionBuilders.VersionInfo.Builder setMajor(int);
     method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=0) public androidx.wear.protolayout.expression.VersionBuilders.VersionInfo.Builder setMinor(int);
+  }
+
+}
+
+package androidx.wear.protolayout.expression.util {
+
+  @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) public final class DynamicDateFormat {
+    ctor public DynamicDateFormat(String pattern);
+    ctor public DynamicDateFormat(String pattern, optional java.time.ZoneId timeZone);
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) public androidx.wear.protolayout.expression.DynamicBuilders.DynamicString format();
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=300) public androidx.wear.protolayout.expression.DynamicBuilders.DynamicString format(optional androidx.wear.protolayout.expression.DynamicBuilders.DynamicInstant instant);
+    method public java.time.ZoneId getTimeZone();
+    method public void setTimeZone(java.time.ZoneId);
+    property public final java.time.ZoneId timeZone;
+  }
+
+  public final class DynamicFormatter {
+    ctor public DynamicFormatter();
+    method @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) public androidx.wear.protolayout.expression.DynamicBuilders.DynamicString format(String format, java.lang.Object?... args);
   }
 
 }

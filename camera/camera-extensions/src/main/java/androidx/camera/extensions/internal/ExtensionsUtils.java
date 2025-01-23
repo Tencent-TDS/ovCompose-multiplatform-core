@@ -19,10 +19,10 @@ package androidx.camera.extensions.internal;
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.CameraInfoInternal;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,7 +33,6 @@ import java.util.Set;
 /**
  * Utils for camera-extensions.
  */
-@RequiresApi(21)
 public class ExtensionsUtils {
     private ExtensionsUtils() {}
 
@@ -45,8 +44,7 @@ public class ExtensionsUtils {
      * their CameraCharacteristics.
      *
      */
-    @NonNull
-    public static Map<String, CameraCharacteristics> getCameraCharacteristicsMap(
+    public static @NonNull Map<String, CameraCharacteristics> getCameraCharacteristicsMap(
             @NonNull CameraInfoInternal cameraInfoInternal) {
         LinkedHashMap<String, CameraCharacteristics> map = new LinkedHashMap<>();
         String cameraId = cameraInfoInternal.getCameraId();
@@ -82,7 +80,6 @@ public class ExtensionsUtils {
         private Api28Impl() {
         }
 
-        @DoNotInline
         static Set<String> getPhysicalCameraIds(
                 @NonNull CameraCharacteristics cameraCharacteristics) {
             try {

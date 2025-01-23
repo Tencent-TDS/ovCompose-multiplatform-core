@@ -16,12 +16,12 @@
 
 package androidx.compose.foundation.text.input.internal
 
+import androidx.collection.MutableLongSet
 import androidx.compose.foundation.text.DeadKeyCombiner
 import androidx.compose.foundation.text.KeyCommand
 import androidx.compose.foundation.text.appendCodePointX
 import androidx.compose.foundation.text.cancelsTextSelection
 import androidx.compose.foundation.text.input.internal.selection.TextFieldPreparedSelection
-import androidx.compose.foundation.text.input.internal.selection.TextFieldPreparedSelection.Companion.NoCharacterFound
 import androidx.compose.foundation.text.input.internal.selection.TextFieldPreparedSelectionState
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.isTypedEvent
@@ -30,31 +30,37 @@ import androidx.compose.foundation.text.showCharacterPalette
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.SoftwareKeyboardController
-import androidx.compose.ui.text.TextRange
+import kotlin.jvm.JvmInline
 
-/**
- * Factory function to create a platform specific [TextFieldKeyEventHandler].
- */
+/** Factory function to create a platform specific [TextFieldKeyEventHandler]. */
 internal expect fun createTextFieldKeyEventHandler(): TextFieldKeyEventHandler
 
-/**
- * Returns whether this key event is created by the software keyboard.
- */
+/** Returns whether this key event is created by the software keyboard. */
 internal expect val KeyEvent.isFromSoftKeyboard: Boolean
 
 /**
- * Handles KeyEvents coming to a BasicTextField. This is mostly to support hardware keyboard but
- * any KeyEvent can also be sent by the IME or other platform systems.
+ * Handles KeyEvents coming to a BasicTextField. This is mostly to support hardware keyboard but any
+ * KeyEvent can also be sent by the IME or other platform systems.
  *
- * This class is left abstract to make sure that each platform extends from it. Platforms can
- * decide to extend or completely override KeyEvent actions defined here.
+ * This class is left abstract to make sure that each platform extends from it. Platforms can decide
+ * to extend or completely override KeyEvent actions defined here.
  */
 internal abstract class TextFieldKeyEventHandler {
     private val preparedSelectionState = TextFieldPreparedSelectionState()
     private val deadKeyCombiner = DeadKeyCombiner()
     private val keyMapping = platformDefaultKeyMapping
+
+    /**
+     * We hold a reference to the all key down events that we receive and consume so that we can
+     * also consume the corresponding key up events. Otherwise the up events get sent to the
+     * ancestor nodes where the behavior is unpredictable. Please refer to b/353554186 for more
+     * information.
+     */
+    // TODO(b/307580000) Factor this state out into a class to manage key inputs.
+    private var currentlyConsumedDownKeys: MutableLongSet? = null
 
     open fun onPreKeyEvent(
         event: KeyEvent,
@@ -77,25 +83,67 @@ internal abstract class TextFieldKeyEventHandler {
         textFieldState: TransformedTextFieldState,
         textLayoutState: TextLayoutState,
         textFieldSelectionState: TextFieldSelectionState,
+        clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
         editable: Boolean,
         singleLine: Boolean,
-        onSubmit: () -> Unit
+        onSubmit: () -> Unit,
     ): Boolean {
-        if (event.type != KeyEventType.KeyDown) {
+        val keyCode = event.key.keyCode
+
+        if (event.type == KeyEventType.KeyUp) {
+            if (currentlyConsumedDownKeys?.contains(keyCode) == true) {
+                currentlyConsumedDownKeys?.remove(keyCode)
+                return true
+            } else {
+                return false
+            }
+        }
+
+        if (event.type == KeyEventType.Unknown && !event.isTypedEvent) {
             return false
         }
 
+        val consumed =
+            processKeyDownEvent(
+                event = event,
+                textFieldState = textFieldState,
+                textLayoutState = textLayoutState,
+                clipboardKeyCommandsHandler = clipboardKeyCommandsHandler,
+                editable = editable,
+                singleLine = singleLine,
+                onSubmit = onSubmit,
+            )
+
+        if (consumed) {
+            // initialize if it hasn't been initialized yet.
+            val currentlyConsumedDownKeys =
+                currentlyConsumedDownKeys
+                    ?: MutableLongSet(initialCapacity = 3).also { currentlyConsumedDownKeys = it }
+            currentlyConsumedDownKeys += keyCode
+        }
+
+        return consumed
+    }
+
+    private fun processKeyDownEvent(
+        event: KeyEvent,
+        textFieldState: TransformedTextFieldState,
+        textLayoutState: TextLayoutState,
+        clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
+        editable: Boolean,
+        singleLine: Boolean,
+        onSubmit: () -> Unit,
+    ): Boolean {
         if (event.isTypedEvent) {
             val codePoint = deadKeyCombiner.consume(event)
             if (codePoint != null) {
                 val text = StringBuilder(2).appendCodePointX(codePoint).toString()
                 return if (editable) {
-                    textFieldState.editUntransformedTextAsUser(
+                    textFieldState.replaceSelectedText(
+                        newText = text,
+                        clearComposition = true,
                         restartImeIfContentChanges = !event.isFromSoftKeyboard
-                    ) {
-                        commitComposition()
-                        commitText(text, 1)
-                    }
+                    )
                     preparedSelectionState.resetCachedX()
                     true
                 } else {
@@ -111,11 +159,11 @@ internal abstract class TextFieldKeyEventHandler {
         var consumed = true
         preparedSelectionContext(textFieldState, textLayoutState, event.isFromSoftKeyboard) {
             when (command) {
-                KeyCommand.COPY -> textFieldSelectionState.copy(false)
-                KeyCommand.PASTE -> textFieldSelectionState.paste()
-                KeyCommand.CUT -> textFieldSelectionState.cut()
-                KeyCommand.LEFT_CHAR -> collapseLeftOr { moveCursorLeft() }
-                KeyCommand.RIGHT_CHAR -> collapseRightOr { moveCursorRight() }
+                KeyCommand.COPY,
+                KeyCommand.PASTE,
+                KeyCommand.CUT -> clipboardKeyCommandsHandler.handler(command)
+                KeyCommand.LEFT_CHAR -> collapseLeftOr { moveCursorLeftByChar() }
+                KeyCommand.RIGHT_CHAR -> collapseRightOr { moveCursorRightByChar() }
                 KeyCommand.LEFT_WORD -> moveCursorLeftByWord()
                 KeyCommand.RIGHT_WORD -> moveCursorRightByWord()
                 KeyCommand.PREV_PARAGRAPH -> moveCursorPrevByParagraph()
@@ -130,73 +178,37 @@ internal abstract class TextFieldKeyEventHandler {
                 KeyCommand.LINE_RIGHT -> moveCursorToLineRightSide()
                 KeyCommand.HOME -> moveCursorToHome()
                 KeyCommand.END -> moveCursorToEnd()
-                KeyCommand.DELETE_PREV_CHAR -> {
-                    deleteIfSelectedOr {
-                        getPrecedingCharacterIndex().takeIf { it != NoCharacterFound }?.let {
-                            TextRange(it, selection.end)
-                        }
-                    }
-                }
-
-                KeyCommand.DELETE_NEXT_CHAR -> {
-                    // Note that some software keyboards, such as Samsung, go through this code
-                    // path instead of making calls on the InputConnection directly.
-                    deleteIfSelectedOr {
-                        getNextCharacterIndex().takeIf { it != NoCharacterFound }?.let {
-                            TextRange(selection.start, it)
-                        }
-                    }
-                }
-
-                KeyCommand.DELETE_PREV_WORD -> {
-                    deleteIfSelectedOr {
-                        TextRange(getPreviousWordOffset(), selection.end)
-                    }
-                }
-
-                KeyCommand.DELETE_NEXT_WORD -> {
-                    deleteIfSelectedOr {
-                        TextRange(selection.start, getNextWordOffset())
-                    }
-                }
-
-                KeyCommand.DELETE_FROM_LINE_START -> {
-                    deleteIfSelectedOr {
-                        TextRange(getLineStartByOffset(), selection.end)
-                    }
-                }
-
-                KeyCommand.DELETE_TO_LINE_END -> {
-                    deleteIfSelectedOr {
-                        TextRange(selection.start, getLineEndByOffset())
-                    }
-                }
-
+                KeyCommand.DELETE_PREV_CHAR -> moveCursorPrevByChar().deleteMovement()
+                KeyCommand.DELETE_NEXT_CHAR -> moveCursorNextByChar().deleteMovement()
+                KeyCommand.DELETE_PREV_WORD -> moveCursorPrevByWord().deleteMovement()
+                KeyCommand.DELETE_NEXT_WORD -> moveCursorNextByWord().deleteMovement()
+                KeyCommand.DELETE_FROM_LINE_START -> moveCursorToLineStart().deleteMovement()
+                KeyCommand.DELETE_TO_LINE_END -> moveCursorToLineEnd().deleteMovement()
                 KeyCommand.NEW_LINE -> {
                     if (!singleLine) {
-                        textFieldState.editUntransformedTextAsUser {
-                            commitComposition()
-                            commitText("\n", 1)
-                        }
+                        textFieldState.replaceSelectedText(
+                            newText = "\n",
+                            clearComposition = true,
+                            restartImeIfContentChanges = !event.isFromSoftKeyboard
+                        )
                     } else {
                         onSubmit()
                     }
                 }
-
                 KeyCommand.TAB -> {
                     if (!singleLine) {
-                        textFieldState.editUntransformedTextAsUser {
-                            commitComposition()
-                            commitText("\t", 1)
-                        }
+                        textFieldState.replaceSelectedText(
+                            newText = "\t",
+                            clearComposition = true,
+                            restartImeIfContentChanges = !event.isFromSoftKeyboard
+                        )
                     } else {
                         consumed = false // let propagate to focus system
                     }
                 }
-
                 KeyCommand.SELECT_ALL -> selectAll()
-                KeyCommand.SELECT_LEFT_CHAR -> moveCursorLeft().selectMovement()
-                KeyCommand.SELECT_RIGHT_CHAR -> moveCursorRight().selectMovement()
+                KeyCommand.SELECT_LEFT_CHAR -> moveCursorLeftByChar().selectMovement()
+                KeyCommand.SELECT_RIGHT_CHAR -> moveCursorRightByChar().selectMovement()
                 KeyCommand.SELECT_LEFT_WORD -> moveCursorLeftByWord().selectMovement()
                 KeyCommand.SELECT_RIGHT_WORD -> moveCursorRightByWord().selectMovement()
                 KeyCommand.SELECT_PREV_PARAGRAPH -> moveCursorPrevByParagraph().selectMovement()
@@ -215,11 +227,9 @@ internal abstract class TextFieldKeyEventHandler {
                 KeyCommand.UNDO -> {
                     textFieldState.undo()
                 }
-
                 KeyCommand.REDO -> {
                     textFieldState.redo()
                 }
-
                 KeyCommand.CHARACTER_PALETTE -> {
                     showCharacterPalette()
                 }
@@ -236,17 +246,29 @@ internal abstract class TextFieldKeyEventHandler {
     ) {
         val layoutResult = textLayoutState.layoutResult
         val visibleTextLayoutHeight = textLayoutState.getVisibleTextLayoutHeight()
-        val preparedSelection = TextFieldPreparedSelection(
-            state = state,
-            textLayoutResult = layoutResult,
-            isFromSoftKeyboard = isFromSoftKeyboard,
-            visibleTextLayoutHeight = visibleTextLayoutHeight,
-            textPreparedSelectionState = preparedSelectionState
-        )
+        val preparedSelection =
+            TextFieldPreparedSelection(
+                state = state,
+                textLayoutResult = layoutResult,
+                isFromSoftKeyboard = isFromSoftKeyboard,
+                visibleTextLayoutHeight = visibleTextLayoutHeight,
+                textPreparedSelectionState = preparedSelectionState
+            )
         preparedSelection.block()
         if (preparedSelection.selection != preparedSelection.initialValue.selection) {
             // selection changes are applied atomically at the end of context evaluation
             state.selectCharsIn(preparedSelection.selection)
+        }
+
+        if (preparedSelection.wedgeAffinity != null) {
+            preparedSelection.wedgeAffinity?.let { wedgeAffinity ->
+                if (state.untransformedText.selection.collapsed) {
+                    state.selectionWedgeAffinity = SelectionWedgeAffinity(wedgeAffinity)
+                } else {
+                    state.selectionWedgeAffinity =
+                        preparedSelection.initialWedgeAffinity.copy(endAffinity = wedgeAffinity)
+                }
+            }
         }
     }
 
@@ -256,9 +278,16 @@ internal abstract class TextFieldKeyEventHandler {
      * [Float.NaN].
      */
     private fun TextLayoutState.getVisibleTextLayoutHeight(): Float {
-        return textLayoutNodeCoordinates?.takeIf { it.isAttached }?.let { textLayoutCoordinates ->
-            decoratorNodeCoordinates?.takeIf { it.isAttached }
-                ?.localBoundingBoxOf(textLayoutCoordinates)
-        }?.size?.height ?: Float.NaN
+        return textLayoutNodeCoordinates
+            ?.takeIf { it.isAttached }
+            ?.let { textLayoutCoordinates ->
+                decoratorNodeCoordinates
+                    ?.takeIf { it.isAttached }
+                    ?.localBoundingBoxOf(textLayoutCoordinates)
+            }
+            ?.size
+            ?.height ?: Float.NaN
     }
 }
+
+@JvmInline internal value class ClipboardKeyCommandsHandler(val handler: (KeyCommand) -> Unit)

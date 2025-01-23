@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21)
-
 package androidx.camera.video
 
 import android.media.CamcorderProfile
 import android.os.Build
 import android.util.Size
-import androidx.annotation.RequiresApi
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.DynamicRange.BIT_DEPTH_10_BIT
 import androidx.camera.core.DynamicRange.BIT_DEPTH_8_BIT
@@ -34,6 +31,7 @@ import androidx.camera.core.DynamicRange.HDR_UNSPECIFIED_10_BIT
 import androidx.camera.core.DynamicRange.HLG_10_BIT
 import androidx.camera.core.DynamicRange.SDR
 import androidx.camera.core.DynamicRange.UNSPECIFIED
+import androidx.camera.core.impl.EncoderProfilesProvider
 import androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
 import androidx.camera.testing.fakes.FakeCameraInfoInternal
 import androidx.camera.testing.impl.EncoderProfilesUtil.PROFILES_2160P
@@ -72,27 +70,29 @@ private val DOLBY_VISION_UNSPECIFIED = DynamicRange(ENCODING_DOLBY_VISION, BIT_D
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class RecorderVideoCapabilitiesTest {
 
-    private val defaultProfilesProvider = FakeEncoderProfilesProvider.Builder()
-        .add(CamcorderProfile.QUALITY_HIGH, PROFILES_2160P) // UHD (2160p) per above definition
-        .add(CamcorderProfile.QUALITY_2160P, PROFILES_2160P) // UHD (2160p)
-        .add(CamcorderProfile.QUALITY_720P, PROFILES_720P) // HD (720p)
-        .add(CamcorderProfile.QUALITY_LOW, PROFILES_720P) // HD (720p) per above definition
-        .build()
+    private val defaultProfilesProvider =
+        FakeEncoderProfilesProvider.Builder()
+            .add(CamcorderProfile.QUALITY_HIGH, PROFILES_2160P) // UHD (2160p) per above definition
+            .add(CamcorderProfile.QUALITY_2160P, PROFILES_2160P) // UHD (2160p)
+            .add(CamcorderProfile.QUALITY_720P, PROFILES_720P) // HD (720p)
+            .add(CamcorderProfile.QUALITY_LOW, PROFILES_720P) // HD (720p) per above definition
+            .build()
     private val defaultDynamicRanges = setOf(SDR, HLG_10_BIT)
-    private val cameraInfo = FakeCameraInfoInternal().apply {
-        encoderProfilesProvider = defaultProfilesProvider
-        supportedDynamicRanges = defaultDynamicRanges
-        setSupportedResolutions(
-            INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
-            listOf(RESOLUTION_2160P, RESOLUTION_1080P, RESOLUTION_720P, RESOLUTION_480P)
-        )
-    }
+    private val cameraInfo =
+        FakeCameraInfoInternal().apply {
+            encoderProfilesProvider = defaultProfilesProvider
+            supportedDynamicRanges = defaultDynamicRanges
+            setSupportedResolutions(
+                INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                listOf(RESOLUTION_2160P, RESOLUTION_1080P, RESOLUTION_720P, RESOLUTION_480P)
+            )
+        }
     private val validatedProfiles2160p = VideoValidatedEncoderProfilesProxy.from(PROFILES_2160P)
     private val validatedProfiles720p = VideoValidatedEncoderProfilesProxy.from(PROFILES_720P)
-    private val videoCapabilities = RecorderVideoCapabilities(
-        VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE,
-        cameraInfo
-    ) { FakeVideoEncoderInfo() }
+    private val videoCapabilities =
+        RecorderVideoCapabilities(VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE, cameraInfo) {
+            FakeVideoEncoderInfo()
+        }
 
     @Test
     fun canGetSupportedDynamicRanges() {
@@ -252,9 +252,8 @@ class RecorderVideoCapabilitiesTest {
     fun findNearestHigherSupportedQuality_returnsExactQuality_whenExactSizeGiven() {
         val exactSize720p = RESOLUTION_720P
 
-        assertThat(
-            videoCapabilities.findNearestHigherSupportedQualityFor(exactSize720p, SDR)
-        ).isEqualTo(HD)
+        assertThat(videoCapabilities.findNearestHigherSupportedQualityFor(exactSize720p, SDR))
+            .isEqualTo(HD)
     }
 
     @Test
@@ -264,8 +263,9 @@ class RecorderVideoCapabilitiesTest {
         val inBetweenSize = Size(width720p + 10, height720p)
 
         assertThat(
-            videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(inBetweenSize, SDR)
-        ).isEqualTo(validatedProfiles2160p)
+                videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(inBetweenSize, SDR)
+            )
+            .isEqualTo(validatedProfiles2160p)
     }
 
     @Test
@@ -275,8 +275,12 @@ class RecorderVideoCapabilitiesTest {
         val aboveHighestSize = Size(width2160p + 10, height2160p)
 
         assertThat(
-            videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(aboveHighestSize, SDR)
-        ).isEqualTo(validatedProfiles2160p)
+                videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(
+                    aboveHighestSize,
+                    SDR
+                )
+            )
+            .isEqualTo(validatedProfiles2160p)
     }
 
     @Test
@@ -286,8 +290,9 @@ class RecorderVideoCapabilitiesTest {
         val belowLowestSize = Size(width720p - 10, height720p)
 
         assertThat(
-            videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(belowLowestSize, SDR)
-        ).isEqualTo(validatedProfiles720p)
+                videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(belowLowestSize, SDR)
+            )
+            .isEqualTo(validatedProfiles720p)
     }
 
     @Test
@@ -295,21 +300,39 @@ class RecorderVideoCapabilitiesTest {
         val exactSize720p = RESOLUTION_720P
 
         assertThat(
-            videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(exactSize720p, SDR)
-        ).isEqualTo(validatedProfiles720p)
+                videoCapabilities.findNearestHigherSupportedEncoderProfilesFor(exactSize720p, SDR)
+            )
+            .isEqualTo(validatedProfiles720p)
     }
 
     @Test
     fun createBySourceCodecCapabilities_additionalQualitiesAreSupported() {
-        val codecVideoCapabilities = RecorderVideoCapabilities(
-            VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES,
-            cameraInfo
-        ) { FakeVideoEncoderInfo() }
+        val codecVideoCapabilities =
+            RecorderVideoCapabilities(VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES, cameraInfo) {
+                FakeVideoEncoderInfo()
+            }
 
         // FHD and SD should become supported.
         assertThat(videoCapabilities.isQualitySupported(FHD, SDR)).isFalse()
         assertThat(videoCapabilities.isQualitySupported(SD, SDR)).isFalse()
         assertThat(codecVideoCapabilities.isQualitySupported(FHD, SDR)).isTrue()
+        assertThat(codecVideoCapabilities.isQualitySupported(SD, SDR)).isTrue()
+    }
+
+    @Test
+    fun noSupportedQuality_shouldCreateDefaultEncoderProfilesProvider() {
+        cameraInfo.encoderProfilesProvider = EncoderProfilesProvider.EMPTY
+        val codecVideoCapabilities =
+            RecorderVideoCapabilities(VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE, cameraInfo) {
+                FakeVideoEncoderInfo()
+            }
+
+        assertThat(codecVideoCapabilities.isQualitySupported(HIGHEST, SDR)).isTrue()
+        assertThat(codecVideoCapabilities.isQualitySupported(LOWEST, SDR)).isTrue()
+        // The target quality is [FHD, HD, SD]
+        assertThat(codecVideoCapabilities.isQualitySupported(UHD, SDR)).isFalse()
+        assertThat(codecVideoCapabilities.isQualitySupported(FHD, SDR)).isTrue()
+        assertThat(codecVideoCapabilities.isQualitySupported(HD, SDR)).isTrue()
         assertThat(codecVideoCapabilities.isQualitySupported(SD, SDR)).isTrue()
     }
 }

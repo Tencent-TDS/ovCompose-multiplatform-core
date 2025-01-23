@@ -18,6 +18,9 @@ package androidx.pdf.data;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * The result of an asynchronous operation that may complete at a later time. Useful to avoid
  * blocking while waiting for a long running process to create a value. Clients of this class who
@@ -34,7 +37,7 @@ import androidx.annotation.RestrictTo;
 public interface FutureValue<T> {
 
     /** Get the value when it is available. Could supply the value immediately. */
-    void get(Callback<T> callback);
+    void get(@Nullable Callback<T> callback);
 
     /**
      * A callback to receive the result when available.
@@ -47,7 +50,7 @@ public interface FutureValue<T> {
         void available(T value);
 
         /** Gives the exception thrown while attempting to get the value. */
-        void failed(Throwable thrown);
+        void failed(@NonNull Throwable thrown);
 
         /** Reports the ratio of completed to total work from 0 to 1. */
         void progress(float progress);

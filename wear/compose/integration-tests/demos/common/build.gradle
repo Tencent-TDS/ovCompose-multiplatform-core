@@ -25,13 +25,14 @@ dependencies {
     implementation(libs.kotlinStdlib)
 
     api("androidx.activity:activity:1.2.0")
-    implementation(project(':wear:compose:compose-material'))
+    implementation(project(":wear:compose:compose-material"))
 
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
-        minSdkVersion 25
+        minSdk = 25
     }
-    namespace "androidx.wear.compose.integration.demos.common"
+    namespace = "androidx.wear.compose.integration.demos.common"
 }

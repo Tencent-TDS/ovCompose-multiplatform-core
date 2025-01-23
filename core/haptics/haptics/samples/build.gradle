@@ -25,7 +25,8 @@ dependencies {
     implementation(project(":core:haptics:haptics"))
 }
 android {
-    namespace "androidx.core.haptics.samples"
+    compileSdk = 35
+    namespace = "androidx.core.haptics.samples"
 }
 androidx {
     name = "AndroidX Core Haptics Samples"

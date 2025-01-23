@@ -382,14 +382,15 @@ public class Int32NodesTest {
                         .setSourceNamespace(PlatformHealthSources.Keys.DAILY_STEPS.getNamespace())
                         .build();
         List<Integer> results = new ArrayList<>();
+        AddToListCallback<Integer> addToListCallback = new AddToListCallback<>(results);
         StateInt32SourceNode dailyStepsSourceNode =
-                new StateInt32SourceNode(
-                        platformDataStore, dailyStepsSource, new AddToListCallback<>(results));
+                new StateInt32SourceNode(platformDataStore, dailyStepsSource, addToListCallback);
 
         dailyStepsSourceNode.preInit();
         dailyStepsSourceNode.init();
 
         assertThat(results).containsExactly(70);
+        assertThat(addToListCallback.isPreUpdateAndUpdateInSync()).isTrue();
     }
 
     @Test
@@ -703,10 +704,10 @@ public class Int32NodesTest {
         ArithmeticInt32Node node = new ArithmeticInt32Node(protoNode, receiver);
 
         FixedInt32 lhsProtoNode = FixedInt32.newBuilder().setValue(lhs).build();
-        FixedInt32Node lhsNode = new FixedInt32Node(lhsProtoNode, node.getLhsUpstreamCallback());
+        FixedInt32Node lhsNode = new FixedInt32Node(lhsProtoNode, node.getLhsIncomingCallback());
 
         FixedInt32 rhsProtoNode = FixedInt32.newBuilder().setValue(rhs).build();
-        FixedInt32Node rhsNode = new FixedInt32Node(rhsProtoNode, node.getRhsUpstreamCallback());
+        FixedInt32Node rhsNode = new FixedInt32Node(rhsProtoNode, node.getRhsIncomingCallback());
         lhsNode.preInit();
         rhsNode.preInit();
 

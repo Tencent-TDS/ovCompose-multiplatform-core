@@ -22,10 +22,11 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(project(":camera:camera-core"))
     api(project(":camera:camera-view"))
-    api("androidx.annotation:annotation:1.2.0")
-    api('com.google.mlkit:vision-interfaces:16.0.0') {
+    api("androidx.annotation:annotation:1.8.1")
+    api("com.google.mlkit:vision-interfaces:16.0.0") {
         version {
             prefer '16.0.0'
         }
@@ -44,16 +45,14 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
+    compileSdk = 35
 
     lintOptions {
         enable 'CameraXQuirksClassDetector'
     }
 
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.mlkit.vision"
+    namespace = "androidx.camera.mlkit.vision"
 }
 
 androidx {
@@ -63,5 +62,4 @@ androidx {
     description = "MLKit vision components for the Jetpack Camera Library, a library providing a " +
             "seamless integration that enables camera driven computer vision features " +
             "across all of Android."
-    metalavaK2UastEnabled = true
 }

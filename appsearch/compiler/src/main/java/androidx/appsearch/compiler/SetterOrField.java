@@ -16,9 +16,9 @@
 
 package androidx.appsearch.compiler;
 
-import androidx.annotation.NonNull;
-
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -31,14 +31,12 @@ public abstract class SetterOrField {
     /**
      * The setter/field element.
      */
-    @NonNull
-    public abstract Element getElement();
+    public abstract @NonNull Element getElement();
 
     /**
      * The setter/field element's name.
      */
-    @NonNull
-    public String getJvmName() {
+    public @NonNull String getJvmName() {
         return getElement().getSimpleName().toString();
     }
 
@@ -49,8 +47,7 @@ public abstract class SetterOrField {
         return getElement().getKind() == ElementKind.METHOD;
     }
 
-    @NonNull
-    static SetterOrField create(@NonNull Element element) {
+    static @NonNull SetterOrField create(@NonNull Element element) {
         return new AutoValue_SetterOrField(element);
     }
 }

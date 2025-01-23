@@ -16,11 +16,11 @@
 
 package androidx.camera.core.impl;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ExperimentalRetryPolicy;
 import androidx.camera.core.RetryPolicy;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Automatically halts retries if execution time surpasses a specified timeout.
@@ -34,7 +34,6 @@ import androidx.core.util.Preconditions;
  *
  * <p>A timeout of 0 means the execution will never be halted.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @ExperimentalRetryPolicy
 public final class TimeoutRetryPolicy implements RetryPolicy {
 
@@ -54,9 +53,8 @@ public final class TimeoutRetryPolicy implements RetryPolicy {
         mDelegatePolicy = delegatePolicy;
     }
 
-    @NonNull
     @Override
-    public RetryConfig onRetryDecisionRequested(@NonNull ExecutionState executionState) {
+    public @NonNull RetryConfig onRetryDecisionRequested(@NonNull ExecutionState executionState) {
         RetryConfig retryConfig = mDelegatePolicy.onRetryDecisionRequested(executionState);
         return getTimeoutInMillis() > 0 && executionState.getExecutedTimeInMillis()
                 >= getTimeoutInMillis() - retryConfig.getRetryDelayInMillis()

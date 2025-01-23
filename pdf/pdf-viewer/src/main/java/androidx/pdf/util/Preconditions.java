@@ -18,10 +18,12 @@ package androidx.pdf.util;
 
 import android.os.Looper;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Simple parameter checking.
@@ -63,7 +65,7 @@ public final class Preconditions {
     /**
      * Check if the state is true otherwise throws the string exception.
      */
-    public static void checkState(boolean state, String message) {
+    public static void checkState(boolean state, @NonNull String message) {
         if (!state) {
             throw new IllegalStateException(message);
         }
@@ -72,7 +74,7 @@ public final class Preconditions {
     /**
      * Check if the argument is true otherwise throws the string exception.
      */
-    public static void checkArgument(boolean state, String message)
+    public static void checkArgument(boolean state, @NonNull String message)
             throws IllegalArgumentException {
         if (!state) {
             throw new IllegalArgumentException(message);

@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.RunApiTasks
+
 import androidx.build.LibraryType
 
 plugins {
@@ -31,7 +31,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":wear:watchface:watchface-complications-data"))
     api(project(":wear:watchface:watchface"))
 
@@ -56,7 +57,7 @@ android {
         aidl = true
     }
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
     lintOptions {
         disable 'NullabilityAnnotationsDetector' // False alarm on transformed files.
@@ -64,7 +65,7 @@ android {
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.watchface.complications.rendering"
+    namespace = "androidx.wear.watchface.complications.rendering"
 }
 
 androidx {
@@ -72,5 +73,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Support for rendering complications on the watch face"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

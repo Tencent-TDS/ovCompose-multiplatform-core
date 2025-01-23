@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -34,8 +34,8 @@ dependencies {
     androidTestImplementation(project(":work:work-runtime-ktx"))
     androidTestImplementation(project(":work:work-multiprocess"))
     androidTestImplementation(projectOrArtifact(":benchmark:benchmark-junit4"))
-    androidTestImplementation(projectOrArtifact(":room:room-runtime"))
-    androidTestImplementation(projectOrArtifact(":room:room-ktx"))
+    androidTestImplementation(project(":room:room-runtime"))
+    androidTestImplementation(project(":room:room-ktx"))
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -47,11 +47,12 @@ dependencies {
 
 androidx {
     name = "WorkManager Benchmarks"
-     publish = Publish.NONE
+     type = LibraryType.BENCHMARK
     inceptionYear = "2019"
     description = "Android WorkManager Benchmark Library"
 }
 
 android {
-    namespace "androidx.work.benchmark"
+    compileSdk = 35
+    namespace = "androidx.work.benchmark"
 }

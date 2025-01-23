@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
@@ -50,7 +49,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(ExperimentalTestApi::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
@@ -67,35 +65,35 @@ internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
 
     @Before
     fun setupAsserter() {
-        asserter = object : TextSelectionAsserter(
-            textContent = textContent.value,
-            rule = rule,
-            textToolbar = textToolbar,
-            hapticFeedback = hapticFeedback,
-            getActual = { selection.value }
-        ) {
-            override fun subAssert() {
-                Truth.assertAbout(MultiSelectionSubject.withContent(texts.value))
-                    .that(getActual())
-                    .hasSelection(
-                        expected = selection,
-                        startTextDirection = startLayoutDirection,
-                        endTextDirection = endLayoutDirection,
-                    )
-            }
-        }.apply {
-            startLayoutDirection = ResolvedTextDirection.Rtl
-            endLayoutDirection = ResolvedTextDirection.Rtl
-        }
+        asserter =
+            object :
+                    TextSelectionAsserter(
+                        textContent = textContent.value,
+                        rule = rule,
+                        textToolbar = textToolbar,
+                        hapticFeedback = hapticFeedback,
+                        getActual = { selection.value }
+                    ) {
+                    override fun subAssert() {
+                        Truth.assertAbout(MultiSelectionSubject.withContent(texts.value))
+                            .that(getActual())
+                            .hasSelection(
+                                expected = selection,
+                                startTextDirection = startLayoutDirection,
+                                endTextDirection = endLayoutDirection,
+                            )
+                    }
+                }
+                .apply {
+                    startLayoutDirection = ResolvedTextDirection.Rtl
+                    endLayoutDirection = ResolvedTextDirection.Rtl
+                }
     }
 
     @Composable
     override fun TextContent() {
         texts = derivedStateOf {
-            textContent.value
-                .split("\n")
-                .withIndex()
-                .map { (index, str) -> str to "testTag$index" }
+            textContent.value.split("\n").withIndex().map { (index, str) -> str to "testTag$index" }
         }
 
         textContentIndices = derivedStateOf { texts.value.textContentIndices() }
@@ -104,13 +102,12 @@ internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
                 texts.value.fastForEach { (str, tag) ->
                     BasicText(
                         text = str,
-                        style = TextStyle(
-                            fontFamily = fontFamily,
-                            fontSize = fontSize,
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(tag),
+                        style =
+                            TextStyle(
+                                fontFamily = fontFamily,
+                                fontSize = fontSize,
+                            ),
+                        modifier = Modifier.fillMaxWidth().testTag(tag),
                     )
                 }
             }
@@ -125,7 +122,8 @@ internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
             rule.onNodeWithTag(pointerAreaTag).fetchSemanticsNode().positionInRoot
         val nodePosition = rule.onNodeWithTag(tag).fetchSemanticsNode().positionInRoot
         val textLayoutResult = rule.onNodeWithTag(tag).fetchTextLayoutResult()
-        return textLayoutResult.getBoundingBox(localOffset)
+        return textLayoutResult
+            .getBoundingBox(localOffset)
             .translate(nodePosition - pointerAreaPosition)
             .centerRight
             .nudge(HorizontalDirection.END)
@@ -138,19 +136,13 @@ internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
             press()
         }
 
-        asserter.applyAndAssert {
-            selection = 23.collapsed
-        }
+        asserter.applyAndAssert { selection = 23.collapsed }
 
         mouseDragTo(characterPosition(offset = 24))
 
-        asserter.applyAndAssert {
-            selection = 23 to 24
-        }
+        asserter.applyAndAssert { selection = 23 to 24 }
 
-        performTouchGesture {
-            enterTouchMode()
-        }
+        performTouchGesture { enterTouchMode() }
 
         asserter.applyAndAssert {
             selectionHandlesShown = true

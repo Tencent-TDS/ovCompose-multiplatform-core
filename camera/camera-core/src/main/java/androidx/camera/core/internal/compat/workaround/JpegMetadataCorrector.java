@@ -16,11 +16,11 @@
 
 package androidx.camera.core.internal.compat.workaround;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.impl.Quirks;
 import androidx.camera.core.internal.compat.quirk.IncorrectJpegMetadataQuirk;
+
+import org.jspecify.annotations.NonNull;
 
 import java.nio.ByteBuffer;
 
@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
  *
  * @see IncorrectJpegMetadataQuirk
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class JpegMetadataCorrector {
     private final IncorrectJpegMetadataQuirk mQuirk;
 
@@ -50,8 +49,7 @@ public class JpegMetadataCorrector {
     /**
      * Converts the image proxy to the byte array with correct JPEG metadata.
      */
-    @NonNull
-    public byte[] jpegImageToJpegByteArray(@NonNull ImageProxy image) {
+    public byte @NonNull [] jpegImageToJpegByteArray(@NonNull ImageProxy image) {
         if (mQuirk == null) {
             ImageProxy.PlaneProxy[] planes = image.getPlanes();
             ByteBuffer buffer = planes[0].getBuffer();

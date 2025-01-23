@@ -22,14 +22,15 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.pdf.data.Openable.Open;
 import androidx.pdf.util.ContentUriOpener;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.util.Uris;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -45,18 +46,17 @@ public class Opener {
 
     private final ContentUriOpener mContentOpener;
 
-    public Opener(Context ctx) {
+    public Opener(@NonNull Context ctx) {
         Context app = ctx.getApplicationContext();
         mContentOpener = new ContentUriOpener(app.getContentResolver());
     }
 
     @VisibleForTesting
-    public Opener(ContentUriOpener contentOpener) {
+    public Opener(@NonNull ContentUriOpener contentOpener) {
         this.mContentOpener = contentOpener;
     }
 
-    @NonNull
-    protected Open open(ContentOpenable content) throws FileNotFoundException {
+    protected @NonNull Open open(@NonNull ContentOpenable content) throws FileNotFoundException {
         String contentType = content.getContentType();
         AssetFileDescriptor afd;
         if (content.getSize() != null) {
@@ -74,8 +74,7 @@ public class Opener {
     }
 
     /** Opens the given local Uri and returns an {@link Open} object to read its data. */
-    @NonNull
-    public Open openLocal(Uri localUri) throws IOException {
+    public @NonNull Open openLocal(@NonNull Uri localUri) throws IOException {
         Preconditions.checkNotNull(localUri);
         if (Uris.isContentUri(localUri)) {
             ContentOpenable content = new ContentOpenable(localUri);
@@ -89,15 +88,14 @@ public class Opener {
     }
 
     /** Returns the Exif orientation rotation value for a content thumbnail. */
-    public int getContentExifOrientation(ContentOpenable contentOpenable) {
+    public int getContentExifOrientation(@NonNull ContentOpenable contentOpenable) {
         return mContentOpener.getExifOrientation(contentOpenable.getContentUri());
     }
 
     /**
      *
      */
-    @Nullable
-    public String getContentType(Uri uri) {
+    public @Nullable String getContentType(@NonNull Uri uri) {
         if (Uris.isContentUri(uri)) {
             return mContentOpener.getContentType(uri);
         } else {

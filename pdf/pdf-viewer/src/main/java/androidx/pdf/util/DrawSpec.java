@@ -22,6 +22,8 @@ import android.graphics.Rect;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 
 /**
@@ -32,11 +34,11 @@ public abstract class DrawSpec {
     protected final Paint mPaint;
     protected final List<Rect> mRects;
 
-    public DrawSpec(Paint paint, List<Rect> rects) {
+    public DrawSpec(@NonNull Paint paint, @NonNull List<Rect> rects) {
         this.mPaint = paint;
         this.mRects = rects;
     }
 
     /** Subclasses should draw what they need, based on their rects here. */
-    public abstract void draw(Canvas canvas);
+    public abstract void draw(@NonNull Canvas canvas);
 }

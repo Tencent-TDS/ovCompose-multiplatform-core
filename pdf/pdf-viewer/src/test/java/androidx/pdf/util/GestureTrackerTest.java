@@ -25,7 +25,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.pdf.util.GestureTracker.Gesture;
@@ -49,7 +48,6 @@ import java.util.List;
 @RunWith(RobolectricTestRunner.class)
 public class GestureTrackerTest {
 
-    private static final String TAG = "GestureTrackerTest";
     private static final int TAP_TIMEOUT = 200;
 
     private GestureTracker mGestureTracker;
@@ -62,7 +60,7 @@ public class GestureTrackerTest {
     public void setUp() {
         mOpenMocks = MockitoAnnotations.openMocks(this);
         mGestureTracker =
-                new GestureTracker("GesturesTest", ApplicationProvider.getApplicationContext());
+                new GestureTracker(ApplicationProvider.getApplicationContext());
         mGestureTracker.setDelegateHandler(mGestureHandler);
     }
 
@@ -73,7 +71,6 @@ public class GestureTrackerTest {
 
     @Test
     public void testDrag() {
-        Log.d(TAG, "Start test drag");
         for (MotionEvent event : dragSequence(0)) {
             mGestureTracker.feed(event, true);
         }
@@ -85,12 +82,10 @@ public class GestureTrackerTest {
         verifyNoMoreInteractions(mGestureHandler);
         assertThat(capturedGesture.getValue()).isEqualTo(Gesture.DRAG_X);
         assertThat(mGestureTracker.matches(Gesture.DRAG_X)).isTrue();
-        Log.d(TAG, "End test drag");
     }
 
     @Test
     public void testSingleTap() {
-        Log.d(TAG, "Start test single tap");
         for (MotionEvent event : singleTapSequence(0)) {
             mGestureTracker.feed(event, true);
         }
@@ -100,12 +95,12 @@ public class GestureTrackerTest {
 
         assertThat(mGestureTracker.matches(Gesture.FIRST_TAP)).isTrue();
 
-        ThreadUtils.postOnUiThreadDelayed(new Runnable() {
+        ThreadUtils.postOnUiThreadDelayed(TAP_TIMEOUT, new Runnable() {
             @Override
             public void run() {
                 verifySingleTapDelayed();
             }
-        }, TAP_TIMEOUT);
+        });
     }
 
     private void verifySingleTapDelayed() {
@@ -116,12 +111,10 @@ public class GestureTrackerTest {
         verifyNoMoreInteractions(mGestureHandler);
         assertThat(mGestureTracker.matches(Gesture.SINGLE_TAP)).isTrue();
         assertThat(capturedGesture.getValue()).isEqualTo(Gesture.SINGLE_TAP);
-        Log.d(TAG, "End test single tap");
     }
 
     @Test
     public void testDoubleTap() {
-        Log.d(TAG, "Start test double tap");
         for (MotionEvent event : singleTapSequence(0)) {
             mGestureTracker.feed(event, true);
         }
@@ -139,12 +132,10 @@ public class GestureTrackerTest {
         verify(mGestureHandler).onGestureEnd(capturedGesture.capture());
         verifyNoMoreInteractions(mGestureHandler);
         assertThat(capturedGesture.getValue()).isEqualTo(Gesture.DOUBLE_TAP);
-        Log.d(TAG, "End test double tap");
     }
 
     @Test
     public void testTapDrag() {
-        Log.d(TAG, "Start test tap-drag (should not count as double-tap)");
         for (MotionEvent event : singleTapSequence(0)) {
             mGestureTracker.feed(event, true);
         }
@@ -162,12 +153,10 @@ public class GestureTrackerTest {
         verify(mGestureHandler).onGestureEnd(capturedGesture.capture());
         verifyNoMoreInteractions(mGestureHandler);
         assertThat(capturedGesture.getValue()).isEqualTo(Gesture.DRAG_X);
-        Log.d(TAG, "End test tap-drag");
     }
 
     @Test
     public void testDragTap() {
-        Log.d(TAG, "Start test drag-tap (should not count as double-tap)");
         for (MotionEvent event : dragSequence(50)) {
             mGestureTracker.feed(event, true);
         }
@@ -185,7 +174,6 @@ public class GestureTrackerTest {
         verify(mGestureHandler).onGestureEnd(capturedGesture.capture());
         verifyNoMoreInteractions(mGestureHandler);
         assertThat(capturedGesture.getValue()).isEqualTo(Gesture.DRAG_X);
-        Log.d(TAG, "End test drag-tap");
     }
 
     private static List<MotionEvent> dragSequence(final long downTime) {

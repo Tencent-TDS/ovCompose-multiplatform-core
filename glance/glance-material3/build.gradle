@@ -16,7 +16,7 @@ plugins {
 
 dependencies {
     implementation(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.4.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.compose.runtime:runtime:1.1.1")
     api(project(":glance:glance"))
     implementation("androidx.compose.material3:material3:1.0.0")
@@ -24,10 +24,7 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-    }
-    namespace "androidx.glance.material3"
+    namespace = "androidx.glance.material3"
 }
 
 androidx {
@@ -36,6 +33,6 @@ androidx {
     inceptionYear = "2022"
     description = "Glance Material integration library." +
             " This library provides interop APIs with Material 3."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }
 

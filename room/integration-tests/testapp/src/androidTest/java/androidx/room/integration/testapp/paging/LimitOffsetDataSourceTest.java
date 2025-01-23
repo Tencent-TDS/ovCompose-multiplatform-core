@@ -16,10 +16,9 @@
 
 package androidx.room.integration.testapp.paging;
 
-import static junit.framework.Assert.assertFalse;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import androidx.annotation.NonNull;
 import androidx.room.integration.testapp.test.TestDatabaseTest;

@@ -55,12 +55,10 @@ class AudioRestrictionControllerImplTest {
             AUDIO_RESTRICTION_VIBRATION_SOUND
         )
 
-        verify(listener1, times(1)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
-        verify(listener2, times(1)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
+        verify(listener1, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
+        verify(listener2, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
     }
 
     @Test
@@ -79,12 +77,10 @@ class AudioRestrictionControllerImplTest {
 
         audioRestrictionController.globalAudioRestrictionMode = AUDIO_RESTRICTION_VIBRATION_SOUND
 
-        verify(listener1, times(1)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
-        verify(listener2, times(1)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
+        verify(listener1, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
+        verify(listener2, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
     }
 
     @Test
@@ -101,13 +97,10 @@ class AudioRestrictionControllerImplTest {
             AUDIO_RESTRICTION_VIBRATION
         )
 
-        // Whenever a setter method is called, an update should be called on the listener
-        verify(listener1, times(2)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
-        verify(listener1, never()).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION
-        )
+        // If the mode hasn't changed, there shouldn't be a second update call
+        verify(listener1, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
+        verify(listener1, never()).onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION)
     }
 
     @Test
@@ -121,13 +114,10 @@ class AudioRestrictionControllerImplTest {
         )
         audioRestrictionController.globalAudioRestrictionMode = AUDIO_RESTRICTION_VIBRATION
 
-        // Whenever a setter method is called, an update should be called on the listener
-        verify(listener1, times(2)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
-        verify(listener1, never()).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION
-        )
+        // If the mode hasn't changed, there shouldn't be a second update call
+        verify(listener1, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
+        verify(listener1, never()).onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION)
     }
 
     @Test
@@ -144,15 +134,12 @@ class AudioRestrictionControllerImplTest {
             AUDIO_RESTRICTION_VIBRATION
         )
 
-        verify(listener1, times(2)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION_SOUND
-        )
+        verify(listener1, times(1))
+            .onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION_SOUND)
 
         audioRestrictionController.removeCameraGraph(cameraGraph1)
 
-        verify(listener1, times(1)).onCameraAudioRestrictionUpdated(
-            AUDIO_RESTRICTION_VIBRATION
-        )
+        verify(listener1, times(1)).onCameraAudioRestrictionUpdated(AUDIO_RESTRICTION_VIBRATION)
     }
 
     @Test

@@ -1,5 +1,3 @@
-// ktlint-disable filename
-
 /*
  * Copyright 2023 The Android Open Source Project
  *
@@ -28,22 +26,22 @@ import java.util.WeakHashMap
  */
 actual typealias CalendarLocale = Locale
 
-/**
- * Returns a string representation of an integer for the current Locale.
- */
+/** Returns a string representation of an integer for the current Locale. */
 internal actual fun Int.toLocalString(
     minDigits: Int,
     maxDigits: Int,
     isGroupingUsed: Boolean
 ): String {
     return getCachedDateTimeFormatter(
-        minDigits = minDigits,
-        maxDigits = maxDigits,
-        isGroupingUsed = isGroupingUsed
-    ).format(this)
+            minDigits = minDigits,
+            maxDigits = maxDigits,
+            isGroupingUsed = isGroupingUsed
+        )
+        .format(this)
 }
 
 private val cachedFormatters = WeakHashMap<String, NumberFormat>()
+
 private fun getCachedDateTimeFormatter(
     minDigits: Int,
     maxDigits: Int,

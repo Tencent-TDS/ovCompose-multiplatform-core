@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -36,14 +35,14 @@ dependencies {
     api(project(":wear:protolayout:protolayout-expression"))
     api(project(":wear:tiles:tiles"))
     api("androidx.wear:wear-tooling-preview:1.0.0")
-    api("androidx.annotation:annotation:1.6.0")
+    api("androidx.annotation:annotation:1.8.1")
 }
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-    namespace "androidx.wear.tiles.tooling.preview"
+    namespace = "androidx.wear.tiles.tooling.preview"
 }
 
 androidx {
@@ -52,5 +51,5 @@ androidx {
     inceptionYear = "2023"
     description = "Wear Tile tooling library. This library provides the API required to declare" +
             " @Preview on previewable methods in the IDE."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

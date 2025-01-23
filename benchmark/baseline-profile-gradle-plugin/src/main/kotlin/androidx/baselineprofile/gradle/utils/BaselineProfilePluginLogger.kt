@@ -20,34 +20,47 @@ import org.gradle.api.logging.Logger
 
 internal class BaselineProfilePluginLogger(private val logger: Logger) {
 
-    private var warnings = Warnings()
+    private var warnings =
+        Warnings().apply {
+            // Note that this is a shared warning across all the plugins.
+            // By setting it by default `false` here, it will be disabled in all the plugins.
+            // Single plugins can re-enable it using the default `Warnings` configuration or the
+            // user specified one through #setWarnings. Currently only the consumer plugin supports
+            // warnings because it's the only plugin that prints any, beside this shared max agp
+            // version warning.
+            maxAgpVersion = false
+        }
+
+    private var suppressAllWarnings: Boolean = false
 
     fun setWarnings(warnings: Warnings) {
         this.warnings = warnings
+    }
+
+    fun suppressAllWarnings() {
+        suppressAllWarnings = true
     }
 
     fun debug(message: String) = logger.debug(message)
 
     fun info(message: String) = logger.info(message)
 
-    fun warn(
-        property: Warnings.() -> (Boolean),
-        propertyName: String?,
-        message: String
-    ) {
+    fun warn(property: Warnings.() -> (Boolean), propertyName: String?, message: String) {
+        if (suppressAllWarnings) return
         if (property(warnings)) {
             logger.warn(message)
             if (propertyName != null) {
                 logger.warn(
                     """
-                
+
                 This warning can be disabled setting the following property:
                 baselineProfile {
                     warnings {
                         $propertyName = false
                     }
                 }
-            """.trimIndent()
+            """
+                        .trimIndent()
                 )
             }
         }

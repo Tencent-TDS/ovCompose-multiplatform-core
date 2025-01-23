@@ -31,8 +31,6 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.kotlinStdlib)
-
     compileOnly(project(":annotation:annotation-sampled"))
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.compose.animation:animation-graphics:1.6.0")
@@ -58,10 +56,12 @@ dependencies {
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
-        minSdkVersion 25
+        minSdk = 25
     }
-    namespace "androidx.wear.compose.material.samples"
+    namespace = "androidx.wear.compose.material.samples"
 }
 
 androidx {

@@ -59,10 +59,7 @@ import static android.support.mediacompat.testlib.VersionConstants.KEY_CLIENT_VE
 import static android.support.mediacompat.testlib.util.IntentUtil.callMediaControllerMethod;
 import static android.support.mediacompat.testlib.util.IntentUtil.callTransportControlsMethod;
 import static android.support.mediacompat.testlib.util.TestUtil.assertBundleEquals;
-import static android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS;
-import static android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS;
 
-import static androidx.media.MediaSessionManager.RemoteUserInfo.LEGACY_CONTROLLER;
 import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.platform.app.InstrumentationRegistry.getArguments;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
@@ -92,17 +89,9 @@ import android.os.ResultReceiver;
 import android.os.SystemClock;
 import android.support.mediacompat.testlib.util.IntentUtil;
 import android.support.mediacompat.testlib.util.PollingCheck;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 
-import androidx.media.MediaSessionManager.RemoteUserInfo;
-import androidx.media.VolumeProviderCompat;
 import androidx.media.test.lib.CustomParcelable;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -121,9 +110,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Test {@link MediaSessionCompat.Callback}.
- */
+/** Test {@link android.support.v4.media.session.MediaSessionCompat.Callback}. */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 public class MediaSessionCompatCallbackTest {
 
@@ -142,7 +130,7 @@ public class MediaSessionCompatCallbackTest {
     private final Object mWaitLock = new Object();
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private String mClientVersion;
-    private MediaSessionCompat mSession;
+    private android.support.v4.media.session.MediaSessionCompat mSession;
     private MediaSessionCallback mCallback = new MediaSessionCallback();
     private final Bundle mSessionInfo = new Bundle();
     private AudioManager mAudioManager;
@@ -154,16 +142,25 @@ public class MediaSessionCompatCallbackTest {
         Log.d(TAG, "Client app version: " + mClientVersion);
 
         mSessionInfo.putString(TEST_KEY, TEST_VALUE);
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mAudioManager = (AudioManager) getApplicationContext().getSystemService(
-                        Context.AUDIO_SERVICE);
-                mSession = new MediaSessionCompat(getApplicationContext(), TEST_SESSION_TAG,
-                        null, null, mSessionInfo);
-                mSession.setCallback(mCallback, mHandler);
-            }
-        });
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mAudioManager =
+                                        (AudioManager)
+                                                getApplicationContext()
+                                                        .getSystemService(Context.AUDIO_SERVICE);
+                                mSession =
+                                        new android.support.v4.media.session.MediaSessionCompat(
+                                                getApplicationContext(),
+                                                TEST_SESSION_TAG,
+                                                null,
+                                                null,
+                                                mSessionInfo);
+                                mSession.setCallback(mCallback, mHandler);
+                            }
+                        });
     }
 
     @After
@@ -182,12 +179,17 @@ public class MediaSessionCompatCallbackTest {
         assertFalse("New session should not be active", mSession.isActive());
 
         // Verify by getting the controller and checking all its fields
-        MediaControllerCompat controller = mSession.getController();
+        android.support.v4.media.session.MediaControllerCompat controller =
+                mSession.getController();
         assertNotNull(controller);
 
         final String errorMsg = "New session has unexpected configuration.";
         assertBundleEquals(mSessionInfo, controller.getSessionInfo());
-        assertEquals(errorMsg, FLAG_HANDLES_MEDIA_BUTTONS | FLAG_HANDLES_TRANSPORT_CONTROLS,
+        assertEquals(
+                errorMsg,
+                android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
+                        | android.support.v4.media.session.MediaSessionCompat
+                                .FLAG_HANDLES_TRANSPORT_CONTROLS,
                 controller.getFlags());
         assertNull(errorMsg, controller.getExtras());
         assertNull(errorMsg, controller.getMetadata());
@@ -196,15 +198,22 @@ public class MediaSessionCompatCallbackTest {
         assertNull(errorMsg, controller.getPlaybackState());
         assertNull(errorMsg, controller.getQueue());
         assertNull(errorMsg, controller.getQueueTitle());
-        assertEquals(errorMsg, RatingCompat.RATING_NONE, controller.getRatingType());
+        assertEquals(
+                errorMsg,
+                android.support.v4.media.RatingCompat.RATING_NONE,
+                controller.getRatingType());
         assertNull(errorMsg, controller.getSessionActivity());
 
         assertNotNull(controller.getSessionToken());
         assertNotNull(controller.getTransportControls());
 
-        MediaControllerCompat.PlaybackInfo info = controller.getPlaybackInfo();
+        android.support.v4.media.session.MediaControllerCompat.PlaybackInfo info =
+                controller.getPlaybackInfo();
         assertNotNull(info);
-        assertEquals(errorMsg, MediaControllerCompat.PlaybackInfo.PLAYBACK_TYPE_LOCAL,
+        assertEquals(
+                errorMsg,
+                android.support.v4.media.session.MediaControllerCompat.PlaybackInfo
+                        .PLAYBACK_TYPE_LOCAL,
                 info.getPlaybackType());
         assertEquals(errorMsg, mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC),
                 info.getCurrentVolume());
@@ -227,8 +236,9 @@ public class MediaSessionCompatCallbackTest {
         mCallback.reset(1);
         mCallback.setExpectedCallerPackageName(getExpectedPackageNameForSelf());
         mSession.setCallback(mCallback, new Handler(Looper.getMainLooper()));
-        MediaSessionCompat session = MediaSessionCompat.fromMediaSession(
-                getApplicationContext(), mSession.getMediaSession());
+        android.support.v4.media.session.MediaSessionCompat session =
+                android.support.v4.media.session.MediaSessionCompat.fromMediaSession(
+                        getApplicationContext(), mSession.getMediaSession());
         assertEquals(session.getSessionToken(), mSession.getSessionToken());
 
         session.getController().getTransportControls().play();
@@ -242,18 +252,22 @@ public class MediaSessionCompatCallbackTest {
     public void testCallers() throws Exception {
         mCallback.reset(1, getExpectedPackageNameForSelf());
         mSession.setCallback(mCallback, new Handler(Looper.getMainLooper()));
-        MediaSessionCompat session = MediaSessionCompat.fromMediaSession(
-                getApplicationContext(), mSession.getMediaSession());
+        android.support.v4.media.session.MediaSessionCompat session =
+                android.support.v4.media.session.MediaSessionCompat.fromMediaSession(
+                        getApplicationContext(), mSession.getMediaSession());
         assertEquals(session.getSessionToken(), mSession.getSessionToken());
 
-        MediaControllerCompat controller1 = session.getController();
-        MediaControllerCompat controller2 =
-                new MediaControllerCompat(getApplicationContext(), session.getSessionToken());
+        android.support.v4.media.session.MediaControllerCompat controller1 =
+                session.getController();
+        android.support.v4.media.session.MediaControllerCompat controller2 =
+                new android.support.v4.media.session.MediaControllerCompat(
+                        getApplicationContext(), session.getSessionToken());
 
         controller1.getTransportControls().stop();
         mCallback.await(TIME_OUT_MS);
         assertTrue(mCallback.mOnStopCalled);
-        RemoteUserInfo remoteUserInfo1 = mCallback.mRemoteUserInfoForStop;
+        androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo1 =
+                mCallback.mRemoteUserInfoForStop;
         assertEquals(getExpectedPackageNameForSelf(), remoteUserInfo1.getPackageName());
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(Process.myUid(), remoteUserInfo1.getUid());
@@ -264,7 +278,8 @@ public class MediaSessionCompatCallbackTest {
         controller2.getTransportControls().stop();
         mCallback.await(TIME_OUT_MS);
         assertTrue(mCallback.mOnStopCalled);
-        RemoteUserInfo remoteUserInfo2 = mCallback.mRemoteUserInfoForStop;
+        androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo2 =
+                mCallback.mRemoteUserInfoForStop;
         assertEquals(getExpectedPackageNameForSelf(), remoteUserInfo2.getPackageName());
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(Process.myUid(), remoteUserInfo2.getUid());
@@ -273,12 +288,14 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat.Token} created in the constructor of MediaSessionCompat.
+     * Tests {@link android.support.v4.media.session.MediaSessionCompat.Token} created in the
+     * constructor of MediaSessionCompat.
      */
     @Test
     @SmallTest
     public void testSessionToken() throws Exception {
-        MediaSessionCompat.Token sessionToken = mSession.getSessionToken();
+        android.support.v4.media.session.MediaSessionCompat.Token sessionToken =
+                mSession.getSessionToken();
 
         assertNotNull(sessionToken);
         assertEquals(0, sessionToken.describeContents());
@@ -287,23 +304,24 @@ public class MediaSessionCompatCallbackTest {
         Parcel p = Parcel.obtain();
         sessionToken.writeToParcel(p, 0);
         p.setDataPosition(0);
-        MediaSessionCompat.Token token = MediaSessionCompat.Token.CREATOR.createFromParcel(p);
+        android.support.v4.media.session.MediaSessionCompat.Token token =
+                android.support.v4.media.session.MediaSessionCompat.Token.CREATOR.createFromParcel(
+                        p);
         assertEquals(token, sessionToken);
         p.recycle();
     }
 
-    /**
-     * Tests {@link MediaSessionCompat.QueueItem}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat.QueueItem}. */
     @Test
     @SmallTest
     public void testQueueItem() {
-        MediaSessionCompat.QueueItem item = new MediaSessionCompat.QueueItem(
-                new MediaDescriptionCompat.Builder()
-                        .setMediaId(TEST_MEDIA_ID_1)
-                        .setTitle(TEST_MEDIA_TITLE_1)
-                        .build(),
-                TEST_QUEUE_ID_1);
+        android.support.v4.media.session.MediaSessionCompat.QueueItem item =
+                new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                        new android.support.v4.media.MediaDescriptionCompat.Builder()
+                                .setMediaId(TEST_MEDIA_ID_1)
+                                .setTitle(TEST_MEDIA_TITLE_1)
+                                .build(),
+                        TEST_QUEUE_ID_1);
         assertEquals(TEST_QUEUE_ID_1, item.getQueueId());
         assertEquals(TEST_MEDIA_ID_1, item.getDescription().getMediaId());
         assertEquals(TEST_MEDIA_TITLE_1, item.getDescription().getTitle());
@@ -312,15 +330,14 @@ public class MediaSessionCompatCallbackTest {
         Parcel p = Parcel.obtain();
         item.writeToParcel(p, 0);
         p.setDataPosition(0);
-        MediaSessionCompat.QueueItem other =
-                MediaSessionCompat.QueueItem.CREATOR.createFromParcel(p);
+        android.support.v4.media.session.MediaSessionCompat.QueueItem other =
+                android.support.v4.media.session.MediaSessionCompat.QueueItem.CREATOR
+                        .createFromParcel(p);
         assertEquals(item.toString(), other.toString());
         p.recycle();
     }
 
-    /**
-     * Tests {@link MediaSessionCompat#setActive}.
-     */
+    /** Tests {@link android.support.v4.media.session.MediaSessionCompat#setActive}. */
     @Test
     @SmallTest
     public void testSetActive() throws Exception {
@@ -333,10 +350,14 @@ public class MediaSessionCompatCallbackTest {
     @Ignore("flaky: b/297535302")
     public void testGetPlaybackStateWithPositionUpdate() throws InterruptedException {
         final long stateSetTime = SystemClock.elapsedRealtime();
-        PlaybackStateCompat stateIn = new PlaybackStateCompat.Builder()
-                .setState(PlaybackStateCompat.STATE_PLAYING, TEST_POSITION, TEST_PLAYBACK_SPEED,
-                        stateSetTime)
-                .build();
+        android.support.v4.media.session.PlaybackStateCompat stateIn =
+                new android.support.v4.media.session.PlaybackStateCompat.Builder()
+                        .setState(
+                                android.support.v4.media.session.PlaybackStateCompat.STATE_PLAYING,
+                                TEST_POSITION,
+                                TEST_PLAYBACK_SPEED,
+                                stateSetTime)
+                        .build();
         mSession.setPlaybackState(stateIn);
 
         final long waitDuration = 100L;
@@ -348,7 +369,8 @@ public class MediaSessionCompatCallbackTest {
         final double updateTimeTolerance = 50L;
         final double positionTolerance = updateTimeTolerance * TEST_PLAYBACK_SPEED;
 
-        PlaybackStateCompat stateOut = mSession.getController().getPlaybackState();
+        android.support.v4.media.session.PlaybackStateCompat stateOut =
+                mSession.getController().getPlaybackState();
         assertEquals(expectedUpdateTime, stateOut.getLastPositionUpdateTime(), updateTimeTolerance);
         assertEquals(expectedPosition, stateOut.getPosition(), positionTolerance);
 
@@ -365,8 +387,8 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat#setCallback} with {@code null}.
-     * No callback messages should be posted once {@code setCallback(null)} is done.
+     * Tests {@link android.support.v4.media.session.MediaSessionCompat#setCallback} with {@code
+     * null}. No callback messages should be posted once {@code setCallback(null)} is done.
      */
     @Test
     @MediumTest
@@ -381,8 +403,8 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests whether {@link MediaSessionCompat#setCallback} with {@code null} stops receiving
-     * callback methods.
+     * Tests whether {@link android.support.v4.media.session.MediaSessionCompat#setCallback} with
+     * {@code null} stops receiving callback methods.
      */
     @Test
     @MediumTest
@@ -402,8 +424,8 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests whether {@link MediaSessionCompat#setCallback} with different callback prevents
-     * old callback from receiving callback methods.
+     * Tests whether {@link android.support.v4.media.session.MediaSessionCompat#setCallback} with
+     * different callback prevents old callback from receiving callback methods.
      */
     @Test
     @MediumTest
@@ -467,13 +489,20 @@ public class MediaSessionCompatCallbackTest {
     @Test
     @SmallTest
     public void testAddRemoveQueueItems() throws Exception {
-        mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
+        mSession.setFlags(
+                android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
 
-        MediaDescriptionCompat itemDescription1 = new MediaDescriptionCompat.Builder()
-                .setMediaId(TEST_MEDIA_ID_1).setTitle(TEST_MEDIA_TITLE_1).build();
+        android.support.v4.media.MediaDescriptionCompat itemDescription1 =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId(TEST_MEDIA_ID_1)
+                        .setTitle(TEST_MEDIA_TITLE_1)
+                        .build();
 
-        MediaDescriptionCompat itemDescription2 = new MediaDescriptionCompat.Builder()
-                .setMediaId(TEST_MEDIA_ID_2).setTitle(TEST_MEDIA_TITLE_2).build();
+        android.support.v4.media.MediaDescriptionCompat itemDescription2 =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId(TEST_MEDIA_ID_2)
+                        .setTitle(TEST_MEDIA_TITLE_2)
+                        .build();
 
         mCallback.reset(1);
         callMediaControllerMethod(
@@ -564,8 +593,9 @@ public class MediaSessionCompatCallbackTest {
         assertEquals(seekPosition, mCallback.mSeekPosition);
 
         mCallback.reset(1);
-        final RatingCompat rating =
-                RatingCompat.newStarRating(RatingCompat.RATING_5_STARS, 3f);
+        final android.support.v4.media.RatingCompat rating =
+                android.support.v4.media.RatingCompat.newStarRating(
+                        android.support.v4.media.RatingCompat.RATING_5_STARS, 3f);
         callTransportControlsMethod(
                 SET_RATING, rating, getApplicationContext(), mSession.getSessionToken());
         mCallback.await(TIME_OUT_MS);
@@ -624,8 +654,9 @@ public class MediaSessionCompatCallbackTest {
 
         mCallback.reset(1);
         mCallback.mOnCustomActionCalled = false;
-        final PlaybackStateCompat.CustomAction customAction =
-                new PlaybackStateCompat.CustomAction.Builder(action, action, -1)
+        final android.support.v4.media.session.PlaybackStateCompat.CustomAction customAction =
+                new android.support.v4.media.session.PlaybackStateCompat.CustomAction.Builder(
+                                action, action, -1)
                         .setExtras(extras)
                         .build();
         arguments = new Bundle();
@@ -700,7 +731,7 @@ public class MediaSessionCompatCallbackTest {
         assertEquals(ENABLED, mCallback.mCaptioningEnabled);
 
         mCallback.reset(1);
-        final int repeatMode = PlaybackStateCompat.REPEAT_MODE_ALL;
+        final int repeatMode = android.support.v4.media.session.PlaybackStateCompat.REPEAT_MODE_ALL;
         callTransportControlsMethod(
                 SET_REPEAT_MODE, repeatMode, getApplicationContext(), mSession.getSessionToken());
         mCallback.await(TIME_OUT_MS);
@@ -708,7 +739,8 @@ public class MediaSessionCompatCallbackTest {
         assertEquals(repeatMode, mCallback.mRepeatMode);
 
         mCallback.reset(1);
-        final int shuffleMode = PlaybackStateCompat.SHUFFLE_MODE_ALL;
+        final int shuffleMode =
+                android.support.v4.media.session.PlaybackStateCompat.SHUFFLE_MODE_ALL;
         callTransportControlsMethod(
                 SET_SHUFFLE_MODE, shuffleMode, getApplicationContext(), mSession.getSessionToken());
         mCallback.await(TIME_OUT_MS);
@@ -717,7 +749,8 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat.Callback#onSetPlaybackSpeed(float)}.
+     * Tests {@link
+     * android.support.v4.media.session.MediaSessionCompat.Callback#onSetPlaybackSpeed(float)}.
      */
     @Test
     @SmallTest
@@ -732,7 +765,8 @@ public class MediaSessionCompatCallbackTest {
     }
 
     /**
-     * Tests {@link MediaSessionCompat.Callback#onMediaButtonEvent}.
+     * Tests {@link
+     * android.support.v4.media.session.MediaSessionCompat.Callback#onMediaButtonEvent}.
      */
     @Test
     @MediumTest
@@ -750,7 +784,7 @@ public class MediaSessionCompatCallbackTest {
         mSession.setMediaButtonReceiver(pi);
 
         // Set state to STATE_PLAYING to get higher priority.
-        setPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PLAYING);
 
         mCallback.reset(1);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY);
@@ -790,21 +824,21 @@ public class MediaSessionCompatCallbackTest {
         // Test PLAY_PAUSE button twice.
         // First, send PLAY_PAUSE button event while in STATE_PAUSED.
         mCallback.reset(1);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         assertTrue(mCallback.await(TIME_OUT_MS));
         assertEquals(1, mCallback.mOnPlayCalledCount);
 
         // Next, send PLAY_PAUSE button event while in STATE_PLAYING.
         mCallback.reset(1);
-        setPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PLAYING);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         assertTrue(mCallback.await(TIME_OUT_MS));
         assertTrue(mCallback.mOnPauseCalled);
 
         // Double tap of PLAY_PAUSE is the next track.
         mCallback.reset(2);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         assertFalse(mCallback.await(waitTimeForNoResponse));
@@ -815,7 +849,7 @@ public class MediaSessionCompatCallbackTest {
         // Test PLAY_PAUSE button long-press.
         // It should be the same as the single short-press.
         mCallback.reset(1);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true);
         assertTrue(mCallback.await(TIME_OUT_MS));
         assertEquals(1, mCallback.mOnPlayCalledCount);
@@ -835,7 +869,7 @@ public class MediaSessionCompatCallbackTest {
         // Initial long-press of the PLAY_PAUSE is considered as the single short-press already,
         // so it shouldn't be used as the first tap of the double tap.
         mCallback.reset(2);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, true);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         assertTrue(mCallback.await(TIME_OUT_MS));
@@ -848,7 +882,7 @@ public class MediaSessionCompatCallbackTest {
         // If another media key is pressed while the double tap of PLAY_PAUSE,
         // PLAY_PAUSE should be handled as normal.
         mCallback.reset(3);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_STOP);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
@@ -859,14 +893,15 @@ public class MediaSessionCompatCallbackTest {
 
         // Test if media keys are handled in order.
         mCallback.reset(2);
-        setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         sendMediaKeyEventFromController(KeyEvent.KEYCODE_MEDIA_STOP);
         assertTrue(mCallback.await(TIME_OUT_MS));
         assertEquals(1, mCallback.mOnPlayCalledCount);
         assertTrue(mCallback.mOnStopCalled);
         synchronized (mWaitLock) {
-            assertEquals(PlaybackStateCompat.STATE_STOPPED,
+            assertEquals(
+                    android.support.v4.media.session.PlaybackStateCompat.STATE_STOPPED,
                     mSession.getController().getPlaybackState().getState());
         }
     }
@@ -958,8 +993,9 @@ public class MediaSessionCompatCallbackTest {
             // This test causes an Exception on System UI in API < 27.
             return;
         }
-        VolumeProviderCompat vp =
-                new VolumeProviderCompat(VolumeProviderCompat.VOLUME_CONTROL_ABSOLUTE, 11, 5) {
+        androidx.media.VolumeProviderCompat vp =
+                new androidx.media.VolumeProviderCompat(
+                        androidx.media.VolumeProviderCompat.VOLUME_CONTROL_ABSOLUTE, 11, 5) {
                     @Override
                     public void onSetVolumeTo(int volume) {
                         synchronized (mWaitLock) {
@@ -1015,16 +1051,20 @@ public class MediaSessionCompatCallbackTest {
         Bundle arguments = new Bundle();
         arguments.putString("action", action);
 
-        final MediaDescriptionCompat desc = new MediaDescriptionCompat.Builder()
-                .setMediaId("testMediaId")
-                .build();
-        final MediaSessionCompat.QueueItem queueItem =
-                new MediaSessionCompat.QueueItem(desc, 1 /* flags */);
-        final MediaBrowserCompat.MediaItem mediaItem =
-                new MediaBrowserCompat.MediaItem(desc, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
-        final PlaybackStateCompat state = new PlaybackStateCompat.Builder()
-                .setBufferedPosition(1000)
-                .build();
+        final android.support.v4.media.MediaDescriptionCompat desc =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId("testMediaId")
+                        .build();
+        final android.support.v4.media.session.MediaSessionCompat.QueueItem queueItem =
+                new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                        desc, 1 /* flags */);
+        final android.support.v4.media.MediaBrowserCompat.MediaItem mediaItem =
+                new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                        desc, android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
+        final android.support.v4.media.session.PlaybackStateCompat state =
+                new android.support.v4.media.session.PlaybackStateCompat.Builder()
+                        .setBufferedPosition(1000)
+                        .build();
 
         Bundle extras = new Bundle();
         extras.putParcelable("description", desc);
@@ -1046,16 +1086,20 @@ public class MediaSessionCompatCallbackTest {
         assertNotNull(extrasOut);
         assertNotNull(extrasOut.getClassLoader());
 
-        MediaDescriptionCompat descOut = extrasOut.getParcelable("description");
+        android.support.v4.media.MediaDescriptionCompat descOut =
+                extrasOut.getParcelable("description");
         assertEquals(desc.getMediaId(), descOut.getMediaId());
 
-        MediaSessionCompat.QueueItem queueItemOut = extrasOut.getParcelable("queueItem");
+        android.support.v4.media.session.MediaSessionCompat.QueueItem queueItemOut =
+                extrasOut.getParcelable("queueItem");
         assertEquals(queueItem.getQueueId(), queueItemOut.getQueueId());
 
-        MediaBrowserCompat.MediaItem mediaItemOut = extrasOut.getParcelable("mediaItem");
+        android.support.v4.media.MediaBrowserCompat.MediaItem mediaItemOut =
+                extrasOut.getParcelable("mediaItem");
         assertEquals(mediaItem.getFlags(), mediaItemOut.getFlags());
 
-        PlaybackStateCompat stateOut = extrasOut.getParcelable("state");
+        android.support.v4.media.session.PlaybackStateCompat stateOut =
+                extrasOut.getParcelable("state");
         assertEquals(state.getBufferedPosition(), stateOut.getBufferedPosition());
     }
 
@@ -1064,7 +1108,8 @@ public class MediaSessionCompatCallbackTest {
     @SuppressWarnings("deprecation")
     public void testMediaDescriptionContainsUserParcelable() {
         mCallback.reset(1);
-        mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
+        mSession.setFlags(
+                android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
 
         final int testValue = 3;
         // The client app will call addQueueItem() with MediaDescriptionCompat which includes
@@ -1085,40 +1130,59 @@ public class MediaSessionCompatCallbackTest {
     @Test
     @SmallTest
     public void testCallbacksAfterReleased() {
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mSession.setActive(true);
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mSession.setActive(true);
 
-                // Dispatch media key events from the controller while blocking the looper for the
-                // session callback. For blocking purpose, create a local media controller here
-                // rather than using RemoteMediaController.
-                MediaControllerCompat controller =
-                        new MediaControllerCompat(getApplicationContext(),
-                                mSession.getSessionToken());
-                long currentTimeMs = System.currentTimeMillis();
-                KeyEvent down = new KeyEvent(
-                        currentTimeMs, currentTimeMs, KeyEvent.ACTION_DOWN,
-                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0);
-                KeyEvent up = new KeyEvent(
-                        currentTimeMs, System.currentTimeMillis(), KeyEvent.ACTION_UP,
-                        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0);
-                controller.dispatchMediaButtonEvent(down);
-                controller.dispatchMediaButtonEvent(up);
+                                // Dispatch media key events from the controller while blocking the
+                                // looper for the
+                                // session callback. For blocking purpose, create a local media
+                                // controller here
+                                // rather than using RemoteMediaController.
+                                android.support.v4.media.session.MediaControllerCompat controller =
+                                        new android.support.v4.media.session.MediaControllerCompat(
+                                                getApplicationContext(),
+                                                mSession.getSessionToken());
+                                long currentTimeMs = System.currentTimeMillis();
+                                KeyEvent down =
+                                        new KeyEvent(
+                                                currentTimeMs,
+                                                currentTimeMs,
+                                                KeyEvent.ACTION_DOWN,
+                                                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                                                0);
+                                KeyEvent up =
+                                        new KeyEvent(
+                                                currentTimeMs,
+                                                System.currentTimeMillis(),
+                                                KeyEvent.ACTION_UP,
+                                                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                                                0);
+                                controller.dispatchMediaButtonEvent(down);
+                                controller.dispatchMediaButtonEvent(up);
 
-                // Keeps the old reference to prevent GC.
-                MediaSessionCompat oldSession = mSession;
+                                // Keeps the old reference to prevent GC.
+                                android.support.v4.media.session.MediaSessionCompat oldSession =
+                                        mSession;
 
-                // Recreate media session with the same callback reference.
-                mSession.release();
-                mSession = new MediaSessionCompat(getApplicationContext(), TEST_SESSION_TAG,
-                        null, null, mSessionInfo);
-                mSession.setCallback(mCallback, mHandler);
+                                // Recreate media session with the same callback reference.
+                                mSession.release();
+                                mSession =
+                                        new android.support.v4.media.session.MediaSessionCompat(
+                                                getApplicationContext(),
+                                                TEST_SESSION_TAG,
+                                                null,
+                                                null,
+                                                mSessionInfo);
+                                mSession.setCallback(mCallback, mHandler);
 
-                // Do something with old session, just not to be optimized away.
-                oldSession.setActive(false);
-            }
-        });
+                                // Do something with old session, just not to be optimized away.
+                                oldSession.setActive(false);
+                            }
+                        });
         // Post asserts to the main thread to ensure that mCallback has received all pended
         // callbacks.
         getInstrumentation().runOnMainSync(new Runnable() {
@@ -1131,13 +1195,21 @@ public class MediaSessionCompatCallbackTest {
     }
 
     private void setPlaybackState(int state) {
-        final long allActions = PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE
-                | PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_STOP
-                | PlaybackStateCompat.ACTION_SKIP_TO_NEXT
-                | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-                | PlaybackStateCompat.ACTION_FAST_FORWARD | PlaybackStateCompat.ACTION_REWIND;
-        PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder().setActions(allActions)
-                .setState(state, 0L, 0.0f).build();
+        final long allActions =
+                android.support.v4.media.session.PlaybackStateCompat.ACTION_PLAY
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_PAUSE
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_PLAY_PAUSE
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_STOP
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+                        | android.support.v4.media.session.PlaybackStateCompat
+                                .ACTION_SKIP_TO_PREVIOUS
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_FAST_FORWARD
+                        | android.support.v4.media.session.PlaybackStateCompat.ACTION_REWIND;
+        android.support.v4.media.session.PlaybackStateCompat playbackState =
+                new android.support.v4.media.session.PlaybackStateCompat.Builder()
+                        .setActions(allActions)
+                        .setState(state, 0L, 0.0f)
+                        .build();
         synchronized (mWaitLock) {
             mSession.setPlaybackState(playbackState);
         }
@@ -1170,17 +1242,18 @@ public class MediaSessionCompatCallbackTest {
         if (Build.VERSION.SDK_INT >= 24 || Build.VERSION.SDK_INT < 21) {
             return IntentUtil.SERVICE_PACKAGE_NAME;
         } else {
-            return LEGACY_CONTROLLER;
+            return androidx.media.MediaSessionManager.RemoteUserInfo.LEGACY_CONTROLLER;
         }
     }
 
-    private class MediaSessionCallback extends MediaSessionCompat.Callback {
+    private class MediaSessionCallback
+            extends android.support.v4.media.session.MediaSessionCompat.Callback {
         private CountDownLatch mLatch;
-        private RemoteUserInfo mRemoteUserInfoForStop;
+        private androidx.media.MediaSessionManager.RemoteUserInfo mRemoteUserInfoForStop;
         private String mExpectedCallerPackageName;
         private long mSeekPosition;
         private long mQueueItemId;
-        private RatingCompat mRating;
+        private android.support.v4.media.RatingCompat mRating;
         private String mMediaId;
         private String mQuery;
         private Uri mUri;
@@ -1192,8 +1265,9 @@ public class MediaSessionCompatCallbackTest {
         private int mRepeatMode;
         private int mShuffleMode;
         private int mQueueIndex;
-        private MediaDescriptionCompat mQueueDescription;
-        private List<MediaSessionCompat.QueueItem> mQueue = new ArrayList<>();
+        private android.support.v4.media.MediaDescriptionCompat mQueueDescription;
+        private List<android.support.v4.media.session.MediaSessionCompat.QueueItem> mQueue =
+                new ArrayList<>();
         private float mSpeed;
 
         private int mOnPlayCalledCount;
@@ -1228,7 +1302,8 @@ public class MediaSessionCompatCallbackTest {
             if (Build.VERSION.SDK_INT >= 24 || Build.VERSION.SDK_INT < 21) {
                 setExpectedCallerPackageName(IntentUtil.CLIENT_PACKAGE_NAME);
             } else {
-                setExpectedCallerPackageName(LEGACY_CONTROLLER);
+                setExpectedCallerPackageName(
+                        androidx.media.MediaSessionManager.RemoteUserInfo.LEGACY_CONTROLLER);
             }
             mSeekPosition = -1;
             mQueueItemId = -1;
@@ -1241,8 +1316,8 @@ public class MediaSessionCompatCallbackTest {
             mCommand = null;
             mResultReceiver = null;
             mCaptioningEnabled = false;
-            mRepeatMode = PlaybackStateCompat.REPEAT_MODE_NONE;
-            mShuffleMode = PlaybackStateCompat.SHUFFLE_MODE_NONE;
+            mRepeatMode = android.support.v4.media.session.PlaybackStateCompat.REPEAT_MODE_NONE;
+            mShuffleMode = android.support.v4.media.session.PlaybackStateCompat.SHUFFLE_MODE_NONE;
             mQueueIndex = -1;
             mQueueDescription = null;
             mSpeed = -1.0f;
@@ -1300,7 +1375,7 @@ public class MediaSessionCompatCallbackTest {
                 return;
             }
             mOnPlayCalledCount++;
-            setPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+            setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PLAYING);
             mLatch.countDown();
         }
 
@@ -1311,7 +1386,7 @@ public class MediaSessionCompatCallbackTest {
                 return;
             }
             mOnPauseCalled = true;
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+            setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_PAUSED);
             mLatch.countDown();
         }
 
@@ -1322,7 +1397,7 @@ public class MediaSessionCompatCallbackTest {
                 return;
             }
             mOnStopCalled = true;
-            setPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+            setPlaybackState(android.support.v4.media.session.PlaybackStateCompat.STATE_STOPPED);
             mRemoteUserInfoForStop = mSession.getCurrentControllerInfo();
             mLatch.countDown();
         }
@@ -1379,7 +1454,7 @@ public class MediaSessionCompatCallbackTest {
         }
 
         @Override
-        public void onSetRating(RatingCompat rating) {
+        public void onSetRating(android.support.v4.media.RatingCompat rating) {
             if (!isCallerTestClient()) {
                 // Ignore
                 return;
@@ -1519,20 +1594,23 @@ public class MediaSessionCompatCallbackTest {
         }
 
         @Override
-        public void onAddQueueItem(MediaDescriptionCompat description) {
+        public void onAddQueueItem(android.support.v4.media.MediaDescriptionCompat description) {
             if (!isCallerTestClient()) {
                 // Ignore
                 return;
             }
             mOnAddQueueItemCalled = true;
             mQueueDescription = description;
-            mQueue.add(new MediaSessionCompat.QueueItem(description, mQueue.size()));
+            mQueue.add(
+                    new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                            description, mQueue.size()));
             mSession.setQueue(mQueue);
             mLatch.countDown();
         }
 
         @Override
-        public void onAddQueueItem(MediaDescriptionCompat description, int index) {
+        public void onAddQueueItem(
+                android.support.v4.media.MediaDescriptionCompat description, int index) {
             if (!isCallerTestClient()) {
                 // Ignore
                 return;
@@ -1540,13 +1618,16 @@ public class MediaSessionCompatCallbackTest {
             mOnAddQueueItemAtCalled = true;
             mQueueIndex = index;
             mQueueDescription = description;
-            mQueue.add(index, new MediaSessionCompat.QueueItem(description, mQueue.size()));
+            mQueue.add(
+                    index,
+                    new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                            description, mQueue.size()));
             mSession.setQueue(mQueue);
             mLatch.countDown();
         }
 
         @Override
-        public void onRemoveQueueItem(MediaDescriptionCompat description) {
+        public void onRemoveQueueItem(android.support.v4.media.MediaDescriptionCompat description) {
             if (!isCallerTestClient()) {
                 // Ignore
                 return;
@@ -1597,7 +1678,8 @@ public class MediaSessionCompatCallbackTest {
         }
 
         private boolean isCallerTestClient() {
-            RemoteUserInfo info = mSession.getCurrentControllerInfo();
+            androidx.media.MediaSessionManager.RemoteUserInfo info =
+                    mSession.getCurrentControllerInfo();
             assertNotNull(info);
 
             // Don't stop test for an unexpected package name here, because any controller may

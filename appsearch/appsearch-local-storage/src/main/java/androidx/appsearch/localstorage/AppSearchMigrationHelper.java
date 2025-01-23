@@ -19,11 +19,8 @@ package androidx.appsearch.localstorage;
 import static androidx.appsearch.app.AppSearchResult.RESULT_INVALID_SCHEMA;
 import static androidx.appsearch.app.AppSearchResult.throwableToFailedResult;
 
-import android.os.Bundle;
 import android.os.Parcel;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.GenericDocument;
@@ -32,6 +29,7 @@ import androidx.appsearch.app.SearchResultPage;
 import androidx.appsearch.app.SearchSpec;
 import androidx.appsearch.app.SetSchemaResponse;
 import androidx.appsearch.exceptions.AppSearchException;
+import androidx.appsearch.safeparcel.GenericDocumentParcel;
 import androidx.appsearch.stats.SchemaMigrationStats;
 import androidx.collection.ArraySet;
 import androidx.core.util.Preconditions;
@@ -39,6 +37,9 @@ import androidx.core.util.Preconditions;
 import com.google.android.icing.proto.PersistType;
 import com.google.android.icing.protobuf.CodedInputStream;
 import com.google.android.icing.protobuf.CodedOutputStream;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.File;
@@ -94,7 +95,7 @@ class AppSearchMigrationHelper implements Closeable {
      */
     @WorkerThread
     public void queryAndTransform(@NonNull Map<String, Migrator> migrators, int currentVersion,
-            int finalVersion, @Nullable SchemaMigrationStats.Builder schemaMigrationStatsBuilder)
+            int finalVersion, SchemaMigrationStats.@Nullable Builder schemaMigrationStatsBuilder)
             throws IOException, AppSearchException {
         Preconditions.checkState(mFile.exists(), "Internal temp file does not exist.");
         try (FileOutputStream outputStream = new FileOutputStream(mFile, /*append=*/ true)) {
@@ -130,11 +131,11 @@ class AppSearchMigrationHelper implements Closeable {
                                         + newDocument.getSchemaType()
                                         + ". But the schema types doesn't exist in the request");
                     }
-                    Bundle bundle = newDocument.getBundle();
+                    GenericDocumentParcel documentParcel = newDocument.getDocumentParcel();
                     byte[] serializedMessage;
                     Parcel parcel = Parcel.obtain();
                     try {
-                        parcel.writeBundle(bundle);
+                        documentParcel.writeToParcel(parcel, /* flags= */ 0);
                         serializedMessage = parcel.marshall();
                     } finally {
                         parcel.recycle();
@@ -169,9 +170,9 @@ class AppSearchMigrationHelper implements Closeable {
      * @throws IOException        on i/o problem
      * @throws AppSearchException on AppSearch problem
      */
-    @NonNull
     @WorkerThread
-    public SetSchemaResponse readAndPutDocuments(@NonNull SetSchemaResponse.Builder responseBuilder,
+    public @NonNull SetSchemaResponse readAndPutDocuments(
+            SetSchemaResponse.@NonNull Builder responseBuilder,
             SchemaMigrationStats.Builder schemaMigrationStatsBuilder)
             throws IOException, AppSearchException {
         Preconditions.checkState(mFile.exists(), "Internal temp file does not exist.");
@@ -219,22 +220,21 @@ class AppSearchMigrationHelper implements Closeable {
      *
      * @throws IOException        on File operation error.
      */
-    @NonNull
-    private static GenericDocument readDocumentFromInputStream(
+    private static @NonNull GenericDocument readDocumentFromInputStream(
             @NonNull CodedInputStream codedInputStream) throws IOException {
         byte[] serializedMessage = codedInputStream.readByteArray();
 
-        Bundle bundle;
+        GenericDocumentParcel documentParcel;
         Parcel parcel = Parcel.obtain();
         try {
             parcel.unmarshall(serializedMessage, 0, serializedMessage.length);
             parcel.setDataPosition(0);
-            bundle = parcel.readBundle();
+            documentParcel = GenericDocumentParcel.CREATOR.createFromParcel(parcel);
         } finally {
             parcel.recycle();
         }
 
-        return new GenericDocument(bundle);
+        return new GenericDocument(documentParcel);
     }
 
     @Override

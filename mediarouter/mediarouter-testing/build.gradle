@@ -29,7 +29,7 @@ plugins {
 }
 
 dependencies {
-    implementation("androidx.annotation:annotation:1.2.0")
+    implementation("androidx.annotation:annotation:1.8.1")
     implementation(project(":mediarouter:mediarouter"))
 }
 
@@ -38,10 +38,9 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "Test utilities for AndroidX MediaRouter"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.mediarouter.testing"
+    namespace = "androidx.mediarouter.testing"
 }
 

@@ -67,11 +67,12 @@ message ArcLineLength {
   }
 }
 
-// The length of an ArcSpacer.
-message ArcSpacerLength {
+// The length of an arc element.
+message AngularDimension {
   oneof inner {
     DegreesProp degrees = 1;
     ExpandedAngularDimensionProp expanded_angular_dimension = 2;
+    DpProp dp = 3;
   }
 }
 
@@ -203,6 +204,18 @@ message PivotDimension {
     DpProp offset_dp = 1;
     // Location proportion to bounding box, with the bounding box top / start as
     // 0 and bottom / end as 1. Values outside [0, 1] are also valid.
+    BoundingBoxRatio location_ratio = 2;
+  }
+}
+
+// A dimension that represents an offset relative to an elements position.
+message OffsetDimension {
+  oneof inner {
+    // Location in dp, with the default being the point at the top left of the
+    // element.
+    DpProp offset_dp = 1;
+    // Location proportional to the bounding box, with the bounding box's
+    // top/left as 0 and bottom/right as 1.
     BoundingBoxRatio location_ratio = 2;
   }
 }
