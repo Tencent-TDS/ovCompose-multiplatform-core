@@ -34,17 +34,22 @@ import androidx.compose.ui.util.fastAll
 private object ContextMenuKey
 
 /**
- * Track right click events and update the [state] to [ContextMenuState.Status.Open]
- * with the click offset.
+ * Track right click events and update the [state] to [ContextMenuState.Status.Open] with the click
+ * offset.
  *
  * @param state the state that will have its status set to open on a right click
  */
-internal fun Modifier.contextMenuGestures(state: ContextMenuState): Modifier =
-    pointerInput(ContextMenuKey) {
-        onRightClickDown {
-            state.status = Status.Open(offset = it)
-        }
-    }
+internal fun Modifier.contextMenuGestures(state: ContextMenuState): Modifier = contextMenuGestures {
+    state.status = Status.Open(offset = it)
+}
+
+/**
+ * Track right click events and invoke [onOpenGesture] callback
+ *
+ * @param onOpenGesture the callback that will be invoked on a right click
+ */
+internal fun Modifier.contextMenuGestures(onOpenGesture: (Offset) -> Unit): Modifier =
+    pointerInput(ContextMenuKey) { onRightClickDown(onOpenGesture) }
 
 /** Similar to PointerInputScope.detectTapAndPress, but for right clicks. */
 @VisibleForTesting
@@ -58,8 +63,8 @@ internal suspend fun PointerInputScope.onRightClickDown(onDown: (Offset) -> Unit
 }
 
 /**
- * Similar to AwaitPointerEventScope.awaitFirstDown,
- * but with an additional check to ensure it is a right click.
+ * Similar to AwaitPointerEventScope.awaitFirstDown, but with an additional check to ensure it is a
+ * right click.
  */
 private suspend fun AwaitPointerEventScope.awaitFirstRightClickDown(): PointerInputChange {
     while (true) {

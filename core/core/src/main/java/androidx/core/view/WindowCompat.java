@@ -22,10 +22,10 @@ import android.os.Build;
 import android.view.View;
 import android.view.Window;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IdRes;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Helper for accessing features in {@link Window}.
@@ -85,8 +85,8 @@ public final class WindowCompat {
      * @see Window#findViewById(int)
      */
     @SuppressWarnings("TypeParameterUnusedInFormals")
-    @NonNull
-    public static <T extends View> T requireViewById(@NonNull Window window, @IdRes int id) {
+    public static <T extends View> @NonNull T requireViewById(@NonNull Window window,
+            @IdRes int id) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.requireViewById(window, id);
         }
@@ -132,8 +132,7 @@ public final class WindowCompat {
      * @return The {@link WindowInsetsControllerCompat} for the window.
      * @see Window#getInsetsController()
      */
-    @NonNull
-    public static WindowInsetsControllerCompat getInsetsController(@NonNull Window window,
+    public static @NonNull WindowInsetsControllerCompat getInsetsController(@NonNull Window window,
             @NonNull View view) {
         return new WindowInsetsControllerCompat(window, view);
     }
@@ -163,12 +162,15 @@ public final class WindowCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setDecorFitsSystemWindows(@NonNull Window window,
                 final boolean decorFitsSystemWindows) {
+            final int stableFlag = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
             final View decorView = window.getDecorView();
             final int sysUiVis = decorView.getSystemUiVisibility();
-            decorView.setSystemUiVisibility(sysUiVis | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            decorView.setSystemUiVisibility(decorFitsSystemWindows
+                    ? sysUiVis & ~stableFlag
+                    : sysUiVis | stableFlag);
             window.setDecorFitsSystemWindows(decorFitsSystemWindows);
         }
     }
@@ -179,7 +181,6 @@ public final class WindowCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setDecorFitsSystemWindows(@NonNull Window window,
                 final boolean decorFitsSystemWindows) {
             window.setDecorFitsSystemWindows(decorFitsSystemWindows);
@@ -193,7 +194,6 @@ public final class WindowCompat {
         }
 
         @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
-        @DoNotInline
         static <T> T requireViewById(Window window, int id) {
             return (T) window.requireViewById(id);
         }

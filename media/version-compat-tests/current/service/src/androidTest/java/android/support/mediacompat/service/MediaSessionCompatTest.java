@@ -19,9 +19,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.MediaSessionCompat.QueueItem;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SmallTest;
@@ -34,9 +31,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Tests for {@link MediaSessionCompat}.
- */
+/** Tests for {@link android.support.v4.media.session.MediaSessionCompat}. */
+@SuppressWarnings("deprecation")
 public class MediaSessionCompatTest {
     private static final int TIMEOUT_MS = 1000;
 
@@ -54,7 +50,9 @@ public class MediaSessionCompatTest {
         new Thread() {
             @Override
             public void run() {
-                MediaSessionCompat session = new MediaSessionCompat(mContext, "testConstructor");
+                android.support.v4.media.session.MediaSessionCompat session =
+                        new android.support.v4.media.session.MediaSessionCompat(
+                                mContext, "testConstructor");
                 session.setActive(true);
                 session.release();
                 latch.countDown();
@@ -66,13 +64,15 @@ public class MediaSessionCompatTest {
     @Test
     @SmallTest
     public void testSetQueue_withNullItem_throwsIAE() {
-        List<QueueItem> queue = new ArrayList<>();
+        List<android.support.v4.media.session.MediaSessionCompat.QueueItem> queue =
+                new ArrayList<>();
         queue.add(createQueueItemWithId(0));
         queue.add(createQueueItemWithId(1));
         queue.add(null);
         queue.add(createQueueItemWithId(2));
 
-        MediaSessionCompat session = new MediaSessionCompat(mContext, "testSetQueue");
+        android.support.v4.media.session.MediaSessionCompat session =
+                new android.support.v4.media.session.MediaSessionCompat(mContext, "testSetQueue");
         try {
             session.setQueue(queue);
             fail("setQueue should throw IAE");
@@ -81,8 +81,12 @@ public class MediaSessionCompatTest {
         }
     }
 
-    private QueueItem createQueueItemWithId(long id) {
-        return new QueueItem(
-                new MediaDescriptionCompat.Builder().setMediaId("item" + id).build(), id);
+    private android.support.v4.media.session.MediaSessionCompat.QueueItem createQueueItemWithId(
+            long id) {
+        return new android.support.v4.media.session.MediaSessionCompat.QueueItem(
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId("item" + id)
+                        .build(),
+                id);
     }
 }

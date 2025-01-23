@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import androidx.build.LibraryType
 
@@ -54,9 +56,14 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Guava integration in Room Paging"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {
-    namespace "androidx.room.paging.guava"
+    namespace = "androidx.room.paging.guava"
+}
+
+ksp {
+    useKsp2 = true
 }

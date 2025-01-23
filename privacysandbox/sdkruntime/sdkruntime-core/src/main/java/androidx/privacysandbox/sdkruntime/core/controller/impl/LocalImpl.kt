@@ -23,6 +23,7 @@ import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException.Companion.LOAD_SDK_NOT_FOUND
 import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
+import androidx.privacysandbox.sdkruntime.core.SdkSandboxClientImportanceListenerCompat
 import androidx.privacysandbox.sdkruntime.core.activity.SdkSandboxActivityHandlerCompat
 import androidx.privacysandbox.sdkruntime.core.controller.LoadSdkCallback
 import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat
@@ -30,8 +31,8 @@ import androidx.privacysandbox.sdkruntime.core.internal.ClientFeature
 import java.util.concurrent.Executor
 
 /**
- * Wrapper for client provided implementation of [SdkSandboxControllerCompat].
- * Checks client version to determine if method supported.
+ * Wrapper for client provided implementation of [SdkSandboxControllerCompat]. Checks client version
+ * to determine if method supported.
  */
 internal class LocalImpl(
     private val implFromClient: SdkSandboxControllerCompat.SandboxControllerImpl,
@@ -100,14 +101,31 @@ internal class LocalImpl(
             return implFromClient.getClientPackageName()
         } else {
             /**
-             * When loaded locally sdkContext is wrapped Application context.
-             * All previously released client library versions returns client app package name.
+             * When loaded locally sdkContext is wrapped Application context. All previously
+             * released client library versions returns client app package name.
              *
              * After supporting [ClientFeature.GET_CLIENT_PACKAGE_NAME] it will work correctly for
              * future versions, even if getPackageName() behaviour will be changed for sdk context
              * wrapper.
              */
             return sdkContext.getPackageName()
+        }
+    }
+
+    override fun registerSdkSandboxClientImportanceListener(
+        executor: Executor,
+        listenerCompat: SdkSandboxClientImportanceListenerCompat
+    ) {
+        if (ClientFeature.CLIENT_IMPORTANCE_LISTENER.isAvailable(clientVersion)) {
+            implFromClient.registerSdkSandboxClientImportanceListener(executor, listenerCompat)
+        }
+    }
+
+    override fun unregisterSdkSandboxClientImportanceListener(
+        listenerCompat: SdkSandboxClientImportanceListenerCompat
+    ) {
+        if (ClientFeature.CLIENT_IMPORTANCE_LISTENER.isAvailable(clientVersion)) {
+            implFromClient.unregisterSdkSandboxClientImportanceListener(listenerCompat)
         }
     }
 }

@@ -41,9 +41,9 @@ configurations {
 dependencies {
     implementation(libs.kotlinStdlib)
     implementation(gradleApi())
-    compileOnly("com.android.tools.build:gradle:7.3.0")
-    compileOnly(libs.kotlinGradlePluginz)
-    compileOnly(libs.kspGradlePluginz)
+    compileOnly("com.android.tools.build:gradle:8.1.0")
+    compileOnly(libs.kotlinGradlePlugin)
+    compileOnly(libs.kspGradlePlugin)
 
     testImplementation(project(":internal-testutils-gradle-plugin"))
     testImplementation(gradleTestKit())
@@ -51,12 +51,12 @@ dependencies {
     testImplementation(project(":kruth:kruth"))
     testImplementation(libs.testParameterInjector)
 
-    testPlugin("com.android.tools.build:gradle:7.3.0")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043:linux")
-    testPlugin("com.android.tools.build:aapt2:7.3.0-8691043:osx")
-    testPlugin(libs.kotlinGradlePluginz)
-    testPlugin(libs.kspGradlePluginz)
+    testPlugin("com.android.tools.build:gradle:8.1.0")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469:linux")
+    testPlugin("com.android.tools.build:aapt2:8.1.0-10154469:osx")
+    testPlugin(libs.kotlinGradlePlugin)
+    testPlugin(libs.kspGradlePlugin)
 }
 
 // Configure the generating task of plugin-under-test-metadata.properties to
@@ -77,7 +77,9 @@ tasks.withType(Test).configureEach { test ->
     // the test project executed with Gradle Test Kit.
     test.dependsOn(
             ":annotation:annotation:publish",
+            ":collection:collection:publish",
             ":annotation:annotation-experimental:publish",
+            ":collection:collection:publish",
             ":room:room-common:publish",
             ":room:room-runtime:publish",
             ":room:room-migration:publish",

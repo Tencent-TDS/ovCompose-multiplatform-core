@@ -16,15 +16,11 @@
 
 package androidx.compose.material3.adaptive.navigation
 
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldRole
 
-/**
- * A class to control how back navigation should behave in a [ThreePaneScaffoldNavigator].
- */
-@ExperimentalMaterial3AdaptiveApi
+/** A class to control how back navigation should behave in a [ThreePaneScaffoldNavigator]. */
 @JvmInline
 value class BackNavigationBehavior private constructor(private val description: String) {
     override fun toString(): String = this.description
@@ -48,8 +44,8 @@ value class BackNavigationBehavior private constructor(private val description: 
          *
          * In a single-pane layout, this should behave similarly to [PopUntilScaffoldValueChange].
          * In a multi-pane layout, it is possible for both the current destination and previous
-         * destination to be showing at the same time, so this may not result in a visual change
-         * in the scaffold.
+         * destination to be showing at the same time, so this may not result in a visual change in
+         * the scaffold.
          */
         val PopUntilCurrentDestinationChange =
             BackNavigationBehavior("PopUntilCurrentDestinationChange")
@@ -57,7 +53,7 @@ value class BackNavigationBehavior private constructor(private val description: 
         /**
          * Pop destinations from the backstack until there is a content change.
          *
-         * A "content change" is defined as either a change in the content of the current
+         * A "content change" is defined as either a change in the `contentKey` of the current
          * [ThreePaneScaffoldDestinationItem], or a change in the scaffold value (similar to
          * [PopUntilScaffoldValueChange]).
          */

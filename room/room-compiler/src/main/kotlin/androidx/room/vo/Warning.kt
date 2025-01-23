@@ -18,13 +18,13 @@ package androidx.room.vo
 
 import java.util.Locale
 
-/**
- * Internal representation of supported warnings
- */
+/** Internal representation of supported warnings */
 // If these warnings are updated also update androidx.room.RoomWarnings
 enum class Warning(val publicKey: String) {
     ALL("ALL"),
+    @Deprecated("Replaced by QUERY_MISMATCH.", ReplaceWith("QUERY_MISMATCH"))
     CURSOR_MISMATCH("ROOM_CURSOR_MISMATCH"),
+    QUERY_MISMATCH("ROOM_QUERY_MISMATCH"),
     DOES_NOT_IMPLEMENT_EQUALS_HASHCODE("ROOM_TYPE_DOES_NOT_IMPLEMENT_EQUALS_HASHCODE"),
     MISSING_JAVA_TMP_DIR("ROOM_MISSING_JAVA_TMP_DIR"),
     CANNOT_CREATE_VERIFICATION_DATABASE("ROOM_CANNOT_CREATE_VERIFICATION_DATABASE"),
@@ -48,12 +48,13 @@ enum class Warning(val publicKey: String) {
     // expand projection is removed.
     EXPAND_PROJECTION_WITH_REMOVE_UNUSED_COLUMNS("ROOM_EXPAND_PROJECTION_WITH_UNUSED_COLUMNS"),
     // We shouldn't let devs suppress this error via Room so there is no runtime constant for it
-    JVM_NAME_ON_OVERRIDDEN_METHOD("ROOM_JVM_NAME_IN_OVERRIDDEN_METHOD"),
+    JVM_NAME_ON_OVERRIDDEN_FUNCTION("ROOM_JVM_NAME_IN_OVERRIDDEN_FUNCTION"),
     AMBIGUOUS_COLUMN_IN_RESULT("ROOM_AMBIGUOUS_COLUMN_IN_RESULT"),
     UNNECESSARY_NULLABILITY_IN_DAO_RETURN_TYPE("ROOM_UNNECESSARY_NULLABILITY_IN_DAO_RETURN_TYPE");
 
     companion object {
         val PUBLIC_KEY_MAP = values().associateBy { it.publicKey }
+
         fun fromPublicKey(publicKey: String): Warning? {
             return PUBLIC_KEY_MAP[publicKey.uppercase(Locale.US)]
         }

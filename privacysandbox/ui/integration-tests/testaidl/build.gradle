@@ -21,15 +21,11 @@ plugins {
 }
 
 android {
-    namespace "androidx.privacysandbox.ui.integration.testaidl"
-
-    defaultConfig {
-        minSdk 33
-    }
+    namespace = "androidx.privacysandbox.ui.integration.testaidl"
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
         }
     }
     buildFeatures {

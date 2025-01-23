@@ -5,7 +5,6 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
 
 /*
  * Copyright 2022 The Android Open Source Project
@@ -32,13 +31,10 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-    }
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    namespace "androidx.bluetooth.integration.testapp"
+    namespace = "androidx.bluetooth.integration.testapp"
 }
 
 dependencies {

@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 
 plugins {
@@ -56,10 +58,10 @@ androidx {
     inceptionYear = "2018"
     description = "Android Paging-RXJava2"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     samples(project(":paging:paging-samples"))
 }
 
 android {
-    namespace "androidx.paging.rxjava2"
+    namespace = "androidx.paging.rxjava2"
 }

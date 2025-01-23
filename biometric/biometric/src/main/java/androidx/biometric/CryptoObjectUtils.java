@@ -22,9 +22,10 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -70,10 +71,10 @@ class CryptoObjectUtils {
      * @param cryptoObject A crypto object from {@link android.hardware.biometrics.BiometricPrompt}.
      * @return An equivalent {@link androidx.biometric.BiometricPrompt.CryptoObject} instance.
      */
+    @SuppressWarnings("deprecation")
     @RequiresApi(Build.VERSION_CODES.P)
-    @Nullable
-    static BiometricPrompt.CryptoObject unwrapFromBiometricPrompt(
-            @Nullable android.hardware.biometrics.BiometricPrompt.CryptoObject cryptoObject) {
+    static BiometricPrompt.@Nullable CryptoObject unwrapFromBiometricPrompt(
+            android.hardware.biometrics.BiometricPrompt.@Nullable CryptoObject cryptoObject) {
 
         if (cryptoObject == null) {
             return null;
@@ -112,6 +113,17 @@ class CryptoObjectUtils {
             }
         }
 
+        // Operation handle is only supported on API 35 and above.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // This should be the bottom one and only be reachable when cryptoObject was
+            // constructed with operation handle. cryptoObject from other constructors should
+            // already be unwrapped and returned above.
+            final long operationHandle = Api35Impl.getOperationHandle(cryptoObject);
+            if (operationHandle != 0) {
+                return new BiometricPrompt.CryptoObject(operationHandle);
+            }
+        }
+
         return null;
     }
 
@@ -123,9 +135,9 @@ class CryptoObjectUtils {
      * {@link android.hardware.biometrics.BiometricPrompt}.
      */
     @RequiresApi(Build.VERSION_CODES.P)
-    @Nullable
-    static android.hardware.biometrics.BiometricPrompt.CryptoObject
-            wrapForBiometricPrompt(@Nullable BiometricPrompt.CryptoObject cryptoObject) {
+    @SuppressWarnings("deprecation")
+    static android.hardware.biometrics.BiometricPrompt.@Nullable CryptoObject
+            wrapForBiometricPrompt(BiometricPrompt.@Nullable CryptoObject cryptoObject) {
 
         if (cryptoObject == null) {
             return null;
@@ -164,7 +176,34 @@ class CryptoObjectUtils {
             }
         }
 
+        // Operation handle is only supported on API 35 and above.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            final long operationHandle = cryptoObject.getOperationHandleCryptoObject();
+            if (operationHandle != 0) {
+                return Api35Impl.create(operationHandle);
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * Get the {@code operationHandle} associated with this object or 0 if none. This needs to be
+     * achieved by getting the corresponding
+     * {@link android.hardware.biometrics.BiometricPrompt.CryptoObject} and then get its
+     * operation handle.
+     *
+     * @param cryptoObject An instance of {@link androidx.biometric.BiometricPrompt.CryptoObject}.
+     * @return The {@code operationHandle} associated with this object or 0 if none.
+     */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    static long getOperationHandle(BiometricPrompt.@Nullable CryptoObject cryptoObject) {
+            final android.hardware.biometrics.BiometricPrompt.CryptoObject wrappedCryptoObject =
+                    CryptoObjectUtils.wrapForBiometricPrompt(cryptoObject);
+            if (wrappedCryptoObject != null) {
+                return Api35Impl.getOperationHandle(wrappedCryptoObject);
+            }
+        return 0;
     }
 
     /**
@@ -176,9 +215,8 @@ class CryptoObjectUtils {
      * @return An equivalent {@link androidx.biometric.BiometricPrompt.CryptoObject} instance.
      */
     @SuppressWarnings("deprecation")
-    @Nullable
-    static BiometricPrompt.CryptoObject unwrapFromFingerprintManager(
-            @Nullable androidx.core.hardware.fingerprint.FingerprintManagerCompat.CryptoObject
+    static BiometricPrompt.@Nullable CryptoObject unwrapFromFingerprintManager(
+            androidx.core.hardware.fingerprint.FingerprintManagerCompat.@Nullable CryptoObject
                     cryptoObject) {
 
         if (cryptoObject == null) {
@@ -212,9 +250,8 @@ class CryptoObjectUtils {
      * {@link androidx.core.hardware.fingerprint.FingerprintManagerCompat}.
      */
     @SuppressWarnings("deprecation")
-    @Nullable
-    static androidx.core.hardware.fingerprint.FingerprintManagerCompat.CryptoObject
-            wrapForFingerprintManager(@Nullable BiometricPrompt.CryptoObject cryptoObject) {
+    static androidx.core.hardware.fingerprint.FingerprintManagerCompat.@Nullable CryptoObject
+            wrapForFingerprintManager(BiometricPrompt.@Nullable CryptoObject cryptoObject) {
 
         if (cryptoObject == null) {
             return null;
@@ -250,6 +287,11 @@ class CryptoObjectUtils {
             return null;
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            Log.e(TAG, "Operation handle is not supported by FingerprintManager.");
+            return null;
+        }
+
         return null;
     }
 
@@ -262,8 +304,7 @@ class CryptoObjectUtils {
      */
     @SuppressLint("TrulyRandom")
     @RequiresApi(Build.VERSION_CODES.M)
-    @Nullable
-    static BiometricPrompt.CryptoObject createFakeCryptoObject() {
+    static BiometricPrompt.@Nullable CryptoObject createFakeCryptoObject() {
         try {
             final KeyStore keystore = KeyStore.getInstance(KEYSTORE_INSTANCE);
             keystore.load(null);
@@ -298,6 +339,40 @@ class CryptoObjectUtils {
     }
 
     /**
+     * Nested class to avoid verification errors for methods introduced in Android 15.0 (API 35).
+     */
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    private static class Api35Impl {
+        // Prevent instantiation.
+        private Api35Impl() {}
+
+        /**
+         * Creates an instance of the framework class
+         * {@link android.hardware.biometrics.BiometricPrompt.CryptoObject} from the given
+         * operation handle.
+         *
+         * @param operationHandle The operation handle to be wrapped.
+         * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
+         */
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
+                long operationHandle) {
+            return new android.hardware.biometrics.BiometricPrompt.CryptoObject(operationHandle);
+        }
+
+        /**
+         * Gets the operation handle associated with the given crypto object, if any.
+         *
+         * @param crypto An instance of
+         *               {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
+         * @return The wrapped operation handle object, or {@code null}.
+         */
+        static long getOperationHandle(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
+            return crypto.getOperationHandle();
+        }
+    }
+
+    /**
      * Nested class to avoid verification errors for methods introduced in Android 13.0 (API 33).
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -314,9 +389,8 @@ class CryptoObjectUtils {
          * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          */
         @SuppressWarnings("deprecation")
-        @NonNull
-        static android.hardware.biometrics.BiometricPrompt.CryptoObject create(
-                @NonNull android.security.identity.PresentationSession presentationSession) {
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
+                android.security.identity.@NonNull PresentationSession presentationSession) {
             return new android.hardware.biometrics.BiometricPrompt.CryptoObject(presentationSession);
         }
 
@@ -328,9 +402,8 @@ class CryptoObjectUtils {
          * @return The wrapped presentation session object, or {@code null}.
          */
         @SuppressWarnings("deprecation")
-        @Nullable
-        static android.security.identity.PresentationSession getPresentationSession(
-                @NonNull android.hardware.biometrics.BiometricPrompt.CryptoObject crypto) {
+        static android.security.identity.@Nullable PresentationSession getPresentationSession(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
             return crypto.getPresentationSession();
         }
     }
@@ -352,9 +425,8 @@ class CryptoObjectUtils {
          * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          */
         @SuppressWarnings("deprecation")
-        @NonNull
-        static android.hardware.biometrics.BiometricPrompt.CryptoObject create(
-                @NonNull android.security.identity.IdentityCredential identityCredential) {
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
+                android.security.identity.@NonNull IdentityCredential identityCredential) {
             return new android.hardware.biometrics.BiometricPrompt.CryptoObject(identityCredential);
         }
 
@@ -366,9 +438,8 @@ class CryptoObjectUtils {
          * @return The wrapped identity credential object, or {@code null}.
          */
         @SuppressWarnings("deprecation")
-        @Nullable
-        static android.security.identity.IdentityCredential getIdentityCredential(
-                @NonNull android.hardware.biometrics.BiometricPrompt.CryptoObject crypto) {
+        static android.security.identity.@Nullable IdentityCredential getIdentityCredential(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
             return crypto.getIdentityCredential();
         }
     }
@@ -388,8 +459,7 @@ class CryptoObjectUtils {
          * @param cipher The cipher object to be wrapped.
          * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          */
-        @NonNull
-        static android.hardware.biometrics.BiometricPrompt.CryptoObject create(
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
                 @NonNull Cipher cipher) {
             return new android.hardware.biometrics.BiometricPrompt.CryptoObject(cipher);
         }
@@ -402,8 +472,7 @@ class CryptoObjectUtils {
          * @param signature The signature object to be wrapped.
          * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          */
-        @NonNull
-        static android.hardware.biometrics.BiometricPrompt.CryptoObject create(
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
                 @NonNull Signature signature) {
             return new android.hardware.biometrics.BiometricPrompt.CryptoObject(signature);
         }
@@ -415,8 +484,8 @@ class CryptoObjectUtils {
          * @param mac The MAC object to be wrapped.
          * @return An instance of {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          */
-        @NonNull
-        static android.hardware.biometrics.BiometricPrompt.CryptoObject create(@NonNull Mac mac) {
+        static android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject create(
+                @NonNull Mac mac) {
             return new android.hardware.biometrics.BiometricPrompt.CryptoObject(mac);
         }
 
@@ -427,9 +496,8 @@ class CryptoObjectUtils {
          *               {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          * @return The wrapped cipher object, or {@code null}.
          */
-        @Nullable
-        static Cipher getCipher(
-                @NonNull android.hardware.biometrics.BiometricPrompt.CryptoObject crypto) {
+        static @Nullable Cipher getCipher(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
             return crypto.getCipher();
         }
 
@@ -440,9 +508,8 @@ class CryptoObjectUtils {
          *               {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          * @return The wrapped signature object, or {@code null}.
          */
-        @Nullable
-        static Signature getSignature(
-                @NonNull android.hardware.biometrics.BiometricPrompt.CryptoObject crypto) {
+        static @Nullable Signature getSignature(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
             return crypto.getSignature();
         }
 
@@ -453,9 +520,8 @@ class CryptoObjectUtils {
          *               {@link android.hardware.biometrics.BiometricPrompt.CryptoObject}.
          * @return The wrapped MAC object, or {@code null}.
          */
-        @Nullable
-        static Mac getMac(
-                @NonNull android.hardware.biometrics.BiometricPrompt.CryptoObject crypto) {
+        static @Nullable Mac getMac(
+                android.hardware.biometrics.BiometricPrompt.@NonNull CryptoObject crypto) {
             return crypto.getMac();
         }
     }
@@ -476,8 +542,7 @@ class CryptoObjectUtils {
          * @return An instance of {@link KeyGenParameterSpec.Builder}.
          */
         @SuppressWarnings("SameParameterValue")
-        @NonNull
-        static KeyGenParameterSpec.Builder createKeyGenParameterSpecBuilder(
+        static KeyGenParameterSpec.@NonNull Builder createKeyGenParameterSpecBuilder(
                 @NonNull String keystoreAlias, int purposes) {
             return new KeyGenParameterSpec.Builder(keystoreAlias, purposes);
         }
@@ -487,7 +552,7 @@ class CryptoObjectUtils {
          *
          * @param keySpecBuilder An instance of {@link KeyGenParameterSpec.Builder}.
          */
-        static void setBlockModeCBC(@NonNull KeyGenParameterSpec.Builder keySpecBuilder) {
+        static void setBlockModeCBC(KeyGenParameterSpec.@NonNull Builder keySpecBuilder) {
             keySpecBuilder.setBlockModes(KeyProperties.BLOCK_MODE_CBC);
         }
 
@@ -496,7 +561,7 @@ class CryptoObjectUtils {
          *
          * @param keySpecBuilder An instance of {@link KeyGenParameterSpec.Builder}.
          */
-        static void setEncryptionPaddingPKCS7(@NonNull KeyGenParameterSpec.Builder keySpecBuilder) {
+        static void setEncryptionPaddingPKCS7(KeyGenParameterSpec.@NonNull Builder keySpecBuilder) {
             keySpecBuilder.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7);
         }
 
@@ -506,9 +571,8 @@ class CryptoObjectUtils {
          * @param keySpecBuilder An instance of {@link KeyGenParameterSpec.Builder}.
          * @return A {@link KeyGenParameterSpec} created from the given builder.
          */
-        @NonNull
-        static KeyGenParameterSpec buildKeyGenParameterSpec(
-                @NonNull KeyGenParameterSpec.Builder keySpecBuilder) {
+        static @NonNull KeyGenParameterSpec buildKeyGenParameterSpec(
+                KeyGenParameterSpec.@NonNull Builder keySpecBuilder) {
             return keySpecBuilder.build();
         }
 

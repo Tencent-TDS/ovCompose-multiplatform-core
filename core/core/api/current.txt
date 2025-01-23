@@ -62,6 +62,7 @@ package androidx.core.app {
   public class ActivityOptionsCompat {
     ctor protected ActivityOptionsCompat();
     method public android.graphics.Rect? getLaunchBounds();
+    method public int getLaunchDisplayId();
     method public static androidx.core.app.ActivityOptionsCompat makeBasic();
     method public static androidx.core.app.ActivityOptionsCompat makeClipRevealAnimation(android.view.View, int, int, int, int);
     method public static androidx.core.app.ActivityOptionsCompat makeCustomAnimation(android.content.Context, int, int);
@@ -72,6 +73,8 @@ package androidx.core.app {
     method public static androidx.core.app.ActivityOptionsCompat makeThumbnailScaleUpAnimation(android.view.View, android.graphics.Bitmap, int, int);
     method public void requestUsageTimeReport(android.app.PendingIntent);
     method public androidx.core.app.ActivityOptionsCompat setLaunchBounds(android.graphics.Rect?);
+    method public androidx.core.app.ActivityOptionsCompat setLaunchDisplayId(int);
+    method public androidx.core.app.ActivityOptionsCompat setPendingIntentBackgroundActivityStartMode(int);
     method public androidx.core.app.ActivityOptionsCompat setShareIdentityEnabled(boolean);
     method public android.os.Bundle? toBundle();
     method public void update(androidx.core.app.ActivityOptionsCompat);
@@ -315,6 +318,7 @@ package androidx.core.app {
     field public static final String CATEGORY_STOPWATCH = "stopwatch";
     field public static final String CATEGORY_SYSTEM = "sys";
     field public static final String CATEGORY_TRANSPORT = "transport";
+    field public static final String CATEGORY_VOICEMAIL = "voicemail";
     field public static final String CATEGORY_WORKOUT = "workout";
     field @ColorInt public static final int COLOR_DEFAULT = 0; // 0x0
     field public static final int DEFAULT_ALL = -1; // 0xffffffff
@@ -660,6 +664,7 @@ package androidx.core.app {
 
   public static class NotificationCompat.DecoratedCustomViewStyle extends androidx.core.app.NotificationCompat.Style {
     ctor public NotificationCompat.DecoratedCustomViewStyle();
+    method @RequiresApi(24) public static java.util.List<java.lang.CharSequence!> getTextsFromContentView(android.content.Context, android.app.Notification);
   }
 
   public static interface NotificationCompat.Extender {
@@ -1074,6 +1079,8 @@ package androidx.core.app {
     method public android.content.Intent![] getIntents();
     method public android.app.PendingIntent? getPendingIntent(int, int);
     method public android.app.PendingIntent? getPendingIntent(int, int, android.os.Bundle?);
+    method public android.app.PendingIntent? getPendingIntent(int, int, android.os.Bundle?, boolean);
+    method public android.app.PendingIntent? getPendingIntent(int, int, boolean);
     method @Deprecated public java.util.Iterator<android.content.Intent!> iterator();
     method public void startActivities();
     method public void startActivities(android.os.Bundle?);
@@ -1646,7 +1653,11 @@ package androidx.core.hardware.display {
     method public android.view.Display![] getDisplays();
     method public android.view.Display![] getDisplays(String?);
     method public static androidx.core.hardware.display.DisplayManagerCompat getInstance(android.content.Context);
+    field @SuppressCompatibility @androidx.core.hardware.display.ExperimentalDisplayApi public static final String DISPLAY_CATEGORY_BUILT_IN_DISPLAYS = "android.hardware.display.category.BUILT_IN_DISPLAYS";
     field public static final String DISPLAY_CATEGORY_PRESENTATION = "android.hardware.display.category.PRESENTATION";
+  }
+
+  @SuppressCompatibility @kotlin.RequiresOptIn(level=kotlin.RequiresOptIn.Level.WARNING) @kotlin.annotation.MustBeDocumented @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalDisplayApi {
   }
 
 }
@@ -1700,7 +1711,7 @@ package androidx.core.location {
     method public static boolean hasMslAltitudeAccuracy(android.location.Location);
     method public static boolean hasSpeedAccuracy(android.location.Location);
     method public static boolean hasVerticalAccuracy(android.location.Location);
-    method @Deprecated public static boolean isMock(android.location.Location);
+    method public static boolean isMock(android.location.Location);
     method public static void removeBearingAccuracy(android.location.Location);
     method public static void removeMslAltitude(android.location.Location);
     method public static void removeMslAltitudeAccuracy(android.location.Location);
@@ -1847,7 +1858,19 @@ package androidx.core.net {
 
 package androidx.core.os {
 
+  @RequiresApi(api=35) public abstract sealed class BufferFillPolicy {
+    field public static final androidx.core.os.BufferFillPolicy.Companion Companion;
+    field public static final androidx.core.os.BufferFillPolicy DISCARD;
+    field public static final androidx.core.os.BufferFillPolicy RING_BUFFER;
+  }
+
+  public static final class BufferFillPolicy.Companion {
+    property public final androidx.core.os.BufferFillPolicy DISCARD;
+    property public final androidx.core.os.BufferFillPolicy RING_BUFFER;
+  }
+
   public final class BuildCompat {
+    method @ChecksSdkIntAtLeast(api=36, codename="Baklava") public static boolean isAtLeastB();
     method @Deprecated @ChecksSdkIntAtLeast(api=android.os.Build.VERSION_CODES.N) public static boolean isAtLeastN();
     method @Deprecated @ChecksSdkIntAtLeast(api=android.os.Build.VERSION_CODES.N_MR1) public static boolean isAtLeastNMR1();
     method @Deprecated @ChecksSdkIntAtLeast(api=android.os.Build.VERSION_CODES.O) public static boolean isAtLeastO();
@@ -1859,7 +1882,11 @@ package androidx.core.os {
     method @Deprecated @ChecksSdkIntAtLeast(api=32, codename="Sv2") public static boolean isAtLeastSv2();
     method @Deprecated @ChecksSdkIntAtLeast(api=33, codename="Tiramisu") public static boolean isAtLeastT();
     method @Deprecated @ChecksSdkIntAtLeast(api=34, codename="UpsideDownCake") public static boolean isAtLeastU();
-    method @ChecksSdkIntAtLeast(api=35, codename="VanillaIceCream") public static boolean isAtLeastV();
+    method @Deprecated @ChecksSdkIntAtLeast(api=35, codename="VanillaIceCream") public static boolean isAtLeastV();
+    property @ChecksSdkIntAtLeast(extension=android.os.ext.SdkExtensions.AD_SERVICES) public final int AD_SERVICES_EXTENSION_INT;
+    property @ChecksSdkIntAtLeast(extension=android.os.Build.VERSION_CODES.R) public final int R_EXTENSION_INT;
+    property @ChecksSdkIntAtLeast(extension=android.os.Build.VERSION_CODES.S) public final int S_EXTENSION_INT;
+    property @ChecksSdkIntAtLeast(extension=android.os.Build.VERSION_CODES.TIRAMISU) public final int T_EXTENSION_INT;
     field @ChecksSdkIntAtLeast(extension=android.os.ext.SdkExtensions.AD_SERVICES) public static final int AD_SERVICES_EXTENSION_INT;
     field public static final androidx.core.os.BuildCompat INSTANCE;
     field @ChecksSdkIntAtLeast(extension=android.os.Build.VERSION_CODES.R) public static final int R_EXTENSION_INT;
@@ -1914,6 +1941,19 @@ package androidx.core.os {
     method public static boolean postDelayed(android.os.Handler, Runnable, Object?, long);
   }
 
+  @RequiresApi(api=35) public final class HeapProfileRequestBuilder extends androidx.core.os.ProfilingRequestBuilder<androidx.core.os.HeapProfileRequestBuilder> {
+    ctor public HeapProfileRequestBuilder();
+    method public androidx.core.os.HeapProfileRequestBuilder setBufferSizeKb(int bufferSizeKb);
+    method public androidx.core.os.HeapProfileRequestBuilder setDurationMs(int durationMs);
+    method public androidx.core.os.HeapProfileRequestBuilder setSamplingIntervalBytes(long samplingIntervalBytes);
+    method public androidx.core.os.HeapProfileRequestBuilder setTrackJavaAllocations(boolean traceJavaAllocations);
+  }
+
+  @RequiresApi(api=35) public final class JavaHeapDumpRequestBuilder extends androidx.core.os.ProfilingRequestBuilder<androidx.core.os.JavaHeapDumpRequestBuilder> {
+    ctor public JavaHeapDumpRequestBuilder();
+    method public androidx.core.os.JavaHeapDumpRequestBuilder setBufferSizeKb(int bufferSizeKb);
+  }
+
   public final class LocaleListCompat {
     method public static androidx.core.os.LocaleListCompat create(java.util.Locale!...);
     method public static androidx.core.os.LocaleListCompat forLanguageTags(String?);
@@ -1942,6 +1982,11 @@ package androidx.core.os {
     ctor public OperationCanceledException(String?);
   }
 
+  public interface OutcomeReceiverCompat<R, E extends java.lang.Throwable> {
+    method public default void onError(E);
+    method public void onResult(R!);
+  }
+
   public final class ParcelCompat {
     method public static <T> Object![]? readArray(android.os.Parcel, ClassLoader?, Class<T!>);
     method public static <T> java.util.ArrayList<T!>? readArrayList(android.os.Parcel, ClassLoader?, Class<? extends T!>);
@@ -1956,7 +2001,7 @@ package androidx.core.os {
     method @RequiresApi(api=android.os.Build.VERSION_CODES.Q) public static <T> java.util.List<T!> readParcelableList(android.os.Parcel, java.util.List<T!>, ClassLoader?, Class<T!>);
     method public static <T extends java.io.Serializable> T? readSerializable(android.os.Parcel, ClassLoader?, Class<T!>);
     method public static <T> android.util.SparseArray<T!>? readSparseArray(android.os.Parcel, ClassLoader?, Class<? extends T!>);
-    method @Deprecated public static void writeBoolean(android.os.Parcel, boolean);
+    method public static void writeBoolean(android.os.Parcel, boolean);
   }
 
   @Deprecated public final class ParcelableCompat {
@@ -1970,6 +2015,44 @@ package androidx.core.os {
 
   public final class ProcessCompat {
     method public static boolean isApplicationUid(int);
+  }
+
+  public final class Profiling {
+    method @RequiresApi(api=35) public static kotlinx.coroutines.flow.Flow<android.os.ProfilingResult> registerForAllProfilingResults(android.content.Context context);
+    method @RequiresApi(api=35) public static void registerForAllProfilingResults(android.content.Context context, java.util.concurrent.Executor executor, java.util.function.Consumer<android.os.ProfilingResult> listener);
+    method @RequiresApi(api=35) public static void requestProfiling(android.content.Context context, androidx.core.os.ProfilingRequest profilingRequest, java.util.concurrent.Executor? executor, java.util.function.Consumer<android.os.ProfilingResult>? listener);
+    method @RequiresApi(api=35) public static void unregisterForAllProfilingResults(android.content.Context context, java.util.function.Consumer<android.os.ProfilingResult> listener);
+  }
+
+  @RequiresApi(api=35) public final class ProfilingRequest {
+    method public android.os.CancellationSignal? getCancellationSignal();
+    method public android.os.Bundle getParams();
+    method public int getProfilingType();
+    method public String? getTag();
+    property public final android.os.CancellationSignal? cancellationSignal;
+    property public final android.os.Bundle params;
+    property public final int profilingType;
+    property public final String? tag;
+  }
+
+  @RequiresApi(api=35) public abstract class ProfilingRequestBuilder<T extends androidx.core.os.ProfilingRequestBuilder<T>> {
+    method public final androidx.core.os.ProfilingRequest build();
+    method public final T setCancellationSignal(android.os.CancellationSignal cancellationSignal);
+    method public final T setTag(String tag);
+  }
+
+  @RequiresApi(api=35) public final class StackSamplingRequestBuilder extends androidx.core.os.ProfilingRequestBuilder<androidx.core.os.StackSamplingRequestBuilder> {
+    ctor public StackSamplingRequestBuilder();
+    method public androidx.core.os.StackSamplingRequestBuilder setBufferSizeKb(int bufferSizeKb);
+    method public androidx.core.os.StackSamplingRequestBuilder setDurationMs(int durationMs);
+    method public androidx.core.os.StackSamplingRequestBuilder setSamplingFrequencyHz(int samplingFrequencyHz);
+  }
+
+  @RequiresApi(api=35) public final class SystemTraceRequestBuilder extends androidx.core.os.ProfilingRequestBuilder<androidx.core.os.SystemTraceRequestBuilder> {
+    ctor public SystemTraceRequestBuilder();
+    method public androidx.core.os.SystemTraceRequestBuilder setBufferFillPolicy(androidx.core.os.BufferFillPolicy bufferFillPolicy);
+    method public androidx.core.os.SystemTraceRequestBuilder setBufferSizeKb(int bufferSizeKb);
+    method public androidx.core.os.SystemTraceRequestBuilder setDurationMs(int durationMs);
   }
 
   @Deprecated public final class TraceCompat {
@@ -2025,7 +2108,9 @@ package androidx.core.provider {
   public class FontsContractCompat {
     method public static android.graphics.Typeface? buildTypeface(android.content.Context, android.os.CancellationSignal?, androidx.core.provider.FontsContractCompat.FontInfo![]);
     method public static androidx.core.provider.FontsContractCompat.FontFamilyResult fetchFonts(android.content.Context, android.os.CancellationSignal?, androidx.core.provider.FontRequest) throws android.content.pm.PackageManager.NameNotFoundException;
-    method public static void requestFont(android.content.Context, androidx.core.provider.FontRequest, androidx.core.provider.FontsContractCompat.FontRequestCallback, android.os.Handler);
+    method @Deprecated public static void requestFont(android.content.Context, androidx.core.provider.FontRequest, androidx.core.provider.FontsContractCompat.FontRequestCallback, android.os.Handler);
+    method public static void requestFont(android.content.Context, androidx.core.provider.FontRequest, int, java.util.concurrent.Executor?, java.util.concurrent.Executor, androidx.core.provider.FontsContractCompat.FontRequestCallback);
+    method public static void requestFontWithFallbackChain(android.content.Context, java.util.List<androidx.core.provider.FontRequest!>, int, java.util.concurrent.Executor?, java.util.concurrent.Executor, androidx.core.provider.FontsContractCompat.FontRequestCallback);
   }
 
   public static final class FontsContractCompat.Columns implements android.provider.BaseColumns {
@@ -2044,6 +2129,7 @@ package androidx.core.provider {
 
   public static class FontsContractCompat.FontFamilyResult {
     method public androidx.core.provider.FontsContractCompat.FontInfo![]! getFonts();
+    method public java.util.List<androidx.core.provider.FontsContractCompat.FontInfo![]!> getFontsWithFallbacks();
     method public int getStatusCode();
     field public static final int STATUS_OK = 0; // 0x0
     field public static final int STATUS_UNEXPECTED_DATA_PROVIDED = 2; // 0x2
@@ -2486,7 +2572,9 @@ package androidx.core.view {
   public final class DisplayCutoutCompat {
     ctor public DisplayCutoutCompat(android.graphics.Rect?, java.util.List<android.graphics.Rect!>?);
     ctor public DisplayCutoutCompat(androidx.core.graphics.Insets, android.graphics.Rect?, android.graphics.Rect?, android.graphics.Rect?, android.graphics.Rect?, androidx.core.graphics.Insets);
+    ctor public DisplayCutoutCompat(androidx.core.graphics.Insets, android.graphics.Rect?, android.graphics.Rect?, android.graphics.Rect?, android.graphics.Rect?, androidx.core.graphics.Insets, android.graphics.Path?);
     method public java.util.List<android.graphics.Rect!> getBoundingRects();
+    method public android.graphics.Path? getCutoutPath();
     method public int getSafeInsetBottom();
     method public int getSafeInsetLeft();
     method public int getSafeInsetRight();
@@ -2872,6 +2960,13 @@ package androidx.core.view {
     method @Deprecated public static void setQuickScaleEnabled(Object!, boolean);
   }
 
+  public class ScrollFeedbackProviderCompat {
+    method public static androidx.core.view.ScrollFeedbackProviderCompat createProvider(android.view.View);
+    method public void onScrollLimit(int, int, int, boolean);
+    method public void onScrollProgress(int, int, int, int);
+    method public void onSnapToItem(int, int, int);
+  }
+
   public interface ScrollingView {
     method public int computeHorizontalScrollExtent();
     method public int computeHorizontalScrollOffset();
@@ -2912,6 +3007,7 @@ package androidx.core.view {
     method public static int addAccessibilityAction(android.view.View, CharSequence, androidx.core.view.accessibility.AccessibilityViewCommand);
     method public static void addKeyboardNavigationClusters(android.view.View, java.util.Collection<android.view.View!>, int);
     method public static void addOnUnhandledKeyEventListener(android.view.View, androidx.core.view.ViewCompat.OnUnhandledKeyEventListenerCompat);
+    method public static void addOverlayView(android.view.ViewGroup, android.view.View);
     method @Deprecated public static androidx.core.view.ViewPropertyAnimatorCompat animate(android.view.View);
     method @Deprecated public static boolean canScrollHorizontally(android.view.View!, int);
     method @Deprecated public static boolean canScrollVertically(android.view.View!, int);
@@ -3144,6 +3240,7 @@ package androidx.core.view {
   public final class ViewGroupCompat {
     method @Deprecated public static int getLayoutMode(android.view.ViewGroup);
     method public static int getNestedScrollAxes(android.view.ViewGroup);
+    method public static void installCompatInsetsDispatch(android.view.View);
     method public static boolean isTransitionGroup(android.view.ViewGroup);
     method @Deprecated public static boolean onRequestSendAccessibilityEvent(android.view.ViewGroup!, android.view.View!, android.view.accessibility.AccessibilityEvent!);
     method @Deprecated public static void setLayoutMode(android.view.ViewGroup, int);
@@ -3350,6 +3447,14 @@ package androidx.core.view {
     method public androidx.core.view.WindowInsetsCompat.Builder setVisible(int, boolean);
   }
 
+  public static final class WindowInsetsCompat.Side {
+    method public static int all();
+    field public static final int BOTTOM = 8; // 0x8
+    field public static final int LEFT = 1; // 0x1
+    field public static final int RIGHT = 4; // 0x4
+    field public static final int TOP = 2; // 0x2
+  }
+
   public static final class WindowInsetsCompat.Type {
     method public static int captionBar();
     method public static int displayCutout();
@@ -3359,6 +3464,7 @@ package androidx.core.view {
     method public static int statusBars();
     method public static int systemBars();
     method public static int systemGestures();
+    method public static int systemOverlays();
     method public static int tappableElement();
   }
 
@@ -3737,6 +3843,8 @@ package androidx.core.view.accessibility {
 
   public static class AccessibilityNodeInfoCompat.CollectionInfoCompat {
     method public int getColumnCount();
+    method public int getImportantForAccessibilityItemCount();
+    method public int getItemCount();
     method public int getRowCount();
     method public int getSelectionMode();
     method public boolean isHierarchical();
@@ -3745,6 +3853,18 @@ package androidx.core.view.accessibility {
     field public static final int SELECTION_MODE_MULTIPLE = 2; // 0x2
     field public static final int SELECTION_MODE_NONE = 0; // 0x0
     field public static final int SELECTION_MODE_SINGLE = 1; // 0x1
+    field public static final int UNDEFINED = -1; // 0xffffffff
+  }
+
+  public static final class AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder {
+    ctor public AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder();
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat build();
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setColumnCount(int);
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setHierarchical(boolean);
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setImportantForAccessibilityItemCount(int);
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setItemCount(int);
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setRowCount(int);
+    method public androidx.core.view.accessibility.AccessibilityNodeInfoCompat.CollectionInfoCompat.Builder setSelectionMode(int);
   }
 
   public static class AccessibilityNodeInfoCompat.CollectionItemInfoCompat {
@@ -4015,6 +4135,47 @@ package androidx.core.view.inputmethod {
     method public void requestPermission();
     method public Object? unwrap();
     method public static androidx.core.view.inputmethod.InputContentInfoCompat? wrap(Object?);
+  }
+
+}
+
+package androidx.core.view.insetscontrast {
+
+  public class ColorProtection extends androidx.core.view.insetscontrast.ContrastProtection {
+    ctor public ColorProtection(int);
+    ctor public ColorProtection(int, @ColorInt int);
+    method @ColorInt public int getColor();
+    method public void setColor(@ColorInt int);
+  }
+
+  public abstract class ContrastProtection {
+    ctor public ContrastProtection(int);
+    method public void animateAlpha(float);
+    method public void animateInsetsAmount(float);
+    method @FloatRange(from=0.0, to=1.0) public float getAlpha();
+    method public float getInsetAmount();
+    method public int getSide();
+    method public void setAlpha(@FloatRange(from=0.0, to=1.0) float);
+    method public void setInsetAmount(@FloatRange(from=0.0, to=1.0) float);
+  }
+
+  public class GradientProtection extends androidx.core.view.insetscontrast.ContrastProtection {
+    ctor public GradientProtection(int);
+    ctor public GradientProtection(int, @ColorInt int);
+    method @ColorInt public int getColor();
+    method public float getScale();
+    method public void setColor(@ColorInt int);
+    method public void setScale(float);
+  }
+
+  public class ProtectionView extends android.widget.FrameLayout {
+    ctor public ProtectionView(android.content.Context, androidx.core.view.insetscontrast.SystemBarStateMonitor, java.util.List<androidx.core.view.insetscontrast.ContrastProtection!>);
+    method public void dispose();
+  }
+
+  public class SystemBarStateMonitor {
+    ctor public SystemBarStateMonitor(android.view.Window);
+    method public void dispose();
   }
 
 }

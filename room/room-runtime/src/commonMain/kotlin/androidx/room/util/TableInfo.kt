@@ -18,35 +18,28 @@ package androidx.room.util
 import androidx.annotation.RestrictTo
 import androidx.room.ColumnInfo.SQLiteTypeAffinity
 import androidx.sqlite.SQLiteConnection
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
  * A data class that holds the information about a table.
  *
  * It directly maps to the result of `PRAGMA table_info(<table_name>)`. Check the
- * [PRAGMA table_info](http://www.sqlite.org/pragma.html#pragma_table_info)
- * documentation for more details.
+ * [PRAGMA table_info](http://www.sqlite.org/pragma.html#pragma_table_info) documentation for more
+ * details.
  *
  * Even though SQLite column names are case insensitive, this class uses case sensitive matching.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 expect class TableInfo(
     name: String,
     columns: Map<String, Column>,
     foreignKeys: Set<ForeignKey>,
     indices: Set<Index>? = null
 ) {
-    /**
-     * The table name.
-     */
-    @JvmField
+    /** The table name. */
     val name: String
-    @JvmField
     val columns: Map<String, Column>
-    @JvmField
     val foreignKeys: Set<ForeignKey>
-    @JvmField
     val indices: Set<Index>?
 
     override fun equals(other: Any?): Boolean
@@ -56,9 +49,7 @@ expect class TableInfo(
     override fun toString(): String
 
     companion object {
-        /**
-         * Identifier for when the info is created from an unknown source.
-         */
+        /** Identifier for when the info is created from an unknown source. */
         val CREATED_FROM_UNKNOWN: Int
 
         /**
@@ -80,14 +71,11 @@ expect class TableInfo(
          * @param tableName The table name.
          * @return A TableInfo containing the schema information for the provided table name.
          */
-        @JvmStatic
-        fun read(connection: SQLiteConnection, tableName: String): TableInfo
+        @JvmStatic fun read(connection: SQLiteConnection, tableName: String): TableInfo
     }
 
-    /**
-     * Holds the information about a database column.
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    /** Holds the information about a database column. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     class Column(
         name: String,
         type: String,
@@ -96,26 +84,14 @@ expect class TableInfo(
         defaultValue: String?,
         createdFrom: Int
     ) {
-        /**
-         * The column name.
-         */
-        @JvmField
+        /** The column name. */
         val name: String
-        /**
-         * The column type affinity.
-         */
-        @JvmField
+        /** The column type affinity. */
         val type: String
-        /**
-         * Whether or not the column can be NULL.
-         */
-        @JvmField
+        /** Whether or not the column can be NULL. */
         val notNull: Boolean
-        @JvmField
         val primaryKeyPosition: Int
-        @JvmField
         val defaultValue: String?
-        @JvmField
         val createdFrom: Int
 
         /**
@@ -124,9 +100,7 @@ expect class TableInfo(
          *
          * This is the value Room uses for equality check.
          */
-        @SQLiteTypeAffinity
-        @JvmField
-        val affinity: Int
+        @SQLiteTypeAffinity val affinity: Int
 
         /**
          * Returns whether this column is part of the primary key or not.
@@ -142,11 +116,8 @@ expect class TableInfo(
         override fun toString(): String
     }
 
-    /**
-     * Holds the information about an SQLite foreign key
-     *
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    /** Holds the information about an SQLite foreign key */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     class ForeignKey(
         referenceTable: String,
         onDelete: String,
@@ -154,15 +125,10 @@ expect class TableInfo(
         columnNames: List<String>,
         referenceColumnNames: List<String>
     ) {
-        @JvmField
         val referenceTable: String
-        @JvmField
         val onDelete: String
-        @JvmField
         val onUpdate: String
-        @JvmField
         val columnNames: List<String>
-        @JvmField
         val referenceColumnNames: List<String>
 
         override fun equals(other: Any?): Boolean
@@ -172,25 +138,13 @@ expect class TableInfo(
         override fun toString(): String
     }
 
-    /**
-     * Holds the information about an SQLite index
-     *
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-    class Index(
-        name: String,
-        unique: Boolean,
-        columns: List<String>,
-        orders: List<String>
-    ) {
+    /** Holds the information about an SQLite index */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+    class Index(name: String, unique: Boolean, columns: List<String>, orders: List<String>) {
 
-        @JvmField
         val name: String
-        @JvmField
         val unique: Boolean
-        @JvmField
         val columns: List<String>
-        @JvmField
         var orders: List<String>
 
         companion object {
@@ -232,46 +186,46 @@ internal fun TableInfo.hashCodeCommon(): Int {
 }
 
 internal fun TableInfo.toStringCommon(): String {
-    return (
-        """
+    return ("""
             |TableInfo {
             |    name = '$name',
             |    columns = {${formatString(columns.values.sortedBy { it.name })}
             |    foreignKeys = {${formatString(foreignKeys)}
             |    indices = {${formatString(indices?.sortedBy { it.name } ?: emptyList<String>())}
             |}
-        """.trimMargin()
-    )
+        """
+        .trimMargin())
 }
 
 internal fun TableInfo.Column.equalsCommon(other: Any?): Boolean {
     if (this === other) return true
     if (other !is TableInfo.Column) return false
-    if (!equalsInPrimaryKey(other)) return false
+    if (isPrimaryKey != other.isPrimaryKey) return false
     if (name != other.name) return false
     if (notNull != other.notNull) return false
     // Only validate default value if it was defined in an entity, i.e. if the info
     // from the compiler itself has it. b/136019383
+    val defaultValue = this.defaultValue
+    val otherDefaultValue = other.defaultValue
     if (
         createdFrom == TableInfo.CREATED_FROM_ENTITY &&
-        other.createdFrom == TableInfo.CREATED_FROM_DATABASE &&
-        defaultValue != null &&
-        !defaultValueEqualsCommon(defaultValue, other.defaultValue)
+            other.createdFrom == TableInfo.CREATED_FROM_DATABASE &&
+            defaultValue != null &&
+            !defaultValueEqualsCommon(defaultValue, other.defaultValue)
     ) {
         return false
     } else if (
         createdFrom == TableInfo.CREATED_FROM_DATABASE &&
-        other.createdFrom == TableInfo.CREATED_FROM_ENTITY &&
-        other.defaultValue != null &&
-        !defaultValueEqualsCommon(other.defaultValue, defaultValue)
+            other.createdFrom == TableInfo.CREATED_FROM_ENTITY &&
+            otherDefaultValue != null &&
+            !defaultValueEqualsCommon(otherDefaultValue, defaultValue)
     ) {
         return false
     } else if (
         createdFrom != TableInfo.CREATED_FROM_UNKNOWN &&
-        createdFrom == other.createdFrom &&
-        (if (defaultValue != null)
-            !defaultValueEqualsCommon(defaultValue, other.defaultValue)
-        else other.defaultValue != null)
+            createdFrom == other.createdFrom &&
+            (if (defaultValue != null) !defaultValueEqualsCommon(defaultValue, otherDefaultValue)
+            else otherDefaultValue != null)
     ) {
         return false
     }
@@ -279,18 +233,12 @@ internal fun TableInfo.Column.equalsCommon(other: Any?): Boolean {
 }
 
 /**
- * Checks if the primary key match.
- */
-internal expect fun TableInfo.Column.equalsInPrimaryKey(other: TableInfo.Column): Boolean
-
-/**
- * Checks if the default values provided match. Handles the special case in which the
- * default value is surrounded by parenthesis (e.g. encountered in b/182284899).
+ * Checks if the default values provided match. Handles the special case in which the default value
+ * is surrounded by parenthesis (e.g. encountered in b/182284899).
  *
- * Surrounding parenthesis are removed by SQLite when reading from the database, hence
- * this function will check if they are present in the actual value, if so, it will
- * compare the two values by ignoring the surrounding parenthesis.
- *
+ * Surrounding parenthesis are removed by SQLite when reading from the database, hence this function
+ * will check if they are present in the actual value, if so, it will compare the two values by
+ * ignoring the surrounding parenthesis.
  */
 internal fun defaultValueEqualsCommon(current: String, other: String?): Boolean {
     if (current == other) {
@@ -302,9 +250,8 @@ internal fun defaultValueEqualsCommon(current: String, other: String?): Boolean 
 }
 
 /**
- * Checks for potential surrounding parenthesis, if found, removes them and checks if
- * remaining parenthesis are balanced. If so, the surrounding parenthesis are redundant,
- * and returns true.
+ * Checks for potential surrounding parenthesis, if found, removes them and checks if remaining
+ * parenthesis are balanced. If so, the surrounding parenthesis are redundant, and returns true.
  */
 private fun containsSurroundingParenthesis(current: String): Boolean {
     if (current.isEmpty()) {
@@ -339,8 +286,7 @@ internal fun TableInfo.Column.hashCodeCommon(): Int {
 }
 
 internal fun TableInfo.Column.toStringCommon(): String {
-    return (
-        """
+    return ("""
             |Column {
             |   name = '$name',
             |   type = '$type',
@@ -349,8 +295,9 @@ internal fun TableInfo.Column.toStringCommon(): String {
             |   primaryKeyPosition = '$primaryKeyPosition',
             |   defaultValue = '${defaultValue ?: "undefined"}'
             |}
-        """.trimMargin().prependIndent()
-    )
+        """
+        .trimMargin()
+        .prependIndent())
 }
 
 internal fun TableInfo.ForeignKey.equalsCommon(other: Any?): Boolean {
@@ -359,8 +306,8 @@ internal fun TableInfo.ForeignKey.equalsCommon(other: Any?): Boolean {
     if (referenceTable != other.referenceTable) return false
     if (onDelete != other.onDelete) return false
     if (onUpdate != other.onUpdate) return false
-    return if (columnNames != other.columnNames) false else referenceColumnNames ==
-        other.referenceColumnNames
+    return if (columnNames != other.columnNames) false
+    else referenceColumnNames == other.referenceColumnNames
 }
 
 internal fun TableInfo.ForeignKey.hashCodeCommon(): Int {
@@ -373,8 +320,7 @@ internal fun TableInfo.ForeignKey.hashCodeCommon(): Int {
 }
 
 internal fun TableInfo.ForeignKey.toStringCommon(): String {
-    return (
-        """
+    return ("""
             |ForeignKey {
             |   referenceTable = '$referenceTable',
             |   onDelete = '$onDelete',
@@ -382,8 +328,9 @@ internal fun TableInfo.ForeignKey.toStringCommon(): String {
             |   columnNames = {${columnNames.sorted().joinToStringMiddleWithIndent()}
             |   referenceColumnNames = {${referenceColumnNames.sorted().joinToStringEndWithIndent()}
             |}
-        """.trimMargin().prependIndent()
-    )
+        """
+        .trimMargin()
+        .prependIndent())
 }
 
 internal fun TableInfo.Index.equalsCommon(other: Any?): Boolean {
@@ -406,11 +353,12 @@ internal fun TableInfo.Index.equalsCommon(other: Any?): Boolean {
 }
 
 internal fun TableInfo.Index.hashCodeCommon(): Int {
-    var result = if (name.startsWith(TableInfo.Index.DEFAULT_PREFIX)) {
-        TableInfo.Index.DEFAULT_PREFIX.hashCode()
-    } else {
-        name.hashCode()
-    }
+    var result =
+        if (name.startsWith(TableInfo.Index.DEFAULT_PREFIX)) {
+            TableInfo.Index.DEFAULT_PREFIX.hashCode()
+        } else {
+            name.hashCode()
+        }
     result = 31 * result + if (unique) 1 else 0
     result = 31 * result + columns.hashCode()
     result = 31 * result + orders.hashCode()
@@ -418,32 +366,31 @@ internal fun TableInfo.Index.hashCodeCommon(): Int {
 }
 
 internal fun TableInfo.Index.toStringCommon(): String {
-    return (
-        """
+    return ("""
             |Index {
             |   name = '$name',
             |   unique = '$unique',
             |   columns = {${columns.joinToStringMiddleWithIndent()}
             |   orders = {${orders.joinToStringEndWithIndent()}
             |}
-        """.trimMargin().prependIndent()
-    )
+        """
+        .trimMargin()
+        .prependIndent())
 }
 
 internal fun formatString(collection: Collection<*>): String {
     return if (collection.isNotEmpty()) {
-        collection.joinToString(
-            separator = ",\n",
-            prefix = "\n",
-            postfix = "\n"
-        ).prependIndent() + "},"
+        collection.joinToString(separator = ",\n", prefix = "\n", postfix = "\n").prependIndent() +
+            "},"
     } else {
         " }"
     }
 }
+
 private fun Collection<*>.joinToStringMiddleWithIndent() {
     this.joinToString(",").prependIndent() + "},".prependIndent()
 }
+
 private fun Collection<*>.joinToStringEndWithIndent() {
     this.joinToString(",").prependIndent() + " }".prependIndent()
 }

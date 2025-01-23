@@ -6,7 +6,7 @@
  * modifying its settings.
  */
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
+import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.BitcodeEmbeddingMode
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFrameworkConfig
@@ -32,11 +32,13 @@ androidXMultiplatform {
     defaultPlatform(PlatformIdentifier.JVM)
     sourceSets {
         darwinMain {
+            dependsOn(commonMain)
             dependencies {
                 api(libs.kotlinStdlib)
             }
         }
         darwinTest {
+            dependsOn(commonTest)
             dependencies {
                 implementation(libs.kotlinTest)
                 implementation(libs.kotlinTestAnnotationsCommon)
@@ -85,5 +87,5 @@ androidx {
     name = "Benchmarks - Darwin"
     inceptionYear = "2022"
     description = "AndroidX Benchmarks - Darwin"
-    publish = Publish.SNAPSHOT_ONLY
+    type = LibraryType.SNAPSHOT_ONLY_LIBRARY
 }

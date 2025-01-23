@@ -19,6 +19,8 @@ package androidx.camera.camera2.pipe.config
 import androidx.camera.camera2.pipe.CameraSurfaceManager
 import androidx.camera.camera2.pipe.compat.AudioRestrictionController
 import androidx.camera.camera2.pipe.compat.AudioRestrictionControllerImpl
+import androidx.camera.camera2.pipe.media.ImageReaderImageSources
+import androidx.camera.camera2.pipe.media.ImageSources
 import dagger.Binds
 import dagger.Component
 import dagger.Module
@@ -34,13 +36,14 @@ internal interface ExternalCameraPipeComponent {
 @Module
 internal abstract class ExternalCameraPipeModules {
     companion object {
-        @Singleton
-        @Provides
-        fun provideCameraSurfaceManager() = CameraSurfaceManager()
+        @Singleton @Provides fun provideCameraSurfaceManager() = CameraSurfaceManager()
     }
 
     @Binds
     abstract fun bindAudioRestrictionController(
         audioRestrictionController: AudioRestrictionControllerImpl
     ): AudioRestrictionController
+
+    @Binds
+    abstract fun bindImageSources(imageReaderImageSources: ImageReaderImageSources): ImageSources
 }

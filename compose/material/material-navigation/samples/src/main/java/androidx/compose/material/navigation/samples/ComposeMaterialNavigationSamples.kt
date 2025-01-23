@@ -16,6 +16,7 @@
 
 package androidx.compose.material.navigation.samples
 
+import androidx.annotation.Sampled
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,7 @@ private object Destinations {
     const val Sheet = "SHEET"
 }
 
+@Sampled
 @Composable
 fun BottomSheetNavDemo() {
     val bottomSheetNavigator = rememberBottomSheetNavigator()
@@ -72,12 +74,8 @@ fun BottomSheetNavDemo() {
 private fun HomeScreen(showSheet: () -> Unit, showFeed: () -> Unit) {
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Body")
-        Button(onClick = showSheet) {
-            Text("Show sheet!")
-        }
-        Button(onClick = showFeed) {
-            Text("Navigate to Feed")
-        }
+        Button(onClick = showSheet) { Text("Show sheet!") }
+        Button(onClick = showFeed) { Text("Navigate to Feed") }
     }
 }
 
@@ -85,11 +83,7 @@ private fun HomeScreen(showSheet: () -> Unit, showFeed: () -> Unit) {
 private fun BottomSheet(showFeed: () -> Unit, showAnotherSheet: () -> Unit, arg: String) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Sheet with arg: $arg")
-        Button(onClick = showFeed) {
-            Text("Click me to navigate!")
-        }
-        Button(onClick = showAnotherSheet) {
-            Text("Click me to show another sheet!")
-        }
+        Button(onClick = showFeed) { Text("Click me to navigate!") }
+        Button(onClick = showAnotherSheet) { Text("Click me to show another sheet!") }
     }
 }

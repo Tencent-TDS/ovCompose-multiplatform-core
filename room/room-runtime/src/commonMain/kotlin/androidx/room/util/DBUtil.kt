@@ -27,15 +27,12 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
-import androidx.sqlite.use
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
 
-/**
- * Performs a database operation.
- */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+/** Performs a database operation. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 expect suspend fun <R> performSuspending(
     db: RoomDatabase,
     isReadOnly: Boolean,
@@ -47,25 +44,27 @@ internal suspend inline fun <R> RoomDatabase.internalPerform(
     isReadOnly: Boolean,
     inTransaction: Boolean,
     crossinline block: suspend (PooledConnection) -> R
-): R = useConnection(isReadOnly) { transactor ->
-    if (inTransaction) {
-        val type = if (isReadOnly) {
-            Transactor.SQLiteTransactionType.DEFERRED
+): R =
+    useConnection(isReadOnly) { transactor ->
+        if (inTransaction) {
+            val type =
+                if (isReadOnly) {
+                    Transactor.SQLiteTransactionType.DEFERRED
+                } else {
+                    Transactor.SQLiteTransactionType.IMMEDIATE
+                }
+            if (!isReadOnly && !transactor.inTransaction()) {
+                invalidationTracker.sync()
+            }
+            val result = transactor.withTransaction(type) { block.invoke(this) }
+            if (!isReadOnly && !transactor.inTransaction()) {
+                invalidationTracker.refreshAsync()
+            }
+            result
         } else {
-            Transactor.SQLiteTransactionType.IMMEDIATE
+            block.invoke(transactor)
         }
-        if (!isReadOnly && !transactor.inTransaction()) {
-            invalidationTracker.sync()
-        }
-        val result = transactor.withTransaction(type) { block.invoke(this) }
-        if (!isReadOnly && !transactor.inTransaction()) {
-            invalidationTracker.refreshAsync()
-        }
-        result
-    } else {
-        block.invoke(transactor)
     }
-}
 
 /**
  * Gets the database [CoroutineContext] to perform database operation on utility functions. Prefer
@@ -83,7 +82,7 @@ internal expect suspend fun RoomDatabase.getCoroutineContext(
  * delegates in Java and Kotlin. It is preferred to use the other 'perform' functions.
  */
 // TODO(b/309996304): Replace with proper suspending transaction API for common.
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 expect suspend fun <R> performInTransactionSuspending(db: RoomDatabase, block: suspend () -> R): R
 
 /**
@@ -94,7 +93,7 @@ expect suspend fun <R> performInTransactionSuspending(db: RoomDatabase, block: s
  *
  * @param connection The database connection.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 fun dropFtsSyncTriggers(connection: SQLiteConnection) {
     val existingTriggers = buildList {
         connection.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").use {
@@ -111,14 +110,9 @@ fun dropFtsSyncTriggers(connection: SQLiteConnection) {
     }
 }
 
-/**
- * Checks for foreign key violations by executing a PRAGMA foreign_key_check.
- */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-fun foreignKeyCheck(
-    db: SQLiteConnection,
-    tableName: String
-) {
+/** Checks for foreign key violations by executing a PRAGMA foreign_key_check. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+fun foreignKeyCheck(db: SQLiteConnection, tableName: String) {
     db.prepare("PRAGMA foreign_key_check(`$tableName`)").use { stmt ->
         if (stmt.step()) {
             val errorMsg = processForeignKeyCheckFailure(stmt)
@@ -128,16 +122,15 @@ fun foreignKeyCheck(
 }
 
 /**
- * Converts the [SQLiteStatement] returned in case of a foreign key violation into a detailed
- * error message for debugging.
+ * Converts the [SQLiteStatement] returned in case of a foreign key violation into a detailed error
+ * message for debugging.
  *
  * The foreign_key_check pragma returns one row output for each foreign key violation.
  *
- * The cursor received has four columns for each row output. The first column is the name of
- * the child table. The second column is the rowId of the row that contains the foreign key
- * violation (or NULL if the child table is a WITHOUT ROWID table). The third column is the
- * name of the parent table. The fourth column is the index of the specific foreign key
- * constraint that failed.
+ * The cursor received has four columns for each row output. The first column is the name of the
+ * child table. The second column is the rowId of the row that contains the foreign key violation
+ * (or NULL if the child table is a WITHOUT ROWID table). The third column is the name of the parent
+ * table. The fourth column is the index of the specific foreign key constraint that failed.
  *
  * @param stmt SQLiteStatement containing information regarding the FK violation
  * @return Error message generated containing debugging information

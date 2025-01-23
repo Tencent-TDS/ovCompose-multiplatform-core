@@ -18,11 +18,17 @@ package androidx.appsearch.platformstorage.converter;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.appsearch.app.AppSearchBlobHandle;
+import androidx.appsearch.app.EmbeddingVector;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
+import androidx.appsearch.app.Features;
 import androidx.appsearch.app.GenericDocument;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
 
@@ -38,8 +44,8 @@ public final class GenericDocumentToPlatformConverter {
      * Translates a jetpack {@link androidx.appsearch.app.GenericDocument} into a platform
      * {@link android.app.appsearch.GenericDocument}.
      */
-    @NonNull
-    public static android.app.appsearch.GenericDocument toPlatformGenericDocument(
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
+    public static android.app.appsearch.@NonNull GenericDocument toPlatformGenericDocument(
             @NonNull GenericDocument jetpackDocument) {
         Preconditions.checkNotNull(jetpackDocument);
         android.app.appsearch.GenericDocument.Builder<
@@ -87,6 +93,14 @@ public final class GenericDocumentToPlatformConverter {
                     platformSubDocuments[j] = toPlatformGenericDocument(documentValues[j]);
                 }
                 platformBuilder.setPropertyDocument(propertyName, platformSubDocuments);
+            } else if (property instanceof EmbeddingVector[]) {
+                // TODO(b/326656531): Remove this once embedding search APIs are available.
+                throw new UnsupportedOperationException(Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG
+                        + " is not available on this AppSearch implementation.");
+            } else if (property instanceof AppSearchBlobHandle[]) {
+                // TODO(b/273591938): Remove this once blob APIs are available.
+                throw new UnsupportedOperationException(Features.BLOB_STORAGE
+                        + " is not available on this AppSearch implementation.");
             } else {
                 throw new IllegalStateException(
                         String.format("Property \"%s\" has unsupported value type %s", propertyName,
@@ -100,9 +114,9 @@ public final class GenericDocumentToPlatformConverter {
      * Translates a platform {@link android.app.appsearch.GenericDocument} into a jetpack
      * {@link androidx.appsearch.app.GenericDocument}.
      */
-    @NonNull
-    public static GenericDocument toJetpackGenericDocument(
-            @NonNull android.app.appsearch.GenericDocument platformDocument) {
+    @SuppressWarnings("deprecation")
+    public static @NonNull GenericDocument toJetpackGenericDocument(
+            android.app.appsearch.@NonNull GenericDocument platformDocument) {
         Preconditions.checkNotNull(platformDocument);
         GenericDocument.Builder<GenericDocument.Builder<?>> jetpackBuilder =
                 new GenericDocument.Builder<>(
@@ -143,6 +157,8 @@ public final class GenericDocumentToPlatformConverter {
                 }
                 jetpackBuilder.setPropertyDocument(propertyName, jetpackSubDocuments);
             } else {
+                // TODO(b/326656531) : Add an entry for EmbeddingVector once it becomes
+                //  available in platform.
                 throw new IllegalStateException(
                         String.format("Property \"%s\" has unsupported value type %s", propertyName,
                                 property.getClass().toString()));

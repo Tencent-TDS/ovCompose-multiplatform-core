@@ -22,6 +22,8 @@ import androidx.pdf.models.SelectionBoundary;
 import androidx.pdf.select.SelectionModel;
 import androidx.pdf.viewer.loader.PdfLoader;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Selection model for pdfs.
  */
@@ -30,7 +32,7 @@ public class PdfSelectionModel extends SelectionModel<PageSelection> {
 
     private final PdfLoader mPdfLoader;
 
-    public PdfSelectionModel(PdfLoader pdfLoader) {
+    public PdfSelectionModel(@NonNull PdfLoader pdfLoader) {
         this.mPdfLoader = pdfLoader;
     }
 
@@ -41,7 +43,7 @@ public class PdfSelectionModel extends SelectionModel<PageSelection> {
     }
 
     @Override
-    public String getText() {
+    public @NonNull String getText() {
         PageSelection value = mSelection.get();
         return (value != null) ? value.getText() : "";
     }
@@ -52,7 +54,8 @@ public class PdfSelectionModel extends SelectionModel<PageSelection> {
      * {@link #setSelection} to be called.
      */
     @Override
-    public void updateSelectionAsync(SelectionBoundary start, SelectionBoundary stop) {
+    public void updateSelectionAsync(@NonNull SelectionBoundary start,
+            @NonNull SelectionBoundary stop) {
         if (mPdfLoader != null) {
             int page = Math.max(0, getPage());
             mPdfLoader.selectPageText(page, start, stop);

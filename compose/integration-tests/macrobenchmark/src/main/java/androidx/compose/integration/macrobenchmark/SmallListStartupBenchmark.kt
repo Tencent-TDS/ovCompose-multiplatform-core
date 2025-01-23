@@ -34,26 +34,19 @@ class SmallListStartupBenchmark(
     private val startupMode: StartupMode,
     private val compilationMode: CompilationMode
 ) {
-    @get:Rule
-    val benchmarkRule = MacrobenchmarkRule()
-
-    /**
-     * Temporary, tracking for b/231455742
-     *
-     * Note that this tracing only exists on more recent API levels
-     */
-    private val metrics = getStartupMetrics()
+    @get:Rule val benchmarkRule = MacrobenchmarkRule()
 
     @Test
-    fun startup() = benchmarkRule.measureStartup(
-        compilationMode = compilationMode,
-        startupMode = startupMode,
-        metrics = metrics,
-        packageName = "androidx.compose.integration.macrobenchmark.target"
-    ) {
-        action = "androidx.compose.integration.macrobenchmark.target.LAZY_COLUMN_ACTIVITY"
-        putExtra("ITEM_COUNT", 5)
-    }
+    fun startup() =
+        benchmarkRule.measureStartup(
+            compilationMode = compilationMode,
+            startupMode = startupMode,
+            metrics = getStartupMetrics(),
+            packageName = "androidx.compose.integration.macrobenchmark.target"
+        ) {
+            action = "androidx.compose.integration.macrobenchmark.target.LAZY_COLUMN_ACTIVITY"
+            putExtra("ITEM_COUNT", 5)
+        }
 
     companion object {
         @Parameterized.Parameters(name = "startup={0},compilation={1}")

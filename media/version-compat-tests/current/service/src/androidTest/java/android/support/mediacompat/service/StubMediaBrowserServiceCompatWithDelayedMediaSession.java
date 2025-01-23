@@ -17,33 +17,33 @@
 package android.support.mediacompat.service;
 
 import android.os.Bundle;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.media.MediaBrowserServiceCompat;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
 /**
- * Stub implementation of {@link MediaBrowserServiceCompat}.
- * This implementation does not call
- * {@link MediaBrowserServiceCompat#setSessionToken(MediaSessionCompat.Token)} in its
- * {@link android.app.Service#onCreate}.
+ * Stub implementation of {@link androidx.media.MediaBrowserServiceCompat}. This implementation does
+ * not call {@link
+ * androidx.media.MediaBrowserServiceCompat#setSessionToken(
+ * android.support.v4.media.session.MediaSessionCompat.Token)}
+ * in its {@link android.app.Service#onCreate}.
  */
-public class StubMediaBrowserServiceCompatWithDelayedMediaSession extends
-        MediaBrowserServiceCompat {
+@SuppressWarnings("deprecation")
+public class StubMediaBrowserServiceCompatWithDelayedMediaSession
+        extends androidx.media.MediaBrowserServiceCompat {
 
     static StubMediaBrowserServiceCompatWithDelayedMediaSession sInstance;
-    private MediaSessionCompat mSession;
+    private android.support.v4.media.session.MediaSessionCompat mSession;
 
     @Override
     public void onCreate() {
         super.onCreate();
         sInstance = this;
-        mSession = new MediaSessionCompat(
-                this, "StubMediaBrowserServiceCompatWithDelayedMediaSession");
+        mSession =
+                new android.support.v4.media.session.MediaSessionCompat(
+                        this, "StubMediaBrowserServiceCompatWithDelayedMediaSession");
     }
 
     @Nullable
@@ -54,8 +54,9 @@ public class StubMediaBrowserServiceCompatWithDelayedMediaSession extends
     }
 
     @Override
-    public void onLoadChildren(@NonNull String parentId,
-            @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
+    public void onLoadChildren(
+            @NonNull String parentId,
+            @NonNull Result<List<android.support.v4.media.MediaBrowserCompat.MediaItem>> result) {
         result.detach();
     }
 

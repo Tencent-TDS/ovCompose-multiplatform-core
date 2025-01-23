@@ -16,12 +16,8 @@
 
 package androidx.lifecycle.compose
 
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.lifecycle.LifecycleOwner
 
-/**
- * The CompositionLocal containing the current [LifecycleOwner].
- */
-val LocalLifecycleOwner = staticCompositionLocalOf<LifecycleOwner> {
-    error("CompositionLocal LocalLifecycleOwner not present")
-}
+/** The CompositionLocal containing the current [LifecycleOwner]. */
+public expect val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>

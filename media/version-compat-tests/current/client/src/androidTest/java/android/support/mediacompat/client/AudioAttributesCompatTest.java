@@ -23,7 +23,6 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.os.Build;
 
-import androidx.media.AudioAttributesCompat;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
@@ -33,24 +32,27 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/** Test {@link AudioAttributesCompat}. */
+/** Test {@link androidx.media.AudioAttributesCompat}. */
+@SuppressWarnings("deprecation")
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class AudioAttributesCompatTest {
     // some macros for conciseness
-    static AudioAttributesCompat.Builder mkBuilder(
-            @AudioAttributesCompat.AttributeContentType int type,
-            @AudioAttributesCompat.AttributeUsage int usage) {
-        return new AudioAttributesCompat.Builder().setContentType(type).setUsage(usage);
+    static androidx.media.AudioAttributesCompat.Builder mkBuilder(
+            @androidx.media.AudioAttributesCompat.AttributeContentType int type,
+            @androidx.media.AudioAttributesCompat.AttributeUsage int usage) {
+        return new androidx.media.AudioAttributesCompat.Builder()
+                .setContentType(type)
+                .setUsage(usage);
     }
 
-    static AudioAttributesCompat.Builder mkBuilder(int legacyStream) {
-        return new AudioAttributesCompat.Builder().setLegacyStreamType(legacyStream);
+    static androidx.media.AudioAttributesCompat.Builder mkBuilder(int legacyStream) {
+        return new androidx.media.AudioAttributesCompat.Builder().setLegacyStreamType(legacyStream);
     }
 
     // some objects we'll toss around
     Object mMediaAA;
-    AudioAttributesCompat mMediaAAC,
+    androidx.media.AudioAttributesCompat mMediaAAC,
             mMediaLegacyAAC,
             mMediaAACFromAA,
             mNotificationAAC,
@@ -65,18 +67,21 @@ public class AudioAttributesCompatTest {
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .setUsage(AudioAttributes.USAGE_MEDIA)
                         .build();
-        mMediaAACFromAA = AudioAttributesCompat.wrap((AudioAttributes) mMediaAA);
+        mMediaAACFromAA = androidx.media.AudioAttributesCompat.wrap((AudioAttributes) mMediaAA);
     }
 
     @Before
     public void setUp() {
         mMediaAAC =
-                mkBuilder(AudioAttributesCompat.CONTENT_TYPE_MUSIC,
-                        AudioAttributesCompat.USAGE_MEDIA).build();
+                mkBuilder(
+                                androidx.media.AudioAttributesCompat.CONTENT_TYPE_MUSIC,
+                                androidx.media.AudioAttributesCompat.USAGE_MEDIA)
+                        .build();
         mMediaLegacyAAC = mkBuilder(AudioManager.STREAM_MUSIC).build();
         mNotificationAAC =
-                mkBuilder(AudioAttributesCompat.CONTENT_TYPE_SONIFICATION,
-                        AudioAttributesCompat.USAGE_NOTIFICATION)
+                mkBuilder(
+                                androidx.media.AudioAttributesCompat.CONTENT_TYPE_SONIFICATION,
+                                androidx.media.AudioAttributesCompat.USAGE_NOTIFICATION)
                         .build();
         mNotificationLegacyAAC = mkBuilder(AudioManager.STREAM_NOTIFICATION).build();
     }
@@ -104,19 +109,23 @@ public class AudioAttributesCompatTest {
         assertThat(
                 "equal to clone",
                 mMediaAAC,
-                equalTo(new AudioAttributesCompat.Builder(mMediaAAC).build()));
+                equalTo(new androidx.media.AudioAttributesCompat.Builder(mMediaAAC).build()));
         assertThat("different things are different", mMediaAAC, not(equalTo(mNotificationAAC)));
         assertThat("different things are different 2", mNotificationAAC, not(equalTo(mMediaAAC)));
         assertThat(
                 "equal to clone 2",
                 mNotificationAAC,
-                equalTo(new AudioAttributesCompat.Builder(mNotificationAAC).build()));
+                equalTo(
+                        new androidx.media.AudioAttributesCompat.Builder(mNotificationAAC)
+                                .build()));
     }
 
     @Test
     public void testGetters() {
-        assertThat(mMediaAAC.getContentType(), equalTo(AudioAttributesCompat.CONTENT_TYPE_MUSIC));
-        assertThat(mMediaAAC.getUsage(), equalTo(AudioAttributesCompat.USAGE_MEDIA));
+        assertThat(
+                mMediaAAC.getContentType(),
+                equalTo(androidx.media.AudioAttributesCompat.CONTENT_TYPE_MUSIC));
+        assertThat(mMediaAAC.getUsage(), equalTo(androidx.media.AudioAttributesCompat.USAGE_MEDIA));
         assertThat(mMediaAAC.getFlags(), equalTo(0));
     }
 
@@ -141,18 +150,22 @@ public class AudioAttributesCompatTest {
     public void testLegacyStreamTypeInferenceInLegacyMode() {
         // the builders behave differently based on the value of this only-for-testing global
         // so we need our very own objects inside this method
-        AudioAttributesCompat.setForceLegacyBehavior(true);
+        androidx.media.AudioAttributesCompat.setForceLegacyBehavior(true);
 
-        AudioAttributesCompat mediaAAC =
-                mkBuilder(AudioAttributesCompat.CONTENT_TYPE_MUSIC,
-                        AudioAttributesCompat.USAGE_MEDIA).build();
-        AudioAttributesCompat mediaLegacyAAC = mkBuilder(AudioManager.STREAM_MUSIC).build();
-
-        AudioAttributesCompat notificationAAC =
-                mkBuilder(AudioAttributesCompat.CONTENT_TYPE_SONIFICATION,
-                        AudioAttributesCompat.USAGE_NOTIFICATION)
+        androidx.media.AudioAttributesCompat mediaAAC =
+                mkBuilder(
+                                androidx.media.AudioAttributesCompat.CONTENT_TYPE_MUSIC,
+                                androidx.media.AudioAttributesCompat.USAGE_MEDIA)
                         .build();
-        AudioAttributesCompat notificationLegacyAAC =
+        androidx.media.AudioAttributesCompat mediaLegacyAAC =
+                mkBuilder(AudioManager.STREAM_MUSIC).build();
+
+        androidx.media.AudioAttributesCompat notificationAAC =
+                mkBuilder(
+                                androidx.media.AudioAttributesCompat.CONTENT_TYPE_SONIFICATION,
+                                androidx.media.AudioAttributesCompat.USAGE_NOTIFICATION)
+                        .build();
+        androidx.media.AudioAttributesCompat notificationLegacyAAC =
                 mkBuilder(AudioManager.STREAM_NOTIFICATION).build();
 
         assertThat(mediaAAC.getLegacyStreamType(), equalTo(AudioManager.STREAM_MUSIC));
@@ -165,30 +178,43 @@ public class AudioAttributesCompatTest {
     }
 
     @Test
+    @SdkSuppress(maxSdkVersion = 34) // b/384972088: Failing on SDK 35
     public void testUsageAndContentTypeInferredFromLegacyStreamType() {
-        AudioAttributesCompat alarmAAC = mkBuilder(AudioManager.STREAM_ALARM).build();
-        assertThat(alarmAAC.getUsage(), equalTo(AudioAttributesCompat.USAGE_ALARM));
-        assertThat(alarmAAC.getContentType(),
-                equalTo(AudioAttributesCompat.CONTENT_TYPE_SONIFICATION));
+        androidx.media.AudioAttributesCompat alarmAAC =
+                mkBuilder(AudioManager.STREAM_ALARM).build();
+        assertThat(alarmAAC.getUsage(), equalTo(androidx.media.AudioAttributesCompat.USAGE_ALARM));
+        assertThat(
+                alarmAAC.getContentType(),
+                equalTo(androidx.media.AudioAttributesCompat.CONTENT_TYPE_SONIFICATION));
 
-        AudioAttributesCompat musicAAC = mkBuilder(AudioManager.STREAM_MUSIC).build();
-        assertThat(musicAAC.getUsage(), equalTo(AudioAttributesCompat.USAGE_MEDIA));
-        assertThat(musicAAC.getContentType(), equalTo(AudioAttributesCompat.CONTENT_TYPE_MUSIC));
+        androidx.media.AudioAttributesCompat musicAAC =
+                mkBuilder(AudioManager.STREAM_MUSIC).build();
+        assertThat(musicAAC.getUsage(), equalTo(androidx.media.AudioAttributesCompat.USAGE_MEDIA));
+        assertThat(
+                musicAAC.getContentType(),
+                equalTo(androidx.media.AudioAttributesCompat.CONTENT_TYPE_MUSIC));
 
-        AudioAttributesCompat notificationAAC = mkBuilder(AudioManager.STREAM_NOTIFICATION).build();
-        assertThat(notificationAAC.getUsage(), equalTo(AudioAttributesCompat.USAGE_NOTIFICATION));
-        assertThat(notificationAAC.getContentType(),
-                equalTo(AudioAttributesCompat.CONTENT_TYPE_SONIFICATION));
+        androidx.media.AudioAttributesCompat notificationAAC =
+                mkBuilder(AudioManager.STREAM_NOTIFICATION).build();
+        assertThat(
+                notificationAAC.getUsage(),
+                equalTo(androidx.media.AudioAttributesCompat.USAGE_NOTIFICATION));
+        assertThat(
+                notificationAAC.getContentType(),
+                equalTo(androidx.media.AudioAttributesCompat.CONTENT_TYPE_SONIFICATION));
 
-        AudioAttributesCompat voiceCallAAC = mkBuilder(AudioManager.STREAM_VOICE_CALL).build();
-        assertThat(voiceCallAAC.getUsage(),
-                equalTo(AudioAttributesCompat.USAGE_VOICE_COMMUNICATION));
-        assertThat(voiceCallAAC.getContentType(),
-                equalTo(AudioAttributesCompat.CONTENT_TYPE_SPEECH));
+        androidx.media.AudioAttributesCompat voiceCallAAC =
+                mkBuilder(AudioManager.STREAM_VOICE_CALL).build();
+        assertThat(
+                voiceCallAAC.getUsage(),
+                equalTo(androidx.media.AudioAttributesCompat.USAGE_VOICE_COMMUNICATION));
+        assertThat(
+                voiceCallAAC.getContentType(),
+                equalTo(androidx.media.AudioAttributesCompat.CONTENT_TYPE_SPEECH));
     }
 
     @After
     public void cleanUp() {
-        AudioAttributesCompat.setForceLegacyBehavior(false);
+        androidx.media.AudioAttributesCompat.setForceLegacyBehavior(false);
     }
 }

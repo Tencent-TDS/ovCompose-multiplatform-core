@@ -46,13 +46,13 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
 import androidx.annotation.Discouraged;
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 import androidx.annotation.RequiresApi;
 import androidx.test.uiautomator.util.Traces;
 import androidx.test.uiautomator.util.Traces.Section;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -131,8 +131,7 @@ public class UiDevice implements Searchable {
      * @param selector
      * @return UiObject object
      */
-    @NonNull
-    public UiObject findObject(@NonNull UiSelector selector) {
+    public @NonNull UiObject findObject(@NonNull UiSelector selector) {
         return new UiObject(this, selector);
     }
 
@@ -166,8 +165,7 @@ public class UiDevice implements Searchable {
 
     /** Returns all objects that match the {@code selector} criteria. */
     @Override
-    @NonNull
-    public List<UiObject2> findObjects(@NonNull BySelector selector) {
+    public @NonNull List<UiObject2> findObjects(@NonNull BySelector selector) {
         Log.d(TAG, String.format("Retrieving nodes with selector: %s.", selector));
         List<UiObject2> ret = new ArrayList<>();
         for (AccessibilityNodeInfo node : ByMatcher.findMatches(this, selector, getWindowRoots())) {
@@ -277,8 +275,7 @@ public class UiDevice implements Searchable {
      * @return UiDevice instance
      */
     @Deprecated
-    @NonNull
-    public static UiDevice getInstance() {
+    public static @NonNull UiDevice getInstance() {
         if (sInstance == null) {
             throw new IllegalStateException("UiDevice singleton not initialized");
         }
@@ -291,8 +288,7 @@ public class UiDevice implements Searchable {
      *
      * @return UiDevice instance
      */
-    @NonNull
-    public static UiDevice getInstance(@NonNull Instrumentation instrumentation) {
+    public static @NonNull UiDevice getInstance(@NonNull Instrumentation instrumentation) {
         if (sInstance == null || !instrumentation.equals(sInstance.mInstrumentation)) {
             Log.i(TAG, String.format("Creating a new instance, old instance exists: %b",
                     (sInstance != null)));
@@ -309,8 +305,7 @@ public class UiDevice implements Searchable {
      * @see DisplayMetrics#density
      * @return a Point containing the display size in dp
      */
-    @NonNull
-    public Point getDisplaySizeDp() {
+    public @NonNull Point getDisplaySizeDp() {
         Point p = getDisplaySize(Display.DEFAULT_DISPLAY);
         Context context = getUiContext(Display.DEFAULT_DISPLAY);
         int densityDpi = context.getResources().getConfiguration().densityDpi;
@@ -326,8 +321,7 @@ public class UiDevice implements Searchable {
      *
      * @return product name of the device
      */
-    @NonNull
-    public String getProductName() {
+    public @NonNull String getProductName() {
         return Build.PRODUCT;
     }
 
@@ -482,7 +476,8 @@ public class UiDevice implements Searchable {
     }
 
     /**
-     * Presses one or more keys.
+     * Presses one or more keys. Keys that change meta state are supported, and will apply their
+     * meta state to following keys.
      * <br/>
      * For example, you can simulate taking a screenshot on the device by pressing both the
      * power and volume down keys.
@@ -493,12 +488,13 @@ public class UiDevice implements Searchable {
      * @param keyCodes array of key codes.
      * @return true if successful, else return false
      */
-    public boolean pressKeyCodes(@NonNull int[] keyCodes) {
+    public boolean pressKeyCodes(int @NonNull [] keyCodes) {
         return pressKeyCodes(keyCodes, 0);
     }
 
     /**
-     * Presses one or more keys.
+     * Presses one or more keys. Keys that change meta state are supported, and will apply their
+     * meta state to following keys.
      * <br/>
      * For example, you can simulate taking a screenshot on the device by pressing both the
      * power and volume down keys.
@@ -510,7 +506,7 @@ public class UiDevice implements Searchable {
      * @param metaState an integer in which each bit set to 1 represents a pressed meta key
      * @return true if successful, else return false
      */
-    public boolean pressKeyCodes(@NonNull int[] keyCodes, int metaState) {
+    public boolean pressKeyCodes(int @NonNull [] keyCodes, int metaState) {
         waitForIdle();
         Log.d(TAG, String.format("Pressing keycodes %s with modifier %d.",
                 Arrays.toString(keyCodes),
@@ -664,7 +660,7 @@ public class UiDevice implements Searchable {
      * @param segmentSteps steps to inject between two Points
      * @return true on success
      */
-    public boolean swipe(@NonNull Point[] segments, int segmentSteps) {
+    public boolean swipe(Point @NonNull [] segments, int segmentSteps) {
         Log.d(TAG, String.format("Swiping between %s in %d steps.", Arrays.toString(segments),
                 segmentSteps * (segments.length - 1)));
         return getInteractionController().swipe(segments, segmentSteps);
@@ -1126,9 +1122,8 @@ public class UiDevice implements Searchable {
                 return device.getDisplayRotation(displayId) == rotation;
             }
 
-            @NonNull
             @Override
-            public String toString() {
+            public @NonNull String toString() {
                 return String.format("Condition[displayRotation=%d, displayId=%d]", rotation,
                         displayId);
             }
@@ -1351,8 +1346,7 @@ public class UiDevice implements Searchable {
     @Discouraged(message = "Can be useful for simple commands, but lacks support for proper error"
             + " handling, input data, or complex commands (quotes, pipes) that can be obtained "
             + "from UiAutomation#executeShellCommandRwe or similar utilities.")
-    @NonNull
-    public String executeShellCommand(@NonNull String cmd) throws IOException {
+    public @NonNull String executeShellCommand(@NonNull String cmd) throws IOException {
         Log.d(TAG, String.format("Executing shell command: %s", cmd));
         try (ParcelFileDescriptor pfd = getUiAutomation().executeShellCommand(cmd);
              FileInputStream fis = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) {
@@ -1370,8 +1364,7 @@ public class UiDevice implements Searchable {
      * Gets the display with {@code displayId}. The display may be null because it may be a private
      * virtual display, for example.
      */
-    @Nullable
-    Display getDisplayById(int displayId) {
+    @Nullable Display getDisplayById(int displayId) {
         return mDisplayManager.getDisplay(displayId);
     }
 
@@ -1519,7 +1512,6 @@ public class UiDevice implements Searchable {
         private Api24Impl() {
         }
 
-        @DoNotInline
         static UiAutomation getUiAutomationWithRetry(Instrumentation instrumentation, int flags) {
             UiAutomation uiAutomation = null;
             for (int i = 0; i < MAX_UIAUTOMATION_RETRY; i++) {
@@ -1541,7 +1533,6 @@ public class UiDevice implements Searchable {
         private Api30Impl() {
         }
 
-        @DoNotInline
         static SparseArray<List<AccessibilityWindowInfo>> getWindowsOnAllDisplays(
                 UiAutomation uiAutomation) {
             return uiAutomation.getWindowsOnAllDisplays();
@@ -1553,7 +1544,6 @@ public class UiDevice implements Searchable {
         private Api31Impl() {
         }
 
-        @DoNotInline
         static Context createWindowContext(Context context, Display display) {
             return context.createWindowContext(display,
                     WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, null);

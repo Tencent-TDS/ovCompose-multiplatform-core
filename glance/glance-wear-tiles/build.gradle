@@ -72,7 +72,8 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
+        compileSdk = 35
     }
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
@@ -83,12 +84,7 @@ android {
         // protobuf generates unannotated methods
         disable "UnknownNullness"
     }
-
-    sourceSets {
-        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/glance/glance-wear-tiles"
-    }
-    namespace "androidx.glance.wear.tiles"
-
+    namespace = "androidx.glance.wear.tiles"
 }
 
 androidx {
@@ -98,4 +94,7 @@ androidx {
     inceptionYear = "2021"
     description = "Glance allows developers to build layouts for Wear Tiles using a Jetpack " +
             "Compose-style API."
+    legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    addGoldenImageAssets()
 }

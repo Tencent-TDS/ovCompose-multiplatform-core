@@ -21,10 +21,10 @@ import static android.hardware.camera2.CameraMetadata.LENS_FACING_BACK;
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.core.impl.Quirk;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Capture not response if submitting a single capture request simultaneously with repeating
@@ -40,7 +40,6 @@ import androidx.camera.core.impl.Quirk;
  *                  repeating capture request.
  *     Device(s): Samsung device with samsungexynos7420 hardware
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class CaptureNoResponseQuirk implements Quirk {
 
     static boolean load(@NonNull CameraCharacteristicsCompat characteristics) {

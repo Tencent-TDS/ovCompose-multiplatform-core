@@ -20,12 +20,9 @@ import static org.junit.Assume.assumeFalse;
 
 import android.os.Build;
 
-import androidx.annotation.RequiresApi;
-
 /**
  * Utility methods for testing related to Android OS.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class AndroidUtil {
 
     private AndroidUtil() {
@@ -38,6 +35,7 @@ public final class AndroidUtil {
         return Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("gphone")
                 || Build.MODEL.contains("Emulator")
                 || Build.MODEL.contains("Cuttlefish")
                 || Build.MODEL.contains("Android SDK built for x86")
@@ -52,6 +50,13 @@ public final class AndroidUtil {
      */
     public static boolean isEmulatorAndAPI21() {
         return Build.VERSION.SDK_INT == 21 && isEmulator();
+    }
+
+    /**
+     * Checks if the current device is emulator with API 21.
+     */
+    public static boolean isEmulator(int apiLevel) {
+        return Build.VERSION.SDK_INT == apiLevel && isEmulator();
     }
 
     /**

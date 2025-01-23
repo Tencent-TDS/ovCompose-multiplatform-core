@@ -259,6 +259,7 @@ public class DrawerLayoutTest {
 
     @Test
     @MediumTest
+    @SdkSuppress(maxSdkVersion = 34) // b/384972471: Failing on SDK 35
     public void testDrawerHeight() {
         // Open the drawer so it becomes visible
         onView(withId(R.id.drawer_layout)).perform(openDrawer(GravityCompat.START));

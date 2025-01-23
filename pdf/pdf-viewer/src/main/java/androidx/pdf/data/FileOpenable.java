@@ -21,11 +21,12 @@ import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.pdf.util.ErrorLog;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.util.Uris;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -52,8 +53,7 @@ public class FileOpenable implements Openable, Parcelable {
         return new File(fileUri.getPath());
     }
 
-    @Nullable
-    private final String mContentType;
+    private final @Nullable String mContentType;
 
     private final File mFile;
 
@@ -62,7 +62,8 @@ public class FileOpenable implements Openable, Parcelable {
      *
      * @throws FileNotFoundException If the file does not exist.
      */
-    public FileOpenable(File file, @Nullable String mimeType) throws FileNotFoundException {
+    public FileOpenable(@NonNull File file, @Nullable String mimeType)
+            throws FileNotFoundException {
         if (!file.exists()) {
             throw new FileNotFoundException("file does not exist");
         }
@@ -76,12 +77,12 @@ public class FileOpenable implements Openable, Parcelable {
      * @throws IllegalArgumentException If the Uri was not a 'file:' one.
      * @throws FileNotFoundException    If the file does not exist.
      */
-    public FileOpenable(Uri uri) throws FileNotFoundException {
+    public FileOpenable(@NonNull Uri uri) throws FileNotFoundException {
         this(getFile(uri), Uris.extractContentType(uri));
     }
 
     @Override
-    public Open openWith(Opener opener) throws IOException {
+    public @NonNull Open openWith(@NonNull Opener opener) throws IOException {
         return new Open() {
 
             @Override
@@ -107,8 +108,7 @@ public class FileOpenable implements Openable, Parcelable {
     }
 
     @Override
-    @Nullable
-    public String getContentType() {
+    public @Nullable String getContentType() {
         return mContentType;
     }
 
@@ -117,17 +117,17 @@ public class FileOpenable implements Openable, Parcelable {
         return mFile.length();
     }
 
-    public String getFileName() {
+    public @NonNull String getFileName() {
         return mFile.getName();
     }
 
-    public Uri getFileUri() {
+    public @NonNull Uri getFileUri() {
         return Uri.fromFile(mFile);
     }
 
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(mFile.getPath());
         dest.writeString(mContentType);
     }
@@ -139,13 +139,11 @@ public class FileOpenable implements Openable, Parcelable {
 
     public static final Creator<FileOpenable> CREATOR =
             new Creator<FileOpenable>() {
-                @Nullable
                 @Override
-                public FileOpenable createFromParcel(Parcel parcel) {
+                public @Nullable FileOpenable createFromParcel(Parcel parcel) {
                     try {
                         return new FileOpenable(makeFile(parcel.readString()), parcel.readString());
                     } catch (FileNotFoundException e) {
-                        ErrorLog.log(TAG, "File not found.", e);
                         return null;
                     }
                 }

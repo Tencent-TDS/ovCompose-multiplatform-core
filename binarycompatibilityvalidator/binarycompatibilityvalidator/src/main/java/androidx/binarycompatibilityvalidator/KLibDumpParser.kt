@@ -21,6 +21,7 @@
 
 package androidx.binarycompatibilityvalidator
 
+import java.io.File
 import org.jetbrains.kotlin.library.abi.AbiClass
 import org.jetbrains.kotlin.library.abi.AbiCompoundName
 import org.jetbrains.kotlin.library.abi.AbiDeclaration
@@ -29,6 +30,8 @@ import org.jetbrains.kotlin.library.abi.AbiFunction
 import org.jetbrains.kotlin.library.abi.AbiModality
 import org.jetbrains.kotlin.library.abi.AbiProperty
 import org.jetbrains.kotlin.library.abi.AbiQualifiedName
+import org.jetbrains.kotlin.library.abi.AbiSignatureVersion
+import org.jetbrains.kotlin.library.abi.AbiSignatures
 import org.jetbrains.kotlin.library.abi.ExperimentalLibraryAbiReader
 import org.jetbrains.kotlin.library.abi.LibraryAbi
 import org.jetbrains.kotlin.library.abi.LibraryManifest
@@ -37,33 +40,38 @@ import org.jetbrains.kotlin.library.abi.impl.AbiConstructorImpl
 import org.jetbrains.kotlin.library.abi.impl.AbiEnumEntryImpl
 import org.jetbrains.kotlin.library.abi.impl.AbiFunctionImpl
 import org.jetbrains.kotlin.library.abi.impl.AbiPropertyImpl
-import org.jetbrains.kotlin.library.abi.impl.AbiSignaturesImpl
 import org.jetbrains.kotlin.library.abi.impl.AbiTopLevelDeclarationsImpl
 import org.jetbrains.kotlin.library.abi.impl.AbiValueParameterImpl
 
 class MutableAbiInfo(
     val declarations: MutableList<AbiDeclaration> = mutableListOf(),
-    var uniqueName: String = ""
+    var uniqueName: String = "",
+    var signatureVersions: MutableSet<AbiSignatureVersion> = mutableSetOf()
 )
 
 @OptIn(ExperimentalLibraryAbiReader::class)
-class KlibDumpParser(klibDump: String) {
+class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
 
-    /** Cursor to keep track of current location within the dump **/
+    constructor(file: File) : this(file.readText(), file.path)
+
+    /** Cursor to keep track of current location within the dump */
     private val cursor = Cursor(klibDump)
-    /** The set of targets that the declarations being parsed belong to **/
+    /** The set of targets that the declarations being parsed belong to */
     private val currentTargetNames = mutableSetOf<String>()
     private val currentTargets: List<MutableAbiInfo>
-        get() = currentTargetNames.map {
-            abiInfoByTarget[it]
-                ?: throw IllegalStateException("Expected target $it to exist in map")
-        }
+        get() =
+            currentTargetNames.map {
+                abiInfoByTarget[it]
+                    ?: throw IllegalStateException("Expected target $it to exist in map")
+            }
+
     /**
-     * Map of all targets to the declarations that belong to them.
-     * Only update the [currentTargetNames] when parsing declarations.
-     **/
+     * Map of all targets to the declarations that belong to them. Only update the
+     * [currentTargetNames] when parsing declarations.
+     */
     private val abiInfoByTarget = mutableMapOf<String, MutableAbiInfo>()
-    /** Parse the klib dump tracked by [cursor] into a map of targets to [LibraryAbi]s **/
+
+    /** Parse the klib dump tracked by [cursor] into a map of targets to [LibraryAbi]s */
     fun parse(): Map<String, LibraryAbi> {
         while (cursor.hasNextRow()) {
             parseDeclaration(parentQualifiedName = null)?.let { abiDeclaration ->
@@ -74,46 +82,33 @@ class KlibDumpParser(klibDump: String) {
                 }
             }
         }
-        return abiInfoByTarget.map { (target, abiInfo) ->
-            target to LibraryAbi(
-                uniqueName = abiInfo.uniqueName,
-                signatureVersions = emptySet(),
-                topLevelDeclarations = AbiTopLevelDeclarationsImpl(abiInfo.declarations),
-                manifest = LibraryManifest(
-                    platform = target,
-                    // To be completed in follow up CLs. This information is currently not
-                    // considered when checking for compatibility
-                    nativeTargets = listOf(),
-                    compilerVersion = "",
-                    abiVersion = "",
-                    libraryVersion = "",
-                    irProviderName = ""
-                )
-            )
-        }.toMap()
+        return abiInfoByTarget
+            .map { (target, abiInfo) ->
+                target to
+                    LibraryAbi(
+                        uniqueName = abiInfo.uniqueName,
+                        signatureVersions = abiInfo.signatureVersions,
+                        topLevelDeclarations = AbiTopLevelDeclarationsImpl(abiInfo.declarations),
+                        manifest =
+                            LibraryManifest(
+                                platform = target,
+                                // To be completed in follow up CLs. This information is currently
+                                // not
+                                // considered when checking for compatibility
+                                platformTargets = listOf(),
+                                compilerVersion = "",
+                                abiVersion = "",
+                                irProviderName = ""
+                            )
+                    )
+            }
+            .toMap()
     }
 
     private fun parseDeclaration(parentQualifiedName: AbiQualifiedName?): AbiDeclaration? {
         // if the line begins with a comment, we may need to parse the current target list
-        if (cursor.parseSymbol("^\\/\\/") != null) {
-            if (cursor.parseSymbol("Targets: ") != null) {
-                // There are never targets within targets, so when we encounter a new directive we
-                // always reset our current targets
-                val targets = cursor.parseTargets()
-                targets.forEach {
-                    abiInfoByTarget.putIfAbsent(it, MutableAbiInfo())
-                }
-                currentTargetNames.clear()
-                currentTargetNames.addAll(targets)
-            } else if (cursor.parseSymbol("Library unique name: ") != null) {
-                cursor.parseSymbol("<")
-                val uniqueName = cursor.parseSymbol("[a-zA-Z\\-\\.:]+")
-                    ?: throw ParseException(cursor, "Failed to parse library unique name")
-                currentTargets.forEach {
-                    it.uniqueName = uniqueName
-                }
-            }
-            cursor.nextLine()
+        if (cursor.parseCommentMarker() != null) {
+            parseCommentLine()
         } else if (cursor.hasClassKind()) {
             return parseClass(parentQualifiedName)
         } else if (cursor.hasFunctionKind()) {
@@ -125,35 +120,57 @@ class KlibDumpParser(klibDump: String) {
         } else if (cursor.currentLine.isBlank()) {
             cursor.nextLine()
         } else {
-            throw ParseException(cursor, "Unknown declaration")
+            throw parseException("Failed to parse unknown declaration")
         }
         return null
     }
 
+    private fun parseCommentLine() {
+        if (cursor.hasTargets()) {
+            // There are never targets within targets, so when we encounter a new directive we
+            // always reset our current targets
+            val targets = cursor.parseTargets()
+            targets.forEach { abiInfoByTarget.putIfAbsent(it, MutableAbiInfo()) }
+            currentTargetNames.clear()
+            currentTargetNames.addAll(targets)
+        } else if (cursor.hasUniqueName()) {
+            val uniqueName =
+                cursor.parseUniqueName()
+                    ?: throw parseException("Failed to parse library unique name")
+            currentTargets.forEach { it.uniqueName = uniqueName }
+        } else if (cursor.hasSignatureVersion()) {
+            val signatureVersion =
+                cursor.parseSignatureVersion()
+                    ?: throw parseException("Failed to parse signature version")
+            currentTargets.forEach { it.signatureVersions.add(signatureVersion) }
+        }
+        cursor.nextLine()
+    }
+
     internal fun parseClass(parentQualifiedName: AbiQualifiedName? = null): AbiClass {
-        val modality = cursor.parseAbiModality()
-            ?: throw ParseException(cursor, "Failed to parse class modality")
+        val modality =
+            cursor.parseAbiModality() ?: throw parseException("Failed to parse class modality")
         val modifiers = cursor.parseClassModifiers()
         val isInner = modifiers.contains("inner")
         val isValue = modifiers.contains("value")
         val isFunction = modifiers.contains("fun")
-        val kind = cursor.parseClassKind()
-            ?: throw ParseException(cursor, "Failed to parse class kind")
+        val kind = cursor.parseClassKind() ?: throw parseException("Failed to parse class kind")
         val typeParams = cursor.parseTypeParams() ?: emptyList()
         // if we are a nested class the name won't be qualified and we will need to use the
         // [parentQualifiedName] to complete it
         val abiQualifiedName = parseAbiQualifiedName(parentQualifiedName)
         val superTypes = cursor.parseSuperTypes()
 
-        val childDeclarations = if (cursor.parseSymbol("^\\{") != null) {
-            cursor.nextLine()
-            parseChildDeclarations(abiQualifiedName)
-        } else {
-            emptyList()
-        }
+        val childDeclarations =
+            if (cursor.parseOpenClassBody() != null) {
+                cursor.nextLine()
+                parseChildDeclarations(abiQualifiedName)
+            } else {
+                emptyList()
+            }
         return AbiClassImpl(
             qualifiedName = abiQualifiedName,
-            signatures = fakeSignatures,
+            signatures = signaturesStub,
             annotations = emptySet(), // annotations aren't part of klib dumps
             modality = modality,
             kind = kind,
@@ -174,20 +191,21 @@ class KlibDumpParser(klibDump: String) {
         val isConstructor = cursor.parseFunctionKind(peek = true) == "constructor"
         return when {
             isConstructor -> parseConstructor(parentQualifiedName)
-            else -> parseNonConstructorFunction(
-                parentQualifiedName,
-                isGetterOrSetter,
-                modality
-                    ?: throw ParseException(cursor, "Non constructor function must have modality"),
-            )
+            else ->
+                parseNonConstructorFunction(
+                    parentQualifiedName,
+                    isGetterOrSetter,
+                    modality ?: throw parseException("Non constructor function must have modality"),
+                )
         }
     }
 
     internal fun parseProperty(parentQualifiedName: AbiQualifiedName? = null): AbiProperty {
-        val modality = cursor.parseAbiModality()
-            ?: throw ParseException(cursor, "Unable to parse modality for property")
-        val kind = cursor.parsePropertyKind()
-            ?: throw ParseException(cursor, "Unable to parse kind for property")
+        val modality =
+            cursor.parseAbiModality()
+                ?: throw parseException("Unable to parse modality for property")
+        val kind =
+            cursor.parsePropertyKind() ?: throw parseException("Unable to parse kind for property")
         val qualifiedName = parseAbiQualifiedName(parentQualifiedName)
 
         cursor.nextLine()
@@ -205,44 +223,40 @@ class KlibDumpParser(klibDump: String) {
         }
         return AbiPropertyImpl(
             qualifiedName = qualifiedName,
-            signatures = fakeSignatures,
+            signatures = signaturesStub,
             annotations = emptySet(), // annotations aren't part of klib dumps
             modality = modality,
             kind = kind,
             getter = getter,
             setter = setter,
+            backingField = null
         )
     }
 
     internal fun parseEnumEntry(parentQualifiedName: AbiQualifiedName?): AbiEnumEntry {
         cursor.parseEnumEntryKind()
-        val enumName = cursor.parseEnumName()
-            ?: throw ParseException(cursor, "Failed to parse enum name")
-        val relativeName = parentQualifiedName?.let {
-            it.relativeName.value + "." + enumName
-        } ?: throw ParseException(cursor, "Enum entry must have parent qualified name")
-        val qualifiedName = AbiQualifiedName(
-            parentQualifiedName.packageName,
-            AbiCompoundName(
-                relativeName
-            )
-        )
+        val enumName = cursor.parseEnumName() ?: throw parseException("Failed to parse enum name")
+        val relativeName =
+            parentQualifiedName?.let { it.relativeName.value + "." + enumName }
+                ?: throw parseException("Enum entry must have parent qualified name")
+        val qualifiedName =
+            AbiQualifiedName(parentQualifiedName.packageName, AbiCompoundName(relativeName))
         cursor.nextLine()
         return AbiEnumEntryImpl(
             qualifiedName = qualifiedName,
-            signatures = fakeSignatures,
+            signatures = signaturesStub,
             annotations = emptySet()
         )
     }
 
-    /** Parse all declarations which belong to a parent such as a class **/
+    /** Parse all declarations which belong to a parent such as a class */
     private fun parseChildDeclarations(
         parentQualifiedName: AbiQualifiedName?
     ): List<AbiDeclaration> {
         val childDeclarations = mutableListOf<AbiDeclaration>()
         // end of parent container is marked by a closing bracket, collect all declarations
         // until we see one.
-        while (cursor.parseSymbol("^(\\s+)?\\}", peek = true) == null) {
+        while (cursor.parseCloseClassBody(peek = true) == null) {
             parseDeclaration(parentQualifiedName)?.let { childDeclarations.add(it) }
         }
         cursor.nextLine()
@@ -260,30 +274,33 @@ class KlibDumpParser(klibDump: String) {
         cursor.parseFunctionKind()
         val typeParams = cursor.parseTypeParams() ?: emptyList()
         val functionReceiver = cursor.parseFunctionReceiver()
-        val abiQualifiedName = if (isGetterOrSetter) {
-            parseAbiQualifiedNameForGetterOrSetter(parentQualifiedName)
-        } else {
-            parseAbiQualifiedName(parentQualifiedName)
-        }
-        val valueParameters = cursor.parseValueParameters()
-            ?: throw ParseException(cursor, "Couldn't parse value params")
-        val allValueParameters = if (null != functionReceiver) {
-            val functionReceiverAsValueParam = AbiValueParameterImpl(
-                type = functionReceiver,
-                isVararg = false,
-                hasDefaultArg = false,
-                isNoinline = false,
-                isCrossinline = false
-            )
-            listOf(functionReceiverAsValueParam) + valueParameters
-        } else {
-            valueParameters
-        }
+        val abiQualifiedName =
+            if (isGetterOrSetter) {
+                parseAbiQualifiedNameForGetterOrSetter(parentQualifiedName)
+            } else {
+                parseAbiQualifiedName(parentQualifiedName)
+            }
+        val valueParameters =
+            cursor.parseValueParameters() ?: throw parseException("Couldn't parse value params")
+        val allValueParameters =
+            if (null != functionReceiver) {
+                val functionReceiverAsValueParam =
+                    AbiValueParameterImpl(
+                        type = functionReceiver,
+                        isVararg = false,
+                        hasDefaultArg = false,
+                        isNoinline = false,
+                        isCrossinline = false
+                    )
+                listOf(functionReceiverAsValueParam) + valueParameters
+            } else {
+                valueParameters
+            }
         val returnType = cursor.parseReturnType()
         cursor.nextLine()
         return AbiFunctionImpl(
             qualifiedName = abiQualifiedName,
-            signatures = fakeSignatures,
+            signatures = signaturesStub,
             annotations = emptySet(), // annotations aren't part of klib dumps
             modality = modality,
             isInline = isInline,
@@ -297,20 +314,21 @@ class KlibDumpParser(klibDump: String) {
     }
 
     private fun parseConstructor(parentQualifiedName: AbiQualifiedName?): AbiFunction {
-        val abiQualifiedName = parentQualifiedName?.let {
-            AbiQualifiedName(
-                parentQualifiedName.packageName,
-                AbiCompoundName(parentQualifiedName.relativeName.value + ".<init>")
-            )
-        } ?: throw ParseException(cursor, "Cannot parse constructor outside of class context")
-        cursor.parseSymbol("constructor")
-        cursor.parseSymbol("<init>")
-        val valueParameters = cursor.parseValueParameters()
-            ?: throw ParseException(cursor, "Couldn't parse value parameters for constructor")
+        val abiQualifiedName =
+            parentQualifiedName?.let {
+                AbiQualifiedName(
+                    parentQualifiedName.packageName,
+                    AbiCompoundName(parentQualifiedName.relativeName.value + ".<init>")
+                )
+            } ?: throw parseException("Cannot parse constructor outside of class context")
+        cursor.parseConstructorName()
+        val valueParameters =
+            cursor.parseValueParameters()
+                ?: throw parseException("Couldn't parse value parameters for constructor")
         cursor.nextLine()
         return AbiConstructorImpl(
             qualifiedName = abiQualifiedName,
-            signatures = fakeSignatures,
+            signatures = signaturesStub,
             annotations = emptySet(), // annotations aren't part of klib dumps
             isInline = false, // TODO
             contextReceiverParametersCount = 0, // TODO
@@ -318,24 +336,17 @@ class KlibDumpParser(klibDump: String) {
         )
     }
 
-    private fun parseAbiQualifiedName(
-        parentQualifiedName: AbiQualifiedName?
-    ): AbiQualifiedName {
+    private fun parseAbiQualifiedName(parentQualifiedName: AbiQualifiedName?): AbiQualifiedName {
         val hasQualifiedName = cursor.parseAbiQualifiedName(peek = true) != null
         return if (hasQualifiedName) {
             cursor.parseAbiQualifiedName()!!
         } else {
             if (parentQualifiedName == null) {
-                throw ParseException(cursor, "Failed to parse qName")
+                throw parseException("Failed to parse qName")
             }
             val identifier = cursor.parseValidIdentifier()
             val relativeName = parentQualifiedName.relativeName.value + "." + identifier
-            return AbiQualifiedName(
-                parentQualifiedName.packageName,
-                AbiCompoundName(
-                    relativeName
-                )
-            )
+            return AbiQualifiedName(parentQualifiedName.packageName, AbiCompoundName(relativeName))
         }
     }
 
@@ -343,30 +354,29 @@ class KlibDumpParser(klibDump: String) {
         parentQualifiedName: AbiQualifiedName?
     ): AbiQualifiedName {
         if (parentQualifiedName == null) {
-            throw ParseException(cursor, "Failed to parse qName")
+            throw parseException("Failed to parse qName")
         }
-        val identifier = cursor.parseGetterOrSetterName()
-            ?: throw ParseException(cursor, "Failed to parse qName")
+        val identifier =
+            cursor.parseGetterOrSetterName() ?: throw parseException("Failed to parse qName")
         val relativeName = parentQualifiedName.relativeName.value + "." + identifier
-        return AbiQualifiedName(
-            parentQualifiedName.packageName,
-            AbiCompoundName(
-                relativeName
-            )
-        )
+        return AbiQualifiedName(parentQualifiedName.packageName, AbiCompoundName(relativeName))
     }
 
-    companion object {
-        // placeholder signatures, currently not considered during parsing / compatibility checking
-        // https://github.com/JetBrains/kotlin/blob/master/compiler/util-klib-abi/ReadMe.md
-        private val fakeSignatures = AbiSignaturesImpl(
-            signatureV1 = null,
-            signatureV2 = null
-        )
+    private fun parseException(message: String): ParseException =
+        ParseException(formatErrorMessage(message))
+
+    private fun formatErrorMessage(message: String): String {
+        val maybeFileName = fileName?.let { "$it:" } ?: ""
+        val location = "$maybeFileName${cursor.rowIndex}:${cursor.columnIndex}"
+        return "$message at $location: '${cursor.currentLine}'"
     }
 }
 
-/** Exception which uses the cursor to include the location of the failure **/
-class ParseException(cursor: Cursor, message: String) : RuntimeException(
-    "$message ${cursor.rowIndex + 1}: ${cursor.currentLine}"
-)
+/** Exception which uses the cursor to include the location of the failure */
+class ParseException(message: String) : RuntimeException(message)
+
+/** Signature implementation relies on internal rendering which we can't access and don't need */
+val signaturesStub =
+    object : AbiSignatures {
+        override operator fun get(signatureVersion: AbiSignatureVersion): String? = null
+    }

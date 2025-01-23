@@ -18,14 +18,12 @@ package androidx.room.vo
 
 import androidx.room.compiler.processing.XType
 
-/**
- * Value object created from processing a @Relation annotation.
- */
+/** Value object created from processing a @Relation annotation. */
 class Relation(
     val entity: EntityOrView,
     // return type. e..g. String in @Relation List<String>
-    val pojoType: XType,
-    // field in Pojo that holds these relations (e.g. List<Pet> pets)
+    val dataClassType: XType,
+    // field in data class that holds these relations (e.g. List<Pet> pets)
     val field: Field,
     // the parent field referenced for matching
     val parentField: Field,
@@ -37,7 +35,7 @@ class Relation(
     // the projection for the query
     val projection: List<String>
 ) {
-    val pojoTypeName by lazy { pojoType.asTypeName() }
+    val dataClassTypeName by lazy { dataClassType.asTypeName() }
 
     fun createLoadAllSql(): String {
         val resultFields = projection.toSet()
@@ -46,8 +44,9 @@ class Relation(
 
     private fun createSelect(resultFields: Set<String>) = buildString {
         if (junction != null) {
-            val resultColumns = resultFields.map { "`${entity.tableName}`.`$it` AS `$it`" } +
-                "_junction.`${junction.parentField.columnName}`"
+            val resultColumns =
+                resultFields.map { "`${entity.tableName}`.`$it` AS `$it`" } +
+                    "_junction.`${junction.parentField.columnName}`"
             append("SELECT ${resultColumns.joinToString(",")}")
             append(" FROM `${junction.entity.tableName}` AS _junction")
             append(

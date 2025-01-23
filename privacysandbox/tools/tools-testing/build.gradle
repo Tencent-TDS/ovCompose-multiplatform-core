@@ -33,7 +33,7 @@ dependencies {
     api(libs.kspApi)
     api(libs.junit)
     api(libs.truth)
-    implementation project(":room:room-compiler-processing-testing")
+    implementation(project(":room:room-compiler-processing-testing"))
 }
 
 androidx {

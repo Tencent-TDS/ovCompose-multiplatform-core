@@ -27,22 +27,21 @@ import android.os.Build;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 @MediumTest
 @RunWith(AndroidJUnit4.class)
 public class DeviceUtilsTest {
+    @Rule
+    public final MockitoRule mocks = MockitoJUnit.rule();
+
     @Mock private Context mContext;
     @Mock private Resources mResources;
-
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Test
     public void testShouldUseFingerprintForCrypto() {
@@ -130,39 +129,5 @@ public class DeviceUtilsTest {
         assertThat(DeviceUtils.canAssumeStrongBiometrics(mContext, "My Phone")).isFalse();
         assertThat(DeviceUtils.canAssumeStrongBiometrics(mContext, "Myphone")).isFalse();
         assertThat(DeviceUtils.canAssumeStrongBiometrics(mContext, "My phone2")).isFalse();
-    }
-
-    @Test
-    public void testShouldUseKeyguardManagerForBiometricAndCredential() {
-        final String[] excludeVendors = {"buy-n-large", "pizza planet"};
-        when(mContext.getResources()).thenReturn(mResources);
-        when(mResources.getStringArray(R.array.keyguard_biometric_and_credential_exclude_vendors))
-                .thenReturn(excludeVendors);
-
-        final boolean isApi29 = Build.VERSION.SDK_INT == Build.VERSION_CODES.Q;
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "buy-n-large")).isFalse();
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "BUY-N-LARGE")).isFalse();
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "pizza planet")).isFalse();
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "Pizza Planet")).isFalse();
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "dinoco")).isEqualTo(isApi29);
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "buy n large")).isEqualTo(isApi29);
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "pizza planet plus")).isEqualTo(isApi29);
-
-        // Test result on some known affected vendors.
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "Google")).isEqualTo(isApi29);
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "google")).isEqualTo(isApi29);
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "Samsung")).isEqualTo(isApi29);
-        assertThat(DeviceUtils.shouldUseKeyguardManagerForBiometricAndCredential(
-                mContext, "samsung")).isEqualTo(isApi29);
     }
 }

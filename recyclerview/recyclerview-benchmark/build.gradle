@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.LibraryType
+
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
@@ -34,6 +36,10 @@ dependencies {
 }
 
 android {
-    namespace "androidx.recyclerview.benchmark"
+    compileSdk = 35
+    namespace = "androidx.recyclerview.benchmark"
 }
 
+androidx {
+    type = LibraryType.BENCHMARK
+}

@@ -17,13 +17,13 @@
 package androidx.camera.video;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -37,7 +37,6 @@ import java.util.Set;
  *
  * <p>The audio information will be contained in every {@link RecordingStats}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class AudioStats {
 
@@ -46,8 +45,7 @@ public abstract class AudioStats {
 
     }
 
-    @NonNull
-    static AudioStats of(@AudioState int state, @Nullable Throwable errorCause,
+    static @NonNull AudioStats of(@AudioState int state, @Nullable Throwable errorCause,
             double audioAmplitude) {
         return new AutoValue_AudioStats(state, audioAmplitude, errorCause);
     }
@@ -163,8 +161,7 @@ public abstract class AudioStats {
      *
      * <p>Returns {@code null} if {@link #hasError()} returns {@code false}.
      */
-    @Nullable
-    public abstract Throwable getErrorCause();
+    public abstract @Nullable Throwable getErrorCause();
 
     /**
      * Returns the maximum absolute amplitude of the audio most recently sampled in the past 2

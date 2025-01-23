@@ -21,19 +21,18 @@ import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureFailure;
 import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.TagBundle;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * An adapter that passes {@link CameraCaptureSession.CaptureCallback} to {@link
  * CameraCaptureCallback}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class CaptureCallbackAdapter extends CameraCaptureSession.CaptureCallback {
 
     private final CameraCaptureCallback mCameraCaptureCallback;

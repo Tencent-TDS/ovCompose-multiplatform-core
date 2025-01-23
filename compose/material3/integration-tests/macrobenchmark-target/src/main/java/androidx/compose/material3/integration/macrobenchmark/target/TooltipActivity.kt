@@ -37,23 +37,16 @@ class TooltipActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             TooltipBox(
-                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
                 tooltip = {
-                    PlainTooltip(
-                        caretSize = TooltipDefaults.caretSize
-                    ) {
+                    PlainTooltip(caretSize = TooltipDefaults.caretSize) {
                         Text("Tooltip Description")
                     }
                 },
                 state = rememberTooltipState()
             ) {
-                IconButton(
-                    onClick = { /* Icon button's click event */ }
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = "tooltipAnchor"
-                    )
+                IconButton(onClick = { /* Icon button's click event */ }) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "tooltipAnchor")
                 }
             }
         }

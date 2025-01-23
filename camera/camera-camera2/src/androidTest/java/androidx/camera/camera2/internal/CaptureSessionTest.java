@@ -65,8 +65,6 @@ import android.os.Looper;
 import android.util.Range;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
@@ -106,6 +104,8 @@ import androidx.test.filters.SdkSuppress;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.AssumptionViolatedException;
@@ -146,7 +146,6 @@ import java.util.concurrent.atomic.AtomicLong;
 @LargeTest
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = 21)
-@RequiresApi(21)
 public final class CaptureSessionTest {
 
     // Enumerate possible SDR transfer functions. This may need to be updated if more transfer
@@ -194,7 +193,7 @@ public final class CaptureSessionTest {
 
     @Rule
     public TestRule getUseCameraRule() {
-        return CameraUtil.grantCameraPermissionAndPreTest(
+        return CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
                 new CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
         );
     }
@@ -652,8 +651,7 @@ public final class CaptureSessionTest {
         assertThat(useCountAfterNewCaptureSessionConfigured).isEqualTo(useCountBeforeOpen);
     }
 
-    @NonNull
-    private CaptureSession createSessionAndWaitOpened(
+    private @NonNull CaptureSession createSessionAndWaitOpened(
             @NonNull CaptureSessionTestParameters parameters, long waitTimeout) {
         CaptureSession captureSession = createCaptureSession();
         captureSession.setSessionConfig(parameters.mSessionConfig);
@@ -1131,8 +1129,7 @@ public final class CaptureSessionTest {
         return captureSession;
     }
 
-    @NonNull
-    private DeferrableSurface createSurfaceTextureDeferrableSurface() {
+    private @NonNull DeferrableSurface createSurfaceTextureDeferrableSurface() {
         SurfaceTexture surfaceTexture = new SurfaceTexture(0);
         surfaceTexture.setDefaultBufferSize(640, 480);
         surfaceTexture.detachFromGLContext();
@@ -1601,16 +1598,15 @@ public final class CaptureSessionTest {
         CountDownLatch latch0 = new CountDownLatch(1);
         AtomicInteger dataSpace = new AtomicInteger(DataSpace.DATASPACE_UNKNOWN);
         ListenableFuture<SurfaceTextureProvider.SurfaceTextureHolder> surfaceTextureHolderFuture =
-                SurfaceTextureProvider.createAutoDrainingSurfaceTextureAsync(mExecutor, 640, 480,
+                SurfaceTextureProvider.createAutoDrainingSurfaceTextureAsync(640, 480,
                         surfaceTexture -> {
                             dataSpace.set(surfaceTexture.getDataSpace());
                             latch0.countDown();
-                        }, /* onClosed= */null);
+                        });
 
         DeferrableSurface deferrableSurface = new DeferrableSurface() {
-            @NonNull
             @Override
-            protected ListenableFuture<Surface> provideSurface() {
+            protected @NonNull ListenableFuture<Surface> provideSurface() {
                 return Futures.transform(surfaceTextureHolderFuture,
                         surfaceTextureHolder -> {
                             Surface surface = new Surface(surfaceTextureHolder.getSurfaceTexture());
@@ -1626,7 +1622,7 @@ public final class CaptureSessionTest {
                         new FutureCallback<SurfaceTextureProvider.SurfaceTextureHolder>() {
                             @Override
                             public void onSuccess(
-                                    @Nullable SurfaceTextureProvider.SurfaceTextureHolder result) {
+                                    SurfaceTextureProvider.@Nullable SurfaceTextureHolder result) {
                                 try {
                                     Preconditions.checkNotNull(result).close();
                                 } catch (Exception e) {
@@ -1690,35 +1686,32 @@ public final class CaptureSessionTest {
         final SynchronizedCaptureSession.Opener mMock = mock(
                 SynchronizedCaptureSession.Opener.class);
 
-        @NonNull
         @Override
-        public ListenableFuture<Void> openCaptureSession(@NonNull CameraDevice cameraDevice,
+        public @NonNull ListenableFuture<Void> openCaptureSession(
+                @NonNull CameraDevice cameraDevice,
                 @NonNull SessionConfigurationCompat sessionConfigurationCompat,
                 @NonNull List<DeferrableSurface> deferrableSurfaces) {
             mMock.openCaptureSession(cameraDevice, sessionConfigurationCompat, deferrableSurfaces);
             return Futures.immediateFuture(null);
         }
 
-        @NonNull
         @Override
-        public SessionConfigurationCompat createSessionConfigurationCompat(int sessionType,
+        public @NonNull SessionConfigurationCompat createSessionConfigurationCompat(int sessionType,
                 @NonNull List<OutputConfigurationCompat> outputsCompat,
-                @NonNull SynchronizedCaptureSession.StateCallback stateCallback) {
+                SynchronizedCaptureSession.@NonNull StateCallback stateCallback) {
             mMock.createSessionConfigurationCompat(sessionType, outputsCompat, stateCallback);
             return new SessionConfigurationCompat(sessionType, outputsCompat, getExecutor(),
                     mock(CameraCaptureSession.StateCallback.class));
         }
 
-        @NonNull
         @Override
-        public Executor getExecutor() {
+        public @NonNull Executor getExecutor() {
             mMock.getExecutor();
             return CameraXExecutors.directExecutor();
         }
 
-        @NonNull
         @Override
-        public ListenableFuture<List<Surface>> startWithDeferrableSurface(
+        public @NonNull ListenableFuture<List<Surface>> startWithDeferrableSurface(
                 @NonNull List<DeferrableSurface> deferrableSurfaces, long timeout) {
             mMock.startWithDeferrableSurface(deferrableSurfaces, timeout);
             List<ListenableFuture<Surface>> listenableFutureSurfaces = new ArrayList<>();

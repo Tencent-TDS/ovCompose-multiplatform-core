@@ -18,10 +18,10 @@ package androidx.camera.core.internal.utils;
 
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.utils.CompareSizesByArea;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +31,6 @@ import java.util.TreeMap;
 /**
  * Utility class for size related operations.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class SizeUtil {
     public static final Size RESOLUTION_ZERO = new Size(0, 0);
     public static final Size RESOLUTION_QVGA = new Size(320, 240);
@@ -79,8 +78,7 @@ public final class SizeUtil {
      * Returns the size which has the max area in the input size list. Returns null if the input
      * size list is empty.
      */
-    @Nullable
-    public static Size getMaxSize(@NonNull List<Size> sizeList) {
+    public static @Nullable Size getMaxSize(@NonNull List<Size> sizeList) {
         if (sizeList.isEmpty()) {
             return null;
         }
@@ -89,8 +87,7 @@ public final class SizeUtil {
     }
 
     /** Returns the nearest higher entry value from a area sorted map and an input size. */
-    @Nullable
-    public static <T> T findNearestHigherFor(@NonNull Size size,
+    public static <T> @Nullable T findNearestHigherFor(@NonNull Size size,
             @NonNull TreeMap<Size, T> areaSortedSizeMap) {
         Map.Entry<Size, T> ceilEntry = areaSortedSizeMap.ceilingEntry(size);
 

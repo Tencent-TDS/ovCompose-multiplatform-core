@@ -36,10 +36,10 @@ import android.hardware.camera2.CameraMetadata;
 import android.os.Build;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
 import androidx.camera.camera2.internal.SupportedSurfaceCombination.FeatureSettings;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
+import androidx.camera.core.CompositionSettings;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.UseCase;
@@ -64,6 +64,7 @@ import androidx.concurrent.futures.ResolvableFuture;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,9 +96,8 @@ public class StreamUseCaseTest {
     DeferrableSurface mMockSurface1 = new DeferrableSurface() {
         private final ListenableFuture<Surface> mSurfaceFuture = ResolvableFuture.create();
 
-        @NonNull
         @Override
-        protected ListenableFuture<Surface> provideSurface() {
+        protected @NonNull ListenableFuture<Surface> provideSurface() {
             // Return a never complete future.
             return mSurfaceFuture;
         }
@@ -106,9 +106,8 @@ public class StreamUseCaseTest {
     DeferrableSurface mMockSurface2 = new DeferrableSurface() {
         private final ListenableFuture<Surface> mSurfaceFuture = ResolvableFuture.create();
 
-        @NonNull
         @Override
-        protected ListenableFuture<Surface> provideSurface() {
+        protected @NonNull ListenableFuture<Surface> provideSurface() {
             // Return a never complete future.
             return mSurfaceFuture;
         }
@@ -241,7 +240,8 @@ public class StreamUseCaseTest {
                 CameraMode.CONCURRENT_CAMERA,
                 BIT_DEPTH_8_BIT,
                 /*isPreviewStabilizationOn=*/false,
-                /*isUltraHdrOn=*/ false
+                /*isUltraHdrOn=*/ false,
+                /*isHighSpeedOn=*/ false
         );
         assertFalse(shouldUseStreamUseCase(featureSettings));
     }
@@ -252,7 +252,8 @@ public class StreamUseCaseTest {
                 CameraMode.DEFAULT,
                 BIT_DEPTH_10_BIT,
                 /*isPreviewStabilizationOn=*/false,
-                /*isUltraHdrOn=*/ false
+                /*isUltraHdrOn=*/ false,
+                /*isHighSpeedOn=*/ false
         );
         assertFalse(shouldUseStreamUseCase(featureSettings));
     }
@@ -402,7 +403,7 @@ public class StreamUseCaseTest {
         surfaceConfigAttachedSurfaceInfoMap.put(0,
                 getFakeAttachedSurfaceInfo(false, false, false,
                         UseCaseConfigFactory.CaptureType.PREVIEW, ImageFormat.PRIVATE));
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         surfaceConfigUseCaseConfigMap.put(1,
                 getFakeUseCaseConfigWithOptions(false, false, false,
@@ -431,7 +432,7 @@ public class StreamUseCaseTest {
         surfaceConfigAttachedSurfaceInfoMap.put(0,
                 getFakeAttachedSurfaceInfo(false, false, false,
                         UseCaseConfigFactory.CaptureType.PREVIEW, ImageFormat.PRIVATE));
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         surfaceConfigUseCaseConfigMap.put(1,
                 getFakeUseCaseConfigWithOptions(false, false, false,
@@ -457,7 +458,7 @@ public class StreamUseCaseTest {
                 SurfaceConfig.ConfigType.PRIV, SurfaceConfig.ConfigSize.RECORD));
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         surfaceConfigUseCaseConfigMap.put(1,
                 getFakeUseCaseConfigWithOptions(false, false, false,
@@ -481,11 +482,12 @@ public class StreamUseCaseTest {
                 UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE));
         children.add(new FakeUseCase(new FakeUseCaseConfig.Builder().getUseCaseConfig(),
                 UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE));
-        StreamSharing streamSharing = new StreamSharing(new FakeCamera(), children,
+        StreamSharing streamSharing = new StreamSharing(new FakeCamera(), null,
+                CompositionSettings.DEFAULT, CompositionSettings.DEFAULT, children,
                 useCaseConfigFactory);
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         surfaceConfigUseCaseConfigMap.put(0,
                 streamSharing.getDefaultConfig(true, useCaseConfigFactory));
@@ -502,7 +504,7 @@ public class StreamUseCaseTest {
                 CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_VIDEO_RECORD));
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         List<UseCaseConfigFactory.CaptureType> captureTypes = new ArrayList<>();
         captureTypes.add(UseCaseConfigFactory.CaptureType.PREVIEW);
@@ -531,7 +533,7 @@ public class StreamUseCaseTest {
                 CameraMetadata.SCALER_AVAILABLE_STREAM_USE_CASES_VIDEO_RECORD));
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         List<UseCaseConfigFactory.CaptureType> captureTypes = new ArrayList<>();
         captureTypes.add(UseCaseConfigFactory.CaptureType.PREVIEW);
@@ -572,12 +574,12 @@ public class StreamUseCaseTest {
         AttachedSurfaceInfo attachedSurfaceInfo = getFakeAttachedSurfaceInfo(false, false, false,
                 UseCaseConfigFactory.CaptureType.PREVIEW, ImageFormat.PRIVATE);
         surfaceConfigAttachedSurfaceInfoMap.put(0, attachedSurfaceInfo);
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         UseCaseConfig<?> useCaseConfig = getFakeUseCaseConfigWithOptions(false, false, false,
                 UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE, ImageFormat.PRIVATE);
         surfaceConfigUseCaseConfigMap.put(1, useCaseConfig);
-        @NonNull Map<AttachedSurfaceInfo, StreamSpec> attachedSurfaceStreamSpecMap =
+        Map<AttachedSurfaceInfo, StreamSpec> attachedSurfaceStreamSpecMap =
                 new HashMap<>();
         Map<UseCaseConfig<?>, StreamSpec> suggestedStreamSpecMap = new HashMap<>();
         suggestedStreamSpecMap.put(useCaseConfig,
@@ -614,12 +616,12 @@ public class StreamUseCaseTest {
                 SurfaceConfig.ConfigType.PRIV, SurfaceConfig.ConfigSize.RECORD));
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();
-        @NonNull Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
+        Map<Integer, UseCaseConfig<?>> surfaceConfigUseCaseConfigMap =
                 new HashMap<>();
         UseCaseConfig<?> useCaseConfig = getFakeUseCaseConfigWithOptions(false, false, false,
                 UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE, ImageFormat.PRIVATE);
         surfaceConfigUseCaseConfigMap.put(1, useCaseConfig);
-        @NonNull Map<AttachedSurfaceInfo, StreamSpec> attachedSurfaceStreamSpecMap =
+        Map<AttachedSurfaceInfo, StreamSpec> attachedSurfaceStreamSpecMap =
                 new HashMap<>();
         Map<UseCaseConfig<?>, StreamSpec> suggestedStreamSpecMap = new HashMap<>();
         suggestedStreamSpecMap.put(useCaseConfig,

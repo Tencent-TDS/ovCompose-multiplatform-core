@@ -20,6 +20,8 @@ import android.view.View;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * A single toast that can be shown and hidden any number of times. Showing it when it is already
  * shown just makes it stay for longer. It hides automatically.
@@ -31,11 +33,11 @@ public class ReusableToast {
 
     private int mAutoHideDelayMs = 1000;
 
-    public ReusableToast(View view) {
+    public ReusableToast(@NonNull View view) {
         this.mView = view;
     }
 
-    public View getView() {
+    public @NonNull View getView() {
         return mView;
     }
 

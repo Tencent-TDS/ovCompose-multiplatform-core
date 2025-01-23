@@ -23,6 +23,7 @@
  */
 
 
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -54,19 +55,18 @@ android {
             root = 'src/androidMain'
         }
     }
-    defaultConfig {
-        multiDexEnabled true
-    }
     buildFeatures {
         aidl = true
     }
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
         stableAidl {
-            version 1
+            version = 1
         }
     }
-    namespace "androidx.room"
+    namespace = "androidx.room"
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidXMultiplatform {
@@ -107,9 +107,9 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api(project(":room:room-common"))
                 api(project(":sqlite:sqlite"))
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.collection:collection:1.4.2")
+                api("androidx.annotation:annotation:1.8.1")
                 api(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
             }
         }
         commonTest {
@@ -142,7 +142,6 @@ androidXMultiplatform {
                 api(project(":sqlite:sqlite-framework"))
                 api(libs.kotlinCoroutinesAndroid)
                 implementation("androidx.arch.core:core-runtime:2.2.0")
-                compileOnly("androidx.collection:collection:1.2.0")
                 compileOnly("androidx.lifecycle:lifecycle-livedata-core:2.0.0")
                 compileOnly("androidx.paging:paging-common:2.0.0")
                 implementation("androidx.annotation:annotation-experimental:1.4.1")
@@ -180,6 +179,7 @@ androidXMultiplatform {
             dependsOn(jvmNativeMain)
             dependencies {
                 api(project(":sqlite:sqlite-framework"))
+                implementation(libs.atomicFu)
             }
         }
         nativeTest {
@@ -189,7 +189,7 @@ androidXMultiplatform {
                 implementation(libs.okio)
             }
         }
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
@@ -224,4 +224,13 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room-Runtime"
+    legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    // TODO: b/326456246
+    optOutJSpecify = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+ksp {
+    useKsp2 = true
 }

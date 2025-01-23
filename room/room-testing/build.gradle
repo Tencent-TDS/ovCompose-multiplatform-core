@@ -22,6 +22,8 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -76,7 +78,7 @@ androidXMultiplatform {
                 implementation(libs.okio)
             }
         }
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
@@ -95,4 +97,7 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room Testing"
+    legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

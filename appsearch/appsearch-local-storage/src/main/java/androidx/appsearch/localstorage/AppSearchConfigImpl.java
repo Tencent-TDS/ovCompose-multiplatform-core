@@ -16,8 +16,11 @@
 // @exportToFramework:copyToPath(../../../cts/tests/appsearch/testutils/src/android/app/appsearch/testutil/external/AppSearchConfigImpl.java)
 package androidx.appsearch.localstorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import com.google.android.icing.proto.PersistType;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An implementation of AppSearchConfig that returns configurations based what is specified in
@@ -29,23 +32,27 @@ public class AppSearchConfigImpl implements AppSearchConfig {
     private final IcingOptionsConfig mIcingOptionsConfig;
     private final boolean mStoreParentInfoAsSyntheticProperty;
     private final boolean mShouldRetrieveParentInfo;
+    private final boolean mPersistToDiskRecoveryProof;
 
     public AppSearchConfigImpl(@NonNull LimitConfig limitConfig,
             @NonNull IcingOptionsConfig icingOptionsConfig) {
         this(limitConfig,
                 icingOptionsConfig,
                 /* storeParentInfoAsSyntheticProperty= */ false,
-                /* shouldRetrieveParentInfo= */ false);
+                /* shouldRetrieveParentInfo= */ false,
+                /* persistToDiskRecoveryProof= */false);
     }
 
     public AppSearchConfigImpl(@NonNull LimitConfig limitConfig,
             @NonNull IcingOptionsConfig icingOptionsConfig,
             boolean storeParentInfoAsSyntheticProperty,
-            boolean shouldRetrieveParentInfo) {
+            boolean shouldRetrieveParentInfo,
+            boolean persistToDiskRecoveryProof) {
         mLimitConfig = limitConfig;
         mIcingOptionsConfig = icingOptionsConfig;
         mStoreParentInfoAsSyntheticProperty = storeParentInfoAsSyntheticProperty;
         mShouldRetrieveParentInfo = shouldRetrieveParentInfo;
+        mPersistToDiskRecoveryProof = persistToDiskRecoveryProof;
     }
 
     @Override
@@ -129,13 +136,23 @@ public class AppSearchConfigImpl implements AppSearchConfig {
     }
 
     @Override
-    public int getMaxDocumentCount() {
-        return mLimitConfig.getMaxDocumentCount();
+    public int getPerPackageDocumentCountLimit() {
+        return mLimitConfig.getPerPackageDocumentCountLimit();
+    }
+
+    @Override
+    public int getDocumentCountLimitStartThreshold() {
+        return mLimitConfig.getDocumentCountLimitStartThreshold();
     }
 
     @Override
     public int getMaxSuggestionCount() {
         return mLimitConfig.getMaxSuggestionCount();
+    }
+
+    @Override
+    public int getMaxOpenBlobCount() {
+        return mLimitConfig.getMaxOpenBlobCount();
     }
 
     @Override
@@ -146,5 +163,16 @@ public class AppSearchConfigImpl implements AppSearchConfig {
     @Override
     public boolean shouldRetrieveParentInfo() {
         return mShouldRetrieveParentInfo;
+    }
+
+    @Override
+    public long getOrphanBlobTimeToLiveMs() {
+        return mIcingOptionsConfig.getOrphanBlobTimeToLiveMs();
+    }
+
+    @Override
+    public PersistType. @NonNull Code getLightweightPersistType() {
+        return mPersistToDiskRecoveryProof ?
+                PersistType.Code.RECOVERY_PROOF : PersistType.Code.LITE;
     }
 }

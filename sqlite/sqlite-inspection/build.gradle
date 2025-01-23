@@ -32,7 +32,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     compileOnly(project(":inspection:inspection"))
 
     androidTestImplementation(project(":inspection:inspection-testing"))
@@ -56,10 +57,10 @@ androidx {
 android {
     defaultConfig {
         // studio pipeline works only starting with Android O
-        minSdkVersion 26
+        minSdk = 26
     }
     sourceSets {
         main.resources.srcDirs += "src/main/proto"
     }
-    namespace "androidx.sqlite.inspection"
+    namespace = "androidx.sqlite.inspection"
 }

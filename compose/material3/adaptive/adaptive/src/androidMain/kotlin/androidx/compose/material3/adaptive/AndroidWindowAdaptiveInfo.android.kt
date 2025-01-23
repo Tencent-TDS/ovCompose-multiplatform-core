@@ -16,7 +16,6 @@
 
 package androidx.compose.material3.adaptive
 
-import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -24,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
 import androidx.window.core.layout.WindowSizeClass
@@ -34,10 +34,9 @@ import kotlinx.coroutines.flow.map
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
+@Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
 actual fun currentWindowAdaptiveInfo(): WindowAdaptiveInfo {
-    val windowSize = with(LocalDensity.current) {
-        currentWindowSize().toSize().toDpSize()
-    }
+    val windowSize = currentWindowDpSize()
     return WindowAdaptiveInfo(
         WindowSizeClass.compute(windowSize.width.value, windowSize.height.value),
         calculatePosture(collectFoldingFeaturesAsState().value)
@@ -45,10 +44,21 @@ actual fun currentWindowAdaptiveInfo(): WindowAdaptiveInfo {
 }
 
 /**
+ * Returns and automatically update the current window size in [DpSize].
+ *
+ * @return an [DpSize] that represents the current window size.
+ */
+@ExperimentalMaterial3AdaptiveApi
+@Composable
+fun currentWindowDpSize(): DpSize =
+    with(LocalDensity.current) { currentWindowSize().toSize().toDpSize() }
+
+/**
  * Returns and automatically update the current window size from [WindowMetricsCalculator].
  *
  * @return an [IntSize] that represents the current window size.
  */
+// TODO(b/359577262): Move to use LocalWindowInfo.current.containerSize and deprecate the method.
 @Composable
 fun currentWindowSize(): IntSize {
     // Observe view configuration changes and recalculate the size class on each change. We can't
@@ -57,11 +67,10 @@ fun currentWindowSize(): IntSize {
     // ComposeView's configuration changes.
     LocalConfiguration.current
     val windowBounds =
-        WindowMetricsCalculator
-            .getOrCreate()
+        WindowMetricsCalculator.getOrCreate()
             .computeCurrentWindowMetrics(LocalContext.current)
             .bounds
-   return IntSize(windowBounds.width(), windowBounds.height())
+    return IntSize(windowBounds.width(), windowBounds.height())
 }
 
 /**
@@ -73,15 +82,9 @@ fun currentWindowSize(): IntSize {
 fun collectFoldingFeaturesAsState(): State<List<FoldingFeature>> {
     val context = LocalContext.current
     return remember(context) {
-        if (context is Activity) {
-            // TODO(b/284347941) remove the instance check after the test bug is fixed.
-            WindowInfoTracker
-                .getOrCreate(context)
-                .windowLayoutInfo(context)
-        } else {
-            WindowInfoTracker
-                .getOrCreate(context)
-                .windowLayoutInfo(context)
-        }.map { it.displayFeatures.filterIsInstance<FoldingFeature>() }
-    }.collectAsState(emptyList())
+            WindowInfoTracker.getOrCreate(context).windowLayoutInfo(context).map {
+                it.displayFeatures.filterIsInstance<FoldingFeature>()
+            }
+        }
+        .collectAsState(emptyList())
 }

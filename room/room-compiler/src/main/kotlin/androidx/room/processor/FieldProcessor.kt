@@ -35,57 +35,60 @@ class FieldProcessor(
     val onBindingError: (field: Field, errorMsg: String) -> Unit
 ) {
     val context = baseContext.fork(element)
+
     fun process(): Field {
         val member = element.asMemberOf(containing)
         val columnInfo = element.getAnnotation(ColumnInfo::class)?.value
         val name = element.name
-        val rawCName = if (columnInfo != null && columnInfo.name != ColumnInfo.INHERIT_FIELD_NAME) {
-            columnInfo.name
-        } else {
-            name
-        }
+        val rawCName =
+            if (columnInfo != null && columnInfo.name != ColumnInfo.INHERIT_FIELD_NAME) {
+                columnInfo.name
+            } else {
+                name
+            }
         val columnName = (fieldParent?.prefix ?: "") + rawCName
-        val affinity = try {
-            SQLTypeAffinity.fromAnnotationValue(columnInfo?.typeAffinity)
-        } catch (ex: NumberFormatException) {
-            null
-        }
+        val affinity =
+            try {
+                SQLTypeAffinity.fromAnnotationValue(columnInfo?.typeAffinity)
+            } catch (ex: NumberFormatException) {
+                null
+            }
 
-        context.checker.notBlank(
-            columnName, element,
-            ProcessorErrors.COLUMN_NAME_CANNOT_BE_EMPTY
-        )
+        context.checker.notBlank(columnName, element, ProcessorErrors.COLUMN_NAME_CANNOT_BE_EMPTY)
         context.checker.notUnbound(
-            member, element,
+            member,
+            element,
             ProcessorErrors.CANNOT_USE_UNBOUND_GENERICS_IN_ENTITY_FIELDS
         )
 
-        val adapter = context.typeAdapterStore.findColumnTypeAdapter(
-            member,
-            affinity,
-            skipDefaultConverter = false
-        )
+        val adapter =
+            context.typeAdapterStore.findColumnTypeAdapter(
+                member,
+                affinity,
+                skipDefaultConverter = false
+            )
         val adapterAffinity = adapter?.typeAffinity ?: affinity
         val nonNull = Field.calcNonNull(member, fieldParent)
 
-        val field = Field(
-            name = name,
-            type = member,
-            element = element,
-            columnName = columnName,
-            affinity = affinity,
-            collate = Collate.fromAnnotationValue(columnInfo?.collate),
-            defaultValue = extractDefaultValue(
-                columnInfo?.defaultValue, adapterAffinity, nonNull
-            ),
-            parent = fieldParent,
-            indexed = columnInfo?.index ?: false,
-            nonNull = nonNull
-        )
+        val field =
+            Field(
+                name = name,
+                type = member,
+                element = element,
+                columnName = columnName,
+                affinity = affinity,
+                collate = Collate.fromAnnotationValue(columnInfo?.collate),
+                defaultValue =
+                    extractDefaultValue(columnInfo?.defaultValue, adapterAffinity, nonNull),
+                parent = fieldParent,
+                indexed = columnInfo?.index ?: false,
+                nonNull = nonNull
+            )
 
         // TODO(b/273592453): Figure out a way to detect value classes in KAPT and guard against it.
-        if (member.typeElement?.isValueClass() == true &&
-            context.codeLanguage != CodeLanguage.KOTLIN
+        if (
+            member.typeElement?.isValueClass() == true &&
+                context.codeLanguage != CodeLanguage.KOTLIN
         ) {
             onBindingError(field, ProcessorErrors.VALUE_CLASS_ONLY_SUPPORTED_IN_KSP)
         }
@@ -93,24 +96,24 @@ class FieldProcessor(
         when (bindingScope) {
             BindingScope.TWO_WAY -> {
                 field.statementBinder = adapter
-                field.cursorValueReader = adapter
+                field.statementValueReader = adapter
                 field.affinity = adapterAffinity
                 if (adapter == null) {
                     onBindingError(field, ProcessorErrors.CANNOT_FIND_COLUMN_TYPE_ADAPTER)
                 }
             }
             BindingScope.BIND_TO_STMT -> {
-                field.statementBinder = context.typeAdapterStore
-                    .findStatementValueBinder(field.type, field.affinity)
+                field.statementBinder =
+                    context.typeAdapterStore.findStatementValueBinder(field.type, field.affinity)
                 if (field.statementBinder == null) {
                     onBindingError(field, ProcessorErrors.CANNOT_FIND_STMT_BINDER)
                 }
             }
-            BindingScope.READ_FROM_CURSOR -> {
-                field.cursorValueReader = context.typeAdapterStore
-                    .findCursorValueReader(field.type, field.affinity)
-                if (field.cursorValueReader == null) {
-                    onBindingError(field, ProcessorErrors.CANNOT_FIND_CURSOR_READER)
+            BindingScope.READ_FROM_STMT -> {
+                field.statementValueReader =
+                    context.typeAdapterStore.findStatementValueReader(field.type, field.affinity)
+                if (field.statementValueReader == null) {
+                    onBindingError(field, ProcessorErrors.CANNOT_FIND_STMT_READER)
                 }
             }
         }
@@ -127,42 +130,35 @@ class FieldProcessor(
             return null
         }
         val trimmed = value.trim().lowercase(Locale.ENGLISH)
-        val defaultValue = if (affinity == SQLTypeAffinity.TEXT) {
-            if (value == ColumnInfo.VALUE_UNSPECIFIED) {
-                null
-            } else if (trimmed.startsWith("(") || trimmed in SQLITE_VALUE_CONSTANTS) {
-                value
+        val defaultValue =
+            if (affinity == SQLTypeAffinity.TEXT) {
+                if (value == ColumnInfo.VALUE_UNSPECIFIED) {
+                    null
+                } else if (trimmed.startsWith("(") || trimmed in SQLITE_VALUE_CONSTANTS) {
+                    value
+                } else {
+                    "'${value.trim('\'')}'"
+                }
             } else {
-                "'${value.trim('\'')}'"
+                if (value == ColumnInfo.VALUE_UNSPECIFIED || trimmed == "") {
+                    null
+                } else {
+                    value
+                }
             }
-        } else {
-            if (value == ColumnInfo.VALUE_UNSPECIFIED || trimmed == "") {
-                null
-            } else {
-                value
-            }
-        }
         if (trimmed == "null" && fieldNonNull) {
             context.logger.e(element, ProcessorErrors.DEFAULT_VALUE_NULLABILITY)
         }
         return defaultValue
     }
 
-    /**
-     * Defines what we need to assign
-     */
+    /** Defines what we need to assign */
     enum class BindingScope {
         TWO_WAY, // both bind and read.
         BIND_TO_STMT, // just value to statement
-        READ_FROM_CURSOR // just cursor to value
+        READ_FROM_STMT // just statement to value
     }
 }
 
-internal val SQLITE_VALUE_CONSTANTS = listOf(
-    "null",
-    "current_time",
-    "current_date",
-    "current_timestamp",
-    "true",
-    "false"
-)
+internal val SQLITE_VALUE_CONSTANTS =
+    listOf("null", "current_time", "current_date", "current_timestamp", "true", "false")

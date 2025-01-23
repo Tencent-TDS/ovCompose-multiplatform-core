@@ -29,6 +29,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(project(":emoji:emoji"))
     api("androidx.appcompat:appcompat:1.1.0")
 }
@@ -39,9 +40,8 @@ androidx {
     mavenVersion = LibraryVersions.EMOJI
     inceptionYear = "2017"
     description = "EmojiCompat Widgets for AppCompat integration"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.emoji.appcompat"
+    namespace = "androidx.emoji.appcompat"
 }

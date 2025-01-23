@@ -33,9 +33,10 @@ import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -44,14 +45,16 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
- * Implementation for beauty image capture use case.
+ * Implementation for beauty image capture use case which implements a
+ * {@link CaptureProcessorImpl} that won't invoke
+ * {@link ProcessResultImpl#onCaptureCompleted(long, List)}. Besides, it returns a customized
+ * supported resolution lists.
  *
- * <p>This class should be implemented by OEM and deployed to the target devices. 3P developers
- * don't need to implement this, unless this is used for related testing usage.
+ * <p>This is only for testing camera-extensions and should not be used as a sample OEM
+ * implementation.
  *
  * @since 1.0
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @SuppressLint("UnknownNullness")
 public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtenderImpl {
     private static final String TAG = "BeautyICExtender";
@@ -86,9 +89,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return CameraCharacteristicAvailability.isEffectAvailable(cameraCharacteristics, EFFECT);
     }
 
-    @NonNull
     @Override
-    public List<CaptureStageImpl> getCaptureStages() {
+    public @NonNull List<CaptureStageImpl> getCaptureStages() {
         // Placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(DEFAULT_STAGE_ID);
         captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_EFFECT_MODE, EFFECT);
@@ -97,9 +99,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return captureStages;
     }
 
-    @Nullable
     @Override
-    public CaptureProcessorImpl getCaptureProcessor() {
+    public @Nullable CaptureProcessorImpl getCaptureProcessor() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mCaptureProcessor = new BeautyImageCaptureExtenderCaptureProcessorImpl();
             return mCaptureProcessor;
@@ -122,9 +123,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         }
     }
 
-    @Nullable
     @Override
-    public CaptureStageImpl onPresetSession() {
+    public @Nullable CaptureStageImpl onPresetSession() {
         // The CaptureRequest parameters will be set via SessionConfiguration#setSessionParameters
         // (CaptureRequest) which only supported from API level 28.
         if (Build.VERSION.SDK_INT < 28) {
@@ -144,9 +144,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return SessionConfiguration.SESSION_REGULAR;
     }
 
-    @Nullable
     @Override
-    public CaptureStageImpl onEnableSession() {
+    public @Nullable CaptureStageImpl onEnableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(SESSION_STAGE_ID);
@@ -155,9 +154,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return captureStage;
     }
 
-    @Nullable
     @Override
-    public CaptureStageImpl onDisableSession() {
+    public @Nullable CaptureStageImpl onDisableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(SESSION_STAGE_ID);
@@ -171,9 +169,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return 3;
     }
 
-    @Nullable
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedResolutions() {
+    public @Nullable List<Pair<Integer, Size[]>> getSupportedResolutions() {
         List<Pair<Integer, Size[]>> formatResolutionsPairList = new ArrayList<>();
 
         StreamConfigurationMap map =
@@ -192,15 +189,14 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return formatResolutionsPairList;
     }
 
-    @Nullable
     @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size captureOutputSize) {
+    public @Nullable Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size captureOutputSize) {
         return new Range<>(300L, 1000L);
     }
 
-    @Nullable
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedPostviewResolutions(@NonNull Size captureSize) {
+    public @Nullable List<Pair<Integer, Size[]>> getSupportedPostviewResolutions(
+            @NonNull Size captureSize) {
         return null;
     }
 
@@ -209,9 +205,8 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         return false;
     }
 
-    @Nullable
     @Override
-    public Pair<Long, Long> getRealtimeCaptureLatency() {
+    public @Nullable Pair<Long, Long> getRealtimeCaptureLatency() {
         return null;
     }
 
@@ -328,15 +323,20 @@ public final class BeautyImageCaptureExtenderImpl implements ImageCaptureExtende
         }
     }
 
-    @NonNull
     @Override
-    public List<CaptureRequest.Key> getAvailableCaptureRequestKeys() {
+    public @NonNull List<CaptureRequest.Key> getAvailableCaptureRequestKeys() {
         return null;
     }
 
-    @NonNull
     @Override
-    public List<CaptureResult.Key> getAvailableCaptureResultKeys() {
+    public @NonNull List<CaptureResult.Key> getAvailableCaptureResultKeys() {
         return null;
     }
+
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

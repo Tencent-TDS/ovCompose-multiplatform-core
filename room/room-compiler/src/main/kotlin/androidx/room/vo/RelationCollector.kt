@@ -19,8 +19,9 @@ package androidx.room.vo
 import androidx.room.BuiltInTypeConverters
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
+import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.applyTo
 import androidx.room.compiler.codegen.XTypeName
+import androidx.room.compiler.codegen.buildCodeBlock
 import androidx.room.compiler.processing.XNullability
 import androidx.room.ext.CollectionTypeNames.ARRAY_MAP
 import androidx.room.ext.CollectionTypeNames.LONG_SPARSE_ARRAY
@@ -31,6 +32,7 @@ import androidx.room.ext.CommonTypeNames.HASH_SET
 import androidx.room.ext.KotlinCollectionMemberNames
 import androidx.room.ext.KotlinCollectionMemberNames.MUTABLE_LIST_OF
 import androidx.room.ext.KotlinCollectionMemberNames.MUTABLE_SET_OF
+import androidx.room.ext.RoomTypeNames.BYTE_ARRAY_WRAPPER
 import androidx.room.ext.capitalize
 import androidx.room.ext.stripNonJava
 import androidx.room.parser.ParsedQuery
@@ -46,16 +48,14 @@ import androidx.room.solver.CodeGenScope
 import androidx.room.solver.query.parameter.QueryParameterAdapter
 import androidx.room.solver.query.result.RowAdapter
 import androidx.room.solver.query.result.SingleColumnRowAdapter
-import androidx.room.solver.types.CursorValueReader
+import androidx.room.solver.types.StatementValueReader
 import androidx.room.verifier.DatabaseVerificationErrors
 import androidx.room.writer.QueryWriter
 import androidx.room.writer.RelationCollectorFunctionWriter
 import androidx.room.writer.RelationCollectorFunctionWriter.Companion.PARAM_CONNECTION_VARIABLE
 import java.util.Locale
 
-/**
- * Internal class that is used to manage fetching 1/N to N relationships.
- */
+/** Internal class that is used to manage fetching 1/N to N relationships. */
 data class RelationCollector(
     val relation: Relation,
     // affinity between relation fields
@@ -69,9 +69,9 @@ data class RelationCollector(
     // query writer for the relating entity query
     val queryWriter: QueryWriter,
     // key reader for the parent field
-    val parentKeyColumnReader: CursorValueReader,
+    val parentKeyColumnReader: StatementValueReader,
     // key reader for the entity field
-    val entityKeyColumnReader: CursorValueReader,
+    val entityKeyColumnReader: StatementValueReader,
     // adapter for the relating pojo
     val rowAdapter: RowAdapter,
     // parsed relating entity query
@@ -79,26 +79,25 @@ data class RelationCollector(
     // true if `relationTypeName` is a Collection, when it is `relationTypeName` is always non null.
     val relationTypeIsCollection: Boolean
 ) {
-    // TODO(b/319660042): Remove once migration to driver API is done.
-    fun isMigratedToDriver(): Boolean = rowAdapter.isMigratedToDriver()
-
     // variable name of map containing keys to relation collections, set when writing the code
     // generator in writeInitCode
     private lateinit var varName: String
 
     fun writeInitCode(scope: CodeGenScope) {
-        varName = scope.getTmpVar(
-            "_collection${relation.field.getPath().stripNonJava().capitalize(Locale.US)}"
-        )
-        scope.builder.apply {
-            if (language == CodeLanguage.JAVA ||
-                mapTypeName.rawTypeName == ARRAY_MAP ||
-                mapTypeName.rawTypeName == LONG_SPARSE_ARRAY
+        varName =
+            scope.getTmpVar(
+                "_collection${relation.field.getPath().stripNonJava().capitalize(Locale.US)}"
+            )
+        scope.builder.applyTo { language ->
+            if (
+                language == CodeLanguage.JAVA ||
+                    mapTypeName.rawTypeName == ARRAY_MAP ||
+                    mapTypeName.rawTypeName == LONG_SPARSE_ARRAY
             ) {
                 addLocalVariable(
                     name = varName,
                     typeName = mapTypeName,
-                    assignExpr = XCodeBlock.ofNewInstance(language, mapTypeName)
+                    assignExpr = XCodeBlock.ofNewInstance(mapTypeName)
                 )
             } else {
                 addLocalVal(
@@ -113,41 +112,33 @@ data class RelationCollector(
 
     // called to extract the key if it exists and adds it to the map of relations to fetch.
     fun writeReadParentKeyCode(
-        cursorVarName: String,
+        stmtVarName: String,
         fieldsWithIndices: List<FieldWithIndex>,
         scope: CodeGenScope
     ) {
         val indexVar = fieldsWithIndices.firstOrNull { it.field === relation.parentField }?.indexVar
         checkNotNull(indexVar) {
             "Expected an index var for a column named '${relation.parentField.columnName}' to " +
-                "query the '${relation.pojoType}' @Relation but didn't. Please file a bug at " +
+                "query the '${relation.dataClassType}' @Relation but didn't. Please file a bug at " +
                 ISSUE_TRACKER_LINK
         }
         scope.builder.apply {
-            readKey(cursorVarName, indexVar, parentKeyColumnReader, scope) { tmpVar ->
+            readKey(stmtVarName, indexVar, parentKeyColumnReader, scope) { tmpVar ->
                 // for relation collection put an empty collections in the map, otherwise put nulls
                 if (relationTypeIsCollection) {
                     beginControlFlow("if (!%L.containsKey(%L))", varName, tmpVar).apply {
-                        val newEmptyCollection = when (language) {
-                            CodeLanguage.JAVA ->
-                                XCodeBlock.ofNewInstance(language, relationTypeName)
-                            CodeLanguage.KOTLIN ->
-                                XCodeBlock.of(
-                                    language = language,
-                                    "%M()",
+                        val newEmptyCollection = buildCodeBlock { language ->
+                            when (language) {
+                                CodeLanguage.JAVA -> add("new %T()", relationTypeName)
+                                CodeLanguage.KOTLIN ->
                                     if (relationTypeName == CommonTypeNames.MUTABLE_SET) {
-                                        MUTABLE_SET_OF
+                                        add("%M()", MUTABLE_SET_OF)
                                     } else {
-                                        MUTABLE_LIST_OF
+                                        add("%M()", MUTABLE_LIST_OF)
                                     }
-                                )
+                            }
                         }
-                        addStatement(
-                            "%L.put(%L, %L)",
-                            varName,
-                            tmpVar,
-                            newEmptyCollection
-                        )
+                        addStatement("%L.put(%L, %L)", varName, tmpVar, newEmptyCollection)
                     }
                     endControlFlow()
                 } else {
@@ -159,27 +150,25 @@ data class RelationCollector(
 
     // called to extract key and relation collection, defaulting to empty collection if not found
     fun writeReadCollectionIntoTmpVar(
-        cursorVarName: String,
+        stmtVarName: String,
         fieldsWithIndices: List<FieldWithIndex>,
         scope: CodeGenScope
     ): Pair<String, Field> {
         val indexVar = fieldsWithIndices.firstOrNull { it.field === relation.parentField }?.indexVar
         checkNotNull(indexVar) {
             "Expected an index var for a column named '${relation.parentField.columnName}' to " +
-                "query the '${relation.pojoType}' @Relation but didn't. Please file a bug at " +
+                "query the '${relation.dataClassType}' @Relation but didn't. Please file a bug at " +
                 ISSUE_TRACKER_LINK
         }
         val tmpVarNameSuffix = if (relationTypeIsCollection) "Collection" else ""
-        val tmpRelationVar = scope.getTmpVar(
-            "_tmp${relation.field.name.stripNonJava().capitalize(Locale.US)}$tmpVarNameSuffix"
-        )
-        scope.builder.apply {
-            addLocalVariable(
-                name = tmpRelationVar,
-                typeName = relationTypeName
+        val tmpRelationVar =
+            scope.getTmpVar(
+                "_tmp${relation.field.name.stripNonJava().capitalize(Locale.US)}$tmpVarNameSuffix"
             )
+        scope.builder.apply {
+            addLocalVariable(name = tmpRelationVar, typeName = relationTypeName)
             readKey(
-                cursorVarName = cursorVarName,
+                stmtVarName = stmtVarName,
                 indexVar = indexVar,
                 keyReader = parentKeyColumnReader,
                 scope = scope,
@@ -189,60 +178,65 @@ data class RelationCollector(
                         // relation is a collection the map is pre-filled with empty collection
                         // values for all keys, so this is safe. Special case for LongSParseArray
                         // since it does not have a getValue() from Kotlin.
-                        val usingLongSparseArray =
-                            mapTypeName.rawTypeName == LONG_SPARSE_ARRAY
-                        when (language) {
-                            CodeLanguage.JAVA -> addStatement(
-                                "%L = %L.get(%L)",
-                                tmpRelationVar, varName, tmpKeyVar
-                            )
-                            CodeLanguage.KOTLIN -> if (usingLongSparseArray) {
-                                addStatement(
-                                    "%L = checkNotNull(%L.get(%L))",
-                                    tmpRelationVar, varName, tmpKeyVar
-                                )
-                            } else {
-                                addStatement(
-                                    "%L = %L.getValue(%L)",
-                                    tmpRelationVar, varName, tmpKeyVar
-                                )
+                        val usingLongSparseArray = mapTypeName.rawTypeName == LONG_SPARSE_ARRAY
+                        applyTo { language ->
+                            when (language) {
+                                CodeLanguage.JAVA ->
+                                    addStatement(
+                                        "%L = %L.get(%L)",
+                                        tmpRelationVar,
+                                        varName,
+                                        tmpKeyVar
+                                    )
+                                CodeLanguage.KOTLIN ->
+                                    if (usingLongSparseArray) {
+                                        addStatement(
+                                            "%L = checkNotNull(%L.get(%L))",
+                                            tmpRelationVar,
+                                            varName,
+                                            tmpKeyVar
+                                        )
+                                    } else {
+                                        addStatement(
+                                            "%L = %L.getValue(%L)",
+                                            tmpRelationVar,
+                                            varName,
+                                            tmpKeyVar
+                                        )
+                                    }
                             }
                         }
                     } else {
                         addStatement("%L = %L.get(%L)", tmpRelationVar, varName, tmpKeyVar)
-                        if (language == CodeLanguage.KOTLIN && relation.field.nonNull) {
-                            beginControlFlow("if (%L == null)", tmpRelationVar)
-                            addStatement(
-                                "error(%S)",
-                                "Relationship item '${relation.field.name}' was expected to" +
-                                    " be NON-NULL but is NULL in @Relation involving " +
-                                "a parent column named '${relation.parentField.columnName}' and " +
-                                    "entityColumn named '${relation.entityField.columnName}'."
-                            )
-                            endControlFlow()
+                        if (relation.field.nonNull) {
+                            applyTo(CodeLanguage.KOTLIN) {
+                                beginControlFlow("if (%L == null)", tmpRelationVar)
+                                addStatement(
+                                    "error(%S)",
+                                    "Relationship item '${relation.field.name}' was expected to" +
+                                        " be NON-NULL but is NULL in @Relation involving " +
+                                        "a parent column named '${relation.parentField.columnName}' and " +
+                                        "entityColumn named '${relation.entityField.columnName}'."
+                                )
+                                endControlFlow()
+                            }
                         }
                     }
                 },
                 onKeyUnavailable = {
                     if (relationTypeIsCollection) {
-                        val newEmptyCollection = when (language) {
-                            CodeLanguage.JAVA ->
-                                XCodeBlock.ofNewInstance(language, relationTypeName)
-                            CodeLanguage.KOTLIN ->
-                                XCodeBlock.of(
-                                    language = language,
-                                    "%M()",
+                        val newEmptyCollection = buildCodeBlock { language ->
+                            when (language) {
+                                CodeLanguage.JAVA -> add("new %T()", relationTypeName)
+                                CodeLanguage.KOTLIN ->
                                     if (relationTypeName == CommonTypeNames.MUTABLE_SET) {
-                                        MUTABLE_SET_OF
+                                        add("%M()", MUTABLE_SET_OF)
                                     } else {
-                                        MUTABLE_LIST_OF
+                                        add("%M()", MUTABLE_LIST_OF)
                                     }
-                                )
+                            }
                         }
-                        addStatement(
-                            "%L = %L",
-                            tmpRelationVar, newEmptyCollection
-                        )
+                        addStatement("%L = %L", tmpRelationVar, newEmptyCollection)
                     } else {
                         addStatement("%L = null", tmpRelationVar)
                     }
@@ -254,34 +248,29 @@ data class RelationCollector(
 
     // called to write the invocation to the fetch relationship method
     fun writeFetchRelationCall(scope: CodeGenScope) {
-        val method = scope.writer
-            .getOrCreateFunction(RelationCollectorFunctionWriter(this, scope.useDriverApi))
+        val method = scope.writer.getOrCreateFunction(RelationCollectorFunctionWriter(this))
         scope.builder.apply {
-            if (scope.useDriverApi) {
-                addStatement("%L(%L, %L)", method.name, PARAM_CONNECTION_VARIABLE, varName)
-            } else {
-                addStatement("%L(%L)", method.name, varName)
-            }
+            addStatement("%L(%L, %L)", method.name, PARAM_CONNECTION_VARIABLE, varName)
         }
     }
 
     // called to read key and call `onKeyReady` to write code once it is successfully read
     fun readKey(
-        cursorVarName: String,
+        stmtVarName: String,
         indexVar: String,
-        keyReader: CursorValueReader,
+        keyReader: StatementValueReader,
         scope: CodeGenScope,
         onKeyReady: XCodeBlock.Builder.(String) -> Unit
     ) {
-        readKey(cursorVarName, indexVar, keyReader, scope, onKeyReady, null)
+        readKey(stmtVarName, indexVar, keyReader, scope, onKeyReady, null)
     }
 
     // called to read key and call `onKeyReady` to write code once it is successfully read and
     // `onKeyUnavailable` if the key is unavailable (missing column due to bad projection).
     private fun readKey(
-        cursorVarName: String,
+        stmtVarName: String,
         indexVar: String,
-        keyReader: CursorValueReader,
+        keyReader: StatementValueReader,
         scope: CodeGenScope,
         onKeyReady: XCodeBlock.Builder.(String) -> Unit,
         onKeyUnavailable: (XCodeBlock.Builder.() -> Unit)?,
@@ -289,7 +278,7 @@ data class RelationCollector(
         scope.builder.apply {
             val tmpVar = scope.getTmpVar("_tmpKey")
             addLocalVariable(tmpVar, keyReader.typeMirror().asTypeName())
-            keyReader.readFromCursor(tmpVar, cursorVarName, indexVar, scope)
+            keyReader.readFromStatement(tmpVar, stmtVarName, indexVar, scope)
             if (keyReader.typeMirror().nullability == XNullability.NONNULL) {
                 onKeyReady(tmpVar)
             } else {
@@ -315,24 +304,26 @@ data class RelationCollector(
             startIndexVarName: String,
             scope: CodeGenScope
         ) {
-            scope.builder.apply {
-                val itrIndexVar = "i"
-                val itrItemVar = scope.getTmpVar("_item")
+            val itrIndexVar = "i"
+            val itrItemVar = scope.getTmpVar("_item")
+            scope.builder.applyTo { language ->
                 when (language) {
-                    CodeLanguage.JAVA -> beginControlFlow(
-                        "for (int %L = 0; %L < %L.size(); i++)",
-                        itrIndexVar, itrIndexVar, inputVarName
-                    )
-                    CodeLanguage.KOTLIN -> beginControlFlow(
-                        "for (%L in 0 until %L.size())",
-                        itrIndexVar, inputVarName
-                    )
+                    CodeLanguage.JAVA ->
+                        beginControlFlow(
+                            "for (int %L = 0; %L < %L.size(); i++)",
+                            itrIndexVar,
+                            itrIndexVar,
+                            inputVarName
+                        )
+                    CodeLanguage.KOTLIN ->
+                        beginControlFlow("for (%L in 0 until %L.size())", itrIndexVar, inputVarName)
                 }.apply {
                     addLocalVal(
                         itrItemVar,
                         XTypeName.PRIMITIVE_LONG,
                         "%L.keyAt(%L)",
-                        inputVarName, itrIndexVar
+                        inputVarName,
+                        itrIndexVar
                     )
                     addStatement("%L.bindLong(%L, %L)", stmtVarName, startIndexVarName, itrItemVar)
                     addStatement("%L++", startIndexVarName)
@@ -341,11 +332,7 @@ data class RelationCollector(
             }
         }
 
-        override fun getArgCount(
-            inputVarName: String,
-            outputVarName: String,
-            scope: CodeGenScope
-        ) {
+        override fun getArgCount(inputVarName: String, outputVarName: String, scope: CodeGenScope) {
             scope.builder.addLocalVal(
                 outputVarName,
                 XTypeName.PRIMITIVE_INT,
@@ -364,137 +351,155 @@ data class RelationCollector(
             baseContext: Context,
             relations: List<Relation>
         ): List<RelationCollector> {
-            return relations.map { relation ->
-                val context = baseContext.fork(
-                    element = relation.field.element,
-                    forceSuppressedWarnings = setOf(Warning.CURSOR_MISMATCH),
-                    forceBuiltInConverters = BuiltInConverterFlags.DEFAULT.copy(
-                        byteBuffer = BuiltInTypeConverters.State.ENABLED
-                    )
-                )
-                val affinity = affinityFor(context, relation)
-                val keyTypeName = keyTypeFor(context, affinity)
-                val (relationTypeName, isRelationCollection) = relationTypeFor(context, relation)
-                val tmpMapTypeName =
-                    temporaryMapTypeFor(context, affinity, keyTypeName, relationTypeName)
+            return relations
+                .map { relation ->
+                    val context =
+                        baseContext.fork(
+                            element = relation.field.element,
+                            forceSuppressedWarnings = setOf(Warning.QUERY_MISMATCH),
+                            forceBuiltInConverters =
+                                BuiltInConverterFlags.DEFAULT.copy(
+                                    byteBuffer = BuiltInTypeConverters.State.ENABLED
+                                )
+                        )
+                    val affinity = affinityFor(context, relation)
+                    val keyTypeName = keyTypeFor(context, affinity)
+                    val (relationTypeName, isRelationCollection) =
+                        relationTypeFor(context, relation)
+                    val tmpMapTypeName =
+                        temporaryMapTypeFor(context, affinity, keyTypeName, relationTypeName)
 
-                val loadAllQuery = relation.createLoadAllSql()
-                val parsedQuery = SqlParser.parse(loadAllQuery)
-                context.checker.check(
-                    parsedQuery.errors.isEmpty(), relation.field.element,
-                    parsedQuery.errors.joinToString("\n")
-                )
-                if (parsedQuery.errors.isEmpty()) {
-                    val resultInfo = context.databaseVerifier?.analyze(loadAllQuery)
-                    parsedQuery.resultInfo = resultInfo
-                    if (resultInfo?.error != null) {
+                    val loadAllQuery = relation.createLoadAllSql()
+                    val parsedQuery = SqlParser.parse(loadAllQuery)
+                    context.checker.check(
+                        parsedQuery.errors.isEmpty(),
+                        relation.field.element,
+                        parsedQuery.errors.joinToString("\n")
+                    )
+                    if (parsedQuery.errors.isEmpty()) {
+                        val resultInfo = context.databaseVerifier?.analyze(loadAllQuery)
+                        parsedQuery.resultInfo = resultInfo
+                        if (resultInfo?.error != null) {
+                            context.logger.e(
+                                relation.field.element,
+                                DatabaseVerificationErrors.cannotVerifyQuery(resultInfo.error)
+                            )
+                        }
+                    }
+                    val resultInfo = parsedQuery.resultInfo
+
+                    val usingLongSparseArray = tmpMapTypeName.rawTypeName == LONG_SPARSE_ARRAY
+                    val queryParam =
+                        if (usingLongSparseArray) {
+                            val longSparseArrayElement =
+                                context.processingEnv.requireTypeElement(
+                                    LONG_SPARSE_ARRAY.canonicalName
+                                )
+                            QueryParameter(
+                                name = RelationCollectorFunctionWriter.PARAM_MAP_VARIABLE,
+                                sqlName = RelationCollectorFunctionWriter.PARAM_MAP_VARIABLE,
+                                type = longSparseArrayElement.type,
+                                queryParamAdapter = LONG_SPARSE_ARRAY_KEY_QUERY_PARAM_ADAPTER
+                            )
+                        } else {
+                            val keyTypeMirror = context.processingEnv.requireType(keyTypeName)
+                            val set = context.processingEnv.requireTypeElement(CommonTypeNames.SET)
+                            val keySet = context.processingEnv.getDeclaredType(set, keyTypeMirror)
+                            QueryParameter(
+                                name = RelationCollectorFunctionWriter.KEY_SET_VARIABLE,
+                                sqlName = RelationCollectorFunctionWriter.KEY_SET_VARIABLE,
+                                type = keySet,
+                                queryParamAdapter =
+                                    context.typeAdapterStore.findQueryParameterAdapter(
+                                        typeMirror = keySet,
+                                        isMultipleParameter = true
+                                    )
+                            )
+                        }
+
+                    val queryWriter =
+                        QueryWriter(
+                            parameters = listOf(queryParam),
+                            sectionToParamMapping =
+                                listOf(Pair(parsedQuery.bindSections.first(), queryParam)),
+                            query = parsedQuery
+                        )
+
+                    val parentKeyColumnReader =
+                        context.typeAdapterStore.findStatementValueReader(
+                            output =
+                                context.processingEnv.requireType(keyTypeName).let {
+                                    if (!relation.parentField.nonNull) it.makeNullable() else it
+                                },
+                            affinity = affinity
+                        )
+                    val entityKeyColumnReader =
+                        context.typeAdapterStore.findStatementValueReader(
+                            output =
+                                context.processingEnv.requireType(keyTypeName).let { keyType ->
+                                    if (!relation.entityField.nonNull) keyType.makeNullable()
+                                    else keyType
+                                },
+                            affinity = affinity
+                        )
+                    // We should always find a readers since key types all have built in converters
+                    check(parentKeyColumnReader != null && entityKeyColumnReader != null) {
+                        "Missing one of the relation key value reader for type $keyTypeName"
+                    }
+
+                    // row adapter that matches full response
+                    fun getDefaultRowAdapter(): RowAdapter? {
+                        return context.typeAdapterStore.findRowAdapter(
+                            relation.dataClassType,
+                            parsedQuery
+                        )
+                    }
+                    val rowAdapter =
+                        if (
+                            relation.projection.size == 1 &&
+                                resultInfo != null &&
+                                (resultInfo.columns.size == 1 || resultInfo.columns.size == 2)
+                        ) {
+                            // check for a column adapter first
+                            val cursorReader =
+                                context.typeAdapterStore.findStatementValueReader(
+                                    relation.dataClassType,
+                                    resultInfo.columns.first().type
+                                )
+                            if (cursorReader == null) {
+                                getDefaultRowAdapter()
+                            } else {
+                                SingleColumnRowAdapter(cursorReader)
+                            }
+                        } else {
+                            getDefaultRowAdapter()
+                        }
+
+                    if (rowAdapter == null) {
                         context.logger.e(
                             relation.field.element,
-                            DatabaseVerificationErrors.cannotVerifyQuery(resultInfo.error)
+                            ProcessorErrors.cannotFindQueryResultAdapter(
+                                relation.dataClassType.asTypeName().toString(context.codeLanguage)
+                            )
                         )
-                    }
-                }
-                val resultInfo = parsedQuery.resultInfo
-
-                val usingLongSparseArray =
-                    tmpMapTypeName.rawTypeName == LONG_SPARSE_ARRAY
-                val queryParam = if (usingLongSparseArray) {
-                    val longSparseArrayElement = context.processingEnv
-                        .requireTypeElement(LONG_SPARSE_ARRAY.canonicalName)
-                    QueryParameter(
-                        name = RelationCollectorFunctionWriter.PARAM_MAP_VARIABLE,
-                        sqlName = RelationCollectorFunctionWriter.PARAM_MAP_VARIABLE,
-                        type = longSparseArrayElement.type,
-                        queryParamAdapter = LONG_SPARSE_ARRAY_KEY_QUERY_PARAM_ADAPTER
-                    )
-                } else {
-                    val keyTypeMirror = context.processingEnv.requireType(keyTypeName)
-                    val set = checkNotNull(context.COMMON_TYPES.SET.typeElement)
-                    val keySet = context.processingEnv.getDeclaredType(set, keyTypeMirror)
-                    QueryParameter(
-                        name = RelationCollectorFunctionWriter.KEY_SET_VARIABLE,
-                        sqlName = RelationCollectorFunctionWriter.KEY_SET_VARIABLE,
-                        type = keySet,
-                        queryParamAdapter = context.typeAdapterStore.findQueryParameterAdapter(
-                            typeMirror = keySet,
-                            isMultipleParameter = true
-                        )
-                    )
-                }
-
-                val queryWriter = QueryWriter(
-                    parameters = listOf(queryParam),
-                    sectionToParamMapping = listOf(
-                        Pair(
-                            parsedQuery.bindSections.first(),
-                            queryParam
-                        )
-                    ),
-                    query = parsedQuery
-                )
-
-                val parentKeyColumnReader = context.typeAdapterStore.findCursorValueReader(
-                    output = context.processingEnv.requireType(keyTypeName).let {
-                        if (!relation.parentField.nonNull) it.makeNullable() else it
-                    },
-                    affinity = affinity
-                )
-                val entityKeyColumnReader = context.typeAdapterStore.findCursorValueReader(
-                    output = context.processingEnv.requireType(keyTypeName).let { keyType ->
-                        if (!relation.entityField.nonNull) keyType.makeNullable() else keyType
-                    },
-                    affinity = affinity
-                )
-                // We should always find a readers since key types all have built in converters
-                check(parentKeyColumnReader != null && entityKeyColumnReader != null) {
-                    "Missing one of the relation key value reader for type $keyTypeName"
-                }
-
-                // row adapter that matches full response
-                fun getDefaultRowAdapter(): RowAdapter? {
-                    return context.typeAdapterStore.findRowAdapter(relation.pojoType, parsedQuery)
-                }
-                val rowAdapter = if (
-                    relation.projection.size == 1 && resultInfo != null &&
-                    (resultInfo.columns.size == 1 || resultInfo.columns.size == 2)
-                ) {
-                    // check for a column adapter first
-                    val cursorReader = context.typeAdapterStore.findCursorValueReader(
-                        relation.pojoType, resultInfo.columns.first().type
-                    )
-                    if (cursorReader == null) {
-                        getDefaultRowAdapter()
+                        null
                     } else {
-                        SingleColumnRowAdapter(cursorReader)
-                    }
-                } else {
-                    getDefaultRowAdapter()
-                }
-
-                if (rowAdapter == null) {
-                    context.logger.e(
-                        relation.field.element,
-                        ProcessorErrors.cannotFindQueryResultAdapter(
-                            relation.pojoType.asTypeName().toString(context.codeLanguage)
+                        RelationCollector(
+                            relation = relation,
+                            affinity = affinity,
+                            mapTypeName = tmpMapTypeName,
+                            keyTypeName = keyTypeName,
+                            relationTypeName = relationTypeName,
+                            queryWriter = queryWriter,
+                            parentKeyColumnReader = parentKeyColumnReader,
+                            entityKeyColumnReader = entityKeyColumnReader,
+                            rowAdapter = rowAdapter,
+                            loadAllQuery = parsedQuery,
+                            relationTypeIsCollection = isRelationCollection
                         )
-                    )
-                    null
-                } else {
-                    RelationCollector(
-                        relation = relation,
-                        affinity = affinity,
-                        mapTypeName = tmpMapTypeName,
-                        keyTypeName = keyTypeName,
-                        relationTypeName = relationTypeName,
-                        queryWriter = queryWriter,
-                        parentKeyColumnReader = parentKeyColumnReader,
-                        entityKeyColumnReader = entityKeyColumnReader,
-                        rowAdapter = rowAdapter,
-                        loadAllQuery = parsedQuery,
-                        relationTypeIsCollection = isRelationCollection
-                    )
+                    }
                 }
-            }.filterNotNull()
+                .filterNotNull()
         }
 
         // Gets and check the affinity of the relating columns.
@@ -503,23 +508,25 @@ data class RelationCollector(
                 first: SQLTypeAffinity?,
                 second: SQLTypeAffinity?,
                 onAffinityMismatch: () -> Unit
-            ) = if (first != null && first == second) {
-                first
-            } else {
-                onAffinityMismatch()
-                SQLTypeAffinity.TEXT
-            }
+            ) =
+                if (first != null && first == second) {
+                    first
+                } else {
+                    onAffinityMismatch()
+                    SQLTypeAffinity.TEXT
+                }
 
-            val parentAffinity = relation.parentField.cursorValueReader?.affinity()
-            val childAffinity = relation.entityField.cursorValueReader?.affinity()
+            val parentAffinity = relation.parentField.statementValueReader?.affinity()
+            val childAffinity = relation.entityField.statementValueReader?.affinity()
             val junctionParentAffinity =
-                relation.junction?.parentField?.cursorValueReader?.affinity()
+                relation.junction?.parentField?.statementValueReader?.affinity()
             val junctionChildAffinity =
-                relation.junction?.entityField?.cursorValueReader?.affinity()
+                relation.junction?.entityField?.statementValueReader?.affinity()
             return if (relation.junction != null) {
                 checkAffinity(childAffinity, junctionChildAffinity) {
                     context.logger.w(
-                        Warning.RELATION_TYPE_MISMATCH, relation.field.element,
+                        Warning.RELATION_TYPE_MISMATCH,
+                        relation.field.element,
                         relationJunctionChildAffinityMismatch(
                             childColumn = relation.entityField.columnName,
                             junctionChildColumn = relation.junction.entityField.columnName,
@@ -530,7 +537,8 @@ data class RelationCollector(
                 }
                 checkAffinity(parentAffinity, junctionParentAffinity) {
                     context.logger.w(
-                        Warning.RELATION_TYPE_MISMATCH, relation.field.element,
+                        Warning.RELATION_TYPE_MISMATCH,
+                        relation.field.element,
                         relationJunctionParentAffinityMismatch(
                             parentColumn = relation.parentField.columnName,
                             junctionParentColumn = relation.junction.parentField.columnName,
@@ -542,7 +550,8 @@ data class RelationCollector(
             } else {
                 checkAffinity(parentAffinity, childAffinity) {
                     context.logger.w(
-                        Warning.RELATION_TYPE_MISMATCH, relation.field.element,
+                        Warning.RELATION_TYPE_MISMATCH,
+                        relation.field.element,
                         relationAffinityMismatch(
                             parentColumn = relation.parentField.columnName,
                             childColumn = relation.entityField.columnName,
@@ -555,33 +564,36 @@ data class RelationCollector(
         }
 
         // Gets the resulting relation type name. (i.e. the Pojo's @Relation field type name.)
-        private fun relationTypeFor(
-            context: Context,
-            relation: Relation
-        ) = relation.field.type.let { fieldType ->
-            if (fieldType.typeArguments.isNotEmpty()) {
-                val rawType = fieldType.rawType
-                val paramTypeName =
-                    if (context.COMMON_TYPES.SET.rawType.isAssignableFrom(rawType)) {
-                        when (context.codeLanguage) {
-                            CodeLanguage.KOTLIN ->
-                                CommonTypeNames.MUTABLE_SET.parametrizedBy(relation.pojoTypeName)
-                            CodeLanguage.JAVA ->
-                                HASH_SET.parametrizedBy(relation.pojoTypeName)
+        private fun relationTypeFor(context: Context, relation: Relation) =
+            relation.field.type.let { fieldType ->
+                if (fieldType.typeArguments.isNotEmpty()) {
+                    val rawType = fieldType.rawType
+                    val setType = context.processingEnv.requireType(CommonTypeNames.SET)
+                    val paramTypeName =
+                        if (setType.rawType.isAssignableFrom(rawType)) {
+                            when (context.codeLanguage) {
+                                CodeLanguage.KOTLIN ->
+                                    CommonTypeNames.MUTABLE_SET.parametrizedBy(
+                                        relation.dataClassTypeName
+                                    )
+                                CodeLanguage.JAVA ->
+                                    HASH_SET.parametrizedBy(relation.dataClassTypeName)
+                            }
+                        } else {
+                            when (context.codeLanguage) {
+                                CodeLanguage.KOTLIN ->
+                                    CommonTypeNames.MUTABLE_LIST.parametrizedBy(
+                                        relation.dataClassTypeName
+                                    )
+                                CodeLanguage.JAVA ->
+                                    ARRAY_LIST.parametrizedBy(relation.dataClassTypeName)
+                            }
                         }
-                    } else {
-                        when (context.codeLanguage) {
-                            CodeLanguage.KOTLIN ->
-                                CommonTypeNames.MUTABLE_LIST.parametrizedBy(relation.pojoTypeName)
-                            CodeLanguage.JAVA ->
-                                ARRAY_LIST.parametrizedBy(relation.pojoTypeName)
-                        }
-                    }
-                paramTypeName to true
-            } else {
-                relation.pojoTypeName.copy(nullable = true) to false
+                    paramTypeName to true
+                } else {
+                    relation.dataClassTypeName.copy(nullable = true) to false
+                }
             }
-        }
 
         // Gets the type name of the temporary key map.
         private fun temporaryMapTypeFor(
@@ -591,29 +603,27 @@ data class RelationCollector(
             valueTypeName: XTypeName,
         ): XTypeName {
             val canUseLongSparseArray =
-                context.processingEnv
-                    .findTypeElement(LONG_SPARSE_ARRAY.canonicalName) != null
+                context.processingEnv.findTypeElement(LONG_SPARSE_ARRAY.canonicalName) != null
             val canUseArrayMap =
-                context.processingEnv
-                    .findTypeElement(ARRAY_MAP.canonicalName) != null
+                context.processingEnv.findTypeElement(ARRAY_MAP.canonicalName) != null &&
+                    context.isAndroidOnlyTarget()
             return when {
                 canUseLongSparseArray && affinity == SQLTypeAffinity.INTEGER ->
                     LONG_SPARSE_ARRAY.parametrizedBy(valueTypeName)
-                canUseArrayMap ->
-                    ARRAY_MAP.parametrizedBy(keyTypeName, valueTypeName)
-                else -> when (context.codeLanguage) {
-                    CodeLanguage.JAVA ->
-                        HASH_MAP.parametrizedBy(keyTypeName, valueTypeName)
-                    CodeLanguage.KOTLIN ->
-                        CommonTypeNames.MUTABLE_MAP.parametrizedBy(keyTypeName, valueTypeName)
-                }
+                canUseArrayMap -> ARRAY_MAP.parametrizedBy(keyTypeName, valueTypeName)
+                else ->
+                    when (context.codeLanguage) {
+                        CodeLanguage.JAVA -> HASH_MAP.parametrizedBy(keyTypeName, valueTypeName)
+                        CodeLanguage.KOTLIN ->
+                            CommonTypeNames.MUTABLE_MAP.parametrizedBy(keyTypeName, valueTypeName)
+                    }
             }
         }
 
         // Gets the type name of the relationship key.
         private fun keyTypeFor(context: Context, affinity: SQLTypeAffinity): XTypeName {
-            val canUseLongSparseArray = context.processingEnv
-                .findTypeElement(LONG_SPARSE_ARRAY.canonicalName) != null
+            val canUseLongSparseArray =
+                context.processingEnv.findTypeElement(LONG_SPARSE_ARRAY.canonicalName) != null
             return when (affinity) {
                 SQLTypeAffinity.INTEGER ->
                     if (canUseLongSparseArray) {
@@ -623,7 +633,7 @@ data class RelationCollector(
                     }
                 SQLTypeAffinity.REAL -> XTypeName.BOXED_DOUBLE
                 SQLTypeAffinity.TEXT -> CommonTypeNames.STRING
-                SQLTypeAffinity.BLOB -> CommonTypeNames.BYTE_BUFFER
+                SQLTypeAffinity.BLOB -> BYTE_ARRAY_WRAPPER
                 else -> {
                     // no affinity default to String
                     CommonTypeNames.STRING

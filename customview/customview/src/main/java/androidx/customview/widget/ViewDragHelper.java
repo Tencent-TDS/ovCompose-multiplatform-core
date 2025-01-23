@@ -27,10 +27,11 @@ import android.view.animation.Interpolator;
 import android.widget.OverScroller;
 
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 
@@ -138,17 +139,14 @@ public class ViewDragHelper {
     private final int mDefaultEdgeSize;
     private int mTrackingEdges;
 
-    @NonNull
-    private final OverScroller mScroller;
+    private final @NonNull OverScroller mScroller;
 
-    @NonNull
-    private final Callback mCallback;
+    private final @NonNull Callback mCallback;
 
     private View mCapturedView;
     private boolean mReleaseInProgress;
 
-    @NonNull
-    private final ViewGroup mParentView;
+    private final @NonNull ViewGroup mParentView;
 
     /**
      * A Callback is used as a communication channel with the ViewDragHelper back to the
@@ -360,8 +358,8 @@ public class ViewDragHelper {
      * @param cb Callback to provide information and receive events
      * @return a new ViewDragHelper instance
      */
-    @NonNull
-    public static ViewDragHelper create(@NonNull ViewGroup forParent, @NonNull Callback cb) {
+    public static @NonNull ViewDragHelper create(@NonNull ViewGroup forParent,
+            @NonNull Callback cb) {
         return new ViewDragHelper(forParent.getContext(), forParent, cb);
     }
 
@@ -374,8 +372,7 @@ public class ViewDragHelper {
      * @param cb Callback to provide information and receive events
      * @return a new ViewDragHelper instance
      */
-    @NonNull
-    public static ViewDragHelper create(@NonNull ViewGroup forParent, float sensitivity,
+    public static @NonNull ViewDragHelper create(@NonNull ViewGroup forParent, float sensitivity,
             @NonNull Callback cb) {
         final ViewDragHelper helper = create(forParent, cb);
         helper.mTouchSlop = (int) (helper.mTouchSlop * (1 / sensitivity));
@@ -516,8 +513,7 @@ public class ViewDragHelper {
     /**
      * @return The currently captured view, or null if no view has been captured.
      */
-    @Nullable
-    public View getCapturedView() {
+    public @Nullable View getCapturedView() {
         return mCapturedView;
     }
 
@@ -1545,8 +1541,7 @@ public class ViewDragHelper {
      * @param y Y position to test in the parent's coordinate system
      * @return The topmost child view under (x, y) or null if none found.
      */
-    @Nullable
-    public View findTopChildUnder(int x, int y) {
+    public @Nullable View findTopChildUnder(int x, int y) {
         final int childCount = mParentView.getChildCount();
         for (int i = childCount - 1; i >= 0; i--) {
             final View child = mParentView.getChildAt(mCallback.getOrderedChildIndex(i));
@@ -1584,8 +1579,7 @@ public class ViewDragHelper {
     }
 
     // Temporary backport of Objects.requireNonNull() until we can port it to core (b/179904366).
-    @Nullable
-    private static <T> T requireNonNull(@Nullable T obj, @NonNull String message) {
+    private static <T> @Nullable T requireNonNull(@Nullable T obj, @NonNull String message) {
         if (obj == null) throw new NullPointerException(message);
         return obj;
     }

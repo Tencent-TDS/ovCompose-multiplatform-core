@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesCore)
     api("androidx.arch.core:core-runtime:2.2.0")
@@ -59,9 +60,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Lifecycle LiveData"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.lifecycle.livedata"
+    namespace = "androidx.lifecycle.livedata"
 }

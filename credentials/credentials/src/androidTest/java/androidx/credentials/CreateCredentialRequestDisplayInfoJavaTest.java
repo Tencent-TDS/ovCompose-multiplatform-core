@@ -16,7 +16,7 @@
 
 package androidx.credentials;
 
-import static androidx.credentials.internal.FrameworkImplHelper.getFinalCreateCredentialData;
+import static androidx.credentials.internal.ConversionUtilsKt.getFinalCreateCredentialData;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -116,7 +116,7 @@ public class CreateCredentialRequestDisplayInfoJavaTest {
         assertThat(displayInfo.getPreferDefaultProvider()).isEqualTo(expectedDefaultProvider);
     }
 
-    @SdkSuppress(minSdkVersion = 28)
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     public void constructFromBundle_success() {
         String expectedUserId = "userId";

@@ -16,9 +16,10 @@
 
 package androidx.pdf.find;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.util.ObservableValue;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * Callback interface for listening to user actions to find text in a file.
@@ -31,7 +32,7 @@ public interface FindInFileListener {
      *
      * @param query The text the user is searching for.
      */
-    boolean onQueryTextChange(String query);
+    boolean onQueryTextChange(@Nullable String query);
 
     /**
      * The user is attempting to find the next match of the query text.
@@ -39,13 +40,12 @@ public interface FindInFileListener {
      * @param query     The text the user is searching for.
      * @param backwards True iff the user is searching for the previous match.
      */
-    boolean onFindNextMatch(String query, boolean backwards);
+    boolean onFindNextMatch(@Nullable String query, boolean backwards);
 
     /**
      * Get an ObservableValue that changes whenever MatchCount data is changed -
      * when more matches are found or the selected match is changed.
      * Can be null if not supported, or if the document is not ready or is destroyed.
      */
-    @Nullable
-    ObservableValue<MatchCount> matchCount();
+    @Nullable ObservableValue<MatchCount> matchCount();
 }

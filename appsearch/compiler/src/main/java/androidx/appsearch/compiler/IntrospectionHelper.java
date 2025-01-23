@@ -19,8 +19,6 @@ import static com.google.auto.common.MoreTypes.asTypeElement;
 
 import static java.util.stream.Collectors.toCollection;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.compiler.annotationwrapper.DataPropertyAnnotation;
 import androidx.appsearch.compiler.annotationwrapper.DocumentPropertyAnnotation;
@@ -28,6 +26,16 @@ import androidx.appsearch.compiler.annotationwrapper.PropertyAnnotation;
 
 import com.google.auto.value.AutoValue;
 import com.squareup.javapoet.ClassName;
+
+import kotlin.Metadata;
+import kotlin.metadata.Attributes;
+import kotlin.metadata.KmClass;
+import kotlin.metadata.KmProperty;
+import kotlin.metadata.jvm.KotlinClassHeader;
+import kotlin.metadata.jvm.KotlinClassMetadata;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -90,6 +98,12 @@ public class IntrospectionHelper {
     public static final ClassName GENERIC_DOCUMENT_CLASS =
             ClassName.get(APPSEARCH_PKG, "GenericDocument");
 
+    public static final ClassName EMBEDDING_VECTOR_CLASS =
+            ClassName.get(APPSEARCH_PKG, "EmbeddingVector");
+
+    public static final ClassName APPSEARCH_BLOB_HANDLE_CLASS =
+            ClassName.get(APPSEARCH_PKG, "AppSearchBlobHandle");
+
     public static final ClassName BUILDER_PRODUCER_CLASS =
             DOCUMENT_ANNOTATION_CLASS.nestedClass("BuilderProducer");
 
@@ -102,13 +116,18 @@ public class IntrospectionHelper {
     static final ClassName RESTRICT_TO_SCOPE_CLASS =
             RESTRICT_TO_ANNOTATION_CLASS.nestedClass("Scope");
 
+    static final ClassName DOCUMENT_CLASS_MAPPING_CONTEXT_CLASS =
+            ClassName.get(APPSEARCH_PKG, "DocumentClassMappingContext");
+
     public final TypeMirror mStringType;
     public final TypeMirror mLongPrimitiveType;
     public final TypeMirror mIntPrimitiveType;
     public final TypeMirror mBooleanPrimitiveType;
     public final TypeMirror mBytePrimitiveArrayType;
     public final TypeMirror mGenericDocumentType;
+    public final TypeMirror mEmbeddingType;
     public final TypeMirror mDoublePrimitiveType;
+    public final TypeMirror mBlobHandleType;
     final TypeMirror mCollectionType;
     final TypeMirror mListType;
     final TypeMirror mIntegerBoxType;
@@ -151,14 +170,17 @@ public class IntrospectionHelper {
         mBytePrimitiveArrayType = mTypeUtils.getArrayType(mBytePrimitiveType);
         mGenericDocumentType =
                 mElementUtils.getTypeElement(GENERIC_DOCUMENT_CLASS.canonicalName()).asType();
+        mEmbeddingType = mElementUtils.getTypeElement(
+                EMBEDDING_VECTOR_CLASS.canonicalName()).asType();
+        mBlobHandleType = mElementUtils.getTypeElement(
+                APPSEARCH_BLOB_HANDLE_CLASS.canonicalName()).asType();
     }
 
     /**
      * Returns {@code androidx.appsearch.annotation.Document} annotation element from the input
      * element's annotations. Returns null if no such annotation is found.
      */
-    @Nullable
-    public static AnnotationMirror getDocumentAnnotation(@NonNull Element element) {
+    public static @Nullable AnnotationMirror getDocumentAnnotation(@NonNull Element element) {
         Objects.requireNonNull(element);
         List<? extends AnnotationMirror> annotations = getAnnotations(element,
                 DOCUMENT_ANNOTATION_CLASS);
@@ -174,8 +196,7 @@ public class IntrospectionHelper {
      * specified by the annotation's class name. Returns null if no annotation of such kind is
      * found.
      */
-    @NonNull
-    public static List<? extends AnnotationMirror> getAnnotations(@NonNull Element element,
+    public static @NonNull List<? extends AnnotationMirror> getAnnotations(@NonNull Element element,
             @NonNull ClassName className) {
         Objects.requireNonNull(element);
         Objects.requireNonNull(className);
@@ -193,8 +214,7 @@ public class IntrospectionHelper {
      * <p>Returns null if the property cannot be found in the class or interface, or if the
      * property matching the property name is not a document property.
      */
-    @Nullable
-    public DocumentPropertyAnnotation getDocumentPropertyAnnotation(
+    public @Nullable DocumentPropertyAnnotation getDocumentPropertyAnnotation(
             @NonNull TypeElement clazz, @NonNull String propertyName) throws ProcessingException {
         Objects.requireNonNull(clazz);
         Objects.requireNonNull(propertyName);
@@ -221,8 +241,7 @@ public class IntrospectionHelper {
      * Returns the property type of the given property. Properties are represented by an
      * annotated Java element that is either a Java field or a getter method.
      */
-    @NonNull
-    public static TypeMirror getPropertyType(@NonNull Element property) {
+    public static @NonNull TypeMirror getPropertyType(@NonNull Element property) {
         Objects.requireNonNull(property);
 
         TypeMirror propertyType = property.asType();
@@ -234,7 +253,7 @@ public class IntrospectionHelper {
 
     /** Checks whether the property data type is one of the valid types. */
     public boolean isFieldOfExactType(
-            @NonNull Element property, @NonNull TypeMirror... validTypes) {
+            @NonNull Element property, TypeMirror @NonNull ... validTypes) {
         TypeMirror propertyType = getPropertyType(property);
         for (TypeMirror validType : validTypes) {
             if (propertyType.getKind() == TypeKind.ARRAY) {
@@ -262,8 +281,7 @@ public class IntrospectionHelper {
     /**
      * Returns the annotation's params as a map. Includes the default values.
      */
-    @NonNull
-    public Map<String, Object> getAnnotationParams(@NonNull AnnotationMirror annotation) {
+    public @NonNull Map<String, Object> getAnnotationParams(@NonNull AnnotationMirror annotation) {
         Map<? extends ExecutableElement, ? extends AnnotationValue> values =
                 mEnv.getElementUtils().getElementValuesWithDefaults(annotation);
         Map<String, Object> ret = new HashMap<>();
@@ -279,8 +297,7 @@ public class IntrospectionHelper {
      * Creates the name of output class. $$__AppSearch__Foo for Foo, $$__AppSearch__Foo$$__Bar
      * for inner class Foo.Bar.
      */
-    @NonNull
-    public static ClassName getDocumentClassFactoryForClass(
+    public static @NonNull ClassName getDocumentClassFactoryForClass(
             @NonNull String pkg, @NonNull String className) {
         String genClassName = GEN_CLASS_PREFIX + className.replace(".", "$$__");
         return ClassName.get(pkg, genClassName);
@@ -290,8 +307,7 @@ public class IntrospectionHelper {
      * Creates the name of output class. $$__AppSearch__Foo for Foo, $$__AppSearch__Foo$$__Bar
      * for inner class Foo.Bar.
      */
-    @NonNull
-    public static ClassName getDocumentClassFactoryForClass(@NonNull ClassName clazz) {
+    public static @NonNull ClassName getDocumentClassFactoryForClass(@NonNull ClassName clazz) {
         String className = clazz.canonicalName().substring(clazz.packageName().length() + 1);
         return getDocumentClassFactoryForClass(clazz.packageName(), className);
     }
@@ -301,8 +317,7 @@ public class IntrospectionHelper {
      *
      * <p>Caches results internally, so it is cheap to call subsequently for the same input.
      */
-    @NonNull
-    public LinkedHashSet<ExecutableElement> getAllMethods(@NonNull TypeElement clazz) {
+    public @NonNull LinkedHashSet<ExecutableElement> getAllMethods(@NonNull TypeElement clazz) {
         return mAllMethodsCache.computeIfAbsent(
                 clazz,
                 type -> mEnv.getElementUtils().getAllMembers(type).stream()
@@ -342,8 +357,7 @@ public class IntrospectionHelper {
      * ordering is important because super classes must appear first in the list than child classes
      * to make property overrides work.
      */
-    @NonNull
-    public static List<TypeElement> generateClassHierarchy(
+    public static @NonNull List<TypeElement> generateClassHierarchy(
             @NonNull TypeElement element) throws ProcessingException {
         Deque<TypeElement> hierarchy = new ArrayDeque<>();
         if (element.getAnnotation(AutoValue.class) != null) {
@@ -370,8 +384,8 @@ public class IntrospectionHelper {
      *
      * <p>Returns an empty list if no errors i.e. the method is a valid getter.
      */
-    @NonNull
-    public static List<ProcessingException> validateIsGetter(@NonNull ExecutableElement method) {
+    public static @NonNull List<ProcessingException> validateIsGetter(
+            @NonNull ExecutableElement method) {
         List<ProcessingException> errors = new ArrayList<>();
         if (!method.getParameters().isEmpty()) {
             errors.add(new ProcessingException(
@@ -392,8 +406,7 @@ public class IntrospectionHelper {
      * Same as {@link #validateIsGetter} but additionally verifies that the getter returns the
      * specified type.
      */
-    @NonNull
-    public List<ProcessingException> validateIsGetterThatReturns(
+    public @NonNull List<ProcessingException> validateIsGetterThatReturns(
             @NonNull ExecutableElement method, @NonNull TypeMirror expectedReturnType) {
         List<ProcessingException> errors = validateIsGetter(method);
         if (!mTypeUtils.isAssignable(method.getReturnType(), expectedReturnType)) {
@@ -429,13 +442,11 @@ public class IntrospectionHelper {
             mElement = element;
         }
 
-        @NonNull
-        public ExecutableType getType() {
+        public @NonNull ExecutableType getType() {
             return mType;
         }
 
-        @NonNull
-        public ExecutableElement getElement() {
+        public @NonNull ExecutableElement getElement() {
             return mElement;
         }
     }
@@ -445,8 +456,7 @@ public class IntrospectionHelper {
      *
      * <p>Does not include constructors.
      */
-    @NonNull
-    public Stream<MethodTypeAndElement> getAllMethods(@NonNull DeclaredType type) {
+    public @NonNull Stream<MethodTypeAndElement> getAllMethods(@NonNull DeclaredType type) {
         return mElementUtils.getAllMembers((TypeElement) type.asElement()).stream()
                 .filter(el -> el.getKind() == ElementKind.METHOD)
                 .map(el -> new MethodTypeAndElement(
@@ -475,8 +485,7 @@ public class IntrospectionHelper {
      *
      * <p>Returns null if no cast is necessary.
      */
-    @Nullable
-    public TypeMirror getNarrowingCastType(
+    public @Nullable TypeMirror getNarrowingCastType(
             @NonNull TypeMirror sourceType, @NonNull TypeMirror targetType) {
         if (mTypeUtils.isSameType(targetType, mIntPrimitiveType)
                 || mTypeUtils.isSameType(targetType, mIntegerBoxType)) {
@@ -543,5 +552,41 @@ public class IntrospectionHelper {
             generateClassHierarchyHelper(leafElement, asTypeElement(implementedInterface),
                     hierarchy, visited);
         }
+    }
+
+    /**
+     * Determines if a field is from Kotlin and is NonNull by checking for a Metadata annotation.
+     */
+    public static boolean isNonNullKotlinField(@NonNull AnnotatedGetterOrField getterOrField) {
+        Objects.requireNonNull(getterOrField);
+        Metadata metadata = getterOrField.getElement().getEnclosingElement()
+                .getAnnotation(Metadata.class);
+        if (metadata != null) {
+            // The kotlin metadata annotation contains information about the class, but we first
+            // need to parse it with KotlinClassHeader
+            KotlinClassHeader header = new KotlinClassHeader(
+                    /*kind=*/metadata.k(),
+                    /*metadataVersion=*/metadata.mv(),
+                    /*data1=*/metadata.d1(),
+                    /*data2=*/metadata.d2(),
+                    /*extraString=*/metadata.xs(),
+                    /*packageName=*/metadata.pn(),
+                    /*extraInt=*/metadata.xi()
+            );
+            KotlinClassMetadata kotlinMetadata = KotlinClassMetadata.readStrict(header);
+
+            if (kotlinMetadata instanceof KotlinClassMetadata.Class) {
+                KmClass kmClass = ((KotlinClassMetadata.Class) kotlinMetadata).getKmClass();
+
+                List<KmProperty> properties = kmClass.getProperties();
+                for (KmProperty property : properties) {
+                    if (property.getName().equals(getterOrField.getJvmName())) {
+                        return !Attributes.isNullable(property.getReturnType());
+                    }
+                }
+            }
+        }
+        // It is not a kotlin property.
+        return false;
     }
 }

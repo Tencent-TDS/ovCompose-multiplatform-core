@@ -24,14 +24,11 @@ import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
-import androidx.wear.compose.material3.TextButtonDefaults.textStyleFor
 
 @Composable
 @Sampled
 fun TextButtonSample() {
-    TextButton(onClick = { /* Do something */ }) {
-        Text(text = "ABC")
-    }
+    TextButton(onClick = { /* Do something */ }) { Text(text = "ABC") }
 }
 
 @Composable
@@ -47,13 +44,24 @@ fun FilledTextButtonSample() {
 
 @Composable
 @Sampled
+fun FilledVariantTextButtonSample() {
+    TextButton(
+        onClick = { /* Do something */ },
+        colors = TextButtonDefaults.filledVariantTextButtonColors()
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
 fun LargeFilledTonalTextButtonSample() {
     TextButton(
         onClick = { /* Do something */ },
         colors = TextButtonDefaults.filledTonalTextButtonColors(),
         modifier = Modifier.size(TextButtonDefaults.LargeButtonSize)
     ) {
-        Text(text = "ABC", style = textStyleFor(TextButtonDefaults.LargeButtonSize))
+        Text(text = "ABC", style = TextButtonDefaults.largeButtonTextStyle)
     }
 }
 
@@ -75,6 +83,29 @@ fun OutlinedTextButtonSample() {
         onClick = { /* Do something */ },
         colors = TextButtonDefaults.outlinedTextButtonColors(),
         border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Sampled
+@Composable
+fun TextButtonWithOnLongClickSample(onLongClick: () -> Unit) {
+    TextButton(
+        onClick = { /* Do something for onClick*/ },
+        onLongClick = onLongClick,
+        onLongClickLabel = "Long click"
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
+fun TextButtonWithCornerAnimationSample() {
+    TextButton(
+        onClick = { /* Do something */ },
+        shapes = TextButtonDefaults.animatedShapes(),
     ) {
         Text(text = "ABC")
     }

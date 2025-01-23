@@ -20,10 +20,7 @@ import static androidx.camera.camera2.internal.CameraIdUtil.isBackwardCompatible
 
 import android.hardware.camera2.CameraCharacteristics;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
@@ -34,6 +31,9 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.InitializationException;
 import androidx.camera.core.Logger;
 import androidx.camera.core.concurrent.CameraCoordinator;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,16 +47,15 @@ import java.util.Set;
 /**
  * Implementation for {@link CameraCoordinator}.
  */
-@RequiresApi(21)
 public class Camera2CameraCoordinator implements CameraCoordinator {
 
     private static final String TAG = "Camera2CameraCoordinator";
 
-    @NonNull private final CameraManagerCompat mCameraManager;
-    @NonNull private final List<ConcurrentCameraModeListener> mConcurrentCameraModeListeners;
-    @NonNull private final Map<String, List<String>> mConcurrentCameraIdMap;
-    @NonNull private List<CameraInfo> mActiveConcurrentCameraInfos;
-    @NonNull private Set<Set<String>> mConcurrentCameraIds;
+    private final @NonNull CameraManagerCompat mCameraManager;
+    private final @NonNull List<ConcurrentCameraModeListener> mConcurrentCameraModeListeners;
+    private final @NonNull Map<String, List<String>> mConcurrentCameraIdMap;
+    private @NonNull List<CameraInfo> mActiveConcurrentCameraInfos;
+    private @NonNull Set<Set<String>> mConcurrentCameraIds;
 
     @CameraOperatingMode private int mCameraOperatingMode = CAMERA_OPERATING_MODE_UNSPECIFIED;
 
@@ -69,9 +68,8 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
         retrieveConcurrentCameraIds();
     }
 
-    @NonNull
     @Override
-    public List<List<CameraSelector>> getConcurrentCameraSelectors() {
+    public @NonNull List<List<CameraSelector>> getConcurrentCameraSelectors() {
         List<List<CameraSelector>> concurrentCameraSelectorLists = new ArrayList<>();
         for (Set<String> concurrentCameraIdList: mConcurrentCameraIds) {
             List<CameraSelector> cameraSelectors = new ArrayList<>();
@@ -83,9 +81,8 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
         return concurrentCameraSelectorLists;
     }
 
-    @NonNull
     @Override
-    public List<CameraInfo> getActiveConcurrentCameraInfos() {
+    public @NonNull List<CameraInfo> getActiveConcurrentCameraInfos() {
         return mActiveConcurrentCameraInfos;
     }
 
@@ -95,9 +92,8 @@ public class Camera2CameraCoordinator implements CameraCoordinator {
     }
 
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    @Nullable
     @Override
-    public String getPairedConcurrentCameraId(@NonNull String cameraId) {
+    public @Nullable String getPairedConcurrentCameraId(@NonNull String cameraId) {
         if (!mConcurrentCameraIdMap.containsKey(cameraId)) {
             return null;
         }

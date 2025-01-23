@@ -19,12 +19,12 @@ package androidx.camera.core.impl;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.DynamicRange;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -33,7 +33,6 @@ import java.util.List;
  * {@link Size}, and target Frame Rate {@link Range}
  *
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class AttachedSurfaceInfo {
     /** Prevent subclassing */
@@ -43,8 +42,7 @@ public abstract class AttachedSurfaceInfo {
     /**
      * Creates a new instance of SurfaceConfig with the given parameters.
      */
-    @NonNull
-    public static AttachedSurfaceInfo create(@NonNull SurfaceConfig surfaceConfig,
+    public static @NonNull AttachedSurfaceInfo create(@NonNull SurfaceConfig surfaceConfig,
             int imageFormat,
             @NonNull Size size,
             @NonNull DynamicRange dynamicRange,
@@ -59,8 +57,7 @@ public abstract class AttachedSurfaceInfo {
      * Obtains the StreamSpec from the given AttachedSurfaceInfo with the given
      * implementationOptions.
      */
-    @NonNull
-    public StreamSpec toStreamSpec(
+    public @NonNull StreamSpec toStreamSpec(
             @NonNull Config implementationOptions) {
         StreamSpec.Builder streamSpecBuilder =
                 StreamSpec.builder(getSize())
@@ -73,33 +70,27 @@ public abstract class AttachedSurfaceInfo {
     }
 
     /** Returns the SurfaceConfig. */
-    @NonNull
-    public abstract SurfaceConfig getSurfaceConfig();
+    public abstract @NonNull SurfaceConfig getSurfaceConfig();
 
     /** Returns the configuration image format. */
     public abstract int getImageFormat();
 
     /** Returns the configuration size. */
-    @NonNull
-    public abstract Size getSize();
+    public abstract @NonNull Size getSize();
 
     /** Returns the dynamic range of this surface. */
-    @NonNull
-    public abstract DynamicRange getDynamicRange();
+    public abstract @NonNull DynamicRange getDynamicRange();
 
     /** Returns the capture types of this surface. Multiple capture types represent a
      *  {@link androidx.camera.core.streamsharing.StreamSharing} and its children.*/
     @SuppressWarnings("AutoValueImmutableFields")
-    @NonNull
-    public abstract List<UseCaseConfigFactory.CaptureType> getCaptureTypes();
+    public abstract @NonNull List<UseCaseConfigFactory.CaptureType> getCaptureTypes();
 
     /** Returns the implementations of this surface. */
-    @Nullable
-    public abstract Config getImplementationOptions();
+    public abstract @Nullable Config getImplementationOptions();
 
     /** Returns the configuration target frame rate. */
-    @Nullable
-    public abstract Range<Integer> getTargetFrameRate();
+    public abstract @Nullable Range<Integer> getTargetFrameRate();
 }
 
 

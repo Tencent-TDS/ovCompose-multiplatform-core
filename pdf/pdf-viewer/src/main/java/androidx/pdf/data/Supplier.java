@@ -18,6 +18,8 @@ package androidx.pdf.data;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Supply a value that may take a long time to complete.
  *
@@ -34,5 +36,5 @@ public interface Supplier<T> {
      * thread.
      * @throws Exception Any exception thrown will be {@link FutureValue.Callback#failed(Throwable)}
      */
-    T supply(Progress progress) throws Exception;
+    T supply(@NonNull Progress progress) throws Exception;
 }

@@ -29,7 +29,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.0.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     implementation("androidx.core:core:1.7.0")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
     implementation("org.bouncycastle:bcprov-jdk15on:1.65")
@@ -46,9 +47,9 @@ androidx {
     mavenVersion = LibraryVersions.CORE_APPDIGEST
     inceptionYear = "2020"
     description = "AndroidX AppDigest Library"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.core.appdigest"
+    compileSdk = 35
+    namespace = "androidx.core.appdigest"
 }

@@ -27,18 +27,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *
  * Even though SQLite column names are case insensitive, this class uses case sensitive matching.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-actual class ViewInfo actual constructor(
-    /**
-     * The view name
-     */
-    @JvmField
-    actual val name: String,
-    /**
-     * The SQL of CREATE VIEW.
-     */
-    @JvmField
-    actual val sql: String?
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+actual class ViewInfo
+actual constructor(
+    /** The view name */
+    @JvmField actual val name: String,
+    /** The SQL of CREATE VIEW. */
+    @JvmField actual val sql: String?
 ) {
     actual override fun equals(other: Any?) = equalsCommon(other)
 

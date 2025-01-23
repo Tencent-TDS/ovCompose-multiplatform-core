@@ -30,9 +30,6 @@ import android.media.MediaCodecInfo;
 import android.media.MediaRecorder;
 import android.util.Rational;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.Logger;
@@ -42,6 +39,9 @@ import androidx.camera.core.impl.EncoderProfilesProxy.ImmutableEncoderProfilesPr
 import androidx.camera.core.impl.EncoderProfilesProxy.VideoProfileProxy;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,7 +60,6 @@ import java.util.Map;
  * same quality and adds the derived profile to the provided {@link EncoderProfilesProxy} if it is
  * verified by the {@code validator} passed to the constructor.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesProvider {
 
     private static final String TAG = "BackupHdrProfileEncoderProfilesProvider";
@@ -93,14 +92,12 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
     }
 
     /** {@inheritDoc} */
-    @Nullable
     @Override
-    public EncoderProfilesProxy getAll(int quality) {
+    public @Nullable EncoderProfilesProxy getAll(int quality) {
         return getProfilesInternal(quality);
     }
 
-    @Nullable
-    private EncoderProfilesProxy getProfilesInternal(int quality) {
+    private @Nullable EncoderProfilesProxy getProfilesInternal(int quality) {
         if (mEncoderProfilesCache.containsKey(quality)) {
             return mEncoderProfilesCache.get(quality);
         }
@@ -117,8 +114,7 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
         return profiles;
     }
 
-    @Nullable
-    private EncoderProfilesProxy appendBackupVideoProfile(
+    private @Nullable EncoderProfilesProxy appendBackupVideoProfile(
             @Nullable EncoderProfilesProxy baseProfiles, int targetHdrFormat, int targetBitDepth) {
         if (baseProfiles == null) {
             return null;
@@ -153,9 +149,8 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
         );
     }
 
-    @Nullable
-    private static VideoProfileProxy generateBackupProfile(@Nullable VideoProfileProxy baseProfile,
-            int targetHdrFormat, int targetBitDepth) {
+    private static @Nullable VideoProfileProxy generateBackupProfile(
+            @Nullable VideoProfileProxy baseProfile, int targetHdrFormat, int targetBitDepth) {
         if (baseProfile == null) {
             return null;
         }
@@ -218,8 +213,7 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
         }
     }
 
-    @NonNull
-    private static String deriveMediaType(@VideoProfileProxy.VideoEncoder int codec) {
+    private static @NonNull String deriveMediaType(@VideoProfileProxy.VideoEncoder int codec) {
         return getVideoCodecMimeType(codec);
     }
 
@@ -248,8 +242,7 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
      * will be returned if the video profile is not able to support.
      */
     @VisibleForTesting
-    @Nullable
-    static VideoProfileProxy validateOrAdapt(@Nullable VideoProfileProxy profile,
+    static @Nullable VideoProfileProxy validateOrAdapt(@Nullable VideoProfileProxy profile,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
         if (profile == null) {
             return null;
@@ -266,8 +259,7 @@ public class BackupHdrProfileEncoderProfilesProvider implements EncoderProfilesP
         return newBitrate == baseBitrate ? profile : modifyBitrate(profile, newBitrate);
     }
 
-    @NonNull
-    private static VideoProfileProxy modifyBitrate(@NonNull VideoProfileProxy baseProfile,
+    private static @NonNull VideoProfileProxy modifyBitrate(@NonNull VideoProfileProxy baseProfile,
             int newBitrate) {
         return VideoProfileProxy.create(
                 baseProfile.getCodec(),

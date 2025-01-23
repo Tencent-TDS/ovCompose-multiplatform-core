@@ -32,7 +32,7 @@ plugins {
 dependencies {
     api(libs.kotlinStdlib)
     // Add dependencies here
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.annotation:annotation:1.8.1")
     androidTestImplementation(libs.guavaAndroid)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinTest)
@@ -48,14 +48,11 @@ androidx {
     mavenVersion = LibraryVersions.CORE_I18N
     inceptionYear = "2022"
     description = "This library provides functionality for good internationalization (messages, plurals, date / time formatting)."
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.core.i18n"
+    compileSdk = 35
+    namespace = "androidx.core.i18n"
     defaultConfig {
-    }
-    lintOptions {
-        lintConfig = file("lint.xml")
     }
 }

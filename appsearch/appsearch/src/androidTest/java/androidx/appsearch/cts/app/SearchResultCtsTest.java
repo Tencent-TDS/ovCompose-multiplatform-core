@@ -22,11 +22,21 @@ import static org.junit.Assert.assertThrows;
 
 import androidx.appsearch.app.PropertyPath;
 import androidx.appsearch.app.SearchResult;
+import androidx.appsearch.flags.Flags;
 import androidx.appsearch.testutil.AppSearchEmail;
+import androidx.appsearch.testutil.AppSearchTestUtils;
+import androidx.appsearch.testutil.flags.RequiresFlagsEnabled;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
+
+import java.util.List;
+import java.util.Map;
 
 public class SearchResultCtsTest {
+    @Rule
+    public final RuleChain mRuleChain = AppSearchTestUtils.createCommonTestRules();
 
     @Test
     public void testBuildSearchResult() {
@@ -171,5 +181,100 @@ public class SearchResultCtsTest {
         assertThat(rebuildJoinedResult1.getGenericDocument().getId()).isEqualTo("id2");
         SearchResult rebuildJoinedResult2 = rebuild.getJoinedResults().get(1);
         assertThat(rebuildJoinedResult2.getGenericDocument().getId()).isEqualTo("id3");
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+    public void testBuildSearchResult_informationalRankingSignals() {
+        AppSearchEmail email = new AppSearchEmail.Builder("namespace1", "id1")
+                .setBody("Hello World.")
+                .build();
+        SearchResult searchResult = new SearchResult.Builder("packageName", "databaseName")
+                .setGenericDocument(email)
+                .setRankingSignal(2.9)
+                .addInformationalRankingSignal(3.0)
+                .addInformationalRankingSignal(4.0)
+                .build();
+
+        assertThat(searchResult.getRankingSignal()).isEqualTo(2.9);
+        assertThat(searchResult.getInformationalRankingSignals())
+                .containsExactly(3.0, 4.0).inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+    public void testRebuild_informationalRankingSignals() {
+        AppSearchEmail email = new AppSearchEmail.Builder("namespace1", "id1")
+                .setBody("Hello World.")
+                .build();
+
+        SearchResult.Builder searchResultBuilder =
+                new SearchResult.Builder("packageName", "databaseName")
+                        .setGenericDocument(email)
+                        .setRankingSignal(2.9)
+                        .addInformationalRankingSignal(3.0)
+                        .addInformationalRankingSignal(4.0);
+
+        SearchResult original = searchResultBuilder.build();
+        SearchResult rebuild = searchResultBuilder.addInformationalRankingSignal(5).build();
+
+        // Rebuild won't effect the original object
+        assertThat(original.getRankingSignal()).isEqualTo(2.9);
+        assertThat(original.getInformationalRankingSignals()).containsExactly(3.0, 4.0).inOrder();
+
+        assertThat(rebuild.getRankingSignal()).isEqualTo(2.9);
+        assertThat(rebuild.getInformationalRankingSignals())
+                .containsExactly(3.0, 4.0, 5.0).inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SEARCH_RESULT_PARENT_TYPES)
+    public void testBuildSearchResult_parentTypeMap() {
+        AppSearchEmail email = new AppSearchEmail.Builder("namespace1", "id1")
+                .setBody("Hello World.")
+                .build();
+        SearchResult searchResult = new SearchResult.Builder("packageName", "databaseName")
+                .setGenericDocument(email)
+                .setParentTypeMap(Map.of(
+                        "schema1", List.of("parent1", "parent2"),
+                        "schema2", List.of("parent3", "parent4")
+                ))
+                .build();
+
+        assertThat(searchResult.getParentTypeMap())
+                .containsExactly(
+                        "schema1", List.of("parent1", "parent2"),
+                        "schema2", List.of("parent3", "parent4")
+                ).inOrder();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_SEARCH_RESULT_PARENT_TYPES)
+    public void testRebuild_parentTypeMap() {
+        AppSearchEmail email = new AppSearchEmail.Builder("namespace1", "id1")
+                .setBody("Hello World.")
+                .build();
+
+        SearchResult.Builder searchResultBuilder =
+                new SearchResult.Builder("packageName", "databaseName")
+                        .setGenericDocument(email)
+                        .setParentTypeMap(Map.of(
+                                "schema1", List.of("parent1", "parent2"),
+                                "schema2", List.of("parent3", "parent4")
+                        ));
+
+        SearchResult original = searchResultBuilder.build();
+        SearchResult rebuild = searchResultBuilder
+                .setParentTypeMap(Map.of("schema3", List.of("parent5", "parent6"))).build();
+
+        // Rebuild won't effect the original object
+        assertThat(original.getParentTypeMap())
+                .containsExactly(
+                        "schema1", List.of("parent1", "parent2"),
+                        "schema2", List.of("parent3", "parent4")
+                ).inOrder();
+
+        assertThat(rebuild.getParentTypeMap())
+                .containsExactly("schema3", List.of("parent5", "parent6")).inOrder();
     }
 }

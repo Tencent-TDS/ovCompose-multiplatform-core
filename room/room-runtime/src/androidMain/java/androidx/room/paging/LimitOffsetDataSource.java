@@ -23,6 +23,7 @@ import androidx.annotation.RestrictTo;
 import androidx.room.InvalidationTracker;
 import androidx.room.RoomDatabase;
 import androidx.room.RoomSQLiteQuery;
+import androidx.sqlite.SQLiteStatement;
 import androidx.sqlite.db.SupportSQLiteQuery;
 
 import java.util.Collections;
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  */
 @SuppressWarnings("deprecation")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 public abstract class LimitOffsetDataSource<T> extends androidx.paging.PositionalDataSource<T> {
     private final RoomSQLiteQuery mSourceQuery;
     private final String mCountQuery;
@@ -145,7 +146,21 @@ public abstract class LimitOffsetDataSource<T> extends androidx.paging.Positiona
 
     @NonNull
     @SuppressWarnings("WeakerAccess")
-    protected abstract List<T> convertRows(@NonNull Cursor cursor);
+    protected List<T> convertRows(@NonNull Cursor cursor) {
+        return convertRows(new CursorSQLiteStatement(cursor));
+    }
+
+    @NonNull
+    protected List<T> convertRows(@NonNull SQLiteStatement statement) {
+        throw new UnsupportedOperationException(
+                "Unexpected call to a function with no implementation that Room is supposed to "
+                    + "generate. Please file a bug at: "
+                    + BUG_LINK + "."
+        );
+    }
+
+    private static final String BUG_LINK =
+            "https://issuetracker.google.com/issues/new?component=413107&template=1096568";
 
     @SuppressWarnings("deprecation")
     @Override

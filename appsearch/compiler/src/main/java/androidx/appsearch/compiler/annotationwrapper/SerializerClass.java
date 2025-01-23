@@ -16,12 +16,13 @@
 
 package androidx.appsearch.compiler.annotationwrapper;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.ProcessingException;
 
 import com.google.auto.value.AutoValue;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
+
+import org.jspecify.annotations.NonNull;
 
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -48,9 +49,8 @@ public abstract class SerializerClass {
          * {@code @Document.StringProperty} which, in turn, boils down to a {@link String} within
          * a {@code GenericDocument}.
          */
-        @NonNull
         @SuppressWarnings("ImmutableEnumChecker") // TypeName is an immutable 3P type
-        final TypeName mActualTypeInGenericDoc;
+        final @NonNull TypeName mActualTypeInGenericDoc;
 
         Kind(@NonNull TypeName actualTypeInGenericDoc) {
             mActualTypeInGenericDoc = actualTypeInGenericDoc;
@@ -60,34 +60,29 @@ public abstract class SerializerClass {
     /**
      * The kind of serializer.
      */
-    @NonNull
-    public abstract Kind getKind();
+    public abstract @NonNull Kind getKind();
 
     /**
      * The serializer class element.
      */
-    @NonNull
-    public abstract TypeElement getElement();
+    public abstract @NonNull TypeElement getElement();
 
     /**
      * The zero-param constructor. Present on every serializer class.
      */
-    @NonNull
-    public abstract ExecutableElement getDefaultConstructor();
+    public abstract @NonNull ExecutableElement getDefaultConstructor();
 
     /**
      * The custom type that can be serialized using the serializer class.
      */
-    @NonNull
-    public abstract TypeMirror getCustomType();
+    public abstract @NonNull TypeMirror getCustomType();
 
     /**
      * Creates a serializer class given its {@link TypeElement}.
      *
      * @throws ProcessingException If the {@code clazz} does not have a zero-param constructor.
      */
-    @NonNull
-    public static SerializerClass create(
+    public static @NonNull SerializerClass create(
             @NonNull TypeElement clazz, @NonNull Kind kind) throws ProcessingException {
         ExecutableElement deserializeMethod = findDeserializeMethod(clazz, kind);
         return new AutoValue_SerializerClass(

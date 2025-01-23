@@ -18,6 +18,8 @@ package androidx.pdf.exceptions;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * An exception used to report that a specific fetch task was cancelled, for whatever
  * reason.
@@ -32,7 +34,7 @@ public final class TaskCancelledException extends Exception {
     /**
      * Constructs this exception with the current stack trace and the specified detail message.
      */
-    public TaskCancelledException(String detailMessage) {
+    public TaskCancelledException(@NonNull String detailMessage) {
         super(detailMessage);
     }
 }

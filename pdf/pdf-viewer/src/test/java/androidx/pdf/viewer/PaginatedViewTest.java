@@ -22,8 +22,8 @@ import android.content.Context;
 
 import androidx.pdf.models.Dimensions;
 import androidx.pdf.util.BitmapRecycler;
-import androidx.pdf.util.ProjectorContext;
 import androidx.pdf.viewer.PageViewFactory.PageView;
+import androidx.pdf.viewer.loader.PdfLoader;
 import androidx.pdf.widget.MosaicView.BitmapSource;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SmallTest;
@@ -53,6 +53,14 @@ public class PaginatedViewTest {
     BitmapSource mMockBitmapSource;
     @Mock
     BitmapRecycler mMockBitmapRecycler;
+    @Mock
+    PdfLoader mMockPdfLoader;
+    @Mock
+    PdfSelectionModel mPdfSelectionModel;
+    @Mock
+    SearchModel mSearchModel;
+    @Mock
+    PdfSelectionHandles mSelectionHandles;
 
     PageView mTestPageView0;
     PageView mTestPageView1;
@@ -63,18 +71,20 @@ public class PaginatedViewTest {
     public void setUp() {
         mOpenMocks = MockitoAnnotations.openMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
-        ProjectorContext.installProjectorGlobalsForTest(mContext);
         mDimensions = new Dimensions(100, 200);
 
+        PdfViewer.setScreenForTest(mContext);
         // Setting uninitialized model.
         mPaginatedView = new PaginatedView(mContext);
-        mPaginationModel = new PaginationModel();
+        mPaginationModel = new PaginationModel(mContext);
 
         mPaginatedView.setModel(mPaginationModel);
         mTestPageView0 = new PageMosaicView(mContext, 0, mDimensions, mMockBitmapSource,
-                mMockBitmapRecycler);
+                mMockBitmapRecycler, mMockPdfLoader, mPdfSelectionModel, mSearchModel,
+                mSelectionHandles);
         mTestPageView1 = new PageMosaicView(mContext, 1, mDimensions, mMockBitmapSource,
-                mMockBitmapRecycler);
+                mMockBitmapRecycler, mMockPdfLoader, mPdfSelectionModel, mSearchModel,
+                mSelectionHandles);
     }
 
     @After
@@ -99,7 +109,8 @@ public class PaginatedViewTest {
 
         mPaginationModel.addPage(2, mDimensions);
         PageView testPageView3 = new PageMosaicView(mContext, 2, mDimensions, mMockBitmapSource,
-                mMockBitmapRecycler);
+                mMockBitmapRecycler, mMockPdfLoader, mPdfSelectionModel, mSearchModel,
+                mSelectionHandles);
         mPaginatedView.addView(testPageView3);
 
         mPaginatedView.removeViewAt(1);

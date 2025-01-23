@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,24 +31,31 @@ plugins {
 }
 
 dependencies {
+    androidTestImplementation(projectOrArtifact(":benchmark:benchmark-common"))
     androidTestImplementation(projectOrArtifact(":benchmark:benchmark-junit4"))
-    androidTestImplementation(project(":navigation:navigation-runtime"))
     androidTestImplementation(project(":internal-testutils-navigation"))
+    androidTestImplementation(project(":navigation:navigation-common"))
+    androidTestImplementation(project(":navigation:navigation-runtime"))
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.kotlinStdlib)
+
+    // TODO: Workaround for "R8: Type is defined multiple times" due to the ongoing migration of
+    //  Navigation libraries to KMP. `-ktx` are empty in ToT but old versions still have classes.
+    androidTestImplementation(project(":lifecycle:lifecycle-runtime-ktx"))
+    androidTestImplementation(project(":lifecycle:lifecycle-viewmodel-ktx"))
+    androidTestImplementation(project(":savedstate:savedstate-ktx"))
 }
 
 androidx {
     name = "Navigation Benchmarks"
-    publish = Publish.NONE
+    type = LibraryType.BENCHMARK
     inceptionYear = "2018"
     description = "Navigation Benchmarks"
 }
 
 android {
-    namespace "androidx.navigation.benchmark"
+    namespace = "androidx.navigation.benchmark"
 }

@@ -21,14 +21,11 @@ import androidx.compose.ui.semantics.SemanticsActions.OnImeAction
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
-import androidx.compose.ui.semantics.onImeAction
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 
-/**
- * Clears the text in this node in similar way to IME.
- */
+/** Clears the text in this node in similar way to IME. */
 fun SemanticsNodeInteraction.performTextClearance() {
     performTextReplacement("")
 }
@@ -39,12 +36,10 @@ fun SemanticsNodeInteraction.performTextClearance() {
  * @param text Text to send.
  */
 fun SemanticsNodeInteraction.performTextInput(text: String) {
-    @OptIn(ExperimentalTestApi::class)
-    invokeGlobalAssertions()
+    @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
     getNodeAndFocus()
-    performSemanticsAction(SemanticsActions.InsertTextAtCursor) {
-        it(AnnotatedString(text))
-    }
+    performSemanticsAction(SemanticsActions.InsertTextAtCursor) { it(AnnotatedString(text)) }
 }
 
 /**
@@ -77,24 +72,24 @@ fun SemanticsNodeInteraction.performTextReplacement(text: String) {
 /**
  * Sends to this node the IME action associated with it in a similar way to the IME.
  *
- * The node needs to define its IME action in semantics via
- * [SemanticsPropertyReceiver.onImeAction].
+ * The node needs to define its IME action in semantics via [SemanticsPropertyReceiver.onImeAction].
  *
  * @throws AssertionError if the node does not support input or does not define IME action.
  * @throws IllegalStateException if the node did is not an editor or would not be able to establish
- * an input connection (e.g. does not define [ImeAction][SemanticsProperties.ImeAction] or
- * [OnImeAction] or is not focused).
+ *   an input connection (e.g. does not define [ImeAction][SemanticsProperties.ImeAction] or
+ *   [OnImeAction] or is not focused).
  */
 fun SemanticsNodeInteraction.performImeAction() {
     val errorOnFail = "Failed to perform IME action."
     assert(hasPerformImeAction()) { errorOnFail }
     assert(!hasImeAction(ImeAction.Default)) { errorOnFail }
     @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
     val node = getNodeAndFocus(errorOnFail, requireEditable = false)
 
     wrapAssertionErrorsWithNodeInfo(selector, node) {
         performSemanticsAction(OnImeAction) {
-            assert(it()) {
+            assertOnJvm(it()) {
                 buildGeneralErrorMessage(
                     "Failed to perform IME action, handler returned false.",
                     selector,
@@ -109,13 +104,12 @@ private fun SemanticsNodeInteraction.getNodeAndFocus(
     errorOnFail: String = "Failed to perform text input.",
     requireEditable: Boolean = true
 ): SemanticsNode {
-    @OptIn(ExperimentalTestApi::class)
-    invokeGlobalAssertions()
+    @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
     val node = fetchSemanticsNode(errorOnFail)
     assert(isEnabled()) { errorOnFail }
     assert(hasRequestFocusAction()) { errorOnFail }
     if (requireEditable) {
-        assert(isEditable()) { errorOnFail }
         assert(hasSetTextAction()) { errorOnFail }
         assert(hasInsertTextAtCursorAction()) { errorOnFail }
     }
@@ -128,26 +122,10 @@ private fun SemanticsNodeInteraction.getNodeAndFocus(
     return node
 }
 
-private inline fun <R> wrapAssertionErrorsWithNodeInfo(
+internal expect inline fun <R> wrapAssertionErrorsWithNodeInfo(
     selector: SemanticsSelector,
     node: SemanticsNode,
     block: () -> R
-): R {
-    try {
-        return block()
-    } catch (e: AssertionError) {
-        throw ProxyAssertionError(e.message.orEmpty(), selector, node, e)
-    }
-}
+): R
 
-private class ProxyAssertionError(
-    message: String,
-    selector: SemanticsSelector,
-    node: SemanticsNode,
-    cause: Throwable
-) : AssertionError(buildGeneralErrorMessage(message, selector, node), cause) {
-    init {
-        // Duplicate the stack trace to make troubleshooting easier.
-        stackTrace = cause.stackTrace
-    }
-}
+internal expect inline fun assertOnJvm(value: Boolean, lazyMessage: () -> Any)

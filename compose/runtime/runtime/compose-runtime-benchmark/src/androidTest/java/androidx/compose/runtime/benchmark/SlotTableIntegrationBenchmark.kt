@@ -36,7 +36,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import kotlin.random.Random
@@ -52,37 +51,23 @@ import org.junit.runners.MethodSorters
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
 
-    @UiThreadTest
     @Test
     fun create() = runBlockingTestWithFrameClock {
         measureCompose {
-            Column(
-                modifier = Modifier.size(width = 20.dp, height = 300.dp)
-            ) {
-                repeat(100) {
-                    key(it) {
-                        Pixel(color = Color.Blue)
-                    }
-                }
+            Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
+                repeat(100) { key(it) { Pixel(color = Color.Blue) } }
             }
         }
     }
 
-    @UiThreadTest
     @Test
     fun removeManyGroups() = runBlockingTestWithFrameClock {
         var includeGroups by mutableStateOf(true)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     if (includeGroups) {
-                        repeat(100) {
-                            key(it) {
-                                Pixel(color = Color.Blue)
-                            }
-                        }
+                        repeat(100) { key(it) { Pixel(color = Color.Blue) } }
                     }
                 }
             }
@@ -91,20 +76,15 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun removeAlternatingGroups() = runBlockingTestWithFrameClock {
         var insertAlternatingGroups by mutableStateOf(true)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     repeat(100) { index ->
                         if (index % 2 == 0 || insertAlternatingGroups) {
-                            key(index) {
-                                Pixel(color = Color.Blue)
-                            }
+                            key(index) { Pixel(color = Color.Blue) }
                         }
                     }
                 }
@@ -114,22 +94,15 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun removeManyReplaceGroups() = runBlockingTestWithFrameClock {
         var insertAlternatingGroups by mutableStateOf(true)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     repeat(100) { index ->
                         if (index % 2 == 0 || insertAlternatingGroups) {
-                            Pixel(color = Color(
-                                red = 0,
-                                green = 2 * index,
-                                blue = 0
-                            ))
+                            Pixel(color = Color(red = 0, green = 2 * index, blue = 0))
                         }
                     }
                 }
@@ -139,21 +112,14 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun insertManyGroups() = runBlockingTestWithFrameClock {
         var includeGroups by mutableStateOf(false)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     if (includeGroups) {
-                        repeat(100) {
-                            key(it) {
-                                Pixel(color = Color.Blue)
-                            }
-                        }
+                        repeat(100) { key(it) { Pixel(color = Color.Blue) } }
                     }
                 }
             }
@@ -162,20 +128,15 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun insertAlternatingGroups() = runBlockingTestWithFrameClock {
         var insertAlternatingGroups by mutableStateOf(false)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     repeat(100) { index ->
                         if (index % 2 == 0 || insertAlternatingGroups) {
-                            key(index) {
-                                Pixel(color = Color.Blue)
-                            }
+                            key(index) { Pixel(color = Color.Blue) }
                         }
                     }
                 }
@@ -185,22 +146,15 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun insertManyReplaceGroups() = runBlockingTestWithFrameClock {
         var insertAlternatingGroups by mutableStateOf(false)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
                     repeat(100) { index ->
                         if (index % 2 == 0 || insertAlternatingGroups) {
-                            Pixel(color = Color(
-                                red = 0,
-                                green = 2 * index,
-                                blue = 0
-                            ))
+                            Pixel(color = Color(red = 0, green = 2 * index, blue = 0))
                         }
                     }
                 }
@@ -210,11 +164,10 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun updateManyNestedGroups() = runBlockingTestWithFrameClock {
         var seed by mutableIntStateOf(1337)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
                 val random = remember(seed) { Random(seed) }
                 MatryoshkaLayout(
@@ -226,9 +179,7 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
                             Pixel(color = Color.Green)
                             Pixel(color = Color.Blue)
                         }
-                        MinimalBox {
-                            NonRenderingText("abcdef")
-                        }
+                        MinimalBox { NonRenderingText("abcdef") }
                         NonRenderingText(
                             text = random.nextString(),
                             textColor = Color(random.nextInt()),
@@ -244,11 +195,10 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun updateDisjointGroups() = runBlockingTestWithFrameClock {
         var seed by mutableIntStateOf(1337)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
                 MinimalBox {
                     repeat(10) { container ->
@@ -279,26 +229,19 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun updateDeepCompositionLocalHierarchy() = runBlockingTestWithFrameClock {
         val PixelColorLocal = compositionLocalOf { Color.Unspecified }
         var seed by mutableIntStateOf(1337)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
                 val random = remember(seed) { Random(seed) }
                 Pixel(PixelColorLocal.current)
-                CompositionLocalProvider(
-                    PixelColorLocal provides Color(random.nextInt())
-                ) {
+                CompositionLocalProvider(PixelColorLocal provides Color(random.nextInt())) {
                     Pixel(PixelColorLocal.current)
-                    CompositionLocalProvider(
-                        PixelColorLocal provides Color(random.nextInt())
-                    ) {
+                    CompositionLocalProvider(PixelColorLocal provides Color(random.nextInt())) {
                         Pixel(PixelColorLocal.current)
-                        CompositionLocalProvider(
-                            PixelColorLocal provides Color(random.nextInt())
-                        ) {
+                        CompositionLocalProvider(PixelColorLocal provides Color(random.nextInt())) {
                             Pixel(PixelColorLocal.current)
                             CompositionLocalProvider(
                                 PixelColorLocal provides Color(random.nextInt())
@@ -328,21 +271,14 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
         }
     }
 
-    @UiThreadTest
     @Test
     fun reverseGroups() = runBlockingTestWithFrameClock {
         val originalItems = (1..100).toList()
         var keys by mutableStateOf(originalItems)
-        measureRecomposeSuspending {
+        measureRecompose {
             compose {
-                Column(
-                    modifier = Modifier.size(width = 20.dp, height = 300.dp)
-                ) {
-                    keys.forEach {
-                        key(it) {
-                            Pixel(color = Color.Blue)
-                        }
-                    }
+                Column(modifier = Modifier.size(width = 20.dp, height = 300.dp)) {
+                    keys.forEach { key(it) { Pixel(color = Color.Blue) } }
                 }
             }
             update { keys = keys.reversed() }
@@ -353,11 +289,7 @@ class SlotTableIntegrationBenchmark : ComposeBenchmarkBase() {
 
 @Composable
 private fun Pixel(color: Color) {
-    Layout(
-        modifier = Modifier.background(color)
-    ) { _, _ ->
-        layout(1, 1) {}
-    }
+    Layout(modifier = Modifier.background(color)) { _, _ -> layout(1, 1) {} }
 }
 
 @Composable
@@ -375,24 +307,16 @@ private fun NonRenderingText(
     use(ellipsize)
     use(minLines)
     use(maxLines)
-    Layout { _, _ ->
-        layout(1, 1) {}
-    }
+    Layout { _, _ -> layout(1, 1) {} }
 }
 
 @Composable
-private fun MinimalBox(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
+private fun MinimalBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Layout(content, modifier, MinimalBoxMeasurePolicy)
 }
 
 @Composable
-private fun MatryoshkaLayout(
-    depth: Int,
-    content: @Composable (depth: Int) -> Unit
-) {
+private fun MatryoshkaLayout(depth: Int, content: @Composable (depth: Int) -> Unit) {
     if (depth <= 0) {
         content(0)
     } else {
@@ -408,30 +332,28 @@ private fun MatryoshkaLayout(
 
 private val MinimalBoxMeasurePolicy = MeasurePolicy { measurables, constraints ->
     val placeables = measurables.map { it.measure(constraints) }
-    val (usedWidth, usedHeight) = placeables.fold(
-        initial = IntOffset(0, 0)
-    ) { (maxWidth, maxHeight), placeable ->
-        IntOffset(
-            maxOf(maxWidth, placeable.measuredWidth),
-            maxOf(maxHeight, placeable.measuredHeight)
-        )
-    }
+    val (usedWidth, usedHeight) =
+        placeables.fold(initial = IntOffset(0, 0)) { (maxWidth, maxHeight), placeable ->
+            IntOffset(
+                maxOf(maxWidth, placeable.measuredWidth),
+                maxOf(maxHeight, placeable.measuredHeight)
+            )
+        }
 
-    layout(
-        width = usedWidth,
-        height = usedHeight
-    ) {
-        placeables.forEach { it.place(0, 0) }
-    }
+    layout(width = usedWidth, height = usedHeight) { placeables.forEach { it.place(0, 0) } }
 }
 
-private fun Random.nextString(length: Int = 16) = buildString(length) {
-    repeat(length) { append(nextInt('A'.code, 'z'.code).toChar()) }
-}
+private fun Random.nextString(length: Int = 16) =
+    buildString(length) { repeat(length) { append(nextInt('A'.code, 'z'.code).toChar()) } }
 
 @Suppress("UNUSED_PARAMETER") private fun use(value: Any?) {}
+
 @Suppress("UNUSED_PARAMETER") private fun use(value: Int) {}
+
 @Suppress("UNUSED_PARAMETER") private fun use(value: Long) {}
+
 @Suppress("UNUSED_PARAMETER") private fun use(value: Float) {}
+
 @Suppress("UNUSED_PARAMETER") private fun use(value: Double) {}
+
 @Suppress("UNUSED_PARAMETER") private fun use(value: Boolean) {}

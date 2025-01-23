@@ -17,6 +17,7 @@ package androidx.room.util
 
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
+import kotlin.jvm.JvmStatic
 
 /**
  * A data class that holds the information about a view.
@@ -25,15 +26,12 @@ import androidx.sqlite.SQLiteConnection
  *
  * Even though SQLite column names are case insensitive, this class uses case sensitive matching.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-actual class ViewInfo actual constructor(
-    /**
-     * The view name
-     */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+actual class ViewInfo
+actual constructor(
+    /** The view name */
     actual val name: String,
-    /**
-     * The SQL of CREATE VIEW.
-     */
+    /** The SQL of CREATE VIEW. */
     actual val sql: String?
 ) {
     actual override fun equals(other: Any?) = equalsCommon(other)
@@ -50,6 +48,7 @@ actual class ViewInfo actual constructor(
          * @param viewName The view name.
          * @return A ViewInfo containing the schema information for the provided view name.
          */
+        @JvmStatic
         actual fun read(connection: SQLiteConnection, viewName: String): ViewInfo {
             return readViewInfo(connection, viewName)
         }
