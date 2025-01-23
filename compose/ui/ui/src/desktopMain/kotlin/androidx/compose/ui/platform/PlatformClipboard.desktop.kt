@@ -47,10 +47,16 @@ internal class AwtPlatformClipboard internal constructor() : Clipboard {
         )
     }
 
+    /**
+     * Provides the [java.awt.datatransfer.Clipboard] instance.
+     */
     override val nativeClipboard: NativeClipboard
         get() = systemClipboard ?: error("systemClipboard is not available in headless mode")
 }
 
+/**
+ * A wrapper for [Transferable] instance which can be used to access or set the Clipboard content.
+ */
 actual class ClipEntry(val transferable: Transferable) {
     // TODO https://youtrack.jetbrains.com/issue/CMP-1260/ClipboardManager.-Implement-getClip-getClipMetadata-setClip
     actual val clipMetadata: ClipMetadata
