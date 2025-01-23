@@ -48,7 +48,13 @@ fun main() {
         val navController = rememberNavController()
         val fontFamilyResolver = LocalFontFamilyResolver.current
         val fontsLoaded = remember { mutableStateOf(false) }
-        val app = remember { App() }
+        val app = remember { App(
+            extraScreens = listOf(
+                Screen.Example("Web Clipboard API example") {
+                    WebClipboardDemo()
+                }
+            )
+        ) }
 
         if (fontsLoaded.value) {
             app.Content(navController)

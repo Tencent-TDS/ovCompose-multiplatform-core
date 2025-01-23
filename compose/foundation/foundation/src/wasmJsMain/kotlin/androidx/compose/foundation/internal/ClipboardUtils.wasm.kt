@@ -14,45 +14,46 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalComposeUiApi::class)
+
 package androidx.compose.foundation.internal
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.text.AnnotatedString
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.StringSelection
-import java.awt.datatransfer.UnsupportedFlavorException
-import java.io.IOException
+import kotlin.js.Promise
+import kotlinx.coroutines.await
+import org.w3c.files.Blob
+
+private const val MIME_TYPE_PLAIN_TEXT = "text/plain"
+private val MIME_TYPE_PLAIN_TEXT_JS = MIME_TYPE_PLAIN_TEXT.toJsString()
 
 internal actual suspend fun ClipEntry.readText(): String? {
-    return try {
-        transferable.getTransferData(DataFlavor.stringFlavor) as String?
-    } catch (_: UnsupportedFlavorException) {
-        null
-    } catch (_: IllegalStateException) {
-        null
-    } catch (_: IOException) {
-        null
-    }
+    if (!this.hasText()) return null
+    val blob = clipboardItems[0]!!.getType(MIME_TYPE_PLAIN_TEXT_JS).await<Blob>()
+    return getTextFromBlob(blob).await<JsString>().toString()
 }
 
 internal actual suspend fun ClipEntry.readAnnotatedString(): AnnotatedString? {
-    return readText()?.let { return AnnotatedString(it) }
+    val text = readText() ?: return null
+    return AnnotatedString(text)
 }
 
 internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
     if (this == null) return null
-    val transferable = StringSelection(this.text)
-    return ClipEntry(transferable)
+    return ClipEntry.withPlainText(this.text)
 }
 
 internal actual fun ClipEntry?.hasText(): Boolean {
-    return try {
-        (this?.transferable?.getTransferData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
-    } catch (_: UnsupportedFlavorException) {
-        false
-    } catch (_: IllegalStateException) {
-        false
-    } catch (_: IOException) {
-        false
-    }
+    if (this == null) return false
+    if (this.clipboardItems.length == 0) return false
+    return doesJsArrayContainValue(this.clipboardItems.get(0)!!.types, MIME_TYPE_PLAIN_TEXT_JS)
 }
+
+@Suppress("UNUSED_PARAMETER")
+private fun doesJsArrayContainValue(jsArray: JsArray<*>, value: JsAny): Boolean =
+    js("jsArray.includes(value)")
+
+@Suppress("UNUSED_PARAMETER")
+private fun getTextFromBlob(blob: Blob): Promise<JsString> =
+    js("blob.text()")
