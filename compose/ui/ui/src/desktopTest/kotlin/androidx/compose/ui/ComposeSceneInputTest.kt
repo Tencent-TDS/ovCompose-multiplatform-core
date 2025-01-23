@@ -16,15 +16,9 @@
 
 package androidx.compose.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntRect
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -460,36 +454,5 @@ class ComposeSceneInputTest {
             PointerEventType.Release,
             touch(1f, 2f, pressed = false, id = 2),
         )
-    }
-
-    @Test
-    fun `test move events consumption`() = ImageComposeScene(
-        100, 100
-    ).useInUiThread { scene ->
-        var consumeAll = false
-        scene.setContent {
-            Box(modifier = Modifier.fillMaxSize().pointerInput(PointerEventPass.Initial) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        if (consumeAll) {
-                            event.changes.forEach {
-                                if ((it.previousPosition - it.position) != Offset.Zero) it.consume()
-                            }
-                        }
-                    }
-                }
-            })
-        }
-
-        scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-        assertFalse(scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f)))
-        assertFalse(scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f)))
-
-        consumeAll = true
-
-        scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-        assertTrue(scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f)))
-        assertTrue(scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f)))
     }
 }

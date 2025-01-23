@@ -179,10 +179,10 @@ public final class androidx/compose/ui/ImageComposeScene {
 	public static synthetic fun render$default (Landroidx/compose/ui/ImageComposeScene;JILjava/lang/Object;)Lorg/jetbrains/skia/Image;
 	public final fun render-LRDsOJo (J)Lorg/jetbrains/skia/Image;
 	public final fun sendKeyEvent-ZmokQxo (Ljava/lang/Object;)Z
-	public final fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
-	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/ImageComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
-	public final fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
-	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/ImageComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
+	public final fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
+	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/ImageComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
+	public final fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
+	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/ImageComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
 	public final fun setConstraints-BRTryo0 (J)V
 	public final fun setContent (Lkotlin/jvm/functions/Function2;)V
 	public final fun setLayoutDirection (Landroidx/compose/ui/unit/LayoutDirection;)V
