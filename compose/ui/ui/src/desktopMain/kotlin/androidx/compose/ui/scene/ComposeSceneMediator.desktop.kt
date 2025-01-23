@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.awt.AwtEventListener
@@ -782,6 +783,11 @@ internal class ComposeSceneMediator(
                     textInputService.stopInput()
                 }
             })
+        }
+
+        @ExperimentalComposeUiApi
+        override fun notifyFocusedRect(rect: Rect) {
+            textInputService.notifyFocusedRect(rect)
         }
     }
 

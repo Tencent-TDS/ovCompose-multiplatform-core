@@ -3592,6 +3592,7 @@ public final class androidx/compose/ui/platform/PlatformTextInputModifierNodeKt 
 }
 
 public abstract interface class androidx/compose/ui/platform/PlatformTextInputSession {
+	public fun notifyFocusedRect (Landroidx/compose/ui/geometry/Rect;)V
 	public abstract fun startInputMethod (Landroidx/compose/ui/platform/PlatformTextInputMethodRequest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public fun updateSelectionState (Landroidx/compose/ui/text/input/TextFieldValue;)V
 }
