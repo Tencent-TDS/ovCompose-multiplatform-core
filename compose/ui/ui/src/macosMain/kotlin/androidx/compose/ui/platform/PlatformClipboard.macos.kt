@@ -17,40 +17,41 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import platform.UIKit.UIPasteboard
 
-actual typealias NativeClipboard = platform.UIKit.UIPasteboard
+actual typealias NativeClipboard = platform.AppKit.NSPasteboard
 
-internal class UiKitPlatformClipboard internal constructor() : Clipboard {
+internal class NSPasteboardPlatformClipboard : Clipboard {
     override suspend fun getClipEntry(): ClipEntry? {
-        if (nativeClipboard.items.isEmpty()) return null
-        return ClipEntry().apply {
-            plainText = nativeClipboard.string
-        }
+        if (nativeClipboard.pasteboardItems == null) return null
+        if (nativeClipboard.pasteboardItems!!.isEmpty()) return null
+
+        val str = nativeClipboard.stringForType(platform.AppKit.NSPasteboardTypeString)
+        if (str.isNullOrEmpty()) return null
+
+        return ClipEntry.withPlainText(str)
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        if (clipEntry == null) {
-            nativeClipboard.items = emptyList<Map<String, Any>>()
-        } else {
-            nativeClipboard.string = clipEntry.plainText
+        if (clipEntry?.plainText == null) {
+            nativeClipboard.clearContents()
+            return
         }
+        if (clipEntry.plainText == null) return
+
+        nativeClipboard.setString(clipEntry.plainText!!, platform.AppKit.NSPasteboardTypeString)
     }
 
-    /**
-     * Provides the [platform.UIKit.UIPasteboard] instance.
-     */
     override val nativeClipboard: NativeClipboard
-        get() = UIPasteboard.generalPasteboard
+        get() = platform.AppKit.NSPasteboard.generalPasteboard
 }
 
 internal actual fun createPlatformClipboard(): Clipboard {
-    return UiKitPlatformClipboard()
+    return NSPasteboardPlatformClipboard()
 }
 
 /**
- * A wrapper for [UIPasteboard] items.
- * Currently, it operates only with string(s) - [UIPasteboard.string].
+ * A wrapper for [platform.AppKit.NSPasteboard] items.
+ * Currently, it operates only with string(s) - [platform.AppKit.NSPasteboardTypeString].
  * To access or set other data items, consider using [Clipboard.nativeClipboard].
  */
 actual class ClipEntry internal constructor() {
