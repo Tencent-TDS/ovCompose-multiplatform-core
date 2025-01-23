@@ -266,17 +266,18 @@ internal class RootNodeOwner(
     }
 
     @OptIn(InternalCoreApi::class)
-    fun onPointerInput(event: PointerInputEvent) {
+    fun onPointerInput(event: PointerInputEvent): Boolean {
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit &&
             event.pointers.fastAll { isInBounds(it.position) }
-        pointerInputEventProcessor.process(
+        val result = pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
             isInBounds = isInBounds
         )
+        return result.anyMovementConsumed
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {

@@ -194,7 +194,7 @@ interface ComposeScene {
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    )
+    ): Boolean
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -225,7 +225,7 @@ interface ComposeScene {
         timeMillis: Long = currentTimeForEvent(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    )
+    ): Boolean
 
     /**
      * Send [KeyEvent] to the content.

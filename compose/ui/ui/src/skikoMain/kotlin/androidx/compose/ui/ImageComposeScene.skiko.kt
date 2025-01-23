@@ -265,7 +265,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ): Unit = scene.sendPointerEvent(
+    ): Boolean = scene.sendPointerEvent(
         eventType, position, scrollDelta, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
     )
 
@@ -299,7 +299,7 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ): Unit = scene.sendPointerEvent(
+    ): Boolean = scene.sendPointerEvent(
         eventType, pointers, buttons, keyboardModifiers, scrollDelta, timeMillis, nativeEvent, button
     )
 

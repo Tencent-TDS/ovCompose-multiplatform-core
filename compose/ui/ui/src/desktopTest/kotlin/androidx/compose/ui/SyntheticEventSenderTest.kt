@@ -24,6 +24,8 @@ import androidx.compose.ui.input.pointer.PointerEventType.Companion.Release
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.SyntheticEventSender
 import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalComposeUiApi::class)
 class SyntheticEventSenderTest {
@@ -176,6 +178,82 @@ class SyntheticEventSenderTest {
                 2 to touch(10f, 20f, pressed = false),
                 3 to touch(100f, 200f, pressed = true),
             ),
+        )
+    }
+
+    @Test
+    fun `should consume event when synthetic events added`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only synthetic move event
+            event.eventType == Move
+        }
+
+        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
+        assertTrue(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+    }
+
+    @Test
+    fun `should not consume event none of synthetic events consumed`() {
+        val sender = SyntheticEventSender { false }
+
+        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
+        assertFalse(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+    }
+
+    @Test
+    fun `should consume event when synthetic  event`() {
+        val sender = SyntheticEventSender { event ->
+            event.eventType == Move
+        }
+
+        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
+        assertTrue(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+    }
+
+    @Test
+    fun `should consume press event when synthetic events consumed`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only first synthetic Press event
+            event.eventType == Press && event.pointers.singleOrNull { it.down } != null
+        }
+
+        assertTrue(
+            sender.send(
+                event(
+                    Press,
+                    1 to touch(1f, 3f, pressed = true),
+                    2 to touch(10f, 20f, pressed = true),
+                    3 to touch(100f, 200f, pressed = true),
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `should consume release event when synthetic events consumed`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only first synthetic Release event
+            event.eventType == Release && event.pointers.singleOrNull { !it.down } != null
+        }
+
+        sender.send(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            )
+        )
+
+        assertTrue(
+            sender.send(
+                event(
+                    Release,
+                    1 to touch(1f, 3f, pressed = false),
+                    2 to touch(10f, 20f, pressed = false),
+                    3 to touch(100f, 200f, pressed = false),
+                ),
+            )
         )
     }
 

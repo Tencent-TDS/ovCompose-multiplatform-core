@@ -173,7 +173,7 @@ internal abstract class BaseComposeScene(
 
             // Schedule synthetic events to be sent after `render` completes
             if (inputHandler.needUpdatePointerPosition) {
-                recomposer.scheduleAsEffect(updatePointerPosition)
+                recomposer.scheduleAsEffect { updatePointerPosition() }
             }
 
             // Between layout and draw, Android's Choreographer flushes the main dispatcher.
@@ -203,7 +203,7 @@ internal abstract class BaseComposeScene(
         keyboardModifiers: PointerKeyboardModifiers?,
         nativeEvent: Any?,
         button: PointerButton?
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): Boolean = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
         inputHandler.onPointerEvent(
             eventType = eventType,
             position = position,
@@ -214,8 +214,9 @@ internal abstract class BaseComposeScene(
             keyboardModifiers = keyboardModifiers,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     // TODO(demin): return Boolean (when it is consumed)
@@ -229,7 +230,7 @@ internal abstract class BaseComposeScene(
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): Boolean = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
         inputHandler.onPointerEvent(
             eventType = eventType,
             pointers = pointers,
@@ -239,8 +240,9 @@ internal abstract class BaseComposeScene(
             timeMillis = timeMillis,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
@@ -256,7 +258,7 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition
 
-    protected abstract fun processPointerInputEvent(event: PointerInputEvent)
+    protected abstract fun processPointerInputEvent(event: PointerInputEvent): Boolean
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 

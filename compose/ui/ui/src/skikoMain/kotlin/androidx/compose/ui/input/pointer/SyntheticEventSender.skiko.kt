@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.input.pointer
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.util.fastAny
 
@@ -49,9 +48,9 @@ import androidx.compose.ui.util.fastAny
  * touch first. For example, iOS simulator can send 2 touches simultaneously.
  */
 internal class SyntheticEventSender(
-    send: (PointerInputEvent) -> Unit
+    send: (PointerInputEvent) -> Boolean
 ) {
-    private val _send: (PointerInputEvent) -> Unit = send
+    private val _send: (PointerInputEvent) -> Boolean = send
     private var previousEvent: PointerInputEvent? = null
 
     /**
@@ -72,32 +71,37 @@ internal class SyntheticEventSender(
     /**
      * Send [event] and synthetic events before it if needed. On each sent event we just call [send]
      */
-    fun send(event: PointerInputEvent) {
-        sendMissingMoveForHover(event)
-        sendMissingReleases(event)
-        sendMissingPresses(event)
-        sendInternal(event)
+    fun send(event: PointerInputEvent): Boolean {
+        val syntheticMoveForHoverConsumed = sendMissingMoveForHover(event)
+        val syntheticReleasesConsumed = sendMissingReleases(event)
+        val syntheticPressesConsumed = sendMissingPresses(event)
+        val eventConsumed = sendInternal(event)
+        return syntheticMoveForHoverConsumed ||
+            syntheticReleasesConsumed ||
+            syntheticPressesConsumed ||
+            eventConsumed
     }
 
-    fun updatePointerPosition() {
+    fun updatePointerPosition(): Boolean {
         if (needUpdatePointerPosition) {
             needUpdatePointerPosition = false
 
             previousEvent?.let { event ->
                 if (event.pointers.fastAny { it.down || it.type == PointerType.Mouse }) {
-                    sendSyntheticMove(event)
+                    return sendSyntheticMove(event)
                 }
             }
         }
+        return false
     }
 
     /**
      * @param pointersSourceEvent the event which we treat as a source of the pointers
      */
-    private fun sendSyntheticMove(pointersSourceEvent: PointerInputEvent) {
-        val previousEvent = previousEvent ?: return
+    private fun sendSyntheticMove(pointersSourceEvent: PointerInputEvent): Boolean {
+        val previousEvent = previousEvent ?: return false
         val idToPosition = pointersSourceEvent.pointers.associate { it.id to it.position }
-        sendInternal(
+        return sendInternal(
             previousEvent.copySynthetic(
                 type = PointerEventType.Move,
                 copyPointer = { it.copySynthetic(position = idToPosition[it.id] ?: it.position) },
@@ -105,22 +109,25 @@ internal class SyntheticEventSender(
         )
     }
 
-    private fun sendMissingMoveForHover(currentEvent: PointerInputEvent) {
+    private fun sendMissingMoveForHover(currentEvent: PointerInputEvent): Boolean {
         // issuesEnterExit means that the pointer can issues hover events (enter/exit), and so we
         // should generate a synthetic Move (see why we need to do that in the class description)
-        if (currentEvent.pointers.any { it.activeHover } &&
+        return if (currentEvent.pointers.any { it.activeHover } &&
             isMoveEventMissing(previousEvent, currentEvent)) {
             sendSyntheticMove(currentEvent)
+        } else {
+            false
         }
     }
 
-    private fun sendMissingReleases(currentEvent: PointerInputEvent) {
-        val previousEvent = previousEvent ?: return
+    private fun sendMissingReleases(currentEvent: PointerInputEvent): Boolean {
+        val previousEvent = previousEvent ?: return false
         val previousPressed = previousEvent.pressedIds()
         val currentPressed = currentEvent.pressedIds()
         val newReleased = (previousPressed - currentPressed.toSet()).toList()
         val sendingAsUp = HashSet<PointerId>(newReleased.size)
 
+        var consumed = false
         // Don't send the first released pointer
         // It will be sent as a real event. Here we only need to send synthetic events
         // before a real one.
@@ -139,16 +146,20 @@ internal class SyntheticEventSender(
                         )
                     }
                 )
-            )
+            ).also {
+                consumed = consumed || it
+            }
         }
+        return consumed
     }
 
-    private fun sendMissingPresses(currentEvent: PointerInputEvent) {
+    private fun sendMissingPresses(currentEvent: PointerInputEvent): Boolean {
         val previousPressed = previousEvent?.pressedIds().orEmpty()
         val currentPressed = currentEvent.pressedIds()
         val newPressed = (currentPressed - previousPressed.toSet()).toList()
         val sendingAsDown = HashSet<PointerId>(newPressed.size)
 
+        var consumed = false
         // Don't send the last pressed pointer (newPressed.size - 1)
         // It will be sent as a real event. Here we only need to send synthetic events
         // before a real one.
@@ -164,18 +175,22 @@ internal class SyntheticEventSender(
                         )
                     }
                 )
-            )
+            ).also {
+                consumed = consumed || it
+            }
         }
+        return consumed
     }
 
     private fun PointerInputEvent.pressedIds(): Sequence<PointerId> =
         pointers.asSequence().filter { it.down }.map { it.id }
 
-    private fun sendInternal(event: PointerInputEvent) {
-        _send(event)
+    private fun sendInternal(event: PointerInputEvent): Boolean {
+        val consumed = _send(event)
         // We don't send nativeEvent for synthetic events.
         // Nullify to avoid memory leaks (native events can point to native views).
         previousEvent = event.copy(nativeEvent = null)
+        return consumed
     }
 
     private fun isMoveEventMissing(
@@ -211,7 +226,6 @@ internal class SyntheticEventSender(
         button = null
     )
 
-    @OptIn(ExperimentalComposeUiApi::class)
     private fun PointerInputEventData.copySynthetic(
         position: Offset = this.position,
         down: Boolean = this.down

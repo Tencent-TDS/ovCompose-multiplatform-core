@@ -223,20 +223,22 @@ private class CanvasLayersComposeSceneImpl(
         return mainOwner.hitTestInteropView(position)
     }
 
-    override fun processPointerInputEvent(event: PointerInputEvent) {
-        when (event.eventType) {
+    override fun processPointerInputEvent(event: PointerInputEvent): Boolean {
+        val consumed = when (event.eventType) {
             PointerEventType.Press -> processPress(event)
             PointerEventType.Release -> processRelease(event)
             PointerEventType.Move -> processMove(event)
             PointerEventType.Enter -> processMove(event)
             PointerEventType.Exit -> processMove(event)
             PointerEventType.Scroll -> processScroll(event)
+            else -> false
         }
 
         // Clean gestureOwner when there is no pressed pointers/buttons
         if (!event.isGestureInProgress) {
             gestureOwner = null
         }
+        return consumed
     }
 
     override fun processKeyEvent(keyEvent: KeyEvent): Boolean =
@@ -279,11 +281,10 @@ private class CanvasLayersComposeSceneImpl(
         return true
     }
 
-    private fun processPress(event: PointerInputEvent) {
+    private fun processPress(event: PointerInputEvent): Boolean {
         val currentGestureOwner = gestureOwner
         if (currentGestureOwner != null) {
-            currentGestureOwner.onPointerInput(event)
-            return
+            return currentGestureOwner.onPointerInput(event)
         }
         val position = event.pointers.first().position
         forEachLayerReversed { layer ->
@@ -292,9 +293,9 @@ private class CanvasLayersComposeSceneImpl(
             if (layer.isInBounds(position)) {
                 // The layer doesn't have any offset from [mainOwner], so we don't need to
                 // convert event coordinates here.
-                layer.owner.onPointerInput(event)
+                val result = layer.owner.onPointerInput(event)
                 gestureOwner = layer.owner
-                return
+                return result
             }
 
             // Input event is out of bounds - send click outside notification
@@ -302,20 +303,23 @@ private class CanvasLayersComposeSceneImpl(
 
             // if the owner is in focus, do not pass the event to underlying owners
             if (layer == focusedLayer) {
-                return
+                return false
             }
         }
-        mainOwner.onPointerInput(event)
+        val consumed = mainOwner.onPointerInput(event)
         gestureOwner = mainOwner
+        return consumed
     }
 
-    private fun processRelease(event: PointerInputEvent) {
+    private fun processRelease(event: PointerInputEvent): Boolean {
         // Send Release to gestureOwner even if is not hovered or under focusedOwner
-        gestureOwner?.onPointerInput(event)
+        val consumed = gestureOwner?.onPointerInput(event)
         if (!event.isGestureInProgress) {
             val owner = hoveredOwner(event)
             if (isInteractive(owner)) {
-                processHover(event, owner)
+                processHover(event, owner)?.let {
+                    return it
+                }
             } else if (gestureOwner == null) {
                 // If hovered owner is not interactive, then it means that
                 // - It's not focusedOwner
@@ -324,9 +328,10 @@ private class CanvasLayersComposeSceneImpl(
                 focusedLayer?.onOutsidePointerEvent(event)
             }
         }
+        return consumed ?: false
     }
 
-    private fun processMove(event: PointerInputEvent) {
+    private fun processMove(event: PointerInputEvent): Boolean {
         var owner = when {
             // All touch events or mouse with pressed button(s)
             event.isGestureInProgress -> gestureOwner
@@ -342,20 +347,22 @@ private class CanvasLayersComposeSceneImpl(
         if (!isInteractive(owner)) {
             owner = null
         }
-        if (processHover(event, owner)) {
-            return
+        processHover(event, owner)?.let {
+            return it
         }
-        owner?.onPointerInput(event.copy(eventType = PointerEventType.Move))
+        return owner?.onPointerInput(event.copy(eventType = PointerEventType.Move)) ?: false
     }
 
     /**
      * Updates hover state and generates [PointerEventType.Enter] and [PointerEventType.Exit]
      * events. Returns true if [event] is consumed.
+     * @return consumed flag if the hover event has been processed.
+     * null if hover hasn't been processed.
      */
-    private fun processHover(event: PointerInputEvent, owner: RootNodeOwner?): Boolean {
+    private fun processHover(event: PointerInputEvent, owner: RootNodeOwner?): Boolean? {
         if (event.pointers.fastAny { it.type != PointerType.Mouse }) {
             // Track hover only for mouse
-            return false
+            return null
         }
         // Cases:
         // - move from outside to the window (owner != null, lastMoveOwner == null): Enter
@@ -364,20 +371,22 @@ private class CanvasLayersComposeSceneImpl(
         // - move from one popup to another (owner != lastMoveOwner): [Popup 1] Exit, [Popup 2] Enter
         if (owner == lastHoverOwner) {
             // Owner wasn't changed
-            return false
+            return null
         }
         lastHoverOwner?.onPointerInput(event.copy(eventType = PointerEventType.Exit))
-        owner?.onPointerInput(event.copy(eventType = PointerEventType.Enter))
+        val consumed = owner?.onPointerInput(event.copy(eventType = PointerEventType.Enter))
         lastHoverOwner = owner
 
         // Changing hovering state replaces Move event, so treat it as consumed
-        return true
+        return consumed ?: false
     }
 
-    private fun processScroll(event: PointerInputEvent) {
+    private fun processScroll(event: PointerInputEvent): Boolean {
         val owner = hoveredOwner(event)
-        if (isInteractive(owner)) {
+        return if (isInteractive(owner)) {
             owner.onPointerInput(event)
+        } else {
+            false
         }
     }
 
