@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import platform.UIKit.UIPasteboard
 
 actual typealias NativeClipboard = platform.UIKit.UIPasteboard
@@ -36,6 +37,9 @@ internal class UiKitPlatformClipboard internal constructor() : Clipboard {
         }
     }
 
+    /**
+     * Provides the [platform.UIKit.UIPasteboard] instance.
+     */
     override val nativeClipboard: NativeClipboard
         get() = UIPasteboard.generalPasteboard
 }
@@ -45,6 +49,11 @@ internal actual fun createPlatformClipboard(): Clipboard {
 }
 
 
+/**
+ * A wrapper for [UIPasteboard] items.
+ * Currently, it operates only with string(s) - [UIPasteboard.string].
+ * To access or set other data items, consider using [Clipboard.nativeClipboard].
+ */
 actual class ClipEntry internal constructor() {
 
     // TODO https://youtrack.jetbrains.com/issue/CMP-1260/ClipboardManager.-Implement-getClip-getClipMetadata-setClip
@@ -53,9 +62,11 @@ actual class ClipEntry internal constructor() {
 
     internal var plainText: String? = null
 
+    @ExperimentalComposeUiApi
     fun getPlainText(): String? = plainText
 
     companion object {
+        @ExperimentalComposeUiApi
         fun withPlainText(text: String): ClipEntry = ClipEntry().apply {
             plainText = text
         }
