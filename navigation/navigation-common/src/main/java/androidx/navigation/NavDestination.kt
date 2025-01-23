@@ -655,10 +655,13 @@ public open class NavDestination(
                 matcher.appendReplacement(builder, "")
                 val argType = argName?.let { _arguments[argName]?.type }
                 if (argType == NavType.ReferenceType) {
-                    val value = context.getString(bundle.getInt(argName))
+                    val value =
+                        context.getString(
+                            /* resId= */ NavType.ReferenceType[bundle, argName] as Int
+                        )
                     builder.append(value)
                 } else {
-                    @Suppress("DEPRECATION") builder.append(bundle[argName].toString())
+                    @Suppress("DEPRECATION") builder.append(argType!![bundle, argName].toString())
                 }
             } else {
                 throw IllegalArgumentException(
