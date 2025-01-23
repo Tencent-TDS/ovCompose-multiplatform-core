@@ -179,10 +179,10 @@ public final class androidx/compose/ui/ImageComposeScene {
 	public static synthetic fun render$default (Landroidx/compose/ui/ImageComposeScene;JILjava/lang/Object;)Lorg/jetbrains/skia/Image;
 	public final fun render-LRDsOJo (J)Lorg/jetbrains/skia/Image;
 	public final fun sendKeyEvent-ZmokQxo (Ljava/lang/Object;)Z
-	public final fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/ImageComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
-	public final fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/ImageComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
+	public final fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/ImageComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
+	public final fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/ImageComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
 	public final fun setConstraints-BRTryo0 (J)V
 	public final fun setContent (Lkotlin/jvm/functions/Function2;)V
 	public final fun setLayoutDirection (Landroidx/compose/ui/unit/LayoutDirection;)V
@@ -3565,10 +3565,10 @@ public final class androidx/compose/ui/platform/PlatformLocalization_desktopKt {
 public abstract interface class androidx/compose/ui/platform/PlatformRootForTest : androidx/compose/ui/node/RootForTest {
 	public abstract fun getHasPendingMeasureOrLayout ()Z
 	public abstract fun getVisibleBounds ()Landroidx/compose/ui/geometry/Rect;
-	public abstract fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/platform/PlatformRootForTest;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
-	public abstract fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/platform/PlatformRootForTest;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
+	public abstract fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/platform/PlatformRootForTest;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
+	public abstract fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/platform/PlatformRootForTest;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
 }
 
 public abstract interface class androidx/compose/ui/platform/PlatformTextInputInterceptor {
@@ -3733,10 +3733,10 @@ public abstract interface class androidx/compose/ui/scene/ComposeScene {
 	public abstract fun invalidatePositionInWindow ()V
 	public abstract fun render (Landroidx/compose/ui/graphics/Canvas;J)V
 	public abstract fun sendKeyEvent-ZmokQxo (Ljava/lang/Object;)Z
-	public abstract fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/scene/ComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
-	public abstract fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)V
-	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/scene/ComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)V
+	public abstract fun sendPointerEvent-BGSDPeU (IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-BGSDPeU$default (Landroidx/compose/ui/scene/ComposeScene;IJJJILandroidx/compose/ui/input/pointer/PointerButtons;Landroidx/compose/ui/input/pointer/PointerKeyboardModifiers;Ljava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
+	public abstract fun sendPointerEvent-WlEVilQ (ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;)Z
+	public static synthetic fun sendPointerEvent-WlEVilQ$default (Landroidx/compose/ui/scene/ComposeScene;ILjava/util/List;IIJJLjava/lang/Object;Landroidx/compose/ui/input/pointer/PointerButton;ILjava/lang/Object;)Z
 	public abstract fun setCompositionLocalContext (Landroidx/compose/runtime/CompositionLocalContext;)V
 	public abstract fun setContent (Lkotlin/jvm/functions/Function2;)V
 	public abstract fun setDensity (Landroidx/compose/ui/unit/Density;)V
