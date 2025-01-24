@@ -64,7 +64,7 @@ interface PlatformRootForTest : RootForTest {
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ): Boolean
+    )
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -81,5 +81,5 @@ interface PlatformRootForTest : RootForTest {
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ): Boolean
+    )
 }
