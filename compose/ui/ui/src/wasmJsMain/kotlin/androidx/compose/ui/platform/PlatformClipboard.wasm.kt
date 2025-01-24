@@ -36,7 +36,10 @@ class WasmPlatformClipboard : Clipboard {
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        if (clipEntry == null) return
+        if (clipEntry == null) {
+            nativeClipboard.write(emptyClipboardItems()).await<JsAny>()
+            return
+        }
         nativeClipboard.write(clipEntry.clipboardItems).await<JsAny>()
     }
 
@@ -69,6 +72,10 @@ constructor(val clipboardItems: JsArray<ClipboardItem>) {
 @Suppress("UNUSED_PARAMETER")
 private fun createClipboardItemWithPlainText(text: String): JsArray<ClipboardItem> =
     js("[new ClipboardItem({'text/plain': new Blob([text], { type: 'text/plain' })})]")
+
+// Can't truly clear the clipboard, so setting the empty text
+private fun emptyClipboardItems(): JsArray<ClipboardItem> =
+    js("[new ClipboardItem({'text/plain': new Blob([''], { type: 'text/plain' })})]")
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API
