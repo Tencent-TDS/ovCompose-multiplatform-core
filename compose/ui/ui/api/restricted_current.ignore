@@ -11,10 +11,6 @@ AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#setFocusa
 
 BecameUnchecked: androidx.compose.ui.platform.AbstractComposeView#showLayoutBounds:
     Removed property AbstractComposeView.showLayoutBounds from compatibility checked API surface
-BecameUnchecked: androidx.compose.ui.semantics.SemanticsProperties#InvisibleToUser:
-    Removed property SemanticsProperties.InvisibleToUser from compatibility checked API surface
-BecameUnchecked: androidx.compose.ui.semantics.SemanticsProperties#getInvisibleToUser():
-    Removed method androidx.compose.ui.semantics.SemanticsProperties.getInvisibleToUser() from compatibility checked API surface
 
 
 ChangedType: androidx.compose.ui.layout.MeasureResult#getAlignmentLines():

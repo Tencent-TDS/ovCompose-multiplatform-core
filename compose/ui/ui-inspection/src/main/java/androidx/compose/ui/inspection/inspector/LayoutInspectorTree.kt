@@ -18,6 +18,7 @@ package androidx.compose.ui.inspection.inspector
 
 import android.view.View
 import androidx.collection.LongObjectMap
+import androidx.collection.emptyLongObjectMap
 import androidx.collection.mutableIntObjectMapOf
 import androidx.collection.mutableLongObjectMapOf
 import androidx.compose.runtime.tooling.CompositionData
@@ -54,6 +55,9 @@ class LayoutInspectorTree {
     /** Converts the [CompositionData] held by [views] into a list of root nodes per view id. */
     fun convert(views: List<View>): LongObjectMap<MutableList<InspectorNode>> {
         clear()
+        if (views.isEmpty()) {
+            return emptyLongObjectMap()
+        }
         val defaultView = views.first()
         builderData.setDensity(defaultView)
         val defaultViewId = defaultView.uniqueDrawingId

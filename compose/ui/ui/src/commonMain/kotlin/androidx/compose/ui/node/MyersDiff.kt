@@ -18,6 +18,7 @@
 package androidx.compose.ui.node
 
 import androidx.compose.ui.internal.checkPrecondition
+import dalvik.annotation.optimization.NeverInline
 import kotlin.jvm.JvmInline
 import kotlin.math.abs
 import kotlin.math.min
@@ -417,6 +418,7 @@ private class IntStack(initialCapacity: Int) {
     val size: Int
         get() = lastIndex
 
+    @NeverInline
     private fun resizeStack(stack: IntArray): IntArray {
         val copy = stack.copyOf(stack.size * 2)
         this.stack = copy

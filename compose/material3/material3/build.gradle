@@ -113,6 +113,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":graphics:graphics-shapes"))
 
                 implementation(project(":compose:ui:ui-util"))
+                implementation(project(":compose:ui:ui-backhandler"))
                 implementation(project(":compose:foundation:foundation-layout"))
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))

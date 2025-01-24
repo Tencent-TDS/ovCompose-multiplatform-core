@@ -81,7 +81,7 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofillManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalFontFamilyResolver
@@ -299,22 +299,23 @@ internal fun CoreTextField(
     val undoManager = remember { UndoManager() }
     undoManager.snapshotIfNeeded(value)
 
+    val coroutineScope = rememberCoroutineScope()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+
     val manager = remember { TextFieldSelectionManager(undoManager) }
     manager.offsetMapping = offsetMapping
     manager.visualTransformation = visualTransformation
     manager.onValueChange = state.onValueChange
     manager.state = state
     manager.value = value
-    manager.clipboardManager = LocalClipboardManager.current
+    manager.clipboard = LocalClipboard.current
+    manager.coroutineScope = coroutineScope
     manager.textToolbar = LocalTextToolbar.current
     manager.hapticFeedBack = LocalHapticFeedback.current
     manager.autofillManager = LocalAutofillManager.current
     manager.focusRequester = focusRequester
     manager.editable = !readOnly
     manager.enabled = enabled
-
-    val coroutineScope = rememberCoroutineScope()
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
     rememberClipboardEventsHandler(
         isEnabled = state.hasFocus,

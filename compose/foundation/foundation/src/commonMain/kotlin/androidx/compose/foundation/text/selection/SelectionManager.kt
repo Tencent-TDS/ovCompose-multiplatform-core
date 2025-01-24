@@ -22,7 +22,7 @@ import androidx.collection.emptyLongObjectMap
 import androidx.collection.mutableLongIntMapOf
 import androidx.collection.mutableLongObjectMapOf
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.awaitAllPointersUp
+import androidx.compose.foundation.gestures.awaitAllPointersUpWithSlopDetection
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.internal.checkPreconditionNotNull
@@ -57,7 +57,6 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.text.AnnotatedString
@@ -119,8 +118,8 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
     /** [HapticFeedback] handle to perform haptic feedback. */
     var hapticFeedBack: HapticFeedback? = null
 
-    /** [ClipboardManager] to perform clipboard features. */
-    var clipboardManager: ClipboardManager? = null
+    /** A handler to perform a Copy action */
+    var onCopyHandler: ((AnnotatedString) -> Unit)? = null
 
     /** [TextToolbar] to show floating toolbar(post-M) or primary toolbar(pre-M). */
     var textToolbar: TextToolbar? = null
@@ -132,7 +131,8 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
     var hasFocus: Boolean by mutableStateOf(false)
 
     /** Return true if dragging gesture is currently in process. */
-    private val isDraggingInProgress get() = draggingHandle != null
+    private val isDraggingInProgress
+        get() = draggingHandle != null
 
     /** Modifier for selection container. */
     val modifier
@@ -565,7 +565,9 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
     }
 
     internal fun copy() {
-        getSelectedText()?.takeIf { it.isNotEmpty() }?.let { clipboardManager?.setText(it) }
+        getSelectedText()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { textToCopy -> onCopyHandler?.invoke(textToCopy) }
     }
 
     /**
@@ -743,23 +745,20 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
             override fun onCancel() = done()
         }
 
+    /** Clear the selection on up event that isn't a drag-end. */
     private fun Modifier.onClearSelectionRequested(block: () -> Unit): Modifier =
         pointerInput(Unit) {
-            // Clear the selection on mouse-up that isn't a drag-end.
-            // Note that at the moment, this is only needed inside `DisableSelection` because inside
-            // regular, selectable, text, the selection is already cleared (collapsed, actually) on
-            // the first mouse-down of the selection logic.
-            // That isn't actually the correct behavior on either Windows or macOS, but that's what
-            // happens at the moment.
             awaitEachGesture {
-                // Wait for primary pointer to be down
-                awaitFirstDown(requireUnconsumed = false)
+                // Wait for primary pointer to be down. It's required to explicitly filter
+                // secondary mouse button to make context menu work correctly.
+                val primaryFirstDown = awaitFirstDown(requireUnconsumed = false)
 
                 // Wait for all pointers to be up, and if we're not dragging, clear the selection.
                 // Do it in the initial phase so that when this happens while dragging, we check
                 // isDraggingInProgress before the drag-end event clears it.
-                awaitAllPointersUp(PointerEventPass.Initial)
-                if (!isDraggingInProgress) {
+                val pointerSlopReached =
+                    awaitAllPointersUpWithSlopDetection(primaryFirstDown, PointerEventPass.Initial)
+                if (!pointerSlopReached && !isDraggingInProgress) {
                     block()
                 }
             }
@@ -1105,7 +1104,6 @@ internal fun LayoutCoordinates.visibleBounds(): Rect {
 
 internal fun Rect.containsInclusive(offset: Offset): Boolean =
     offset.x in left..right && offset.y in top..bottom
-
 
 // We skip `isCopyKeyEvent(it)` on web, because should handle browser 'copy' event
 internal expect val SelectionManager.skipCopyKeyEvent: Boolean

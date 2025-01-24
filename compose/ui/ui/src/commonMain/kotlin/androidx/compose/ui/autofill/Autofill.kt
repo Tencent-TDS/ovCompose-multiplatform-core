@@ -16,15 +16,18 @@
 
 package androidx.compose.ui.autofill
 
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.makeSynchronizedObject
 import androidx.compose.ui.platform.synchronized
+import androidx.compose.ui.semantics.generateSemanticsId
 
 /**
  * Autofill API.
  *
  * This interface is available to all composables via a CompositionLocal. The composable can then
- * request or cancel autofill as required. For instance, the [TextField] can call
+ * request or cancel autofill as required. For instance, the TextField can call
  * [requestAutofillForNode] when it gains focus, and [cancelAutofillForNode] when it loses focus.
  */
 interface Autofill {
@@ -32,7 +35,7 @@ interface Autofill {
     /**
      * Request autofill for the specified node.
      *
-     * @param autofillNode The node that needs to be autofilled.
+     * @param autofillNode The node that needs to be auto-filled.
      *
      * This function is usually called when an autofillable component gains focus.
      */
@@ -41,7 +44,7 @@ interface Autofill {
     /**
      * Cancel a previously supplied autofill request.
      *
-     * @param autofillNode The node that needs to be autofilled.
+     * @param autofillNode The node that needs to be auto-filled.
      *
      * This function is usually called when an autofillable component loses focus.
      */
@@ -59,7 +62,7 @@ interface Autofill {
  *   list because some fields can have multiple types. For instance, userid in a login form can
  *   either be a username or an email address. TODO(b/138731416): Check with the autofill service
  *   team if the order matters, and how duplicate types are handled.
- * @property boundingBox The screen coordinates of the composable being autofilled. This data is
+ * @property boundingBox The screen coordinates of the composable being auto-filled. This data is
  *   used by the autofill framework to decide where to show the autofill popup.
  * @property onFill The callback that is called by the autofill framework to perform autofill.
  * @property id A virtual id that is automatically generated for each node.
@@ -78,7 +81,9 @@ class AutofillNode(
         private fun generateId() = synchronized(lock) { ++previousId }
     }
 
-    val id: Int = generateId()
+    val id: Int =
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (ComposeUiFlags.isSemanticAutofillEnabled) generateSemanticsId() else generateId()
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

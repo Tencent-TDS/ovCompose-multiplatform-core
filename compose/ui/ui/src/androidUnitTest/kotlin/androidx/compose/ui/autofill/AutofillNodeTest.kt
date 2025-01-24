@@ -120,11 +120,13 @@ internal class ShadowAutofillManager {
     val viewEnteredStats = mutableListOf<NotifyViewEntered>()
     val viewExitedStats = mutableListOf<NotifyViewExited>()
 
+    @Suppress("Unused")
     @Implementation
     fun notifyViewEntered(view: View, virtualId: Int, rect: android.graphics.Rect) {
         viewEnteredStats += NotifyViewEntered(view, virtualId, rect.toComposeRect())
     }
 
+    @Suppress("Unused")
     @Implementation
     fun notifyViewExited(view: View, virtualId: Int) {
         viewExitedStats += NotifyViewExited(view, virtualId)

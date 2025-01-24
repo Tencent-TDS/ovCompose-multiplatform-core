@@ -231,7 +231,7 @@ private fun rememberLazyGridMeasurePolicy(
 
             val itemProvider = itemProviderLambda()
             val spanLayoutProvider = itemProvider.spanLayoutProvider
-            val resolvedSlots = slots.invoke(density = this, constraints = containerConstraints)
+            val resolvedSlots = slots.invoke(density = this, constraints = contentConstraints)
             val slotsPerLine = resolvedSlots.sizes.size
             spanLayoutProvider.slotsPerLine = slotsPerLine
 

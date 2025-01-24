@@ -141,6 +141,8 @@ public final class androidx/compose/ui/ComposeUiFlags {
 	public static field NewNestedScrollFlingDispatchingEnabled Z
 	public static field isRectTrackingEnabled Z
 	public static field isSemanticAutofillEnabled Z
+	public static field isTrackFocusEnabled Z
+	public static field isViewFocusFixEnabled Z
 }
 
 public final class androidx/compose/ui/ComposedModifierKt {
@@ -305,7 +307,8 @@ public abstract interface class androidx/compose/ui/autofill/Autofill {
 	public abstract fun requestAutofillForNode (Landroidx/compose/ui/autofill/AutofillNode;)V
 }
 
-public abstract interface class androidx/compose/ui/autofill/AutofillManager {
+public abstract class androidx/compose/ui/autofill/AutofillManager {
+	public static final field $stable I
 	public abstract fun cancel ()V
 	public abstract fun commit ()V
 	public abstract fun requestAutofillForActiveElement ()V
@@ -814,7 +817,8 @@ public final class androidx/compose/ui/focus/FocusDirection$Companion {
 }
 
 public abstract interface class androidx/compose/ui/focus/FocusEnterExitScope {
-	public abstract fun cancelFocus ()V
+	public fun cancelFocus ()V
+	public abstract fun cancelFocusChange ()V
 	public abstract fun getRequestedFocusDirection-dhqQ-8s ()I
 }
 
@@ -2743,6 +2747,10 @@ public final class androidx/compose/ui/layout/MultiContentMeasurePolicyKt {
 	public static final fun createMeasurePolicy (Landroidx/compose/ui/layout/MultiContentMeasurePolicy;)Landroidx/compose/ui/layout/MeasurePolicy;
 }
 
+public final class androidx/compose/ui/layout/OnGlobalLayoutListenerKt {
+	public static final fun registerOnGlobalLayoutListener (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/DisposableHandle;
+}
+
 public abstract interface class androidx/compose/ui/layout/OnGloballyPositionedModifier : androidx/compose/ui/Modifier$Element {
 	public abstract fun onGloballyPositioned (Landroidx/compose/ui/layout/LayoutCoordinates;)V
 }
@@ -2759,6 +2767,12 @@ public final class androidx/compose/ui/layout/OnGloballyPositionedModifierKt {
 	public static final fun onGloballyPositioned (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 }
 
+public final class androidx/compose/ui/layout/OnLayoutRectChangedModifierKt {
+	public static final fun onLayoutRectChanged (Landroidx/compose/ui/Modifier;JJLkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun onLayoutRectChanged$default (Landroidx/compose/ui/Modifier;JJLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final fun registerOnLayoutRectChanged (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/DisposableHandle;
+}
+
 public abstract interface class androidx/compose/ui/layout/OnPlacedModifier : androidx/compose/ui/Modifier$Element {
 	public abstract fun onPlaced (Landroidx/compose/ui/layout/LayoutCoordinates;)V
 }
@@ -2773,12 +2787,6 @@ public final class androidx/compose/ui/layout/OnPlacedModifier$DefaultImpls {
 
 public final class androidx/compose/ui/layout/OnPlacedModifierKt {
 	public static final fun onPlaced (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
-}
-
-public final class androidx/compose/ui/layout/OnRectChangedModifierKt {
-	public static final fun onRectChanged (Landroidx/compose/ui/Modifier;IILkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun onRectChanged$default (Landroidx/compose/ui/Modifier;IILkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun registerOnRectChanged (Landroidx/compose/ui/node/DelegatableNode;IILkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/DisposableHandle;
 }
 
 public abstract interface class androidx/compose/ui/layout/OnRemeasuredModifier : androidx/compose/ui/Modifier$Element {
@@ -3352,6 +3360,12 @@ public final class androidx/compose/ui/platform/ClipMetadata {
 	public fun <init> ()V
 }
 
+public abstract interface class androidx/compose/ui/platform/Clipboard {
+	public abstract fun getClipEntry (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun getNativeClipboard ()Landroidx/compose/ui/platform/NativeClipboard;
+	public abstract fun setClipEntry (Landroidx/compose/ui/platform/ClipEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
 public abstract interface class androidx/compose/ui/platform/ClipboardManager {
 	public fun getClip ()Landroidx/compose/ui/platform/ClipEntry;
 	public fun getNativeClipboard ()Landroidx/compose/ui/platform/NativeClipboard;
@@ -3366,6 +3380,7 @@ public final class androidx/compose/ui/platform/CompositionLocalsKt {
 	public static final fun getLocalAutofill ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalAutofillManager ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalAutofillTree ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+	public static final fun getLocalClipboard ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalClipboardManager ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalCursorBlinkEnabled ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun getLocalDensity ()Landroidx/compose/runtime/ProvidableCompositionLocal;
@@ -4215,16 +4230,17 @@ public abstract interface class androidx/compose/ui/semantics/SemanticsPropertyR
 	public abstract fun set (Landroidx/compose/ui/semantics/SemanticsPropertyKey;Ljava/lang/Object;)V
 }
 
-public final class androidx/compose/ui/spatial/RectInfo {
+public final class androidx/compose/ui/spatial/RelativeLayoutBounds {
 	public static final field $stable I
+	public final fun calculateOcclusions ()Ljava/util/List;
+	public final fun getBoundsInRoot ()Landroidx/compose/ui/unit/IntRect;
+	public final fun getBoundsInScreen ()Landroidx/compose/ui/unit/IntRect;
+	public final fun getBoundsInWindow ()Landroidx/compose/ui/unit/IntRect;
 	public final fun getHeight ()I
 	public final fun getPositionInRoot-nOcc-ac ()J
 	public final fun getPositionInScreen-nOcc-ac ()J
 	public final fun getPositionInWindow-nOcc-ac ()J
-	public final fun getRootRect ()Landroidx/compose/ui/unit/IntRect;
-	public final fun getScreenRect ()Landroidx/compose/ui/unit/IntRect;
 	public final fun getWidth ()I
-	public final fun getWindowRect ()Landroidx/compose/ui/unit/IntRect;
 }
 
 public final class androidx/compose/ui/state/ToggleableState : java/lang/Enum {

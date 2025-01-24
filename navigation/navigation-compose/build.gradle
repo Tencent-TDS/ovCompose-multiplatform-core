@@ -60,6 +60,8 @@ kotlin {
                 api(project(":compose:runtime:runtime"))
                 api(project(":annotation:annotation"))
 
+                implementation(project(":compose:ui:ui-backhandler"))
+
                 api "org.jetbrains.compose.animation:animation:1.7.1"
                 api "org.jetbrains.compose.runtime:runtime-saveable:1.7.1"
                 api "org.jetbrains.compose.ui:ui:1.7.1"
