@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-
 package androidx.compose.mpp.demo
 
 import androidx.compose.foundation.layout.Column
@@ -30,17 +28,11 @@ import androidx.compose.material.TextField
 import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
-import kotlin.js.Promise
 import kotlinx.coroutines.launch
-import org.w3c.files.Blob
-import androidx.compose.foundation.internal.*
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun WebClipboardDemo() {
     val clipboard = LocalClipboard.current
@@ -55,7 +47,7 @@ fun WebClipboardDemo() {
             Spacer(modifier = Modifier.width(48.dp))
             Button(onClick = {
                 coroutineScope.launch {
-                    clipboard.setClipEntry(ClipEntry.withPlainText(textFieldState1.text.toString()))
+                    clipboard.setClipEntry(createClipEntryWithPlainText(textFieldState1.text.toString()))
                 }
             }) {
                 Text("Copy")
@@ -69,7 +61,7 @@ fun WebClipboardDemo() {
             Spacer(modifier = Modifier.width(48.dp))
             Button(onClick = {
                 coroutineScope.launch {
-                    val text = clipboard.getClipEntry()?.readText() // readText is suppressed internal!
+                    val text = clipboard.getClipEntry().getPlainText() // uses readText, which is suppressed internal!
                     textFieldState2.setTextAndPlaceCursorAtEnd(
                         text ?: "null"
                     )
@@ -80,7 +72,3 @@ fun WebClipboardDemo() {
         }
     }
 }
-
-@Suppress("UNUSED_PARAMETER")
-private fun getTextFromBlob(blob: Blob): Promise<JsString> =
-    js("blob.text()")
