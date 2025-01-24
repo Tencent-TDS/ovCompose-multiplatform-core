@@ -62,6 +62,7 @@ fun WebClipboardDemo() {
             Button(onClick = {
                 coroutineScope.launch {
                     val text = clipboard.getClipEntry().getPlainText() // uses readText, which is suppressed internal!
+                    println("clipboard text: $text")
                     textFieldState2.setTextAndPlaceCursorAtEnd(
                         text ?: "null"
                     )
@@ -69,6 +70,16 @@ fun WebClipboardDemo() {
             }) {
                 Text("Paste")
             }
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        Button(onClick = {
+            coroutineScope.launch {
+                clipboard.setClipEntry(null)
+            }
+        }) {
+            Text("Clear clipboard")
         }
     }
 }
