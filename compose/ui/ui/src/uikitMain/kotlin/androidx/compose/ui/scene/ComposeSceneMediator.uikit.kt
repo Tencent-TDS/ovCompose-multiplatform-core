@@ -108,7 +108,7 @@ import platform.UIKit.UIView
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 private class SemanticsOwnerListenerImpl(
-    private val rootView: UIView,
+    private val rootView: ComposeSceneMediatorView,
     private val coroutineContext: CoroutineContext,
     private val performEscape: () -> Boolean
 ) : PlatformContext.SemanticsOwnerListener {

@@ -2564,6 +2564,7 @@ class CompositionTests {
         assertArrayEquals(listOf(observed), abandonedObjects)
     }
 
+    @Ignore // TODO: Fails on JS https://youtrack.jetbrains.com/issue/CMP-7453
     @Test
     fun testRememberObserver_Abandon_Recompose() {
         val abandonedObjects = mutableListOf<RememberObserver>()

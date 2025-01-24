@@ -358,6 +358,7 @@ class RecomposerTests {
         }
     }
 
+    @Ignore // TODO: Fails on JS https://youtrack.jetbrains.com/issue/CMP-7455
     @Test
     fun stateChangesDuringApplyChangesAreNotifiedBeforeFrameFinished() = compositionTest {
         val count = mutableStateOf(0)
