@@ -247,6 +247,47 @@ class ActivityNavigatorTest {
     }
 
     @Test
+    fun navigateDataPatternIntWithNavType() {
+        val navType =
+            object : NavType<Int>(false) {
+                override fun put(bundle: Bundle, key: String, value: Int) {
+                    IntType.put(bundle, key, value)
+                }
+
+                override fun get(bundle: Bundle, key: String): Int? = IntType[bundle, key]
+
+                override fun parseValue(value: String): Int =
+                    value.replace("Serialized", "").toInt()
+
+                override fun serializeAsValue(value: Int): String = "${value}Serialized"
+            }
+        val targetDestination =
+            activityNavigator.createDestination().apply {
+                id = TARGET_ID
+                setDataPattern(TARGET_DATA_PATTERN)
+                setComponentName(ComponentName(activityRule.activity, TargetActivity::class.java))
+                addArgument(TARGET_ARGUMENT_NAME, NavArgument.Builder().setType(navType).build())
+            }
+        val args = Bundle().apply { putInt(TARGET_ARGUMENT_NAME, TARGET_ARGUMENT_INT_VALUE) }
+        activityNavigator.navigate(targetDestination, args, null, null)
+
+        val targetActivity = waitForActivity()
+        val intent = targetActivity.intent
+        assertThat(intent).isNotNull()
+        assertWithMessage("Intent should have data set with argument filled in")
+            .that(intent.data?.toString())
+            .isEqualTo(
+                TARGET_DATA_PATTERN.replace(
+                    "{$TARGET_ARGUMENT_NAME}",
+                    "${TARGET_ARGUMENT_INT_VALUE}Serialized"
+                )
+            )
+        assertWithMessage("Intent should have its arguments in its extras")
+            .that(intent.getIntExtra(TARGET_ARGUMENT_NAME, -1))
+            .isEqualTo(TARGET_ARGUMENT_INT_VALUE)
+    }
+
+    @Test
     fun navigateDataPatternMissingArgument() {
         val targetDestination =
             activityNavigator.createDestination().apply {
