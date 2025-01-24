@@ -93,14 +93,16 @@ public open class ActivityNavigator(
                 val matcher = fillInPattern.matcher(dataPattern)
                 while (matcher.find()) {
                     val argName = matcher.group(1)
-                    if (args.containsKey(argName)) {
-                        matcher.appendReplacement(data, "")
-                        data.append(Uri.encode(args[argName].toString()))
-                    } else {
-                        throw IllegalArgumentException(
-                            "Could not find $argName in $args to fill data pattern $dataPattern"
-                        )
+                    require(args.containsKey(argName)) {
+                        "Could not find $argName in $args to fill data pattern $dataPattern"
                     }
+                    matcher.appendReplacement(data, "")
+                    // Serialize with NavType if present, otherwise fallback to toString()
+                    val navType = destination.arguments[argName!!]?.type
+                    val value =
+                        navType?.serializeAsValue(navType[args, argName])
+                            ?: Uri.encode(args[argName].toString())
+                    data.append(value)
                 }
                 matcher.appendTail(data)
                 intent.data = Uri.parse(data.toString())
