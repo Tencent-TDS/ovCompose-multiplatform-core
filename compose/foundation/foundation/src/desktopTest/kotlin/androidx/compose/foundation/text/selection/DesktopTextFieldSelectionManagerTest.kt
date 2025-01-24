@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -153,9 +154,8 @@ class DesktopTextFieldSelectionManagerTest {
         assertThat(value.selection).isEqualTo(TextRange(0, 8))
     }
 
-    @Ignore // TODO https://youtrack.jetbrains.com/issue/CMP-7402
     @Test
-    fun TextFieldSelectionManager_mouseSelectionObserver_copy() {
+    fun TextFieldSelectionManager_mouseSelectionObserver_copy() = runTest {
         val observer = manager.mouseSelectionObserver
         observer.onStart(dragBeginPosition, SelectionAdjustment.None)
         observer.onDrag(dragDistance, SelectionAdjustment.None)
@@ -163,8 +163,7 @@ class DesktopTextFieldSelectionManagerTest {
         manager.value = value
         manager.copy(cancelSelection = false)
 
-
-//        verify(clipboardManager, times(1)).setText(AnnotatedString("Hello Wo"))
+        verify(clipboard, times(1)).setClipEntry(any())
         assertThat(value.selection).isEqualTo(TextRange(0, 8))
     }
 }
