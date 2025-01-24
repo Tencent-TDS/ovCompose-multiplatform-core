@@ -23,6 +23,7 @@ import androidx.collection.MutableIntObjectMap
 import androidx.collection.MutableIntSet
 import androidx.collection.MutableObjectList
 import androidx.collection.mutableIntListOf
+import androidx.compose.runtime.collection.fastCopyInto
 import androidx.compose.runtime.platform.makeSynchronizedObject
 import androidx.compose.runtime.platform.synchronized
 import androidx.compose.runtime.snapshots.fastAny
@@ -2122,7 +2123,7 @@ internal class SlotWriter(
         //  4) copy the slots to their new location
         if (moveDataLen > 0) {
             val slots = slots
-            slots.copyInto(
+            slots.fastCopyInto(
                 destination = slots,
                 destinationOffset = destinationSlot,
                 startIndex = dataIndexToDataAddress(dataStart + moveDataLen),
@@ -2206,7 +2207,7 @@ internal class SlotWriter(
             )
             val slots = toWriter.slots
             val currentSlot = toWriter.currentSlot
-            fromWriter.slots.copyInto(
+            fromWriter.slots.fastCopyInto(
                 destination = slots,
                 destinationOffset = currentSlot,
                 startIndex = sourceSlotsStart,
@@ -2676,7 +2677,7 @@ internal class SlotWriter(
             val slots = slots
             if (index < gapStart) {
                 // move the gap down to index by shifting the data up.
-                slots.copyInto(
+                slots.fastCopyInto(
                     destination = slots,
                     destinationOffset = index + gapLen,
                     startIndex = index,
@@ -2684,7 +2685,7 @@ internal class SlotWriter(
                 )
             } else {
                 // Shift the data down, leaving the gap at index
-                slots.copyInto(
+                slots.fastCopyInto(
                     destination = slots,
                     destinationOffset = gapStart,
                     startIndex = gapStart + gapLen,
@@ -2830,13 +2831,13 @@ internal class SlotWriter(
                 val newGapEndAddress = gapStart + newGapLen
 
                 // Copy the old arrays into the new arrays
-                slots.copyInto(
+                slots.fastCopyInto(
                     destination = newData,
                     destinationOffset = 0,
                     startIndex = 0,
                     endIndex = gapStart
                 )
-                slots.copyInto(
+                slots.fastCopyInto(
                     destination = newData,
                     destinationOffset = newGapEndAddress,
                     startIndex = oldGapEndAddress,

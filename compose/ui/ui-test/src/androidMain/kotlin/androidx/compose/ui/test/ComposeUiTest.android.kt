@@ -653,6 +653,12 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
      * This requires API 34+ (Android U), and currently does not work on Robolectric.
      *
      * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeUiTest_sample
+     *
+     * If you have a hybrid application with both Compose and Views, and you use both Compose Test
+     * and Espresso, then you should set up accessibility checks in both frameworks and share the
+     * configuration in the following way:
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_interopWithEspresso_withTestFunction
      */
     @get:RequiresApi(34) @set:RequiresApi(34) var accessibilityValidator: AccessibilityValidator?
 
@@ -676,7 +682,34 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
 
     actual fun setContent(composable: @Composable () -> Unit)
 
+    /**
+     * Enables accessibility checks that will be run before every action that is expected to change
+     * the UI.
+     *
+     * This will create and set an [accessibilityValidator] if there isn't one yet, or will do
+     * nothing if an `accessibilityValidator` is already set.
+     *
+     * This requires API 34+ (Android U), and currently does not work on Robolectric.
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withComposeUiTest_sample
+     *
+     * If you have a hybrid application with both Compose and Views, and you use both Compose Test
+     * and Espresso, then you should set up accessibility checks in both frameworks and share the
+     * configuration in the following way:
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_interopWithEspresso_withTestFunction
+     * @see accessibilityValidator
+     * @see disableAccessibilityChecks
+     */
     @RequiresApi(34) actual fun enableAccessibilityChecks()
 
+    /**
+     * Disables accessibility checks.
+     *
+     * This will set the [accessibilityValidator] back to `null`.
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeUiTest_sample
+     * @see enableAccessibilityChecks
+     */
     @RequiresApi(34) actual fun disableAccessibilityChecks()
 }

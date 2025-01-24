@@ -197,9 +197,7 @@ private suspend fun AwaitPointerEventScope.mouseSelection(
                 }
 
             if (shouldConsumeUp && dragConsumed) {
-                currentEvent.changes.fastForEach {
-                    if (it.changedToUp()) it.consume()
-                }
+                currentEvent.changes.fastForEach { if (it.changedToUp()) it.consume() }
             }
 
             observer.onDragDone()
@@ -400,9 +398,7 @@ private suspend fun AwaitPointerEventScope.mouseSelectionBtf2(
                     }
 
                 if (shouldConsumeUp && dragConsumed) {
-                    currentEvent.changes.fastForEach {
-                        if (it.changedToUp()) it.consume()
-                    }
+                    currentEvent.changes.fastForEach { if (it.changedToUp()) it.consume() }
                 }
             } finally {
                 observer.onDragDone()

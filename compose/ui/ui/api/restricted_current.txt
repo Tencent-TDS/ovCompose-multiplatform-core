@@ -135,10 +135,14 @@ package androidx.compose.ui {
     property public final boolean NewNestedScrollFlingDispatchingEnabled;
     property public final boolean isRectTrackingEnabled;
     property public final boolean isSemanticAutofillEnabled;
+    property public final boolean isTrackFocusEnabled;
+    property public final boolean isViewFocusFixEnabled;
     field public static final androidx.compose.ui.ComposeUiFlags INSTANCE;
     field public static boolean NewNestedScrollFlingDispatchingEnabled;
     field public static boolean isRectTrackingEnabled;
     field public static boolean isSemanticAutofillEnabled;
+    field public static boolean isTrackFocusEnabled;
+    field public static boolean isViewFocusFixEnabled;
   }
 
   public final class ComposedModifierKt {
@@ -221,10 +225,10 @@ package androidx.compose.ui.autofill {
     method public void requestAutofillForNode(androidx.compose.ui.autofill.AutofillNode autofillNode);
   }
 
-  public interface AutofillManager {
-    method public void cancel();
-    method public void commit();
-    method public void requestAutofillForActiveElement();
+  public abstract class AutofillManager {
+    method public abstract void cancel();
+    method public abstract void commit();
+    method public abstract void requestAutofillForActiveElement();
   }
 
   public final class AutofillNode {
@@ -588,7 +592,8 @@ package androidx.compose.ui.focus {
   }
 
   public sealed interface FocusEnterExitScope {
-    method public void cancelFocus();
+    method @Deprecated @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public default void cancelFocus();
+    method public void cancelFocusChange();
     method public int getRequestedFocusDirection();
     property public abstract int requestedFocusDirection;
   }
@@ -2195,8 +2200,8 @@ package androidx.compose.ui.input.pointer {
     method public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, Object? key1, Object? key2, androidx.compose.ui.input.pointer.PointerInputEventHandler block);
     method @Deprecated public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, Object? key1, Object? key2, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
     method @Deprecated public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, Object? key1, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
-    method @Deprecated public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, java.lang.Object?... keys, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
     method public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, Object?[] keys, androidx.compose.ui.input.pointer.PointerInputEventHandler block);
+    method @Deprecated public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, Object?[] keys, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
     method @Deprecated public static androidx.compose.ui.Modifier pointerInput(androidx.compose.ui.Modifier, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
   }
 
@@ -2581,6 +2586,10 @@ package androidx.compose.ui.layout {
     method @kotlin.PublishedApi internal static androidx.compose.ui.layout.MeasurePolicy createMeasurePolicy(androidx.compose.ui.layout.MultiContentMeasurePolicy measurePolicy);
   }
 
+  public final class OnGlobalLayoutListenerKt {
+    method public static kotlinx.coroutines.DisposableHandle registerOnGlobalLayoutListener(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
+  }
+
   @kotlin.jvm.JvmDefaultWithCompatibility public interface OnGloballyPositionedModifier extends androidx.compose.ui.Modifier.Element {
     method public void onGloballyPositioned(androidx.compose.ui.layout.LayoutCoordinates coordinates);
   }
@@ -2589,17 +2598,17 @@ package androidx.compose.ui.layout {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier onGloballyPositioned(androidx.compose.ui.Modifier, kotlin.jvm.functions.Function1<? super androidx.compose.ui.layout.LayoutCoordinates,kotlin.Unit> onGloballyPositioned);
   }
 
+  public final class OnLayoutRectChangedModifierKt {
+    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier onLayoutRectChanged(androidx.compose.ui.Modifier, optional long throttleMillis, optional long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
+    method public static kotlinx.coroutines.DisposableHandle registerOnLayoutRectChanged(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
+  }
+
   @kotlin.jvm.JvmDefaultWithCompatibility public interface OnPlacedModifier extends androidx.compose.ui.Modifier.Element {
     method public void onPlaced(androidx.compose.ui.layout.LayoutCoordinates coordinates);
   }
 
   public final class OnPlacedModifierKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier onPlaced(androidx.compose.ui.Modifier, kotlin.jvm.functions.Function1<? super androidx.compose.ui.layout.LayoutCoordinates,kotlin.Unit> onPlaced);
-  }
-
-  public final class OnRectChangedModifierKt {
-    method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier onRectChanged(androidx.compose.ui.Modifier, optional int throttleMs, optional int debounceMs, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RectInfo,kotlin.Unit> callback);
-    method public static kotlinx.coroutines.DisposableHandle registerOnRectChanged(androidx.compose.ui.node.DelegatableNode, int throttleMs, int debounceMs, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RectInfo,kotlin.Unit> callback);
   }
 
   @kotlin.jvm.JvmDefaultWithCompatibility public interface OnRemeasuredModifier extends androidx.compose.ui.Modifier.Element {
@@ -3215,18 +3224,25 @@ package androidx.compose.ui.platform {
     property public final android.content.ClipDescription clipDescription;
   }
 
+  public interface Clipboard {
+    method public suspend Object? getClipEntry(kotlin.coroutines.Continuation<? super androidx.compose.ui.platform.ClipEntry?>);
+    method public android.content.ClipboardManager getNativeClipboard();
+    method public suspend Object? setClipEntry(androidx.compose.ui.platform.ClipEntry? clipEntry, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+    property public abstract android.content.ClipboardManager nativeClipboard;
+  }
+
   public final class ClipboardExtensions_androidKt {
     method @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public static android.net.Uri? firstUriOrNull(androidx.compose.ui.platform.ClipEntry);
   }
 
-  public interface ClipboardManager {
-    method public default androidx.compose.ui.platform.ClipEntry? getClip();
-    method public default android.content.ClipboardManager getNativeClipboard();
-    method public androidx.compose.ui.text.AnnotatedString? getText();
-    method public default boolean hasText();
-    method public default void setClip(androidx.compose.ui.platform.ClipEntry? clipEntry);
-    method public void setText(androidx.compose.ui.text.AnnotatedString annotatedString);
-    property public default android.content.ClipboardManager nativeClipboard;
+  @Deprecated public interface ClipboardManager {
+    method @Deprecated public default androidx.compose.ui.platform.ClipEntry? getClip();
+    method @Deprecated public default android.content.ClipboardManager getNativeClipboard();
+    method @Deprecated public androidx.compose.ui.text.AnnotatedString? getText();
+    method @Deprecated public default boolean hasText();
+    method @Deprecated public default void setClip(androidx.compose.ui.platform.ClipEntry? clipEntry);
+    method @Deprecated public void setText(androidx.compose.ui.text.AnnotatedString annotatedString);
+    property @Deprecated public default android.content.ClipboardManager nativeClipboard;
   }
 
   public final class ComposeView extends androidx.compose.ui.platform.AbstractComposeView {
@@ -3243,7 +3259,8 @@ package androidx.compose.ui.platform {
     method @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.Autofill?> getLocalAutofill();
     method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.AutofillManager?> getLocalAutofillManager();
     method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.AutofillTree> getLocalAutofillTree();
-    method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.ClipboardManager> getLocalClipboardManager();
+    method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.Clipboard> getLocalClipboard();
+    method @Deprecated public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.ClipboardManager> getLocalClipboardManager();
     method public static androidx.compose.runtime.ProvidableCompositionLocal<java.lang.Boolean> getLocalCursorBlinkEnabled();
     method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.unit.Density> getLocalDensity();
     method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.focus.FocusManager> getLocalFocusManager();
@@ -3263,7 +3280,8 @@ package androidx.compose.ui.platform {
     property @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.Autofill?> LocalAutofill;
     property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.AutofillManager?> LocalAutofillManager;
     property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.autofill.AutofillTree> LocalAutofillTree;
-    property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.ClipboardManager> LocalClipboardManager;
+    property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.Clipboard> LocalClipboard;
+    property @Deprecated public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.platform.ClipboardManager> LocalClipboardManager;
     property public static final androidx.compose.runtime.ProvidableCompositionLocal<java.lang.Boolean> LocalCursorBlinkEnabled;
     property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.unit.Density> LocalDensity;
     property public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.ui.focus.FocusManager> LocalFocusManager;
@@ -4061,23 +4079,24 @@ package androidx.compose.ui.semantics {
 
 package androidx.compose.ui.spatial {
 
-  public final class RectInfo {
+  public final class RelativeLayoutBounds {
+    method public java.util.List<androidx.compose.ui.unit.IntRect> calculateOcclusions();
+    method public androidx.compose.ui.unit.IntRect getBoundsInRoot();
+    method public androidx.compose.ui.unit.IntRect getBoundsInScreen();
+    method public androidx.compose.ui.unit.IntRect getBoundsInWindow();
     method public int getHeight();
     method public long getPositionInRoot();
     method public long getPositionInScreen();
     method public long getPositionInWindow();
-    method public androidx.compose.ui.unit.IntRect getRootRect();
-    method public androidx.compose.ui.unit.IntRect getScreenRect();
     method public int getWidth();
-    method public androidx.compose.ui.unit.IntRect getWindowRect();
+    property public final androidx.compose.ui.unit.IntRect boundsInRoot;
+    property public final androidx.compose.ui.unit.IntRect boundsInScreen;
+    property public final androidx.compose.ui.unit.IntRect boundsInWindow;
     property public final int height;
     property public final long positionInRoot;
     property public final long positionInScreen;
     property public final long positionInWindow;
-    property public final androidx.compose.ui.unit.IntRect rootRect;
-    property public final androidx.compose.ui.unit.IntRect screenRect;
     property public final int width;
-    property public final androidx.compose.ui.unit.IntRect windowRect;
   }
 
 }

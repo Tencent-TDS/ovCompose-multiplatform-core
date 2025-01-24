@@ -887,7 +887,6 @@ internal class LayoutNodeSubcompositionsState(
     private fun createNodeAt(index: Int) =
         LayoutNode(
                 isVirtual = true,
-                permitChildrenToDetachFromParentLookahead = true,
             )
             .also { node -> ignoreRemeasureRequests { root.insertAt(index, node) } }
 

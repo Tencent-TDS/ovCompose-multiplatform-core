@@ -258,7 +258,6 @@ internal class PausedCompositionImpl(
 }
 
 internal class RecordingApplier<N>(root: N) : Applier<N> {
-    private val stack = mutableObjectListOf<N>()
     private val operations = mutableIntListOf()
     private val instances = mutableObjectListOf<Any?>()
 
@@ -267,13 +266,10 @@ internal class RecordingApplier<N>(root: N) : Applier<N> {
     override fun down(node: N) {
         operations.add(DOWN)
         instances.add(node)
-        stack.add(current)
-        current = node
     }
 
     override fun up() {
         operations.add(UP)
-        current = stack.removeAt(stack.size - 1)
     }
 
     override fun remove(index: Int, count: Int) {

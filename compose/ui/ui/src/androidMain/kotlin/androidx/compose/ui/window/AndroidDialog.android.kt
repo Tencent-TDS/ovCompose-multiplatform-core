@@ -398,6 +398,7 @@ private class DialogLayout(context: Context, override val window: Window) :
     }
 
     fun isInsideContent(event: MotionEvent): Boolean {
+        if (!event.x.isFinite() || !event.y.isFinite()) return false
         val child = getChildAt(0) ?: return false
         val left = left + child.left
         val right = left + child.width
