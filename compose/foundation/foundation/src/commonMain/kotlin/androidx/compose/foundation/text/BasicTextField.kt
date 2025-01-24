@@ -347,6 +347,13 @@ internal fun BasicTextField(
             }
         }
 
+    rememberClipboardEventsHandler(
+        isEnabled = isFocused,
+        onPaste = { textFieldSelectionState.pasteAsPlainText(it) },
+        onCopy = { textFieldSelectionState.copyWithResult() },
+        onCut = { textFieldSelectionState.cutWithResult() }
+    )
+
     SideEffect {
         // These properties are not backed by snapshot state, so they can't be updated directly in
         // composition.
