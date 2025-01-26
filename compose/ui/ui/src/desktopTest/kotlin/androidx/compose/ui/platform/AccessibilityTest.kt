@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.isContainer
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
@@ -55,6 +56,7 @@ import javax.accessibility.AccessibleComponent
 import javax.accessibility.AccessibleContext
 import javax.accessibility.AccessibleRole
 import javax.accessibility.AccessibleText
+import kotlin.test.assertFalse
 import kotlin.test.fail
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
@@ -171,6 +173,23 @@ class AccessibilityTest {
         }
 
         test.onNodeWithTag("box").assertHasAccessibleRole(AccessibleRole.GROUP_BOX)
+    }
+
+    @Test
+    fun hideFromA11yMakesComponentInvisible() = runDesktopA11yTest {
+        test.setContent {
+            Text(
+                text = "Hello",
+                modifier = Modifier.testTag("text")
+                    .semantics {
+                        hideFromAccessibility()
+                    }
+            )
+        }
+
+        assertFalse("Component should be invisible to accessibility, but isn't") {
+            test.onNodeWithTag("text").fetchAccessibleComponent().isVisible
+        }
     }
 
     @Test
