@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.accessibility.accessibilityLabel
 import androidx.compose.ui.platform.accessibility.accessibilityTraits
 import androidx.compose.ui.platform.accessibility.accessibilityValue
 import androidx.compose.ui.platform.accessibility.canBeAccessibilityElement
-import androidx.compose.ui.platform.accessibility.isRTL
 import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
@@ -34,9 +33,12 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getAllUncoveredSemanticsNodesToIntObjectMap
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.sortByGeometryGroupings
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.toDpRect
@@ -145,7 +147,8 @@ private sealed interface AccessibilityNode {
     class Semantics(
         private val semanticsNode: SemanticsNode,
         private val mediator: AccessibilityMediator,
-        private val ignoreSemanticChildren: Boolean = false
+        private val ignoreSemanticChildren: Boolean = false,
+        private val frame: IntRect?,
     ) : AccessibilityNode {
         private val cachedConfig = semanticsNode.copyWithMergingEnabled().config
 
@@ -156,7 +159,7 @@ private sealed interface AccessibilityNode {
             get() = semanticsNode.isScreenReaderFocusable()
 
         override val accessibilityFrame: CValue<CGRect>
-            get() = mediator.convertToAppWindowCGRect(semanticsNode.boundsInWindow)
+            get() = mediator.convertToAppWindowCGRect(frame?.toRect() ?: semanticsNode.unclippedBoundsInWindow)
 
         override val accessibilityInteropView: InteropWrappingView?
             get() = if (ignoreSemanticChildren) {
@@ -277,14 +280,15 @@ private sealed interface AccessibilityNode {
      */
     class Container(
         containerNode: SemanticsNode,
-        mediator: AccessibilityMediator
+        mediator: AccessibilityMediator,
+        frame: IntRect?,
     ) : AccessibilityNode {
         override val key: AccessibilityElementKey = containerNode.containerKey
 
         override val isAccessibilityElement = false
 
         override val accessibilityFrame: CValue<CGRect> =
-            mediator.convertToAppWindowCGRect(containerNode.boundsInWindow)
+            mediator.convertToAppWindowCGRect(frame?.toRect() ?: containerNode.unclippedBoundsInWindow)
     }
 }
 
@@ -851,12 +855,15 @@ internal class AccessibilityMediator(
     private fun traverseSemanticsTree(rootNode: SemanticsNode): AccessibilityElement {
         val presentIds = mutableSetOf<AccessibilityElementKey>()
 
+        val nodes = owner.getAllUncoveredSemanticsNodesToIntObjectMap(rootNode.id)
+
         fun traverseSemanticsNode(node: SemanticsNode): AccessibilityElement {
             presentIds.add(node.semanticsKey)
-            val semanticsChildren = node
-                .replacedChildren
-                .filter { it.isValid }
-                .sortedByAccessibilityOrder(node.isRTL)
+
+            val childNodes = node.replacedChildren
+            val semanticsChildren = childNodes
+                .filter { it.isValid && nodes.contains(it.id) && it.boundsInWindow != Rect.Zero }
+                .let { node.sortByGeometryGroupings(it) }
 
             val children = semanticsChildren.map(::traverseSemanticsNode)
 
@@ -871,17 +878,26 @@ internal class AccessibilityMediator(
                     node = AccessibilityNode.Semantics(
                         semanticsNode = node,
                         mediator = this,
-                        ignoreSemanticChildren = true
+                        ignoreSemanticChildren = true,
+                        frame = nodes[node.id]?.adjustedBounds
                     ),
                     children = emptyList()
                 )
                 createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Container(containerNode = node, mediator = this),
+                    node = AccessibilityNode.Container(
+                        containerNode = node,
+                        mediator = this,
+                        frame = nodes[node.id]?.adjustedBounds
+                    ),
                     children = listOf(containerElement) + children
                 )
             } else {
                 createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(semanticsNode = node, mediator = this),
+                    node = AccessibilityNode.Semantics(
+                        semanticsNode = node,
+                        mediator = this,
+                        frame = nodes[node.id]?.adjustedBounds
+                    ),
                     children = children
                 )
             }
@@ -1127,30 +1143,6 @@ private fun debugContainmentChain(accessibilityObject: Any): String {
 
 private val SemanticsNode.semanticsKey get() = AccessibilityElementKey.Semantics(id)
 private val SemanticsNode.containerKey get() = AccessibilityElementKey.Container(id)
-
-/**
- * Sort the elements in their visual order using their bounds:
- * - from top to bottom,
- * - from left to right or from right to left, depending on language direction
- *
- * The sort is needed because [SemanticsNode.replacedChildren] order doesn't match the
- * expected order of the children in the accessibility tree.
- *
- * TODO: investigate if it's a bug, or some assumptions about the order are wrong.
- */
-private fun List<SemanticsNode>.sortedByAccessibilityOrder(isRTL: Boolean): List<SemanticsNode> {
-    return sortedWith { lhs, rhs ->
-        val result = lhs.boundsInWindow.topLeft.y.compareTo(rhs.boundsInWindow.topLeft.y)
-
-        if (result == 0) {
-            lhs.boundsInWindow.topLeft.x.compareTo(rhs.boundsInWindow.topLeft.x).let {
-                if (isRTL) -it else it
-            }
-        } else {
-            result
-        }
-    }
-}
 
 /**
  * Returns true if corresponding [LayoutNode] is placed and attached, false otherwise.
