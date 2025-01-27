@@ -257,8 +257,8 @@ fun FlowColumn(
  * @see FlowRow
  * @see [androidx.compose.foundation.layout.Column]
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-@ExperimentalLayoutApi
 fun FlowColumn(
     modifier: Modifier = Modifier,
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
@@ -282,7 +282,6 @@ fun FlowColumn(
 /** Scope for the children of [FlowRow]. */
 @LayoutScopeMarker
 @Stable
-@ExperimentalLayoutApi
 interface FlowRowScope : RowScope {
     /**
      * Have the item fill (possibly only partially) the max height of the tallest item in the row it
@@ -321,7 +320,6 @@ interface FlowRowOverflowScope : FlowRowScope {
 /** Scope for the children of [FlowColumn]. */
 @LayoutScopeMarker
 @Stable
-@ExperimentalLayoutApi
 interface FlowColumnScope : ColumnScope {
     /**
      * Have the item fill (possibly only partially) the max width of the widest item in the column
