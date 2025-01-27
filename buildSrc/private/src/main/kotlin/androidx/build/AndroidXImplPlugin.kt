@@ -63,6 +63,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion.VERSION_11
 import org.gradle.api.JavaVersion.VERSION_17
+import org.gradle.api.JavaVersion.VERSION_1_8
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -367,12 +368,14 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
     ) {
         project.afterEvaluate {
             project.tasks.withType(KotlinCompile::class.java).configureEach { task ->
-                if (extension.type.compilationTarget == CompilationTarget.HOST &&
+                if (extension.type == LibraryType.COMPILER_PLUGIN) {
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+                } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
                     extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
                 ) {
                     task.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
                 } else {
-                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_1_8)
                 }
                 val kotlinCompilerArgs = mutableListOf(
                     "-Xskip-metadata-version-check",
@@ -580,7 +583,12 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         // Force Java 1.8 source- and target-compatibility for all Java libraries.
         val javaExtension = project.extensions.getByType<JavaPluginExtension>()
         project.afterEvaluate {
-            if (extension.type.compilationTarget == CompilationTarget.HOST &&
+            if (extension.type == LibraryType.COMPILER_PLUGIN) {
+                javaExtension.apply {
+                    sourceCompatibility = VERSION_11
+                    targetCompatibility = VERSION_11
+                }
+            } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
                 extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
             ) {
                 javaExtension.apply {
@@ -589,8 +597,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 }
             } else {
                 javaExtension.apply {
-                    sourceCompatibility = VERSION_11
-                    targetCompatibility = VERSION_11
+                    sourceCompatibility = VERSION_1_8
+                    targetCompatibility = VERSION_1_8
                 }
             }
             if (!project.plugins.hasPlugin(KotlinBasePluginWrapper::class.java)) {
@@ -676,8 +684,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         androidXExtension: AndroidXExtension
     ) {
         compileOptions.apply {
-            sourceCompatibility = VERSION_11
-            targetCompatibility = VERSION_11
+            sourceCompatibility = VERSION_1_8
+            targetCompatibility = VERSION_1_8
         }
 
         compileSdkVersion(COMPILE_SDK_VERSION)
