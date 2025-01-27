@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.ui.layout
 
 import androidx.activity.ComponentActivity
@@ -1282,6 +1284,7 @@ class LookaheadScopeTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun testNestedLookaheadPlacement() {

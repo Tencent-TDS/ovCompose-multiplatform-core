@@ -449,6 +449,12 @@ internal class Node(val modifierNode: Modifier.Node) : NodeParent() {
 
         modifierNode.dispatchForKind(Nodes.PointerInput) { coordinates = it.layoutCoordinates }
 
+        // In some cases, undelegate() may be called and the modifierNode is still attached, but
+        // the [SuspendingPointerInputModifierNode] is no longer associated with it (since there
+        // are no [Nodes.PointerInput] kinds). In those cases, we skip triggering the event
+        // for this Node.
+        if (coordinates == null) return true
+
         @OptIn(ExperimentalComposeUiApi::class)
         for (j in 0 until changes.size()) {
             val keyValue = changes.keyAt(j)

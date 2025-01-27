@@ -43,7 +43,7 @@ import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.SuccessConfirmationDialog
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.confirmationCurvedText
+import androidx.wear.compose.material3.confirmationDialogCurvedText
 import androidx.wear.compose.material3.macrobenchmark.common.FIND_OBJECT_TIMEOUT_MS
 import androidx.wear.compose.material3.macrobenchmark.common.MacrobenchmarkScreen
 import androidx.wear.compose.material3.macrobenchmark.common.R
@@ -113,7 +113,7 @@ private fun Confirmation(showConfirmation: MutableState<Boolean>) {
     ConfirmationDialog(
         visible = showConfirmation.value,
         onDismissRequest = { showConfirmation.value = false },
-        curvedText = { confirmationCurvedText("Confirmed", style) },
+        curvedText = { confirmationDialogCurvedText("Confirmed", style) },
         durationMillis = DurationMillis
     ) {
         Icon(
@@ -142,10 +142,10 @@ fun LongTextConfirmation(showConfirmation: MutableState<Boolean>) {
 
 @Composable
 fun SuccessConfirmation(showConfirmation: MutableState<Boolean>) {
-    val text = ConfirmationDialogDefaults.successText
+    val text = "Success"
     val style = ConfirmationDialogDefaults.curvedTextStyle
     SuccessConfirmationDialog(
-        curvedText = { confirmationCurvedText(text, style) },
+        curvedText = { confirmationDialogCurvedText(text, style) },
         visible = showConfirmation.value,
         onDismissRequest = { showConfirmation.value = false },
         durationMillis = DurationMillis
@@ -154,10 +154,10 @@ fun SuccessConfirmation(showConfirmation: MutableState<Boolean>) {
 
 @Composable
 fun FailureConfirmation(showConfirmation: MutableState<Boolean>) {
-    val text = ConfirmationDialogDefaults.failureText
+    val text = "Failure"
     val style = ConfirmationDialogDefaults.curvedTextStyle
     FailureConfirmationDialog(
-        curvedText = { confirmationCurvedText(text, style) },
+        curvedText = { confirmationDialogCurvedText(text, style) },
         visible = showConfirmation.value,
         onDismissRequest = { showConfirmation.value = false },
         durationMillis = DurationMillis

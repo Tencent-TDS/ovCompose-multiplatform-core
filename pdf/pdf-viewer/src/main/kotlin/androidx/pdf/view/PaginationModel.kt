@@ -26,7 +26,6 @@ import androidx.annotation.RestrictTo
 import java.util.Collections
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Stores the size and position of PDF pages. All dimensions and coordinates should be assumed to be
@@ -157,21 +156,22 @@ internal class PaginationModel(val pageSpacingPx: Int, val numPages: Int) : Parc
      * [viewportTop] and [viewportBottom], which are expected to be the top and bottom content
      * coordinates of the viewport.
      */
-    fun getPagesInViewport(viewportTop: Int, viewportBottom: Int): Range<Int> {
-        // If the viewport is below all pages, return an empty range at the bottom of this model
-        if (reach > 0 && viewportTop > pageBottoms[reach - 1]) {
-            return Range(min(reach, numPages - 1), min(reach, numPages - 1))
-        }
-        // If the viewport is above all pages, return an empty range at the top of this model
-        if (viewportBottom < pageTops[0]) {
-            return Range(0, 0)
-        }
-        val rangeStart = abs(Collections.binarySearch(pageBottoms, viewportTop) + 1)
-        val rangeEnd = abs(Collections.binarySearch(pageTops, viewportBottom) + 1) - 1
+    fun getPagesInViewport(
+        viewportTop: Int,
+        viewportBottom: Int,
+        includePartial: Boolean = true
+    ): Range<Int> {
+        val startList = if (includePartial) pageBottoms else pageTops
+        val endList = if (includePartial) pageTops else pageBottoms
+
+        val rangeStart = abs(startList.binarySearch(viewportTop) + 1)
+        val rangeEnd = abs(endList.binarySearch(viewportBottom) + 1) - 1
 
         if (rangeEnd < rangeStart) {
-            val midPoint = Collections.binarySearch(pageTops, (viewportTop + viewportBottom) / 2)
-            val page = maxOf(abs(midPoint + 1) - 1, 0)
+            // No page is entirely visible.
+            val midPoint = (viewportTop + viewportBottom) / 2
+            val midResult = pageTops.binarySearch(midPoint)
+            val page = maxOf(abs(midResult + 1) - 1, 0)
             return Range(page, page)
         }
 

@@ -19,24 +19,24 @@ package androidx.navigation3
 import androidx.kruth.assertThat
 import kotlin.test.Test
 
-class RecordTest {
+class EntryTest {
 
     @Test
     fun getKey() {
-        val record = NavRecord(key = "myKey", content = {})
-        assertThat(record.key).isEqualTo("myKey")
+        val entry = NavEntry(key = "myKey", content = {})
+        assertThat(entry.key).isEqualTo("myKey")
     }
 
     @Test
     fun getFeatureMap() {
-        val record =
-            NavRecord(
+        val entry =
+            NavEntry(
                 key = "myKey",
                 featureMap = mapOf("feature1" to 1, "feature2" to MyObject),
                 content = {}
             )
-        assertThat(record.featureMap["feature1"]).isEqualTo(1)
-        assertThat(record.featureMap["feature2"]).isEqualTo(MyObject)
+        assertThat(entry.featureMap["feature1"]).isEqualTo(1)
+        assertThat(entry.featureMap["feature2"]).isEqualTo(MyObject)
     }
 
     object MyObject

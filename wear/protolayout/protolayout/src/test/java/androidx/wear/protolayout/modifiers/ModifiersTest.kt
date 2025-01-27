@@ -24,6 +24,7 @@ import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.SEMANTICS_ROLE_BUTTON
 import androidx.wear.protolayout.ModifiersBuilders.SEMANTICS_ROLE_NONE
 import androidx.wear.protolayout.expression.AppDataKey
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicBool
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInt32
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.protolayout.expression.DynamicDataBuilders.DynamicDataValue
@@ -241,6 +242,26 @@ class ModifiersTest {
         assertThat(modifiers.metadata?.tagData).isEqualTo(METADATA_BYTE_ARRAY)
     }
 
+    @Test
+    fun border_toModifier() {
+        val modifier =
+            LayoutModifier.border(width = WIDTH_DP, color = COLOR).toProtoLayoutModifiers()
+
+        assertThat(modifier.border?.width?.value).isEqualTo(WIDTH_DP)
+        assertThat(modifier.border?.color?.argb).isEqualTo(COLOR.prop.argb)
+    }
+
+    @Test
+    fun visibility_toModifier() {
+        val modifier =
+            LayoutModifier.visibility(staticVisibility = false, dynamicVisibility = DYNAMIC_BOOL)
+                .toProtoLayoutModifiers()
+
+        assertThat(modifier.isVisible.value).isEqualTo(false)
+        assertThat(modifier.isVisible.dynamicValue?.toDynamicBoolProto())
+            .isEqualTo(DYNAMIC_BOOL.toDynamicBoolProto())
+    }
+
     companion object {
         const val STATIC_CONTENT_DESCRIPTION = "content desc"
         val DYNAMIC_CONTENT_DESCRIPTION = DynamicString.constant("dynamic content")
@@ -255,5 +276,7 @@ class ModifiersTest {
         const val PADDING_ALL = 5f
         const val METADATA = "metadata"
         val METADATA_BYTE_ARRAY = METADATA.toByteArray()
+        const val WIDTH_DP = 5f
+        val DYNAMIC_BOOL = DynamicBool.constant(true)
     }
 }

@@ -1877,8 +1877,8 @@ private constructor(
          *
          * Returns this Builder to allow chaining.
          */
-        fun setColorRampIsSmoothShaded(isSmoothShaded: Boolean?) = apply {
-            putOrRemoveField(FIELD_COLOR_RAMP_INTERPOLATED, isSmoothShaded)
+        fun setColorRampInterpolated(isColorRampInterpolated: Boolean?) = apply {
+            putOrRemoveField(FIELD_COLOR_RAMP_INTERPOLATED, isColorRampInterpolated)
         }
 
         /**

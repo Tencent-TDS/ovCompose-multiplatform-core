@@ -368,6 +368,10 @@ internal class LayoutNodeLayoutDelegate(
         measurePassDelegate.childDelegatesDirty = true
         lookaheadPassDelegate?.let { it.childDelegatesDirty = true }
     }
+
+    fun clearLookaheadDelegate() {
+        lookaheadPassDelegate = null
+    }
 }
 
 /**
@@ -427,7 +431,7 @@ internal interface AlignmentLinesOwner : Measurable {
     fun layoutChildren()
 
     /** Recalculate the alignment lines if dirty, and layout children as needed. */
-    fun calculateAlignmentLines(): Map<out AlignmentLine, Int>
+    fun calculateAlignmentLines(): Map<AlignmentLine, Int>
 
     /**
      * Parent [AlignmentLinesOwner]. This will be the AlignmentLinesOwner for the same pass but for

@@ -41,6 +41,11 @@ final class FeaturesImpl implements Features {
     @Override
     @OptIn(markerClass = ExperimentalAppSearchApi.class)
     public boolean isFeatureSupported(@NonNull String feature) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // AppSearch landed in platform in S, however it was not updatable via mainline until T.
+            // So all features here are not available below T.
+            return false;
+        }
         switch (feature) {
             // Android T Features
             case Features.ADD_PERMISSIONS_AND_GET_VISIBILITY:
@@ -94,9 +99,13 @@ final class FeaturesImpl implements Features {
             case Features.ENTERPRISE_GLOBAL_SEARCH_SESSION:
                 return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
 
-            // Android B Features
+            // M-2024-11 Features
             case Features.INDEXER_MOBILE_APPLICATIONS:
-                return AppSearchVersionUtil.isAtLeastB();
+                // For devices that receive mainline updates, this will be available in M-2024-11,
+                // and in B for devices that don't receive mainline updates.
+                return AppSearchVersionUtil.isAtLeastB()
+                        || AppSearchVersionUtil.getAppSearchVersionCode(mContext)
+                        >= AppSearchVersionUtil.APPSEARCH_M2024_11_VERSION_CODE;
 
             // Pending Android B Features
             case Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG:

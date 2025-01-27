@@ -79,6 +79,11 @@ public interface CameraControlInternal extends CameraControl {
     void addZslConfig(SessionConfig.@NonNull Builder sessionConfigBuilder);
 
     /**
+     * Clear the resource for ZSL capture.
+     */
+    void clearZslConfig();
+
+    /**
      * Sets the flag if zero-shutter lag needs to be disabled by user case config.
      *
      * <p> Zero-shutter lag will be disabled when any of the following conditions:
@@ -224,6 +229,11 @@ public interface CameraControlInternal extends CameraControl {
 
         @Override
         public void addZslConfig(SessionConfig.@NonNull Builder sessionConfigBuilder) {
+        }
+
+        @Override
+        public void clearZslConfig() {
+
         }
 
         @Override

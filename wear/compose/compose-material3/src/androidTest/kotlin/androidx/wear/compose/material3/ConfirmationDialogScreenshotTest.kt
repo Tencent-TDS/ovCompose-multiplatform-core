@@ -80,7 +80,7 @@ class ConfirmationScreenshotTest {
                 visible = true,
                 modifier = modifier,
                 onDismissRequest = {},
-                curvedText = { confirmationCurvedText("Confirmed", style) }
+                curvedText = { confirmationDialogCurvedText("Confirmed", style) }
             ) {
                 DefaultIcon()
             }
@@ -117,7 +117,7 @@ class ConfirmationScreenshotTest {
                 visible = true,
                 modifier = modifier,
                 onDismissRequest = {},
-                curvedText = { confirmationCurvedText("Success", style) }
+                curvedText = { confirmationDialogCurvedText("Success", style) }
             )
         }
     }
@@ -150,7 +150,7 @@ class ConfirmationScreenshotTest {
                 visible = true,
                 modifier = modifier,
                 onDismissRequest = {},
-                curvedText = { confirmationCurvedText("Failure", style) }
+                curvedText = { confirmationDialogCurvedText("Failure", style) }
             )
         }
     }

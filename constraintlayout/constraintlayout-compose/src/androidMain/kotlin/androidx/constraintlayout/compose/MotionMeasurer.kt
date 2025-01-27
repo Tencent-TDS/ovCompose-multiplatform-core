@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -85,13 +84,11 @@ internal class MotionMeasurer(density: Density) : Measurer(density) {
         constraintSetEnd: ConstraintSet,
         @SuppressWarnings("HiddenTypeParameter") transition: TransitionImpl,
         measurables: List<Measurable>,
-        placeableMap: MutableMap<Measurable, Placeable>,
         optimizationLevel: Int,
         progress: Float,
         compositionSource: CompositionSource,
         invalidateOnConstraintsCallback: ShouldInvalidateCallback?
     ): IntSize {
-        placeables = placeableMap
         val needsRemeasure =
             needsRemeasure(
                 constraints = constraints,
@@ -142,7 +139,7 @@ internal class MotionMeasurer(density: Density) : Measurer(density) {
         source: CompositionSource,
         invalidateOnConstraintsCallback: ShouldInvalidateCallback?
     ): Boolean {
-        if (this.transition.isEmpty || frameCache2.isEmpty()) {
+        if (this.transition.isEmpty || frameCache.isEmpty()) {
             // Nothing measured (by MotionMeasurer)
             return true
         }
@@ -229,7 +226,7 @@ internal class MotionMeasurer(density: Density) : Measurer(density) {
                 measurable.measure(
                     Constraints.fixed(interpolatedFrame.width(), interpolatedFrame.height())
                 )
-            frameCache2[measurable.anyOrNullId] = interpolatedFrame
+            frameCache[measurable] = interpolatedFrame
         }
 
         if (layoutInformationReceiver?.getLayoutInformationMode() == LayoutInfoFlags.BOUNDS) {
@@ -542,7 +539,7 @@ internal class MotionMeasurer(density: Density) : Measurer(density) {
 
     fun clearConstraintSets() {
         transition.clear()
-        frameCache2.clear()
+        frameCache.clear()
     }
 
     @Suppress("UnavailableSymbol")

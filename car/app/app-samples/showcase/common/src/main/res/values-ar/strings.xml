@@ -165,7 +165,7 @@
     <string name="gas_station" msgid="1203313937444666161">"محطة وقود"</string>
     <string name="short_route" msgid="4831864276538141265">"مسار طريق قصير"</string>
     <string name="less_busy" msgid="310625272281710983">"أقل انشغالاً"</string>
-    <string name="hov_friendly" msgid="6956152104754594971">"المركبات الملائمة التي تشغل حيزًا كبيرًا"</string>
+    <string name="hov_friendly" msgid="6956152104754594971">"المركبات الملائمة العالية الإشغال"</string>
     <string name="long_route" msgid="4737969235741057506">"مسار الرحلة طويل"</string>
     <string name="continue_start_nav" msgid="6231797535084469163">"المتابعة لبدء التنقّل"</string>
     <string name="continue_route" msgid="5172258139245088080">"المتابعة إلى مسار الرحلة"</string>

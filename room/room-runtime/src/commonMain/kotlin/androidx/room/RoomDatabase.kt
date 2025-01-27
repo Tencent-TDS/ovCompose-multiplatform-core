@@ -89,7 +89,7 @@ expect abstract class RoomDatabase() {
      *
      * @return A new delegate to be used while opening the database
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected open fun createOpenDelegate(): RoomOpenDelegateMarker
 
     /**
@@ -113,7 +113,7 @@ expect abstract class RoomDatabase() {
      * @return Creates a set that will include the classes of all required auto migration specs for
      *   this database.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun getRequiredAutoMigrationSpecClasses(): Set<KClass<out AutoMigrationSpec>>
 
     /**
@@ -125,7 +125,7 @@ expect abstract class RoomDatabase() {
      * @param autoMigrationSpecs the provided specs needed by certain migrations.
      * @return A list of migration instances each of which is a generated 'auto migration'.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun createAutoMigrations(
         autoMigrationSpecs: Map<KClass<out AutoMigrationSpec>, AutoMigrationSpec>
     ): List<Migration>
@@ -139,7 +139,8 @@ expect abstract class RoomDatabase() {
      * @param T The type of the expected Type Converter subclass.
      * @return An instance of T.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) fun <T : Any> getTypeConverter(klass: KClass<T>): T
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+    fun <T : Any> getTypeConverter(klass: KClass<T>): T
 
     /**
      * Adds a provided type converter to be used in the database DAOs.
@@ -159,7 +160,7 @@ expect abstract class RoomDatabase() {
      *
      * @return A map that will include all required type converters for this database.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected open fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>>
 
     /** Property delegate of [getRequiredTypeConverterClasses] for common ext functionality. */
@@ -171,7 +172,7 @@ expect abstract class RoomDatabase() {
      *
      * @param connection The database connection.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected fun internalInitInvalidationTracker(connection: SQLiteConnection)
 
     /**

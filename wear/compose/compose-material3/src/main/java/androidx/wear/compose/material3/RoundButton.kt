@@ -65,7 +65,6 @@ internal fun RoundButton(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val borderStroke = border(enabled)
-
     Box(
         contentAlignment = Alignment.Center,
         modifier =
@@ -158,11 +157,10 @@ internal fun animateButtonShape(
                 onPressAnimationSpec = onPressAnimationSpec,
                 onReleaseAnimationSpec = onReleaseAnimationSpec
             )
-
-        Pair(finalShape, finalInteractionSource)
+        finalShape to finalInteractionSource
     } else {
         // Fallback to static uncheckedShape if no other shapes, or not animatable
-        Pair(defaultShape, interactionSource)
+        defaultShape to interactionSource
     }
 
 @Composable
@@ -195,22 +193,19 @@ internal fun animateToggleButtonShape(
 
         val finalInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
 
-        val finalShape =
-            rememberAnimatedToggleRoundedCornerShape(
-                interactionSource = finalInteractionSource,
-                uncheckedCornerSize = uncheckedShape.topEnd,
-                checkedCornerSize = checkedShape.topEnd,
-                uncheckedPressedCornerSize = uncheckedPressedShape.topEnd,
-                checkedPressedCornerSize = checkedPressedShape.topEnd,
-                checked = checked,
-                onPressAnimationSpec = onPressAnimationSpec,
-                onReleaseAnimationSpec = onReleaseAnimationSpec,
-            )
-
-        Pair(finalShape, finalInteractionSource)
+        rememberAnimatedToggleRoundedCornerShape(
+            interactionSource = finalInteractionSource,
+            uncheckedCornerSize = uncheckedShape.topEnd,
+            checkedCornerSize = checkedShape.topEnd,
+            uncheckedPressedCornerSize = uncheckedPressedShape.topEnd,
+            checkedPressedCornerSize = checkedPressedShape.topEnd,
+            checked = checked,
+            onPressAnimationSpec = onPressAnimationSpec,
+            onReleaseAnimationSpec = onReleaseAnimationSpec,
+        ) to finalInteractionSource
     } else {
         // Fallback to static uncheckedShape if no other shapes, or not animatable
-        Pair(uncheckedShape, interactionSource)
+        uncheckedShape to interactionSource
     }
 }
 

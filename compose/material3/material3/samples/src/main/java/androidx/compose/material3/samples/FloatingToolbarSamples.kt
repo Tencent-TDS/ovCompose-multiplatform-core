@@ -61,8 +61,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment.Companion.BottomCenter
-import androidx.compose.ui.Alignment.Companion.CenterEnd
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -107,7 +106,7 @@ fun ExpandableHorizontalFloatingToolbarSample() {
                     }
                 }
                 HorizontalFloatingToolbar(
-                    modifier = Modifier.align(BottomCenter).offset(y = -ScreenOffset),
+                    modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
                     expanded = expanded || isTouchExplorationEnabled,
                     leadingContent = { leadingContent() },
                     trailingContent = { trailingContent() },
@@ -157,7 +156,7 @@ fun ScrollableHorizontalFloatingToolbarSample() {
                     }
                 }
                 HorizontalFloatingToolbar(
-                    modifier = Modifier.align(BottomCenter).offset(y = -ScreenOffset),
+                    modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
                     expanded = true,
                     leadingContent = { leadingContent() },
                     trailingContent = { trailingContent() },
@@ -214,7 +213,7 @@ fun ExpandableVerticalFloatingToolbarSample() {
                     }
                 }
                 VerticalFloatingToolbar(
-                    modifier = Modifier.align(CenterEnd).offset(x = -ScreenOffset),
+                    modifier = Modifier.align(Alignment.CenterEnd).offset(x = -ScreenOffset),
                     expanded = expanded || isTouchExplorationEnabled,
                     leadingContent = { leadingContent() },
                     trailingContent = { trailingContent() },
@@ -264,7 +263,7 @@ fun ScrollableVerticalFloatingToolbarSample() {
                     }
                 }
                 VerticalFloatingToolbar(
-                    modifier = Modifier.align(CenterEnd).offset(x = -ScreenOffset),
+                    modifier = Modifier.align(Alignment.CenterEnd).offset(x = -ScreenOffset),
                     expanded = true,
                     leadingContent = { leadingContent() },
                     trailingContent = { trailingContent() },
@@ -330,8 +329,66 @@ fun HorizontalFloatingToolbarWithFabSample() {
                         Icon(Icons.Filled.Add, "Localized description")
                     }
                 },
-                modifier = Modifier.align(BottomCenter).offset(y = -ScreenOffset),
+                modifier =
+                    Modifier.align(Alignment.BottomEnd)
+                        .offset(x = -ScreenOffset, y = -ScreenOffset),
                 colors = vibrantColors,
+                content = {
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Person, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Favorite, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Localized description")
+                    }
+                },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun CenteredHorizontalFloatingToolbarWithFabSample() {
+    val context = LocalContext.current
+    val isTouchExplorationEnabled = remember {
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        am.isEnabled && am.isTouchExplorationEnabled
+    }
+    val exitAlwaysScrollBehavior =
+        FloatingToolbarDefaults.exitAlwaysScrollBehavior(exitDirection = Bottom)
+    val vibrantColors = FloatingToolbarDefaults.vibrantFloatingToolbarColors()
+    Scaffold(modifier = Modifier.nestedScroll(exitAlwaysScrollBehavior)) { innerPadding ->
+        Box(Modifier.padding(innerPadding)) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(text = remember { LoremIpsum().values.first() })
+            }
+            HorizontalFloatingToolbar(
+                // Always expanded as the toolbar is bottom-centered. We will use a
+                // FloatingToolbarScrollBehavior to hide both the toolbar and its FAB on scroll.
+                expanded = true,
+                floatingActionButton = {
+                    // Match the FAB to the vibrantColors. See also StandardFloatingActionButton.
+                    FloatingToolbarDefaults.VibrantFloatingActionButton(
+                        onClick = { /* doSomething() */ },
+                    ) {
+                        Icon(Icons.Filled.Add, "Localized description")
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
+                colors = vibrantColors,
+                scrollBehavior = if (!isTouchExplorationEnabled) exitAlwaysScrollBehavior else null,
                 content = {
                     IconButton(onClick = { /* doSomething() */ }) {
                         Icon(Icons.Filled.Person, contentDescription = "Localized description")
@@ -396,8 +453,66 @@ fun VerticalFloatingToolbarWithFabSample() {
                         Icon(Icons.Filled.Add, "Localized description")
                     }
                 },
-                modifier = Modifier.align(CenterEnd).offset(x = -ScreenOffset),
+                modifier =
+                    Modifier.align(Alignment.BottomEnd)
+                        .offset(x = -ScreenOffset, y = -ScreenOffset),
                 colors = vibrantColors,
+                content = {
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Person, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.Favorite, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* doSomething() */ }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Localized description")
+                    }
+                },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun CenteredVerticalFloatingToolbarWithFabSample() {
+    val context = LocalContext.current
+    val isTouchExplorationEnabled = remember {
+        val am = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        am.isEnabled && am.isTouchExplorationEnabled
+    }
+    val exitAlwaysScrollBehavior =
+        FloatingToolbarDefaults.exitAlwaysScrollBehavior(exitDirection = End)
+    val vibrantColors = FloatingToolbarDefaults.vibrantFloatingToolbarColors()
+    Scaffold(modifier = Modifier.nestedScroll(exitAlwaysScrollBehavior)) { innerPadding ->
+        Box(Modifier.padding(innerPadding)) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(text = remember { LoremIpsum().values.first() })
+            }
+            VerticalFloatingToolbar(
+                // Always expanded as the toolbar is right-centered. We will use a
+                // FloatingToolbarScrollBehavior to hide both the toolbar and its FAB on scroll.
+                expanded = true,
+                floatingActionButton = {
+                    // Match the FAB to the vibrantColors. See also StandardFloatingActionButton.
+                    FloatingToolbarDefaults.VibrantFloatingActionButton(
+                        onClick = { /* doSomething() */ },
+                    ) {
+                        Icon(Icons.Filled.Add, "Localized description")
+                    }
+                },
+                modifier = Modifier.align(Alignment.CenterEnd).offset(x = -ScreenOffset),
+                colors = vibrantColors,
+                scrollBehavior = if (!isTouchExplorationEnabled) exitAlwaysScrollBehavior else null,
                 content = {
                     IconButton(onClick = { /* doSomething() */ }) {
                         Icon(Icons.Filled.Person, contentDescription = "Localized description")

@@ -39,17 +39,7 @@ abstract class AutofillManager internal constructor() {
      *
      * Call this function to notify the Autofill framework that the current session should be
      * canceled. After calling this function, the framework will stop the current autofill session
-     * without processing any information entered in the autofillable field.
+     * without processing any information entered in the autofill-able field.
      */
     abstract fun cancel()
-
-    /**
-     * Request autofill for previously focused element.
-     *
-     * This may have no effect, and it is not required that any autofill service will be notified.
-     *
-     * Any component that can be autofilled may call this when it is active to request an autofill
-     * services response.
-     */
-    abstract fun requestAutofillForActiveElement()
 }

@@ -23,6 +23,7 @@ import android.util.Range;
 import android.view.Surface;
 
 import androidx.annotation.FloatRange;
+import androidx.annotation.IntRange;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.StringDef;
@@ -47,6 +48,12 @@ import java.util.Set;
  * <p>Applications can retrieve an instance via {@link Camera#getCameraInfo()}.
  */
 public interface CameraInfo {
+
+    /**
+     * The torch strength level when the device doesn't have a flash unit or doesn't support
+     * adjusting torch strength.
+     */
+    int TORCH_STRENGTH_LEVEL_UNSUPPORTED = 0;
 
     /**
      * An unknown intrinsic zoom ratio. Usually to indicate the camera is unable to provide
@@ -423,6 +430,30 @@ public interface CameraInfo {
      */
     default @NonNull Set<CameraInfo> getPhysicalCameraInfos() {
         return Collections.emptySet();
+    }
+
+    /**
+     * Returns the maximum torch strength level.
+     *
+     * @return The maximum strength level, or {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED} if the
+     * device doesn't have a flash unit or doesn't support configuring torch strength.
+     */
+    @IntRange(from = 0)
+    default int getMaxTorchStrengthLevel() {
+        return TORCH_STRENGTH_LEVEL_UNSUPPORTED;
+    }
+
+    /**
+     * Returns the {@link LiveData} of the torch strength level.
+     *
+     * <p>The value of the {@link LiveData} will be the default torch strength level of this
+     * device if {@link CameraControl#setTorchStrengthLevel(int)} hasn't been called.
+     *
+     * <p>The value of the {@link LiveData} will be {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED} if
+     * the device doesn't have a flash unit or doesn't support configuring torch strength.
+     */
+    default @NonNull LiveData<Integer> getTorchStrengthLevel() {
+        return new MutableLiveData<>(TORCH_STRENGTH_LEVEL_UNSUPPORTED);
     }
 
     @StringDef(open = true, value = {IMPLEMENTATION_TYPE_UNKNOWN,

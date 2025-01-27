@@ -130,7 +130,7 @@ public final class MediaRouter {
     public static final int UNSELECT_REASON_ROUTE_CHANGED = 3;
 
     @IntDef({
-        REASON_DISCONNECTED,
+        REASON_DISCONNECT_CALLED,
         REASON_ROUTE_NOT_AVAILABLE,
         REASON_ROUTE_NOT_ENABLED,
         REASON_REJECTED_FOR_SELECTED_ROUTE,
@@ -146,7 +146,7 @@ public final class MediaRouter {
      *
      * @see Callback#onRouteDisconnected(MediaRouter, RouteInfo, RouteInfo, int)
      */
-    public static final int REASON_DISCONNECTED = 1;
+    public static final int REASON_DISCONNECT_CALLED = 1;
 
     /**
      * The route connection has failed because the requested route is no longer available.
@@ -164,6 +164,9 @@ public final class MediaRouter {
 
     /**
      * The route connection has failed because the requested route is a selected route.
+     *
+     * <p>If a route is already selected, then calling {@link RouteInfo#connect()} on the selected
+     * route will be rejected and do nothing.
      *
      * @see Callback#onRouteDisconnected(MediaRouter, RouteInfo, RouteInfo, int)
      */
@@ -1615,15 +1618,19 @@ public final class MediaRouter {
         /**
          * Returns true if this route is currently selected.
          *
+         * <p>Only one representative route can return true. For instance:
+         *
+         * <ul>
+         *   <li>If this route is a selected (non-group) route, it returns true.
+         *   <li>If this route is a selected group route, it returns true.
+         *   <li>If this route is a selected member route of a group, it returns false.
+         * </ul>
+         *
          * <p>Must be called on the main thread.
          *
          * @return True if this route is currently selected.
          * @see MediaRouter#getSelectedRoute
          */
-        // Note: Only one representative route can return true. For instance:
-        //   - If this route is a selected (non-group) route, it returns true.
-        //   - If this route is a selected group route, it returns true.
-        //   - If this route is a selected member route of a group, it returns false.
         @MainThread
         public boolean isSelected() {
             checkCallingThread();
@@ -2062,7 +2069,10 @@ public final class MediaRouter {
         /**
          * Connects this route without selecting it.
          *
-         * <p>If the route is already selected, connecting this route will do nothing.
+         * <p>Apps can select a route by calling {@link #select()}. If apps want to keep the
+         * selected route unchanged and connect to additional routes, then they can use this method
+         * to connect additional routes. If the route is already selected, connecting this route
+         * will do nothing.
          *
          * <p>Must be called on the main thread.
          */
@@ -2849,7 +2859,8 @@ public final class MediaRouter {
          * routes while connecting to other routes.
          *
          * <p>The connected route could be different from the route requested by {@link
-         * RouteInfo#connect()}.
+         * RouteInfo#connect()}. This can happen when the {@link MediaTransferReceiver media
+         * transfer feature} is enabled.
          *
          * @param router the media router reporting the event.
          * @param connectedRoute the route that has been connected.

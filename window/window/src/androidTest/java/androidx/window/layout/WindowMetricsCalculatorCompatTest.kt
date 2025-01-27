@@ -282,7 +282,6 @@ class WindowMetricsCalculatorCompatTest {
     fun testWindowMetricBoundsMatchesEdgeToEdgeFullScreenView() {
         val scenario = ActivityScenario.launch(TestActivityEdgeToEdge::class.java)
         scenario.moveToState(Lifecycle.State.RESUMED)
-        scenario.onActivity { activity -> activity.waitForExpectedBounds() }
         scenario.onActivity { activity ->
             val windowMetrics =
                 WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(activity)

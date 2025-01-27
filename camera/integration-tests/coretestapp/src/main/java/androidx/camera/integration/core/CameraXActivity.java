@@ -1322,7 +1322,7 @@ public class CameraXActivity extends AppCompatActivity {
         Bundle bundle = this.getIntent().getExtras();
         if (bundle != null) {
             mTargetAspectRatio = bundle.getInt(INTENT_EXTRA_TARGET_ASPECT_RATIO,
-                    AspectRatio.RATIO_4_3);
+                    AspectRatio.RATIO_DEFAULT);
             int scaleType = bundle.getInt(INTENT_EXTRA_SCALE_TYPE, INTENT_EXTRA_FILL_CENTER);
             if (scaleType == INTENT_EXTRA_FIT_CENTER) {
                 // Scale the view according to the target aspect ratio, display size and device

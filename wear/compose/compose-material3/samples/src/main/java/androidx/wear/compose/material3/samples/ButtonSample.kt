@@ -17,13 +17,21 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -280,18 +288,39 @@ fun FilledTonalCompactButtonSample(modifier: Modifier = Modifier) {
 @Sampled
 @Composable
 fun OutlinedCompactButtonSample(modifier: Modifier = Modifier) {
-    CompactButton(
-        onClick = { /* Do something */ },
-        colors = ButtonDefaults.outlinedButtonColors(),
-        border = ButtonDefaults.outlinedButtonBorder(enabled = true),
-        modifier = modifier,
-    ) {
-        Text("Show More", maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-        Icon(
-            Icons.Filled.ArrowDropDown,
-            contentDescription = "Expand",
-            modifier = Modifier.size(ButtonDefaults.ExtraSmallIconSize)
-        )
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        var expanded by remember { mutableStateOf(false) }
+        if (expanded) {
+            Text("A multiline string showing two lines")
+        } else {
+            Text("One line text")
+        }
+        Spacer(Modifier.height(ButtonDefaults.IconSpacing))
+        CompactButton(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.outlinedButtonColors(),
+            border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+            modifier = modifier,
+        ) {
+            if (expanded) {
+                Text("Show Less", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else {
+                Text("Show More", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            if (expanded) {
+                Icon(
+                    Icons.Filled.KeyboardArrowUp,
+                    contentDescription = "Collapse",
+                    modifier = Modifier.size(ButtonDefaults.ExtraSmallIconSize)
+                )
+            } else {
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = "Expand",
+                    modifier = Modifier.size(ButtonDefaults.ExtraSmallIconSize)
+                )
+            }
+        }
     }
 }

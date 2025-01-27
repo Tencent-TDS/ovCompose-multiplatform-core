@@ -17,7 +17,6 @@
 package androidx.wear.protolayout.material3
 
 import android.content.Context
-import androidx.wear.protolayout.ColorBuilders.argb
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
 import androidx.wear.protolayout.DimensionBuilders.ImageDimension
@@ -73,6 +72,7 @@ internal constructor(
     internal val defaultIconStyle: IconStyle,
     internal val defaultBackgroundImageStyle: BackgroundImageStyle,
     internal val defaultAvatarImageStyle: AvatarImageStyle,
+    internal val layoutSlotsPresence: LayoutSlotsPresence
 ) {
     /** Color Scheme used within this scope and its components. */
     public val colorScheme: ColorScheme = theme.colorScheme
@@ -84,7 +84,8 @@ internal constructor(
         defaultTextElementStyle: TextElementStyle = this.defaultTextElementStyle,
         defaultIconStyle: IconStyle = this.defaultIconStyle,
         defaultBackgroundImageStyle: BackgroundImageStyle = this.defaultBackgroundImageStyle,
-        defaultAvatarImageStyle: AvatarImageStyle = this.defaultAvatarImageStyle
+        defaultAvatarImageStyle: AvatarImageStyle = this.defaultAvatarImageStyle,
+        layoutSlotsPresence: LayoutSlotsPresence = this.layoutSlotsPresence
     ): MaterialScope =
         MaterialScope(
             context = context,
@@ -94,7 +95,8 @@ internal constructor(
             defaultTextElementStyle = defaultTextElementStyle,
             defaultIconStyle = defaultIconStyle,
             defaultBackgroundImageStyle = defaultBackgroundImageStyle,
-            defaultAvatarImageStyle = defaultAvatarImageStyle
+            defaultAvatarImageStyle = defaultAvatarImageStyle,
+            layoutSlotsPresence = layoutSlotsPresence
         )
 }
 
@@ -140,7 +142,8 @@ public fun materialScope(
             defaultTextElementStyle = TextElementStyle(),
             defaultIconStyle = IconStyle(),
             defaultBackgroundImageStyle = BackgroundImageStyle(),
-            defaultAvatarImageStyle = AvatarImageStyle()
+            defaultAvatarImageStyle = AvatarImageStyle(),
+            layoutSlotsPresence = LayoutSlotsPresence()
         )
         .layout()
 
@@ -153,7 +156,7 @@ internal class TextElementStyle(
     val underline: Boolean = false,
     val scalable: Boolean = TypographyFontSelection.getFontScalability(typography),
     val maxLines: Int = 1,
-    @TextAlignment val multilineAlignment: Int = TEXT_ALIGN_CENTER,
+    @TextAlignment val alignment: Int = TEXT_ALIGN_CENTER,
     @TextOverflow val overflow: Int = TEXT_OVERFLOW_ELLIPSIZE,
 )
 
@@ -179,4 +182,10 @@ internal class AvatarImageStyle(
     val shape: Corner = ShapeTokens.CORNER_FULL,
     @ContentScaleMode
     val contentScaleMode: Int = LayoutElementBuilders.CONTENT_SCALE_MODE_FILL_BOUNDS
+)
+
+internal class LayoutSlotsPresence(
+    val isTitleSlotPresent: Boolean = false,
+    val isBottomSlotEdgeButton: Boolean = false,
+    val isBottomSlotPresent: Boolean = isBottomSlotEdgeButton
 )

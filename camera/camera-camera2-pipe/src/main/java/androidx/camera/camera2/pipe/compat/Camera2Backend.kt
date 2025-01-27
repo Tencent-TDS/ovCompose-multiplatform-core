@@ -31,7 +31,6 @@ import androidx.camera.camera2.pipe.config.Camera2ControllerConfig
 import androidx.camera.camera2.pipe.graph.GraphListener
 import androidx.camera.camera2.pipe.graph.StreamGraphImpl
 import javax.inject.Inject
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 
 /** This is the default [CameraBackend] implementation for CameraPipe based on Camera2. */
@@ -64,28 +63,19 @@ constructor(
     }
 
     override fun disconnectAsync(cameraId: CameraId): Deferred<Unit> {
-        TODO(
-            "b/324142928 - Add support in Camera2DeviceManager for closing a camera " +
-                "with a deferred result."
-        )
+        return camera2DeviceManager.close(cameraId)
     }
 
     override fun disconnectAll() {
-        return camera2DeviceManager.closeAll()
+        camera2DeviceManager.closeAll()
     }
 
     override fun disconnectAllAsync(): Deferred<Unit> {
-        TODO(
-            "b/324142928 - Add support in Camera2DeviceManager for closing a camera " +
-                "with a deferred result."
-        )
+        return camera2DeviceManager.closeAll()
     }
 
     override fun shutdownAsync(): Deferred<Unit> {
-        // TODO: Camera2DeviceManager needs to be extended to support a suspendable future that can
-        //   be used to wait until close has been called on all camera devices.
-        camera2DeviceManager.closeAll()
-        return CompletableDeferred(Unit)
+        return camera2DeviceManager.closeAll()
     }
 
     override fun createCameraController(

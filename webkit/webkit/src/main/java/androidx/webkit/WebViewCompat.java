@@ -22,6 +22,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.ValueCallback;
@@ -35,7 +36,6 @@ import androidx.annotation.RequiresFeature;
 import androidx.annotation.RequiresOptIn;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
-import androidx.core.os.CancellationSignal;
 import androidx.webkit.internal.ApiFeature;
 import androidx.webkit.internal.ApiHelperForM;
 import androidx.webkit.internal.ApiHelperForO;
@@ -1341,8 +1341,7 @@ public class WebViewCompat {
     }
 
     /**
-     * Starts a URL prerender request for this WebView. Can be called from any
-     * thread.
+     * Starts a URL prerender request for this WebView. Must be called from the UI thread.
      * <p>
      * This WebView will use a URL request matching algorithm during execution
      * of all variants of {@link android.webkit.WebView#loadUrl(String)} for
@@ -1363,26 +1362,26 @@ public class WebViewCompat {
      * <p>
      * The {@link CancellationSignal} will make the best effort to cancel an
      * in-flight prerender request; however cancellation it is not guaranteed.
-     * <p>
-     * All result callbacks will be resolved on the calling thread.
      *
      * @param webView            the WebView for which we trigger the prerender request.
      * @param url                the url associated with the prerender request.
      * @param cancellationSignal used to trigger prerender cancellation.
+     * @param callbackExecutor   the executor to resolve the callback with.
      * @param callback           callbacks for reporting result back to application.
      */
     @RequiresFeature(name = WebViewFeature.PRERENDER_WITH_URL,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @AnyThread
+    @UiThread
     @ExperimentalUrlPrerender
-    public static void prerenderUrlAsync(
+    public static void prerenderUrl(
             @NonNull WebView webView,
             @NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull PrerenderOperationCallback callback) {
         ApiFeature.NoFramework feature = WebViewFeatureInternal.PRERENDER_WITH_URL;
         if (feature.isSupportedByWebView()) {
-            getProvider(webView).prerenderUrlAsync(url, cancellationSignal, callback);
+            getProvider(webView).prerenderUrl(url, cancellationSignal, callbackExecutor, callback);
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }
@@ -1390,28 +1389,31 @@ public class WebViewCompat {
 
     /**
      * The same as
-     * {@link WebViewCompat#prerenderUrlAsync(WebView, String, CancellationSignal, PrerenderOperationCallback)},
+     * {@link WebViewCompat#prerenderUrl(WebView, String, CancellationSignal, Executor, PrerenderOperationCallback)},
      * but allows customizing the request by providing {@link SpeculativeLoadingParameters}.
      *
      * @param webView            the WebView for which we trigger the prerender request.
      * @param url                the url associated with the prerender request.
      * @param cancellationSignal used to trigger prerender cancellation.
+     * @param callbackExecutor   the executor to resolve the callback with.
      * @param params             parameters to customize the prerender request.
      * @param callback           callbacks for reporting result back to application.
      */
     @RequiresFeature(name = WebViewFeature.PRERENDER_WITH_URL,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @AnyThread
+    @UiThread
     @ExperimentalUrlPrerender
-    public static void prerenderUrlAsync(
+    public static void prerenderUrl(
             @NonNull WebView webView,
             @NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull SpeculativeLoadingParameters params,
             @NonNull PrerenderOperationCallback callback) {
         ApiFeature.NoFramework feature = WebViewFeatureInternal.PRERENDER_WITH_URL;
         if (feature.isSupportedByWebView()) {
-            getProvider(webView).prerenderUrlAsync(url, cancellationSignal, params, callback);
+            getProvider(webView).prerenderUrl(url, cancellationSignal, callbackExecutor, params,
+                    callback);
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }

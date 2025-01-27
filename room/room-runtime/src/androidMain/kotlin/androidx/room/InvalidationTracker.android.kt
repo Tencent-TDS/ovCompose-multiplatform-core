@@ -21,12 +21,12 @@ import androidx.annotation.RestrictTo
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.room.InvalidationTracker.Observer
+import androidx.room.concurrent.ReentrantLock
+import androidx.room.concurrent.withLock
 import androidx.room.support.AutoCloser
 import androidx.sqlite.SQLiteConnection
 import java.lang.ref.WeakReference
 import java.util.concurrent.Callable
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.runBlocking
@@ -47,7 +47,7 @@ import kotlinx.coroutines.runBlocking
  * new value.
  */
 actual open class InvalidationTracker
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 actual constructor(
     internal val database: RoomDatabase,
     private val shadowTablesMap: Map<String, String>,
@@ -65,7 +65,7 @@ actual constructor(
         )
 
     private val observerMap = mutableMapOf<Observer, ObserverWrapper>()
-    private val observerMapLock = reentrantLock()
+    private val observerMapLock = ReentrantLock()
 
     private var autoCloser: AutoCloser? = null
 
@@ -91,7 +91,7 @@ actual constructor(
     private val trackerLock = Any()
 
     @Deprecated("No longer called by generated implementation")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     constructor(
         database: RoomDatabase,
         vararg tableNames: String
@@ -290,7 +290,7 @@ actual constructor(
      * @param observer The observer to which InvalidationTracker will keep a weak reference.
      */
     @WorkerThread
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun addWeakObserver(observer: Observer) {
         addObserver(WeakObserver(this, observer))
     }
@@ -340,7 +340,7 @@ actual constructor(
      * @see refresh
      */
     @WorkerThread
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun refreshVersionsSync(): Unit = runBlocking {
         implementation.refreshInvalidation(emptyArray(), onRefreshScheduled, onRefreshCompleted)
     }
@@ -381,7 +381,7 @@ actual constructor(
      * @return A new LiveData that computes the given function when the given list of tables
      *   invalidates.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated(
         message = "Replaced with overload that takes 'inTransaction 'parameter.",
         replaceWith = ReplaceWith("createLiveData(tableNames, false, computeFunction")
@@ -407,7 +407,7 @@ actual constructor(
      * @return A new LiveData that computes the given function when the given list of tables
      *   invalidates.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun <T> createLiveData(
         tableNames: Array<out String>,
         inTransaction: Boolean,
@@ -433,7 +433,7 @@ actual constructor(
      * @return A new LiveData that computes the given function when the given list of tables
      *   invalidates.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     fun <T> createLiveData(
         tableNames: Array<out String>,
         inTransaction: Boolean,

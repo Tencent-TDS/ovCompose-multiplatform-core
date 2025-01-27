@@ -99,6 +99,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isFinite
@@ -618,7 +619,8 @@ fun MediumTopAppBar(
  *   will be allowed to expand. The expanded height is expected to be greater or equal to the
  *   [collapsedHeight], and the function will throw an [IllegalArgumentException] otherwise. Also,
  *   this value must be specified and finite, otherwise it will be ignored and replaced with
- *   [TopAppBarDefaults.MediumAppBarExpandedHeight].
+ *   [TopAppBarDefaults.MediumFlexibleAppBarWithSubtitleExpandedHeight] or
+ *   [TopAppBarDefaults.MediumFlexibleAppBarWithoutSubtitleExpandedHeight].
  * @param windowInsets a window insets that app bar will respect.
  * @param colors [TopAppBarColors] that will be used to resolve the colors used for this top app bar
  *   in different states. See [TopAppBarDefaults.topAppBarColors].
@@ -870,7 +872,8 @@ fun LargeTopAppBar(
  *   will be allowed to expand. The expanded height is expected to be greater or equal to the
  *   [collapsedHeight], and the function will throw an [IllegalArgumentException] otherwise. Also,
  *   this value must be specified and finite, otherwise it will be ignored and replaced with
- *   [TopAppBarDefaults.LargeAppBarExpandedHeight].
+ *   [TopAppBarDefaults.LargeFlexibleAppBarWithSubtitleExpandedHeight] or
+ *   [TopAppBarDefaults.LargeFlexibleAppBarWithoutSubtitleExpandedHeight].
  * @param windowInsets a window insets that app bar will respect.
  * @param colors [TopAppBarColors] that will be used to resolve the colors used for this top app bar
  *   in different states. See [TopAppBarDefaults.topAppBarColors].
@@ -938,10 +941,116 @@ fun LargeFlexibleTopAppBar(
     )
 
 /**
+ * A basic two-rows Material Design top app bar.
+ *
+ * Top app bars display information and actions at the top of a screen.
+ *
+ * ![Two rows top app bar
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/medium-top-app-bar.png)
+ *
+ * This two-rows top app bar has slots for titles and subtitles, navigation icon, and actions. In
+ * its default expanded state, the expanded title and subtitle are displayed in a second row under
+ * the navigation and actions.
+ *
+ * By default, the two-rows top app bar will apply the [MediumFlexibleTopAppBar] text styles to the
+ * expanded and collapsed titles. You may override that by applying your own style to the
+ * Composition passed into those collapsed and expanded title slots.
+ *
+ * A two-rows top app bar that uses a [scrollBehavior] to customize its nested scrolling behavior
+ * when working in conjunction with scrolling content looks like:
+ *
+ * @sample androidx.compose.material3.samples.CustomTwoRowsTopAppBar
+ * @param title a labmda for providing a title to be displayed in the top app bar in collapsed and
+ *   expanded states. By default a small-app-bar [TextStyle] is applied to the Composition, and you
+ *   may override it by wrapping your provided component with a composition local. Note that unlike
+ *   the large or medium top app bars, the `TwoRowsTopAppBar` does not append bottom padding to the
+ *   expanded title Composable by default. Padding should be applied directly to the provided
+ *   expanded title, or to the [subtitle] that appears below it.
+ * @param modifier the [Modifier] to be applied to this top app bar
+ * @param subtitle a labmda for providing an optional subtitle to be displayed in the top app bar in
+ *   collapsed and expanded states.
+ * @param navigationIcon the navigation icon displayed at the start of the top app bar. This should
+ *   typically be an [IconButton] or [IconToggleButton].
+ * @param actions the actions displayed at the end of the top app bar. This should typically be
+ *   [IconButton]s. The default layout here is a [Row], so icons inside will be placed horizontally.
+ * @param titleHorizontalAlignment the horizontal alignment of the title and subtitle
+ * @param height a lambda that provides the app bar's height in collapsed or expanded states. When a
+ *   [scrollBehavior] causes the app bar to collapse or expand, the expanded `height` represents the
+ *   _total_ height the app-bar will expand to. In case the provided height values are
+ *   [Dp.Unspecified] or [Dp.Infinity], the height will fallback to the [MediumFlexibleTopAppBar]
+ *   defaults. Note that the height values may be adjusted to support displaying larger fonts and
+ *   that the expanded height is expected to be greater or equal to the collapsed height, and the
+ *   function will throw an [IllegalArgumentException] otherwise.
+ * @param windowInsets a window insets that app bar will respect.
+ * @param colors [TopAppBarColors] that will be used to resolve the colors used for this top app bar
+ *   in different states. See [TopAppBarDefaults.topAppBarColors].
+ * @param scrollBehavior a [TopAppBarScrollBehavior] which holds various offset values that will be
+ *   applied by this top app bar to set up its height and colors. A scroll behavior is designed to
+ *   work in conjunction with a scrolled content to change the top app bar appearance as the content
+ *   scrolls. See [TopAppBarScrollBehavior.nestedScrollConnection].
+ * @throws IllegalArgumentException if the provided [expandedHeight] is smaller to the
+ *   [collapsedHeight]
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@ExperimentalMaterial3ExpressiveApi
+@Composable
+fun TwoRowsTopAppBar(
+    title: @Composable (expanded: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: (@Composable (expanded: Boolean) -> Unit?) = { null },
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    titleHorizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    height: (expanded: Boolean) -> Dp = { Dp.Unspecified },
+    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    scrollBehavior: TopAppBarScrollBehavior? = null
+) {
+    var expandedHeight = height(true)
+    var collapsedHeight = height(false)
+
+    if (expandedHeight == Dp.Unspecified || expandedHeight == Dp.Infinity) {
+        // Default to the medium app-bar expanded height
+        expandedHeight =
+            if (subtitle(true) != null) {
+                TopAppBarDefaults.MediumFlexibleAppBarWithSubtitleExpandedHeight
+            } else {
+                TopAppBarDefaults.MediumFlexibleAppBarWithoutSubtitleExpandedHeight
+            }
+    }
+
+    if (collapsedHeight == Dp.Unspecified || collapsedHeight == Dp.Infinity) {
+        // Default to the medium app-bar collapsed height
+        collapsedHeight = TopAppBarDefaults.MediumAppBarCollapsedHeight
+    }
+
+    TwoRowsTopAppBar(
+        title = { title(true) },
+        titleTextStyle = AppBarMediumFlexibleTokens.TitleFont.value,
+        smallTitleTextStyle = AppBarSmallTokens.TitleFont.value,
+        titleBottomPadding = 0.dp,
+        smallTitle = { title(false) },
+        modifier = modifier,
+        subtitle = { subtitle.invoke(true) },
+        subtitleTextStyle = AppBarMediumFlexibleTokens.SubtitleFont.value,
+        smallSubtitle = { subtitle.invoke(false) },
+        smallSubtitleTextStyle = AppBarSmallTokens.SubtitleFont.value,
+        titleHorizontalAlignment = titleHorizontalAlignment,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        collapsedHeight = collapsedHeight,
+        expandedHeight = expandedHeight,
+        windowInsets = windowInsets,
+        colors = colors,
+        scrollBehavior = scrollBehavior
+    )
+}
+
+/**
  * <a href="https://m3.material.io/components/bottom-app-bar/overview" class="external"
  * target="_blank">Material Design bottom app bar</a>.
  *
- * A bottom app bar displays navigation and key actions at the bottom of mobile screens.
+ * A bottom app bar displays navigation and key actions at the bottom of small screens.
  *
  * ![Bottom app bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/bottom-app-bar.png)
@@ -997,7 +1106,7 @@ fun BottomAppBar(
  * <a href="https://m3.material.io/components/bottom-app-bar/overview" class="external"
  * target="_blank">Material Design bottom app bar</a>.
  *
- * A bottom app bar displays navigation and key actions at the bottom of mobile screens.
+ * A bottom app bar displays navigation and key actions at the bottom of small screens.
  *
  * ![Bottom app bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/bottom-app-bar.png)
@@ -1077,7 +1186,7 @@ fun BottomAppBar(
  * <a href="https://m3.material.io/components/bottom-app-bar/overview" class="external"
  * target="_blank">Material Design bottom app bar</a>.
  *
- * A bottom app bar displays navigation and key actions at the bottom of mobile screens.
+ * A bottom app bar displays navigation and key actions at the bottom of small screens.
  *
  * ![Bottom app bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/bottom-app-bar.png)
@@ -1126,7 +1235,7 @@ fun BottomAppBar(
  * <a href="https://m3.material.io/components/bottom-app-bar/overview" class="external"
  * target="_blank">Material Design bottom app bar</a>.
  *
- * A bottom app bar displays navigation and key actions at the bottom of mobile screens.
+ * A bottom app bar displays navigation and key actions at the bottom of small screens.
  *
  * ![Bottom app bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/bottom-app-bar.png)
@@ -1179,14 +1288,16 @@ fun BottomAppBar(
     )
 }
 
+// TODO missing image of the flexible bottom app bar.
 /**
  * <a href="https://m3.material.io/components/bottom-app-bar/overview" class="external"
- * target="_blank">Material Design bottom app bar</a>.
+ * target="_blank">Material Design flexible bottom app bar</a>.
  *
- * A bottom app bar displays navigation and key actions at the bottom of mobile screens.
+ * A flexible bottom app bar displays navigation and key actions at the bottom of small screens.
  *
- * ![Bottom app bar
- * image](https://developer.android.com/images/reference/androidx/compose/material3/bottom-app-bar.png)
+ * This variation of the Bottom app bar has a [horizontalArrangement] parameter for controlling the
+ * way the content is arranged. Also, it allows more flexibility in controlling the bar's expanded
+ * height with an [expandedHeight] value.
  *
  * If you are interested in displaying a [FloatingActionButton], consider using another overload
  * that takes a [FloatingActionButton] parameter.
@@ -1202,7 +1313,6 @@ fun BottomAppBar(
  * @sample androidx.compose.material3.samples.ExitAlwaysBottomAppBarSpacedEvenly
  * @sample androidx.compose.material3.samples.ExitAlwaysBottomAppBarFixed
  * @sample androidx.compose.material3.samples.ExitAlwaysBottomAppBarFixedVibrant
- * @param horizontalArrangement the horizontal arrangement of the content.
  * @param modifier the [Modifier] to be applied to this BottomAppBar
  * @param containerColor the color used for the background of this BottomAppBar. Use
  *   [Color.Transparent] to have no color.
@@ -1210,6 +1320,13 @@ fun BottomAppBar(
  *   the matching content color for [containerColor], or to the current [LocalContentColor] if
  *   [containerColor] is not a color from the theme.
  * @param contentPadding the padding applied to the content of this BottomAppBar
+ * @param horizontalArrangement the horizontal arrangement of the content inside this BottomAppBar
+ * @param expandedHeight the maximum height this bottom bar can reach when fully expanded. If a
+ *   [scrollBehavior] is provided, the bar might collapse or expand based on scrolling. In that
+ *   case, this value sets the upper limit for the bar's height during expansion. This [Dp] value
+ *   must be specified, finite, and greater than zero; otherwise,
+ *   [BottomAppBarDefaults.FlexibleBottomAppBarHeight] will be used as a default. In case the
+ *   [scrollBehavior] is `null`, this value will simply be the fixed height of the bottom bar.
  * @param windowInsets a window insets that app bar will respect.
  * @param scrollBehavior a [BottomAppBarScrollBehavior] which holds various offset values that will
  *   be applied by this bottom app bar to set up its height. A scroll behavior is designed to work
@@ -1221,23 +1338,30 @@ fun BottomAppBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalMaterial3ExpressiveApi
 @Composable
-fun BottomAppBar(
-    horizontalArrangement: Arrangement.Horizontal,
+fun FlexibleBottomAppBar(
     modifier: Modifier = Modifier,
     containerColor: Color = BottomAppBarDefaults.containerColor,
     contentColor: Color = contentColorFor(containerColor),
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp), // TODO tokens
+    contentPadding: PaddingValues = BottomAppBarDefaults.FlexibleContentPadding,
+    horizontalArrangement: Arrangement.Horizontal =
+        BottomAppBarDefaults.FlexibleHorizontalArrangement,
+    expandedHeight: Dp = BottomAppBarDefaults.FlexibleBottomAppBarHeight,
     windowInsets: WindowInsets = BottomAppBarDefaults.windowInsets,
     scrollBehavior: BottomAppBarScrollBehavior? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     BottomAppBarLayout(
-        containerHeight = 64.dp, // TODO tokens
+        containerHeight =
+            if (expandedHeight.isFinite && expandedHeight.isSpecified && expandedHeight > 0.dp) {
+                expandedHeight
+            } else {
+                BottomAppBarDefaults.FlexibleBottomAppBarHeight
+            },
         horizontalArrangement = horizontalArrangement,
         modifier = modifier,
         containerColor = containerColor,
         contentColor = contentColor,
-        tonalElevation = BottomAppBarDefaults.ContainerElevation,
+        tonalElevation = AppBarTokens.ContainerElevation,
         contentPadding = contentPadding,
         windowInsets = windowInsets,
         scrollBehavior = scrollBehavior,
@@ -2083,7 +2207,34 @@ object BottomAppBarDefaults {
     val bottomAppBarFabColor: Color
         @Composable get() = FabSecondaryContainerTokens.ContainerColor.value
 
-    val HorizontalArrangement =
+    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+    @get:ExperimentalMaterial3ExpressiveApi
+    @ExperimentalMaterial3ExpressiveApi
+    /** Default padding used for [FlexibleBottomAppBar]. */
+    val FlexibleContentPadding = PaddingValues(horizontal = 16.dp) // TODO tokens
+
+    /**
+     * Default height of a flexible [FlexibleBottomAppBar]. The height here represents the height of
+     * the bottom app bar in its expanded state.
+     */
+    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+    @get:ExperimentalMaterial3ExpressiveApi
+    @ExperimentalMaterial3ExpressiveApi
+    val FlexibleBottomAppBarHeight = AppBarSmallTokens.ContainerHeight
+
+    /** A default [Arrangement] that will be used to space a [FlexibleBottomAppBar]'s content. */
+    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+    @get:ExperimentalMaterial3ExpressiveApi
+    @ExperimentalMaterial3ExpressiveApi
+    val FlexibleHorizontalArrangement: Arrangement.Horizontal = Arrangement.SpaceBetween
+
+    /**
+     * An [Arrangement] that will be used to space [FlexibleBottomAppBar]'s with a fixed spacing.
+     */
+    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+    @get:ExperimentalMaterial3ExpressiveApi
+    @ExperimentalMaterial3ExpressiveApi
+    val FlexibleFixedHorizontalArrangement: Arrangement.Horizontal =
         Arrangement.spacedBy(32.dp, Alignment.CenterHorizontally) // TODO tokens
 
     // TODO: note that this scroll behavior may impact assistive technologies making the component
@@ -2486,7 +2637,7 @@ private fun SingleRowTopAppBar(
             hideTitleSemantics = false,
             navigationIcon = navigationIcon,
             actions = actionsRow,
-            expandedHeight = expandedHeight
+            height = expandedHeight
         )
     }
 }
@@ -2526,8 +2677,7 @@ private fun TwoRowsTopAppBar(
     require(expandedHeight >= collapsedHeight) {
         "The expandedHeight is expected to be greater or equal to the collapsedHeight"
     }
-    val titleBottomPaddingPx: Int
-    LocalDensity.current.run { titleBottomPaddingPx = titleBottomPadding.roundToPx() }
+    val titleBottomPaddingPx = with(LocalDensity.current) { titleBottomPadding.roundToPx() }
 
     // Obtain the container Color from the TopAppBarColors using the `collapsedFraction`, as the
     // bottom part of this TwoRowsTopAppBar changes color at the same rate the app bar expands or
@@ -2604,7 +2754,7 @@ private fun TwoRowsTopAppBar(
                 hideTitleSemantics = hideTopRowSemantics,
                 navigationIcon = navigationIcon,
                 actions = actionsRow,
-                expandedHeight = collapsedHeight
+                height = collapsedHeight
             )
             TopAppBarLayout(
                 modifier =
@@ -2631,7 +2781,7 @@ private fun TwoRowsTopAppBar(
                 hideTitleSemantics = hideBottomRowSemantics,
                 navigationIcon = {},
                 actions = {},
-                expandedHeight = expandedHeight - collapsedHeight
+                height = expandedHeight - collapsedHeight
             )
         }
     }
@@ -2674,7 +2824,7 @@ private fun Modifier.adjustHeightOffsetLimit(scrollBehavior: TopAppBarScrollBeha
  *   the same time, when animating between collapsed / expanded states.
  * @param navigationIcon a navigation icon [Composable]
  * @param actions actions [Composable]
- * @param expandedHeight this app bar's maximum height
+ * @param height this app bar's requested height
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -2696,7 +2846,7 @@ private fun TopAppBarLayout(
     hideTitleSemantics: Boolean,
     navigationIcon: @Composable () -> Unit,
     actions: @Composable () -> Unit,
-    expandedHeight: Dp,
+    height: Dp,
 ) {
     Layout(
         {
@@ -2761,14 +2911,14 @@ private fun TopAppBarLayout(
                 titleVerticalArrangement,
                 titleHorizontalAlignment,
                 titleBottomPadding,
-                expandedHeight
+                height
             ) {
                 TopAppBarMeasurePolicy(
                     scrolledOffset,
                     titleVerticalArrangement,
                     titleHorizontalAlignment,
                     titleBottomPadding,
-                    expandedHeight
+                    height
                 )
             }
     )
@@ -2780,7 +2930,7 @@ private class TopAppBarMeasurePolicy(
     val titleVerticalArrangement: Arrangement.Vertical,
     val titleHorizontalAlignment: Alignment.Horizontal,
     val titleBottomPadding: Int,
-    val expandedHeight: Dp
+    val height: Dp
 ) : MeasurePolicy {
     override fun MeasureScope.measure(
         measurables: List<Measurable>,
@@ -2820,7 +2970,7 @@ private class TopAppBarMeasurePolicy(
         val scrolledOffsetValue = scrolledOffset()
         val heightOffset = if (scrolledOffsetValue.isNaN()) 0 else scrolledOffsetValue.roundToInt()
 
-        val maxLayoutHeight = max(expandedHeight.roundToPx(), titlePlaceable.height)
+        val maxLayoutHeight = max(height.roundToPx(), titlePlaceable.height)
         val layoutHeight =
             if (constraints.maxHeight == Constraints.Infinity) {
                 maxLayoutHeight
@@ -2849,7 +2999,7 @@ private class TopAppBarMeasurePolicy(
         width: Int
     ): Int {
         return max(
-            expandedHeight.roundToPx(),
+            height.roundToPx(),
             measurables.fastMaxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
         )
     }
@@ -2864,7 +3014,7 @@ private class TopAppBarMeasurePolicy(
         width: Int
     ): Int {
         return max(
-            expandedHeight.roundToPx(),
+            height.roundToPx(),
             measurables.fastMaxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
         )
     }
@@ -2885,37 +3035,32 @@ private class TopAppBarMeasurePolicy(
                 y = (layoutHeight - navigationIconPlaceable.height) / 2
             )
 
-            // Title
-            titlePlaceable.placeRelative(
-                x =
-                    when (titleHorizontalAlignment) {
-                        Alignment.CenterHorizontally -> {
-                            var baseX = (constraints.maxWidth - titlePlaceable.width) / 2
-                            if (baseX < navigationIconPlaceable.width) {
-                                // May happen if the navigation is wider than the actions and the
-                                // title is long. In this case, prioritize showing more of the title
-                                // by offsetting it to the right.
-                                baseX += (navigationIconPlaceable.width - baseX)
-                            } else if (
-                                baseX + titlePlaceable.width >
-                                    constraints.maxWidth - actionIconsPlaceable.width
-                            ) {
-                                // May happen if the actions are wider than the navigation and the
-                                // title is long. In this case, offset to the left.
-                                baseX +=
-                                    ((constraints.maxWidth - actionIconsPlaceable.width) -
-                                        (baseX + titlePlaceable.width))
-                            }
-                            baseX
-                        }
-                        Alignment.End ->
-                            constraints.maxWidth - titlePlaceable.width - actionIconsPlaceable.width
-                        // Fallback to Alignment.Start.
-                        // A TopAppBarTitleInset will make sure the title is offset in case the
-                        // navigation icon is missing.
-                        else -> max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width)
-                    },
-                y =
+            titlePlaceable.let {
+                val start = max(TopAppBarTitleInset.roundToPx(), navigationIconPlaceable.width)
+                val end = actionIconsPlaceable.width
+
+                // Align using the maxWidth. We will adjust the position later according to the
+                // start and end. This is done to ensure that a center alignment is still maintained
+                // when the start and end have different widths. Note that the title is centered
+                // relative to the entire app bar width, and not just centered between the
+                // navigation icon and the actions.
+                var titleX =
+                    titleHorizontalAlignment.align(
+                        size = titlePlaceable.width,
+                        space = constraints.maxWidth,
+                        // Using Ltr as we call placeRelative later on.
+                        layoutDirection = LayoutDirection.Ltr
+                    )
+                // Reposition the title based on the start and the end (i.e. the navigation and
+                // action widths).
+                if (titleX < start) {
+                    titleX += (start - titleX)
+                } else if (titleX + titlePlaceable.width > constraints.maxWidth - end) {
+                    titleX += ((constraints.maxWidth - end) - (titleX + titlePlaceable.width))
+                }
+
+                // The titleVerticalArrangement is always one of Center or Bottom.
+                val titleY =
                     when (titleVerticalArrangement) {
                         Arrangement.Center -> (layoutHeight - titlePlaceable.height) / 2
                         // Apply bottom padding from the title's baseline only when the Arrangement
@@ -2943,7 +3088,9 @@ private class TopAppBarMeasurePolicy(
                         // Arrangement.Top
                         else -> 0
                     }
-            )
+
+                it.placeRelative(titleX, titleY)
+            }
 
             // Action icons
             actionIconsPlaceable.placeRelative(

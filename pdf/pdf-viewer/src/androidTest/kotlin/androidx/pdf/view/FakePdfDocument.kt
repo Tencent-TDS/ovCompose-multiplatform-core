@@ -21,6 +21,7 @@ import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Build
 import android.util.Size
@@ -30,6 +31,8 @@ import androidx.annotation.RequiresExtension
 import androidx.pdf.PdfDocument
 import androidx.pdf.content.PageMatchBounds
 import androidx.pdf.content.PageSelection
+import androidx.pdf.content.PdfPageGotoLinkContent
+import androidx.pdf.content.PdfPageLinkContent
 import androidx.pdf.content.PdfPageTextContent
 import androidx.pdf.content.SelectionBoundary
 import kotlin.random.Random
@@ -185,6 +188,49 @@ internal open class FakePdfDocument(
         override fun close() {
             /* No-op, fake */
         }
+    }
+
+    companion object {
+        const val URI_WITH_VALID_SCHEME = "https://www.example.com"
+        const val VALID_PAGE_NUMBER = 4
+
+        fun newInstance(): FakePdfDocument =
+            FakePdfDocument(
+                pages = List(10) { Point(100, 200) },
+                textContents =
+                    List(10) { index ->
+                        PdfPageTextContent(
+                            bounds = listOf(RectF(0f, 0f, 100f, 200f)),
+                            text = "Sample text for page ${index + 1}"
+                        )
+                    },
+                pageLinks =
+                    mapOf(
+                        0 to
+                            PdfDocument.PdfPageLinks(
+                                gotoLinks =
+                                    listOf(
+                                        PdfPageGotoLinkContent(
+                                            bounds = listOf(RectF(25f, 30f, 75f, 50f)),
+                                            destination =
+                                                PdfPageGotoLinkContent.Destination(
+                                                    pageNumber = VALID_PAGE_NUMBER,
+                                                    xCoordinate = 10f,
+                                                    yCoordinate = 40f,
+                                                    zoom = 1f
+                                                )
+                                        )
+                                    ),
+                                externalLinks =
+                                    listOf(
+                                        PdfPageLinkContent(
+                                            bounds = listOf(RectF(25f, 60f, 75f, 80f)),
+                                            uri = Uri.parse(URI_WITH_VALID_SCHEME)
+                                        )
+                                    ),
+                            )
+                    )
+            )
     }
 }
 

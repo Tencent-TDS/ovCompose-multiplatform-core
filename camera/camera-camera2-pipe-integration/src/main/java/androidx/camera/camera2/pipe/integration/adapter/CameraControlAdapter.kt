@@ -169,6 +169,10 @@ constructor(
         zslControl.addZslConfig(sessionConfigBuilder)
     }
 
+    override fun clearZslConfig() {
+        zslControl.clearZslConfig()
+    }
+
     override fun submitStillCaptureRequests(
         captureConfigs: List<CaptureConfig>,
         @ImageCapture.CaptureMode captureMode: Int,

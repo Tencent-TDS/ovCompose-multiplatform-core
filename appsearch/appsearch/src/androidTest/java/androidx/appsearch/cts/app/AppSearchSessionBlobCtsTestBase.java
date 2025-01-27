@@ -62,6 +62,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -169,6 +170,38 @@ public abstract class AppSearchSessionBlobCtsTestBase {
             }
             assertThat(readBytes2).isEqualTo(mData2);
         }
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_BLOB_STORE)
+    public void testWriteAfterCommit() throws Exception {
+        assumeTrue(mDb1.getFeatures().isFeatureSupported(Features.BLOB_STORAGE));
+
+        OpenBlobForWriteResponse writeResponse =
+                mDb1.openBlobForWriteAsync(ImmutableSet.of(mHandle1)).get();
+        AppSearchBatchResult<AppSearchBlobHandle, ParcelFileDescriptor> writeResult =
+                writeResponse.getResult();
+        assertTrue(writeResult.isSuccess());
+
+        // Write data without close the pfd for write
+        ParcelFileDescriptor writePfd = writeResult.getSuccesses().get(mHandle1);
+        try (FileOutputStream outputStream = new FileOutputStream(writePfd.getFileDescriptor())) {
+            outputStream.write(mData1);
+            outputStream.flush();
+        }
+
+        // Commit the blob will revoke the pfd for write.
+        assertTrue(mDb1.commitBlobAsync(ImmutableSet.of(mHandle1)).get().getResult()
+                .isSuccess());
+
+        // Cannot keep writing to the blob after commit.
+        assertThrows(IOException.class, () -> {
+            try (FileOutputStream outputStream =
+                         new FileOutputStream(writePfd.getFileDescriptor())) {
+                outputStream.write(mData1);
+                outputStream.flush();
+            }
+        });
     }
 
     @Test

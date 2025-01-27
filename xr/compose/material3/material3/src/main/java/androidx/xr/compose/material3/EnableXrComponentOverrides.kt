@@ -21,6 +21,7 @@ import androidx.compose.material3.LocalNavigationBarComponentOverride
 import androidx.compose.material3.LocalNavigationRailComponentOverride
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
 import androidx.compose.material3.adaptive.layout.LocalAnimatedPaneOverride
+import androidx.compose.material3.adaptive.layout.LocalThreePaneScaffoldOverride
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidedValue
@@ -61,6 +62,7 @@ public fun EnableXrComponentOverrides(
                     )
                 }
                 if (context.shouldOverrideComponent(XrComponentOverride.ThreePaneScaffold)) {
+                    add(LocalThreePaneScaffoldOverride provides XrThreePaneScaffoldOverride)
                     add(LocalAnimatedPaneOverride provides XrAnimatedPaneOverride)
                 }
             }
@@ -127,5 +129,10 @@ private object DefaultXrComponentOverrideEnabler : XrComponentOverrideEnabler {
     @Composable
     override fun XrComponentOverrideEnablerContext.shouldOverrideComponent(
         component: XrComponentOverride
-    ): Boolean = isSpatializationEnabled
+    ): Boolean =
+        when (component) {
+            // TODO(b/388825260): Allow enabling ThreePaneScaffold once all edge-cases are fixed
+            XrComponentOverride.ThreePaneScaffold -> false
+            else -> isSpatializationEnabled
+        }
 }

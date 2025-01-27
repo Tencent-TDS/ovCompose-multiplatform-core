@@ -30,10 +30,11 @@ import android.os.Build;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.WorkerThread;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -222,8 +223,7 @@ public class PreviewChannelHelper {
      * @param channelId ID of preview channel in TvProvider
      * @return PreviewChannel or null if not found
      */
-    @Nullable
-    public PreviewChannel getPreviewChannel(long channelId) {
+    public @Nullable PreviewChannel getPreviewChannel(long channelId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;
@@ -415,8 +415,7 @@ public class PreviewChannelHelper {
     /**
      * Retrieves a single preview program from the system content provider (aka TvProvider).
      */
-    @Nullable
-    public PreviewProgram getPreviewProgram(long programId) {
+    public @Nullable PreviewProgram getPreviewProgram(long programId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;
@@ -494,8 +493,7 @@ public class PreviewChannelHelper {
     /**
      * Retrieves a single WatchNext program from the system content provider (aka TvProvider).
      */
-    @Nullable
-    public WatchNextProgram getWatchNextProgram(long programId) {
+    public @Nullable WatchNextProgram getWatchNextProgram(long programId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;

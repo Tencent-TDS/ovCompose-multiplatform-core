@@ -16,6 +16,7 @@
 
 <resources>
     <string name="resize_cuj">Resize CUJ</string>
+    <string name="compose">Compose</string>
     <string name="scroll_cuj">Scroll CUJ</string>
     <string name="poolingcontainer_cuj">PoolingContainer CUJ</string>
     <string name="fullscreen_cuj">Fullscreen CUJ</string>

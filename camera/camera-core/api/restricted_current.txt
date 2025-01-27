@@ -18,6 +18,7 @@ package androidx.camera.core {
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> enableTorch(boolean);
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Integer!> setExposureCompensationIndex(int);
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> setLinearZoom(@FloatRange(from=0.0f, to=1.0f) float);
+    method public default com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> setTorchStrengthLevel(@IntRange(from=1) int);
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> setZoomRatio(float);
     method public com.google.common.util.concurrent.ListenableFuture<androidx.camera.core.FocusMeteringResult!> startFocusAndMetering(androidx.camera.core.FocusMeteringAction);
   }
@@ -48,11 +49,13 @@ package androidx.camera.core {
     method @FloatRange(from=0, fromInclusive=false) public default float getIntrinsicZoomRatio();
     method public default int getLensFacing();
     method public default androidx.lifecycle.LiveData<java.lang.Integer!> getLowLightBoostState();
+    method @IntRange(from=0) public default int getMaxTorchStrengthLevel();
     method public default java.util.Set<androidx.camera.core.CameraInfo!> getPhysicalCameraInfos();
     method public int getSensorRotationDegrees();
     method public int getSensorRotationDegrees(int);
     method public default java.util.Set<android.util.Range<java.lang.Integer!>!> getSupportedFrameRateRanges();
     method public androidx.lifecycle.LiveData<java.lang.Integer!> getTorchState();
+    method public default androidx.lifecycle.LiveData<java.lang.Integer!> getTorchStrengthLevel();
     method public androidx.lifecycle.LiveData<androidx.camera.core.ZoomState!> getZoomState();
     method public boolean hasFlashUnit();
     method public default boolean isFocusMeteringSupported(androidx.camera.core.FocusMeteringAction);
@@ -61,6 +64,7 @@ package androidx.camera.core {
     method @SuppressCompatibility @androidx.camera.core.ExperimentalZeroShutterLag public default boolean isZslSupported();
     method public static boolean mustPlayShutterSound();
     method public default java.util.Set<androidx.camera.core.DynamicRange!> querySupportedDynamicRanges(java.util.Set<androidx.camera.core.DynamicRange!>);
+    field public static final int TORCH_STRENGTH_LEVEL_UNSUPPORTED = 0; // 0x0
   }
 
   public final class CameraInfoUnavailableException extends java.lang.Exception {
@@ -255,15 +259,15 @@ package androidx.camera.core {
   }
 
   public final class FlashState {
-    property public static final int FLASH_STATE_FIRED;
-    property public static final int FLASH_STATE_READY;
-    property public static final int FLASH_STATE_UNAVAILABLE;
-    property public static final int FLASH_STATE_UNKNOWN;
-    field public static final int FLASH_STATE_FIRED = 1; // 0x1
-    field public static final int FLASH_STATE_READY = 3; // 0x3
-    field public static final int FLASH_STATE_UNAVAILABLE = 2; // 0x2
-    field public static final int FLASH_STATE_UNKNOWN = 0; // 0x0
+    property public static final int FIRED;
+    property public static final int NOT_FIRED;
+    property public static final int UNAVAILABLE;
+    property public static final int UNKNOWN;
+    field public static final int FIRED = 1; // 0x1
     field public static final androidx.camera.core.FlashState INSTANCE;
+    field public static final int NOT_FIRED = 3; // 0x3
+    field public static final int UNAVAILABLE = 2; // 0x2
+    field public static final int UNKNOWN = 0; // 0x0
   }
 
   public final class FocusMeteringAction {

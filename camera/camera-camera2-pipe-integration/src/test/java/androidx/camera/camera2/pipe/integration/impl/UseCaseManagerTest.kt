@@ -689,6 +689,7 @@ class UseCaseManagerTest {
                         emptySet(),
                         mapOf(fakeCameraBackend.id to listOf(fakeCameraMetadata))
                     ),
+                cameraMetadata = fakeCameraMetadata,
                 cameraCoordinator = CameraCoordinatorAdapter(cameraPipe, cameraPipe.cameras()),
                 callbackMap = CameraCallbackMap(),
                 requestListener = ComboRequestListener(),

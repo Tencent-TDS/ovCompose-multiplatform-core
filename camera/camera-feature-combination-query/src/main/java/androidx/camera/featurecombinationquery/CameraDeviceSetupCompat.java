@@ -53,7 +53,8 @@ public interface CameraDeviceSetupCompat {
      *                               encountered a fatal error.
      * @see CameraDevice.CameraDeviceSetup#isSessionConfigurationSupported
      */
-    @NonNull SupportQueryResult isSessionConfigurationSupported(
+    @NonNull
+    SupportQueryResult isSessionConfigurationSupported(
             @NonNull SessionConfiguration sessionConfig) throws CameraAccessException;
 
     /**
@@ -128,7 +129,8 @@ public interface CameraDeviceSetupCompat {
          * @param source          The source of the result.
          * @param timestampMillis The epoch timestamp of when the result was updated.
          */
-        public SupportQueryResult(int supported, int source, long timestampMillis) {
+        public SupportQueryResult(@Supported int supported, @Sources int source,
+                long timestampMillis) {
             mSupported = supported;
             mSource = source;
             mTimestampMillis = timestampMillis;

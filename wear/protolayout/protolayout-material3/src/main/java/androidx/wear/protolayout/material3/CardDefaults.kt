@@ -21,22 +21,22 @@ import androidx.wear.protolayout.types.LayoutColor
 /**
  * Represents colors used in card components, such as [titleCard] or [appCard].
  *
- * @param background [LayoutColor] which is used to as the background color for the card.
- * @param title the color used for title for the card.
- * @param content the content color for the card.
- * @param time the color used for time for the card.
- * @param label the color used for label for the card.
- * @param secondaryIcon the color used for icon in the data card type.
- * @param secondaryText the color used for secondary label for the data card type.
+ * @param backgroundColor [LayoutColor] which is used to as the background color for the card.
+ * @param titleColor the color used for title for the card.
+ * @param contentColor the content color for the card.
+ * @param timeColor the color used for time for the card.
+ * @param labelColor the color used for label for the card.
+ * @param secondaryIconColor the color used for icon in the data card type.
+ * @param secondaryTextColor the color used for secondary label for the data card type.
  */
 public class CardColors(
-    public val background: LayoutColor,
-    public val title: LayoutColor,
-    public val content: LayoutColor,
-    public val time: LayoutColor = content,
-    public val label: LayoutColor = title,
-    public val secondaryIcon: LayoutColor = title,
-    public val secondaryText: LayoutColor = time,
+    public val backgroundColor: LayoutColor,
+    public val titleColor: LayoutColor,
+    public val contentColor: LayoutColor,
+    public val timeColor: LayoutColor = contentColor,
+    public val labelColor: LayoutColor = titleColor,
+    public val secondaryIconColor: LayoutColor = titleColor,
+    public val secondaryTextColor: LayoutColor = timeColor,
 )
 
 public object CardDefaults {
@@ -49,9 +49,9 @@ public object CardDefaults {
      */
     public fun MaterialScope.filledCardColors(): CardColors =
         CardColors(
-            background = theme.colorScheme.primary,
-            title = theme.colorScheme.onPrimary,
-            content = theme.colorScheme.onPrimary.withOpacity(0.8f)
+            backgroundColor = theme.colorScheme.primary,
+            titleColor = theme.colorScheme.onPrimary,
+            contentColor = theme.colorScheme.onPrimary.withOpacity(0.8f)
         )
 
     /**
@@ -62,10 +62,10 @@ public object CardDefaults {
      */
     public fun MaterialScope.filledTonalCardColors(): CardColors =
         CardColors(
-            background = theme.colorScheme.surfaceContainer,
-            title = theme.colorScheme.onSurface,
-            content = theme.colorScheme.onSurfaceVariant,
-            secondaryIcon = theme.colorScheme.primary
+            backgroundColor = theme.colorScheme.surfaceContainer,
+            titleColor = theme.colorScheme.onSurface,
+            contentColor = theme.colorScheme.onSurfaceVariant,
+            secondaryIconColor = theme.colorScheme.primary
         )
 
     /**
@@ -76,9 +76,9 @@ public object CardDefaults {
      */
     public fun MaterialScope.filledVariantCardColors(): CardColors =
         CardColors(
-            background = theme.colorScheme.primaryContainer,
-            title = theme.colorScheme.onPrimaryContainer,
-            content = theme.colorScheme.onPrimaryContainer.withOpacity(0.9f)
+            backgroundColor = theme.colorScheme.primaryContainer,
+            titleColor = theme.colorScheme.onPrimaryContainer,
+            contentColor = theme.colorScheme.onPrimaryContainer.withOpacity(0.9f)
         )
 
     /**
@@ -88,9 +88,9 @@ public object CardDefaults {
      */
     public fun MaterialScope.imageBackgroundCardColors(): CardColors =
         CardColors(
-            background = theme.colorScheme.background,
-            title = theme.colorScheme.onBackground,
-            content = theme.colorScheme.onBackground
+            backgroundColor = theme.colorScheme.background,
+            titleColor = theme.colorScheme.onBackground,
+            contentColor = theme.colorScheme.onBackground
         )
 
     internal const val METADATA_TAG: String = "CR"

@@ -32,11 +32,21 @@ public interface PdfServiceConnection : ServiceConnection {
     public val context: Context
     /** True if the service is actively bound */
     public val isConnected: Boolean
+
+    /**
+     * True if the document needs to be reopened. This is expected to be set when the service
+     * connection is re-established after unexpected disconnection.
+     */
+    public var needsToReopenDocument: Boolean
+
     /** The [PdfDocumentRemote] instance, if the service is actively bound */
     public val documentBinder: PdfDocumentRemote?
 
     /** Initiates binding to the service, and suspends until the service is bound */
-    public suspend fun bindAndConnect(uri: Uri)
+    public suspend fun connect(uri: Uri)
+
+    /** Blocks the current thread of execution until the connection is established */
+    public suspend fun blockUntilConnected()
 
     /** Immediately unbinds the service */
     public fun disconnect()

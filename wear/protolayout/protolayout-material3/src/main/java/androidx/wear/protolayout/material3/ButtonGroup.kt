@@ -64,6 +64,8 @@ import androidx.wear.protolayout.material3.ButtonGroupDefaults.METADATA_TAG
  * @param spacing The amount of spacing between buttons
  * @param content The content for each child. The UX guidance is to use no more than 3 elements
  *   within a this button group.
+ * @sample androidx.wear.protolayout.material3.samples.dataCardSample
+ * @sample androidx.wear.protolayout.material3.samples.oneSlotButtonsSample
  */
 // TODO: b/346958146 - Link visuals once they are available.
 public fun MaterialScope.buttonGroup(

@@ -117,7 +117,7 @@ actual abstract class RoomDatabase {
      * @return A new delegate to be used while opening the database
      * @throws NotImplementedError by default
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected actual open fun createOpenDelegate(): RoomOpenDelegateMarker {
         throw NotImplementedError()
     }
@@ -147,7 +147,7 @@ actual abstract class RoomDatabase {
      *   this database.
      * @throws NotImplementedError by default
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     actual open fun getRequiredAutoMigrationSpecClasses(): Set<KClass<out AutoMigrationSpec>> {
         throw NotImplementedError()
     }
@@ -162,7 +162,7 @@ actual abstract class RoomDatabase {
      * @return A list of migration instances each of which is a generated 'auto migration'.
      * @throws NotImplementedError by default
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     actual open fun createAutoMigrations(
         autoMigrationSpecs: Map<KClass<out AutoMigrationSpec>, AutoMigrationSpec>
     ): List<Migration> {
@@ -178,7 +178,7 @@ actual abstract class RoomDatabase {
      * @param T The type of the expected Type Converter subclass.
      * @return An instance of T.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Suppress("UNCHECKED_CAST")
     actual fun <T : Any> getTypeConverter(klass: KClass<T>): T {
         return typeConverters[klass] as T
@@ -204,7 +204,7 @@ actual abstract class RoomDatabase {
      *
      * @return A map that will include all required type converters for this database.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected actual open fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>> {
         throw NotImplementedError()
     }
@@ -219,7 +219,7 @@ actual abstract class RoomDatabase {
      *
      * @param connection The database connection.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected actual fun internalInitInvalidationTracker(connection: SQLiteConnection) {
         invalidationTracker.internalInit(connection)
     }

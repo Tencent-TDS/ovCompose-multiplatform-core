@@ -58,7 +58,7 @@ public class SandboxedPdfLoader(
         val connection: PdfServiceConnection =
             testingConnection ?: PdfServiceConnectionImpl(context)
         if (!connection.isConnected) {
-            connection.bindAndConnect(uri)
+            connection.connect(uri)
         }
 
         return withContext(dispatcher) { openDocumentUri(uri, password, connection) }
@@ -80,8 +80,9 @@ public class SandboxedPdfLoader(
             PdfLoadingStatus.SUCCESS -> {
                 return SandboxedPdfDocument(
                     uri,
-                    pfd,
                     connection,
+                    password,
+                    pfd,
                     dispatcher,
                     binder.numPages(),
                     binder.isPdfLinearized(),

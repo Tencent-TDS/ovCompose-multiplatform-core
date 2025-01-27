@@ -169,19 +169,22 @@ class KspFilerTest {
 
     @Test
     fun writeResource() {
+        val logFileName = "test.log"
+        val serviceFileName = "META-INF/services/com.test.Foo"
         runKspTest(sources = emptyList()) { invocation ->
             invocation.processingEnv.filer
-                .writeResource(filePath = Path("test.log"), originatingElements = emptyList())
+                .writeResource(filePath = Path(logFileName), originatingElements = emptyList())
                 .bufferedWriter(Charsets.UTF_8)
                 .use { it.write("Hello!") }
             invocation.processingEnv.filer
-                .writeResource(
-                    filePath = Path("META-INF/services/com.test.Foo"),
-                    originatingElements = emptyList()
-                )
+                .writeResource(filePath = Path(serviceFileName), originatingElements = emptyList())
                 .bufferedWriter(Charsets.UTF_8)
                 .use { it.write("Not a real service...") }
-            invocation.assertCompilationResult { hasNoWarnings() }
+            invocation.assertCompilationResult {
+                generatedResourceFileWithPath(logFileName)
+                generatedResourceFileWithPath(serviceFileName)
+                hasNoWarnings()
+            }
         }
     }
 

@@ -15,9 +15,11 @@
  */
 package androidx.health.connect.client.records
 
+import android.os.Build
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.health.connect.client.aggregate.AggregateMetric
+import androidx.health.connect.client.impl.platform.records.toPlatformRecord
 import androidx.health.connect.client.records.BloodPressureRecord.MeasurementLocation
 import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.units.Pressure
@@ -60,11 +62,19 @@ public class BloodPressureRecord(
     override val metadata: Metadata = Metadata.EMPTY,
 ) : InstantaneousRecord {
 
+    /*
+     * Android U devices and later use the platform's validation instead of Jetpack validation.
+     * See b/316852544 for more context.
+     */
     init {
-        systolic.requireNotLess(other = MIN_SYSTOLIC, name = "systolic")
-        systolic.requireNotMore(other = MAX_SYSTOLIC, name = "systolic")
-        diastolic.requireNotLess(other = MIN_DIASTOLIC, name = "diastolic")
-        diastolic.requireNotMore(other = MAX_DIASTOLIC, name = "diastolic")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            this.toPlatformRecord()
+        } else {
+            systolic.requireNotLess(other = MIN_SYSTOLIC, name = "systolic")
+            systolic.requireNotMore(other = MAX_SYSTOLIC, name = "systolic")
+            diastolic.requireNotLess(other = MIN_DIASTOLIC, name = "diastolic")
+            diastolic.requireNotMore(other = MAX_DIASTOLIC, name = "diastolic")
+        }
     }
 
     /*

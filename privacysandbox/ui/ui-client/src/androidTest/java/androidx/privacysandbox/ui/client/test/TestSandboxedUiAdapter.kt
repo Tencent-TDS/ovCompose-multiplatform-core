@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.privacysandbox.ui.client.test
 
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import android.os.IBinder
 import android.os.SystemClock
 import android.view.View
 import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SessionConstants
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import com.google.common.truth.Truth
 import java.util.concurrent.CountDownLatch
@@ -32,24 +31,23 @@ import java.util.concurrent.TimeUnit
 
 class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("option")) :
     AbstractSandboxedUiAdapter() {
-
     var isSessionOpened = false
     var internalClient: SandboxedUiAdapter.SessionClient? = null
     var testSession: TestSession? = null
     var isZOrderOnTop = true
-    var inputToken: IBinder? = null
+    var sessionConstants: SessionConstants? = null
 
     // When set to true, the onSessionOpened callback will only be invoked when specified
     // by the test. This is to test race conditions when the session is being loaded.
     var delayOpenSessionCallback = false
-
     private val openSessionLatch = CountDownLatch(1)
     private val resizeLatch = CountDownLatch(1)
     private val configChangedLatch = CountDownLatch(1)
+    private val sessionClosedLatch = CountDownLatch(1)
 
     override fun openSession(
         context: Context,
-        windowInputToken: IBinder,
+        sessionConstants: SessionConstants,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,
@@ -64,7 +62,7 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
             }
             isSessionOpened = true
             this.isZOrderOnTop = isZOrderOnTop
-            this.inputToken = windowInputToken
+            this.sessionConstants = sessionConstants
             openSessionLatch.countDown()
         }
     }
@@ -98,16 +96,28 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
         )
     }
 
+    internal fun assertSessionNotClosed() {
+        Truth.assertThat(
+                sessionClosedLatch.await(SandboxedSdkViewTest.TIMEOUT, TimeUnit.MILLISECONDS)
+            )
+            .isFalse()
+    }
+
+    internal fun assertSessionClosed() {
+        Truth.assertThat(
+                sessionClosedLatch.await(SandboxedSdkViewTest.TIMEOUT, TimeUnit.MILLISECONDS)
+            )
+            .isTrue()
+    }
+
     inner class TestSession(context: Context, override val signalOptions: Set<String>) :
         SandboxedUiAdapter.Session {
-
         var zOrderChangedLatch: CountDownLatch = CountDownLatch(1)
         var shortestGapBetweenUiChangeEvents = Long.MAX_VALUE
         private var notifyUiChangedLatch: CountDownLatch = CountDownLatch(1)
         private var latestUiChange: Bundle = Bundle()
         private var hasReceivedFirstUiChange = false
         private var timeReceivedLastUiChange = SystemClock.elapsedRealtime()
-
         override val view: View = View(context)
 
         fun requestResize(width: Int, height: Int) {
@@ -127,7 +137,9 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
             configChangedLatch.countDown()
         }
 
-        override fun close() {}
+        override fun close() {
+            sessionClosedLatch.countDown()
+        }
 
         override fun notifyUiChanged(uiContainerInfo: Bundle) {
             if (hasReceivedFirstUiChange) {

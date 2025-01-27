@@ -25,6 +25,7 @@ import androidx.wear.compose.foundation.samples.CurvedFixedSize
 import androidx.wear.compose.foundation.samples.CurvedFontHeight
 import androidx.wear.compose.foundation.samples.CurvedFontWeight
 import androidx.wear.compose.foundation.samples.CurvedFonts
+import androidx.wear.compose.foundation.samples.CurvedLetterSpacingSample
 import androidx.wear.compose.foundation.samples.CurvedRowAndColumn
 import androidx.wear.compose.foundation.samples.CurvedWeight
 import androidx.wear.compose.foundation.samples.EdgeSwipeForSwipeToDismiss
@@ -126,6 +127,7 @@ val WearFoundationDemos =
                     ComposableDemo("Curved Icons") { CurvedIconsDemo() },
                     ComposableDemo("Letter Spacing (em)") { CurvedSpacingEmDemo() },
                     ComposableDemo("Letter Spacing (sp)") { CurvedSpacingSpDemo() },
+                    ComposableDemo("Letter Spacing top & down") { CurvedLetterSpacingSample() },
                 )
             ),
             DemoCategory(

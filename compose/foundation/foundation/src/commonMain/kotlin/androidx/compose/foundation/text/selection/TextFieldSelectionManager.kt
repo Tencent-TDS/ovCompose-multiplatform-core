@@ -38,7 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -99,8 +98,8 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
      */
     internal var visualTransformation: VisualTransformation = VisualTransformation.None
 
-    /** [AutofillManager] to perform clipboard features. */
-    internal var autofillManager: AutofillManager? = null
+    /** The action to invoke when autofill is requested in text toolbar. */
+    internal var requestAutofillAction: (() -> Unit)? = null
 
     /** [Clipboard] to perform clipboard features. */
     internal var clipboard: Clipboard? = null
@@ -757,7 +756,7 @@ internal class TextFieldSelectionManager(val undoManager: UndoManager? = null) {
     }
 
     internal fun autofill() {
-        autofillManager?.requestAutofillForActiveElement()
+        requestAutofillAction?.invoke()
     }
 
     internal fun getHandlePosition(isStartHandle: Boolean): Offset {

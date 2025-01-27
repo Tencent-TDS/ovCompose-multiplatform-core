@@ -22,7 +22,8 @@ package androidx.camera.view {
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> getInitializationFuture();
     method @MainThread public androidx.camera.core.resolutionselector.ResolutionSelector? getPreviewResolutionSelector();
     method @Deprecated @MainThread public androidx.camera.view.CameraController.OutputSize? getPreviewTargetSize();
-    method @MainThread public androidx.lifecycle.LiveData<java.lang.Integer!> getTapToFocusState();
+    method @MainThread public androidx.lifecycle.LiveData<androidx.camera.view.TapToFocusInfo!> getTapToFocusInfoState();
+    method @Deprecated @MainThread public androidx.lifecycle.LiveData<java.lang.Integer!> getTapToFocusState();
     method @MainThread public androidx.lifecycle.LiveData<java.lang.Integer!> getTorchState();
     method @MainThread public androidx.camera.core.DynamicRange getVideoCaptureDynamicRange();
     method @MainThread public int getVideoCaptureMirrorMode();
@@ -152,6 +153,14 @@ package androidx.camera.view {
     method @UiThread public androidx.camera.core.ImageCapture.ScreenFlash? getScreenFlash();
     method @UiThread public void setController(androidx.camera.view.CameraController?);
     method @UiThread public void setScreenFlashWindow(android.view.Window?);
+  }
+
+  public final class TapToFocusInfo {
+    ctor public TapToFocusInfo(int focusState, android.graphics.PointF? tapPoint);
+    method public int getFocusState();
+    method public android.graphics.PointF? getTapPoint();
+    property public final int focusState;
+    property public final android.graphics.PointF? tapPoint;
   }
 
 }

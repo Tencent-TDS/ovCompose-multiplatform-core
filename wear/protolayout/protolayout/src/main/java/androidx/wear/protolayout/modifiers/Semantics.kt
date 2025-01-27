@@ -26,7 +26,7 @@ import androidx.wear.protolayout.expression.RequiresSchemaVersion
 import java.util.Objects
 
 /**
- * Adds content description to be read by Talkback.
+ * Adds content description to be read by accessibility services.
  *
  * @param staticValue The static content description. This value will be used if [dynamicValue] is
  *   null, or if can't be resolved.
@@ -58,7 +58,7 @@ internal class BaseSemanticElement(
     @SemanticsRole val semanticsRole: Int = SEMANTICS_ROLE_NONE
 ) : LayoutModifier.Element {
     @SuppressLint("ProtoLayoutMinSchema")
-    fun foldIn(initial: Semantics.Builder?): Semantics.Builder =
+    fun mergeTo(initial: Semantics.Builder?): Semantics.Builder =
         (initial ?: Semantics.Builder()).apply {
             contentDescription?.let { setContentDescription(it) }
             if (semanticsRole != SEMANTICS_ROLE_NONE) {

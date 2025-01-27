@@ -42,6 +42,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireOwner
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semanticsId
 import androidx.compose.ui.spatial.RelativeLayoutBounds
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction

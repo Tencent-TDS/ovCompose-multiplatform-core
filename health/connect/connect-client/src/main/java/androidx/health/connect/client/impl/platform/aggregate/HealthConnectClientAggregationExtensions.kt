@@ -21,6 +21,7 @@ package androidx.health.connect.client.impl.platform.aggregate
 import androidx.annotation.RequiresApi
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.impl.converters.datatype.RECORDS_CLASS_NAME_MAP
 import androidx.health.connect.client.records.BloodPressureRecord
@@ -29,6 +30,7 @@ import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
+import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -127,6 +129,57 @@ internal suspend fun HealthConnectClient.aggregateFallback(
             )
         }
         .values
+        .sortedBy { it.startTime }
+}
+
+internal suspend fun HealthConnectClient.aggregateFallback(
+    request: AggregateGroupByDurationRequest
+): List<AggregationResultGroupedByDuration> {
+    return AGGREGATION_FALLBACK_RECORD_TYPES.associateWith { recordType ->
+            request.withFilteredMetrics { it.dataTypeName == RECORDS_CLASS_NAME_MAP[recordType]!! }
+        }
+        .filterValues { it.metrics.isNotEmpty() }
+        .flatMap {
+            val recordType = it.key
+            val recordTypeRequest = it.value
+
+            val buckets: List<AggregationResultGroupedByDurationWithMinTime> =
+                when (recordType) {
+                    BloodPressureRecord::class -> aggregateBloodPressure(recordTypeRequest)
+                    CyclingPedalingCadenceRecord::class ->
+                        aggregateSeriesRecord(
+                            CyclingPedalingCadenceRecord::class,
+                            recordTypeRequest
+                        )
+                    NutritionRecord::class -> aggregateNutritionTransFatTotal(recordTypeRequest)
+                    SpeedRecord::class ->
+                        aggregateSeriesRecord(SpeedRecord::class, recordTypeRequest)
+                    StepsCadenceRecord::class ->
+                        aggregateSeriesRecord(StepsCadenceRecord::class, recordTypeRequest)
+                    else -> error("Invalid record type for aggregation fallback: $recordType")
+                }
+
+            buckets
+        }
+        .groupingBy { it.aggregationResultGroupedByDuration.startTime }
+        .reduce { startTime, accumulator, element ->
+            AggregationResultGroupedByDurationWithMinTime(
+                aggregationResultGroupedByDuration =
+                    AggregationResultGroupedByDuration(
+                        startTime = startTime,
+                        endTime = accumulator.aggregationResultGroupedByDuration.endTime,
+                        result =
+                            accumulator.aggregationResultGroupedByDuration.result +
+                                element.aggregationResultGroupedByDuration.result,
+                        zoneOffset =
+                            minOf(accumulator, element, compareBy { it.minTime })
+                                .aggregationResultGroupedByDuration
+                                .zoneOffset
+                    ),
+                minTime = minOf(accumulator.minTime, element.minTime)
+            )
+        }
+        .map { it.value.aggregationResultGroupedByDuration }
         .sortedBy { it.startTime }
 }
 

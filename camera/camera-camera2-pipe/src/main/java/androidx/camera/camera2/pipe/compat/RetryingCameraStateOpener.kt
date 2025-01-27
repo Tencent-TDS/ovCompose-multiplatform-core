@@ -65,6 +65,19 @@ internal interface CameraAvailabilityMonitor {
     suspend fun awaitAvailableCamera(cameraId: CameraId, timeoutMillis: Long): Boolean
 }
 
+internal interface RetryingCameraStateOpener {
+    suspend fun openCameraWithRetry(
+        cameraId: CameraId,
+        camera2DeviceCloser: Camera2DeviceCloser,
+        isForegroundObserver: (Unit) -> Boolean = { _ -> true },
+    ): OpenCameraResult
+
+    fun openAndAwaitCameraWithRetry(
+        cameraId: CameraId,
+        camera2DeviceCloser: Camera2DeviceCloser,
+    ): AwaitOpenCameraResult
+}
+
 internal interface DevicePolicyManagerWrapper {
     val camerasDisabled: Boolean
 }
@@ -100,7 +113,7 @@ constructor(private val cameraManager: Provider<CameraManager>, private val thre
     CameraAvailabilityMonitor {
 
     override suspend fun awaitAvailableCamera(cameraId: CameraId, timeoutMillis: Long): Boolean =
-        withTimeoutOrNull(timeoutMillis) { awaitAvailableCamera(cameraId) } ?: false
+        withTimeoutOrNull(timeoutMillis) { awaitAvailableCamera(cameraId) } == true
 
     private suspend fun awaitAvailableCamera(cameraId: CameraId) =
         suspendCancellableCoroutine { continuation ->
@@ -227,7 +240,7 @@ constructor(
     }
 }
 
-internal class RetryingCameraStateOpener
+internal class RetryingCameraStateOpenerImpl
 @Inject
 constructor(
     private val cameraStateOpener: CameraStateOpener,
@@ -237,11 +250,11 @@ constructor(
     private val devicePolicyManager: DevicePolicyManagerWrapper,
     private val audioRestrictionController: AudioRestrictionController,
     private val cameraInteropConfig: CameraPipe.CameraInteropConfig?
-) {
-    internal suspend fun openCameraWithRetry(
+) : RetryingCameraStateOpener {
+    override suspend fun openCameraWithRetry(
         cameraId: CameraId,
         camera2DeviceCloser: Camera2DeviceCloser,
-        isForegroundObserver: (Unit) -> Boolean = { _ -> true },
+        isForegroundObserver: (Unit) -> Boolean,
     ): OpenCameraResult {
         val requestTimestamp = Timestamps.now(timeSource)
         var attempts = 0
@@ -318,7 +331,7 @@ constructor(
         }
     }
 
-    internal fun openAndAwaitCameraWithRetry(
+    override fun openAndAwaitCameraWithRetry(
         cameraId: CameraId,
         camera2DeviceCloser: Camera2DeviceCloser,
     ): AwaitOpenCameraResult {

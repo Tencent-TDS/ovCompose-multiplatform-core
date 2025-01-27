@@ -18,12 +18,12 @@ package androidx.webkit.internal;
 
 import android.annotation.SuppressLint;
 import android.net.Uri;
+import android.os.CancellationSignal;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.core.os.CancellationSignal;
 import androidx.webkit.PrerenderException;
 import androidx.webkit.PrerenderOperationCallback;
 import androidx.webkit.Profile;
@@ -196,12 +196,13 @@ public class WebViewProviderAdapter {
 
     /**
      * Adapter method for
-     * {@link WebViewCompat#prerenderUrlAsync(WebView, String, CancellationSignal,
+     * {@link WebViewCompat#prerenderUrl(WebView, String, CancellationSignal, Executor,
      * PrerenderOperationCallback)}.
      */
-    public void prerenderUrlAsync(
+    public void prerenderUrl(
             @NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull PrerenderOperationCallback callback) {
 
         ValueCallback<Void> activationCallback = (value) -> {
@@ -214,18 +215,20 @@ public class WebViewProviderAdapter {
         mImpl.prerenderUrl(
                 url,
                 cancellationSignal,
+                callbackExecutor,
                 activationCallback,
                 errorCallback);
     }
 
     /**
      * Adapter method for
-     * {@link WebViewCompat#prerenderUrlAsync(WebView, String, CancellationSignal,
+     * {@link WebViewCompat#prerenderUrl(WebView, String, CancellationSignal, Executor,
      * SpeculativeLoadingParameters, PrerenderOperationCallback)}.
      */
-    public void prerenderUrlAsync(
+    public void prerenderUrl(
             @NonNull String url,
             @Nullable CancellationSignal cancellationSignal,
+            @NonNull Executor callbackExecutor,
             @NonNull SpeculativeLoadingParameters params,
             @NonNull PrerenderOperationCallback callback) {
 
@@ -242,6 +245,7 @@ public class WebViewProviderAdapter {
         mImpl.prerenderUrl(
                 url,
                 cancellationSignal,
+                callbackExecutor,
                 paramsBoundaryInterface,
                 activationCallback,
                 errorCallback);

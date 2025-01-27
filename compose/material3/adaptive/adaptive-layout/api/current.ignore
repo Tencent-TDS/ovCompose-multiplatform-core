@@ -1,0 +1,3 @@
+// Baseline format: 1.0
+ParameterNameChange: androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem#ThreePaneScaffoldDestinationItem(androidx.compose.material3.adaptive.layout.ThreePaneScaffoldRole, T) parameter #1:
+    Attempted to change parameter name from content to contentKey in constructor androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem

@@ -1686,7 +1686,7 @@ import java.util.Set;
         /* package */ void disconnect() {
             mController.onUnselect(UNSELECT_REASON_DISCONNECTED);
             mController.onRelease();
-            notifyRouteDisconnected(MediaRouter.REASON_DISCONNECTED);
+            notifyRouteDisconnected(MediaRouter.REASON_DISCONNECT_CALLED);
         }
 
         @Override

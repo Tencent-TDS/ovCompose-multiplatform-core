@@ -747,7 +747,7 @@ class AlertDialogTest {
 
         titleTop.assertIsEqualTo(iconBottom + AlertIconBottomSpacing)
         textTop.assertIsEqualTo(titleBottom + AlertTextMessageTopSpacing)
-        contentTop.assertIsEqualTo(textBottom + AlertTextMessageTopSpacing)
+        contentTop.assertIsEqualTo(textBottom + AlertContentTopSpacing)
         confirmButtonTop.assertIsEqualTo(contentBottom + ConfirmDismissButtonsTopSpacing)
     }
 
@@ -782,7 +782,7 @@ class AlertDialogTest {
             rule.onNodeWithTag(ConfirmButtonTestTag).getUnclippedBoundsInRoot().top
 
         titleTop.assertIsEqualTo(iconBottom + AlertIconBottomSpacing)
-        contentTop.assertIsEqualTo(titleBottom + AlertTextMessageTopSpacing)
+        contentTop.assertIsEqualTo(titleBottom + AlertContentTopSpacing)
         confirmButtonTop.assertIsEqualTo(contentBottom + ConfirmDismissButtonsTopSpacing)
     }
 

@@ -56,7 +56,7 @@ import kotlinx.coroutines.flow.collectLatest
  * case they should provide that in their content by using ScreenScaffold (with suitable scrollState
  * if that's required).
  *
- * @param show A boolean value that determines whether the dialog should be displayed.
+ * @param visible A boolean value that determines whether the dialog should be displayed.
  * @param onDismissRequest A lambda function to be called when the dialog is dismissed by swiping
  *   right.
  * @param modifier Modifier to be applied to the dialog content.
@@ -65,13 +65,13 @@ import kotlinx.coroutines.flow.collectLatest
  */
 @Composable
 public fun Dialog(
-    show: Boolean,
+    visible: Boolean,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     properties: DialogProperties = DialogProperties(),
     content: @Composable () -> Unit,
 ) {
-    val showState by rememberUpdatedState(show)
+    val showState by rememberUpdatedState(visible)
     // Transitions for dialog animation.
     var transitionState by remember {
         mutableStateOf(MutableTransitionState(DialogVisibility.Hide))
@@ -86,7 +86,7 @@ public fun Dialog(
 
     val backgroundAnimationSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>().faster(50f)
 
-    val isReduceMotionEnabled = LocalReduceMotion.current.enabled()
+    val isReduceMotionEnabled = LocalReduceMotion.current
 
     if (!isReduceMotionEnabled) {
         LaunchedEffect(Unit) {
@@ -149,8 +149,8 @@ public fun Dialog(
                 }
             }
         }
-        LaunchedEffect(show) {
-            if (show) {
+        LaunchedEffect(visible) {
+            if (visible) {
                 // a) Fade out previous screen contents b) Scale down dialog contents from 125%
                 transitionState.targetState = DialogVisibility.Display
             } else {

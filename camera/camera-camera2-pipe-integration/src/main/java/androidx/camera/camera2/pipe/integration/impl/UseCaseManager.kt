@@ -18,6 +18,7 @@ package androidx.camera.camera2.pipe.integration.impl
 
 import android.content.Context
 import android.graphics.ImageFormat
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.OutputConfiguration
@@ -32,6 +33,7 @@ import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraph.OperatingMode
 import androidx.camera.camera2.pipe.CameraGraph.RepeatingRequestRequirementsBeforeCapture.CompletionBehavior.AT_LEAST
 import androidx.camera.camera2.pipe.CameraId
+import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraStream
 import androidx.camera.camera2.pipe.InputStream
@@ -125,6 +127,7 @@ public class UseCaseManager
 constructor(
     private val cameraPipe: CameraPipe,
     private val cameraDevices: CameraDevices,
+    private val cameraMetadata: CameraMetadata?,
     @GuardedBy("lock") private val cameraCoordinator: CameraCoordinator,
     private val callbackMap: CameraCallbackMap,
     private val requestListener: ComboRequestListener,
@@ -658,7 +661,7 @@ constructor(
         streamConfigMap: MutableMap<CameraStream.Config, DeferrableSurface>,
         isExtensions: Boolean = false,
     ): CameraGraph.Config {
-        return Companion.createCameraGraphConfig(
+        return createCameraGraphConfig(
             sessionConfigAdapter,
             streamConfigMap,
             callbackMap,
@@ -667,6 +670,7 @@ constructor(
             cameraQuirks,
             zslControl,
             templateParamsOverride,
+            cameraMetadata,
             isExtensions,
         )
     }
@@ -909,6 +913,7 @@ constructor(
             cameraQuirks: CameraQuirks,
             zslControl: ZslControl,
             templateParamsOverride: TemplateParamsOverride,
+            cameraMetadata: CameraMetadata?,
             isExtensions: Boolean = false,
         ): CameraGraph.Config {
             var containsVideo = false
@@ -964,7 +969,8 @@ constructor(
                             streamUseCase =
                                 getStreamUseCase(
                                     deferrableSurface,
-                                    sessionConfigAdapter.surfaceToStreamUseCaseMap
+                                    sessionConfigAdapter.surfaceToStreamUseCaseMap,
+                                    cameraMetadata,
                                 ),
                             streamUseHint =
                                 getStreamUseHint(
@@ -1058,9 +1064,26 @@ constructor(
 
         private fun getStreamUseCase(
             deferrableSurface: DeferrableSurface,
-            mapping: Map<DeferrableSurface, Long>
+            mapping: Map<DeferrableSurface, Long>,
+            cameraMetadata: CameraMetadata?,
         ): OutputStream.StreamUseCase? {
-            return mapping[deferrableSurface]?.let { OutputStream.StreamUseCase(it) }
+            val expectedStreamUseCase =
+                mapping[deferrableSurface]?.let { OutputStream.StreamUseCase(it) }
+            return if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    expectedStreamUseCase != null &&
+                    cameraMetadata
+                        ?.get(CameraCharacteristics.SCALER_AVAILABLE_STREAM_USE_CASES)
+                        ?.contains(expectedStreamUseCase.value) == true
+            ) {
+                expectedStreamUseCase
+            } else {
+                Log.warn {
+                    "Expected stream use case for $deferrableSurface, " +
+                        "$expectedStreamUseCase cannot be set!"
+                }
+                null
+            }
         }
 
         private fun getStreamUseHint(

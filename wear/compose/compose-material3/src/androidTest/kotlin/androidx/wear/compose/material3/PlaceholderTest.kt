@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +43,7 @@ import kotlin.math.max
 import org.junit.Rule
 import org.junit.Test
 
+@RequiresApi(Build.VERSION_CODES.O)
 class PlaceholderTest {
     @get:Rule val rule = createComposeRule()
 

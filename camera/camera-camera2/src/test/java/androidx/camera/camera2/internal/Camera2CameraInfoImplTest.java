@@ -137,6 +137,8 @@ public class Camera2CameraInfoImplTest {
     @RequiresApi(33)
     private static final DynamicRangeProfiles CAMERA0_DYNAMIC_RANGE_PROFILES =
             new DynamicRangeProfiles(new long[]{DynamicRangeProfiles.HLG10, 0, 0});
+    private static final int CAMERA0_DEFAULT_TORCH_STRENGTH = 25;
+    private static final int CAMERA0_MAX_TORCH_STRENGTH = 50;
 
     private static final String CAMERA1_ID = "1";
     private static final int CAMERA1_SUPPORTED_HARDWARE_LEVEL =
@@ -876,6 +878,68 @@ public class Camera2CameraInfoImplTest {
         assertThat(supportedDynamicRanges).containsExactly(SDR, HLG_10_BIT);
     }
 
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    public void apiVersionMet_torchStrengthPropagateCorrectly()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final Camera2CameraInfoImpl cameraInfo = new Camera2CameraInfoImpl(CAMERA0_ID,
+                mCameraManagerCompat);
+        int strength = 30;
+        when(mMockTorchControl.getTorchStrengthLevel()).thenReturn(new MutableLiveData<>(strength));
+        cameraInfo.linkWithCameraControl(mMockCameraControl);
+
+        assertThat(cameraInfo.getTorchStrengthLevel().getValue()).isEqualTo(strength);
+    }
+
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    public void apiVersionMet_canReturnDefaultTorchStrength()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final CameraInfo cameraInfo = new Camera2CameraInfoImpl(CAMERA0_ID, mCameraManagerCompat);
+
+        assertThat(cameraInfo.getTorchStrengthLevel().getValue()).isEqualTo(
+                CAMERA0_DEFAULT_TORCH_STRENGTH);
+    }
+
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    public void apiVersionMet_canReturnMaxTorchStrength()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final CameraInfo cameraInfo = new Camera2CameraInfoImpl(CAMERA0_ID, mCameraManagerCompat);
+
+        assertThat(cameraInfo.getMaxTorchStrengthLevel()).isEqualTo(CAMERA0_MAX_TORCH_STRENGTH);
+    }
+
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    public void apiVersionMet_canReturnMaxTorchStrengthUnsupported()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final CameraInfo cameraInfo = new Camera2CameraInfoImpl(CAMERA1_ID, mCameraManagerCompat);
+
+        assertThat(cameraInfo.getMaxTorchStrengthLevel()).isEqualTo(
+                CameraInfo.TORCH_STRENGTH_LEVEL_UNSUPPORTED);
+    }
+
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    public void apiVersionMet_canReturnTorchStrengthUnsupported()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final CameraInfo cameraInfo = new Camera2CameraInfoImpl(CAMERA1_ID, mCameraManagerCompat);
+
+        assertThat(cameraInfo.getTorchStrengthLevel().getValue()).isEqualTo(
+                CameraInfo.TORCH_STRENGTH_LEVEL_UNSUPPORTED);
+    }
+
     @Config(minSdk = 33)
     @Test
     public void apiVersionMet_canReturnSupportedDynamicRanges_fromFullySpecified()
@@ -900,6 +964,18 @@ public class Camera2CameraInfoImplTest {
         Set<DynamicRange> supportedDynamicRanges = cameraInfo.querySupportedDynamicRanges(
                 Collections.singleton(UNSPECIFIED));
         assertThat(supportedDynamicRanges).containsExactly(SDR);
+    }
+
+    @Config(maxSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM - 1)
+    @Test
+    public void apiVersionNotMet_returnMaxTorchStrengthUnsupported()
+            throws CameraAccessExceptionCompat {
+        init(/* hasAvailableCapabilities = */ true);
+
+        final CameraInfo cameraInfo = new Camera2CameraInfoImpl(CAMERA0_ID, mCameraManagerCompat);
+
+        assertThat(cameraInfo.getMaxTorchStrengthLevel()).isEqualTo(
+                CameraInfo.TORCH_STRENGTH_LEVEL_UNSUPPORTED);
     }
 
     @Config(maxSdk = 32)
@@ -1096,6 +1172,10 @@ public class Camera2CameraInfoImplTest {
                             CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY
                     }
             );
+            shadowCharacteristics0.set(CameraCharacteristics.FLASH_TORCH_STRENGTH_DEFAULT_LEVEL,
+                    CAMERA0_DEFAULT_TORCH_STRENGTH);
+            shadowCharacteristics0.set(CameraCharacteristics.FLASH_TORCH_STRENGTH_MAX_LEVEL,
+                    CAMERA0_MAX_TORCH_STRENGTH);
         }
 
         // Mock the request capability

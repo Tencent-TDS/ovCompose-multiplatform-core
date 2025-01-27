@@ -155,6 +155,17 @@ public class TorchControlTest {
     }
 
     @Test
+    public void setTorchStrengthLevel_throwExceptionWhenNoFlashUnit() throws InterruptedException {
+        Throwable cause = null;
+        try {
+            mNoFlashUnitTorchControl.setTorchStrengthLevel(1).get();
+        } catch (ExecutionException e) {
+            cause = e.getCause();
+        }
+        assertThat(cause).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
     public void enableTorch_whenInactive() throws InterruptedException {
         mTorchControl.setActive(false);
         ListenableFuture<Void> listenableFuture = mTorchControl.enableTorch(true);

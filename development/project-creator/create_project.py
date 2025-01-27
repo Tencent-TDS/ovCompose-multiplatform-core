@@ -23,8 +23,7 @@ from enum import Enum
 from textwrap import dedent
 from shutil import rmtree
 from shutil import copyfile
-from distutils.dir_util import copy_tree
-from distutils.dir_util import DistutilsFileError
+from shutil import copytree
 import re
 
 try:
@@ -82,8 +81,8 @@ def cp(src_path_dir, dst_path_dir):
         print_e('cp error: Source path %s does not exist.' % src_path_dir)
         return None
     try:
-        copy_tree(src_path_dir, dst_path_dir)
-    except DistutilsFileError as err:
+        copytree(src_path_dir, dst_path_dir, dirs_exist_ok=True)
+    except Error as err:
         print_e('FAIL: Unable to copy %s to destination %s' % (src_path_dir, dst_path_dir))
         return None
     return dst_path_dir

@@ -39,7 +39,7 @@ internal class Page(
     /** The 0-based index of this page in the PDF */
     private val pageNum: Int,
     /** The size of this PDF page, in content coordinates */
-    pageSizePx: Point,
+    pageSize: Point,
     /** The [PdfDocument] this [Page] belongs to */
     private val pdfDocument: PdfDocument,
     /** The [CoroutineScope] to use for background work */
@@ -64,7 +64,7 @@ internal class Page(
     private val bitmapFetcher =
         BitmapFetcher(
             pageNum,
-            pageSizePx,
+            pageSize,
             pdfDocument,
             backgroundScope,
             maxBitmapSizePx,
@@ -91,17 +91,34 @@ internal class Page(
     internal var links: PdfDocument.PdfPageLinks? = null
         private set
 
-    fun updateState(zoom: Float, isFlinging: Boolean = false) {
+    /**
+     * Puts this page into a "visible" state, and / or updates various properties related to the
+     * page's visible state
+     *
+     * @param zoom the current scale
+     * @param viewArea the portion of the page that's visible, in content coordinates
+     * @param stablePosition true if position is not actively changing, e.g. during a fling
+     */
+    fun setVisible(zoom: Float, viewArea: Rect, stablePosition: Boolean = true) {
         bitmapFetcher.isActive = true
-        bitmapFetcher.onScaleChanged(zoom)
-        if (!isFlinging) {
+        bitmapFetcher.updateViewProperties(zoom, viewArea)
+        if (stablePosition) {
             maybeFetchLinks()
             if (isTouchExplorationEnabled) {
-                fetchPageText()
+                maybeFetchPageText()
             }
         }
     }
 
+    /**
+     * Puts this page into a "nearly visible" state, discarding only high res bitmaps and retaining
+     * lighter weight data in case the page becomes visible again
+     */
+    fun setNearlyVisible() {
+        bitmapFetcher.discardTileBitmaps()
+    }
+
+    /** Puts this page into an "invisible" state, i.e. retaining only the minimum data required */
     fun setInvisible() {
         bitmapFetcher.isActive = false
         pageText = null
@@ -112,7 +129,7 @@ internal class Page(
         fetchLinksJob = null
     }
 
-    private fun fetchPageText() {
+    private fun maybeFetchPageText() {
         if (fetchPageTextJob?.isActive == true || pageText != null) return
 
         fetchPageTextJob =
@@ -171,7 +188,7 @@ internal class Page(
                 canvas.drawBitmap(
                     bitmap, /* src */
                     null,
-                    locationForTile(tile, tileBoard.renderedScale, locationInView),
+                    locationForTile(tile, tileBoard.bitmapScale, locationInView),
                     BMP_PAINT
                 )
             }

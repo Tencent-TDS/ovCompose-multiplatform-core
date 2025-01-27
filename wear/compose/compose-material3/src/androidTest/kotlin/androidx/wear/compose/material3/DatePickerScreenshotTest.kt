@@ -17,6 +17,7 @@
 package androidx.wear.compose.material3
 
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertAgainstGolden
@@ -307,6 +308,7 @@ class DatePickerScreenshotTest {
             )
             .onFirst()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun ComposeContentTestRule.verifyDatePickerScreenshot(
         testName: TestName,
         screenshotRule: AndroidXScreenshotTestRule,

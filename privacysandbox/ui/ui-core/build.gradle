@@ -48,6 +48,7 @@ android {
     buildFeatures {
         aidl = true
     }
+    compileSdk 35
 }
 
 androidx {

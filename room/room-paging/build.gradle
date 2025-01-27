@@ -41,7 +41,6 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api("androidx.paging:paging-common:3.3.2")
                 api(project(":room:room-runtime"))
-                implementation(libs.atomicFu)
             }
         }
 
@@ -66,6 +65,9 @@ androidXMultiplatform {
 
         nativeMain {
             dependsOn(jvmNativeMain)
+            dependencies {
+                implementation(libs.atomicFu)
+            }
         }
 
         androidInstrumentedTest {

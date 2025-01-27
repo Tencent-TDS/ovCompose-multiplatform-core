@@ -397,14 +397,21 @@ internal class Camera2CaptureSequenceProcessor(
                 "inputSurface is required to create instance of imageWriter."
             }
             val androidImageWriter =
-                AndroidImageWriter.create(
-                    sessionInputSurface,
-                    inputStream.id,
-                    inputStream.maxImages,
-                    inputStream.format,
-                    threads.camera2Handler
-                )
-            Log.debug { "Created ImageWriter $androidImageWriter for session $session" }
+                try {
+                    AndroidImageWriter.create(
+                        sessionInputSurface,
+                        inputStream.id,
+                        inputStream.maxImages,
+                        inputStream.format,
+                        threads.camera2Handler
+                    )
+                } catch (e: RuntimeException) {
+                    Log.warn(e) { "Failed to create ImageWriter for session $session" }
+                    null
+                }
+            if (androidImageWriter != null) {
+                Log.debug { "Created ImageWriter $androidImageWriter for session $session" }
+            }
             androidImageWriter
         } else {
             null

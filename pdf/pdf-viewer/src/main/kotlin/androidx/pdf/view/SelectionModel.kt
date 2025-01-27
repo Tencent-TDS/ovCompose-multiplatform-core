@@ -62,6 +62,23 @@ internal constructor(
         endBoundary.writeToParcel(dest, flags)
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is SelectionModel) return false
+
+        if (other.selection != selection) return false
+        if (other.startBoundary != startBoundary) return false
+        if (other.endBoundary != endBoundary) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = selection.hashCode()
+        result = 31 * result + startBoundary.hashCode()
+        result = 31 * result + endBoundary.hashCode()
+        return result
+    }
+
     companion object {
         /** Produces a [SelectionModel] from a single [PageSelection] on a single page */
         // TODO(b/386398335) Add support for creating a SelectionModel from selections on 2 pages
@@ -133,6 +150,21 @@ internal class UiSelectionBoundary(val location: PdfPoint, val isRtl: Boolean) :
     override fun writeToParcel(dest: Parcel, flags: Int) {
         location.writeToParcel(dest, flags)
         dest.writeBoolean(isRtl)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is UiSelectionBoundary) return false
+
+        if (other.location != this.location) return false
+        if (other.isRtl != this.isRtl) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = location.hashCode()
+        result = 31 * result + isRtl.hashCode()
+        return result
     }
 
     companion object CREATOR : Parcelable.Creator<UiSelectionBoundary> {

@@ -20,12 +20,15 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
 import androidx.health.connect.client.impl.platform.toLocalTimeWithDefaultZoneFallback
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -634,12 +637,97 @@ class BloodPressureAggregationExtensionsTest {
         }
     }
 
+    @Test
+    fun aggregateBloodPressure_groupByDuration() = runTest {
+        healthConnectClient.insertRecords(
+            listOf(
+                BloodPressureRecord(
+                    time = START_TIME + 4.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 120.millimetersOfMercury,
+                    diastolic = 80.millimetersOfMercury
+                ),
+                BloodPressureRecord(
+                    time = START_TIME + 8.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 100.millimetersOfMercury,
+                    diastolic = 60.millimetersOfMercury
+                ),
+                BloodPressureRecord(
+                    time = START_TIME + 1.hours + 10.minutes,
+                    zoneOffset = ZoneOffset.UTC,
+                    systolic = 100.millimetersOfMercury,
+                    diastolic = 70.millimetersOfMercury
+                )
+            )
+        )
+
+        val aggregationResult =
+            healthConnectClient.aggregateFallback(
+                AggregateGroupByDurationRequest(
+                    metrics =
+                        setOf(
+                            BloodPressureRecord.DIASTOLIC_AVG,
+                            BloodPressureRecord.DIASTOLIC_MAX,
+                            BloodPressureRecord.DIASTOLIC_MIN,
+                            BloodPressureRecord.SYSTOLIC_AVG,
+                            BloodPressureRecord.SYSTOLIC_MAX,
+                            BloodPressureRecord.SYSTOLIC_MIN,
+                        ),
+                    timeRangeFilter = TimeRangeFilter.after(START_TIME),
+                    timeRangeSlicer = 1.hours
+                )
+            )
+
+        assertThat(aggregationResult)
+            .containsExactly(
+                AggregationResultGroupedByDuration(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 1.hours,
+                    zoneOffset = ZoneOffset.UTC,
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues =
+                                mapOf(
+                                    BloodPressureRecord.DIASTOLIC_AVG.metricKey to 70.0,
+                                    BloodPressureRecord.DIASTOLIC_MAX.metricKey to 80.0,
+                                    BloodPressureRecord.DIASTOLIC_MIN.metricKey to 60.0,
+                                    BloodPressureRecord.SYSTOLIC_AVG.metricKey to 110.0,
+                                    BloodPressureRecord.SYSTOLIC_MAX.metricKey to 120.0,
+                                    BloodPressureRecord.SYSTOLIC_MIN.metricKey to 100.0,
+                                ),
+                            dataOrigins = setOf(DataOrigin(context.packageName))
+                        )
+                ),
+                AggregationResultGroupedByDuration(
+                    startTime = START_TIME + 1.hours,
+                    endTime = START_TIME + 2.hours,
+                    zoneOffset = ZoneOffset.UTC,
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues =
+                                mapOf(
+                                    BloodPressureRecord.DIASTOLIC_AVG.metricKey to 70.0,
+                                    BloodPressureRecord.DIASTOLIC_MAX.metricKey to 70.0,
+                                    BloodPressureRecord.DIASTOLIC_MIN.metricKey to 70.0,
+                                    BloodPressureRecord.SYSTOLIC_AVG.metricKey to 100.0,
+                                    BloodPressureRecord.SYSTOLIC_MAX.metricKey to 100.0,
+                                    BloodPressureRecord.SYSTOLIC_MIN.metricKey to 100.0,
+                                ),
+                            dataOrigins = setOf(DataOrigin(context.packageName))
+                        )
+                )
+            )
+    }
+
     private fun <A, E> assertEquals(vararg assertions: Pair<A, E>) {
         assertions.forEach { (actual, expected) -> assertThat(actual).isEqualTo(expected) }
     }
 
     private val Int.days: Duration
-        get() = Duration.ofDays(1)
+        get() = Duration.ofDays(this.toLong())
 
     private val Int.seconds: Duration
         get() = Duration.ofSeconds(this.toLong())

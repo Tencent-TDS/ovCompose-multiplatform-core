@@ -26,10 +26,12 @@ import androidx.build.LibraryType
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
     api(libs.jspecify)
+    api(libs.kotlinStdlib)
     annotationProcessor(libs.nullaway)
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.7.0")

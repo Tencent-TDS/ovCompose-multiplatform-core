@@ -24,11 +24,12 @@ import androidx.paging.PagingState
 import androidx.room.RoomDatabase
 import androidx.room.RoomRawQuery
 import androidx.room.Transactor.SQLiteTransactionType
+import androidx.room.concurrent.AtomicBoolean
+import androidx.room.concurrent.AtomicInt
 import androidx.room.paging.util.INITIAL_ITEM_COUNT
 import androidx.room.paging.util.queryDatabase
 import androidx.room.paging.util.queryItemCount
 import androidx.room.useReaderConnection
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -70,9 +71,9 @@ internal class CommonLimitOffsetImpl<Value : Any>(
     private val db = pagingSource.db
     private val sourceQuery = pagingSource.sourceQuery
 
-    internal val itemCount = atomic(INITIAL_ITEM_COUNT)
+    internal val itemCount = AtomicInt(INITIAL_ITEM_COUNT)
 
-    private val invalidationFlowStarted = atomic(false)
+    private val invalidationFlowStarted = AtomicBoolean(false)
     private var invalidationFlowJob: Job? = null
 
     init {
@@ -80,7 +81,7 @@ internal class CommonLimitOffsetImpl<Value : Any>(
     }
 
     suspend fun load(params: LoadParams<Int>): LoadResult<Int, Value> {
-        if (invalidationFlowStarted.compareAndSet(expect = false, update = true)) {
+        if (invalidationFlowStarted.compareAndSet(false, true)) {
             invalidationFlowJob =
                 db.getCoroutineScope().launch {
                     db.invalidationTracker.createFlow(*tables, emitInitialState = false).collect {
@@ -92,7 +93,7 @@ internal class CommonLimitOffsetImpl<Value : Any>(
                 }
         }
 
-        val tempCount = itemCount.value
+        val tempCount = itemCount.get()
         // if itemCount is < 0, then it is initial load
         return try {
             if (tempCount == INITIAL_ITEM_COUNT) {
@@ -119,7 +120,7 @@ internal class CommonLimitOffsetImpl<Value : Any>(
         return db.useReaderConnection { connection ->
             connection.withTransaction(SQLiteTransactionType.DEFERRED) {
                 val tempCount = queryItemCount(sourceQuery, db)
-                itemCount.value = tempCount
+                itemCount.set(tempCount)
                 queryDatabase(
                     params = params,
                     sourceQuery = sourceQuery,

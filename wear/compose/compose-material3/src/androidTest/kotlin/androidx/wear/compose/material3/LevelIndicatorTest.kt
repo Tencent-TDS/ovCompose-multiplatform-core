@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +48,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).assertExists()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_indicator_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -58,6 +61,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_track_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -70,6 +74,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_indicator_custom_color() {
         val customColor = Color.Red
@@ -84,6 +89,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_track_custom_color() {
         val customColor = Color.Red

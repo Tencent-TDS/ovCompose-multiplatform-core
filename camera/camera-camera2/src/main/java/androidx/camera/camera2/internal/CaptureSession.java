@@ -16,7 +16,6 @@
 
 package androidx.camera.camera2.internal;
 
-import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -68,8 +67,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1067,7 +1064,8 @@ final class CaptureSession implements CaptureSessionInterface {
                 continue;
             }
             List<OutputConfiguration> outputConfigurations =
-                    createInstancesForMultiResolutionOutput(streamInfos, imageFormat);
+                    OutputConfiguration.createInstancesForMultiResolutionOutput(streamInfos,
+                            imageFormat);
             if (outputConfigurations != null) {
                 for (SessionConfig.OutputConfig outputConfig : groupIdToOutputConfigsMap.get(
                         groupId)) {
@@ -1080,31 +1078,6 @@ final class CaptureSession implements CaptureSessionInterface {
             }
         }
         return outputConfigToOutputConfigurationCompatMap;
-    }
-
-    /**
-     * Use java reflection to access the API so that we don't need to upgrade compileSdk as 35 in
-     * the release branch. When this method is invoked, the API has become public on the device. It
-     * won't cause the problem about accessing the non-SDK API.
-     */
-    /** @noinspection unchecked */
-    @SuppressLint("BanUncheckedReflection")
-    @SuppressWarnings("unchecked")
-    @RequiresApi(35)
-    private static @Nullable List<OutputConfiguration> createInstancesForMultiResolutionOutput(
-            @NonNull List<MultiResolutionStreamInfo> streamInfos, int format) {
-        // TODO(b/376185185): Invoke the API directly after the androidx code base upgrades to
-        //  compile by API 35 SDK.
-        try {
-            Method createInstanceMethod = OutputConfiguration.class.getMethod(
-                    "createInstancesForMultiResolutionOutput", Collection.class, int.class);
-            return (List<OutputConfiguration>) createInstanceMethod.invoke(null, streamInfos,
-                    format);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            Logger.e(TAG,
-                    "Failed to create instances for multi-resolution output, " + e.getMessage());
-            return null;
-        }
     }
 
     // Debugging note: these states are kept in ordinal order. Any additions or changes should try

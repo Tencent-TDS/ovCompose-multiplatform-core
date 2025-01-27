@@ -19,24 +19,34 @@ package androidx.wear.protolayout.material3
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.wear.protolayout.DeviceParametersBuilders
+import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
+import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.LayoutElementBuilders.Box
-import androidx.wear.protolayout.ModifiersBuilders.Background
-import androidx.wear.protolayout.ModifiersBuilders.Corner
-import androidx.wear.protolayout.ModifiersBuilders.Modifiers
+import androidx.wear.protolayout.LayoutElementBuilders.Column
+import androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_END
+import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
 import androidx.wear.protolayout.material3.AppCardStyle.Companion.largeAppCardStyle
+import androidx.wear.protolayout.material3.AvatarButtonStyle.Companion.largeAvatarButtonStyle
 import androidx.wear.protolayout.material3.ButtonDefaults.filledButtonColors
 import androidx.wear.protolayout.material3.ButtonDefaults.filledTonalButtonColors
 import androidx.wear.protolayout.material3.ButtonDefaults.filledVariantButtonColors
+import androidx.wear.protolayout.material3.ButtonGroupDefaults.DEFAULT_SPACER_BETWEEN_BUTTON_GROUPS
 import androidx.wear.protolayout.material3.CardDefaults.filledVariantCardColors
+import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.filledTonalProgressIndicatorColors
+import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.filledVariantProgressIndicatorColors
 import androidx.wear.protolayout.material3.DataCardStyle.Companion.smallCompactDataCardStyle
+import androidx.wear.protolayout.material3.IconButtonStyle.Companion.largeIconButtonStyle
 import androidx.wear.protolayout.material3.MaterialGoldenTest.Companion.pxToDp
-import androidx.wear.protolayout.material3.TitleContentPlacementInDataCard.Companion.Bottom
+import androidx.wear.protolayout.material3.PrimaryLayoutMargins.Companion.MAX_PRIMARY_LAYOUT_MARGIN
+import androidx.wear.protolayout.material3.PrimaryLayoutMargins.Companion.MIN_PRIMARY_LAYOUT_MARGIN
+import androidx.wear.protolayout.material3.TextButtonStyle.Companion.extraLargeTextButtonStyle
+import androidx.wear.protolayout.material3.TextButtonStyle.Companion.largeTextButtonStyle
+import androidx.wear.protolayout.material3.TextButtonStyle.Companion.smallTextButtonStyle
 import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.clickable
+import androidx.wear.protolayout.modifiers.clip
 import androidx.wear.protolayout.modifiers.contentDescription
-import androidx.wear.protolayout.types.LayoutColor
 import androidx.wear.protolayout.types.layoutString
 import com.google.common.collect.ImmutableMap
 
@@ -61,12 +71,14 @@ object TestCasesGenerator {
         val scale = displayMetrics.density
 
         val deviceParameters =
-            DeviceParametersBuilders.DeviceParameters.Builder()
+            DeviceParameters.Builder()
                 .setScreenWidthDp(pxToDp(RunnerUtils.SCREEN_SIZE_SMALL, scale))
                 .setScreenHeightDp(pxToDp(RunnerUtils.SCREEN_SIZE_SMALL, scale))
                 .setScreenDensity(displayMetrics.density)
                 .setFontScale(1f)
                 .setScreenShape(DeviceParametersBuilders.SCREEN_SHAPE_RECT)
+                // testing with the latest renderer version
+                .setRendererSchemaVersion(VersionInfo.Builder().setMajor(99).setMinor(999).build())
                 .build()
         val clickable = clickable(id = "action_id")
         val testCases: HashMap<String, LayoutElementBuilders.LayoutElement> = HashMap()
@@ -74,14 +86,17 @@ object TestCasesGenerator {
         testCases["primarylayout_edgebuttonfilled_buttongroup_iconoverride_golden$goldenSuffix"] =
             materialScope(
                 ApplicationProvider.getApplicationContext(),
-                deviceParameters,
+                // renderer version 1.302 has no asymmetrical corner support, so edgebutton will use
+                // its fallback style
+                deviceParameters.copy(VersionInfo.Builder().setMajor(1).setMinor(302).build()),
                 allowDynamicTheme = false
             ) {
                 primaryLayoutWithOverrideIcon(
                     mainSlot = {
                         text(
-                            text = "Text in the main slot that overflows".layoutString,
-                            color = colorScheme.secondary
+                            text = "Overflow main text and fallback edge button".layoutString,
+                            color = colorScheme.secondary,
+                            maxLines = 3
                         )
                     },
                     bottomSlot = {
@@ -120,25 +135,10 @@ object TestCasesGenerator {
                                     "steps".layoutString,
                                 )
                             },
-                            // TODO: b/368272767 - Update this to CPI
-                            graphic = {
-                                Box.Builder()
-                                    .setWidth(expand())
-                                    .setHeight(expand())
-                                    .setModifiers(
-                                        Modifiers.Builder()
-                                            .setBackground(
-                                                Background.Builder()
-                                                    .setCorner(shapes.full)
-                                                    .setColor(colorScheme.background.prop)
-                                                    .build()
-                                            )
-                                            .build()
-                                    )
-                                    .build()
-                            }
+                            graphic = { circularProgressIndicator(staticProgress = 0.5F) }
                         )
                     },
+                    margins = MIN_PRIMARY_LAYOUT_MARGIN
                 )
             }
         testCases["primarylayout_edgebuttonfilledvariant_iconoverride_golden$NORMAL_SCALE_SUFFIX"] =
@@ -157,17 +157,9 @@ object TestCasesGenerator {
                                     title = { text("MM".layoutString) },
                                     content = { text("Min".layoutString) },
                                     secondaryIcon = { icon(ICON_ID) },
-                                    shape = shapes.full
-                                )
-                            }
-                            buttonGroupItem {
-                                iconDataCard(
-                                    onClick = clickable,
-                                    modifier = LayoutModifier.contentDescription("Data Card"),
-                                    title = { text("MM".layoutString) },
-                                    content = { text("Min".layoutString) },
-                                    secondaryIcon = { icon(ICON_ID) },
-                                    titleContentPlacement = Bottom
+                                    shape = shapes.none,
+                                    width = expand(),
+                                    height = expand()
                                 )
                             }
                             buttonGroupItem {
@@ -179,14 +171,16 @@ object TestCasesGenerator {
                                     secondaryText = { text("Label".layoutString) },
                                     colors =
                                         CardColors(
-                                            background = colorScheme.onSecondary,
-                                            title = colorScheme.secondary,
-                                            content = colorScheme.secondaryDim
-                                        )
+                                            backgroundColor = colorScheme.onSecondary,
+                                            titleColor = colorScheme.secondary,
+                                            contentColor = colorScheme.secondaryDim
+                                        ),
+                                    shape = shapes.full
                                 )
                             }
                         }
                     },
+                    margins = MAX_PRIMARY_LAYOUT_MARGIN,
                     bottomSlot = {
                         textEdgeButton(
                             onClick = clickable,
@@ -279,9 +273,9 @@ object TestCasesGenerator {
                             style = smallCompactDataCardStyle(),
                             colors =
                                 CardColors(
-                                    background = colorScheme.errorContainer,
-                                    title = colorScheme.onErrorContainer,
-                                    content = colorScheme.onError
+                                    backgroundColor = colorScheme.errorContainer,
+                                    titleColor = colorScheme.onErrorContainer,
+                                    contentColor = colorScheme.onError
                                 ),
                             height = expand()
                         )
@@ -361,26 +355,194 @@ object TestCasesGenerator {
             ) {
                 primaryLayout(
                     mainSlot = {
-                        coloredBox(color = colorScheme.tertiaryDim, shape = shapes.extraLarge)
+                        Column.Builder()
+                            .setWidth(expand())
+                            .setHeight(expand())
+                            .addContent(
+                                button(
+                                    onClick = clickable,
+                                    labelContent = { text("Primary label".layoutString) },
+                                    secondaryLabelContent = {
+                                        text("Secondary label".layoutString)
+                                    },
+                                    iconContent = { icon(ICON_ID) },
+                                    width = expand()
+                                )
+                            )
+                            .addContent(
+                                buttonGroup {
+                                    buttonGroupItem {
+                                        compactButton(
+                                            onClick = clickable,
+                                            labelContent = { text("Label".layoutString) },
+                                        )
+                                    }
+                                    buttonGroupItem {
+                                        imageButton(
+                                            onClick = clickable,
+                                            backgroundContent = { backgroundImage(IMAGE_ID) },
+                                            modifier = LayoutModifier.clip(shapes.extraSmall)
+                                        )
+                                    }
+                                }
+                            )
+                            .build()
                     },
+                )
+            }
+        testCases["primarylayout_nobottomslotnotitle_avatarbuttons_golden$NORMAL_SCALE_SUFFIX"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                deviceParameters,
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = {
+                        Column.Builder()
+                            .setWidth(expand())
+                            .setHeight(expand())
+                            .addContent(
+                                avatarButton(
+                                    onClick = clickable,
+                                    labelContent = { text("Primary label".layoutString) },
+                                    secondaryLabelContent = {
+                                        text("Secondary label".layoutString)
+                                    },
+                                    avatarContent = { avatarImage(IMAGE_ID) },
+                                )
+                            )
+                            .addContent(DEFAULT_SPACER_BETWEEN_BUTTON_GROUPS)
+                            .addContent(
+                                avatarButton(
+                                    onClick = clickable,
+                                    labelContent = {
+                                        text("Primary label overflowing".layoutString)
+                                    },
+                                    secondaryLabelContent = {
+                                        text("Secondary label overflowing".layoutString)
+                                    },
+                                    avatarContent = { avatarImage(IMAGE_ID) },
+                                    height = expand(),
+                                    style = largeAvatarButtonStyle(),
+                                    horizontalAlignment = HORIZONTAL_ALIGN_END
+                                )
+                            )
+                            .build()
+                    },
+                )
+            }
+        testCases["primarylayout_oneslotbuttons_golden$NORMAL_SCALE_SUFFIX"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                deviceParameters,
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = {
+                        Column.Builder()
+                            .setWidth(expand())
+                            .setHeight(expand())
+                            .addContent(
+                                buttonGroup {
+                                    buttonGroupItem {
+                                        iconButton(
+                                            onClick = clickable,
+                                            iconContent = { icon(ICON_ID) }
+                                        )
+                                    }
+                                    buttonGroupItem {
+                                        iconButton(
+                                            onClick = clickable,
+                                            iconContent = { icon(ICON_ID) },
+                                            style = largeIconButtonStyle(),
+                                            colors = filledTonalButtonColors(),
+                                            width = expand(),
+                                            height = expand(),
+                                            shape = shapes.large
+                                        )
+                                    }
+                                    buttonGroupItem {
+                                        textButton(
+                                            onClick = clickable,
+                                            labelContent = { text("000".layoutString) },
+                                            style = smallTextButtonStyle(),
+                                        )
+                                    }
+                                }
+                            )
+                            .addContent(DEFAULT_SPACER_BETWEEN_BUTTON_GROUPS)
+                            .addContent(
+                                buttonGroup {
+                                    buttonGroupItem {
+                                        textButton(
+                                            onClick = clickable,
+                                            labelContent = { text("1".layoutString) },
+                                            width = expand(),
+                                            shape = shapes.small
+                                        )
+                                    }
+                                    buttonGroupItem {
+                                        textButton(
+                                            onClick = clickable,
+                                            labelContent = { text("2".layoutString) },
+                                            style = largeTextButtonStyle(),
+                                            colors = filledTonalButtonColors(),
+                                            height = expand()
+                                        )
+                                    }
+                                    buttonGroupItem {
+                                        textButton(
+                                            onClick = clickable,
+                                            labelContent = { text("3".layoutString) },
+                                            style = extraLargeTextButtonStyle(),
+                                            colors = filledVariantButtonColors(),
+                                            width = expand(),
+                                            height = expand()
+                                        )
+                                    }
+                                }
+                            )
+                            .build()
+                    },
+                )
+            }
+        testCases["primarylayout_circularprogressindicators_golden$NORMAL_SCALE_SUFFIX"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                deviceParameters,
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = { progressIndicatorGroup() },
+                    margins = MIN_PRIMARY_LAYOUT_MARGIN
+                )
+            }
+
+        testCases["primarylayout_circularprogressindicators_fallback__golden$NORMAL_SCALE_SUFFIX"] =
+            materialScope(
+                ApplicationProvider.getApplicationContext(),
+                // renderer with version 1.302 has no DashedArcLine or asymmetrical corners support
+                deviceConfiguration =
+                    deviceParameters.copy(VersionInfo.Builder().setMajor(1).setMinor(302).build()),
+                allowDynamicTheme = false
+            ) {
+                primaryLayout(
+                    mainSlot = { progressIndicatorGroup() },
+                    margins = MIN_PRIMARY_LAYOUT_MARGIN,
+                    bottomSlot = {
+                        iconEdgeButton(
+                            onClick = clickable,
+                            iconContent = { icon(ICON_ID) },
+                            modifier =
+                                LayoutModifier.contentDescription(CONTENT_DESCRIPTION_PLACEHOLDER),
+                            colors = filledTonalButtonColors()
+                        )
+                    }
                 )
             }
 
         return collectTestCases(testCases)
     }
-
-    private fun coloredBox(color: LayoutColor, shape: Corner) =
-        Box.Builder()
-            .setWidth(expand())
-            .setHeight(expand())
-            .setModifiers(
-                Modifiers.Builder()
-                    .setBackground(
-                        Background.Builder().setColor(color.prop).setCorner(shape).build()
-                    )
-                    .build()
-            )
-            .build()
 
     private fun collectTestCases(
         testCases: Map<String, LayoutElementBuilders.LayoutElement>
@@ -396,4 +558,72 @@ object TestCasesGenerator {
                 )
             )
     }
+
+    private fun MaterialScope.progressIndicatorGroup(): Column =
+        Column.Builder()
+            .setWidth(expand())
+            .setHeight(expand())
+            .addContent(
+                buttonGroup(height = dp(52F)) {
+                    buttonGroupItem {
+                        circularProgressIndicator(colors = filledTonalProgressIndicatorColors())
+                    }
+                    buttonGroupItem {
+                        circularProgressIndicator(
+                            staticProgress = 0.75F,
+                            colors = filledVariantProgressIndicatorColors()
+                        )
+                    }
+                    buttonGroupItem {
+                        circularProgressIndicator(
+                            staticProgress = 1.5F,
+                            startAngleDegrees = 200F,
+                            endAngleDegrees = 520F,
+                            colors = filledVariantProgressIndicatorColors()
+                        )
+                    }
+                }
+            )
+            .addContent(DEFAULT_SPACER_BETWEEN_BUTTON_GROUPS)
+            .addContent(
+                buttonGroup(height = dp(52F)) {
+                    buttonGroupItem {
+                        segmentedCircularProgressIndicator(
+                            segmentCount = 1,
+                            colors = filledTonalProgressIndicatorColors()
+                        )
+                    }
+                    buttonGroupItem {
+                        segmentedCircularProgressIndicator(
+                            segmentCount = 5,
+                            staticProgress = 0.75F,
+                            colors = filledVariantProgressIndicatorColors()
+                        )
+                    }
+                    buttonGroupItem {
+                        segmentedCircularProgressIndicator(
+                            segmentCount = 5,
+                            staticProgress = 1.5F,
+                            startAngleDegrees = 200F,
+                            endAngleDegrees = 520F,
+                            colors = filledVariantProgressIndicatorColors()
+                        )
+                    }
+                }
+            )
+            .build()
+
+    /**
+     * Make a copy of a [DeviceParameters], and update it with the provided renderer version for
+     * testing fallback features on older renderer.
+     */
+    private fun DeviceParameters.copy(rendererVersion: VersionInfo): DeviceParameters =
+        DeviceParameters.Builder()
+            .setScreenWidthDp(screenWidthDp)
+            .setScreenHeightDp(screenHeightDp)
+            .setScreenDensity(screenDensity)
+            .setFontScale(fontScale)
+            .setScreenShape(screenShape)
+            .setRendererSchemaVersion(rendererVersion)
+            .build()
 }

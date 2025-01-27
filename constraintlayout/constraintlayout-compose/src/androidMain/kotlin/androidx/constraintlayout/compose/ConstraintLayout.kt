@@ -420,27 +420,21 @@ inline fun ConstraintLayout(
     val contentTracker = remember { mutableStateOf(Unit, neverEqualPolicy()) }
 
     val measurePolicy = MeasurePolicy { measurables, constraints ->
-        // Map to properly capture Placeables across Measure and Layout passes
-        val placeableMap = mutableMapOf<Measurable, Placeable>()
-
-        // Call to invalidate measure on content recomposition
         contentTracker.value
-
         val layoutSize =
             measurer.performMeasure(
-                constraints = constraints,
-                layoutDirection = layoutDirection,
-                constraintSet = constraintSet,
-                measurables = measurables,
-                placeableMap = placeableMap,
-                optimizationLevel = optimizationLevel
+                constraints,
+                layoutDirection,
+                constraintSet,
+                measurables,
+                optimizationLevel
             )
         // We read the remeasurement requester state, to request remeasure when the value
         // changes. This will happen when the scope helpers are changing at recomposition.
         remeasureRequesterState.value
 
         layout(layoutSize.width, layoutSize.height) {
-            with(measurer) { performLayout(measurables = measurables, placeableMap = placeableMap) }
+            with(measurer) { performLayout(measurables) }
         }
     }
 
@@ -811,25 +805,17 @@ inline fun ConstraintLayout(
             true
         }
         val measurePolicy = MeasurePolicy { measurables, constraints ->
-            // Map to properly capture Placeables across Measure and Layout passes
-            val placeableMap = mutableMapOf<Measurable, Placeable>()
-
-            // Call to invalidate measure on content recomposition
             contentTracker.value
-
             val layoutSize =
                 measurer.performMeasure(
-                    constraints = constraints,
-                    layoutDirection = layoutDirection,
-                    constraintSet = constraintSet,
-                    measurables = measurables,
-                    placeableMap = placeableMap,
-                    optimizationLevel = optimizationLevel
+                    constraints,
+                    layoutDirection,
+                    constraintSet,
+                    measurables,
+                    optimizationLevel
                 )
             layout(layoutSize.width, layoutSize.height) {
-                with(measurer) {
-                    performLayout(measurables = measurables, placeableMap = placeableMap)
-                }
+                with(measurer) { performLayout(measurables) }
             }
         }
         if (constraintSet is EditableJSONLayout) {
@@ -1625,22 +1611,9 @@ internal open class Measurer(
     private var computedLayoutResult: String = ""
     protected var layoutInformationReceiver: LayoutInformationReceiver? = null
     protected val root = ConstraintWidgetContainer(0, 0).also { it.measurer = this }
-
-    /**
-     * Due to Lookahead measure pass, the object used to measure and place should not be
-     * instantiated internally, instead, should be instantiated within the MeasurePolicy call, and
-     * then passed to update this variable, at each the measure and layout passes.
-     */
-    protected var placeables = mutableMapOf<Measurable, Placeable>()
+    protected val placeables = mutableMapOf<Measurable, Placeable>()
     private val lastMeasures = mutableMapOf<String, Array<Int>>()
-
-    @Suppress("unused") // Exists for compatibility.
-    @Deprecated(
-        message = "Should not reference a Measurable.",
-        replaceWith = ReplaceWith("frameCache2")
-    )
-    protected val frameCache = emptyMap<Measurable, WidgetFrame>()
-    protected val frameCache2 = mutableMapOf<String, WidgetFrame>()
+    protected val frameCache = mutableMapOf<Measurable, WidgetFrame>()
 
     protected val state = State(density)
 
@@ -1817,7 +1790,7 @@ internal open class Measurer(
                 val id = measurable.layoutId ?: measurable.constraintLayoutId
                 child.stringId = id?.toString()
             }
-            val frame = frameCache2[measurable.anyOrNullId]?.widget?.frame
+            val frame = frameCache[measurable]?.widget?.frame
             if (frame == null) {
                 continue
             }
@@ -1894,33 +1867,13 @@ internal open class Measurer(
         this[2] = measure.measuredBaseline
     }
 
-    @Suppress("DeprecatedCallableAddReplaceWith") // Requires manual replacement
-    @Deprecated("Should receive placeable Map from caller.")
     fun performMeasure(
         constraints: Constraints,
         layoutDirection: LayoutDirection,
         constraintSet: ConstraintSet,
         measurables: List<Measurable>,
-        optimizationLevel: Int
-    ): IntSize =
-        performMeasure(
-            constraints = constraints,
-            layoutDirection = layoutDirection,
-            constraintSet = constraintSet,
-            measurables = measurables,
-            placeableMap = placeables,
-            optimizationLevel = optimizationLevel
-        )
-
-    fun performMeasure(
-        constraints: Constraints,
-        layoutDirection: LayoutDirection,
-        constraintSet: ConstraintSet,
-        measurables: List<Measurable>,
-        placeableMap: MutableMap<Measurable, Placeable>,
         optimizationLevel: Int
     ): IntSize {
-        this.placeables = placeableMap
         if (measurables.isEmpty()) {
             // TODO(b/335524398): Behavior with zero children is unexpected. It's also inconsistent
             //      with ViewGroup, so this is a workaround to handle those cases the way it seems
@@ -1985,7 +1938,7 @@ internal open class Measurer(
     internal fun resetMeasureState() {
         placeables.clear()
         lastMeasures.clear()
-        frameCache2.clear()
+        frameCache.clear()
     }
 
     protected fun applyRootSize(constraints: Constraints) {
@@ -2024,30 +1977,37 @@ internal open class Measurer(
         }
     }
 
-    @Suppress("DeprecatedCallableAddReplaceWith") // Requires manual replacement
-    @Deprecated("Should receive placeable Map from caller.")
     fun Placeable.PlacementScope.performLayout(measurables: List<Measurable>) {
-        performLayout(measurables, placeables)
-    }
-
-    fun Placeable.PlacementScope.performLayout(
-        measurables: List<Measurable>,
-        placeableMap: MutableMap<Measurable, Placeable>,
-    ) {
-        if (frameCache2.isEmpty()) {
+        if (frameCache.isEmpty()) {
             root.children.fastForEach { child ->
                 val measurable = child.companionWidget
                 if (measurable !is Measurable) return@fastForEach
                 val frame = WidgetFrame(child.frame.update())
-                frameCache2[measurable.anyOrNullId] = frame
+                frameCache[measurable] = frame
             }
         }
         measurables.fastForEach { measurable ->
-            val frame = frameCache2[measurable.anyOrNullId] ?: return@fastForEach
-            // Don't use `placeables` map from Measurer, is not guaranteed to correspond to this
-            // Layout pass
-            val placeable = placeableMap[measurable] ?: return@fastForEach
-            placeWithFrameTransform(placeable, frame)
+            val matchedMeasurable: Measurable =
+                if (!frameCache.containsKey(measurable)) {
+                    // TODO: Workaround for lookaheadLayout, the measurable is a different instance
+                    frameCache.keys.firstOrNull {
+                        it.layoutId != null && it.layoutId == measurable.layoutId
+                    } ?: return@fastForEach
+                } else {
+                    measurable
+                }
+            val frame = frameCache[matchedMeasurable] ?: return
+            val placeable = placeables[matchedMeasurable] ?: return
+            if (!frameCache.containsKey(measurable)) {
+                // TODO: Workaround for lookaheadLayout, the measurable is a different instance and
+                //   the placeable should be a result of the given measurable
+                placeWithFrameTransform(
+                    measurable.measure(Constraints.fixed(placeable.width, placeable.height)),
+                    frame
+                )
+            } else {
+                placeWithFrameTransform(placeable, frame)
+            }
         }
         if (layoutInformationReceiver?.getLayoutInformationMode() == LayoutInfoFlags.BOUNDS) {
             computeLayoutResult()
@@ -2096,8 +2056,7 @@ internal open class Measurer(
                 IntIntPair(constraintWidget.measuredWidth, constraintWidget.measuredHeight)
             }
             measurable is Measurable -> {
-                val result = measurable.measure(constraints)
-                placeables[measurable] = result
+                val result = measurable.measure(constraints).also { placeables[measurable] = it }
                 IntIntPair(result.width, result.height)
             }
             else -> {
@@ -2315,10 +2274,6 @@ internal fun buildMapping(state: State, measurables: List<Measurable>) {
         }
     }
 }
-
-/** Returns either [LayoutIdParentData] or [ConstraintLayoutParentData] id. Otherwise "null". */
-internal val Measurable.anyOrNullId: String
-    get() = (this.layoutId ?: this.constraintLayoutId)?.toString() ?: "null"
 
 internal typealias SolverDimension = androidx.constraintlayout.core.state.Dimension
 

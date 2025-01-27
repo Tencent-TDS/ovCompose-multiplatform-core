@@ -16,6 +16,8 @@
 
 package androidx.wear.protolayout.types
 
+import androidx.annotation.RestrictTo
+import androidx.annotation.RestrictTo.Scope
 import androidx.wear.protolayout.DimensionBuilders.DpProp
 import androidx.wear.protolayout.DimensionBuilders.EmProp
 import androidx.wear.protolayout.DimensionBuilders.SpProp
@@ -32,7 +34,8 @@ internal val Float.em: EmProp
 internal val Boolean.prop: BoolProp
     get() = BoolProp.Builder(this).build()
 
-internal val Float.dp: DpProp
+@get:RestrictTo(Scope.LIBRARY_GROUP)
+val Float.dp: DpProp
     get() = DpProp.Builder(this).build()
 
 @RequiresSchemaVersion(major = 1, minor = 400)

@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.privacysandbox.ui.client.test
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.os.Build
 import android.os.IBinder
 import android.view.SurfaceView
 import android.view.View
@@ -28,10 +28,12 @@ import android.view.ViewGroup.LayoutParams
 import android.view.ViewTreeObserver
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.BackwardCompatUtil
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SessionConstants
 import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -55,19 +57,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+// TODO(b/374919355): Create a common test for View and Compose
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class SandboxedSdkViewTest {
-
-    companion object {
-        const val TIMEOUT = 1000.toLong()
-
-        // Longer timeout used for expensive operations like device rotation.
-        const val UI_INTENSIVE_TIMEOUT = 2000.toLong()
-
-        const val SHORTEST_TIME_BETWEEN_SIGNALS_MS = 200
-    }
-
     private lateinit var uiDevice: UiDevice
     private lateinit var context: Context
     private lateinit var view: SandboxedSdkView
@@ -77,22 +70,7 @@ class SandboxedSdkViewTest {
     private lateinit var linearLayout: LinearLayout
     private var mainLayoutWidth = -1
     private var mainLayoutHeight = -1
-
     @get:Rule var activityScenarioRule = ActivityScenarioRule(UiLibActivity::class.java)
-
-    class FailingTestSandboxedUiAdapter : AbstractSandboxedUiAdapter() {
-        override fun openSession(
-            context: Context,
-            windowInputToken: IBinder,
-            initialWidth: Int,
-            initialHeight: Int,
-            isZOrderOnTop: Boolean,
-            clientExecutor: Executor,
-            client: SandboxedUiAdapter.SessionClient
-        ) {
-            clientExecutor.execute { client.onSessionError(Exception("Error in openSession()")) }
-        }
-    }
 
     @Before
     fun setup() {
@@ -125,20 +103,15 @@ class SandboxedSdkViewTest {
     fun addAndRemoveEventListenerTest() {
         // Initially no events are received when the session is not open.
         assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
-
         // When session is open, the events are received
         addViewToLayout()
         assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
-
         // Remove the view from layout to close the session.
         removeAllViewsFromLayout()
         assertThat(eventListener.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
-
         eventListener.uiDisplayedLatch = CountDownLatch(1)
-
         // Remove the listener from the view.
         view.setEventListener(null)
-
         // Add view to layout again to start the session. The latches will not count down this time.
         addViewToLayout()
         assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
@@ -150,16 +123,13 @@ class SandboxedSdkViewTest {
         val eventListener2 = TestEventListener()
         view.setEventListener(eventListener1)
         view.setEventListener(eventListener2)
-
         activityScenarioRule.withActivity { view.setAdapter(FailingTestSandboxedUiAdapter()) }
         addViewToLayout()
         assertThat(eventListener1.errorLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(eventListener2.errorLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
-
         activityScenarioRule.withActivity { view.setAdapter(testSandboxedUiAdapter) }
         assertThat(eventListener1.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(eventListener2.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
-
         removeAllViewsFromLayout()
         assertThat(eventListener1.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
             .isFalse()
@@ -189,11 +159,9 @@ class SandboxedSdkViewTest {
     fun childViewRemovedOnErrorTest() {
         assertTrue(view.childCount == 0)
         addViewToLayout()
-
         testSandboxedUiAdapter.assertSessionOpened()
         assertTrue(view.childCount == 1)
         assertTrue(view.layoutParams == layoutParams)
-
         activityScenarioRule.withActivity {
             testSandboxedUiAdapter.internalClient!!.onSessionError(Exception())
             assertTrue(view.childCount == 0)
@@ -203,19 +171,16 @@ class SandboxedSdkViewTest {
     @Test
     fun onZOrderChangedTest() {
         addViewToLayout()
-
         // When session is opened, the provider should not receive a Z-order notification.
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession!!
         val adapter = testSandboxedUiAdapter
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(adapter.isZOrderOnTop).isTrue()
-
         // When state changes to false, the provider should be notified.
         view.orderProviderUiAboveClientUi(false)
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(adapter.isZOrderOnTop).isFalse()
-
         // When state changes back to true, the provider should be notified.
         session.zOrderChangedLatch = CountDownLatch(1)
         view.orderProviderUiAboveClientUi(true)
@@ -226,13 +191,11 @@ class SandboxedSdkViewTest {
     @Test
     fun onZOrderUnchangedTest() {
         addViewToLayout()
-
         // When session is opened, the provider should not receive a Z-order notification.
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession!!
         val adapter = testSandboxedUiAdapter
         assertThat(adapter.isZOrderOnTop).isTrue()
-
         // When Z-order state is unchanged, the provider should not be notified.
         session.zOrderChangedLatch = CountDownLatch(1)
         view.orderProviderUiAboveClientUi(true)
@@ -246,7 +209,6 @@ class SandboxedSdkViewTest {
         addViewToLayout()
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession!!
-
         // The initial Z-order state is passed to the session, but notifyZOrderChanged is not called
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isFalse()
@@ -261,7 +223,6 @@ class SandboxedSdkViewTest {
         val session = testSandboxedUiAdapter.testSession!!
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         activityScenarioRule.withActivity { testSandboxedUiAdapter.sendOnSessionOpened() }
-
         // After session has opened, the pending Z order changed made while loading is notified
         // th the session.
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
@@ -279,12 +240,13 @@ class SandboxedSdkViewTest {
             Until.newWindow(),
             UI_INTENSIVE_TIMEOUT
         )
-        testSandboxedUiAdapter.assertSessionOpened()
+        testSandboxedUiAdapter.assertSessionNotClosed()
         uiDevice.performActionAndWait(
             { uiDevice.setOrientationNatural() },
             Until.newWindow(),
             UI_INTENSIVE_TIMEOUT
         )
+        testSandboxedUiAdapter.assertSessionNotClosed()
     }
 
     @Test
@@ -301,7 +263,6 @@ class SandboxedSdkViewTest {
     fun overrideProviderViewLayoutParams() {
         val providerViewWidth = (0..1000).random()
         val providerViewHeight = (0..1000).random()
-
         class CustomSession : AbstractSandboxedUiAdapter.AbstractSession() {
             override val view = View(context)
 
@@ -309,11 +270,10 @@ class SandboxedSdkViewTest {
                 view.layoutParams = LinearLayout.LayoutParams(providerViewWidth, providerViewHeight)
             }
         }
-
         class CustomUiAdapter : AbstractSandboxedUiAdapter() {
             override fun openSession(
                 context: Context,
-                windowInputToken: IBinder,
+                sessionConstants: SessionConstants,
                 initialWidth: Int,
                 initialHeight: Int,
                 isZOrderOnTop: Boolean,
@@ -323,11 +283,9 @@ class SandboxedSdkViewTest {
                 clientExecutor.execute { client.onSessionOpened(CustomSession()) }
             }
         }
-
         view.setAdapter(CustomUiAdapter())
         addViewToLayout(waitToBeActive = true)
         val contentView = view.getChildAt(0)
-
         assertThat(contentView.layoutParams.width).isNotEqualTo(providerViewWidth)
         assertThat(contentView.layoutParams.height).isNotEqualTo(providerViewHeight)
         assertThat(contentView.layoutParams.width).isEqualTo(LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -341,7 +299,6 @@ class SandboxedSdkViewTest {
         val initialWidth = 100
         val initialHeight = 100
         view.layoutParams = LinearLayout.LayoutParams(initialWidth, initialHeight)
-
         class CustomSession : AbstractSandboxedUiAdapter.AbstractSession() {
             override val view = TextView(context)
 
@@ -349,13 +306,11 @@ class SandboxedSdkViewTest {
                 view.text = "Test View"
             }
         }
-
         val customSession = CustomSession()
-
         class CustomUiAdapter : AbstractSandboxedUiAdapter() {
             override fun openSession(
                 context: Context,
-                windowInputToken: IBinder,
+                sessionConstants: SessionConstants,
                 initialWidth: Int,
                 initialHeight: Int,
                 isZOrderOnTop: Boolean,
@@ -365,12 +320,9 @@ class SandboxedSdkViewTest {
                 clientExecutor.execute { client.onSessionOpened(customSession) }
             }
         }
-
         view.setAdapter(CustomUiAdapter())
         addViewToLayout(waitToBeActive = true)
-
         customSession.view.layout(0, 0, initialWidth * 2, initialHeight * 2)
-
         assertThat(customSession.view.width).isEqualTo(initialWidth * 2)
         assertThat(customSession.view.height).isEqualTo(initialHeight * 2)
         assertThat(view.width).isEqualTo(initialWidth)
@@ -492,14 +444,14 @@ class SandboxedSdkViewTest {
      */
     @SuppressLint("NewApi") // Test runs on U+ devices
     @Test
-    fun inputTokenIsCorrect() {
-        // Input token is only needed when provider can be located on a separate process.
+    fun windowInputTokenIsCorrect() {
+        // Input token is only needed when provider can be located on a separate process. It is
+        // also only needed on U devices, on V+ we will use InputTransferToken
+        assumeTrue(Build.VERSION.SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
         assumeTrue(BackwardCompatUtil.canProviderBeRemote())
-
         lateinit var layout: LinearLayout
         val surfaceView = SurfaceView(context)
         val surfaceViewLatch = CountDownLatch(1)
-
         var token: IBinder? = null
         surfaceView.addOnAttachStateChangeListener(
             object : View.OnAttachStateChangeListener {
@@ -512,22 +464,31 @@ class SandboxedSdkViewTest {
                 override fun onViewDetachedFromWindow(p0: View) {}
             }
         )
-
         // Attach SurfaceView
         activityScenarioRule.withActivity {
             layout = findViewById(R.id.mainlayout)
             layout.addView(surfaceView)
             layout.removeView(surfaceView)
         }
-
         // Verify SurfaceView has a non-null token when attached.
         assertThat(surfaceViewLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(token).isNotNull()
-
         // Verify that the UI adapter receives the same host token object when opening a session.
         addViewToLayout()
         testSandboxedUiAdapter.assertSessionOpened()
-        assertThat(testSandboxedUiAdapter.inputToken).isEqualTo(token)
+        assertThat(testSandboxedUiAdapter.sessionConstants?.windowInputToken).isEqualTo(token)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Test
+    fun inputTransferTokenIsCorrect() {
+        // InputTransferToken is only sent on V+
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM)
+        addViewToLayoutAndWaitToBeActive()
+        val inputTransferToken = view.rootSurfaceControl?.inputTransferToken
+        assertThat(testSandboxedUiAdapter.sessionConstants?.inputTransferToken).isNotNull()
+        assertThat(testSandboxedUiAdapter.sessionConstants?.inputTransferToken)
+            .isEqualTo(inputTransferToken)
     }
 
     @Ignore("b/307829956")
@@ -752,7 +713,6 @@ class SandboxedSdkViewTest {
                 Runnable { view.removeAllViewsInLayout() },
                 Runnable { view.removeViewsInLayout(0, 0) }
             )
-
         removeChildRunnableArray.forEach { removeChildRunnable ->
             val exception =
                 assertThrows(UnsupportedOperationException::class.java) {
@@ -806,5 +766,12 @@ class SandboxedSdkViewTest {
         assertThat(layoutLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(width).isEqualTo(expectedWidth)
         assertThat(height).isEqualTo(expectedHeight)
+    }
+
+    companion object {
+        const val TIMEOUT = 1000.toLong()
+        // Longer timeout used for expensive operations like device rotation.
+        const val UI_INTENSIVE_TIMEOUT = 2000.toLong()
+        const val SHORTEST_TIME_BETWEEN_SIGNALS_MS = 200
     }
 }

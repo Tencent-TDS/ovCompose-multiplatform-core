@@ -78,6 +78,10 @@ fun SwipeToRevealSingleActionCardSample() {
                 text = { Text("Delete") },
                 label = "Delete"
             )
+            undoPrimaryAction(
+                onClick = { /* This block is called when the undo primary action is executed. */ },
+                text = { Text("Undo Delete") },
+            )
         }
     ) {
         Card(modifier = Modifier.fillMaxWidth(), onClick = {}) {

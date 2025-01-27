@@ -196,7 +196,7 @@ public final class MediaRouterDynamicProviderTest {
         assertNotNull(mRequestedRoute);
         assertEquals(ROUTE_ID_2, mRequestedRoute.getDescriptorId());
         assertEquals(RouteConnectionState.STATE_DISCONNECTED, mRouteConnectionState);
-        assertEquals(MediaRouter.REASON_DISCONNECTED, mRouteDisconnectedReason);
+        assertEquals(MediaRouter.REASON_DISCONNECT_CALLED, mRouteDisconnectedReason);
     }
 
     @Test()

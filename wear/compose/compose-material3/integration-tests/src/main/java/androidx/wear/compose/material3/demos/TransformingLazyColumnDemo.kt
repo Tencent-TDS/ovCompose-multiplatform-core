@@ -154,21 +154,25 @@ fun TransformingLazyColumnButtons() {
         }
         item {
             TransformExclusion {
-                val interactionSourceLeft = remember { MutableInteractionSource() }
-                val interactionSourceRight = remember { MutableInteractionSource() }
+                val interactionSource1 = remember { MutableInteractionSource() }
+                val interactionSource2 = remember { MutableInteractionSource() }
                 ButtonGroup(Modifier.scrollTransform(this@item)) {
-                    buttonGroupItem(interactionSource = interactionSourceLeft) {
-                        Button(onClick = {}, interactionSource = interactionSourceLeft) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("L")
-                            }
+                    Button(
+                        onClick = {},
+                        Modifier.animateWidth(interactionSource1),
+                        interactionSource = interactionSource1
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("L")
                         }
                     }
-                    buttonGroupItem(interactionSource = interactionSourceRight) {
-                        Button(onClick = {}, interactionSource = interactionSourceRight) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("R")
-                            }
+                    Button(
+                        onClick = {},
+                        Modifier.animateWidth(interactionSource2),
+                        interactionSource = interactionSource2
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("R")
                         }
                     }
                 }

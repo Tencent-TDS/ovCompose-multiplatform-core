@@ -31,7 +31,9 @@ import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     id("AndroidXPlugin")
+    id("com.android.library")
 }
+
 
 configurations {
     // Configuration for resolving shared archive file of androidx's SQLite compilation
@@ -53,17 +55,7 @@ configurations {
 }
 
 androidXMultiplatform {
-    androidLibrary {
-        namespace = "androidx.sqlite.db.framework"
-        withAndroidTestOnDeviceBuilder {
-            it.compilationName = "instrumentedTest"
-            it.defaultSourceSetName = "androidInstrumentedTest"
-            it.sourceSetTreeName = "test"
-        }
-        withAndroidTestOnJvmBuilder {
-            it.defaultSourceSetName = "androidUnitTest"
-        }
-    }
+    android()
     ios() {
         // Link to sqlite3 available in iOS
         binaries.configureEach {
@@ -159,3 +151,6 @@ androidx {
     kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
+android {
+    namespace "androidx.sqlite.db.framework"
+}

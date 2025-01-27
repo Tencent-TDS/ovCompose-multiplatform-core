@@ -20,4 +20,4 @@ package dalvik.annotation.optimization
 
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CONSTRUCTOR, AnnotationTarget.FUNCTION)
-public actual annotation class NeverInline
+public annotation class NeverInline

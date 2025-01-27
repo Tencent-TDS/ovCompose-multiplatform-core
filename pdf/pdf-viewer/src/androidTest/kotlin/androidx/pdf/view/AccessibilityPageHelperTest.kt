@@ -16,16 +16,10 @@
 
 package androidx.pdf.view
 
-import android.graphics.Point
 import android.graphics.RectF
-import android.net.Uri
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
-import androidx.pdf.PdfDocument
-import androidx.pdf.content.PdfPageGotoLinkContent
-import androidx.pdf.content.PdfPageLinkContent
-import androidx.pdf.content.PdfPageTextContent
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -46,43 +40,7 @@ class AccessibilityPageHelperTest {
     private lateinit var pdfView: PdfView
     private lateinit var activityScenario: ActivityScenario<PdfViewTestActivity>
 
-    private val pdfDocument =
-        FakePdfDocument(
-            pages = List(10) { Point(100, 200) },
-            textContents =
-                List(10) { index ->
-                    PdfPageTextContent(
-                        bounds = listOf(RectF(0f, 0f, 100f, 200f)),
-                        text = "Sample text for page ${index + 1}"
-                    )
-                },
-            pageLinks =
-                mapOf(
-                    0 to
-                        PdfDocument.PdfPageLinks(
-                            gotoLinks =
-                                listOf(
-                                    PdfPageGotoLinkContent(
-                                        bounds = listOf(RectF(25f, 30f, 75f, 50f)),
-                                        destination =
-                                            PdfPageGotoLinkContent.Destination(
-                                                pageNumber = VALID_PAGE_NUMBER,
-                                                xCoordinate = 10f,
-                                                yCoordinate = 40f,
-                                                zoom = 1f
-                                            )
-                                    )
-                                ),
-                            externalLinks =
-                                listOf(
-                                    PdfPageLinkContent(
-                                        bounds = listOf(RectF(25f, 60f, 75f, 80f)),
-                                        uri = Uri.parse(URI_WITH_VALID_SCHEME)
-                                    )
-                                ),
-                        )
-                )
-        )
+    private val pdfDocument = FakePdfDocument.newInstance()
 
     @Before
     fun setupPdfView() {
@@ -139,8 +97,8 @@ class AccessibilityPageHelperTest {
             )
 
         testCases.forEach { (x, y, expectedPage) ->
-            val adjustedX = pdfView.toViewCoord(x, pdfView.zoom, pdfView.scrollX)
-            val adjustedY = pdfView.toViewCoord(y, pdfView.zoom, pdfView.scrollY)
+            val adjustedX = PdfView.toViewCoord(x, pdfView.zoom, pdfView.scrollX)
+            val adjustedY = PdfView.toViewCoord(y, pdfView.zoom, pdfView.scrollY)
 
             assertThat(accessibilityPageHelper.getVirtualViewAt(adjustedX, adjustedY))
                 .isEqualTo(expectedPage)
@@ -248,5 +206,3 @@ class AccessibilityPageHelperTest {
 
 /** Arbitrary fixed ID for PdfView */
 private const val PDF_VIEW_ID = 123456789
-private const val URI_WITH_VALID_SCHEME = "https://www.example.com"
-private const val VALID_PAGE_NUMBER = 4

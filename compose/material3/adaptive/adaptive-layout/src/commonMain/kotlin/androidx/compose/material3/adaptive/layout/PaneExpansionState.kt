@@ -224,8 +224,14 @@ internal constructor(
             currentMeasuredDraggingOffset = coercedValue
         }
 
-    @VisibleForTesting
-    internal var currentAnchor
+    /**
+     * The current anchor that pane expansion has been settled or is settling to. Note that this
+     * field might be `null` if:
+     * 1. No anchors have been set to the state.
+     * 2. Pane expansion is set directly via [setFirstPaneWidth] or set [setFirstPaneProportion].
+     * 3. Pane expansion is in its initial state without an initial anchor provided.
+     */
+    var currentAnchor
         get() = data.currentAnchorState
         private set(value) {
             data.currentAnchorState = value
@@ -337,6 +343,7 @@ internal constructor(
         data.firstPaneProportionState = Float.NaN
         data.currentDraggingOffsetState = Unspecified
         data.firstPaneWidthState = firstPaneWidth
+        currentAnchor = null
     }
 
     /**
@@ -353,6 +360,24 @@ internal constructor(
         data.firstPaneWidthState = Unspecified
         data.currentDraggingOffsetState = Unspecified
         data.firstPaneProportionState = firstPaneProportion
+        currentAnchor = null
+    }
+
+    /**
+     * Animate the pane expansion to the given [PaneExpansionAnchor]. Note that the given anchor
+     * must be one of the provided anchor when creating the state with [rememberPaneExpansionState];
+     * otherwise the function throws.
+     *
+     * @param anchor the anchor to animate to
+     * @param initialVelocity the initial velocity of the animation
+     */
+    suspend fun animateTo(anchor: PaneExpansionAnchor, initialVelocity: Float = 0F) {
+        require(anchors.contains(anchor)) { "The provided $anchor is not in the anchor list!" }
+        currentAnchor = anchor
+        measuredDensity?.apply {
+            val position = anchor.positionIn(maxExpansionWidth, this)
+            animateToInternal(position, initialVelocity)
+        }
     }
 
     /**
@@ -379,11 +404,11 @@ internal constructor(
                     anchors.toPositions(
                         // When maxExpansionWidth is updated, the anchor positions will be
                         // recalculated.
-                        Snapshot.withoutReadObservation { maxExpansionWidth },
+                        maxExpansionWidth,
                         it
                     )
             }
-            if (!anchors.contains(Snapshot.withoutReadObservation { currentAnchor })) {
+            if (!anchors.contains(currentAnchor)) {
                 currentAnchor = null
             }
             this.anchoringAnimationSpec = anchoringAnimationSpec
@@ -428,27 +453,36 @@ internal constructor(
         }
 
         dragMutex.mutate(MutatePriority.PreventUserInput) {
-            isSettling = true
-            val leftVelocity = flingBehavior.run { dragScope.performFling(velocity) }
-            val anchorPosition =
-                measuredAnchorPositions.getPositionOfTheClosestAnchor(
-                    currentMeasuredDraggingOffset,
-                    leftVelocity
-                )
             try {
+                isSettling = true
+                val leftVelocity = flingBehavior.run { dragScope.performFling(velocity) }
+                val anchorPosition =
+                    measuredAnchorPositions.getPositionOfTheClosestAnchor(
+                        currentMeasuredDraggingOffset,
+                        leftVelocity
+                    )
                 currentAnchor = anchors[anchorPosition.index]
-                animate(
-                    currentMeasuredDraggingOffset.toFloat(),
-                    anchorPosition.position.toFloat(),
-                    leftVelocity,
-                    anchoringAnimationSpec,
-                ) { value, _ ->
-                    currentDraggingOffset = value.toInt()
-                }
+                animateToInternal(anchorPosition.position, leftVelocity)
             } finally {
-                currentDraggingOffset = anchorPosition.position
                 isSettling = false
             }
+        }
+    }
+
+    private suspend fun animateToInternal(offset: Int, initialVelocity: Float) {
+        try {
+            isSettling = true
+            animate(
+                currentMeasuredDraggingOffset.toFloat(),
+                offset.toFloat(),
+                initialVelocity,
+                anchoringAnimationSpec,
+            ) { value, _ ->
+                currentDraggingOffset = value.toInt()
+            }
+        } finally {
+            currentDraggingOffset = offset
+            isSettling = false
         }
     }
 
@@ -556,7 +590,10 @@ sealed class PaneExpansionAnchor {
      * [PaneExpansionAnchor] implementation that specifies the anchor position in the proportion of
      * the total size of the layout at the start side of the anchor.
      *
-     * @property proportion the proportion of the layout at the start side of the anchor. layout.
+     * @param proportion the proportion of the layout at the start side of the anchor. For example,
+     *   if the current layout from the start to the end is list-detail, when the proportion value
+     *   is 0.3 and this anchor is used, the list pane will occupy 30% of the layout and the detail
+     *   pane will occupy 70% of it.
      */
     class Proportion(@FloatRange(0.0, 1.0) val proportion: Float) : PaneExpansionAnchor() {
         override val type = ProportionType
@@ -584,40 +621,107 @@ sealed class PaneExpansionAnchor {
     }
 
     /**
-     * [PaneExpansionAnchor] implementation that specifies the anchor position in the offset in
-     * [Dp]. If a positive value is provided, the offset will be treated as a start offset, on the
-     * other hand, if a negative value is provided, the absolute value of the provided offset will
-     * be used as an end offset. For example, if -150.dp is provided, the resulted anchor will be at
-     * the position that is 150dp away from the end side of the associated layout.
+     * [PaneExpansionAnchor] implementation that specifies the anchor position based on the offset
+     * in [Dp].
      *
      * @property offset the offset of the anchor in [Dp].
      */
-    class Offset(val offset: Dp) : PaneExpansionAnchor() {
-        override val type = OffsetType
-
-        override val description
-            @Composable
-            get() =
-                getString(Strings.defaultPaneExpansionOffsetAnchorDescription, offset.value.toInt())
-
-        override fun positionIn(totalSizePx: Int, density: Density) =
-            with(density) { offset.toPx() }.toInt().let { if (it < 0) totalSizePx + it else it }
+    abstract class Offset internal constructor(val offset: Dp, override internal val type: Int) :
+        PaneExpansionAnchor() {
+        /**
+         * Indicates the direction of the offset.
+         *
+         * @see Direction.FromStart
+         * @see Direction.FromEnd
+         */
+        val direction: Direction = Direction(type)
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Offset) return false
-            return offset == other.offset
+            return offset == other.offset && direction == other.direction
         }
 
         override fun hashCode(): Int {
-            return offset.hashCode()
+            return offset.hashCode() * 31 + direction.hashCode()
+        }
+
+        /** Represents the direction from where the offset will be calculated. */
+        @JvmInline
+        value class Direction internal constructor(internal val value: Int) {
+            companion object {
+                /**
+                 * Indicates the offset will be calculated from the start. For example, if the
+                 * offset is 150.dp, the resulted anchor will be at the position that is 150dp away
+                 * from the start side of the associated layout.
+                 */
+                val FromStart = Direction(OffsetFromStartType)
+
+                /**
+                 * Indicates the offset will be calculated from the end. For example, if the offset
+                 * is 150.dp, the resulted anchor will be at the position that is 150dp away from
+                 * the end side of the associated layout.
+                 */
+                val FromEnd = Direction(OffsetFromEndType)
+            }
+        }
+
+        private class StartOffset(offset: Dp) : Offset(offset, OffsetFromStartType) {
+            override val description
+                @Composable
+                get() =
+                    getString(
+                        Strings.defaultPaneExpansionStartOffsetAnchorDescription,
+                        offset.value.toInt()
+                    )
+
+            override fun positionIn(totalSizePx: Int, density: Density) =
+                with(density) { offset.roundToPx() }
+        }
+
+        private class EndOffset(offset: Dp) : Offset(offset, OffsetFromEndType) {
+            override val description
+                @Composable
+                get() =
+                    getString(
+                        Strings.defaultPaneExpansionEndOffsetAnchorDescription,
+                        offset.value.toInt()
+                    )
+
+            override fun positionIn(totalSizePx: Int, density: Density) =
+                totalSizePx - with(density) { offset.roundToPx() }
+        }
+
+        companion object {
+            /**
+             * Create an [androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset]
+             * anchor from the start side of the layout.
+             *
+             * @param offset offset to be used in [Dp].
+             */
+            fun fromStart(offset: Dp): Offset {
+                require(offset >= 0.dp) { "Offset must larger than or equal to 0 dp." }
+                return StartOffset(offset)
+            }
+
+            /**
+             * Create an [androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset]
+             * anchor from the end side of the layout.
+             *
+             * @param offset offset to be used in [Dp].
+             */
+            fun fromEnd(offset: Dp): Offset {
+                require(offset >= 0.dp) { "Offset must larger than or equal to 0 dp." }
+                return EndOffset(offset)
+            }
         }
     }
 
     internal companion object {
         internal const val UnspecifiedType = 0
         internal const val ProportionType = 1
-        internal const val OffsetType = 2
+        internal const val OffsetFromStartType = 2
+        internal const val OffsetFromEndType = 3
     }
 }
 
@@ -693,8 +797,10 @@ private fun PaneExpansionStateDataSaver():
                 when (currentAnchorType) {
                     PaneExpansionAnchor.ProportionType ->
                         PaneExpansionAnchor.Proportion(it[6] as Float)
-                    PaneExpansionAnchor.OffsetType ->
-                        PaneExpansionAnchor.Offset((it[6] as Float).dp)
+                    PaneExpansionAnchor.OffsetFromStartType ->
+                        PaneExpansionAnchor.Offset.fromStart((it[6] as Float).dp)
+                    PaneExpansionAnchor.OffsetFromEndType ->
+                        PaneExpansionAnchor.Offset.fromEnd((it[6] as Float).dp)
                     else -> null
                 }
             object : Map.Entry<PaneExpansionStateKey, PaneExpansionStateData> {

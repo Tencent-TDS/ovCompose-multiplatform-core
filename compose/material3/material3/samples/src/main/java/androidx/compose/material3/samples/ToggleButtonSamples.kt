@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ElevatedToggleButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -33,6 +32,7 @@ import androidx.compose.material3.OutlinedToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,7 +58,7 @@ fun ToggleButtonSample() {
 fun SquareToggleButtonSample() {
     var checked by remember { mutableStateOf(false) }
     val shapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ToggleButtonDefaults.squareShape,
             pressedShape = ToggleButtonDefaults.pressedShape,
             checkedShape = ToggleButtonDefaults.roundShape

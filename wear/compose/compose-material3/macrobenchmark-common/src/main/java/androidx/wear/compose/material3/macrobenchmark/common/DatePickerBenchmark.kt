@@ -16,7 +16,9 @@
 
 package androidx.wear.compose.material3.macrobenchmark.common
 
+import android.os.Build
 import android.os.SystemClock
+import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.material.icons.Icons
@@ -41,6 +43,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
+@RequiresApi(Build.VERSION_CODES.O)
 object DatePickerBenchmark : MacrobenchmarkScreen {
     override val content: @Composable (BoxScope.() -> Unit)
         get() = {
@@ -81,13 +84,8 @@ object DatePickerBenchmark : MacrobenchmarkScreen {
             device.waitForIdle()
             SystemClock.sleep(500)
             repeat(3) { columnIndex ->
-                repeat(2) { i ->
-                    val endY =
-                        if (i % 2 == 0) {
-                            device.displayHeight / 10 // scroll up
-                        } else {
-                            device.displayHeight * 9 / 10 // scroll down
-                        }
+                repeat(20) {
+                    val endY = device.displayHeight * 9 / 10 // scroll down
                     device.swipe(
                         device.displayWidth / 2,
                         device.displayHeight / 2,

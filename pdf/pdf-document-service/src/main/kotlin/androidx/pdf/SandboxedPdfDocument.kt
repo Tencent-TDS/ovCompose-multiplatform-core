@@ -22,6 +22,7 @@ import android.graphics.PointF
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
+import android.os.DeadObjectException
 import android.os.ParcelFileDescriptor
 import android.util.Size
 import android.util.SparseArray
@@ -63,8 +64,9 @@ import kotlinx.coroutines.withContext
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SandboxedPdfDocument(
     override val uri: Uri,
+    public val connection: PdfServiceConnection,
+    private val password: String?,
     private val fileDescriptor: ParcelFileDescriptor,
-    private val connection: PdfServiceConnection,
     private val dispatcher: CoroutineDispatcher,
     override val pageCount: Int,
     override val isLinearized: Boolean,
@@ -186,9 +188,16 @@ public class SandboxedPdfDocument(
     }
 
     private suspend fun <T> withDocument(block: (PdfDocumentRemote) -> T): T {
+        connection.blockUntilConnected()
+
         val binder =
             connection.documentBinder
-                ?: throw IllegalStateException("Binder object to the service must not be null!")
+                ?: throw DeadObjectException("Binder object to the service must not be null!")
+
+        if (connection.needsToReopenDocument) {
+            binder.openPdfDocument(fileDescriptor, password)
+            connection.needsToReopenDocument = false
+        }
 
         return withContext(dispatcher) { block(binder) }
     }

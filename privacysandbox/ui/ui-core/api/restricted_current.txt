@@ -5,7 +5,7 @@ package androidx.privacysandbox.ui.core {
     ctor public DelegatingSandboxedUiAdapter(android.os.Bundle delegate);
     method public void addDelegateChangeListener(androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter.DelegateChangeListener listener);
     method public android.os.Bundle getDelegate();
-    method public void openSession(android.content.Context context, android.os.IBinder windowInputToken, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
+    method public void openSession(android.content.Context context, androidx.privacysandbox.ui.core.SessionConstants sessionConstants, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
     method public void removeDelegateChangeListener(androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter.DelegateChangeListener listener);
     method public suspend Object? updateDelegate(android.os.Bundle delegate, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   }
@@ -41,7 +41,7 @@ package androidx.privacysandbox.ui.core {
   }
 
   public interface SandboxedUiAdapter {
-    method public void openSession(android.content.Context context, android.os.IBinder windowInputToken, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
+    method public void openSession(android.content.Context context, androidx.privacysandbox.ui.core.SessionConstants sessionConstants, int initialWidth, int initialHeight, boolean isZOrderOnTop, java.util.concurrent.Executor clientExecutor, androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient client);
   }
 
   public static interface SandboxedUiAdapter.Session extends java.lang.AutoCloseable {
@@ -68,6 +68,17 @@ package androidx.privacysandbox.ui.core {
     property public final int clientVersion;
     field public static final androidx.privacysandbox.ui.core.SdkRuntimeUiLibVersions INSTANCE;
     field public static final int apiVersion = 1; // 0x1
+  }
+
+  public final class SessionConstants {
+    method public android.window.InputTransferToken? getInputTransferToken();
+    method public android.os.IBinder? getWindowInputToken();
+    property @RequiresApi(android.os.Build.VERSION_CODES.VANILLA_ICE_CREAM) public final android.window.InputTransferToken? inputTransferToken;
+    property public final android.os.IBinder? windowInputToken;
+    field public static final androidx.privacysandbox.ui.core.SessionConstants.Companion Companion;
+  }
+
+  public static final class SessionConstants.Companion {
   }
 
   public interface SessionObserver {

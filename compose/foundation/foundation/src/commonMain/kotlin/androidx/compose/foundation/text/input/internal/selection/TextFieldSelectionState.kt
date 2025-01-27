@@ -66,7 +66,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.isSpecified
@@ -115,9 +114,6 @@ internal class TextFieldSelectionState(
     var isFocused: Boolean,
     private var isPassword: Boolean,
 ) {
-    /** [AutofillManager] to perform Autofill. */
-    private var autofillManager: AutofillManager? = null
-
     /** [HapticFeedback] handle to perform haptic feedback. */
     private var hapticFeedBack: HapticFeedback? = null
 
@@ -129,6 +125,9 @@ internal class TextFieldSelectionState(
 
     /** Whether user is interacting with the UI in touch mode. */
     var isInTouchMode: Boolean by mutableStateOf(true)
+
+    /** The action to invoke when autofill is requested in text toolbar. */
+    var requestAutofillAction: (() -> Unit)? = null
 
     /**
      * Reduced [ReceiveContentConfiguration] from the attached modifier node hierarchy. This value
@@ -353,8 +352,7 @@ internal class TextFieldSelectionState(
         density: Density,
         enabled: Boolean,
         readOnly: Boolean,
-        isPassword: Boolean,
-        autofillManager: AutofillManager?
+        isPassword: Boolean
     ) {
         if (!enabled) {
             hideTextToolbar()
@@ -366,7 +364,6 @@ internal class TextFieldSelectionState(
         this.enabled = enabled
         this.readOnly = readOnly
         this.isPassword = isPassword
-        this.autofillManager = autofillManager
     }
 
     /** Implements the complete set of gestures supported by the cursor handle. */
@@ -443,7 +440,6 @@ internal class TextFieldSelectionState(
 
         clipboard = null
         hapticFeedBack = null
-        autofillManager = null
     }
 
     /**
@@ -1395,7 +1391,7 @@ internal class TextFieldSelectionState(
      * Inserts credentials (if there exist any that match this field type) into the text field.
      */
     fun autofill() {
-        autofillManager?.requestAutofillForActiveElement()
+        requestAutofillAction?.invoke()
     }
 
     fun deselect() {

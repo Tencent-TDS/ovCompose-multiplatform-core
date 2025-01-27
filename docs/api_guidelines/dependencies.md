@@ -271,6 +271,13 @@ Java-based libraries *may* migrate to Kotlin, but they must be careful to
 maintain binary compatibility during the migration. Metalava does not cover all
 possible aspects of migration, so some manual work will be required.
 
+#### Kotlin reflect {#dependencies-kotlin-reflect}
+
+Reflection in libraries is
+[only allowed for backwards compatibility support](/docs/api_guidelines#sdk-reflection)
+and those users should use Java reflection. `kotlin-reflect` is very costly at
+runtime and should never be used.
+
 #### Kotlin coroutines {#dependencies-coroutines}
 
 The Kotlin coroutines library adds around 100kB post-shrinking. New libraries

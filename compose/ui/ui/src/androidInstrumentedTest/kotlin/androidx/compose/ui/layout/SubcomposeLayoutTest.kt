@@ -67,6 +67,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.semanticsId
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.TestActivity
 import androidx.compose.ui.test.assertCountEquals

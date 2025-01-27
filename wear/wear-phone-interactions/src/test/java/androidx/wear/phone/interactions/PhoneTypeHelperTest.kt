@@ -175,6 +175,18 @@ class PhoneTypeHelperTest {
             .isEqualTo(PhoneTypeHelper.DEVICE_TYPE_IOS)
     }
 
+    @Test
+    @Config(minSdk = 35)
+    fun testGetDeviceType_returnsNone() {
+        Settings.Global.putInt(
+            contentResolver,
+            PhoneTypeHelper.PAIRED_DEVICE_OS_TYPE,
+            PhoneTypeHelper.NONE_PAIRED_MODE
+        )
+        assertThat(getPhoneDeviceType(ApplicationProvider.getApplicationContext()))
+            .isEqualTo(PhoneTypeHelper.DEVICE_TYPE_NONE)
+    }
+
     companion object {
         private fun createFakeBluetoothModeCursor(bluetoothMode: Int): Cursor {
             val cursor = MatrixCursor(arrayOf("key", "value"))

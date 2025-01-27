@@ -21,6 +21,7 @@ import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.wear.protolayout.DeviceParametersBuilders
 import androidx.wear.protolayout.DimensionBuilders.expand
+import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
 import androidx.wear.protolayout.testing.LayoutElementAssertionsProvider
 import androidx.wear.protolayout.testing.hasHeight
 import androidx.wear.protolayout.testing.hasWidth
@@ -61,6 +62,7 @@ class CircularProgressIndicatorTest {
             DeviceParametersBuilders.DeviceParameters.Builder()
                 .setScreenWidthDp(192)
                 .setScreenHeightDp(192)
+                .setRendererSchemaVersion(VersionInfo.Builder().setMajor(1).setMinor(403).build())
                 .build()
 
         private const val STATIC_PROGRESS = 0.5F

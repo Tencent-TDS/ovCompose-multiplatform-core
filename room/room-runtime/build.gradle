@@ -110,7 +110,6 @@ androidXMultiplatform {
                 api("androidx.collection:collection:1.4.2")
                 api("androidx.annotation:annotation:1.8.1")
                 api(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
             }
         }
         commonTest {
@@ -180,6 +179,7 @@ androidXMultiplatform {
             dependsOn(jvmNativeMain)
             dependencies {
                 api(project(":sqlite:sqlite-framework"))
+                implementation(libs.atomicFu)
             }
         }
         nativeTest {

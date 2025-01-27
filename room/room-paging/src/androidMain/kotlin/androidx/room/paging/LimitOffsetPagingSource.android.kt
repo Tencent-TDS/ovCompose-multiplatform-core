@@ -61,7 +61,7 @@ actual constructor(
     private val implementation = CommonLimitOffsetImpl(tables, this, ::convertRows)
 
     public actual val itemCount: Int
-        get() = implementation.itemCount.value
+        get() = implementation.itemCount.get()
 
     override val jumpingSupported: Boolean
         get() = true

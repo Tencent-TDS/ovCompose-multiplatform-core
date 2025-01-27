@@ -234,7 +234,7 @@ public class VisibilityStore {
                     prefixedVisibilityConfig);
         }
         // Now that the visibility document has been written. Persist the newly written data.
-        mAppSearchImpl.persistToDisk(PersistType.Code.LITE);
+        mAppSearchImpl.persistToDisk(mAppSearchImpl.getConfig().getLightweightPersistType());
     }
 
     /**

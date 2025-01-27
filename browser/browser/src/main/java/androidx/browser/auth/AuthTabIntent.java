@@ -264,6 +264,8 @@ public class AuthTabIntent {
          *
          * Guarantees that the {@link Intent} will be sent to the same component as the one the
          * session is associated with.
+         *
+         * @param session The {@link AuthTabSession} to associate the intent with.
          */
         public @NonNull Builder setSession(@NonNull AuthTabSession session) {
             mSession = session;
@@ -275,6 +277,8 @@ public class AuthTabIntent {
         /**
          * Associates the {@link Intent} with the given {@link AuthTabSession.PendingSession}.
          * Overrides the effect of {@link #setSession}.
+         *
+         * @param session The {@link AuthTabSession.PendingSession} to associate the intent with.
          */
         @ExperimentalPendingSession
         public @NonNull Builder setPendingSession(AuthTabSession.@NonNull PendingSession session) {

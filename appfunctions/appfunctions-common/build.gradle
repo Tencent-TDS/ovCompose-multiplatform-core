@@ -36,16 +36,17 @@ dependencies {
 
     // Internal dependencies
     implementation("androidx.annotation:annotation:1.8.1")
+    implementation("androidx.core:core:1.1.0")
 
     // Compile only dependencies
-    compileOnly(fileTree(dir: "../appfunctions-stubs", include: ["com.android.extensions.appfunctions-stubs.jar"]))
+    compileOnly(project(":appfunctions:appfunctions-stubs"))
 
     // Test dependencies
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.junit)
-    androidTestCompileOnly(fileTree(dir: "../appfunctions-stubs", include: ["com.android.extensions.appfunctions-stubs.jar"]))
+    androidTestCompileOnly(project(":appfunctions:appfunctions-stubs"))
 }
 
 android {

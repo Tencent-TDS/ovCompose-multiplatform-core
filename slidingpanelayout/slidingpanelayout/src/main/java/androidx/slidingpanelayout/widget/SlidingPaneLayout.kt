@@ -43,6 +43,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.annotation.Px
 import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.Insets
@@ -62,6 +63,7 @@ import androidx.customview.widget.ViewDragHelper
 import androidx.slidingpanelayout.R
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
+import java.lang.reflect.Method
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlin.math.max
@@ -131,7 +133,7 @@ private class FoldBoundsCalculator {
      */
     fun splitViewPositions(
         foldingFeature: FoldingFeature?,
-        parentView: View,
+        parentView: SlidingPaneLayout,
         outLeftRect: Rect,
         outRightRect: Rect,
     ): Boolean {
@@ -147,15 +149,16 @@ private class FoldBoundsCalculator {
             foldingFeature.bounds.top == 0 &&
                 getFoldBoundsInView(foldingFeature, parentView, splitPosition)
         ) {
+            val paneSpacing = parentView.paneSpacing
             outLeftRect.set(
                 parentView.paddingLeft,
                 parentView.paddingTop,
-                max(parentView.paddingLeft, splitPosition.left),
+                max(parentView.paddingLeft, splitPosition.left - paneSpacing / 2),
                 parentView.height - parentView.paddingBottom
             )
             val rightBound = parentView.width - parentView.paddingRight
             outRightRect.set(
-                min(rightBound, splitPosition.right),
+                min(rightBound, splitPosition.right + (paneSpacing + 1) / 2),
                 parentView.paddingTop,
                 rightBound,
                 parentView.height - parentView.paddingBottom
@@ -405,6 +408,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
     private var accessibilityProvider: AccessibilityProvider? = null
     private var dividerHasA11yHover = false
 
+    // Cached reflected method used by findViewByAccessibilityIdTraversal
+    private var getAccessibilityViewIdMethod: Method? = null
+
     /**
      * Set a [Drawable] to display when [isUserResizingEnabled] is `true` and multiple panes are
      * visible without overlapping. This forms the visual touch target for dragging. This may also
@@ -490,7 +496,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             when {
                 !isUserResizable -> -1
                 isDividerDragging -> draggableDividerHandler.dragPositionX
-                splitDividerPosition >= 0 -> splitDividerPosition
+                splitDividerPosition >= 0 -> {
+                    val paneSpacing =
+                        this@SlidingPaneLayout.paneSpacing
+                            .coerceAtMost(width - paddingLeft - paddingRight)
+                            .coerceAtLeast(0)
+                    splitDividerPosition
+                        .coerceAtMost(width - paddingRight - (paneSpacing + 1) / 2)
+                        .coerceAtLeast(paddingLeft + paneSpacing / 2)
+                }
                 else -> {
                     val leftChild: View
                     val rightChild: View
@@ -556,6 +570,22 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             if (value != field) {
                 field = value
                 invalidate()
+            }
+        }
+
+    /**
+     * Set the amount of space between two panes in the side by side mode, in the unit of pixel. The
+     * added space is centered at the [visualDividerPosition], and the half of the specified width
+     * will be added to the left of [visualDividerPosition] and half will be added to the right. Its
+     * default value is 0 pixel.
+     */
+    @get:Px
+    var paneSpacing: Int = 0
+        set(value) {
+            require(value >= 0) { "paneSpacing can't be negative, but the given value is: $value" }
+            if (value != field) {
+                field = value
+                requestLayout()
             }
         }
 
@@ -626,6 +656,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     1 -> USER_RESIZE_RELAYOUT_WHEN_MOVED
                     else -> error("$behaviorConstant is not a valid userResizeBehavior value")
                 }
+
+            paneSpacing = getDimensionPixelSize(R.styleable.SlidingPaneLayout_paneSpacing, 0)
         }
         accessibilityManager =
             context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
@@ -906,7 +938,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         var canSlide = false
         val isLayoutRtl = isLayoutRtl
         val widthAvailable = (widthSize - paddingLeft - paddingRight).coerceAtLeast(0)
-        var widthRemaining = widthAvailable
+        // Coerce the paneSpacing so that it at most equals to widthAvailable.
+        val paneSpacing = paneSpacing.coerceAtMost(widthAvailable).coerceAtLeast(0)
+
+        var widthRemaining = widthAvailable - paneSpacing
         val childCount = childCount
         if (childCount > 2) {
             error("SlidingPaneLayout: More than two child views are not supported.")
@@ -1027,17 +1062,26 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                                     (lp.weight * widthToDistribute / weightSum).roundToInt()
                                 measuredWidth + addedWidth
                             } else { // Explicit dividing line is defined
+                                val paneSpacingLeftHalf = paneSpacing / 2
+                                val paneSpacingRightHalf = paneSpacing - paneSpacingLeftHalf
                                 val clampedPos =
                                     dividerPos
-                                        .coerceAtMost(width - paddingRight)
-                                        .coerceAtLeast(paddingLeft)
+                                        .coerceAtMost(
+                                            widthSize - paddingRight - paneSpacingRightHalf
+                                        )
+                                        .coerceAtLeast(paddingLeft + paneSpacingLeftHalf)
                                 val availableWidthDivider = clampedPos - paddingLeft
                                 if ((index == 0) xor isLayoutRtl) {
-                                    availableWidthDivider - lp.horizontalMargin
+                                    availableWidthDivider -
+                                        lp.horizontalMargin -
+                                        paneSpacingLeftHalf
                                 } else {
                                     // padding accounted for in widthAvailable;
                                     // dividerPos includes left padding
-                                    widthAvailable - lp.horizontalMargin - availableWidthDivider
+                                    widthAvailable -
+                                        lp.horizontalMargin -
+                                        availableWidthDivider -
+                                        paneSpacingRightHalf
                                 }
                             }
                         }
@@ -1206,16 +1250,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             val childBottom = paddingTop + child.measuredHeight
             child.layout(childLeft, paddingTop, childRight, childBottom)
 
+            val paneSpacing =
+                paneSpacing.coerceAtMost(width - paddingStart - paddingEnd).coerceAtLeast(0)
             // If a folding feature separates the content, we use its width as the extra
             // offset for the next child, in order to avoid rendering the content under it.
-            var nextXOffset = 0
-            if (
-                foldingFeature != null &&
-                    foldingFeature.orientation == FoldingFeature.Orientation.VERTICAL &&
-                    foldingFeature.isSeparating
-            ) {
-                nextXOffset = foldingFeature.bounds.width()
-            }
+            val nextXOffset =
+                if (
+                    foldingFeature != null &&
+                        foldingFeature.orientation == FoldingFeature.Orientation.VERTICAL &&
+                        foldingFeature.isSeparating
+                ) {
+                    foldingFeature.bounds.width() + paneSpacing
+                } else {
+                    // paneSpacing added between panes.
+                    paneSpacing
+                }
             nextXStart += child.width + abs(nextXOffset)
         }
         if (isUserResizable) {
@@ -1456,15 +1505,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         }
         if (!isSlideable && isChildClippingToResizeDividerEnabled) {
             val visualDividerPosition = visualDividerPosition
+            val paneSpacing =
+                paneSpacing.coerceAtMost(width - paddingLeft - paddingRight).coerceAtLeast(0)
             if (visualDividerPosition >= 0) {
                 with(tmpRect) {
                     if (isLayoutRtl xor (child === getChildAt(0))) {
                         // left child
                         left = paddingLeft
-                        right = visualDividerPosition
+                        right = visualDividerPosition - paneSpacing / 2
                     } else {
                         // right child
-                        left = visualDividerPosition
+                        left = visualDividerPosition + (paneSpacing + 1) / 2
                         right = width - paddingRight
                     }
                     top = paddingTop
@@ -1970,7 +2021,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             node.contentDescription = context.getString(R.string.draggable_divider_handler)
             node.isScrollable = true
 
-            if (visualDividerPosition > 0) {
+            val paneSpacing =
+                paneSpacing.coerceAtMost(width - paddingLeft - paddingRight).coerceAtLeast(0)
+
+            if (visualDividerPosition > paddingLeft + paneSpacing / 2) {
                 node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
                 if (isLayoutRtl) {
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
@@ -1983,7 +2037,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     context.getString(R.string.draggable_divider_handler_state_left_edge)
             }
 
-            if (visualDividerPosition < width) {
+            if (visualDividerPosition < width - paddingRight - (paneSpacing + 1) / 2) {
                 node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
                 if (isLayoutRtl) {
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
@@ -2089,8 +2143,68 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         }
     }
 
+    /**
+     * This overrides an hidden method in ViewGroup. Because of the hide tag, the override keyword
+     * cannot be used, but the override works anyway because the ViewGroup method is not final. In
+     * Android P and earlier, the call path is
+     * AccessibilityInteractionController#findViewByAccessibilityId ->
+     * View#findViewByAccessibilityId -> ViewGroup#findViewByAccessibilityIdTraversal. In Android Q
+     * and later, AccessibilityInteractionController#findViewByAccessibilityId uses
+     * AccessibilityNodeIdManager and findViewByAccessibilityIdTraversal is only used by autofill.
+     */
+    @Suppress("BanHideTag")
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    fun findViewByAccessibilityIdTraversal(accessibilityId: Int): View? {
+        return try {
+
+            // AccessibilityInteractionController#findViewByAccessibilityId doesn't call this
+            // method in Android Q and later.
+            // Note that after Q, the original ViewGroup#findViewByAccessibilityIdTraversal returns
+            // null anyway when there is a AccessibilityNodeProvider.
+            // Autofill is using this method mainly for views that provides accessibility
+            // information but not autofill structure. It doesn't impact the autofill behavior of
+            // children views, since children views will directly talk to AutofillManager to update
+            // its status.
+            findViewByAccessibilityIdRootedAtCurrentView(accessibilityId, this)
+        } catch (e: NoSuchMethodException) {
+            null
+        }
+    }
+
+    private fun findViewByAccessibilityIdRootedAtCurrentView(
+        accessibilityId: Int,
+        currentView: View
+    ): View? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            val getAccessibilityViewIdMethod =
+                this.getAccessibilityViewIdMethod
+                    ?: View::class.java.getDeclaredMethod("getAccessibilityViewId").also {
+                        this.getAccessibilityViewIdMethod = it
+                    }
+            getAccessibilityViewIdMethod.isAccessible = true
+            if (getAccessibilityViewIdMethod.invoke(currentView) == accessibilityId) {
+                return currentView
+            }
+            if (currentView is ViewGroup) {
+                for (i in 0 until currentView.childCount) {
+                    val foundView =
+                        findViewByAccessibilityIdRootedAtCurrentView(
+                            accessibilityId,
+                            currentView.getChildAt(i)
+                        )
+                    if (foundView != null) {
+                        return foundView
+                    }
+                }
+            }
+        }
+        // After Q, ViewGroup#findViewByAccessibilityIdTraversal returns null for ViewGroup with
+        // AccessibilityNodeProvider.
+        return null
+    }
+
     private fun sendAccessibilityEventForDivider(eventType: Int) {
-        parent.requestSendAccessibilityEvent(
+        parent?.requestSendAccessibilityEvent(
             this,
             @Suppress("DEPRECATION")
             AccessibilityEvent.obtain().apply {

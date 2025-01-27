@@ -19,7 +19,6 @@ package androidx.wear.compose.material3.samples
 import androidx.annotation.Sampled
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -34,19 +33,58 @@ import androidx.wear.compose.material3.Text
 @Sampled
 @Composable
 fun ButtonGroupSample() {
-    val interactionSourceLeft = remember { MutableInteractionSource() }
-    val interactionSourceRight = remember { MutableInteractionSource() }
+    val interactionSource1 = remember { MutableInteractionSource() }
+    val interactionSource2 = remember { MutableInteractionSource() }
+
     Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
         ButtonGroup(Modifier.fillMaxWidth()) {
-            buttonGroupItem(interactionSource = interactionSourceLeft) {
-                Button(onClick = {}, interactionSource = interactionSourceLeft) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("L") }
-                }
+            Button(
+                onClick = {},
+                modifier = Modifier.animateWidth(interactionSource1),
+                interactionSource = interactionSource1
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Text("L") }
             }
-            buttonGroupItem(interactionSource = interactionSourceRight) {
-                Button(onClick = {}, interactionSource = interactionSourceRight) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("R") }
-                }
+            Button(
+                onClick = {},
+                modifier = Modifier.animateWidth(interactionSource2),
+                interactionSource = interactionSource2
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Text("R") }
+            }
+        }
+    }
+}
+
+@Sampled
+@Composable
+fun ButtonGroupThreeButtonsSample() {
+    val interactionSource1 = remember { MutableInteractionSource() }
+    val interactionSource2 = remember { MutableInteractionSource() }
+    val interactionSource3 = remember { MutableInteractionSource() }
+
+    Box(Modifier.size(300.dp), contentAlignment = Alignment.Center) {
+        ButtonGroup(Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {},
+                modifier = Modifier.animateWidth(interactionSource1),
+                interactionSource = interactionSource1
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Text("A") }
+            }
+            Button(
+                onClick = {},
+                modifier = Modifier.weight(1.5f).animateWidth(interactionSource2),
+                interactionSource = interactionSource2
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Text("B") }
+            }
+            Button(
+                onClick = {},
+                modifier = Modifier.animateWidth(interactionSource3),
+                interactionSource = interactionSource3
+            ) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Text("C") }
             }
         }
     }

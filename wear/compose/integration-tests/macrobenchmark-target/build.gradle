@@ -53,4 +53,4 @@ dependencies {
     implementation(project(":tracing:tracing-perfetto-binary"))
 }
 
-android.defaultConfig.minSdk = 30
+android.defaultConfig.minSdk = 25

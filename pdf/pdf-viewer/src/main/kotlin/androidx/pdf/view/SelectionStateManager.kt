@@ -28,7 +28,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Owns and updates all mutable state related to content selection in [PdfView] */
@@ -39,8 +42,10 @@ internal class SelectionStateManager(
     initialSelection: SelectionModel? = null,
 ) {
     /** The current [Selection] */
-    var selectionModel: SelectionModel? = initialSelection
-        @VisibleForTesting internal set
+    @VisibleForTesting val _selectionModel = MutableStateFlow<SelectionModel?>(initialSelection)
+
+    val selectionModel: StateFlow<SelectionModel?>
+        get() = _selectionModel
 
     /** Replay at few values in case of an UI signal issued while [PdfView] is not collecting */
     private val _selectionUiSignalBus = MutableSharedFlow<SelectionUiSignal>(replay = 3)
@@ -95,11 +100,12 @@ internal class SelectionStateManager(
         setSelectionJob = null
         _selectionUiSignalBus.tryEmit(SelectionUiSignal.ToggleActionMode(show = false))
         _selectionUiSignalBus.tryEmit(SelectionUiSignal.Invalidate)
-        selectionModel = null
+        // tryEmit will always succeed for StateFlow
+        _selectionModel.tryEmit(null)
     }
 
     fun maybeShowActionMode() {
-        if (selectionModel != null) {
+        if (selectionModel.value != null) {
             _selectionUiSignalBus.tryEmit(SelectionUiSignal.ToggleActionMode(show = true))
         }
     }
@@ -124,7 +130,7 @@ internal class SelectionStateManager(
     }
 
     private fun maybeHandleActionDown(location: PdfPoint, currentZoom: Float): Boolean {
-        val currentSelection = selectionModel ?: return false
+        val currentSelection = selectionModel.value ?: return false
         val start = currentSelection.startBoundary.location
         val end = currentSelection.endBoundary.location
         val touchTargetContentSize = handleTouchTargetSizePx / currentZoom
@@ -234,7 +240,9 @@ internal class SelectionStateManager(
                             end.pagePoint
                         )
                     if (newSelection != null && newSelection.hasBounds) {
-                        selectionModel = SelectionModel.fromSinglePageSelection(newSelection)
+                        _selectionModel.update {
+                            SelectionModel.fromSinglePageSelection(newSelection)
+                        }
                         _selectionUiSignalBus.tryEmit(SelectionUiSignal.Invalidate)
                         // Show the action mode if the user is not actively dragging the handles
                         if (draggingState == null) {

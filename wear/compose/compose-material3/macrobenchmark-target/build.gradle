@@ -46,4 +46,4 @@ dependencies {
     implementation(project(":wear:compose:compose-material3-macrobenchmark-common"))
 }
 
-android.defaultConfig.minSdk = 30
+android.defaultConfig.minSdk = 25

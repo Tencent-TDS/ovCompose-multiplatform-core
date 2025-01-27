@@ -32,12 +32,14 @@ plugins {
 }
 
 androidXMultiplatform {
+    js()
     jvm() {
         withJava()
     }
     mac()
     linux()
     ios()
+    wasmJs()
 
     defaultPlatform(PlatformIdentifier.JVM)
 
@@ -45,7 +47,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.1")
+                api("androidx.annotation:annotation:1.9.1")
             }
         }
 

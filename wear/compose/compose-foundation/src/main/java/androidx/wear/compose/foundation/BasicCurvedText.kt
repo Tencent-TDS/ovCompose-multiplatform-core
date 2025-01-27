@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.isUnspecified
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -145,7 +146,9 @@ internal class CurvedTextChild(
             text,
             clockwise,
             actualStyle.fontSize.toPx(),
-            actualStyle.letterSpacing,
+            if (clockwise || actualStyle.letterSpacingCounterClockwise.isUnspecified)
+                actualStyle.letterSpacing
+            else actualStyle.letterSpacingCounterClockwise,
             density
         )
 
@@ -280,6 +283,7 @@ internal class CurvedTextDelegate {
                             val emWidth = paint.textSize * paint.textScaleX
                             if (emWidth == 0.0f) 0f else it.value * density / emWidth
                         }
+                        // This includes the TextUnit.Unspecified case
                         else -> 0f
                     }
                 }

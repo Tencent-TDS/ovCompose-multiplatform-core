@@ -16,11 +16,6 @@
 
 package androidx.room.concurrent
 
-import kotlinx.atomicfu.locks.ReentrantLock
-import kotlinx.atomicfu.locks.SynchronizedObject
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.synchronized
-
 /**
  * An exclusive lock for in-process and multi-process synchronization.
  *
@@ -59,7 +54,7 @@ internal class ExclusiveLock(filename: String, useFileLock: Boolean) {
 
         private fun getThreadLock(key: String): ReentrantLock =
             synchronized(this) {
-                return threadLocksMap.getOrPut(key) { reentrantLock() }
+                return threadLocksMap.getOrPut(key) { ReentrantLock() }
             }
 
         private fun getFileLock(key: String) = FileLock(key)

@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertDoesNotContainColor
 import androidx.compose.ui.Modifier
@@ -33,6 +35,7 @@ import androidx.wear.compose.foundation.pager.PagerState
 import org.junit.Rule
 import org.junit.Test
 
+@RequiresApi(Build.VERSION_CODES.O)
 class PageIndicatorTest {
     @get:Rule val rule = createComposeRule()
 

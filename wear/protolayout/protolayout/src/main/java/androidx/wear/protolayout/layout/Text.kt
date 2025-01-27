@@ -49,11 +49,11 @@ import java.util.stream.Stream
  * @param modifier Modifiers to set to this element..
  * @param maxLines The maximum number of lines that can be represented by the [Text] element. If not
  *   defined, the [Text] element will be treated as a single-line element.
- * @param multilineAlignment Alignment of the text within its bounds. Note that a [Text] element
- *   will size itself to wrap its contents, so this option is meaningless for single-line text (for
- *   that, use alignment of the outer container). For multi-line text, however, this will set the
- *   alignment of lines relative to the [Text] element bounds. If not defined, defaults to
- *   TEXT_ALIGN_CENTER.
+ * @param alignment Alignment of the text within its bounds. Note that a [Text] element will size
+ *   itself to wrap its contents, so this option is meaningless for single-line text (for that, use
+ *   alignment of the outer container), unless this text overflows. For multi-line text, however,
+ *   this will set the alignment of lines relative to the [Text] element bounds. If not defined,
+ *   defaults to TEXT_ALIGN_CENTER.
  * @param overflow How to handle text which overflows the bound of the [Text] element. A [Text]
  *   element will grow as large as possible inside its parent container (while still respecting
  *   max_lines); if it cannot grow large enough to render all of its text, the text which cannot fit
@@ -69,7 +69,7 @@ fun basicText(
     fontStyle: FontStyle? = null,
     modifier: LayoutModifier? = null,
     maxLines: Int = 0,
-    @TextAlignment multilineAlignment: Int = TEXT_ALIGN_UNDEFINED,
+    @TextAlignment alignment: Int = TEXT_ALIGN_UNDEFINED,
     @TextOverflow overflow: Int = TEXT_OVERFLOW_UNDEFINED,
     @Dimension(SP) lineHeight: Float = Float.NaN,
 ) =
@@ -82,8 +82,8 @@ fun basicText(
             if (maxLines != 0) {
                 setMaxLines(maxLines)
             }
-            if (multilineAlignment != TEXT_ALIGN_UNDEFINED) {
-                setMultilineAlignment(multilineAlignment)
+            if (alignment != TEXT_ALIGN_UNDEFINED) {
+                setMultilineAlignment(alignment)
             }
             if (overflow != TEXT_OVERFLOW_UNDEFINED) {
                 setOverflow(overflow)

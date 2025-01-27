@@ -18,16 +18,16 @@ package androidx.room
 
 import androidx.annotation.RestrictTo
 import androidx.room.Transactor.SQLiteTransactionType
+import androidx.room.concurrent.AtomicBoolean
+import androidx.room.concurrent.ReentrantLock
 import androidx.room.concurrent.ifNotClosed
+import androidx.room.concurrent.withLock
 import androidx.room.util.getCoroutineContext
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.execSQL
 import kotlin.jvm.JvmOverloads
 import kotlin.jvm.JvmSuppressWildcards
-import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
  * created from, then such table is considered 'invalidated' and the [Flow] will emit a new value.
  */
 expect class InvalidationTracker
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 constructor(
     database: RoomDatabase,
     shadowTablesMap: Map<String, String>,
@@ -162,7 +162,7 @@ internal class TriggerBasedInvalidationTracker(
      * queue to be done asynchronously, this flag is used to control excessive scheduling of
      * refreshes.
      */
-    private val pendingRefresh = atomic(false)
+    private val pendingRefresh = AtomicBoolean(false)
 
     /** Callback to allow or disallow [refreshInvalidation] from proceeding. */
     internal var onAllowRefresh: () -> Boolean = { true }
@@ -484,7 +484,7 @@ internal class TriggerBasedInvalidationTracker(
  */
 internal class ObservedTableStates(size: Int) {
 
-    private val lock = reentrantLock()
+    private val lock = ReentrantLock()
 
     // The number of observers per table
     private val tableObserversCount = LongArray(size)

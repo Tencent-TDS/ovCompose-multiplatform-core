@@ -145,7 +145,7 @@ public fun ScrollIndicator(
  * For more information, see the
  * [Scroll indicators](https://developer.android.com/training/wearables/components/scroll) guide.
  *
- * Example of a sample ScrollIndicator with LazyColumn:
+ * Example of a sample ScrollIndicator with ScalingLazyColumn:
  *
  * @sample androidx.wear.compose.material3.samples.ScrollIndicatorWithSLCSample
  * @param state the [ScalingLazyListState] to use as the basis for the ScrollIndicatorState.
@@ -172,6 +172,34 @@ public fun ScrollIndicator(
         positionAnimationSpec = positionAnimationSpec
     )
 
+/**
+ * A composable that displays a visual indicator of scrolling progress within a scrollable
+ * container.
+ *
+ * Creates an [ScrollIndicator] based on the values in a [TransformingLazyColumnState] object that a
+ * [TransformingLazyColumn] uses.
+ *
+ * Typically used with the [ScreenScaffold] but can be used to decorate any full screen situation.
+ *
+ * To comply with Wear Material Design guidelines, this composable should be aligned to the center
+ * end of the screen using `Alignment.CenterEnd`. It will appear on the right in Ltr orientation and
+ * on the left in Rtl orientation.
+ *
+ * It detects if the screen is round or square and draws itself as a curve or line.
+ *
+ * For more information, see the
+ * [Scroll indicators](https://developer.android.com/training/wearables/components/scroll) guide.
+ *
+ * Example of a sample ScrollIndicator with TransformingLazyColumn:
+ *
+ * @sample androidx.wear.compose.material3.samples.ScrollIndicatorWithTLCSample
+ * @param state the [TransformingLazyColumnState] to use as the basis for the ScrollIndicatorState.
+ * @param modifier The modifier to be applied to the component
+ * @param reverseDirection Reverses direction of ScrollIndicator if true
+ * @param positionAnimationSpec [AnimationSpec] for position animation. The Position animation is
+ *   used for animating changes to the scroll size and position. To disable this animation [snap]
+ *   AnimationSpec should be passed instead.
+ */
 @Composable
 public fun ScrollIndicator(
     state: TransformingLazyColumnState,

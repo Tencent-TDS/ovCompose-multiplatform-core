@@ -17,6 +17,7 @@
 package androidx.wear.compose.material3
 
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Modifier
@@ -138,6 +139,7 @@ class TimePickerScreenshotTest {
             }
         )
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun ComposeContentTestRule.verifyTimePickerScreenshot(
         methodName: String,
         screenshotRule: AndroidXScreenshotTestRule,

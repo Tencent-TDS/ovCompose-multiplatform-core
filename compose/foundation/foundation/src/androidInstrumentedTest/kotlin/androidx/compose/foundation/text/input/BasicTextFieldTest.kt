@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text.input
 
+import android.R
 import android.os.Build
 import android.text.InputType
 import android.text.SpannableStringBuilder
@@ -40,7 +41,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TEST_FONT_FAMILY
 import androidx.compose.foundation.text.computeSizeForDefaultText
 import androidx.compose.foundation.text.input.TextFieldBuffer.ChangeList
+import androidx.compose.foundation.text.input.internal.TextLayoutState
+import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
 import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
+import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.input.internal.setComposingRegion
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.verticalScroll
@@ -127,6 +131,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalTestApi::class)
 @LargeTest
@@ -1130,9 +1137,7 @@ internal class BasicTextFieldTest {
 
         requestFocus(Tag)
 
-        inputMethodInterceptor.withInputConnection {
-            performContextMenuAction(android.R.id.selectAll)
-        }
+        inputMethodInterceptor.withInputConnection { performContextMenuAction(R.id.selectAll) }
 
         rule.runOnIdle {
             assertThat(state.selection).isEqualTo(TextRange(0, 5))
@@ -1152,7 +1157,7 @@ internal class BasicTextFieldTest {
 
         requestFocus(Tag)
 
-        inputMethodInterceptor.withInputConnection { performContextMenuAction(android.R.id.cut) }
+        inputMethodInterceptor.withInputConnection { performContextMenuAction(R.id.cut) }
 
         rule.waitForIdle()
         assertThat(clipboard.getClipEntry()?.readText()).isEqualTo("He")
@@ -1171,7 +1176,7 @@ internal class BasicTextFieldTest {
 
         requestFocus(Tag)
 
-        inputMethodInterceptor.withInputConnection { performContextMenuAction(android.R.id.copy) }
+        inputMethodInterceptor.withInputConnection { performContextMenuAction(R.id.copy) }
 
         rule.waitForIdle()
         assertThat(clipboard.getClipEntry()?.readText()).isEqualTo("He")
@@ -1189,7 +1194,7 @@ internal class BasicTextFieldTest {
 
         requestFocus(Tag)
 
-        inputMethodInterceptor.withInputConnection { performContextMenuAction(android.R.id.paste) }
+        inputMethodInterceptor.withInputConnection { performContextMenuAction(R.id.paste) }
 
         rule.runOnIdle {
             assertThat(state.text.toString()).isEqualTo("Worldo")
@@ -1296,6 +1301,34 @@ internal class BasicTextFieldTest {
 
         rule.waitForIdle()
         rule.onNodeWithTag(Tag).captureToImage().assertHorizontallySymmetrical(fontSize)
+    }
+
+    @Test
+    fun textField_state_invokesAutofill() {
+        val mockLambda: () -> Unit = mock()
+        var density by mutableStateOf(Density(1f))
+
+        val manager =
+            TextFieldSelectionState(
+                    // other parameters not necessary to test autofill invocation
+                    textFieldState =
+                        TransformedTextFieldState(
+                            textFieldState = TextFieldState(),
+                            inputTransformation = null,
+                            codepointTransformation = null,
+                            outputTransformation = null
+                        ),
+                    textLayoutState = TextLayoutState(),
+                    density = density,
+                    enabled = true,
+                    readOnly = false,
+                    isFocused = false,
+                    isPassword = false
+                )
+                .apply { requestAutofillAction = mockLambda }
+
+        manager.autofill()
+        verify(mockLambda, times(1)).invoke()
     }
 
     @Test

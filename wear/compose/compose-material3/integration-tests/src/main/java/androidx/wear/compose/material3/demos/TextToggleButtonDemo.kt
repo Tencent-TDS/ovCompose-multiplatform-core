@@ -36,7 +36,6 @@ import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextToggleButton
 import androidx.wear.compose.material3.TextToggleButtonDefaults
 import androidx.wear.compose.material3.samples.LargeTextToggleButtonSample
-import androidx.wear.compose.material3.samples.TextToggleButtonSample
 import androidx.wear.compose.material3.touchTargetAwareSize
 
 @Composable
@@ -45,7 +44,7 @@ fun TextToggleButtonDemo() {
         item { ListHeader { Text("Text Toggle Button", textAlign = TextAlign.Center) } }
         item {
             Row {
-                TextToggleButtonSample() // Enabled and checked
+                TextToggleButtonsDemo(enabled = true, initialChecked = true)
                 Spacer(modifier = Modifier.width(5.dp))
                 TextToggleButtonsDemo(enabled = true, initialChecked = false)
             }

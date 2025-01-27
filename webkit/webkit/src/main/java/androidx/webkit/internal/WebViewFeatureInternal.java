@@ -31,12 +31,14 @@ import android.webkit.WebView;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.webkit.OutcomeReceiverCompat;
+import androidx.webkit.PrerenderOperationCallback;
 import androidx.webkit.Profile;
 import androidx.webkit.ProfileStore;
 import androidx.webkit.ProxyConfig;
 import androidx.webkit.ProxyController;
 import androidx.webkit.SafeBrowsingResponseCompat;
 import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.SpeculativeLoadingConfig;
 import androidx.webkit.SpeculativeLoadingParameters;
 import androidx.webkit.TracingConfig;
 import androidx.webkit.TracingController;
@@ -688,13 +690,21 @@ public class WebViewFeatureInternal {
 
     /**
      * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
-     * This feature covers {@link androidx.webkit.WebViewCompat#prerenderUrlAsync(WebView, String,
-     * SpeculativeLoadingParameters, CancellationSignal, PrerenderOperationCallback)}}
+     * This feature covers
+     * {@link androidx.webkit.WebViewCompat#prerenderUrl(WebView, String, CancellationSignal, Executor,
+     * SpeculativeLoadingParameters, PrerenderOperationCallback)}}
      */
     public static final ApiFeature.NoFramework PRERENDER_WITH_URL =
             new ApiFeature.NoFramework(WebViewFeature.PRERENDER_WITH_URL,
                     Features.PRERENDER_WITH_URL);
 
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers {@link Profile#setSpeculativeLoadingConfig(SpeculativeLoadingConfig)}
+     */
+    public static final ApiFeature.NoFramework SPECULATIVE_LOADING_CONFIG =
+            new ApiFeature.NoFramework(WebViewFeature.SPECULATIVE_LOADING_CONFIG,
+                    Features.SPECULATIVE_LOADING_CONFIG);
 
     // --- Add new feature constants above this line ---
 

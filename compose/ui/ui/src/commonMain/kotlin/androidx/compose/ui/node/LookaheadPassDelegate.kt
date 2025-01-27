@@ -316,7 +316,7 @@ internal class LookaheadPassDelegate(
         forEachChildDelegate { it.markNodeAndSubtreeAsNotPlaced(true) }
     }
 
-    override fun calculateAlignmentLines(): Map<out AlignmentLine, Int> {
+    override fun calculateAlignmentLines(): Map<AlignmentLine, Int> {
         if (!duringAlignmentLinesQuery) {
             if (layoutState == LayoutState.LookaheadMeasuring) {
                 // Mark alignments used by modifier

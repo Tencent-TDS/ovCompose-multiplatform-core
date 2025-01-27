@@ -38,6 +38,7 @@ import android.view.Surface;
 
 import androidx.annotation.FloatRange;
 import androidx.annotation.GuardedBy;
+import androidx.annotation.IntRange;
 import androidx.annotation.OptIn;
 import androidx.camera.camera2.internal.compat.CameraAccessExceptionCompat;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
@@ -110,6 +111,8 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
     @GuardedBy("mLock")
     private @Nullable RedirectableLiveData<Integer> mRedirectTorchStateLiveData = null;
     @GuardedBy("mLock")
+    private @Nullable RedirectableLiveData<Integer> mRedirectTorchStrengthLiveData = null;
+    @GuardedBy("mLock")
     private @Nullable RedirectableLiveData<Integer> mRedirectLowLightBoostStateLiveData = null;
     @GuardedBy("mLock")
     private @Nullable RedirectableLiveData<ZoomState> mRedirectZoomStateLiveData = null;
@@ -159,6 +162,11 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
             if (mRedirectTorchStateLiveData != null) {
                 mRedirectTorchStateLiveData.redirectTo(
                         mCamera2CameraControlImpl.getTorchControl().getTorchState());
+            }
+
+            if (mRedirectTorchStrengthLiveData != null) {
+                mRedirectTorchStrengthLiveData.redirectTo(
+                        mCamera2CameraControlImpl.getTorchControl().getTorchStrengthLevel());
             }
 
             if (mRedirectLowLightBoostStateLiveData != null) {
@@ -708,5 +716,34 @@ public final class Camera2CameraInfoImpl implements CameraInfoInternal {
         }
 
         return mPhysicalCameraInfos;
+    }
+
+    @Override
+    @IntRange(from = 0)
+    public int getMaxTorchStrengthLevel() {
+        return mCameraCharacteristicsCompat.isTorchStrengthLevelSupported()
+                ? mCameraCharacteristicsCompat.getMaxTorchStrengthLevel()
+                : TORCH_STRENGTH_LEVEL_UNSUPPORTED;
+    }
+
+    @Override
+    public @NonNull LiveData<Integer> getTorchStrengthLevel() {
+        synchronized (mLock) {
+            if (mCamera2CameraControlImpl == null) {
+                if (mRedirectTorchStrengthLiveData == null) {
+                    mRedirectTorchStrengthLiveData = new RedirectableLiveData<>(
+                            mCameraCharacteristicsCompat.isTorchStrengthLevelSupported()
+                                    ? mCameraCharacteristicsCompat.getDefaultTorchStrengthLevel()
+                                    : TORCH_STRENGTH_LEVEL_UNSUPPORTED);
+                }
+                return mRedirectTorchStrengthLiveData;
+            }
+
+            if (mRedirectTorchStrengthLiveData != null) {
+                return mRedirectTorchStrengthLiveData;
+            }
+
+            return mCamera2CameraControlImpl.getTorchControl().getTorchStrengthLevel();
+        }
     }
 }

@@ -33,27 +33,9 @@ object RunnerUtils {
     // watch dimensions here.
     const val SCREEN_SIZE_SMALL: Int = 525 // ~199dp
 
-    fun runSingleScreenshotTest(
-        rule: AndroidXScreenshotTestRule,
-        testCase: TestCase,
-        expected: String
-    ) {
-        if (testCase.isForLtr) {
-            runSingleScreenshotTest(rule, testCase.mLayout, expected, /* isRtlDirection= */ false)
-        }
-        if (testCase.isForRtl) {
-            runSingleScreenshotTest(
-                rule,
-                testCase.mLayout,
-                expected + "_rtl",
-                /* isRtlDirection= */ true
-            )
-        }
-    }
-
     @SuppressLint("BanThreadSleep")
     // TODO: b/355417923 - Avoid calling sleep.
-    private fun runSingleScreenshotTest(
+    fun runSingleScreenshotTest(
         rule: AndroidXScreenshotTestRule,
         layout: LayoutElementBuilders.Layout,
         expected: String,
@@ -61,7 +43,7 @@ object RunnerUtils {
     ) {
         val layoutPayload = layout.toByteArray()
 
-        val startIntent: Intent =
+        val startIntent =
             Intent(
                 androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
                     .targetContext,
@@ -134,7 +116,7 @@ object RunnerUtils {
 
     /** Holds testcase parameters. */
     class TestCase(
-        val mLayout: LayoutElementBuilders.Layout,
+        val layout: LayoutElementBuilders.Layout,
         val isForRtl: Boolean,
         val isForLtr: Boolean
     )

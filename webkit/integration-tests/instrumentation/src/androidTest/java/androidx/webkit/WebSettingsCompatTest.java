@@ -28,8 +28,8 @@ import android.webkit.WebSettings;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
-import androidx.webkit.test.common.WebkitUtils;
 import androidx.webkit.test.common.WebViewOnUiThread;
+import androidx.webkit.test.common.WebkitUtils;
 
 import org.junit.After;
 import org.junit.Assert;

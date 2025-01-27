@@ -19,6 +19,7 @@ package androidx.camera.core.impl;
 import android.util.Range;
 import android.util.Size;
 
+import androidx.annotation.IntRange;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraState;
@@ -70,6 +71,17 @@ public class ForwardingCameraInfo implements CameraInfoInternal {
     @Override
     public @NonNull LiveData<Integer> getTorchState() {
         return mCameraInfoInternal.getTorchState();
+    }
+
+    @Override
+    public @NonNull LiveData<Integer> getTorchStrengthLevel() {
+        return mCameraInfoInternal.getTorchStrengthLevel();
+    }
+
+    @Override
+    @IntRange(from = 0)
+    public int getMaxTorchStrengthLevel() {
+        return mCameraInfoInternal.getMaxTorchStrengthLevel();
     }
 
     @Override

@@ -18,7 +18,6 @@
 
 package androidx.compose.material3.adaptive.layout
 
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.Posture
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.material3.adaptive.allVerticalHingeBounds
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.dp
  *   vertical hinges.
  * @return an [PaneScaffoldDirective] to be used to decide adaptive layout states.
  */
-@ExperimentalMaterial3AdaptiveApi
 @Suppress("DEPRECATION") // WindowWidthSizeClass is deprecated
 fun calculatePaneScaffoldDirective(
     windowAdaptiveInfo: WindowAdaptiveInfo,
@@ -69,7 +67,6 @@ fun calculatePaneScaffoldDirective(
     val maxVerticalPartitions: Int
     val verticalPartitionSpacerSize: Dp
 
-    // TODO(conradchen): Confirm the table top mode settings
     if (windowAdaptiveInfo.windowPosture.isTabletop) {
         maxVerticalPartitions = 2
         verticalPartitionSpacerSize = 24.dp
@@ -109,7 +106,6 @@ fun calculatePaneScaffoldDirective(
  *   vertical hinges.
  * @return an [PaneScaffoldDirective] to be used to decide adaptive layout states.
  */
-@ExperimentalMaterial3AdaptiveApi
 @Suppress("DEPRECATION") // WindowWidthSizeClass is deprecated
 fun calculatePaneScaffoldDirectiveWithTwoPanesOnMediumWidth(
     windowAdaptiveInfo: WindowAdaptiveInfo,

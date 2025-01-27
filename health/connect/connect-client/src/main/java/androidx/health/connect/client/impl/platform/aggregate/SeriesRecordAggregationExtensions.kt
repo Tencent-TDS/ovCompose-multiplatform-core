@@ -32,6 +32,7 @@ import androidx.health.connect.client.records.SeriesRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -98,7 +99,27 @@ internal suspend fun <T : SeriesRecord<*>> HealthConnectClient.aggregateSeriesRe
     )
 }
 
-private class SeriesAggregationProcessor<T : SeriesRecord<*>>(
+internal suspend fun <T : SeriesRecord<*>> HealthConnectClient.aggregateSeriesRecord(
+    recordType: KClass<T>,
+    aggregateRequest: AggregateGroupByDurationRequest
+): List<AggregationResultGroupedByDurationWithMinTime> {
+    return aggregate(
+        ReadRecordsRequest(
+            recordType,
+            aggregateRequest.timeRangeFilter.withBufferedStart(),
+            aggregateRequest.dataOriginFilter
+        ),
+        ResultGroupedByDurationAggregator(
+            createInstantTimeRange(aggregateRequest.timeRangeFilter),
+            aggregateRequest.timeRangeSlicer
+        ) {
+            SeriesAggregationProcessor(recordType, aggregateRequest.metrics, it)
+        }
+    )
+}
+
+@VisibleForTesting
+internal class SeriesAggregationProcessor<T : SeriesRecord<*>>(
     recordType: KClass<T>,
     val metrics: Set<AggregateMetric<*>>,
     val timeRange: TimeRange<*>,

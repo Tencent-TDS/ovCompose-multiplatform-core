@@ -22,7 +22,6 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.ui.util.fastForEachReversed
 
-@ExperimentalMaterial3AdaptiveApi
 private inline fun buildThreePaneScaffoldValue(
     buildAction: (ThreePaneScaffoldRole) -> PaneAdaptedValue
 ): ThreePaneScaffoldValue {
@@ -168,7 +167,7 @@ fun calculateThreePaneScaffoldValue(
  * @param tertiary [PaneAdaptedValue] of the tertiary pane of [ThreePaneScaffold]
  * @constructor create an instance of [ThreePaneScaffoldValue]
  */
-@ExperimentalMaterial3AdaptiveApi
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Immutable
 class ThreePaneScaffoldValue(
     val primary: PaneAdaptedValue,

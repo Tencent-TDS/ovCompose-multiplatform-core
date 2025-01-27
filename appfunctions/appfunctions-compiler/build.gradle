@@ -21,16 +21,36 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
+import androidx.build.SdkHelperKt
 
 plugins {
     id("AndroidXPlugin")
     id("kotlin")
 }
 
+androidx.configureAarAsJarForConfiguration("testImplementation")
+
 dependencies {
     api(libs.kotlinStdlib)
-    // Add dependencies here
+    implementation(libs.kspApi)
+    implementation(libs.kotlinPoet)
+
+    testImplementationAarAsJar(project(":appfunctions:appfunctions-common"))
+    testImplementationAarAsJar(project(":appfunctions:appfunctions-runtime"))
+    testImplementation(SdkHelperKt.getSdkDependency(project))
+    testImplementation(libs.googleCompileTesting)
+    testImplementation(project(":room:room-compiler-processing-testing"))
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+}
+
+def testGeneratedSourcesPath = "${layout.buildDirectory.get().asFile}/testGeneratedSources"
+tasks.withType(Test).configureEach { test ->
+    test.doFirst {
+        systemProperty("test_output_dir", testGeneratedSourcesPath)
+    }
 }
 
 androidx {
@@ -38,4 +58,5 @@ androidx {
     type = LibraryType.ANNOTATION_PROCESSOR
     inceptionYear = "2025"
     description = "AppFunction Compiler"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

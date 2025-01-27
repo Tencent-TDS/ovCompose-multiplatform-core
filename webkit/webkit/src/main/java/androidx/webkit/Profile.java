@@ -236,4 +236,22 @@ public interface Profile {
             @NonNull Executor callbackExecutor,
             @NonNull OutcomeReceiverCompat<Void, PrefetchException> operationCallback);
 
+    /**
+     * Sets the {@link SpeculativeLoadingConfig} for the current profile session.
+     * These configurations will be applied to any Prefetch requests made after they are set;
+     * they will not be applied to in-flight requests.
+     * <p>
+     * These configurations will be applied to any prefetch requests initiated by
+     * a prerender request. This applies specifically to WebViews that are
+     * associated with this Profile.
+     * <p>
+     * @param speculativeLoadingConfig the config to set for this profile session.
+     */
+    @RequiresFeature(name = WebViewFeature.SPECULATIVE_LOADING_CONFIG,
+            enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @UiThread
+    @ExperimentalUrlPrefetch
+    void setSpeculativeLoadingConfig(@NonNull SpeculativeLoadingConfig
+            speculativeLoadingConfig);
+
 }

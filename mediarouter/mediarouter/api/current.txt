@@ -406,7 +406,7 @@ package androidx.mediarouter.media {
     field public static final int CALLBACK_FLAG_PERFORM_ACTIVE_SCAN = 1; // 0x1
     field public static final int CALLBACK_FLAG_REQUEST_DISCOVERY = 4; // 0x4
     field public static final int CALLBACK_FLAG_UNFILTERED_EVENTS = 2; // 0x2
-    field public static final int REASON_DISCONNECTED = 1; // 0x1
+    field public static final int REASON_DISCONNECT_CALLED = 1; // 0x1
     field public static final int REASON_FAILED_TO_CREATE_DYNAMIC_GROUP_ROUTE_CONTROLLER = 6; // 0x6
     field public static final int REASON_REJECTED_FOR_SELECTED_ROUTE = 4; // 0x4
     field public static final int REASON_ROUTE_CONNECTION_TIMEOUT = 7; // 0x7

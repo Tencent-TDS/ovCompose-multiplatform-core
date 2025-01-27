@@ -61,8 +61,8 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithDefaultAttrsWithApiLevel2() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(2)
-        WindowTestUtils.assumeBeforeVendorApiLevel(3)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(2)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(3)
 
         val oemSplitInfo = createTestOEMSplitInfo(OEMSplitAttributes.Builder().build())
         val expectedSplitInfo =
@@ -80,8 +80,8 @@ class EmbeddingAdapterTest {
     @Suppress("DEPRECATION")
     @Test
     fun testTranslateSplitInfoWithDefaultAttrsWithApiLevel3() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(3)
-        WindowTestUtils.assumeBeforeVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(3)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -103,7 +103,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithDefaultAttrsWithApiLevel5() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -135,8 +135,8 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithExpandingContainersWithApiLevel2() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(2)
-        WindowTestUtils.assumeBeforeVendorApiLevel(3)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(2)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(3)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -159,8 +159,8 @@ class EmbeddingAdapterTest {
     @Suppress("DEPRECATION")
     @Test
     fun testTranslateSplitInfoWithExpandingContainersWithApiLevel3() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(3)
-        WindowTestUtils.assumeBeforeVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(3)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -184,7 +184,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithExpandingContainersWithApiLevel5() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -219,7 +219,7 @@ class EmbeddingAdapterTest {
     @Suppress("DEPRECATION")
     @Test
     fun testTranslateSplitInfoWithApiLevel1() {
-        WindowTestUtils.assumeBeforeVendorApiLevel(2)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(2)
 
         val activityStack = createTestOEMActivityStack(ArrayList(), true)
         val expectedSplitRatio = 0.3f
@@ -245,8 +245,8 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithApiLevel2() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(2)
-        WindowTestUtils.assumeBeforeVendorApiLevel(3)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(2)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(3)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -270,8 +270,8 @@ class EmbeddingAdapterTest {
     @Suppress("DEPRECATION")
     @Test
     fun testTranslateSplitInfoWithApiLevel3() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(3)
-        WindowTestUtils.assumeBeforeVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(3)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -296,7 +296,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateSplitInfoWithApiLevel5() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(5)
 
         val oemSplitInfo =
             createTestOEMSplitInfo(
@@ -331,7 +331,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateAnimationBackgroundWithApiLevel5() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(5)
 
         val colorBackground = EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
         val splitAttributesWithColorBackground =
@@ -378,8 +378,8 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateAnimationBackgroundBeforeApiLevel5() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(2)
-        WindowTestUtils.assumeBeforeVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(2)
+        WindowTestUtils.assumeBeforeWindowExtensionVersion(5)
 
         val colorBackground = EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
         val splitAttributesWithColorBackground =
@@ -402,7 +402,7 @@ class EmbeddingAdapterTest {
     @OptIn(androidx.window.core.ExperimentalWindowApi::class)
     @Test
     fun testTranslateEmbeddingConfigurationToWindowAttributes() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(5)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(5)
 
         val dimAreaBehavior = EmbeddingConfiguration.DimAreaBehavior.ON_TASK
         adapter.embeddingConfiguration =
@@ -414,7 +414,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateDividerAttributes_draggable() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(6)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(6)
         val dividerAttributes =
             DraggableDividerAttributes.Builder()
                 .setWidthDp(20)
@@ -435,7 +435,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateDividerAttributes_fixed() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(6)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(6)
         val dividerAttributes =
             FixedDividerAttributes.Builder().setWidthDp(20).setColor(Color.GRAY).build()
         val oemDividerAttributes =
@@ -467,7 +467,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateDividerAttributes_0width_withApiLevel7() {
-        WindowTestUtils.assumeVendorApiLevel(7)
+        WindowTestUtils.assumeWindowExtensionVersionEquals(7)
         val dividerAttributes =
             DraggableDividerAttributes.Builder().setWidthDp(0).setColor(Color.GRAY).build()
 
@@ -484,7 +484,7 @@ class EmbeddingAdapterTest {
 
     @Test
     fun testTranslateDividerAttributes_noDivider() {
-        WindowTestUtils.assumeAtLeastVendorApiLevel(6)
+        WindowTestUtils.assumeAtLeastWindowExtensionVersion(6)
         val dividerAttributes = DividerAttributes.NO_DIVIDER
         val oemDividerAttributes = null
 

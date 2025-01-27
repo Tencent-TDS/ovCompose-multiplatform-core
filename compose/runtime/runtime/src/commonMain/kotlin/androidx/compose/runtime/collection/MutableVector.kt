@@ -18,7 +18,6 @@
 
 package androidx.compose.runtime.collection
 
-import dalvik.annotation.optimization.NeverInline
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
@@ -292,7 +291,6 @@ internal constructor(@PublishedApi @JvmField internal var content: Array<T?>, si
         }
     }
 
-    @NeverInline
     @PublishedApi
     internal fun resizeStorage(capacity: Int) {
         val oldContent = content

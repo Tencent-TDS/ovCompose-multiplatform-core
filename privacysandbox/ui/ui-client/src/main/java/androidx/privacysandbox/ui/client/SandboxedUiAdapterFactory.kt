@@ -22,7 +22,6 @@ import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.util.Log
 import android.view.Display
 import android.view.SurfaceControlViewHost
@@ -30,15 +29,16 @@ import android.view.SurfaceView
 import android.view.View
 import android.window.SurfaceSyncGroup
 import androidx.annotation.RequiresApi
-import androidx.privacysandbox.ui.client.RemoteCallManager.addBinderDeathListener
-import androidx.privacysandbox.ui.client.RemoteCallManager.closeRemoteSession
-import androidx.privacysandbox.ui.client.RemoteCallManager.tryToCallRemoteObject
 import androidx.privacysandbox.ui.core.IDelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.IRemoteSessionClient
 import androidx.privacysandbox.ui.core.IRemoteSessionController
 import androidx.privacysandbox.ui.core.ISandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ProtocolConstants
+import androidx.privacysandbox.ui.core.RemoteCallManager.addBinderDeathListener
+import androidx.privacysandbox.ui.core.RemoteCallManager.closeRemoteSession
+import androidx.privacysandbox.ui.core.RemoteCallManager.tryToCallRemoteObject
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SessionConstants
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -113,6 +113,16 @@ object SandboxedUiAdapterFactory {
                 uiProviderBinder.javaClass.classLoader
             )
 
+        private val targetSessionConstantsClass =
+            Class.forName(
+                SessionConstants::class.java.name,
+                /* initialize = */ false,
+                uiProviderBinder.javaClass.classLoader
+            )
+
+        private val targetSessionConstantsCompanionObject =
+            targetSessionConstantsClass.getDeclaredField("Companion").get(null)
+
         // The adapterInterface provided must have a openSession method on its class.
         // Since the object itself has been instantiated on a different classloader, we
         // need reflection to get hold of it.
@@ -125,7 +135,7 @@ object SandboxedUiAdapterFactory {
                 .getMethod(
                     "openSession",
                     Context::class.java,
-                    IBinder::class.java,
+                    targetSessionConstantsClass,
                     Int::class.java,
                     Int::class.java,
                     Boolean::class.java,
@@ -133,9 +143,15 @@ object SandboxedUiAdapterFactory {
                     targetSessionClientClass
                 )
 
+        private val fromBundleMethod: Method =
+            targetSessionConstantsCompanionObject.javaClass.getMethod(
+                "fromBundle",
+                Bundle::class.java
+            )
+
         override fun openSession(
             context: Context,
-            windowInputToken: IBinder,
+            sessionConstants: SessionConstants,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -154,7 +170,10 @@ object SandboxedUiAdapterFactory {
                 openSessionMethod.invoke(
                     uiProviderBinder,
                     context,
-                    windowInputToken,
+                    fromBundleMethod.invoke(
+                        targetSessionConstantsCompanionObject,
+                        SessionConstants.toBundle(sessionConstants)
+                    ),
                     initialWidth,
                     initialHeight,
                     isZOrderOnTop,
@@ -270,7 +289,7 @@ object SandboxedUiAdapterFactory {
 
         override fun openSession(
             context: Context,
-            windowInputToken: IBinder,
+            sessionConstants: SessionConstants,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -283,7 +302,7 @@ object SandboxedUiAdapterFactory {
 
             tryToCallRemoteObject(adapterInterface) {
                 this.openRemoteSession(
-                    windowInputToken,
+                    SessionConstants.toBundle(sessionConstants),
                     displayId,
                     initialWidth,
                     initialHeight,

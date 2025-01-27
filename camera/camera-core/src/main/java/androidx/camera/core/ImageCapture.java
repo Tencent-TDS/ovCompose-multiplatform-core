@@ -1615,6 +1615,8 @@ public final class ImageCapture extends UseCase {
             mTakePictureManager.abortRequests();
             mTakePictureManager = null;
         }
+        // Always clear ZSL resources to release the RingBuffer.
+        getCameraControl().clearZslConfig();
     }
 
     /**

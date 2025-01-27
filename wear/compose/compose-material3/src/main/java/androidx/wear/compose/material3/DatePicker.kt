@@ -16,7 +16,9 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
 import android.text.format.DateFormat
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -84,9 +86,9 @@ import java.time.format.DateTimeFormatter
  *
  * @sample androidx.wear.compose.material3.samples.DatePickerYearMonthDaySample
  *
- * Example of a [DatePicker] with minDate and maxDate:
+ * Example of a [DatePicker] with a minDate:
  *
- * @sample androidx.wear.compose.material3.samples.DatePickerMinDateMaxDateSample
+ * @sample androidx.wear.compose.material3.samples.DatePickerFutureOnlySample
  * @param initialDate The initial value to be displayed in the DatePicker.
  * @param onDatePicked The callback that is called when the user confirms the date selection. It
  *   provides the selected date as [LocalDate]
@@ -96,6 +98,7 @@ import java.time.format.DateTimeFormatter
  * @param datePickerType The different [DatePickerType] supported by this [DatePicker].
  * @param colors [DatePickerColors] to be applied to the DatePicker.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 public fun DatePicker(
     initialDate: LocalDate,
@@ -354,7 +357,7 @@ public fun DatePicker(
                                                     )
                                                 }
                                             ),
-                                        spacing = spacing,
+                                        verticalSpacing = spacing,
                                     )
                                 DatePickerOption.Month ->
                                     pickerGroupItem(
@@ -382,7 +385,7 @@ public fun DatePicker(
                                                     )
                                                 }
                                             ),
-                                        spacing = spacing,
+                                        verticalSpacing = spacing,
                                     )
                                 DatePickerOption.Year ->
                                     pickerGroupItem(
@@ -409,7 +412,7 @@ public fun DatePicker(
                                                     )
                                                 }
                                             ),
-                                        spacing = spacing,
+                                        verticalSpacing = spacing,
                                     )
                             }
                         }
@@ -696,6 +699,7 @@ private fun DatePickerType.toDatePickerOptions() =
         else -> arrayOf(DatePickerOption.Day, DatePickerOption.Month, DatePickerOption.Year)
     }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun verifyDates(
     date: LocalDate,
     minDate: LocalDate,
@@ -705,6 +709,7 @@ private fun verifyDates(
     require(date in minDate..maxDate) { "date should lie between minDate and maxDate" }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun getMonthNames(pattern: String): List<String> {
     val monthFormatter = DateTimeFormatter.ofPattern(pattern)
     val months = 1..12
@@ -730,6 +735,7 @@ private fun getPickerGroupRowOffset(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private class DatePickerState(
     initialDate: LocalDate,
     initialDateMinYear: LocalDate?,

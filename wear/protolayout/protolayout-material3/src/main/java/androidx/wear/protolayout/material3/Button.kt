@@ -16,29 +16,45 @@
 
 package androidx.wear.protolayout.material3
 
+import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
 import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.DimensionBuilders.weight
+import androidx.wear.protolayout.LayoutElementBuilders
+import androidx.wear.protolayout.LayoutElementBuilders.Box
 import androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER
+import androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_END
 import androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_START
 import androidx.wear.protolayout.LayoutElementBuilders.HorizontalAlignment
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.ModifiersBuilders.Clickable
 import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.Padding
+import androidx.wear.protolayout.material3.AvatarButtonStyle.Companion.defaultAvatarButtonStyle
 import androidx.wear.protolayout.material3.ButtonDefaults.DEFAULT_CONTENT_PADDING
 import androidx.wear.protolayout.material3.ButtonDefaults.IMAGE_BUTTON_DEFAULT_SIZE_DP
 import androidx.wear.protolayout.material3.ButtonDefaults.METADATA_TAG_BUTTON
+import androidx.wear.protolayout.material3.ButtonDefaults.buildContentForAvatarButton
+import androidx.wear.protolayout.material3.ButtonDefaults.buildContentForCompactButton
 import androidx.wear.protolayout.material3.ButtonDefaults.buildContentForPillShapeButton
 import androidx.wear.protolayout.material3.ButtonDefaults.filledButtonColors
 import androidx.wear.protolayout.material3.ButtonStyle.Companion.defaultButtonStyle
+import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_DEFAULT_CONTENT_PADDING_DP
+import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_HEIGHT_DP
+import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_ICON_SIZE_LARGE_DP
+import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_ICON_SIZE_SMALL_DP
+import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_LABEL_TYPOGRAPHY
 import androidx.wear.protolayout.material3.IconButtonStyle.Companion.defaultIconButtonStyle
+import androidx.wear.protolayout.material3.PredefinedPrimaryLayoutMargins.maxPrimaryLayoutMargins
+import androidx.wear.protolayout.material3.PredefinedPrimaryLayoutMargins.minPrimaryLayoutMargins
 import androidx.wear.protolayout.material3.TextButtonStyle.Companion.defaultTextButtonStyle
 import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.background
 import androidx.wear.protolayout.modifiers.clip
 import androidx.wear.protolayout.modifiers.contentDescription
+import androidx.wear.protolayout.modifiers.tag
+import androidx.wear.protolayout.modifiers.toProtoLayoutModifiers
 
 /**
  * Opinionated ProtoLayout Material3 icon button that offers a single slot to take content
@@ -52,7 +68,11 @@ import androidx.wear.protolayout.modifiers.contentDescription
  *   the associated action.
  * @param modifier Modifiers to set to this element. It's highly recommended to set a content
  *   description using [contentDescription].
- * @param shape Defines the button's shape, in other words the corner radius for this button.
+ * @param shape Defines the button's shape, in other words the corner radius for this button. If
+ *   changing these to radius smaller than [Shapes.medium], it is important to adjusts the margins
+ *   of [primaryLayout] used to accommodate for more space, for example by using
+ *   [maxPrimaryLayoutMargins]. Or, if the [shape] is set to [Shapes.full], using
+ *   [minPrimaryLayoutMargins] can be considered.
  * @param width The width of this button. It's highly recommended to set this to [expand] or
  *   [weight]
  * @param height The height of this button. It's highly recommended to set this to [expand] or
@@ -62,10 +82,6 @@ import androidx.wear.protolayout.modifiers.contentDescription
  *   [ButtonDefaults.filledTonalButtonColors] and [ButtonDefaults.filledVariantButtonColors]. If
  *   using custom colors, it is important to choose a color pair from same role to ensure
  *   accessibility with sufficient color contrast.
- * @param backgroundContent The background object to be used behind the content in the button. It is
- *   recommended to use the default styling that is automatically provided by only calling
- *   [backgroundImage] with the content. It can be combined with the specified
- *   [ButtonColors.container] behind it.
  * @param style The style which provides the attribute values required for constructing this icon
  *   button and its inner content. It also provides default style for the inner content, that can be
  *   overridden by each content slot.
@@ -76,7 +92,6 @@ import androidx.wear.protolayout.modifiers.contentDescription
  * @sample androidx.wear.protolayout.material3.samples.oneSlotButtonsSample
  */
 // TODO: b/346958146 - Link Button visuals in DAC
-// TODO: b/373578620 - Add how corners affects margins in the layout.
 public fun MaterialScope.iconButton(
     onClick: Clickable,
     iconContent: (MaterialScope.() -> LayoutElement),
@@ -85,20 +100,19 @@ public fun MaterialScope.iconButton(
     height: ContainerDimension = wrapWithMinTapTargetDimension(),
     shape: Corner = shapes.full,
     colors: ButtonColors = filledButtonColors(),
-    backgroundContent: (MaterialScope.() -> LayoutElement)? = null,
     style: IconButtonStyle = defaultIconButtonStyle(),
     contentPadding: Padding = style.innerPadding
 ): LayoutElement =
     buttonContainer(
         onClick = onClick,
-        modifier = modifier.background(color = colors.container, corner = shape),
+        modifier = modifier.background(color = colors.containerColor, corner = shape),
         width = width,
         height = height,
-        backgroundContent = backgroundContent,
         contentPadding = contentPadding,
         content = {
             withStyle(
-                    defaultIconStyle = IconStyle(size = dp(style.iconSize), tintColor = colors.icon)
+                    defaultIconStyle =
+                        IconStyle(size = dp(style.iconSize), tintColor = colors.iconColor)
                 )
                 .iconContent()
         }
@@ -116,7 +130,11 @@ public fun MaterialScope.iconButton(
  *   the associated action.
  * @param modifier Modifiers to set to this element. It's highly recommended to set a content
  *   description using [contentDescription].
- * @param shape Defines the button's shape, in other words the corner radius for this button.
+ * @param shape Defines the button's shape, in other words the corner radius for this button. If
+ *   changing these to radius smaller than [Shapes.medium], it is important to adjusts the margins
+ *   of [primaryLayout] used to accommodate for more space, for example by using
+ *   [maxPrimaryLayoutMargins]. Or, if the [shape] is set to [Shapes.full], using
+ *   [minPrimaryLayoutMargins] can be considered.
  * @param width The width of this button. It's highly recommended to set this to [expand] or
  *   [weight]
  * @param height The height of this button. It's highly recommended to set this to [expand] or
@@ -126,10 +144,6 @@ public fun MaterialScope.iconButton(
  *   [ButtonDefaults.filledTonalButtonColors] and [ButtonDefaults.filledVariantButtonColors]. If
  *   using custom colors, it is important to choose a color pair from same role to ensure
  *   accessibility with sufficient color contrast.
- * @param backgroundContent The background object to be used behind the content in the button. It is
- *   recommended to use the default styling that is automatically provided by only calling
- *   [backgroundImage] with the content. It can be combined with the specified
- *   [ButtonColors.container] behind it.
  * @param style The style which provides the attribute values required for constructing this text
  *   button and its inner content. It also provides default style for the inner content, that can be
  *   overridden by each content slot.
@@ -141,7 +155,6 @@ public fun MaterialScope.iconButton(
  * @sample androidx.wear.protolayout.material3.samples.oneSlotButtonsSample
  */
 // TODO: b/346958146 - Link Button visuals in DAC
-// TODO: b/373578620 - Add how corners affects margins in the layout.
 public fun MaterialScope.textButton(
     onClick: Clickable,
     labelContent: (MaterialScope.() -> LayoutElement),
@@ -150,21 +163,22 @@ public fun MaterialScope.textButton(
     height: ContainerDimension = wrapWithMinTapTargetDimension(),
     shape: Corner = shapes.full,
     colors: ButtonColors = filledButtonColors(),
-    backgroundContent: (MaterialScope.() -> LayoutElement)? = null,
     style: TextButtonStyle = defaultTextButtonStyle(),
     contentPadding: Padding = style.innerPadding
 ): LayoutElement =
     buttonContainer(
         onClick = onClick,
-        modifier = modifier.background(color = colors.container, corner = shape),
+        modifier = modifier.background(color = colors.containerColor, corner = shape),
         width = width,
         height = height,
-        backgroundContent = backgroundContent,
         contentPadding = contentPadding,
         content = {
             withStyle(
                     defaultTextElementStyle =
-                        TextElementStyle(typography = style.labelTypography, color = colors.label)
+                        TextElementStyle(
+                            typography = style.labelTypography,
+                            color = colors.labelColor
+                        )
                 )
                 .labelContent()
         }
@@ -184,7 +198,11 @@ public fun MaterialScope.textButton(
  *   recommended to use default styling that is automatically provided by only calling [text].
  * @param iconContent The icon slot for content displayed in this button. It is recommended to use
  *   default styling that is automatically provided by only calling [icon] with the resource ID.
- * @param shape Defines the button's shape, in other words the corner radius for this button.
+ * @param shape Defines the button's shape, in other words the corner radius for this button. If
+ *   changing these to radius smaller than [Shapes.medium], it is important to adjusts the margins
+ *   of [primaryLayout] used to accommodate for more space, for example by using
+ *   [maxPrimaryLayoutMargins]. Or, if the [shape] is set to [Shapes.full], using
+ *   [minPrimaryLayoutMargins] can be considered.
  * @param width The width of this button. It's highly recommended to set this to [expand] or
  *   [weight]
  * @param height The height of this button. It's highly recommended to set this to [expand] or
@@ -197,7 +215,7 @@ public fun MaterialScope.textButton(
  * @param backgroundContent The background object to be used behind the content in the button. It is
  *   recommended to use the default styling that is automatically provided by only calling
  *   [backgroundImage] with the content. It can be combined with the specified
- *   [ButtonColors.container] behind it.
+ *   [ButtonColors.containerColor] behind it.
  * @param style The style which provides the attribute values required for constructing this pill
  *   shape button and its inner content. It also provides default style for the inner content, that
  *   can be overridden by each content slot.
@@ -232,7 +250,7 @@ public fun MaterialScope.button(
 ): LayoutElement =
     buttonContainer(
         onClick = onClick,
-        modifier = modifier.background(color = colors.container, corner = shape),
+        modifier = modifier.background(color = colors.containerColor, corner = shape),
         width = width,
         height = height,
         backgroundContent = backgroundContent,
@@ -244,7 +262,8 @@ public fun MaterialScope.button(
                             defaultTextElementStyle =
                                 TextElementStyle(
                                     typography = style.labelTypography,
-                                    color = colors.label
+                                    color = colors.labelColor,
+                                    alignment = horizontalAlignment.horizontalAlignToTextAlign()
                                 )
                         )
                         .labelContent(),
@@ -254,7 +273,8 @@ public fun MaterialScope.button(
                                 defaultTextElementStyle =
                                     TextElementStyle(
                                         typography = style.secondaryLabelTypography,
-                                        color = colors.secondaryLabel
+                                        color = colors.secondaryLabelColor,
+                                        alignment = horizontalAlignment.horizontalAlignToTextAlign()
                                     )
                             )
                             .secondaryLabelContent()
@@ -263,12 +283,127 @@ public fun MaterialScope.button(
                     iconContent?.let {
                         withStyle(
                                 defaultIconStyle =
-                                    IconStyle(size = dp(style.iconSize), tintColor = colors.icon)
+                                    IconStyle(
+                                        size = dp(style.iconSize),
+                                        tintColor = colors.iconColor
+                                    )
                             )
                             .iconContent()
                     },
                 horizontalAlignment = horizontalAlignment,
                 style = style
+            )
+        }
+    )
+
+/**
+ * Opinionated ProtoLayout Material3 pill shape avatar button that offers up to three slots to take
+ * content representing vertically stacked label and secondary label, and an image (avatar) next to
+ * it.
+ *
+ * Difference from the [button] is that this one takes an image instead of an icon and spaces the
+ * content proportionally, so that edge of the button nicely hugs the avatar image.
+ *
+ * @param onClick Associated [Clickable] for click events. When the button is clicked it will fire
+ *   the associated action.
+ * @param labelContent The text slot for content displayed in this button. It is recommended to use
+ *   default styling that is automatically provided by only calling [text].
+ * @param modifier Modifiers to set to this element. It's highly recommended to set a content
+ *   description using [contentDescription].
+ * @param secondaryLabelContent The text slot for content displayed in this button. It is
+ *   recommended to use default styling that is automatically provided by only calling [text].
+ * @param avatarContent The avatar slot for content displayed in this button. It is recommended to
+ *   use default styling that is automatically provided by only calling [avatarImage] with the
+ *   resource ID. Width and height of this element should be set to [expand].
+ * @param shape Defines the button's shape, in other words the corner radius for this button. If
+ *   changing these to radius smaller than [Shapes.medium], it is important to adjusts the margins
+ *   of [primaryLayout] used to accommodate for more space, for example by using
+ *   [maxPrimaryLayoutMargins]. Or, if the [shape] is set to [Shapes.full], using
+ *   [minPrimaryLayoutMargins] can be considered.
+ * @param height The height of this button. It's highly recommended to set this to [expand] or
+ *   [weight]
+ * @param colors The colors used for this button. If not set, [ButtonDefaults.filledButtonColors]
+ *   will be used as high emphasis button. Other recommended colors are
+ *   [ButtonDefaults.filledTonalButtonColors] and [ButtonDefaults.filledVariantButtonColors]. If
+ *   using custom colors, it is important to choose a color pair from same role to ensure
+ *   accessibility with sufficient color contrast.
+ * @param style The style which provides the attribute values required for constructing this pill
+ *   shape button and its inner content. It also provides default style for the inner content, that
+ *   can be overridden by each content slot.
+ * @param horizontalAlignment The horizontal placement of the [avatarContent]. This should be
+ *   [HORIZONTAL_ALIGN_START] to place the [avatarContent] on the start side of the button, or
+ *   [HORIZONTAL_ALIGN_END] to place in on the end side. [HORIZONTAL_ALIGN_CENTER] will be ignored
+ *   and replaced with [HORIZONTAL_ALIGN_START].
+ * @param contentPadding The inner padding used to prevent inner content from being too close to the
+ *   button's edge. It's highly recommended to keep the default. Only vertical values would be used,
+ *   as horizontally elements are spaced out proportionally to the buttons width.
+ * @sample androidx.wear.protolayout.material3.samples.avatarButtonSample
+ */
+// TODO: b/346958146 - Link Button visuals in DAC
+public fun MaterialScope.avatarButton(
+    onClick: Clickable,
+    labelContent: (MaterialScope.() -> LayoutElement),
+    avatarContent: (MaterialScope.() -> LayoutElement),
+    modifier: LayoutModifier = LayoutModifier,
+    secondaryLabelContent: (MaterialScope.() -> LayoutElement)? = null,
+    height: ContainerDimension = wrapWithMinTapTargetDimension(),
+    shape: Corner = shapes.full,
+    colors: ButtonColors = filledButtonColors(),
+    style: AvatarButtonStyle = defaultAvatarButtonStyle(),
+    @HorizontalAlignment horizontalAlignment: Int = HORIZONTAL_ALIGN_START,
+    contentPadding: Padding = style.innerVerticalPadding
+): LayoutElement =
+    buttonContainer(
+        onClick = onClick,
+        modifier = modifier.background(color = colors.containerColor, corner = shape),
+        width = expand(),
+        height = height,
+        contentPadding = contentPadding,
+        content = {
+            buildContentForAvatarButton(
+                label =
+                    withStyle(
+                            defaultTextElementStyle =
+                                TextElementStyle(
+                                    typography = style.labelTypography,
+                                    color = colors.labelColor,
+                                    alignment = HORIZONTAL_ALIGN_START.horizontalAlignToTextAlign()
+                                )
+                        )
+                        .labelContent(),
+                secondaryLabel =
+                    secondaryLabelContent?.let {
+                        withStyle(
+                                defaultTextElementStyle =
+                                    TextElementStyle(
+                                        typography = style.secondaryLabelTypography,
+                                        color = colors.secondaryLabelColor,
+                                        alignment =
+                                            HORIZONTAL_ALIGN_START.horizontalAlignToTextAlign()
+                                    )
+                            )
+                            .secondaryLabelContent()
+                    },
+                avatar =
+                    withStyle(
+                            defaultAvatarImageStyle =
+                                AvatarImageStyle(
+                                    width = expand(),
+                                    // We want height to be same as the calculated width
+                                    height =
+                                        DimensionBuilders.ProportionalDimensionProp.Builder()
+                                            .setAspectRatioWidth(1)
+                                            .setAspectRatioHeight(1)
+                                            .build(),
+                                    contentScaleMode = LayoutElementBuilders.CONTENT_SCALE_MODE_FIT
+                                )
+                        )
+                        .avatarContent(),
+                horizontalAlignment =
+                    if (horizontalAlignment == HORIZONTAL_ALIGN_CENTER) HORIZONTAL_ALIGN_START
+                    else horizontalAlignment,
+                style = style,
+                height = height
             )
         }
     )
@@ -312,6 +447,115 @@ public fun MaterialScope.imageButton(
         height = height,
         backgroundContent = backgroundContent
     )
+
+/**
+ * Opinionated ProtoLayout Material3 compact button that offers up to two slots to take horizontally
+ * stacked content representing an icon and text next to it.
+ *
+ * @param onClick Associated [Clickable] for click events. When the button is clicked it will fire
+ *   the associated action.
+ * @param modifier Modifiers to set to this element. It's highly recommended to set a content
+ *   description using [contentDescription].
+ * @param labelContent The text slot for content displayed in this button. It is recommended to use
+ *   default styling that is automatically provided by calling [text] with only the text data
+ *   parameter.
+ * @param iconContent The icon slot for content displayed in this button. It is recommended to use
+ *   default styling that is automatically provided by only calling [icon] with the resource ID.
+ * @param shape Defines the button's shape, in other words the corner radius for this button. If
+ *   changing these to radius smaller than [Shapes.medium], it is important to adjusts the margins
+ *   of [primaryLayout] used to accommodate for more space, for example by using
+ *   [maxPrimaryLayoutMargins]. Or, if the [shape] is set to [Shapes.full], using
+ *   [minPrimaryLayoutMargins] can be considered.
+ * @param width The width of this button. It's highly recommended to set this to [expand] or
+ *   [weight]
+ * @param colors The colors used for this button. If not set, [ButtonDefaults.filledButtonColors]
+ *   will be used as high emphasis button. Other recommended colors are
+ *   [ButtonDefaults.filledTonalButtonColors] and [ButtonDefaults.filledVariantButtonColors]. If
+ *   using custom colors, it is important to choose colors from the same role to ensure
+ *   accessibility with sufficient color contrast.
+ * @param horizontalAlignment The horizontal placement of the [labelContent] and [iconContent]
+ *   content. If both are present, this should be [HORIZONTAL_ALIGN_START] or [HORIZONTAL_ALIGN_END]
+ *   (in which case [iconContent] would be on the start or end side, respectively). Defaults to
+ *   [HORIZONTAL_ALIGN_CENTER] if only [labelContent] or [iconContent] is present, otherwise it
+ *   default to [HORIZONTAL_ALIGN_START].
+ * @param contentPadding The inner padding used to prevent inner content from being too close to the
+ *   button's edge. It's highly recommended to keep the default.
+ * @sample androidx.wear.protolayout.material3.samples.compactButtonsSample
+ */
+// TODO: b/346958146 - Link Button visuals in DAC
+// TODO: b/373578620 - Add how corners affects margins in the layout.
+public fun MaterialScope.compactButton(
+    onClick: Clickable,
+    modifier: LayoutModifier = LayoutModifier,
+    labelContent: (MaterialScope.() -> LayoutElement)? = null,
+    iconContent: (MaterialScope.() -> LayoutElement)? = null,
+    width: ContainerDimension = wrapWithMinTapTargetDimension(),
+    shape: Corner = shapes.full,
+    colors: ButtonColors = filledButtonColors(),
+    @HorizontalAlignment
+    horizontalAlignment: Int =
+        if (iconContent != null && labelContent != null) HORIZONTAL_ALIGN_START
+        else HORIZONTAL_ALIGN_CENTER,
+    contentPadding: Padding =
+        Padding.Builder()
+            .setStart(COMPACT_BUTTON_DEFAULT_CONTENT_PADDING_DP.toDp())
+            .setEnd(COMPACT_BUTTON_DEFAULT_CONTENT_PADDING_DP.toDp())
+            .build()
+): LayoutElement =
+    // Compact button has a fixed height of 32 dp, we need to wrap it in a box to add 8dp margin on
+    // its top and bottom for accessibility.
+    Box.Builder()
+        .addContent(
+            // The actual visible part of compact button
+            componentContainer(
+                onClick = onClick,
+                modifier = modifier.background(color = colors.containerColor, corner = shape),
+                width = width,
+                height = dp(COMPACT_BUTTON_HEIGHT_DP),
+                contentPadding = contentPadding,
+                backgroundContent = null,
+                metadataTag = null,
+                content = {
+                    buildContentForCompactButton(
+                        label =
+                            labelContent?.let {
+                                withStyle(
+                                        defaultTextElementStyle =
+                                            TextElementStyle(
+                                                typography = COMPACT_BUTTON_LABEL_TYPOGRAPHY,
+                                                color = colors.labelColor,
+                                                alignment =
+                                                    horizontalAlignment.horizontalAlignToTextAlign()
+                                            )
+                                    )
+                                    .labelContent()
+                            },
+                        icon =
+                            iconContent?.let {
+                                withStyle(
+                                        defaultIconStyle =
+                                            IconStyle(
+                                                size =
+                                                    dp(
+                                                        if (labelContent == null)
+                                                            COMPACT_BUTTON_ICON_SIZE_LARGE_DP
+                                                        else COMPACT_BUTTON_ICON_SIZE_SMALL_DP
+                                                    ),
+                                                tintColor = colors.iconColor
+                                            )
+                                    )
+                                    .iconContent()
+                            },
+                        horizontalAlignment = horizontalAlignment,
+                        width = width
+                    )
+                }
+            )
+        )
+        .setModifiers(LayoutModifier.tag(METADATA_TAG_BUTTON).toProtoLayoutModifiers())
+        .setHeight(MINIMUM_TAP_TARGET_SIZE)
+        .setWidth(width)
+        .build()
 
 /**
  * ProtoLayout Material3 clickable component button that offers a single slot to take any content.

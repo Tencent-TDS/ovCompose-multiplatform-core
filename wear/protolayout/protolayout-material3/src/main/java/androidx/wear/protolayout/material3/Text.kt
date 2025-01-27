@@ -41,7 +41,8 @@ import androidx.wear.protolayout.types.LayoutString
  * @param underline Whether text should be displayed as underlined.
  * @param scalable Whether text should scale with the user font size.
  * @param maxLines The maximum number of lines that text can occupy.
- * @param multilineAlignment The horizontal alignment of the multiple lines of text.
+ * @param alignment The horizontal alignment of the multiple lines of text or one line of text when
+ *   text overflows.
  * @param overflow The overflow strategy when text doesn't have enough space to be shown.
  * @param modifiers Modifiers to set to this element.
  * @sample androidx.wear.protolayout.material3.samples.helloWorldTextDefault
@@ -55,7 +56,7 @@ public fun MaterialScope.text(
     underline: Boolean = defaultTextElementStyle.underline,
     scalable: Boolean = defaultTextElementStyle.scalable,
     maxLines: Int = defaultTextElementStyle.maxLines,
-    @TextAlignment multilineAlignment: Int = defaultTextElementStyle.multilineAlignment,
+    @TextAlignment alignment: Int = defaultTextElementStyle.alignment,
     @TextOverflow overflow: Int = defaultTextElementStyle.overflow,
     modifiers: LayoutModifier = LayoutModifier
 ): LayoutElement =
@@ -68,7 +69,7 @@ public fun MaterialScope.text(
                 .setUnderline(underline)
                 .build(),
         maxLines = maxLines,
-        multilineAlignment = multilineAlignment,
+        alignment = alignment,
         overflow = overflow,
         modifier = modifiers
     )

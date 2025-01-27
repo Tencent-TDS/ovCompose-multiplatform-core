@@ -16,6 +16,8 @@
 
 package androidx.webkit;
 
+import android.os.Build;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
@@ -30,6 +32,7 @@ import androidx.webkit.internal.ApiHelperForN;
 import androidx.webkit.internal.ApiHelperForO;
 import androidx.webkit.internal.ApiHelperForQ;
 import androidx.webkit.internal.WebSettingsAdapter;
+import androidx.webkit.internal.WebSettingsNoOpAdapter;
 import androidx.webkit.internal.WebViewFeatureInternal;
 import androidx.webkit.internal.WebViewGlueCommunicator;
 
@@ -46,6 +49,9 @@ import java.util.Set;
  * Compatibility version of {@link android.webkit.WebSettings}
  */
 public class WebSettingsCompat {
+
+    private static final String TAG = "WebSettingsCompat";
+
     private WebSettingsCompat() {}
 
     /**
@@ -1150,7 +1156,24 @@ public class WebSettingsCompat {
     }
 
     private static WebSettingsAdapter getAdapter(WebSettings settings) {
-        return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        try {
+            return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        } catch (ClassCastException e) {
+            if (Build.VERSION.SDK_INT == 30
+                    && "android.webkit.WebSettingsWrapper"
+                    .equals(settings.getClass().getCanonicalName())) {
+                // This is a patch for a bug observed only on OnePlus devices running SDK version
+                // 30. See https://crbug.com/388824130.
+                Log.e(
+                        TAG,
+                        "Error converting WebSettings to Chrome implementation. All AndroidX method"
+                                + " calls on this WebSettings instance will be no-op calls. See"
+                                + " https://crbug.com/388824130 for more info.",
+                        e);
+                return new WebSettingsNoOpAdapter();
+            }
+            throw e;
+        }
     }
 }
 

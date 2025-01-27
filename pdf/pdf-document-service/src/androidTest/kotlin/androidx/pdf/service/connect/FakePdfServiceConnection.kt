@@ -28,12 +28,15 @@ class FakePdfServiceConnection(
     override val context: Context,
     override val isConnected: Boolean,
     override var documentBinder: PdfDocumentRemote? = null,
+    override var needsToReopenDocument: Boolean = false,
     private val onServiceConnected: () -> Unit = {}
 ) : PdfServiceConnection {
-    override suspend fun bindAndConnect(uri: Uri) {
+    override suspend fun connect(uri: Uri) {
         documentBinder = PdfDocumentRemoteImpl(PdfDocumentRendererFactoryImpl())
         onServiceConnected(null, null)
     }
+
+    override suspend fun blockUntilConnected() {}
 
     override fun disconnect() {
         documentBinder?.closePdfDocument()

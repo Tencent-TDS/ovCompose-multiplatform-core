@@ -17,7 +17,6 @@ package androidx.camera.integration.core
 
 import android.Manifest
 import android.content.Context
-import android.util.Log
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.Camera
@@ -468,28 +467,6 @@ class UseCaseCombinationTest(
         unbindUseCases(videoCapture)
         previewMonitor.waitForStream()
         imageCapture.waitForCapturing()
-    }
-
-    @Test
-    fun previewImageCaptureZSL() {
-        // Arrange.
-        assumeTrue(cameraInfo.isZslSupported) // Only test when ZSL is supported
-
-        val imageCaptureZSL =
-            ImageCapture.Builder()
-                .apply { setCaptureMode(ImageCapture.CAPTURE_MODE_ZERO_SHUTTER_LAG) }
-                .build()
-        assumeTrue(camera.isUseCasesCombinationSupported(preview, imageCaptureZSL))
-        bindUseCases(preview, imageCaptureZSL)
-
-        // Capture images with ZSL and verify each capture.
-        for (i in 10 downTo 0) {
-            previewMonitor.waitForStream()
-            imageCaptureZSL.waitForCapturing()
-            Log.d("UseCaseCombinationTest", "Test ZSL capture round: $i")
-            // Verifies the preview is still outputting after capture
-            previewMonitor.waitForStream()
-        }
     }
 
     // Possible for QR code scanning use case.

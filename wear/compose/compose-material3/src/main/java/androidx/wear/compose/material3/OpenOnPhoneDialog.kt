@@ -121,7 +121,7 @@ public fun OpenOnPhoneDialog(
         }
     }
     Dialog(
-        show = show,
+        visible = show,
         modifier = modifier,
         onDismissRequest = onDismissRequest,
         properties = properties,
@@ -136,7 +136,7 @@ public fun OpenOnPhoneDialog(
         val progressDuration = a11yFullDurationMillis - finalAnimationDuration
 
         val alphaAnimationSpec = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
-        val reduceMotionEnabled = LocalReduceMotion.current.enabled()
+        val reduceMotionEnabled = LocalReduceMotion.current
 
         LaunchedEffect(a11yFullDurationMillis) {
             launch {
@@ -220,7 +220,7 @@ public object OpenOnPhoneDialogDefaults {
         val animation =
             AnimatedImageVector.animatedVectorResource(R.drawable.wear_m3c_open_on_phone_animation)
         var atEnd by remember { mutableStateOf(false) }
-        val reduceMotionEnabled = LocalReduceMotion.current.enabled()
+        val reduceMotionEnabled = LocalReduceMotion.current
 
         LaunchedEffect(Unit) {
             animatedDelay(IconDelay, reduceMotionEnabled)

@@ -26,7 +26,6 @@ import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.DimensionBuilders.ContainerDimension
 import androidx.wear.protolayout.DimensionBuilders.DpProp
 import androidx.wear.protolayout.DimensionBuilders.WrappedDimensionProp
-import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.DimensionBuilders.wrap
 import androidx.wear.protolayout.LayoutElementBuilders
@@ -44,6 +43,8 @@ import androidx.wear.protolayout.ModifiersBuilders.Clickable
 import androidx.wear.protolayout.ModifiersBuilders.ElementMetadata
 import androidx.wear.protolayout.ModifiersBuilders.Padding
 import androidx.wear.protolayout.ModifiersBuilders.SEMANTICS_ROLE_BUTTON
+import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.percentageHeightToDp
+import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.percentageWidthToDp
 import androidx.wear.protolayout.materialcore.fontscaling.FontScaleConverterFactory
 import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.clickable
@@ -53,6 +54,7 @@ import androidx.wear.protolayout.modifiers.tag
 import androidx.wear.protolayout.modifiers.toProtoLayoutModifiers
 import androidx.wear.protolayout.types.LayoutColor
 import androidx.wear.protolayout.types.argb
+import androidx.wear.protolayout.types.dp
 import java.nio.charset.StandardCharsets
 
 /**
@@ -62,7 +64,7 @@ import java.nio.charset.StandardCharsets
 internal const val SCREEN_SIZE_BREAKPOINT_DP = 225
 
 /** Minimum tap target for any clickable element. */
-internal val MINIMUM_TAP_TARGET_SIZE: DpProp = dp(48f)
+internal val MINIMUM_TAP_TARGET_SIZE: DpProp = 48f.dp
 
 /** Returns byte array representation of tag from String. */
 internal fun String.toTagBytes(): ByteArray = toByteArray(StandardCharsets.UTF_8)
@@ -89,7 +91,7 @@ internal fun Float.dpToSp(fontScale: Float): Float =
 
 @Dimension(unit = SP) private fun Float.dpToSpLinear(fontScale: Float): Float = this / fontScale
 
-internal fun Int.toDp() = dp(this.toFloat())
+internal fun Int.toDp() = this.toFloat().dp
 
 /** Builds a horizontal Spacer, with width set to expand and height set to the given value. */
 internal fun horizontalSpacer(@Dimension(unit = DP) heightDp: Int): Spacer =
@@ -116,7 +118,7 @@ internal fun wrapWithMinTapTargetDimension(): WrappedDimensionProp =
  * Note that this only looks at the static value of the [LayoutColor], any dynamic value will be
  * ignored.
  */
-public fun LayoutColor.withOpacity(@FloatRange(from = 0.0, to = 1.0) ratio: Float): LayoutColor {
+internal fun LayoutColor.withOpacity(@FloatRange(from = 0.0, to = 1.0) ratio: Float): LayoutColor {
     // From androidx.core.graphics.ColorUtils
     require(!(ratio < 0 || ratio > 1)) { "setOpacityForColor ratio must be between 0 and 1." }
     val fullyOpaque = 255
@@ -157,13 +159,16 @@ internal fun MaterialScope.componentContainer(
     height: ContainerDimension,
     backgroundContent: (MaterialScope.() -> LayoutElement)?,
     contentPadding: Padding,
-    metadataTag: String,
+    metadataTag: String?,
     content: (MaterialScope.() -> LayoutElement)?
 ): LayoutElement {
-
     val mod =
         LayoutModifier.semanticsRole(SEMANTICS_ROLE_BUTTON) then
-            modifier.clickable(onClick).tag(metadataTag)
+            if (metadataTag != null) {
+                modifier.clickable(onClick).tag(metadataTag)
+            } else {
+                modifier.clickable(onClick)
+            }
 
     val container =
         Box.Builder().setHeight(height).setWidth(width).apply {
@@ -203,3 +208,33 @@ internal fun MaterialScope.componentContainer(
         )
         .build()
 }
+
+/**
+ * Returns [Padding] objects with values represented as percentages from the screen size.
+ *
+ * @param start The ratio percentage of the screen width that should be use as start padding
+ * @param end The ratio percentage of the screen width that should be use as end padding
+ * @param bottom The ratio percentage of the screen width that should be use as bottom padding
+ */
+internal fun MaterialScope.percentagePadding(
+    @FloatRange(from = 0.0, to = 1.0) start: Float,
+    @FloatRange(from = 0.0, to = 1.0) end: Float,
+    @FloatRange(from = 0.0, to = 1.0) bottom: Float
+): Padding =
+    padding(
+        start = percentageWidthToDp(start),
+        end = percentageWidthToDp(end),
+        bottom = percentageHeightToDp(bottom)
+    )
+
+/**
+ * Returns [Padding] objects with values represented as percentages from the screen size, using only
+ * horizontal padding.
+ *
+ * @param start The ratio percentage of the screen width that should be use as start padding
+ * @param end The ratio percentage of the screen width that should be use as end padding
+ */
+internal fun MaterialScope.percentagePadding(
+    @FloatRange(from = 0.0, to = 1.0) start: Float,
+    @FloatRange(from = 0.0, to = 1.0) end: Float
+): Padding = padding(start = percentageWidthToDp(start), end = percentageWidthToDp(end))

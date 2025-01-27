@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine
 import androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine
 import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -852,6 +853,38 @@ class TextFieldKeyEventTest {
             assertThat(parentKeyEvents[1].type).isEqualTo(KeyEventType.KeyUp)
             assertThat(state.text).isEqualTo("A")
         }
+    }
+
+    @Test
+    fun textField_keyEvent_functionReference() {
+        val state = mutableIntStateOf(0)
+        var handled = -1
+        val focusRequester = FocusRequester()
+        rule.setContent {
+            val stateValue = state.value
+
+            @Suppress("UNUSED_PARAMETER")
+            fun handle(key: KeyEvent): Boolean {
+                handled = stateValue
+                return true
+            }
+
+            BasicTextField(
+                value = "text",
+                onValueChange = {},
+                modifier = Modifier.focusRequester(focusRequester).testTag(tag).onKeyEvent(::handle)
+            )
+        }
+
+        rule.runOnIdle { focusRequester.requestFocus() }
+        rule.onNodeWithTag(tag).performKeyInput { pressKey(Key.A) }
+        rule.runOnIdle {
+            assertThat(handled).isEqualTo(0)
+            state.value += 1
+        }
+
+        rule.onNodeWithTag(tag).performKeyInput { pressKey(Key.A) }
+        rule.runOnIdle { assertThat(handled).isEqualTo(1) }
     }
 
     private inner class SequenceScope(

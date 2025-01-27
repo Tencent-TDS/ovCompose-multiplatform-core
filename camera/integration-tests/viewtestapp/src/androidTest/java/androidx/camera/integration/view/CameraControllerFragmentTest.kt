@@ -157,14 +157,14 @@ class CameraControllerFragmentTest(
         var started = false
         var finalState = TAP_TO_FOCUS_NOT_STARTED
         instrumentation.runOnMainSync {
-            fragment.cameraController.tapToFocusState.observe(fragment) {
+            fragment.cameraController.tapToFocusInfoState.observe(fragment) {
                 // Make sure the LiveData receives STARTED first and then another update.
-                if (it == TAP_TO_FOCUS_STARTED) {
+                if (it.focusState == TAP_TO_FOCUS_STARTED) {
                     started = true
                     return@observe
                 }
                 if (started) {
-                    finalState = it
+                    finalState = it.focusState
                     focused.release()
                 }
             }

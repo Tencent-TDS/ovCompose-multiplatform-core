@@ -55,7 +55,7 @@ androidx {
 android {
     compileSdk = 35
     defaultConfig {
-        minSdk = 30
+        minSdk = 25
     }
     namespace = "androidx.wear.compose.material3.demos"
 }

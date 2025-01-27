@@ -267,10 +267,10 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     colors =
                         CardColors(
-                            background = backgroundColor.argb,
-                            title = titleColor.argb,
-                            content = contentColor.argb,
-                            time = timeColor.argb
+                            backgroundColor = backgroundColor.argb,
+                            titleColor = titleColor.argb,
+                            contentColor = contentColor.argb,
+                            timeColor = timeColor.argb
                         ),
                     title = { text(TEXT.layoutString) },
                     content = { text(TEXT2.layoutString) },
@@ -301,11 +301,11 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     colors =
                         CardColors(
-                            background = backgroundColor.argb,
-                            title = titleColor.argb,
-                            content = contentColor.argb,
-                            time = timeColor.argb,
-                            label = labelColor.argb
+                            backgroundColor = backgroundColor.argb,
+                            titleColor = titleColor.argb,
+                            contentColor = contentColor.argb,
+                            timeColor = timeColor.argb,
+                            labelColor = labelColor.argb
                         ),
                     title = { text(TEXT.layoutString) },
                     content = { text(TEXT2.layoutString) },
@@ -337,10 +337,10 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     colors =
                         CardColors(
-                            background = backgroundColor.argb,
-                            title = titleColor.argb,
-                            content = contentColor.argb,
-                            secondaryIcon = iconColor.argb
+                            backgroundColor = backgroundColor.argb,
+                            titleColor = titleColor.argb,
+                            contentColor = contentColor.argb,
+                            secondaryIconColor = iconColor.argb
                         ),
                     title = { this.text(TEXT.layoutString) },
                     content = { this.text(TEXT2.layoutString) },
@@ -372,10 +372,10 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     colors =
                         CardColors(
-                            background = backgroundColor.argb,
-                            title = titleColor.argb,
-                            content = contentColor.argb,
-                            secondaryText = secondaryLabelColor.argb
+                            backgroundColor = backgroundColor.argb,
+                            titleColor = titleColor.argb,
+                            contentColor = contentColor.argb,
+                            secondaryTextColor = secondaryLabelColor.argb
                         ),
                     title = { this.text(TEXT.layoutString) },
                     content = { this.text(TEXT2.layoutString) },
@@ -408,9 +408,9 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     colors =
                         CardColors(
-                            background = backgroundColor.argb,
-                            title = titleColor.argb,
-                            content = contentColor.argb,
+                            backgroundColor = backgroundColor.argb,
+                            titleColor = titleColor.argb,
+                            contentColor = contentColor.argb,
                         ),
                     title = { text(TEXT.layoutString) },
                     content = { text(TEXT2.layoutString) },

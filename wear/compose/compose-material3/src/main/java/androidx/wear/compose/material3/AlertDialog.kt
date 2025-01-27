@@ -30,9 +30,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -48,6 +45,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material3.PaddingDefaults.horizontalContentPadding
 import androidx.wear.compose.material3.PaddingDefaults.verticalContentPadding
+import androidx.wear.compose.material3.internal.Icons
 import androidx.wear.compose.material3.internal.Strings
 import androidx.wear.compose.material3.internal.getString
 import androidx.wear.compose.materialcore.screenHeightDp
@@ -110,7 +108,7 @@ public fun AlertDialog(
     content: (ScalingLazyListScope.() -> Unit)? = null
 ) {
     Dialog(
-        show = visible,
+        visible = visible,
         onDismissRequest = onDismissRequest,
         properties = properties,
     ) {
@@ -172,7 +170,7 @@ public fun AlertDialog(
     content: (ScalingLazyListScope.() -> Unit)? = null
 ) {
     Dialog(
-        show = visible,
+        visible = visible,
         onDismissRequest = onDismissRequest,
         properties = properties,
     ) {
@@ -245,7 +243,7 @@ public fun AlertDialog(
     content: (ScalingLazyListScope.() -> Unit)? = null
 ) {
     Dialog(
-        show = visible,
+        visible = visible,
         onDismissRequest = onDismissRequest,
         properties = properties,
     ) {
@@ -412,12 +410,15 @@ public fun AlertDialogContent(
 ) {
     val state = rememberScalingLazyListState(initialCenterItemIndex = 0)
 
+    val noTextAndContent = text == null && content == null
     ScreenScaffold(
         scrollState = state,
         edgeButton = edgeButton,
         modifier = modifier,
         contentPadding = contentPadding,
-        edgeButtonSpacing = AlertEdgeButtonSpacing,
+        edgeButtonSpacing =
+            if (noTextAndContent) AlertEdgeButtonSpacingWithoutTextAndContent
+            else AlertEdgeButtonSpacing,
     ) {
         ScalingLazyColumn(
             state = state,
@@ -568,18 +569,18 @@ public object AlertDialogDefaults {
     /** Default icon for the confirm button. */
     public val ConfirmIcon: @Composable RowScope.() -> Unit = {
         Icon(
-            imageVector = Icons.Filled.Check,
+            imageVector = Icons.Check,
             contentDescription = getString(Strings.AlertDialogContentDescriptionConfirmButton),
-            modifier = Modifier.size(36.dp).align(Alignment.CenterVertically)
+            modifier = Modifier.size(28.dp).align(Alignment.CenterVertically)
         )
     }
 
     /** Default icon for the dismiss button. */
     public val DismissIcon: @Composable RowScope.() -> Unit = {
         Icon(
-            imageVector = Icons.Outlined.Close,
+            imageVector = Icons.Close,
             contentDescription = getString(Strings.AlertDialogContentDescriptionDismissButton),
-            modifier = Modifier.size(36.dp).align(Alignment.CenterVertically)
+            modifier = Modifier.size(28.dp).align(Alignment.CenterVertically)
         )
     }
 
@@ -603,7 +604,7 @@ private fun ScalingLazyListScope.alertDialogCommonContent(
         item { TextMessage(text) }
     }
     if (content != null) {
-        item { Spacer(Modifier.height(ContentTopSpacing)) }
+        item { Spacer(Modifier.height(AlertContentTopSpacing)) }
         content()
     }
 }
@@ -681,14 +682,14 @@ private fun TextMessage(content: @Composable () -> Unit) {
 }
 
 internal val AlertIconBottomSpacing = 4.dp
+internal val AlertTextMessageTopSpacing = 4.dp
 internal val AlertEdgeButtonSpacing = 4.dp
-internal val AlertTextMessageTopSpacing = 8.dp
+internal val AlertEdgeButtonSpacingWithoutTextAndContent = 16.dp
 internal val ConfirmDismissButtonsTopSpacing = 12.dp
+internal val AlertContentTopSpacing = 8.dp
 internal const val ConfirmDismissButtonsBottomSpacingFraction = 0.045f
 internal const val AlertTitleMaxLines = 3
 
-private val ContentTopSpacing = 8.dp
-private val BottomButtonSpacing = 8.dp
 private const val TextPaddingFraction = 0.0416f
 private const val TitlePaddingFraction = 0.12f
 private const val ConfirmDismissBetweenButtonsPaddingFraction = 0.03f

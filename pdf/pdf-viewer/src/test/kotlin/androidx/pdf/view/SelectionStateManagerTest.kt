@@ -29,6 +29,7 @@ import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -99,7 +100,7 @@ class SelectionStateManagerTest {
         selectionStateManager.maybeSelectWordAtPoint(selectionPoint)
         testDispatcher.scheduler.runCurrent()
 
-        val selectionModel = selectionStateManager.selectionModel
+        val selectionModel = selectionStateManager.selectionModel.value
         assertThat(selectionModel).isNotNull()
         assertThat(selectionModel?.selection).isInstanceOf(TextSelection::class.java)
         val selection = requireNotNull(selectionModel?.selection as TextSelection)
@@ -146,7 +147,7 @@ class SelectionStateManagerTest {
         selectionStateManager.maybeSelectWordAtPoint(selectionPoint2)
         testDispatcher.scheduler.runCurrent()
 
-        val selectionModel = selectionStateManager.selectionModel
+        val selectionModel = selectionStateManager.selectionModel.value
         assertThat(selectionModel).isNotNull()
         assertThat(selectionModel?.selection).isInstanceOf(TextSelection::class.java)
         val selection = requireNotNull(selectionModel?.selection as TextSelection)
@@ -184,7 +185,7 @@ class SelectionStateManagerTest {
         assertThat(selectionStateManager.selectionModel).isNotNull()
         selectionStateManager.clearSelection()
 
-        assertThat(selectionStateManager.selectionModel).isNull()
+        assertThat(selectionStateManager.selectionModel.value).isNull()
         // We only care about the final 2 signals that should occur as a result of cancellation
         // hide action mode
         assertThat(uiSignals[uiSignals.size - 2])
@@ -201,18 +202,18 @@ class SelectionStateManagerTest {
 
         // Start a selection and don't finish it (i.e. no runCurrent)
         selectionStateManager.maybeSelectWordAtPoint(selectionPoint)
-        assertThat(selectionStateManager.selectionModel).isNull()
+        assertThat(selectionStateManager.selectionModel.value).isNull()
 
         // Clear selection, flush the scheduler, and make sure selection remains null (i.e. the work
         // enqueued by our initial selection doesn't finish and supersede the cleared state)
         selectionStateManager.clearSelection()
         testDispatcher.scheduler.runCurrent()
-        assertThat(selectionStateManager.selectionModel).isNull()
+        assertThat(selectionStateManager.selectionModel.value).isNull()
     }
 
     @Test
     fun maybeDragHandle_actionDownOutsideHandle_returnFalse() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
 
         assertThat(
                 selectionStateManager.maybeDragSelectionHandle(
@@ -226,7 +227,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionDownInsideStartHandle_returnTrue() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // Chose a point inside the start handle touch target (below and behind the start position)
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {
@@ -246,7 +247,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionDownInsideEndHandle_returnTrue() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // Chose a point inside the end handle touch target (below and ahead the end position)
         val insideEndHandle =
             PointF(initialSelectionForDragging.endBoundary.location.pagePoint).apply {
@@ -266,7 +267,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionMove_updateSelection() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // "Grab" the start handle
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {
@@ -295,7 +296,7 @@ class SelectionStateManagerTest {
 
         // Make sure the selection is updated appropriately
         testDispatcher.scheduler.runCurrent()
-        val selection = selectionStateManager.selectionModel?.selection
+        val selection = selectionStateManager.selectionModel.value?.selection
         assertThat(selection).isInstanceOf(TextSelection::class.java)
         val expectedStartLoc = initialSelectionForDragging.endBoundary.location.pagePoint
         val expectedEndLoc =
@@ -308,7 +309,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionMoveOutsidePage_returnTrue() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // "Grab" the start handle
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {
@@ -337,7 +338,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionMoveWithoutActionDown_returnFalse() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // Chose a point inside the start handle touch target (below and behind the start position)
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {
@@ -358,7 +359,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionUpWithoutActionDown_returnFalse() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // Chose a point inside the start handle touch target (below and behind the start position)
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {
@@ -379,7 +380,7 @@ class SelectionStateManagerTest {
 
     @Test
     fun maybeDragHandle_actionUp_returnTrueAndStopHandlingEvents() {
-        selectionStateManager.selectionModel = initialSelectionForDragging
+        selectionStateManager._selectionModel.update { initialSelectionForDragging }
         // Chose a point inside the start handle touch target (below and behind the start position)
         val insideStartHandle =
             PointF(initialSelectionForDragging.startBoundary.location.pagePoint).apply {

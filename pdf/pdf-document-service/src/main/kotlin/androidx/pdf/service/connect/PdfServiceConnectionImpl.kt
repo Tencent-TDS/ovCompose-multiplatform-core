@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.update
 internal class PdfServiceConnectionImpl(override val context: Context) : PdfServiceConnection {
     private val _eventStateFlow: MutableStateFlow<ConnectionState> = MutableStateFlow(Disconnected)
 
+    override var needsToReopenDocument: Boolean = false
+
     override val isConnected: Boolean
         get() = _eventStateFlow.value is Connected
 
@@ -44,10 +46,11 @@ internal class PdfServiceConnectionImpl(override val context: Context) : PdfServ
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
+        needsToReopenDocument = true
         _eventStateFlow.update { Disconnected }
     }
 
-    override suspend fun bindAndConnect(uri: Uri) {
+    override suspend fun connect(uri: Uri) {
         val intent =
             Intent(context, PdfDocumentServiceImpl::class.java).apply {
                 // Providing a different Intent to the Service per document is required to obtain a
@@ -56,6 +59,10 @@ internal class PdfServiceConnectionImpl(override val context: Context) : PdfServ
                 data = uri
             }
         context.bindService(intent, /* conn= */ this, /* flags= */ Context.BIND_AUTO_CREATE)
+        _eventStateFlow.first { it is Connected }
+    }
+
+    override suspend fun blockUntilConnected() {
         _eventStateFlow.first { it is Connected }
     }
 

@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.testCore)
@@ -46,8 +47,6 @@ androidx {
     description = "Experimental AndroidX Inspection Project"
     legacyDisableKotlinStrictApiMode = true
     doNotDocumentReason = "Not shipped externally"
-    // TODO: b/326456246
-    optOutJSpecify = true
 }
 
 android {

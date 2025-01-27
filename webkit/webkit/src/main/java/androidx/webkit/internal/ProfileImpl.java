@@ -25,6 +25,7 @@ import android.webkit.WebStorage;
 import androidx.webkit.OutcomeReceiverCompat;
 import androidx.webkit.PrefetchException;
 import androidx.webkit.Profile;
+import androidx.webkit.SpeculativeLoadingConfig;
 import androidx.webkit.SpeculativeLoadingParameters;
 
 import org.chromium.support_lib_boundary.ProfileBoundaryInterface;
@@ -147,6 +148,20 @@ public class ProfileImpl implements Profile {
         if (feature.isSupportedByWebView()) {
             mProfileImpl.clearPrefetch(url, callbackExecutor,
                     PrefetchOperationCallbackAdapter.buildInvocationHandler(callback));
+        } else {
+            throw WebViewFeatureInternal.getUnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public void setSpeculativeLoadingConfig(
+            @NonNull SpeculativeLoadingConfig speculativeLoadingConfig) {
+        ApiFeature.NoFramework feature = WebViewFeatureInternal.SPECULATIVE_LOADING_CONFIG;
+        if (feature.isSupportedByWebView()) {
+            InvocationHandler configInvocation =
+                    BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
+                            new SpeculativeLoadingConfigAdapter(speculativeLoadingConfig));
+            mProfileImpl.setSpeculativeLoadingConfig(configInvocation);
         } else {
             throw WebViewFeatureInternal.getUnsupportedOperationException();
         }

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -136,7 +137,7 @@ public fun PickerGroup(
                             .focusRequester(focusRequester),
                     readOnlyLabel = pickerData.readOnlyLabel,
                     onSelected = pickerData.onSelected,
-                    spacing = pickerData.spacing,
+                    verticalSpacing = pickerData.verticalSpacing,
                     userScrollEnabled = !touchExplorationServicesEnabled || pickerSelected,
                     option = { optionIndex ->
                         with(pickerData) {
@@ -186,8 +187,8 @@ public class PickerGroupScope {
      * @param focusRequester Optional [FocusRequester] for the [Picker]. If not provided, a local
      *   instance of [FocusRequester] will be created to handle the focus between different pickers.
      * @param onSelected Action triggered when the [Picker] is selected by clicking.
-     * @param spacing The amount of spacing in [Dp] between items. Can be negative, which can be
-     *   useful for Text if it has plenty of whitespace.
+     * @param verticalSpacing The amount of vertical spacing in [Dp] between items. Can be negative,
+     *   which can be useful for Text if it has plenty of whitespace.
      * @param readOnlyLabel A slot for providing a label, displayed above the selected option when
      *   the [Picker] is read-only. The label is overlaid with the currently selected option within
      *   a Box, so it is recommended that the label is given [Alignment.TopCenter].
@@ -201,7 +202,7 @@ public class PickerGroupScope {
         focusRequester: FocusRequester? = null,
         onSelected: () -> Unit = {},
         readOnlyLabel: @Composable (BoxScope.() -> Unit)? = null,
-        spacing: Dp = 0.dp,
+        verticalSpacing: Dp = 0.dp,
         option: @Composable PickerScope.(optionIndex: Int, pickerSelected: Boolean) -> Unit
     ): Boolean =
         items.add(
@@ -212,7 +213,7 @@ public class PickerGroupScope {
                 focusRequester,
                 onSelected,
                 readOnlyLabel,
-                spacing,
+                verticalSpacing,
                 option
             )
         )
@@ -225,7 +226,7 @@ internal data class PickerGroupItem(
     val focusRequester: FocusRequester? = null,
     val onSelected: () -> Unit = {},
     val readOnlyLabel: @Composable (BoxScope.() -> Unit)? = null,
-    val spacing: Dp = 0.dp,
+    val verticalSpacing: Dp = 0.dp,
     val option: @Composable PickerScope.(optionIndex: Int, pickerSelected: Boolean) -> Unit
 )
 

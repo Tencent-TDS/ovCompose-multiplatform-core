@@ -63,7 +63,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import dalvik.annotation.optimization.NeverInline
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -634,7 +633,6 @@ class DraggableAnchorsConfig<T> {
         positions[keys.size - 1] = position
     }
 
-    @NeverInline
     internal fun buildPositions(): FloatArray {
         // We might have expanded more than we actually need, so trim the array
         return positions.copyOfRange(
@@ -646,7 +644,6 @@ class DraggableAnchorsConfig<T> {
 
     internal fun buildKeys(): List<T> = keys
 
-    @NeverInline
     private fun expandPositions() {
         positions = positions.copyOf(keys.size + 2)
     }

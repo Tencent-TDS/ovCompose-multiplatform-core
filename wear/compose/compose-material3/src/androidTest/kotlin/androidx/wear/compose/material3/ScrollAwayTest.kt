@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -46,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.wear.compose.foundation.ScrollInfoProvider
+import androidx.wear.compose.foundation.curvedComposable
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
@@ -59,6 +62,7 @@ import org.junit.runner.RunWith
 class ScrollAwayTest {
     @get:Rule val rule = createComposeRule()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun showsTimeTextWithScalingLazyColumnInitially() {
         val timeTextColor = Color.Red
@@ -89,6 +93,7 @@ class ScrollAwayTest {
         rule.onNodeWithTag(TIME_TEXT_TAG).assertIsDisplayed()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun showsTimeTextWithLazyColumnInitially() {
         val timeTextColor = Color.Red
@@ -101,6 +106,7 @@ class ScrollAwayTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(timeTextColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun showsTimeTextWithColumnInitially() {
         val timeTextColor = Color.Red
@@ -113,6 +119,7 @@ class ScrollAwayTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(timeTextColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun hidesTimeTextAfterScrollingScalingLazyColumn() {
         val timeTextColor = Color.Red
@@ -130,6 +137,7 @@ class ScrollAwayTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(timeTextColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun hidesTimeTextWithLazyColumn() {
         val timeTextColor = Color.Red
@@ -152,6 +160,7 @@ class ScrollAwayTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(timeTextColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun hidesTimeTextWithColumn() {
         val timeTextColor = Color.Red
@@ -199,7 +208,7 @@ class ScrollAwayTest {
                             )
                             .testTag(TIME_TEXT_TAG),
                 ) {
-                    composable { Box(Modifier.size(20.dp).background(timeTextColor)) }
+                    curvedComposable { Box(Modifier.size(20.dp).background(timeTextColor)) }
                 }
             }
         }
@@ -225,7 +234,7 @@ class ScrollAwayTest {
                             )
                             .testTag(TIME_TEXT_TAG)
                 ) {
-                    composable { Box(Modifier.size(20.dp).background(timeTextColor)) }
+                    curvedComposable { Box(Modifier.size(20.dp).background(timeTextColor)) }
                 }
                 LazyColumn(state = scrollState, modifier = Modifier.testTag(SCROLL_TAG)) {
                     item { ListHeader { Text("Buttons") } }
@@ -245,7 +254,6 @@ class ScrollAwayTest {
                         .testTag(TEST_TAG)
             ) {
                 TimeText(
-                    contentColor = timeTextColor,
                     modifier =
                         Modifier.scrollAway(
                                 scrollInfoProvider = ScrollInfoProvider(scrollState),
@@ -256,7 +264,7 @@ class ScrollAwayTest {
                             )
                             .testTag(TIME_TEXT_TAG)
                 ) {
-                    composable { Box(Modifier.size(20.dp).background(timeTextColor)) }
+                    curvedComposable { Box(Modifier.size(20.dp).background(timeTextColor)) }
                 }
                 Column(modifier = Modifier.verticalScroll(scrollState).testTag(SCROLL_TAG)) {
                     ListHeader { Text("Buttons") }

@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.SliderDefaults.MaxSegmentSteps
 import androidx.wear.compose.material3.internal.Icons
-import androidx.wear.compose.material3.internal.Strings.Companion.SliderDecreaseButtonContentDescription
-import androidx.wear.compose.material3.internal.Strings.Companion.SliderIncreaseButtonContentDescription
+import androidx.wear.compose.material3.internal.Strings.Companion.SliderDecreaseIconContentDescription
+import androidx.wear.compose.material3.internal.Strings.Companion.SliderIncreaseIconContentDescription
 import androidx.wear.compose.material3.internal.getString
 import androidx.wear.compose.material3.tokens.MotionTokens
 import androidx.wear.compose.material3.tokens.SliderTokens
@@ -292,7 +292,7 @@ public fun Slider(
 
 /** Defaults used by slider. */
 public object SliderDefaults {
-    /** The recommended size for Slider [DecreaseIcon] and [IncreaseIcon] button icons. */
+    /** The recommended size for Slider button icons. */
     public val IconSize: Dp = 24.dp
 
     /** The maximum recommended number of steps for a segmented [Slider]. */
@@ -302,19 +302,37 @@ public object SliderDefaults {
     public val shape: Shape
         @Composable get() = SliderTokens.ContainerShape.value
 
-    /** Decrease Icon. */
+    /**
+     * The recommended decrease icon.
+     *
+     * @param modifier Modifier to be applied to the decrease icon.
+     * @param contentDescription The content description for the decrease icon.
+     */
     @Composable
-    public fun DecreaseIcon(modifier: Modifier = Modifier): Unit =
-        Icon(
-            Icons.Remove,
-            getString(SliderDecreaseButtonContentDescription),
-            modifier.size(IconSize)
-        )
+    public fun DecreaseIcon(
+        modifier: Modifier = Modifier,
+        contentDescription: String = decreaseIconContentDescription
+    ): Unit = Icon(Icons.Remove, contentDescription, modifier.size(IconSize))
 
-    /** Increase Icon. */
+    /**
+     * The recommended increase icon.
+     *
+     * @param modifier Modifier to be applied to the increase icon.
+     * @param contentDescription The content description for the increase icon.
+     */
     @Composable
-    public fun IncreaseIcon(modifier: Modifier = Modifier): Unit =
-        Icon(Icons.Add, getString(SliderIncreaseButtonContentDescription), modifier.size(IconSize))
+    public fun IncreaseIcon(
+        modifier: Modifier = Modifier,
+        contentDescription: String = increaseIconContentDescription
+    ): Unit = Icon(Icons.Add, contentDescription, modifier.size(IconSize))
+
+    /** The default content description for the increase icon */
+    public val increaseIconContentDescription: String
+        @Composable get() = getString(SliderIncreaseIconContentDescription)
+
+    /** The default content description for the decrease button */
+    public val decreaseIconContentDescription: String
+        @Composable get() = getString(SliderDecreaseIconContentDescription)
 
     /**
      * Creates a [SliderColors] that represents the default background and content colors used in an

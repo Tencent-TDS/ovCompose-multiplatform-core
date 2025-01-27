@@ -259,6 +259,10 @@ class CapturePipelineTest {
                 // Do nothing
             }
 
+            override fun clearZslConfig() {
+                // Do nothing
+            }
+
             override fun isZslSurface(
                 surface: DeferrableSurface,
                 sessionConfig: SessionConfig

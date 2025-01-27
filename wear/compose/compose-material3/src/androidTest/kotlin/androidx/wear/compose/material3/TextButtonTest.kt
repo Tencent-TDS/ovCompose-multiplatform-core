@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -335,6 +337,7 @@ class TextButtonTest {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun default_shape_is_circular() {
         rule.isShape(
@@ -347,6 +350,7 @@ class TextButtonTest {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun allows_custom_shape_override() {
         val shape = CutCornerShape(4.dp)
@@ -363,6 +367,7 @@ class TextButtonTest {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -373,6 +378,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -385,6 +391,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -395,6 +402,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -409,6 +417,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_variant_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -419,6 +428,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_variant_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -433,6 +443,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -443,6 +454,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -457,6 +469,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -467,6 +480,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -479,6 +493,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_text_button_correct_border_colors() {
         val status = Status.Enabled
@@ -496,6 +511,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_text_button_correct_border_colors() {
         val status = Status.Disabled
@@ -515,6 +531,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun overrides_outlined_text_button_border_color() {
         val status = Status.Enabled
@@ -536,6 +553,7 @@ class TextButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun animates_corners_to_75_percent_on_click() {
         val baseShape = RoundedCornerShape(20.dp)
@@ -557,6 +575,7 @@ class TextButtonTest {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun ComposeContentTestRule.verifyTextButtonColors(
         status: Status,
         colors: @Composable () -> TextButtonColors,
@@ -584,6 +603,7 @@ class TextButtonTest {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun ComposeContentTestRule.isShape(
     expectedShape: Shape,
     colors: @Composable () -> TextButtonColors,

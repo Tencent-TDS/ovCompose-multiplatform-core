@@ -20,12 +20,14 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchEnvironmentFactory;
 import androidx.appsearch.app.AppSearchSession;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.app.GlobalSearchSession;
 import androidx.appsearch.exceptions.AppSearchException;
 import androidx.appsearch.flags.Flags;
@@ -64,13 +66,16 @@ public class LocalStorage {
         final String mDatabaseName;
         final Executor mExecutor;
         final @Nullable AppSearchLogger mLogger;
+        final boolean mPersistToDiskRecoveryProof;
 
         SearchContext(@NonNull Context context, @NonNull String databaseName,
-                @NonNull Executor executor, @Nullable AppSearchLogger logger) {
+                @NonNull Executor executor, @Nullable AppSearchLogger logger,
+                boolean persistToDiskRecoveryProof) {
             mContext = Preconditions.checkNotNull(context);
             mDatabaseName = Preconditions.checkNotNull(databaseName);
             mExecutor = Preconditions.checkNotNull(executor);
             mLogger = logger;
+            mPersistToDiskRecoveryProof = persistToDiskRecoveryProof;
         }
 
         /**
@@ -107,6 +112,7 @@ public class LocalStorage {
             private final String mDatabaseName;
             private Executor mExecutor;
             private @Nullable AppSearchLogger mLogger;
+            private boolean mPersistToDiskRecoveryProof;
 
             /**
              * Creates a {@link SearchContext.Builder} instance.
@@ -158,12 +164,32 @@ public class LocalStorage {
                 return this;
             }
 
+            /**
+             * Sets whether AppSearch should call persistToDisk LITE or persistToDisk RECOVERY_PROOF
+             * after mutations ({@link AppSearchSession#putAsync} and
+             * {@link AppSearchSession#removeAsync}). LITE guarantees no data loss on initialization
+             * but with a recovery. RECOVERY_PROOF will guarantee no data loss and no recovery.
+             *
+             * <p>Note: This api is only added to facilitate early opt-ins by clients. It will be
+             * deprecated and then deleted (with the new 'true' behavior enabled) once this change
+             * has had sufficient time to soak.
+             *
+             * @exportToFramework:hide
+             */
+            @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+            @NonNull
+            public Builder setPersistToDiskRecoveryProof(boolean persistToDiskRecoveryProof) {
+                mPersistToDiskRecoveryProof = persistToDiskRecoveryProof;
+                return this;
+            }
+
             /** Builds a {@link SearchContext} instance. */
             public @NonNull SearchContext build() {
                 if (mExecutor == null) {
                     mExecutor = EXECUTOR;
                 }
-                return new SearchContext(mContext, mDatabaseName, mExecutor, mLogger);
+                return new SearchContext(
+                        mContext, mDatabaseName, mExecutor, mLogger, mPersistToDiskRecoveryProof);
             }
         }
     }
@@ -272,7 +298,7 @@ public class LocalStorage {
         Preconditions.checkNotNull(context);
         return FutureUtil.execute(context.mExecutor, () -> {
             LocalStorage instance = getOrCreateInstance(context.mContext, context.mExecutor,
-                    context.mLogger);
+                    context.mLogger, context.mPersistToDiskRecoveryProof);
             return instance.doCreateSearchSession(context);
         });
     }
@@ -292,7 +318,7 @@ public class LocalStorage {
         Preconditions.checkNotNull(context);
         return FutureUtil.execute(context.mExecutor, () -> {
             LocalStorage instance = getOrCreateInstance(context.mContext, context.mExecutor,
-                    context.mLogger);
+                    context.mLogger, /*persistToDiskRecoveryProof=*/false);
             return instance.doCreateGlobalSearchSession(context);
         });
     }
@@ -305,25 +331,42 @@ public class LocalStorage {
      */
     @WorkerThread
     @VisibleForTesting
-    static @NonNull LocalStorage getOrCreateInstance(@NonNull Context context,
-            @NonNull Executor executor, @Nullable AppSearchLogger logger)
+    static @NonNull LocalStorage getOrCreateInstance(
+            @NonNull Context context, @NonNull Executor executor,
+            @Nullable AppSearchLogger logger, boolean persistToDiskRecoveryProof)
             throws AppSearchException {
         Preconditions.checkNotNull(context);
         if (sInstance == null) {
             synchronized (LocalStorage.class) {
                 if (sInstance == null) {
-                    sInstance = new LocalStorage(context, executor, logger);
+                    sInstance =
+                            new LocalStorage(context, executor, logger, persistToDiskRecoveryProof);
                 }
             }
         }
         return sInstance;
     }
 
+    @VisibleForTesting
+    static @NonNull AppSearchConfig getConfig(@NonNull SearchContext context)
+            throws AppSearchException {
+        LocalStorage instance = getOrCreateInstance(context.mContext, context.mExecutor,
+                context.mLogger, context.mPersistToDiskRecoveryProof);
+        return instance.mAppSearchImpl.getConfig();
+    }
+
+    @VisibleForTesting
+    static void resetInstance() {
+        sInstance = null;
+    }
+
     @WorkerThread
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     private LocalStorage(
             @NonNull Context context,
             @NonNull Executor executor,
-            @Nullable AppSearchLogger logger)
+            @Nullable AppSearchLogger logger,
+            boolean persistToDiskRecoveryProof)
             throws AppSearchException {
         Preconditions.checkNotNull(context);
         File icingDir = AppSearchEnvironmentFactory.getEnvironmentInstance()
@@ -342,7 +385,8 @@ public class LocalStorage {
                 new UnlimitedLimitConfig(),
                 new LocalStorageIcingOptionsConfig(),
                 /* storeParentInfoAsSyntheticProperty= */ false,
-                /* shouldRetrieveParentInfo= */ true
+                /* shouldRetrieveParentInfo= */ true,
+                persistToDiskRecoveryProof
         );
         RevocableFileDescriptorStore revocableFileDescriptorStore = null;
         if (Flags.enableBlobStore()) {

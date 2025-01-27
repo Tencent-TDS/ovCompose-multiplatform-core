@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  */
 @SuppressWarnings("deprecation")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 public abstract class LimitOffsetDataSource<T> extends androidx.paging.PositionalDataSource<T> {
     private final RoomSQLiteQuery mSourceQuery;
     private final String mCountQuery;

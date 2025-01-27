@@ -33,18 +33,24 @@ import androidx.wear.protolayout.material3.AppCardStyle
 import androidx.wear.protolayout.material3.CardDefaults.filledTonalCardColors
 import androidx.wear.protolayout.material3.CardDefaults.filledVariantCardColors
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults
+import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.filledTonalProgressIndicatorColors
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.filledVariantProgressIndicatorColors
 import androidx.wear.protolayout.material3.DataCardStyle.Companion.extraLargeDataCardStyle
 import androidx.wear.protolayout.material3.DataCardStyle.Companion.largeCompactDataCardStyle
 import androidx.wear.protolayout.material3.GraphicDataCardStyle.Companion.largeGraphicDataCardStyle
+import androidx.wear.protolayout.material3.MaterialScope
+import androidx.wear.protolayout.material3.PrimaryLayoutMargins.Companion.MAX_PRIMARY_LAYOUT_MARGIN
 import androidx.wear.protolayout.material3.TitleCardStyle.Companion.largeTitleCardStyle
 import androidx.wear.protolayout.material3.Typography
 import androidx.wear.protolayout.material3.appCard
+import androidx.wear.protolayout.material3.avatarButton
+import androidx.wear.protolayout.material3.avatarImage
 import androidx.wear.protolayout.material3.backgroundImage
 import androidx.wear.protolayout.material3.button
 import androidx.wear.protolayout.material3.buttonGroup
 import androidx.wear.protolayout.material3.card
 import androidx.wear.protolayout.material3.circularProgressIndicator
+import androidx.wear.protolayout.material3.compactButton
 import androidx.wear.protolayout.material3.graphicDataCard
 import androidx.wear.protolayout.material3.icon
 import androidx.wear.protolayout.material3.iconButton
@@ -53,6 +59,7 @@ import androidx.wear.protolayout.material3.iconEdgeButton
 import androidx.wear.protolayout.material3.imageButton
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
+import androidx.wear.protolayout.material3.segmentedCircularProgressIndicator
 import androidx.wear.protolayout.material3.text
 import androidx.wear.protolayout.material3.textButton
 import androidx.wear.protolayout.material3.textDataCard
@@ -142,7 +149,7 @@ fun topLevelLayout(
                                 ModifiersBuilders.Modifiers.Builder()
                                     .setBackground(
                                         ModifiersBuilders.Background.Builder()
-                                            .setCorner(shapes.full)
+                                            .setCorner(shapes.small)
                                             .build()
                                     )
                                     .build()
@@ -151,6 +158,8 @@ fun topLevelLayout(
                     }
                 }
             },
+            // Adjust margins as the corner of the inner content is on the square side.
+            margins = MAX_PRIMARY_LAYOUT_MARGIN,
             bottomSlot = {
                 iconEdgeButton(
                     onClick = clickable,
@@ -306,8 +315,13 @@ fun graphicDataCardSample(
                     style = largeGraphicDataCardStyle(),
                     title = { text("1,234".layoutString) },
                     content = { icon("steps") },
-                    // TODO: b/368272767 - Use CPI here
-                    graphic = { text("Run".layoutString) },
+                    graphic = {
+                        segmentedCircularProgressIndicator(
+                            segmentCount = 5,
+                            staticProgress = 0.5F,
+                            colors = filledTonalProgressIndicatorColors(),
+                        )
+                    },
                 )
             }
         )
@@ -452,5 +466,56 @@ fun pillShapeButtonsSample(
                     iconContent = { icon("id") }
                 )
             }
+        )
+    }
+
+@Sampled
+fun MaterialScope.avatarButtonSample() =
+    avatarButton(
+        onClick = clickable(),
+        modifier = LayoutModifier.contentDescription("Pill button"),
+        avatarContent = { avatarImage("id") },
+        labelContent = { text("Primary label".layoutString) },
+        secondaryLabelContent = { text("Secondary label".layoutString) },
+    )
+
+@Sampled
+fun compactButtonsSample(
+    context: Context,
+    deviceConfiguration: DeviceParameters,
+    clickable: Clickable
+): LayoutElement =
+    materialScope(context, deviceConfiguration) {
+        primaryLayout(
+            mainSlot = {
+                compactButton(
+                    onClick = clickable,
+                    modifier = LayoutModifier.contentDescription("Compact button"),
+                    width = expand(),
+                    labelContent = { text("Action".layoutString) },
+                    iconContent = { icon("id") }
+                )
+            }
+        )
+    }
+
+@Sampled
+fun multipleSegmentsCircularProgressIndicator(
+    context: Context,
+    deviceParameters: DeviceParameters,
+): LayoutElement =
+    materialScope(context, deviceParameters) {
+        segmentedCircularProgressIndicator(
+            segmentCount = 5,
+            dynamicProgress =
+                DynamicFloat.animate(
+                    0.0F,
+                    1.1F,
+                    CircularProgressIndicatorDefaults.recommendedAnimationSpec
+                ),
+            startAngleDegrees = 200F,
+            endAngleDegrees = 520F,
+            colors = filledVariantProgressIndicatorColors(),
+            size = dp(85F)
         )
     }

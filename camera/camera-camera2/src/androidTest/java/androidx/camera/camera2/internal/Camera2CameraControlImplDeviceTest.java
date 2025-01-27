@@ -50,6 +50,7 @@ import static org.mockito.Mockito.verify;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.graphics.Rect;
+import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
@@ -64,12 +65,14 @@ import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.internal.compat.quirk.CameraQuirks;
 import androidx.camera.camera2.internal.compat.workaround.AutoFlashAEModeDisabler;
 import androidx.camera.camera2.internal.util.TestUtil;
+import androidx.camera.camera2.interop.Camera2Interop;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraXConfig;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory;
 import androidx.camera.core.impl.CameraCaptureCallback;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -431,6 +434,92 @@ public final class Camera2CameraControlImplDeviceTest {
 
     }
 
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public void setTorchStrengthLevel_valueUpdated()
+            throws ExecutionException, InterruptedException {
+        assumeTrue(mHasFlashUnit);
+
+        // Arrange
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
+        imageAnalysis.setAnalyzer(CameraXExecutors.mainThreadExecutor(), ImageProxy::close);
+        mCamera = CameraUtil.createCameraAndAttachUseCase(
+                ApplicationProvider.getApplicationContext(), CameraSelector.DEFAULT_BACK_CAMERA,
+                imageAnalysis);
+        Camera2CameraControlImpl camera2CameraControlImpl =
+                TestUtil.getCamera2CameraControlImpl(mCamera.getCameraControl());
+        camera2CameraControlImpl.enableTorch(true).get();
+
+        // Act
+        int maxStrength = mCamera.getCameraInfo().getMaxTorchStrengthLevel();
+        int defaultStrength = mCamera.getCameraInfo().getTorchStrengthLevel().getValue();
+        // If the default strength is the max, set the strength to 1, otherwise, set to max.
+        int customizedStrength = defaultStrength == maxStrength ? 1 : maxStrength;
+        camera2CameraControlImpl.setTorchStrengthLevel(customizedStrength).get();
+
+        // Assert: the customized strength is applied
+        Camera2ImplConfig camera2Config = new Camera2ImplConfig(
+                camera2CameraControlImpl.getSessionConfig().getImplementationOptions());
+        assertThat(camera2Config.getCaptureRequestOption(
+                CaptureRequest.FLASH_STRENGTH_LEVEL, -1))
+                .isEqualTo(customizedStrength);
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public void setTorchStrengthLevel_throwExceptionIfLessThanOne()
+            throws ExecutionException, InterruptedException {
+        assumeTrue(mHasFlashUnit);
+
+        // Arrange
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
+        imageAnalysis.setAnalyzer(CameraXExecutors.mainThreadExecutor(), ImageProxy::close);
+        mCamera = CameraUtil.createCameraAndAttachUseCase(
+                ApplicationProvider.getApplicationContext(), CameraSelector.DEFAULT_BACK_CAMERA,
+                imageAnalysis);
+        Camera2CameraControlImpl camera2CameraControlImpl =
+                TestUtil.getCamera2CameraControlImpl(mCamera.getCameraControl());
+        camera2CameraControlImpl.enableTorch(true).get();
+
+        // Act & Assert
+        try {
+            camera2CameraControlImpl.setTorchStrengthLevel(0).get();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class);
+            return;
+        }
+
+        fail("setTorchStrength didn't fail with an IllegalArgumentException.");
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public void setTorchStrengthLevel_throwExceptionIfLargerThanMax()
+            throws ExecutionException, InterruptedException {
+        assumeTrue(mHasFlashUnit);
+
+        // Arrange
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
+        imageAnalysis.setAnalyzer(CameraXExecutors.mainThreadExecutor(), ImageProxy::close);
+        mCamera = CameraUtil.createCameraAndAttachUseCase(
+                ApplicationProvider.getApplicationContext(), CameraSelector.DEFAULT_BACK_CAMERA,
+                imageAnalysis);
+        Camera2CameraControlImpl camera2CameraControlImpl =
+                TestUtil.getCamera2CameraControlImpl(mCamera.getCameraControl());
+        camera2CameraControlImpl.enableTorch(true).get();
+
+        // Act & Assert
+        try {
+            camera2CameraControlImpl.setTorchStrengthLevel(
+                    mCamera.getCameraInfo().getMaxTorchStrengthLevel() + 1).get();
+        } catch (ExecutionException e) {
+            assertThat(e.getCause()).isInstanceOf(IllegalArgumentException.class);
+            return;
+        }
+
+        fail("setTorchStrength didn't fail with an IllegalArgumentException.");
+    }
+
     @SdkSuppress(minSdkVersion = 35)
     @Test
     public void enableLowLightBoost_aeModeSetAndRequestUpdated() throws InterruptedException {
@@ -514,6 +603,57 @@ public final class Camera2CameraControlImplDeviceTest {
             throws ExecutionException, InterruptedException, TimeoutException {
         captureTest(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY,
                 ImageCapture.FLASH_TYPE_USE_TORCH_AS_FLASH);
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    public void capture_torchAsFlash_shouldUseDefaultTorchStrength()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        assumeTrue(mHasFlashUnit);
+
+        // Arrange: explicitly set flash type to use torch as flash
+        ImageCapture.Builder imageCaptureBuilder = new ImageCapture.Builder().setFlashType(
+                ImageCapture.FLASH_TYPE_USE_TORCH_AS_FLASH).setFlashMode(
+                ImageCapture.FLASH_MODE_ON);
+        CameraCaptureSession.CaptureCallback captureCallback = mock(
+                CameraCaptureSession.CaptureCallback.class);
+        new Camera2Interop.Extender<>(imageCaptureBuilder).setSessionCaptureCallback(
+                captureCallback);
+        ImageCapture imageCapture = imageCaptureBuilder.build();
+        mCamera = CameraUtil.createCameraAndAttachUseCase(
+                ApplicationProvider.getApplicationContext(), CameraSelector.DEFAULT_BACK_CAMERA,
+                imageCapture);
+        Camera2CameraControlImpl camera2CameraControlImpl =
+                TestUtil.getCamera2CameraControlImpl(mCamera.getCameraControl());
+
+        // Act
+        int maxStrength = mCamera.getCameraInfo().getMaxTorchStrengthLevel();
+        int defaultStrength = mCamera.getCameraInfo().getTorchStrengthLevel().getValue();
+        // If the default strength is the max, set the strength to 1, otherwise, set to max.
+        int customizedStrength = defaultStrength == maxStrength ? 1 : maxStrength;
+        camera2CameraControlImpl.setTorchStrengthLevel(customizedStrength).get();
+
+        // Assert: the capture uses default torch strength
+        CaptureConfig.Builder captureConfigBuilder = new CaptureConfig.Builder();
+        captureConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        captureConfigBuilder.addSurface(imageCapture.getSessionConfig().getSurfaces().get(0));
+
+        camera2CameraControlImpl.setFlashMode(ImageCapture.FLASH_MODE_ON);
+        camera2CameraControlImpl.submitStillCaptureRequests(
+                        Arrays.asList(captureConfigBuilder.build()),
+                        ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY,
+                        ImageCapture.FLASH_TYPE_USE_TORCH_AS_FLASH)
+                .get(5, TimeUnit.SECONDS);
+        ArgumentCaptor<CaptureRequest> captureRequestCaptor =
+                ArgumentCaptor.forClass(CaptureRequest.class);
+        verify(captureCallback, timeout(5000).atLeastOnce())
+                .onCaptureCompleted(any(), captureRequestCaptor.capture(), any());
+        List<CaptureRequest> results = captureRequestCaptor.getAllValues();
+        for (CaptureRequest result : results) {
+            // None of the capture capture should be sent with the customized strength.
+            assertThat(result.get(CaptureRequest.FLASH_STRENGTH_LEVEL)).isNotEqualTo(
+                    customizedStrength);
+        }
     }
 
     private void captureTest(int captureMode, int flashType)

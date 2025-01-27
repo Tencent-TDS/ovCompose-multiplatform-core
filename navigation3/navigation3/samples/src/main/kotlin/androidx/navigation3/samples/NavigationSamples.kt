@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color.Companion.LightGray
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import kotlinx.serialization.InternalSerializationApi
@@ -66,7 +67,7 @@ object Scrollable {
 }
 
 @Serializable
-object Dialog {
+object DialogBase {
     val resourceId: Int = R.string.dialog
 }
 
@@ -85,7 +86,7 @@ fun Profile(viewModel: ProfileViewModel, navigateTo: (Any) -> Unit, onBack: () -
         Divider(color = Color.Black)
         NavigateButton(stringResource(Scrollable.resourceId)) { navigateTo(Scrollable) }
         Divider(color = Color.Black)
-        NavigateButton(stringResource(Dialog.resourceId)) { navigateTo(Dialog) }
+        NavigateButton(stringResource(DialogBase.resourceId)) { navigateTo(DialogBase) }
         Spacer(Modifier.weight(1f))
         NavigateBackButton(onBack)
     }
@@ -112,13 +113,24 @@ fun Scrollable(navigateTo: (Any) -> Unit, onBack: () -> Unit) {
 }
 
 @Composable
-fun DialogContent(onBack: () -> Unit) {
-    val dialogWidth = 300.dp
-    val dialogHeight = 300.dp
-    Column(Modifier.size(dialogWidth, dialogHeight).background(Color.White).padding(8.dp)) {
+fun DialogBase(onClick: () -> Unit, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        Text(stringResource(R.string.dialog))
+        Button(onClick = onClick) { Text("Show Dialog") }
+        Spacer(Modifier.weight(1f))
         NavigateBackButton(onBack)
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(phrases) { phrase -> Text(phrase, fontSize = 16.sp) }
+    }
+}
+
+@Composable
+fun DialogContent(onDismissRequest: () -> Unit) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        val dialogWidth = 300.dp
+        val dialogHeight = 300.dp
+        Column(Modifier.size(dialogWidth, dialogHeight).background(Color.White).padding(8.dp)) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(phrases) { phrase -> Text(phrase, fontSize = 16.sp) }
+            }
         }
     }
 }

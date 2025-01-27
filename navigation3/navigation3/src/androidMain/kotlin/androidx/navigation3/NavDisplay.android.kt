@@ -13,62 +13,170 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.navigation3
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.Dialog
+import androidx.navigation3.NavDisplay.DEFAULT_TRANSITION_DURATION_MILLISECOND
+import androidx.navigation3.NavDisplay.ENTER_TRANSITION_KEY
+import androidx.navigation3.NavDisplay.EXIT_TRANSITION_KEY
+import androidx.navigation3.NavDisplay.POP_ENTER_TRANSITION_KEY
+import androidx.navigation3.NavDisplay.POP_EXIT_TRANSITION_KEY
 
 /** Object that indicates the features that can be handled by the [NavDisplay] */
 public object NavDisplay {
     /**
-     * Function to be called on the [NavRecord.featureMap] to notify the [NavDisplay] that the
-     * content should be displayed inside of a [Dialog]
+     * Function to be called on the [NavEntry.featureMap] to notify the [NavDisplay] that the
+     * content should be animated using the provided transitions.
      */
-    public fun isDialog(boolean: Boolean): Map<String, Any> =
-        if (!boolean) emptyMap() else mapOf(DIALOG_KEY to true)
+    public fun transition(enter: EnterTransition?, exit: ExitTransition?): Map<String, Any> =
+        if (enter == null || exit == null) emptyMap()
+        else mapOf(ENTER_TRANSITION_KEY to enter, EXIT_TRANSITION_KEY to exit)
 
-    internal const val DIALOG_KEY = "dialog"
+    /**
+     * Function to be called on the [NavEntry.featureMap] to notify the [NavDisplay] that, when
+     * popping from backstack, the content should be animated using the provided transitions.
+     */
+    public fun popTransition(enter: EnterTransition?, exit: ExitTransition?): Map<String, Any> =
+        if (enter == null || exit == null) emptyMap()
+        else mapOf(POP_ENTER_TRANSITION_KEY to enter, POP_EXIT_TRANSITION_KEY to exit)
+
+    internal const val ENTER_TRANSITION_KEY = "enterTransition"
+    internal const val EXIT_TRANSITION_KEY = "exitTransition"
+    internal const val POP_ENTER_TRANSITION_KEY = "popEnterTransition"
+    internal const val POP_EXIT_TRANSITION_KEY = "popExitTransition"
+    internal const val DEFAULT_TRANSITION_DURATION_MILLISECOND = 700
 }
 
 /**
- * Simple display for Composable content that displays a single pane of content at a time.
+ * Display for Composable content that displays a single pane of content at a time, but can move
+ * that content in and out with customized transitions.
  *
- * The NavDisplay displays the content associated with the last key on the back stack in most
- * circumstances. If that content wants to be displayed as a dialog, as communicated by adding
- * [NavDisplay.isDialog] to a [NavRecord.featureMap], then the last key's content is a dialog and
- * the second to last key is a displayed in the background.
+ * The NavDisplay displays the content associated with the last key on the back stack.
  *
- * @param modifier the modifier to be applied to the layout.
  * @param backstack the collection of keys that represents the state that needs to be handled
- * @param wrapperManager the manager that combines all of the [NavContentWrapper]s
+ * @param localProviders list of [NavLocalProvider] to add information to the provided entriess
+ * @param modifier the modifier to be applied to the layout.
+ * @param contentAlignment The [Alignment] of the [AnimatedContent]
+ * @param enterTransition Default [EnterTransition] when navigating to [NavEntry]s. Can be
+ *   overridden individually for each [NavEntry] by passing in the entry's transitions through
+ *   [NavEntry.featureMap].
+ * @param exitTransition Default [ExitTransition] when navigating to [NavEntry]s. Can be overridden
+ *   individually for each [NavEntry] by passing in the entry's transitions through
+ *   [NavEntry.featureMap].
+ * @param popEnterTransition Default [EnterTransition] when popping [NavEntry]s. Can be overridden
+ *   individually for each [NavEntry] by passing in the entry's transitions through
+ *   [NavEntry.featureMap].
+ * @param popExitTransition Default [ExitTransition] when popping [NavEntry]s. Can be overridden
+ *   individually for each [NavEntry] by passing in the entry's transitions through
+ *   [NavEntry.featureMap].
  * @param onBack a callback for handling system back presses
- * @param recordProvider lambda used to construct each possible [NavRecord]
- * @sample androidx.navigation3.samples.BasicNav
+ * @param entryProvider lambda used to construct each possible [NavEntry]
+ * @sample androidx.navigation3.samples.BaseNav
+ * @sample androidx.navigation3.samples.CustomBasicDisplay
  */
 @Composable
 public fun <T : Any> NavDisplay(
     backstack: List<T>,
-    wrapperManager: NavWrapperManager,
     modifier: Modifier = Modifier,
-    onBack: () -> Unit = {},
-    recordProvider: (key: T) -> NavRecord<out T>
+    localProviders: List<NavLocalProvider> = emptyList(),
+    contentAlignment: Alignment = Alignment.TopStart,
+    sizeTransform: SizeTransform? = null,
+    enterTransition: EnterTransition =
+        fadeIn(
+            animationSpec =
+                tween(
+                    DEFAULT_TRANSITION_DURATION_MILLISECOND,
+                )
+        ),
+    exitTransition: ExitTransition =
+        fadeOut(
+            animationSpec =
+                tween(
+                    DEFAULT_TRANSITION_DURATION_MILLISECOND,
+                )
+        ),
+    popEnterTransition: EnterTransition =
+        fadeIn(
+            animationSpec =
+                tween(
+                    DEFAULT_TRANSITION_DURATION_MILLISECOND,
+                )
+        ),
+    popExitTransition: ExitTransition =
+        fadeOut(
+            animationSpec =
+                tween(
+                    DEFAULT_TRANSITION_DURATION_MILLISECOND,
+                )
+        ),
+    onBack: () -> Unit = { if (backstack is MutableList) backstack.removeAt(backstack.size - 1) },
+    entryProvider: (key: T) -> NavEntry<out T>
 ) {
+    require(backstack.isNotEmpty()) { "NavDisplay backstack cannot be empty" }
+
     BackHandler(backstack.size > 1, onBack)
-    wrapperManager.PrepareBackStack(backStack = backstack)
-    val key = backstack.last()
-    val record = recordProvider.invoke(key)
-    if (record.featureMap[NavDisplay.DIALOG_KEY] == true) {
-        if (backstack.size > 1) {
-            val previousKey = backstack[backstack.size - 2]
-            val lastRecord = recordProvider.invoke(previousKey)
-            Box(modifier = modifier) { wrapperManager.ContentForRecord(lastRecord) }
+    NavBackStackProvider(backstack, localProviders, entryProvider) { entries ->
+        // Make a copy shallow copy so that transition.currentState and transition.targetState are
+        // different backstack instances. This ensures currentState reflects the old backstack when
+        // the backstack (targetState) is updated.
+        val newStack = backstack.toList()
+        val entry = entries.last()
+
+        val transition = updateTransition(targetState = newStack, label = newStack.toString())
+        val isPop = isPop(transition.currentState, newStack)
+        // Incoming entry defines transitions, otherwise it uses default transitions from
+        // NavDisplay
+        val finalEnterTransition =
+            if (isPop) {
+                entry.featureMap[POP_ENTER_TRANSITION_KEY] as? EnterTransition ?: popEnterTransition
+            } else {
+                entry.featureMap[ENTER_TRANSITION_KEY] as? EnterTransition ?: enterTransition
+            }
+        val finalExitTransition =
+            if (isPop) {
+                entry.featureMap[POP_EXIT_TRANSITION_KEY] as? ExitTransition ?: popExitTransition
+            } else {
+                entry.featureMap[EXIT_TRANSITION_KEY] as? ExitTransition ?: exitTransition
+            }
+        transition.AnimatedContent(
+            modifier = modifier,
+            transitionSpec = {
+                ContentTransform(
+                    targetContentEnter = finalEnterTransition,
+                    initialContentExit = finalExitTransition,
+                    sizeTransform = sizeTransform
+                )
+            },
+            contentAlignment = contentAlignment,
+            contentKey = { it.last() }
+        ) { innerStack ->
+            val lastKey = innerStack.last()
+            entries.findLast { entry -> entry.key == lastKey }?.content?.invoke(lastKey)
         }
-        Dialog(onBack) { wrapperManager.ContentForRecord(record) }
-    } else {
-        Box(modifier = modifier) { wrapperManager.ContentForRecord(record) }
     }
+}
+
+private fun <T : Any> isPop(oldBackStack: List<T>, newBackStack: List<T>): Boolean {
+    // entire stack replaced
+    if (oldBackStack.first() != newBackStack.first()) return false
+    // navigated
+    if (newBackStack.size > oldBackStack.size) return false
+
+    val divergingIndex =
+        newBackStack.indices.firstOrNull { index -> newBackStack[index] != oldBackStack[index] }
+    // if newBackStack never diverged from oldBackStack, then it is a clean subset of the oldStack
+    // and is a pop
+    return divergingIndex == null
 }

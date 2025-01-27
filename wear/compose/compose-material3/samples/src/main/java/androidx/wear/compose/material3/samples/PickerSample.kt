@@ -64,7 +64,7 @@ fun PickerScrollToOption() {
     val contentDescription by remember { derivedStateOf { "${state.selectedOptionIndex + 1}" } }
     Picker(
         state = state,
-        spacing = 4.dp,
+        verticalSpacing = 4.dp,
         contentDescription = contentDescription,
     ) {
         Button(
@@ -84,7 +84,7 @@ fun PickerAnimateScrollToOption() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Picker(
             state = state,
-            spacing = 4.dp,
+            verticalSpacing = 4.dp,
             contentDescription = contentDescription,
         ) {
             Button(

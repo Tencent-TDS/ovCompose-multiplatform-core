@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@file:JvmName("LayoutColorUtil")
 
 package androidx.wear.protolayout.types
 
@@ -54,17 +55,18 @@ class LayoutColor(
 
 /** Extension for creating a [LayoutColor] from an ARGB Color Int. */
 val Int.argb: LayoutColor
-    get() = LayoutColor(this)
+    @JvmName("createLayoutColor") get() = LayoutColor(this)
 
 /** Extension for creating a [LayoutColor] from an ARGB Color Long. */
 val Long.argb: LayoutColor
-    get() = LayoutColor(this.toInt())
+    @JvmName("createLayoutColor") get() = LayoutColor(this.toInt())
 
 /**
  * Extension for creating a [LayoutColor] from a [DynamicColor]
  *
  * @param staticArgb the static value that can be used when the `dynamicValue` can't be resolved.
  */
+@JvmName("createLayoutColor")
 @RequiresSchemaVersion(major = 1, minor = 200)
 fun DynamicColor.asLayoutColor(@ColorInt staticArgb: Int) = LayoutColor(staticArgb, this)
 
@@ -73,5 +75,6 @@ fun DynamicColor.asLayoutColor(@ColorInt staticArgb: Int) = LayoutColor(staticAr
  *
  * @param staticArgb the static value that can be used when the `dynamicValue` can't be resolved.
  */
+@JvmName("createLayoutColor")
 @RequiresSchemaVersion(major = 1, minor = 200)
 fun DynamicColor.asLayoutColor(@ColorInt staticArgb: Long) = LayoutColor(staticArgb.toInt(), this)

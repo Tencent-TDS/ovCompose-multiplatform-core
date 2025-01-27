@@ -635,7 +635,8 @@ class Camera2CapturePipeline {
                     mIsExecuted = true;
 
                     ListenableFuture<Void> future = CallbackToFutureAdapter.getFuture(completer -> {
-                        mCameraControl.getTorchControl().enableTorchInternal(completer, true);
+                        mCameraControl.getTorchControl().enableTorchInternal(completer,
+                                TorchControl.USED_AS_FLASH);
                         return "TorchOn";
                     });
                     return FutureChain.from(future).transformAsync(
@@ -667,7 +668,7 @@ class Camera2CapturePipeline {
         @Override
         public void postCapture() {
             if (mIsExecuted) {
-                mCameraControl.getTorchControl().enableTorchInternal(null, false);
+                mCameraControl.getTorchControl().enableTorchInternal(null, TorchControl.OFF);
                 Logger.d(TAG, "Turning off torch");
                 if (mTriggerAePrecapture) {
                     mCameraControl.getFocusMeteringControl().cancelAfAeTrigger(false, true);
@@ -795,7 +796,7 @@ class Camera2CapturePipeline {
                                     return "EnableTorchInternal";
                                 }
                                 Logger.d(TAG, "ScreenFlashTask#preCapture: enable torch");
-                                mCameraControl.enableTorchInternal(true);
+                                mCameraControl.enableTorchInternal(TorchControl.USED_AS_FLASH);
                                 completer.set(null);
                                 return "EnableTorchInternal";
                             }),
@@ -828,7 +829,7 @@ class Camera2CapturePipeline {
         public void postCapture() {
             Logger.d(TAG, "ScreenFlashTask#postCapture");
             if (mUseFlashModeTorchFor3aUpdate.shouldUseFlashModeTorch()) {
-                mCameraControl.enableTorchInternal(false);
+                mCameraControl.enableTorchInternal(TorchControl.OFF);
             }
             mCameraControl.getFocusMeteringControl().enableExternalFlashAeMode(false).addListener(
                     () -> Log.d(TAG, "enableExternalFlashAeMode disabled"), mExecutor

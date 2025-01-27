@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-// VERSION: v0_103
+// VERSION: v0_108
 // GENERATED CODE - DO NOT MODIFY BY HAND
-
 package androidx.wear.compose.material3.tokens
 
 import androidx.compose.ui.unit.sp
@@ -143,8 +142,8 @@ internal object TypeScaleTokens {
     val NumeralSmallWeightProminent = 750.0f
     val NumeralSmallWidth = 100.0f
     val TitleLargeFont = TypefaceTokens.Brand
-    val TitleLargeLineHeight = 22.0.sp
-    val TitleLargeSize = 20.sp
+    val TitleLargeSize = 18.sp
+    val TitleLargeLineHeight = 20.0.sp
     val TitleLargeTracking = 0.2.sp
     val TitleLargeWeight = 500.0f
     val TitleLargeWidth = 110.0f

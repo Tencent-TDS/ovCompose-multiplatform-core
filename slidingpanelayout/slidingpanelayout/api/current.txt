@@ -13,6 +13,7 @@ package androidx.slidingpanelayout.widget {
     method public boolean closePane();
     method @Deprecated @ColorInt public int getCoveredFadeColor();
     method public final int getLockMode();
+    method @Px public final int getPaneSpacing();
     method @Px public int getParallaxDistance();
     method @Deprecated @ColorInt public int getSliderFadeColor();
     method public final int getSplitDividerPosition();
@@ -33,6 +34,7 @@ package androidx.slidingpanelayout.widget {
     method public final void setLockMode(int);
     method public final void setOnUserResizingDividerClickListener(android.view.View.OnClickListener? listener);
     method public final void setOverlappingEnabled(boolean);
+    method public final void setPaneSpacing(int);
     method @Deprecated public void setPanelSlideListener(androidx.slidingpanelayout.widget.SlidingPaneLayout.PanelSlideListener? listener);
     method public void setParallaxDistance(@Px int);
     method @Deprecated public void setShadowDrawable(android.graphics.drawable.Drawable? drawable);
@@ -58,6 +60,7 @@ package androidx.slidingpanelayout.widget {
     property public final boolean isUserResizable;
     property public final boolean isUserResizingEnabled;
     property public final int lockMode;
+    property @Px public final int paneSpacing;
     property @Px public int parallaxDistance;
     property @Deprecated @ColorInt public int sliderFadeColor;
     property public final int splitDividerPosition;

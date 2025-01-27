@@ -17,6 +17,7 @@
 package androidx.camera.core;
 
 import androidx.annotation.FloatRange;
+import androidx.annotation.IntRange;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.impl.utils.futures.Futures;
 
@@ -231,6 +232,33 @@ public interface CameraControl {
      * </ul>
      */
     @NonNull ListenableFuture<Integer> setExposureCompensationIndex(int value);
+
+    /**
+     * Sets torch strength level.
+     *
+     * <p>The torch strength level only applies on the case that torch is turned on by
+     * {@link #enableTorch(boolean)} and doesn't affect other usages of the flash unit.
+     *
+     * <p>Use the value returned by {@link CameraInfo#getMaxTorchStrengthLevel()} to set the maximum
+     * level the device can provide and use {@code 1} to set the minimum level. If a level
+     * greater than the maximum value or less than {@code 1} is set, the returned
+     * {@link ListenableFuture} will fail with an {@link IllegalArgumentException} and it won't
+     * modify the torch strength.
+     *
+     * <p>If the device doesn't have a flash unit or doesn't support configuring torch strength
+     * level, the returned {@link ListenableFuture} will fail with an
+     * {@link UnsupportedOperationException}.
+     *
+     * @param torchStrengthLevel The desired torch strength level.
+     * @return a {@link ListenableFuture} that is completed when the torch strength has been
+     * applied.
+     */
+    @SuppressWarnings("AsyncSuffixFuture")
+    default @NonNull ListenableFuture<Void> setTorchStrengthLevel(
+            @IntRange(from = 1) int torchStrengthLevel) {
+        return Futures.immediateFailedFuture(new UnsupportedOperationException(
+                "Setting torch strength is not supported on the device."));
+    }
 
     /**
      * An exception representing a failure that the operation is canceled which might be caused by

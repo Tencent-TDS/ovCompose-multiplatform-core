@@ -28,7 +28,10 @@
         app:layout_constraintBottom_toTopOf="@+id/pdfSearchView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:fastScrollVerticalThumbDrawable="@drawable/fast_scroll_vertical_thumb_drawable"
+        app:fastScrollVerticalTrackDrawable="@drawable/drag_indicator"
+        app:fastScrollPageIndicatorBackgroundDrawable="@drawable/page_indicator_background" />
 
     <!-- ProgressBar for loading -->
     <ProgressBar

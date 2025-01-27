@@ -28,8 +28,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 @get:RestrictTo(RestrictTo.Scope.LIBRARY)
 @set:RestrictTo(RestrictTo.Scope.LIBRARY)
 @VisibleForTesting
-public var argumentSource: Bundle? = null
+var argumentSource: Bundle? = null
 
+@Suppress("NullableBooleanElvis") // suggestion makes boolean argument defaults less clear
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 object Arguments {
     // public properties are shared by micro + macro benchmarks

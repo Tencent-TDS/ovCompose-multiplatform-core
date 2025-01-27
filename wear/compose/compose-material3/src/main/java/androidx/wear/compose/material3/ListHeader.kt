@@ -62,7 +62,7 @@ import androidx.wear.compose.material3.tokens.ListSubHeaderTokens
 public fun ListHeader(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Color.Transparent,
-    contentColor: Color = ListHeaderDefaults.ContentColor,
+    contentColor: Color = ListHeaderDefaults.contentColor,
     contentPadding: PaddingValues = ListHeaderDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit
 ) {
@@ -157,7 +157,7 @@ public object ListHeaderDefaults {
         PaddingValues(HorizontalPadding, TopPadding, HorizontalPadding, SubHeaderBottomPadding)
 
     /** The default color for ListHeader */
-    public val ContentColor: Color
+    public val contentColor: Color
         @Composable get() = ListHeaderTokens.ContentColor.value
 
     /** The default color for ListSubHeader */

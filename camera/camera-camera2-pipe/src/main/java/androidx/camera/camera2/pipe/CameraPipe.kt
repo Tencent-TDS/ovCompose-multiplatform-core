@@ -91,6 +91,7 @@ public interface CameraPipe {
         val cameraBackendConfig: CameraBackendConfig = CameraBackendConfig(),
         val cameraInteropConfig: CameraInteropConfig = CameraInteropConfig(),
         val imageSources: ImageSources? = null,
+        val usePruningDeviceManager: Boolean = false,
     )
 
     /**

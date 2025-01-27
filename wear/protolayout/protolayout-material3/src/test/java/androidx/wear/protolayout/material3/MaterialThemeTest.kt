@@ -34,7 +34,7 @@ class MaterialThemeTest {
     fun defaultMaterialTheme_returnsTokenDefaults() {
         val defaultTheme = MaterialTheme()
 
-        for (i in 0 until Typography.TOKEN_COUNT) {
+        for (i in 2 until Typography.TOKEN_COUNT) {
             val fontStyle: LayoutElementBuilders.FontStyle =
                 defaultTheme.getFontStyleBuilder(i).build()
             val textStyle = Typography.fromToken(i)

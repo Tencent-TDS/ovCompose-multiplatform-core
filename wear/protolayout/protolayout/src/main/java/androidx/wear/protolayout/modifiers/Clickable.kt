@@ -122,7 +122,7 @@ internal class BaseClickableElement(
     @Dimension(DP) val minClickableHeight: Float = Float.NaN,
 ) : LayoutModifier.Element {
     @SuppressLint("ProtoLayoutMinSchema")
-    fun foldIn(initial: Clickable.Builder?): Clickable.Builder =
+    fun mergeTo(initial: Clickable.Builder?): Clickable.Builder =
         (initial ?: Clickable.Builder()).apply {
             if (!id.isNullOrEmpty()) setId(id)
             action?.let { setOnClick(it) }

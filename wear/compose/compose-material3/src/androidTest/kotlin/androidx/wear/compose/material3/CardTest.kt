@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -540,6 +542,7 @@ class CardTest {
         assertEquals(expectedTitleColor, actualTitleColor)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun outlined_card_has_outlined_border_and_transparent() {
         val outlineColor = Color.Red
@@ -563,6 +566,7 @@ class CardTest {
             .assertColorInPercentageRange(testBackground, 93f..97f)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun outlined_titlecard_has_outlined_border_and_transparent() {
         val outlineColor = Color.Red
@@ -588,6 +592,7 @@ class CardTest {
             .assertColorInPercentageRange(testBackground, 93f..97f)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun outlined_appcard_has_outlined_border_and_transparent() {
         val outlineColor = Color.Red
@@ -691,6 +696,7 @@ class CardTest {
         assertEquals(expectedContentTextStyle, actuaContentTextStyle)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun outlined_app_card_gives_correct_text_style_base() {
         var actualAppTextStyle = TextStyle.Default

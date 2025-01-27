@@ -23,7 +23,6 @@ import androidx.compose.foundation.text.HandleState
 import androidx.compose.foundation.text.LegacyTextFieldState
 import androidx.compose.foundation.text.TextDelegate
 import androidx.compose.foundation.text.TextLayoutResultProxy
-import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -98,7 +97,6 @@ class TextFieldSelectionManagerTest {
     private val hapticFeedback = mock<HapticFeedback>()
     private val focusRequester = mock<FocusRequester>()
     private val multiParagraph = mock<MultiParagraph>()
-    private val autofillManager = mock<AutofillManager>()
 
     @Before
     fun setup() {
@@ -110,7 +108,6 @@ class TextFieldSelectionManagerTest {
         manager.textToolbar = textToolbar
         manager.hapticFeedBack = hapticFeedback
         manager.focusRequester = focusRequester
-        manager.autofillManager = autofillManager
         manager.coroutineScope = null
 
         whenever(layoutResult.layoutInput)
@@ -370,10 +367,12 @@ class TextFieldSelectionManagerTest {
     @Test
     fun autofill_selection_collapse() {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
+        val mockLambda: () -> Unit = mock()
+        val manager = TextFieldSelectionManager().apply { requestAutofillAction = mockLambda }
 
         manager.autofill()
 
-        verify(autofillManager, times(1)).requestAutofillForActiveElement()
+        verify(mockLambda, times(1)).invoke()
         assertThat(state.handleState).isEqualTo(HandleState.None)
     }
 

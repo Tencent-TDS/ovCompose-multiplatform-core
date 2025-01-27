@@ -27,8 +27,8 @@ import androidx.test.filters.LargeTest
 import androidx.window.TestActivity
 import androidx.window.WindowSdkExtensions
 import androidx.window.WindowTestUtils
-import androidx.window.WindowTestUtils.Companion.assumeAtLeastVendorApiLevel
-import androidx.window.WindowTestUtils.Companion.assumeBeforeVendorApiLevel
+import androidx.window.WindowTestUtils.Companion.assumeAtLeastWindowExtensionVersion
+import androidx.window.WindowTestUtils.Companion.assumeBeforeWindowExtensionVersion
 import androidx.window.layout.adapter.WindowBackend
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.TruthJUnit.assume
@@ -91,7 +91,7 @@ class WindowInfoTrackerImplTest {
     fun testWindowLayoutInfo_contextAsListener() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
-            assumeAtLeastVendorApiLevel(2)
+            assumeAtLeastWindowExtensionVersion(2)
             Dispatchers.setMain(testDispatcher) // Needed for flowOn(Dispatchers.Main).
             val collector = mutableListOf<WindowLayoutInfo>()
             val windowContext = WindowTestUtils.createOverlayWindowContext()
@@ -127,7 +127,7 @@ class WindowInfoTrackerImplTest {
     fun testWindowLayoutInfo_multicastingWithContext() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
-            assumeAtLeastVendorApiLevel(2)
+            assumeAtLeastWindowExtensionVersion(2)
             Dispatchers.setMain(testDispatcher) // Needed for flowOn(Dispatchers.Main).
             val collector = mutableListOf<WindowLayoutInfo>()
             val windowContext = WindowTestUtils.createOverlayWindowContext()
@@ -146,7 +146,7 @@ class WindowInfoTrackerImplTest {
     fun testWindowLayoutInfo_nonUiContext_throwsError() =
         testScope.runTest {
             assume().that(Build.VERSION.SDK_INT).isAtLeast(Build.VERSION_CODES.R)
-            assumeAtLeastVendorApiLevel(2)
+            assumeAtLeastWindowExtensionVersion(2)
             Dispatchers.setMain(testDispatcher) // Needed for flowOn(Dispatchers.Main).
             val context: Context = ApplicationProvider.getApplicationContext()
             val tracker = WindowInfoTracker.getOrCreate(context)
@@ -160,7 +160,7 @@ class WindowInfoTrackerImplTest {
 
     @Test
     fun testSupportedWindowPostures_throwsBeforeApi6() {
-        assumeBeforeVendorApiLevel(6)
+        assumeBeforeWindowExtensionVersion(6)
         activityScenario.scenario.onActivity { _ ->
             assertFailsWith<UnsupportedOperationException> { tracker.supportedPostures }
         }
@@ -168,7 +168,7 @@ class WindowInfoTrackerImplTest {
 
     @Test
     fun testSupportedWindowPostures_reportsFeatures() {
-        assumeAtLeastVendorApiLevel(6)
+        assumeAtLeastWindowExtensionVersion(6)
         activityScenario.scenario.onActivity { _ ->
             val fakeBackend =
                 FakeWindowBackend(supportedPostures = listOf(SupportedPosture.TABLETOP))

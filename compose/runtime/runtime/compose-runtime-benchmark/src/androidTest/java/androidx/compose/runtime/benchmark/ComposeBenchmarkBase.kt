@@ -242,18 +242,6 @@ fun runBlockingTestWithFrameClock(
         withContext(TestMonotonicFrameClock(this)) { testBody() }
     }
 
-inline fun BenchmarkRule.measureRepeatedSuspendable(block: BenchmarkRule.Scope.() -> Unit) {
-    // Note: this is an extension function to discourage calling from Java.
-
-    // Extract members to locals, to ensure we check #applied, and we don't hit accessors
-    val localState = getState()
-    val localScope = scope
-
-    while (localState.keepRunningInline()) {
-        block(localScope)
-    }
-}
-
 fun ControlledComposition.performRecompose(
     readObserver: (Any) -> Unit,
     writeObserver: (Any) -> Unit

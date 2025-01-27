@@ -62,14 +62,14 @@ import java.util.List;
 @Document(name = "builtin:GlobalSearchApplicationInfo")
 public final class GlobalSearchApplicationInfo {
     /**
-     * Used with #mApplicationType to indicate this application is ready and able to index a certain
-     * type of data.
+     * Used with {@link #getApplicationType()} to indicate this application is ready and able to
+     * index a certain type of data.
      */
     public static final int APPLICATION_TYPE_PRODUCER = 0;
 
     /**
-     * Used with #mApplicationType to indicate this application is able and interested in querying a
-     * certain type of data.
+     * Used with {@link #getApplicationType()} to indicate this application is able and interested
+     * in querying a certain type of data.
      */
     public static final int APPLICATION_TYPE_CONSUMER = 1;
 

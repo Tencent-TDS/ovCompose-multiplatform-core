@@ -110,6 +110,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -2300,6 +2301,42 @@ public class AppSearchImplTest {
 
     @Test
     @RequiresFlagsEnabled(Flags.FLAG_ENABLE_BLOB_STORE)
+    public void testWriteAfterCommit_notAllowed() throws Exception {
+        mAppSearchImpl = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()),
+                /*initStatsBuilder=*/ null,
+                /*visibilityChecker=*/ null,
+                new JetpackRevocableFileDescriptorStore(mUnlimitedConfig),
+                ALWAYS_OPTIMIZE);
+        byte[] data = generateRandomBytes(20 * 1024); // 20 KiB
+        byte[] digest = calculateDigest(data);
+        AppSearchBlobHandle handle = AppSearchBlobHandle.createWithSha256(
+                digest, "package", "db1", "ns");
+        // Open a pfd for write, write the blob data without close the pfd.
+        ParcelFileDescriptor writePfd = mAppSearchImpl.openWriteBlob("package", "db1", handle);
+        try (FileOutputStream outputStream = new FileOutputStream(writePfd.getFileDescriptor())) {
+            outputStream.write(data);
+            outputStream.flush();
+        }
+
+        // Commit the blob.
+        mAppSearchImpl.commitBlob("package", "db1", handle);
+
+        // Keep writing to the pfd for write.
+        assertThrows(IOException.class,
+                () -> {
+                try (FileOutputStream outputStream =
+                         new FileOutputStream(writePfd.getFileDescriptor())) {
+                    outputStream.write(data);
+                    outputStream.flush();
+                }
+            });
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_BLOB_STORE)
     public void testRemovePendingBlob() throws Exception {
         mAppSearchImpl = AppSearchImpl.create(
                 mAppSearchDir,
@@ -2465,6 +2502,66 @@ public class AppSearchImplTest {
                 InputStream inputStream = new ParcelFileDescriptor
                         .AutoCloseInputStream(writePfd)) {
             inputStream.read(new byte[10]);
+        }
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_BLOB_STORE)
+    public void testOpenMultipleBlobForWrite() throws Exception {
+        mAppSearchImpl = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()),
+                /*initStatsBuilder=*/ null,
+                /*visibilityChecker=*/ null,
+                new JetpackRevocableFileDescriptorStore(mUnlimitedConfig),
+                ALWAYS_OPTIMIZE);
+        byte[] data = generateRandomBytes(20); // 20 Bytes
+        byte[] digest = calculateDigest(data);
+        AppSearchBlobHandle handle = AppSearchBlobHandle.createWithSha256(
+                digest, "package", "db1", "ns");
+
+        // only allow open 1 fd for writing.
+        try (ParcelFileDescriptor writePfd1 =
+                     mAppSearchImpl.openWriteBlob("package", "db1", handle);
+                ParcelFileDescriptor writePfd2 =
+                        mAppSearchImpl.openWriteBlob("package", "db1", handle)) {
+            assertThat(writePfd1).isEqualTo(writePfd2);
+        }
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_BLOB_STORE)
+    public void testOpenMultipleBlobForRead() throws Exception {
+        mAppSearchImpl = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()),
+                /*initStatsBuilder=*/ null,
+                /*visibilityChecker=*/ null,
+                new JetpackRevocableFileDescriptorStore(mUnlimitedConfig),
+                ALWAYS_OPTIMIZE);
+        byte[] data = generateRandomBytes(20); // 20 Bytes
+        byte[] digest = calculateDigest(data);
+        AppSearchBlobHandle handle = AppSearchBlobHandle.createWithSha256(
+                digest, "package", "db1", "ns");
+
+        // write a blob first.
+        try (ParcelFileDescriptor writePfd = mAppSearchImpl.openWriteBlob("package", "db1", handle);
+                OutputStream outputStream = new ParcelFileDescriptor
+                        .AutoCloseOutputStream(writePfd)) {
+            outputStream.write(data);
+            outputStream.flush();
+        }
+        // commit the change and read the blob.
+        mAppSearchImpl.commitBlob("package", "db1", handle);
+
+        // allow open multiple fd for reading.
+        try (ParcelFileDescriptor readPfd1 =
+                     mAppSearchImpl.openReadBlob("package", "db1", handle);
+                ParcelFileDescriptor readPfd2 =
+                        mAppSearchImpl.openReadBlob("package", "db1", handle)) {
+            assertThat(readPfd1).isNotEqualTo(readPfd2);
         }
     }
 
@@ -3877,17 +3974,27 @@ public class AppSearchImplTest {
                 Collections.emptyMap());
         assertThat(getResult).isEqualTo(document);
 
-        // That document should be visible even from another instance.
+        // Inialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
         AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
                 mAppSearchDir,
                 new AppSearchConfigImpl(
                         new UnlimitedLimitConfig(),
                         new LocalStorageIcingOptionsConfig()
                 ),
-                /*initStatsBuilder=*/ null,
+                /*initStatsBuilder=*/initStatsBuilder,
                 /*visibilityChecker=*/ null,
                 /*revocableFileDescriptorStore=*/ null,
                 ALWAYS_OPTIMIZE);
+
+        // Initialization should trigger a recovery
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+
+        // That document should be visible even from another instance.
         getResult = appSearchImpl2.getDocument("package", "database", "namespace1",
                 "id1",
                 Collections.emptyMap());
@@ -3950,17 +4057,27 @@ public class AppSearchImplTest {
                 Collections.emptyMap());
         assertThat(getResult).isEqualTo(document2);
 
-        // Only the second document should be retrievable from another instance.
+        // Inialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
         AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
                 mAppSearchDir,
                 new AppSearchConfigImpl(
                         new UnlimitedLimitConfig(),
                         new LocalStorageIcingOptionsConfig()
                 ),
-                /*initStatsBuilder=*/ null,
+                /*initStatsBuilder=*/initStatsBuilder,
                 /*visibilityChecker=*/ null,
                 /*revocableFileDescriptorStore=*/ null,
                 ALWAYS_OPTIMIZE);
+
+        // Initialization should trigger a recovery
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+
+        // Only the second document should be retrievable from another instance.
         assertThrows(AppSearchException.class, () -> appSearchImpl2.getDocument("package",
                 "database",
                 "namespace1",
@@ -4030,17 +4147,263 @@ public class AppSearchImplTest {
                 Collections.emptyMap());
         assertThat(getResult).isEqualTo(document2);
 
-        // Only the second document should be retrievable from another instance.
+        // Inialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
         AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
                 mAppSearchDir,
                 new AppSearchConfigImpl(
                         new UnlimitedLimitConfig(),
                         new LocalStorageIcingOptionsConfig()
                 ),
-                /*initStatsBuilder=*/ null,
+                /*initStatsBuilder=*/initStatsBuilder,
                 /*visibilityChecker=*/ null,
                 /*revocableFileDescriptorStore=*/ null,
                 ALWAYS_OPTIMIZE);
+
+        // Initialization should trigger a recovery
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_IO_ERROR);
+
+        // Only the second document should be retrievable from another instance.
+        assertThrows(AppSearchException.class, () -> appSearchImpl2.getDocument("package",
+                "database",
+                "namespace1",
+                "id1",
+                Collections.emptyMap()));
+        getResult = appSearchImpl2.getDocument("package", "database", "namespace2",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+        appSearchImpl2.close();
+    }
+
+    @Test
+    public void testPutPersistsWithoutRecoveryWithRecoveryProofFlush() throws Exception {
+        List<AppSearchSchema> schemas =
+                Collections.singletonList(new AppSearchSchema.Builder("type").build());
+        InternalSetSchemaResponse internalSetSchemaResponse = mAppSearchImpl.setSchema(
+                "package",
+                "database",
+                schemas,
+                /*visibilityConfigs=*/ Collections.emptyList(),
+                /*forceOverride=*/ false,
+                /*version=*/ 0,
+                /* setSchemaStatsBuilder= */ null);
+        assertThat(internalSetSchemaResponse.isSuccess()).isTrue();
+
+        // Add a document and persist it.
+        GenericDocument document =
+                new GenericDocument.Builder<>("namespace1", "id1", "type").build();
+        mAppSearchImpl.putDocument(
+                "package",
+                "database",
+                document,
+                /*sendChangeNotifications=*/ false,
+                /*logger=*/ null);
+        mAppSearchImpl.persistToDisk(PersistType.Code.RECOVERY_PROOF);
+
+        GenericDocument getResult = mAppSearchImpl.getDocument("package", "database", "namespace1",
+                "id1",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document);
+
+        // Inialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
+        AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(
+                        new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()
+                ),
+                /*initStatsBuilder=*/initStatsBuilder,
+                /*visibilityChecker=*/ null,
+                /*revocableFileDescriptorStore=*/ null,
+                ALWAYS_OPTIMIZE);
+
+        // Initialization should NOT trigger a recovery
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+
+        // That document should be visible even from another instance.
+        getResult = appSearchImpl2.getDocument("package", "database", "namespace1",
+                "id1",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document);
+        appSearchImpl2.close();
+    }
+
+    @Test
+    public void testDeletePersistsWithoutRecoveryWithRecoveryProofFlush() throws Exception {
+        List<AppSearchSchema> schemas =
+                Collections.singletonList(new AppSearchSchema.Builder("type").build());
+        InternalSetSchemaResponse internalSetSchemaResponse = mAppSearchImpl.setSchema(
+                "package",
+                "database",
+                schemas,
+                /*visibilityConfigs=*/ Collections.emptyList(),
+                /*forceOverride=*/ false,
+                /*version=*/ 0,
+                /* setSchemaStatsBuilder= */ null);
+        assertThat(internalSetSchemaResponse.isSuccess()).isTrue();
+
+        // Add two documents and persist them.
+        GenericDocument document1 =
+                new GenericDocument.Builder<>("namespace1", "id1", "type").build();
+        mAppSearchImpl.putDocument(
+                "package",
+                "database",
+                document1,
+                /*sendChangeNotifications=*/ false,
+                /*logger=*/ null);
+        GenericDocument document2 =
+                new GenericDocument.Builder<>("namespace1", "id2", "type").build();
+        mAppSearchImpl.putDocument(
+                "package",
+                "database",
+                document2,
+                /*sendChangeNotifications=*/ false,
+                /*logger=*/ null);
+        mAppSearchImpl.persistToDisk(PersistType.Code.RECOVERY_PROOF);
+
+        GenericDocument getResult = mAppSearchImpl.getDocument("package", "database", "namespace1",
+                "id1",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document1);
+        getResult = mAppSearchImpl.getDocument("package", "database", "namespace1",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+
+        // Delete the first document
+        mAppSearchImpl.remove("package", "database", "namespace1", "id1", /*statsBuilder=*/ null);
+        mAppSearchImpl.persistToDisk(PersistType.Code.RECOVERY_PROOF);
+        assertThrows(AppSearchException.class, () -> mAppSearchImpl.getDocument("package",
+                "database",
+                "namespace1",
+                "id1",
+                Collections.emptyMap()));
+        getResult = mAppSearchImpl.getDocument("package", "database", "namespace1",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+
+        // Inialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
+        AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(
+                        new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()
+                ),
+                /*initStatsBuilder=*/initStatsBuilder,
+                /*visibilityChecker=*/ null,
+                /*revocableFileDescriptorStore=*/ null,
+                ALWAYS_OPTIMIZE);
+
+        // Initialization should NOT trigger a recovery.
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+
+        // Only the second document should be retrievable from another instance.
+        assertThrows(AppSearchException.class, () -> appSearchImpl2.getDocument("package",
+                "database",
+                "namespace1",
+                "id1",
+                Collections.emptyMap()));
+        getResult = appSearchImpl2.getDocument("package", "database", "namespace1",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+        appSearchImpl2.close();
+    }
+
+    @Test
+    public void testDeleteByQueryPersistsWithoutRecoveryWithRecoveryProofFlush() throws Exception {
+        List<AppSearchSchema> schemas =
+                Collections.singletonList(new AppSearchSchema.Builder("type").build());
+        InternalSetSchemaResponse internalSetSchemaResponse = mAppSearchImpl.setSchema(
+                "package",
+                "database",
+                schemas,
+                /*visibilityConfigs=*/ Collections.emptyList(),
+                /*forceOverride=*/ false,
+                /*version=*/ 0,
+                /* setSchemaStatsBuilder= */ null);
+        assertThat(internalSetSchemaResponse.isSuccess()).isTrue();
+
+        // Add two documents and persist them.
+        GenericDocument document1 =
+                new GenericDocument.Builder<>("namespace1", "id1", "type").build();
+        mAppSearchImpl.putDocument(
+                "package",
+                "database",
+                document1,
+                /*sendChangeNotifications=*/ false,
+                /*logger=*/ null);
+        GenericDocument document2 =
+                new GenericDocument.Builder<>("namespace2", "id2", "type").build();
+        mAppSearchImpl.putDocument(
+                "package",
+                "database",
+                document2,
+                /*sendChangeNotifications=*/ false,
+                /*logger=*/ null);
+        mAppSearchImpl.persistToDisk(PersistType.Code.RECOVERY_PROOF);
+
+        GenericDocument getResult = mAppSearchImpl.getDocument("package", "database", "namespace1",
+                "id1",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document1);
+        getResult = mAppSearchImpl.getDocument("package", "database", "namespace2",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+
+        // Delete the first document
+        mAppSearchImpl.removeByQuery("package", "database", "",
+                new SearchSpec.Builder().addFilterNamespaces("namespace1").setTermMatch(
+                        SearchSpec.TERM_MATCH_EXACT_ONLY).build(), /*statsBuilder=*/ null);
+        mAppSearchImpl.persistToDisk(PersistType.Code.RECOVERY_PROOF);
+        assertThrows(AppSearchException.class, () -> mAppSearchImpl.getDocument("package",
+                "database",
+                "namespace1",
+                "id1",
+                Collections.emptyMap()));
+        getResult = mAppSearchImpl.getDocument("package", "database", "namespace2",
+                "id2",
+                Collections.emptyMap());
+        assertThat(getResult).isEqualTo(document2);
+
+        // Initialize a new instance of AppSearch to test initialization.
+        InitializeStats.Builder initStatsBuilder = new InitializeStats.Builder();
+        AppSearchImpl appSearchImpl2 = AppSearchImpl.create(
+                mAppSearchDir,
+                new AppSearchConfigImpl(
+                        new UnlimitedLimitConfig(),
+                        new LocalStorageIcingOptionsConfig()
+                ),
+                /*initStatsBuilder=*/initStatsBuilder,
+                /*visibilityChecker=*/ null,
+                /*revocableFileDescriptorStore=*/ null,
+                ALWAYS_OPTIMIZE);
+
+        // Initialization should NOT trigger a recovery.
+        InitializeStats initStats = initStatsBuilder.build();
+        assertThat(initStats.getDocumentStoreRecoveryCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+        assertThat(initStats.getIndexRestorationCause())
+                .isEqualTo(InitializeStats.RECOVERY_CAUSE_NONE);
+
+        // Only the second document should be retrievable from another instance.
         assertThrows(AppSearchException.class, () -> appSearchImpl2.getDocument("package",
                 "database",
                 "namespace1",
@@ -5838,6 +6201,19 @@ public class AppSearchImplTest {
         // Open 3rd fd will fail.
         AppSearchException e = assertThrows(AppSearchException.class,
                 () -> mAppSearchImpl.openReadBlob(mContext.getPackageName(), "db1", handle));
+        assertThat(e.getResultCode()).isEqualTo(RESULT_OUT_OF_SPACE);
+        assertThat(e).hasMessageThat().contains(
+                "Package \"" + mContext.getPackageName() + "\" exceeded limit of 2 opened file "
+                        + "descriptors. Some file descriptors must be closed to open additional "
+                        + "ones.");
+
+        // Open new fd for write will also fail since read and write share the same limit.
+        byte[] data2 = generateRandomBytes(20 * 1024); // 20 KiB
+        byte[] digest2 = calculateDigest(data2);
+        AppSearchBlobHandle handle2 = AppSearchBlobHandle.createWithSha256(
+                digest2, mContext.getPackageName(), "db1", "ns");
+        e = assertThrows(AppSearchException.class,
+                () -> mAppSearchImpl.openWriteBlob(mContext.getPackageName(), "db1", handle2));
         assertThat(e.getResultCode()).isEqualTo(RESULT_OUT_OF_SPACE);
         assertThat(e).hasMessageThat().contains(
                 "Package \"" + mContext.getPackageName() + "\" exceeded limit of 2 opened file "

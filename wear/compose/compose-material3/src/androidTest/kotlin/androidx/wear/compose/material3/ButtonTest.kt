@@ -16,16 +16,24 @@
 
 package androidx.wear.compose.material3
 
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
@@ -277,6 +285,7 @@ class ButtonTest {
         assertEquals(expectedSecondaryTextStyle, actualSecondaryLabelTextStyle)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun default_shape_is_stadium() {
         rule.isShape(
@@ -289,6 +298,7 @@ class ButtonTest {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun allows_custom_shape_override() {
         val shape = CutCornerShape(4.dp)
@@ -357,6 +367,50 @@ class ButtonTest {
     }
 
     @Test
+    fun button_animate_content_size_animates_height() {
+        val boxHeight = mutableStateOf(60.dp)
+        val frames = 14
+        val animationMillis = frames * 16
+        val buttonPadding = ButtonDefaults.ButtonVerticalPadding
+
+        rule.setContentWithTheme {
+            Button(onClick = {}, modifier = Modifier.testTag(TEST_TAG).fillMaxWidth()) {
+                Box(
+                    modifier =
+                        Modifier.animateContentSize(
+                                animationSpec = tween(animationMillis, easing = LinearEasing)
+                            )
+                            .fillMaxWidth()
+                            .requiredHeight(boxHeight.value)
+                ) {}
+            }
+        }
+        // Verify initial height
+        rule.onNodeWithTag(TEST_TAG).assertHeightIsEqualTo(60.dp + buttonPadding * 2)
+
+        // Set autoAdvance off to test the content size animation
+        rule.mainClock.autoAdvance = false
+        boxHeight.value = 100.dp
+        // Advance to the actual start of the animation
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // Advance to middle of animation
+        rule.mainClock.advanceTimeBy(animationMillis / 2L)
+        rule.waitForIdle()
+        // Verify that the animation is halfway finished
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .assertHeightIsEqualTo(80.dp + buttonPadding * 2, tolerance = 2.dp)
+
+        // Set autoAdvance back on to finish the animation
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        // Verify end height is correct
+        rule.onNodeWithTag(TEST_TAG).assertHeightIsEqualTo(100.dp + buttonPadding * 2)
+    }
+
+    @Test
     fun has_icon_in_correct_location_for_three_slot_button_and_label_only() {
         val iconTag = "TestIcon"
         rule.setContentWithThemeForSizeAssertions(useUnmergedTree = true) {
@@ -376,6 +430,7 @@ class ButtonTest {
             .assertTopPositionInRootIsEqualTo((itemBounds.height - iconBounds.height) / 2)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -385,6 +440,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -398,6 +454,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -408,6 +465,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -422,6 +480,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_button_correct_filled_variant_colors() {
         rule.verifyButtonColors(
@@ -432,6 +491,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_button_correct_filled_variant_colors() {
         rule.verifyButtonColors(
@@ -446,6 +506,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -456,6 +517,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -468,6 +530,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_child_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -478,6 +541,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_child_base_button_correct_colors() {
         rule.verifyButtonColors(
@@ -490,6 +554,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -499,6 +564,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -508,6 +574,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -517,6 +584,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -526,6 +594,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -535,6 +604,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -544,6 +614,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_child_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -553,6 +624,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_child_three_slot_button_correct_colors() {
         rule.verifyThreeSlotButtonColors(
@@ -562,6 +634,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_button_correct_border_colors() {
         val status = Status.Enabled
@@ -573,6 +646,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_button_correct_border_colors() {
         val status = Status.Disabled
@@ -594,6 +668,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun overrides_enabled_outlined_button_border_color() {
         val status = Status.Enabled
@@ -615,6 +690,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun overrides_disabled_outlined_button_border_color() {
         val status = Status.Disabled
@@ -752,6 +828,7 @@ class ButtonTest {
             )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -760,6 +837,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -768,6 +846,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -776,6 +855,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -784,6 +864,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -792,6 +873,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -800,6 +882,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_child_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -808,6 +891,7 @@ class ButtonTest {
         )
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_child_compact_button_correct_colors() {
         rule.verifyCompactButtonColors(
@@ -1228,6 +1312,7 @@ class ButtonTest {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun ComposeContentTestRule.verifyButtonColors(
     status: Status,
     expectedContainerColor: @Composable () -> Color,
@@ -1317,6 +1402,7 @@ private fun ChildButton(status: Status): Color {
     return actualContentColor
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun ComposeContentTestRule.verifyThreeSlotButtonColors(
     status: Status,
     expectedColor: @Composable () -> ButtonColors,
@@ -1419,6 +1505,7 @@ private fun ThreeSlotChildButton(status: Status): ThreeSlotButtonColors {
     return ThreeSlotButtonColors(actualLabelColor, actualSecondaryLabelColor, actualIconColor)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 internal fun ComposeContentTestRule.verifyButtonBorderColor(
     expectedBorderColor: @Composable () -> Color,
     content: @Composable (Modifier) -> Unit
@@ -1436,6 +1523,7 @@ internal fun ComposeContentTestRule.verifyButtonBorderColor(
     onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(finalExpectedBorderColor)
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun ComposeContentTestRule.isShape(
     expectedShape: Shape,
     colors: @Composable () -> ButtonColors,
@@ -1469,6 +1557,7 @@ private fun ComposeContentTestRule.isShape(
         )
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun ComposeContentTestRule.verifyCompactButtonColors(
     status: Status,
     colors: @Composable () -> ButtonColors

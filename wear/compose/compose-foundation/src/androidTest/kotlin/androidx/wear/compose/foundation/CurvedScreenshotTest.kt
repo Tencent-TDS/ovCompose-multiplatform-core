@@ -270,6 +270,32 @@ class CurvedScreenshotTest {
         }
     }
 
+    @Test
+    fun letter_spacing_top_and_bottom() {
+        verify_composable_screenshot {
+            val style =
+                CurvedTextStyle(letterSpacing = 0.6.sp, letterSpacingCounterClockwise = 1.4.sp)
+            Box {
+                CurvedLayout(modifier = Modifier.fillMaxSize()) {
+                    basicCurvedText(
+                        "Clockwise",
+                        style = style,
+                    )
+                }
+                CurvedLayout(
+                    modifier = Modifier.fillMaxSize(),
+                    angularDirection = CurvedDirection.Angular.CounterClockwise,
+                    anchor = 90f
+                ) {
+                    basicCurvedText(
+                        "Counter Clockwise",
+                        style = style,
+                    )
+                }
+            }
+        }
+    }
+
     private fun CurvedScope.layout_direction_block() {
         basicCurvedText("A")
         curvedColumn {

@@ -16,12 +16,15 @@
 
 package androidx.wear.compose.material3.macrobenchmark
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.benchmark.macro.CompilationMode
 import androidx.test.filters.LargeTest
 import androidx.wear.compose.material3.macrobenchmark.common.TimePickerBenchmark
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
+@RequiresApi(Build.VERSION_CODES.O)
 @LargeTest
 @RunWith(Parameterized::class)
 class TimePickerBenchmarkTest(compilationMode: CompilationMode) :

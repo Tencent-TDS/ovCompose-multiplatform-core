@@ -101,15 +101,15 @@ class ConfirmationDialogTest {
     fun confirmation_linearText_supports_swipeToDismiss() {
         var dismissCounter = 0
         rule.setContentWithTheme {
-            var showDialog by remember { mutableStateOf(true) }
+            var visible by remember { mutableStateOf(true) }
             ConfirmationDialog(
                 modifier = Modifier.testTag(TEST_TAG),
                 text = {},
                 onDismissRequest = {
-                    showDialog = false
+                    visible = false
                     dismissCounter++
                 },
-                visible = showDialog
+                visible = visible
             ) {}
         }
 
@@ -122,14 +122,14 @@ class ConfirmationDialogTest {
     fun confirmation_curvedText_supports_swipeToDismiss() {
         var dismissCounter = 0
         rule.setContentWithTheme {
-            var showDialog by remember { mutableStateOf(true) }
+            var visible by remember { mutableStateOf(true) }
             ConfirmationDialog(
                 modifier = Modifier.testTag(TEST_TAG),
                 onDismissRequest = {
-                    showDialog = false
+                    visible = false
                     dismissCounter++
                 },
-                visible = showDialog,
+                visible = visible,
                 curvedText = {}
             ) {}
         }
@@ -144,14 +144,14 @@ class ConfirmationDialogTest {
         var dismissCounter = 0
         rule.mainClock.autoAdvance = false
         rule.setContentWithTheme {
-            var showDialog by remember { mutableStateOf(true) }
+            var visible by remember { mutableStateOf(true) }
             SuccessConfirmationTest(
                 modifier = Modifier.testTag(TEST_TAG),
                 onDismissRequest = {
-                    showDialog = false
+                    visible = false
                     dismissCounter++
                 },
-                visible = showDialog,
+                visible = visible,
             )
         }
         // Advancing time so that animation will finish its motion.
@@ -167,14 +167,14 @@ class ConfirmationDialogTest {
         var dismissCounter = 0
         rule.mainClock.autoAdvance = false
         rule.setContentWithTheme {
-            var showDialog by remember { mutableStateOf(true) }
+            var visible by remember { mutableStateOf(true) }
             FailureConfirmationTest(
                 modifier = Modifier.testTag(TEST_TAG),
                 onDismissRequest = {
-                    showDialog = false
+                    visible = false
                     dismissCounter++
                 },
-                visible = showDialog,
+                visible = visible,
             )
         }
         // Advancing time so that animation will finish its motion.
@@ -238,7 +238,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun confirmation_linearText_onDismissRequest_not_called_when_hidden() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
         rule.setContentWithTheme {
             ConfirmationDialog(
@@ -247,11 +247,11 @@ class ConfirmationDialogTest {
                 onDismissRequest = { dismissCounter++ },
                 // Set very long duration so that it won't be dismissed by the timeout
                 durationMillis = 100_000,
-                visible = show.value
+                visible = visible.value
             ) {}
         }
         rule.waitForIdle()
-        show.value = false
+        visible.value = false
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
         Assert.assertEquals(0, dismissCounter)
     }
@@ -259,7 +259,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun confirmation_curvedText_onDismissRequest_not_called_when_hidden() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
         rule.setContentWithTheme {
             ConfirmationDialog(
@@ -268,11 +268,11 @@ class ConfirmationDialogTest {
                 onDismissRequest = { dismissCounter++ },
                 // Set very long duration so that it won't be dismissed by the timeout
                 durationMillis = 100_000,
-                visible = show.value
+                visible = visible.value
             ) {}
         }
         rule.waitForIdle()
-        show.value = false
+        visible.value = false
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
         Assert.assertEquals(0, dismissCounter)
     }
@@ -280,7 +280,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun successConfirmation_onDismissRequest_not_called_when_hidden() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
         rule.setContentWithTheme {
             SuccessConfirmationTest(
@@ -288,11 +288,11 @@ class ConfirmationDialogTest {
                 onDismissRequest = { dismissCounter++ },
                 // Set very long duration so that it won't be dismissed by the timeout
                 durationMillis = 100_000,
-                visible = show.value
+                visible = visible.value
             )
         }
         rule.waitForIdle()
-        show.value = false
+        visible.value = false
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
         Assert.assertEquals(0, dismissCounter)
     }
@@ -300,7 +300,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun failureConfirmation_onDismissRequest_not_called_when_hidden() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
         rule.setContentWithTheme {
             FailureConfirmationTest(
@@ -308,11 +308,11 @@ class ConfirmationDialogTest {
                 onDismissRequest = { dismissCounter++ },
                 // Set very long duration so that it won't be dismissed by the timeout
                 durationMillis = 100_000,
-                visible = show.value
+                visible = visible.value
             )
         }
         rule.waitForIdle()
-        show.value = false
+        visible.value = false
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
         Assert.assertEquals(0, dismissCounter)
     }
@@ -320,7 +320,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun confirmation_linearText_calls_onDismissRequest_on_timeout() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
         rule.setContentWithTheme {
             ConfirmationDialog(
@@ -328,10 +328,10 @@ class ConfirmationDialogTest {
                 text = {},
                 onDismissRequest = {
                     dismissCounter++
-                    show.value = false
+                    visible.value = false
                 },
                 durationMillis = 100,
-                visible = show.value
+                visible = visible.value
             ) {}
         }
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
@@ -341,7 +341,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun confirmation_curvedText_calls_onDismissRequest_on_timeout() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
 
         rule.setContentWithTheme {
@@ -350,10 +350,10 @@ class ConfirmationDialogTest {
                 curvedText = {},
                 onDismissRequest = {
                     dismissCounter++
-                    show.value = false
+                    visible.value = false
                 },
                 durationMillis = 100,
-                visible = show.value
+                visible = visible.value
             ) {}
         }
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
@@ -363,7 +363,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun successConfirmation_curvedText_calls_onDismissRequest_on_timeout() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
 
         rule.setContentWithTheme {
@@ -371,10 +371,10 @@ class ConfirmationDialogTest {
                 modifier = Modifier.testTag(TEST_TAG),
                 onDismissRequest = {
                     dismissCounter++
-                    show.value = false
+                    visible.value = false
                 },
                 durationMillis = 100,
-                visible = show.value
+                visible = visible.value
             )
         }
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
@@ -384,7 +384,7 @@ class ConfirmationDialogTest {
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun failureConfirmation_curvedText_calls_onDismissRequest_on_timeout() {
-        val show = mutableStateOf(true)
+        val visible = mutableStateOf(true)
         var dismissCounter = 0
 
         rule.setContentWithTheme {
@@ -392,10 +392,10 @@ class ConfirmationDialogTest {
                 modifier = Modifier.testTag(TEST_TAG),
                 onDismissRequest = {
                     dismissCounter++
-                    show.value = false
+                    visible.value = false
                 },
                 durationMillis = 100,
-                visible = show.value
+                visible = visible.value
             )
         }
         rule.waitUntilDoesNotExist(hasTestTag(TEST_TAG))
@@ -439,7 +439,7 @@ class ConfirmationDialogTest {
             SuccessConfirmationDialog(
                 onDismissRequest = {},
                 visible = true,
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestImage(IconTestTag)
             }
@@ -455,7 +455,7 @@ class ConfirmationDialogTest {
             FailureConfirmationDialog(
                 onDismissRequest = {},
                 visible = true,
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestImage(IconTestTag)
             }
@@ -599,7 +599,7 @@ class ConfirmationDialogTest {
                 onDismissRequest = {},
                 modifier = Modifier.testTag(TEST_TAG),
                 visible = true,
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestIcon(Modifier.testTag(IconTestTag))
             }
@@ -727,7 +727,7 @@ class ConfirmationDialogTest {
                         iconContainerColor = customIconContainerColor,
                         textColor = customTextColor
                     ),
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestIcon(Modifier.testTag(IconTestTag))
             }
@@ -759,7 +759,7 @@ class ConfirmationDialogTest {
                         iconContainerColor = customIconContainerColor,
                         textColor = customTextColor
                     ),
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestIcon(Modifier.testTag(IconTestTag))
             }
@@ -791,7 +791,7 @@ class ConfirmationDialogTest {
                         iconContainerColor = customIconContainerColor,
                         textColor = customTextColor
                     ),
-                curvedText = { confirmationCurvedText(CurvedText, style) }
+                curvedText = { confirmationDialogCurvedText(CurvedText, style) }
             ) {
                 TestIcon(Modifier.testTag(IconTestTag))
             }
@@ -811,13 +811,13 @@ class ConfirmationDialogTest {
         modifier: Modifier = Modifier,
         durationMillis: Long = ConfirmationDialogDefaults.DurationMillis,
     ) {
-        val successText = ConfirmationDialogDefaults.successText
+        val successText = "Success"
         val successTextStyle = ConfirmationDialogDefaults.curvedTextStyle
         SuccessConfirmationDialog(
             modifier = modifier,
             visible = visible,
             onDismissRequest = onDismissRequest,
-            curvedText = { confirmationCurvedText(successText, successTextStyle) },
+            curvedText = { confirmationDialogCurvedText(successText, successTextStyle) },
             durationMillis = durationMillis,
         )
     }
@@ -830,13 +830,13 @@ class ConfirmationDialogTest {
         durationMillis: Long = ConfirmationDialogDefaults.DurationMillis,
         content: @Composable () -> Unit = {}
     ) {
-        val failureText = ConfirmationDialogDefaults.failureText
+        val failureText = "Failure"
         val failureTextStyle = ConfirmationDialogDefaults.curvedTextStyle
         FailureConfirmationDialog(
             modifier = modifier,
             visible = visible,
             onDismissRequest = onDismissRequest,
-            curvedText = { confirmationCurvedText(failureText, failureTextStyle) },
+            curvedText = { confirmationDialogCurvedText(failureText, failureTextStyle) },
             durationMillis = durationMillis,
             content = content
         )

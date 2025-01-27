@@ -278,7 +278,7 @@ internal class TransformingLazyColumnItemProvider(
 
     @Composable
     override fun Item(index: Int, key: Any) {
-        val reduceMotionEnabled = LocalReduceMotion.current.enabled()
+        val reduceMotionEnabled = LocalReduceMotion.current
         val itemScope =
             remember(index, reduceMotionEnabled) {
                 TransformingLazyColumnItemScopeImpl(

@@ -40,7 +40,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.integration.demos.common.AdaptiveScreen
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.Card
@@ -54,18 +56,21 @@ import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
 import androidx.wear.compose.material3.samples.icons.CheckIcon
 
+fun listOfLabels(): List<String> {
+    return listOf(
+        "Hi",
+        "Hello World",
+        "Hello world again?",
+        "More content as we add stuff",
+        "I don't know if this will fit now, testing",
+        "Really long text that it's going to take multiple lines",
+        "And now we are really pushing it because the screen is really small",
+    )
+}
+
 @Composable
 fun EdgeButtonBelowLazyColumnDemo() {
-    val labels =
-        listOf(
-            "Hi",
-            "Hello World",
-            "Hello world again?",
-            "More content as we add stuff",
-            "I don't know if this will fit now, testing",
-            "Really long text that it's going to take multiple lines",
-            "And now we are really pushing it because the screen is really small",
-        )
+    val labels = listOfLabels()
     val selectedLabel = remember { mutableIntStateOf(0) }
     AdaptiveScreen {
         val state = rememberLazyListState()
@@ -104,16 +109,7 @@ fun EdgeButtonBelowLazyColumnDemo() {
 
 @Composable
 fun EdgeButtonBelowScalingLazyColumnDemo() {
-    val labels =
-        listOf(
-            "Hi",
-            "Hello World",
-            "Hello world again?",
-            "More content as we add stuff",
-            "I don't know if this will fit now, testing",
-            "Really long text that it's going to take multiple lines",
-            "And now we are really pushing it because the screen is really small",
-        )
+    val labels = listOfLabels()
     val selectedLabel = remember { mutableIntStateOf(0) }
 
     AdaptiveScreen {
@@ -135,6 +131,45 @@ fun EdgeButtonBelowScalingLazyColumnDemo() {
                 state = state,
                 modifier = Modifier.fillMaxSize(),
                 autoCentering = null,
+                contentPadding = contentPadding,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                items(labels.size) {
+                    Card(
+                        onClick = { selectedLabel.intValue = it },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        Text(labels[it])
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EdgeButtonBelowTransformingLazyColumnDemo() {
+    val labels = listOfLabels()
+    val selectedLabel = remember { mutableIntStateOf(0) }
+    AdaptiveScreen {
+        val state = rememberTransformingLazyColumnState()
+        ScreenScaffold(
+            scrollState = state,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 20.dp),
+            edgeButton = {
+                EdgeButton(
+                    onClick = {},
+                    buttonSize = EdgeButtonSize.Large,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) {
+                    Text(labels[selectedLabel.intValue], color = Color.White)
+                }
+            }
+        ) { contentPadding ->
+            TransformingLazyColumn(
+                state = state,
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 contentPadding = contentPadding,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

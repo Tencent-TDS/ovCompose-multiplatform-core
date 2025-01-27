@@ -395,7 +395,7 @@ class ResultGroupByPeriodAggregatorTest {
     }
 
     @Test
-    fun getResult_recordNeededForCalculation_returnsMapWithResult() {
+    fun getResult_recordContributingToAggregation_returnsListWithResult() {
         val aggregator =
             ResultGroupedByPeriodAggregator(
                 createLocalTimeRange(
@@ -423,7 +423,34 @@ class ResultGroupByPeriodAggregatorTest {
     }
 
     @Test
-    fun getResult_recordOutOfBounds_returnsEmptyMap() {
+    fun getResult_recordNotContributingToAggregation_returnsEmptyList() {
+        val aggregator =
+            ResultGroupedByPeriodAggregator(
+                createLocalTimeRange(
+                    TimeRangeFilter.after(
+                        Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                    )
+                ),
+                bucketPeriod = Period.ofDays(1)
+            ) {
+                TransFatTotalAggregationProcessor(it)
+            }
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime = Instant.ofEpochMilli(100),
+                endTime = Instant.ofEpochMilli(1000),
+                startZoneOffset = ZoneOffset.UTC,
+                endZoneOffset = ZoneOffset.UTC,
+                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+            )
+        )
+
+        assertThat(aggregator.getResult()).isEmpty()
+    }
+
+    @Test
+    fun getResult_recordOutOfBounds_returnsEmptyList() {
         val aggregator =
             ResultGroupedByPeriodAggregator(
                 LocalTimeRange(

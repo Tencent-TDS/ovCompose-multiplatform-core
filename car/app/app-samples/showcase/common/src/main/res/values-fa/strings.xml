@@ -17,7 +17,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="back_caps_action_title" msgid="6392829425035919422">"برگشت"</string>
+    <string name="back_caps_action_title" msgid="6392829425035919422">"برگشتن"</string>
     <string name="home_caps_action_title" msgid="4853167242566949502">"خانه"</string>
     <string name="exit_action_title" msgid="9086586388884500731">"خروج"</string>
     <string name="refresh_action_title" msgid="3674260822403151377">"بازآوری"</string>

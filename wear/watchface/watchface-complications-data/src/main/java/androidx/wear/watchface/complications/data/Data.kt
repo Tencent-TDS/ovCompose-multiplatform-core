@@ -42,7 +42,6 @@ import androidx.wear.watchface.complications.data.RangedValueComplicationData.Co
 import androidx.wear.watchface.complications.data.RangedValueComplicationData.Companion.TYPE_RATING
 import androidx.wear.watchface.complications.data.WeightedElementsComplicationData.Companion.PLACEHOLDER
 import androidx.wear.watchface.complications.data.WeightedElementsComplicationData.Companion.getMaxElements
-import androidx.wear.watchface.complications.data.WeightedElementsComplicationData.Element
 import java.time.Instant
 
 internal const val TAG = "Data.kt"
@@ -1229,7 +1228,7 @@ internal constructor(
         builder.setTapActionLostDueToSerialization(tapActionLostDueToSerialization)
         colorRamp?.let {
             builder.setColorRamp(it.colors)
-            builder.setColorRampIsSmoothShaded(it.interpolated)
+            builder.setColorRampInterpolated(it.interpolated)
         }
         builder.setRangedValueType(valueType)
     }
@@ -1589,7 +1588,7 @@ internal constructor(
         builder.setTapActionLostDueToSerialization(tapActionLostDueToSerialization)
         colorRamp?.let {
             builder.setColorRamp(it.colors)
-            builder.setColorRampIsSmoothShaded(it.interpolated)
+            builder.setColorRampInterpolated(it.interpolated)
         }
     }
 

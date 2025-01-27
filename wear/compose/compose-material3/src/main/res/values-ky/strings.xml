@@ -42,7 +42,5 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"Жогорулатуу"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"Ырастоо"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"Жабуу"</string>
-    <string name="wear_m3c_confirmation_failure_message" msgid="6690105830380889949">"Ишке ашпады"</string>
-    <string name="wear_m3c_confirmation_success_message" msgid="7045594078216655038">"Ийгилик"</string>
     <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"Телефондо ачуу"</string>
 </resources>

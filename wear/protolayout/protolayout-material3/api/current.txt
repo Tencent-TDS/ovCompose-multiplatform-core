@@ -11,17 +11,26 @@ package androidx.wear.protolayout.material3 {
     method public androidx.wear.protolayout.material3.AppCardStyle smallAppCardStyle();
   }
 
+  public final class AvatarButtonStyle {
+    field public static final androidx.wear.protolayout.material3.AvatarButtonStyle.Companion Companion;
+  }
+
+  public static final class AvatarButtonStyle.Companion {
+    method public androidx.wear.protolayout.material3.AvatarButtonStyle defaultAvatarButtonStyle();
+    method public androidx.wear.protolayout.material3.AvatarButtonStyle largeAvatarButtonStyle();
+  }
+
   public final class ButtonColors {
     ctor public ButtonColors();
-    ctor public ButtonColors(optional androidx.wear.protolayout.types.LayoutColor container, optional androidx.wear.protolayout.types.LayoutColor icon, optional androidx.wear.protolayout.types.LayoutColor label, optional androidx.wear.protolayout.types.LayoutColor secondaryLabel);
-    method public androidx.wear.protolayout.types.LayoutColor getContainer();
-    method public androidx.wear.protolayout.types.LayoutColor getIcon();
-    method public androidx.wear.protolayout.types.LayoutColor getLabel();
-    method public androidx.wear.protolayout.types.LayoutColor getSecondaryLabel();
-    property public final androidx.wear.protolayout.types.LayoutColor container;
-    property public final androidx.wear.protolayout.types.LayoutColor icon;
-    property public final androidx.wear.protolayout.types.LayoutColor label;
-    property public final androidx.wear.protolayout.types.LayoutColor secondaryLabel;
+    ctor public ButtonColors(optional androidx.wear.protolayout.types.LayoutColor containerColor, optional androidx.wear.protolayout.types.LayoutColor iconColor, optional androidx.wear.protolayout.types.LayoutColor labelColor, optional androidx.wear.protolayout.types.LayoutColor secondaryLabelColor);
+    method public androidx.wear.protolayout.types.LayoutColor getContainerColor();
+    method public androidx.wear.protolayout.types.LayoutColor getIconColor();
+    method public androidx.wear.protolayout.types.LayoutColor getLabelColor();
+    method public androidx.wear.protolayout.types.LayoutColor getSecondaryLabelColor();
+    property public final androidx.wear.protolayout.types.LayoutColor containerColor;
+    property public final androidx.wear.protolayout.types.LayoutColor iconColor;
+    property public final androidx.wear.protolayout.types.LayoutColor labelColor;
+    property public final androidx.wear.protolayout.types.LayoutColor secondaryLabelColor;
   }
 
   public final class ButtonDefaults {
@@ -48,10 +57,12 @@ package androidx.wear.protolayout.material3 {
   }
 
   public final class ButtonKt {
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement avatarButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> avatarContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? secondaryLabelContent, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional androidx.wear.protolayout.material3.AvatarButtonStyle style, optional int horizontalAlignment, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
     method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement button(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? secondaryLabelContent, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? iconContent, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? backgroundContent, optional androidx.wear.protolayout.material3.ButtonStyle style, optional int horizontalAlignment, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
-    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement iconButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> iconContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? backgroundContent, optional androidx.wear.protolayout.material3.IconButtonStyle style, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement compactButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? labelContent, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? iconContent, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional int horizontalAlignment, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement iconButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> iconContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional androidx.wear.protolayout.material3.IconButtonStyle style, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
     method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement imageButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> backgroundContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height);
-    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement textButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? backgroundContent, optional androidx.wear.protolayout.material3.TextButtonStyle style, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement textButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension width, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension height, optional androidx.wear.protolayout.ModifiersBuilders.Corner shape, optional androidx.wear.protolayout.material3.ButtonColors colors, optional androidx.wear.protolayout.material3.TextButtonStyle style, optional androidx.wear.protolayout.ModifiersBuilders.Padding contentPadding);
   }
 
   public final class ButtonStyle {
@@ -65,21 +76,21 @@ package androidx.wear.protolayout.material3 {
   }
 
   public final class CardColors {
-    ctor public CardColors(androidx.wear.protolayout.types.LayoutColor background, androidx.wear.protolayout.types.LayoutColor title, androidx.wear.protolayout.types.LayoutColor content, optional androidx.wear.protolayout.types.LayoutColor time, optional androidx.wear.protolayout.types.LayoutColor label, optional androidx.wear.protolayout.types.LayoutColor secondaryIcon, optional androidx.wear.protolayout.types.LayoutColor secondaryText);
-    method public androidx.wear.protolayout.types.LayoutColor getBackground();
-    method public androidx.wear.protolayout.types.LayoutColor getContent();
-    method public androidx.wear.protolayout.types.LayoutColor getLabel();
-    method public androidx.wear.protolayout.types.LayoutColor getSecondaryIcon();
-    method public androidx.wear.protolayout.types.LayoutColor getSecondaryText();
-    method public androidx.wear.protolayout.types.LayoutColor getTime();
-    method public androidx.wear.protolayout.types.LayoutColor getTitle();
-    property public final androidx.wear.protolayout.types.LayoutColor background;
-    property public final androidx.wear.protolayout.types.LayoutColor content;
-    property public final androidx.wear.protolayout.types.LayoutColor label;
-    property public final androidx.wear.protolayout.types.LayoutColor secondaryIcon;
-    property public final androidx.wear.protolayout.types.LayoutColor secondaryText;
-    property public final androidx.wear.protolayout.types.LayoutColor time;
-    property public final androidx.wear.protolayout.types.LayoutColor title;
+    ctor public CardColors(androidx.wear.protolayout.types.LayoutColor backgroundColor, androidx.wear.protolayout.types.LayoutColor titleColor, androidx.wear.protolayout.types.LayoutColor contentColor, optional androidx.wear.protolayout.types.LayoutColor timeColor, optional androidx.wear.protolayout.types.LayoutColor labelColor, optional androidx.wear.protolayout.types.LayoutColor secondaryIconColor, optional androidx.wear.protolayout.types.LayoutColor secondaryTextColor);
+    method public androidx.wear.protolayout.types.LayoutColor getBackgroundColor();
+    method public androidx.wear.protolayout.types.LayoutColor getContentColor();
+    method public androidx.wear.protolayout.types.LayoutColor getLabelColor();
+    method public androidx.wear.protolayout.types.LayoutColor getSecondaryIconColor();
+    method public androidx.wear.protolayout.types.LayoutColor getSecondaryTextColor();
+    method public androidx.wear.protolayout.types.LayoutColor getTimeColor();
+    method public androidx.wear.protolayout.types.LayoutColor getTitleColor();
+    property public final androidx.wear.protolayout.types.LayoutColor backgroundColor;
+    property public final androidx.wear.protolayout.types.LayoutColor contentColor;
+    property public final androidx.wear.protolayout.types.LayoutColor labelColor;
+    property public final androidx.wear.protolayout.types.LayoutColor secondaryIconColor;
+    property public final androidx.wear.protolayout.types.LayoutColor secondaryTextColor;
+    property public final androidx.wear.protolayout.types.LayoutColor timeColor;
+    property public final androidx.wear.protolayout.types.LayoutColor titleColor;
   }
 
   public final class CardDefaults {
@@ -115,6 +126,7 @@ package androidx.wear.protolayout.material3 {
 
   public final class CircularProgressIndicatorKt {
     method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement circularProgressIndicator(androidx.wear.protolayout.material3.MaterialScope, optional float staticProgress, optional androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat? dynamicProgress, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional float startAngleDegrees, optional float endAngleDegrees, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float strokeWidth, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float gapSize, optional androidx.wear.protolayout.material3.ProgressIndicatorColors colors, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension size);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement segmentedCircularProgressIndicator(androidx.wear.protolayout.material3.MaterialScope, @IntRange(from=1L) int segmentCount, optional float staticProgress, optional androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat? dynamicProgress, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional float startAngleDegrees, optional float endAngleDegrees, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float strokeWidth, optional @Dimension(unit=androidx.annotation.Dimension.Companion.DP) float gapSize, optional androidx.wear.protolayout.material3.ProgressIndicatorColors colors, optional androidx.wear.protolayout.DimensionBuilders.ContainerDimension size);
   }
 
   public final class ColorScheme {
@@ -202,17 +214,6 @@ package androidx.wear.protolayout.material3 {
     method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement textEdgeButton(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.ModifiersBuilders.Clickable onClick, optional androidx.wear.protolayout.modifiers.LayoutModifier modifier, optional androidx.wear.protolayout.material3.ButtonColors colors, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> labelContent);
   }
 
-  public final class EdgeButtonStyle {
-    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle.Companion Companion;
-    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle DEFAULT;
-    field public static final androidx.wear.protolayout.material3.EdgeButtonStyle TOP_ALIGN;
-  }
-
-  public static final class EdgeButtonStyle.Companion {
-    property public final androidx.wear.protolayout.material3.EdgeButtonStyle DEFAULT;
-    property public final androidx.wear.protolayout.material3.EdgeButtonStyle TOP_ALIGN;
-  }
-
   public final class GraphicDataCardStyle {
     field public static final androidx.wear.protolayout.material3.GraphicDataCardStyle.Companion Companion;
   }
@@ -220,10 +221,6 @@ package androidx.wear.protolayout.material3 {
   public static final class GraphicDataCardStyle.Companion {
     method public androidx.wear.protolayout.material3.GraphicDataCardStyle defaultGraphicDataCardStyle();
     method public androidx.wear.protolayout.material3.GraphicDataCardStyle largeGraphicDataCardStyle();
-  }
-
-  public final class HelpersKt {
-    method public static androidx.wear.protolayout.types.LayoutColor withOpacity(androidx.wear.protolayout.types.LayoutColor, @FloatRange(from=0.0, to=1.0) float ratio);
   }
 
   public final class IconButtonStyle {
@@ -261,17 +258,34 @@ package androidx.wear.protolayout.material3 {
   }
 
   public final class PrimaryLayoutKt {
-    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement primaryLayout(androidx.wear.protolayout.material3.MaterialScope, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> mainSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? titleSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? bottomSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? labelForBottomSlot, optional androidx.wear.protolayout.ModifiersBuilders.Clickable? onClick);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement primaryLayout(androidx.wear.protolayout.material3.MaterialScope, kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement> mainSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? titleSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? bottomSlot, optional kotlin.jvm.functions.Function1<? super androidx.wear.protolayout.material3.MaterialScope,? extends androidx.wear.protolayout.LayoutElementBuilders.LayoutElement>? labelForBottomSlot, optional androidx.wear.protolayout.ModifiersBuilders.Clickable? onClick, optional androidx.wear.protolayout.material3.PrimaryLayoutMargins margins);
+  }
+
+  public abstract class PrimaryLayoutMargins {
+    field public static final androidx.wear.protolayout.material3.PrimaryLayoutMargins.Companion Companion;
+    field public static final androidx.wear.protolayout.material3.PrimaryLayoutMargins DEFAULT_PRIMARY_LAYOUT_MARGIN;
+    field public static final androidx.wear.protolayout.material3.PrimaryLayoutMargins MAX_PRIMARY_LAYOUT_MARGIN;
+    field public static final androidx.wear.protolayout.material3.PrimaryLayoutMargins MID_PRIMARY_LAYOUT_MARGIN;
+    field public static final androidx.wear.protolayout.material3.PrimaryLayoutMargins MIN_PRIMARY_LAYOUT_MARGIN;
+  }
+
+  public static final class PrimaryLayoutMargins.Companion {
+    method public androidx.wear.protolayout.material3.PrimaryLayoutMargins customizedPrimaryLayoutMargin(@FloatRange(from=0.0, to=1.0) float start, @FloatRange(from=0.0, to=1.0) float end);
+    method public androidx.wear.protolayout.material3.PrimaryLayoutMargins customizedPrimaryLayoutMargin(@FloatRange(from=0.0, to=1.0) float start, @FloatRange(from=0.0, to=1.0) float end, @FloatRange(from=0.0, to=1.0) float bottom);
+    property public final androidx.wear.protolayout.material3.PrimaryLayoutMargins DEFAULT_PRIMARY_LAYOUT_MARGIN;
+    property public final androidx.wear.protolayout.material3.PrimaryLayoutMargins MAX_PRIMARY_LAYOUT_MARGIN;
+    property public final androidx.wear.protolayout.material3.PrimaryLayoutMargins MID_PRIMARY_LAYOUT_MARGIN;
+    property public final androidx.wear.protolayout.material3.PrimaryLayoutMargins MIN_PRIMARY_LAYOUT_MARGIN;
   }
 
   public final class ProgressIndicatorColors {
-    ctor public ProgressIndicatorColors(androidx.wear.protolayout.types.LayoutColor indicator, androidx.wear.protolayout.types.LayoutColor track, optional androidx.wear.protolayout.types.LayoutColor trackOverflow);
-    method public androidx.wear.protolayout.types.LayoutColor getIndicator();
-    method public androidx.wear.protolayout.types.LayoutColor getTrack();
-    method public androidx.wear.protolayout.types.LayoutColor getTrackOverflow();
-    property public final androidx.wear.protolayout.types.LayoutColor indicator;
-    property public final androidx.wear.protolayout.types.LayoutColor track;
-    property public final androidx.wear.protolayout.types.LayoutColor trackOverflow;
+    ctor public ProgressIndicatorColors(androidx.wear.protolayout.types.LayoutColor indicatorColor, androidx.wear.protolayout.types.LayoutColor trackColor, optional androidx.wear.protolayout.types.LayoutColor trackOverflowColor);
+    method public androidx.wear.protolayout.types.LayoutColor getIndicatorColor();
+    method public androidx.wear.protolayout.types.LayoutColor getTrackColor();
+    method public androidx.wear.protolayout.types.LayoutColor getTrackOverflowColor();
+    property public final androidx.wear.protolayout.types.LayoutColor indicatorColor;
+    property public final androidx.wear.protolayout.types.LayoutColor trackColor;
+    property public final androidx.wear.protolayout.types.LayoutColor trackOverflowColor;
   }
 
   public final class Shapes {
@@ -304,7 +318,7 @@ package androidx.wear.protolayout.material3 {
   }
 
   public final class TextKt {
-    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement text(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.types.LayoutString text, optional int typography, optional androidx.wear.protolayout.types.LayoutColor color, optional boolean italic, optional boolean underline, optional boolean scalable, optional int maxLines, optional int multilineAlignment, optional int overflow, optional androidx.wear.protolayout.modifiers.LayoutModifier modifiers);
+    method public static androidx.wear.protolayout.LayoutElementBuilders.LayoutElement text(androidx.wear.protolayout.material3.MaterialScope, androidx.wear.protolayout.types.LayoutString text, optional int typography, optional androidx.wear.protolayout.types.LayoutColor color, optional boolean italic, optional boolean underline, optional boolean scalable, optional int maxLines, optional int alignment, optional int overflow, optional androidx.wear.protolayout.modifiers.LayoutModifier modifiers);
   }
 
   public final class TitleCardDefaults {
@@ -334,8 +348,6 @@ package androidx.wear.protolayout.material3 {
   }
 
   public final class Typography {
-    property public static final int ARC_MEDIUM;
-    property public static final int ARC_SMALL;
     property public static final int BODY_EXTRA_SMALL;
     property public static final int BODY_LARGE;
     property public static final int BODY_MEDIUM;
@@ -354,8 +366,6 @@ package androidx.wear.protolayout.material3 {
     property public static final int TITLE_LARGE;
     property public static final int TITLE_MEDIUM;
     property public static final int TITLE_SMALL;
-    field public static final int ARC_MEDIUM = 0; // 0x0
-    field public static final int ARC_SMALL = 1; // 0x1
     field public static final int BODY_EXTRA_SMALL = 2; // 0x2
     field public static final int BODY_LARGE = 3; // 0x3
     field public static final int BODY_MEDIUM = 4; // 0x4

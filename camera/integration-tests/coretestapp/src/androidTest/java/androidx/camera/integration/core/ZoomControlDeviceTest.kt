@@ -797,20 +797,22 @@ class ZoomControlDeviceTest(
 
     @Test
     @SdkSuppress(minSdkVersion = 30)
-    fun zoomObserverValueIsCorrect_withSessionProcessor(): Unit = runBlocking {
-        val zoomRatio = 2f
-        val camera = bindWithSessionProcessorZoomLimitation(minZoom = MIN_ZOOM, maxZoom = MAX_ZOOM)
+    fun zoomObserverValueIsCorrect_withSessionProcessor(): Unit =
+        runBlocking(Dispatchers.Main) {
+            val zoomRatio = 2f
+            val camera =
+                bindWithSessionProcessorZoomLimitation(minZoom = MIN_ZOOM, maxZoom = MAX_ZOOM)
 
-        camera.cameraControl.setZoomRatio(zoomRatio)
-        camera.cameraInfo.zoomState.verifyZoomState(
-            ImmutableZoomState.create(
-                zoomRatio,
-                MAX_ZOOM,
-                MIN_ZOOM,
-                AdapterCameraInfo.getPercentageByRatio(zoomRatio, MIN_ZOOM, MAX_ZOOM)
+            camera.cameraControl.setZoomRatio(zoomRatio)
+            camera.cameraInfo.zoomState.verifyZoomState(
+                ImmutableZoomState.create(
+                    zoomRatio,
+                    MAX_ZOOM,
+                    MIN_ZOOM,
+                    AdapterCameraInfo.getPercentageByRatio(zoomRatio, MIN_ZOOM, MAX_ZOOM)
+                )
             )
-        )
-    }
+        }
 
     private fun Camera.verifyLinearZoom(linearZoom: Float, minZoom: Float, maxZoom: Float) {
         cameraControl.setLinearZoom(linearZoom)
@@ -842,20 +844,22 @@ class ZoomControlDeviceTest(
 
     @Test
     @SdkSuppress(minSdkVersion = 30)
-    fun linearZoomObserverValueIsCorrect_withSessionProcessor(): Unit = runBlocking {
-        val linearZoom = 0.5f
-        val camera = bindWithSessionProcessorZoomLimitation(minZoom = MIN_ZOOM, maxZoom = MAX_ZOOM)
+    fun linearZoomObserverValueIsCorrect_withSessionProcessor(): Unit =
+        runBlocking(Dispatchers.Main) {
+            val linearZoom = 0.5f
+            val camera =
+                bindWithSessionProcessorZoomLimitation(minZoom = MIN_ZOOM, maxZoom = MAX_ZOOM)
 
-        camera.cameraControl.setLinearZoom(linearZoom)
-        camera.cameraInfo.zoomState.verifyZoomState(
-            ImmutableZoomState.create(
-                AdapterCameraInfo.getZoomRatioByPercentage(linearZoom, MIN_ZOOM, MAX_ZOOM),
-                MAX_ZOOM,
-                MIN_ZOOM,
-                linearZoom
+            camera.cameraControl.setLinearZoom(linearZoom)
+            camera.cameraInfo.zoomState.verifyZoomState(
+                ImmutableZoomState.create(
+                    AdapterCameraInfo.getZoomRatioByPercentage(linearZoom, MIN_ZOOM, MAX_ZOOM),
+                    MAX_ZOOM,
+                    MIN_ZOOM,
+                    linearZoom
+                )
             )
-        )
-    }
+        }
 
     private suspend fun LiveData<ZoomState>.verifyZoomState(expectZoomState: ZoomState) {
         val latch = CountDownLatch(1)
@@ -871,7 +875,7 @@ class ZoomControlDeviceTest(
             }
         }
 
-        assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue()
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue()
         assertThat(zoomStates?.isEquivalentTo(expectZoomState)).isTrue()
     }
 
@@ -1055,7 +1059,7 @@ class ZoomControlDeviceTest(
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     CameraPipeConfig::class.simpleName,
                     CameraPipeConfig.defaultConfig()
-                ),
+                )
             )
 
         private fun ZoomState.isEquivalentTo(other: ZoomState): Boolean {

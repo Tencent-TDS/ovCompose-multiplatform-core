@@ -155,6 +155,21 @@ protected constructor(
                 kotlin = com.squareup.kotlinpoet.ENUM
             )
 
+        @JvmField val STRING = String::class.asClassName()
+        @JvmField val ITERABLE = Iterable::class.asClassName()
+        @JvmField val COLLECTION = Collection::class.asClassName()
+        @JvmField val LIST = List::class.asClassName()
+        @JvmField val SET = Set::class.asClassName()
+        @JvmField val MAP = Map::class.asClassName()
+        @JvmField val MAP_ENTRY = Map.Entry::class.asClassName()
+
+        @JvmField val MUTABLE_ITERABLE = Iterable::class.asMutableClassName()
+        @JvmField val MUTABLE_COLLECTION = Collection::class.asMutableClassName()
+        @JvmField val MUTABLE_LIST = List::class.asMutableClassName()
+        @JvmField val MUTABLE_SET = Set::class.asMutableClassName()
+        @JvmField val MUTABLE_MAP = Map::class.asMutableClassName()
+        @JvmField val MUTABLE_MAP_ENTRY = Map.Entry::class.asMutableClassName()
+
         @JvmField val PRIMITIVE_BOOLEAN = Boolean::class.asPrimitiveTypeName()
         @JvmField val PRIMITIVE_BYTE = Byte::class.asPrimitiveTypeName()
         @JvmField val PRIMITIVE_SHORT = Short::class.asPrimitiveTypeName()

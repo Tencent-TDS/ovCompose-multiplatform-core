@@ -102,6 +102,7 @@ class TestUseCaseCamera(
                 cameraQuirks,
                 ZslControlNoOpImpl(),
                 NoOpTemplateParamsOverride,
+                cameraMetadata,
             )
         val cameraGraph = cameraPipe.create(cameraGraphConfig)
 

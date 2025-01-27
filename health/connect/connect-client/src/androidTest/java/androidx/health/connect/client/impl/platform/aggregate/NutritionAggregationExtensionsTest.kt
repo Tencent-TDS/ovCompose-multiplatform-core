@@ -20,11 +20,14 @@ import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
 import androidx.health.connect.client.impl.platform.toLocalTimeWithDefaultZoneFallback
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -208,6 +211,77 @@ class NutritionAggregationExtensionsTest {
             assertThat(result[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(.9.grams)
             assertThat(result.dataOrigins).containsExactly(DataOrigin(context.packageName))
         }
+    }
+
+    @Test
+    fun aggregateNutritionTransFatTotal_groupByDuration() = runTest {
+        healthConnectClient.insertRecords(
+            listOf(
+                NutritionRecord(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 1.minutes,
+                    transFat = .3.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 1.hours + 2.minutes,
+                    endTime = START_TIME + 1.hours + 3.minutes,
+                    transFat = null,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 3.hours + 4.minutes,
+                    endTime = START_TIME + 3.hours + 5.minutes,
+                    transFat = .4.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                ),
+                NutritionRecord(
+                    startTime = START_TIME + 3.hours + 6.minutes,
+                    endTime = START_TIME + 3.hours + 7.minutes,
+                    transFat = .5.grams,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC
+                )
+            )
+        )
+
+        val aggregationResult =
+            healthConnectClient.aggregateFallback(
+                AggregateGroupByDurationRequest(
+                    metrics = setOf(NutritionRecord.TRANS_FAT_TOTAL),
+                    timeRangeFilter = TimeRangeFilter.after(START_TIME),
+                    timeRangeSlicer = 1.hours
+                )
+            )
+
+        assertThat(aggregationResult)
+            .containsExactly(
+                AggregationResultGroupedByDuration(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 1.hours,
+                    zoneOffset = ZoneOffset.UTC,
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues = mapOf(NutritionRecord.TRANS_FAT_TOTAL.metricKey to .3),
+                            dataOrigins = setOf(DataOrigin(context.packageName))
+                        )
+                ),
+                AggregationResultGroupedByDuration(
+                    startTime = START_TIME + 3.hours,
+                    endTime = START_TIME + 4.hours,
+                    zoneOffset = ZoneOffset.UTC,
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues = mapOf(NutritionRecord.TRANS_FAT_TOTAL.metricKey to .9),
+                            dataOrigins = setOf(DataOrigin(context.packageName))
+                        )
+                )
+            )
     }
 
     @Test

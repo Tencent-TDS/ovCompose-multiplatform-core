@@ -18,10 +18,8 @@ package androidx.window
 
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import android.view.WindowManager.LayoutParams
 import androidx.core.view.WindowCompat
-import androidx.window.layout.WindowMetricsCalculator
 
 @Suppress("DEPRECATION") // Old ways of setting edge to edge are deprecated
 class TestActivityEdgeToEdge : TestActivity() {
@@ -31,40 +29,16 @@ class TestActivityEdgeToEdge : TestActivity() {
         window.setFlags(LayoutParams.FLAG_FULLSCREEN, LayoutParams.FLAG_FULLSCREEN)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         if (Build.VERSION.SDK_INT >= 30) {
-            windowInsetsController.hide(android.view.WindowInsets.Type.statusBars())
-            windowInsetsController.hide(android.view.WindowInsets.Type.navigationBars())
-            windowInsetsController.hide(android.view.WindowInsets.Type.displayCutout())
-            windowInsetsController.hide(android.view.WindowInsets.Type.systemBars())
+            window.attributes.layoutInDisplayCutoutMode =
+                LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        } else if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes.layoutInDisplayCutoutMode =
+                LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
 
         setContentView(androidx.window.test.R.layout.activity_edge_to_edge)
 
-        val rootView = findViewById<View>(androidx.window.test.R.id.view_home).rootView
-        rootView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN
-
-        if (Build.VERSION.SDK_INT >= 28) {
-            val params = LayoutParams()
-            params.layoutInDisplayCutoutMode = LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-            window.attributes = params
-        }
         this.actionBar?.hide()
-    }
-
-    fun waitForExpectedBounds() {
-        val currentWindowMetrics =
-            WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(this)
-        val rootView = findViewById<View>(androidx.window.test.R.id.view_home).rootView
-        if (
-            currentWindowMetrics.bounds.width() == rootView.width &&
-                currentWindowMetrics.bounds.height() == rootView.height
-        ) {
-            return
-        } else {
-            resetLayoutCounter()
-            waitForLayout()
-        }
     }
 }

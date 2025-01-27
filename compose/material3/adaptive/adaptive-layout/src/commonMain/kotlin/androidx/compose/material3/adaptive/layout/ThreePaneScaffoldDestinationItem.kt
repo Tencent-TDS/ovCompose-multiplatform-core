@@ -16,8 +16,6 @@
 
 package androidx.compose.material3.adaptive.layout
 
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-
 /**
  * An item representing a navigation destination in a [ThreePaneScaffold].
  *
@@ -25,7 +23,6 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
  * @param contentKey the optional key or id representing the content of the destination. The type
  *   [T] must be storable in a Bundle.
  */
-@ExperimentalMaterial3AdaptiveApi
 class ThreePaneScaffoldDestinationItem<out T>(
     val pane: ThreePaneScaffoldRole,
     val contentKey: T? = null,

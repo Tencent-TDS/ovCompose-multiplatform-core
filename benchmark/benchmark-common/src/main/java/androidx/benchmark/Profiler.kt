@@ -19,10 +19,13 @@ package androidx.benchmark
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Debug
+import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
+import androidx.benchmark.BenchmarkState.Companion.METHOD_TRACING_ESTIMATED_SLOWDOWN_FACTOR
+import androidx.benchmark.BenchmarkState.Companion.METHOD_TRACING_MAX_DURATION_NS
 import androidx.benchmark.BenchmarkState.Companion.TAG
 import androidx.benchmark.Outputs.dateToFileName
 import androidx.benchmark.json.BenchmarkData.TestResult.ProfilerOutput
@@ -98,6 +101,35 @@ sealed class Profiler() {
     }
 
     abstract fun start(traceUniqueName: String): ResultFile?
+
+    /** Start profiling only if expected trace duration is unlikely to trigger an ANR */
+    fun startIfNotRiskingAnrDeadline(
+        traceUniqueName: String,
+        estimatedDurationNs: Long
+    ): ResultFile? {
+        val estimatedMethodTraceDurNs =
+            estimatedDurationNs * METHOD_TRACING_ESTIMATED_SLOWDOWN_FACTOR
+        return if (
+            this == MethodTracing &&
+                Looper.myLooper() == Looper.getMainLooper() &&
+                estimatedMethodTraceDurNs > METHOD_TRACING_MAX_DURATION_NS &&
+                Arguments.profilerSkipWhenDurationRisksAnr
+        ) {
+            val expectedDurSec = estimatedMethodTraceDurNs / 1_000_000_000.0
+            InstrumentationResults.scheduleIdeWarningOnNextReport(
+                """
+                        Skipping method trace of estimated duration $expectedDurSec sec to avoid ANR
+
+                        To disable this behavior, set instrumentation arg:
+                            androidx.benchmark.profiling.skipWhenDurationRisksAnr = false
+                    """
+                    .trimIndent()
+            )
+            null
+        } else {
+            start(traceUniqueName)
+        }
+    }
 
     abstract fun stop()
 

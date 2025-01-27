@@ -19,6 +19,8 @@ package androidx.room.coroutines
 import androidx.room.TransactionScope
 import androidx.room.Transactor
 import androidx.room.Transactor.SQLiteTransactionType
+import androidx.room.concurrent.AtomicBoolean
+import androidx.room.concurrent.AtomicInt
 import androidx.room.concurrent.ThreadLocal
 import androidx.room.concurrent.asContextElement
 import androidx.room.concurrent.currentThreadId
@@ -35,7 +37,6 @@ import kotlin.collections.removeLast as removeLastKt
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
@@ -50,8 +51,9 @@ internal class ConnectionPoolImpl : ConnectionPool {
 
     private val threadLocal = ThreadLocal<PooledConnectionImpl>()
 
-    private val _isClosed = atomic(false)
-    private val isClosed by _isClosed
+    private val _isClosed = AtomicBoolean(false)
+    private val isClosed: Boolean
+        get() = _isClosed.get()
 
     // Amount of time to wait to acquire a connection before throwing, Android uses 30 seconds in
     // its pool, so we do too here, but IDK if that is a good number. This timeout is unrelated to
@@ -195,7 +197,7 @@ internal class ConnectionPoolImpl : ConnectionPool {
 }
 
 private class Pool(val capacity: Int, val connectionFactory: () -> SQLiteConnection) {
-    private val size = atomic(0)
+    private val size = AtomicInt(0)
     private val connections = arrayOfNulls<ConnectionWithLock>(capacity)
     private val channel =
         Channel<ConnectionWithLock>(capacity = capacity, onUndeliveredElement = { recycle(it) })
@@ -211,7 +213,7 @@ private class Pool(val capacity: Int, val connectionFactory: () -> SQLiteConnect
     }
 
     private fun tryOpenNewConnection() {
-        val currentSize = size.value
+        val currentSize = size.get()
         if (currentSize >= capacity) {
             // Capacity reached
             return
@@ -322,8 +324,9 @@ private class PooledConnectionImpl(
 ) : Transactor, RawConnectionAccessor {
     private val transactionStack = ArrayDeque<TransactionItem>()
 
-    private val _isRecycled = atomic(false)
-    private val isRecycled by _isRecycled
+    private val _isRecycled = AtomicBoolean(false)
+    private val isRecycled: Boolean
+        get() = _isRecycled.get()
 
     override val rawConnection: SQLiteConnection
         get() = delegate

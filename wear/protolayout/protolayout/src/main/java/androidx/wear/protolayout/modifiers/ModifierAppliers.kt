@@ -16,15 +16,23 @@
 
 package androidx.wear.protolayout.modifiers
 
+import android.annotation.SuppressLint
+import androidx.annotation.OptIn
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ModifiersBuilders.Background
+import androidx.wear.protolayout.ModifiersBuilders.Border
 import androidx.wear.protolayout.ModifiersBuilders.Clickable
 import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.ElementMetadata
 import androidx.wear.protolayout.ModifiersBuilders.Padding
 import androidx.wear.protolayout.ModifiersBuilders.Semantics
+import androidx.wear.protolayout.TypeBuilders.BoolProp
+import androidx.wear.protolayout.TypeBuilders.FloatProp
+import androidx.wear.protolayout.expression.ProtoLayoutExperimental
 
 /** Creates a [ModifiersBuilders.Modifiers] from a [LayoutModifier]. */
+@SuppressLint("ProtoLayoutMinSchema")
+@OptIn(ProtoLayoutExperimental::class)
 fun LayoutModifier.toProtoLayoutModifiers(): ModifiersBuilders.Modifiers {
     var semantics: Semantics.Builder? = null
     var background: Background.Builder? = null
@@ -32,15 +40,21 @@ fun LayoutModifier.toProtoLayoutModifiers(): ModifiersBuilders.Modifiers {
     var clickable: Clickable.Builder? = null
     var padding: Padding.Builder? = null
     var metadata: ElementMetadata.Builder? = null
+    var border: Border.Builder? = null
+    var visible: BoolProp.Builder? = null
+    var opacity: FloatProp.Builder? = null
 
-    this.foldIn(Unit) { _, e ->
+    this.foldRight(Unit) { _, e ->
         when (e) {
-            is BaseSemanticElement -> semantics = e.foldIn(semantics)
-            is BaseBackgroundElement -> background = e.foldIn(background)
-            is BaseCornerElement -> corners = e.foldIn(corners)
-            is BaseClickableElement -> clickable = e.foldIn(clickable)
-            is BasePaddingElement -> padding = e.foldIn(padding)
-            is BaseMetadataElement -> metadata = e.foldIn(metadata)
+            is BaseSemanticElement -> semantics = e.mergeTo(semantics)
+            is BaseBackgroundElement -> background = e.mergeTo(background)
+            is BaseCornerElement -> corners = e.mergeTo(corners)
+            is BaseClickableElement -> clickable = e.mergeTo(clickable)
+            is BasePaddingElement -> padding = e.mergeTo(padding)
+            is BaseMetadataElement -> metadata = e.mergeTo(metadata)
+            is BaseBorderElement -> border = e.mergeTo(border)
+            is BaseVisibilityElement -> visible = e.mergeTo(visible)
+            is BaseOpacityElement -> opacity = e.mergeTo(opacity)
         }
     }
 
@@ -53,6 +67,9 @@ fun LayoutModifier.toProtoLayoutModifiers(): ModifiersBuilders.Modifiers {
             clickable?.let { setClickable(it.build()) }
             padding?.let { setPadding(it.build()) }
             metadata?.let { setMetadata(it.build()) }
+            border?.let { setBorder(it.build()) }
+            visible?.let { setVisible(it.build()) }
+            opacity?.let { setOpacity(it.build()) }
         }
         .build()
 }

@@ -26,6 +26,7 @@ import androidx.wear.compose.material3.samples.AnimatedTextSample
 import androidx.wear.compose.material3.samples.AnimatedTextSampleButtonResponse
 import androidx.wear.compose.material3.samples.AnimatedTextSampleSharedFontRegistry
 import androidx.wear.compose.material3.samples.ButtonGroupSample
+import androidx.wear.compose.material3.samples.ButtonGroupThreeButtonsSample
 import androidx.wear.compose.material3.samples.EdgeButtonListSample
 import androidx.wear.compose.material3.samples.EdgeButtonSample
 import androidx.wear.compose.material3.samples.EdgeSwipeForSwipeToDismiss
@@ -104,13 +105,18 @@ val WearMaterial3Demos =
                         ComposableDemo("Edge Button Below SLC") {
                             EdgeButtonBelowScalingLazyColumnDemo()
                         },
+                        ComposableDemo("Edge Button Below TLC") {
+                            EdgeButtonBelowTransformingLazyColumnDemo()
+                        },
                     )
                 ),
                 Material3DemoCategory(
                     "Button Group",
                     listOf(
                         ComposableDemo("Two buttons") { ButtonGroupSample() },
-                        ComposableDemo("Three buttons") { ButtonGroupDemo() },
+                        ComposableDemo("ABC") { ButtonGroupThreeButtonsSample() },
+                        ComposableDemo("Text And Icon") { ButtonGroupDemo() },
+                        ComposableDemo("ToggleButtons") { ButtonGroupToggleButtonsDemo() },
                     )
                 ),
                 ComposableDemo("List Header") { Centralize { ListHeaderSample() } },
@@ -135,8 +141,13 @@ val WearMaterial3Demos =
                 Material3DemoCategory("Stepper", StepperDemos),
                 Material3DemoCategory("Slider", SliderDemos),
                 Material3DemoCategory("Picker", PickerDemos),
-                Material3DemoCategory("TimePicker", TimePickerDemos),
-                Material3DemoCategory("DatePicker", DatePickerDemos),
+                // Requires API level 26 or higher due to java.time dependency.
+                *(if (Build.VERSION.SDK_INT >= 26)
+                    arrayOf(
+                        Material3DemoCategory("TimePicker", TimePickerDemos),
+                        Material3DemoCategory("DatePicker", DatePickerDemos)
+                    )
+                else emptyArray<Material3DemoCategory>()),
                 Material3DemoCategory("Progress Indicator", ProgressIndicatorDemos),
                 Material3DemoCategory("Scroll Indicator", ScrollIndicatorDemos),
                 Material3DemoCategory("Placeholder", PlaceholderDemos),

@@ -52,7 +52,6 @@ import androidx.pdf.viewer.fragment.model.PdfFragmentUiState.PasswordRequested
 import androidx.pdf.viewer.fragment.search.PdfSearchViewManager
 import androidx.pdf.viewer.fragment.util.getCenter
 import androidx.pdf.viewer.fragment.view.PdfViewManager
-import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -202,19 +201,9 @@ public open class PdfViewerFragmentV2 : Fragment() {
         pdfViewManager =
             PdfViewManager(
                 pdfView = pdfView,
-                // TODO(b/385684706): Update colors for highlights
                 selectedHighlightColor =
-                    MaterialColors.getColor(
-                        pdfView,
-                        com.google.android.material.R.attr.colorPrimaryFixed,
-                        requireContext().getColor(R.color.selected_highlight_color)
-                    ),
-                highlightColor =
-                    MaterialColors.getColor(
-                        pdfView,
-                        com.google.android.material.R.attr.colorSecondaryFixedDim,
-                        requireContext().getColor(R.color.highlight_color)
-                    )
+                    requireContext().getColor(R.color.selected_highlight_color),
+                highlightColor = requireContext().getColor(R.color.highlight_color)
             )
         pdfSearchViewManager = PdfSearchViewManager(pdfSearchView)
 

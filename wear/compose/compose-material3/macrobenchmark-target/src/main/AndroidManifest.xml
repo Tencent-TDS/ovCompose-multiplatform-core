@@ -130,7 +130,8 @@
         <activity
             android:name=".DatePickerActivity"
             android:theme="@style/AppTheme"
-            android:exported="true">
+            android:exported="true"
+            tools:targetApi="o">
             <intent-filter>
                 <action android:name=
                     "androidx.wear.compose.material3.macrobenchmark.target.DATE_PICKER_ACTIVITY" />
@@ -224,6 +225,17 @@
         </activity>
 
         <activity
+            android:name=".ScalingLazyColumnActivity"
+            android:theme="@style/AppTheme"
+            android:exported="true">
+            <intent-filter>
+                <action android:name=
+                    "androidx.wear.compose.material3.macrobenchmark.target.SCALING_LAZY_COLUMN_ACTIVITY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".SliderActivity"
             android:theme="@style/AppTheme"
             android:exported="true">
@@ -269,7 +281,8 @@
         <activity
             android:name=".TimePickerActivity"
             android:theme="@style/AppTheme"
-            android:exported="true">
+            android:exported="true"
+            tools:targetApi="o">
             <intent-filter>
                 <action android:name=
                     "androidx.wear.compose.material3.macrobenchmark.target.TIME_PICKER_ACTIVITY" />

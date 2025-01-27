@@ -200,17 +200,15 @@ internal fun SnapLayoutInfoProvider(
     }
 }
 
-private fun PagerState.isLtrDragging() = dragGestureDelta() > 0
-
 private fun PagerState.isScrollingForward(velocity: Float): Boolean {
     val reverseScrollDirection = layoutInfo.reverseLayout
-    val isForward = if (isNotGestureAction()) {
-        velocity < 0
-    } else {
-        isLtrDragging()
-    }
-    return (isForward && reverseScrollDirection ||
-        !isForward && !reverseScrollDirection)
+    val isForward =
+        if (isNotGestureAction()) {
+            -velocity
+        } else {
+            dragGestureDelta()
+        } > 0
+    return (isForward && reverseScrollDirection || !isForward && !reverseScrollDirection)
 }
 
 private fun PagerState.dragGestureDelta() =
@@ -238,7 +236,6 @@ internal fun calculateFinalSnappingBound(
     lowerBoundOffset: Float,
     upperBoundOffset: Float
 ): Float {
-
     val isScrollingForward = pagerState.isScrollingForward(flingVelocity)
     val isForward =
         if (pagerState.layoutInfo.orientation == Orientation.Vertical) {

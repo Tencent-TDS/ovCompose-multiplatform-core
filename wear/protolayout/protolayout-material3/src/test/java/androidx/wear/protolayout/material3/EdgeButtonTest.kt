@@ -25,8 +25,11 @@ import androidx.wear.protolayout.DeviceParametersBuilders
 import androidx.wear.protolayout.LayoutElementBuilders.Image
 import androidx.wear.protolayout.expression.AppDataKey
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInt32
-import androidx.wear.protolayout.material3.EdgeButtonDefaults.BOTTOM_MARGIN_DP
+import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
+import androidx.wear.protolayout.material3.EdgeButtonDefaults.CONTAINER_HEIGHT_DP
 import androidx.wear.protolayout.material3.EdgeButtonDefaults.EDGE_BUTTON_HEIGHT_DP
+import androidx.wear.protolayout.material3.EdgeButtonFallbackDefaults.EDGE_BUTTON_HEIGHT_FALLBACK_DP
+import androidx.wear.protolayout.material3.EdgeButtonFallbackDefaults.ICON_SIZE_FALLBACK_DP
 import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.modifiers.contentDescription
@@ -41,6 +44,7 @@ import androidx.wear.protolayout.testing.hasWidth
 import androidx.wear.protolayout.testing.isClickable
 import androidx.wear.protolayout.types.LayoutString
 import androidx.wear.protolayout.types.asLayoutConstraint
+import androidx.wear.protolayout.types.dp
 import androidx.wear.protolayout.types.layoutString
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,14 +58,14 @@ class EdgeButtonTest {
         LayoutElementAssertionsProvider(ICON_EDGE_BUTTON)
             .onRoot()
             .assert(hasWidth(DEVICE_CONFIGURATION.screenWidthDp.toDp()))
-            .assert(hasHeight((EDGE_BUTTON_HEIGHT_DP + BOTTOM_MARGIN_DP).toDp()))
+            .assert(hasHeight(CONTAINER_HEIGHT_DP.dp))
     }
 
     @Test
     fun visibleHeight() {
         LayoutElementAssertionsProvider(ICON_EDGE_BUTTON)
             .onElement(isClickable())
-            .assert(hasHeight(EDGE_BUTTON_HEIGHT_DP.toDp()))
+            .assert(hasHeight(EDGE_BUTTON_HEIGHT_DP.dp))
     }
 
     @Test
@@ -100,8 +104,8 @@ class EdgeButtonTest {
                         modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                         colors =
                             ButtonColors(
-                                container = COLOR_SCHEME.tertiaryContainer,
-                                icon = COLOR_SCHEME.onTertiary
+                                containerColor = COLOR_SCHEME.tertiaryContainer,
+                                iconColor = COLOR_SCHEME.onTertiary
                             ),
                     ) {
                         icon(RES_ID)
@@ -163,6 +167,29 @@ class EdgeButtonTest {
             .assert(hasColor(COLOR_SCHEME.onPrimary.staticArgb))
     }
 
+    @Test
+    fun containerFallbackSize() {
+        LayoutElementAssertionsProvider(ICON_EDGE_BUTTON_FALLBACK)
+            .onRoot()
+            .assert(hasWidth(DEVICE_CONFIGURATION.screenWidthDp.toDp()))
+            .assert(hasHeight(CONTAINER_HEIGHT_DP.dp))
+    }
+
+    @Test
+    fun visibleFallbackHeight() {
+        LayoutElementAssertionsProvider(ICON_EDGE_BUTTON_FALLBACK)
+            .onElement(isClickable())
+            .assert(hasHeight(EDGE_BUTTON_HEIGHT_FALLBACK_DP.dp))
+    }
+
+    @Test
+    fun iconFallbackSize() {
+        LayoutElementAssertionsProvider(ICON_EDGE_BUTTON_FALLBACK)
+            .onElement(hasImage(RES_ID))
+            .assert(hasWidth(ICON_SIZE_FALLBACK_DP.dp))
+            .assert(hasHeight(ICON_SIZE_FALLBACK_DP.dp))
+    }
+
     companion object {
         private val CONTEXT = getApplicationContext() as Context
         private val COLOR_SCHEME = ColorScheme()
@@ -171,6 +198,14 @@ class EdgeButtonTest {
             DeviceParametersBuilders.DeviceParameters.Builder()
                 .setScreenWidthDp(192)
                 .setScreenHeightDp(192)
+                .setRendererSchemaVersion(VersionInfo.Builder().setMajor(99).setMinor(999).build())
+                .build()
+
+        private val DEVICE_CONFIGURATION_WITH_OLD_RENDERER =
+            DeviceParametersBuilders.DeviceParameters.Builder()
+                .setScreenWidthDp(192)
+                .setScreenHeightDp(192)
+                .setRendererSchemaVersion(VersionInfo.Builder().setMajor(1).setMinor(302).build())
                 .build()
 
         private val CLICKABLE =
@@ -181,6 +216,19 @@ class EdgeButtonTest {
         private const val RES_ID = "resId"
         private val ICON_EDGE_BUTTON =
             materialScope(CONTEXT, DEVICE_CONFIGURATION, allowDynamicTheme = false) {
+                iconEdgeButton(
+                    onClick = CLICKABLE,
+                    modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION)
+                ) {
+                    icon(RES_ID)
+                }
+            }
+        private val ICON_EDGE_BUTTON_FALLBACK =
+            materialScope(
+                CONTEXT,
+                DEVICE_CONFIGURATION_WITH_OLD_RENDERER,
+                allowDynamicTheme = false
+            ) {
                 iconEdgeButton(
                     onClick = CLICKABLE,
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION)

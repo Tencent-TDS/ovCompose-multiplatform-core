@@ -17,34 +17,41 @@
 package androidx.wear.tiles.samples.tile
 
 import android.content.Context
+import androidx.wear.protolayout.DeviceParametersBuilders
+import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.DimensionBuilders.weight
 import androidx.wear.protolayout.LayoutElementBuilders
-import androidx.wear.protolayout.LayoutElementBuilders.Box
-import androidx.wear.protolayout.ModifiersBuilders.Background
-import androidx.wear.protolayout.ModifiersBuilders.Modifiers
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.ResourceBuilders.AndroidImageResourceByResId
 import androidx.wear.protolayout.ResourceBuilders.ImageResource
 import androidx.wear.protolayout.TimelineBuilders
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat
+import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
+import androidx.wear.protolayout.material3.AvatarButtonStyle.Companion.largeAvatarButtonStyle
 import androidx.wear.protolayout.material3.ButtonDefaults.filledVariantButtonColors
 import androidx.wear.protolayout.material3.CardColors
 import androidx.wear.protolayout.material3.CardDefaults.filledTonalCardColors
 import androidx.wear.protolayout.material3.CardDefaults.filledVariantCardColors
+import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.recommendedAnimationSpec
 import androidx.wear.protolayout.material3.DataCardStyle.Companion.extraLargeDataCardStyle
 import androidx.wear.protolayout.material3.DataCardStyle.Companion.smallCompactDataCardStyle
 import androidx.wear.protolayout.material3.MaterialScope
+import androidx.wear.protolayout.material3.PrimaryLayoutMargins.Companion.MAX_PRIMARY_LAYOUT_MARGIN
 import androidx.wear.protolayout.material3.TextButtonStyle.Companion.smallTextButtonStyle
 import androidx.wear.protolayout.material3.appCard
+import androidx.wear.protolayout.material3.avatarButton
 import androidx.wear.protolayout.material3.avatarImage
 import androidx.wear.protolayout.material3.button
 import androidx.wear.protolayout.material3.buttonGroup
+import androidx.wear.protolayout.material3.compactButton
 import androidx.wear.protolayout.material3.graphicDataCard
 import androidx.wear.protolayout.material3.icon
 import androidx.wear.protolayout.material3.iconButton
 import androidx.wear.protolayout.material3.iconDataCard
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
+import androidx.wear.protolayout.material3.segmentedCircularProgressIndicator
 import androidx.wear.protolayout.material3.text
 import androidx.wear.protolayout.material3.textButton
 import androidx.wear.protolayout.material3.textDataCard
@@ -123,6 +130,7 @@ private fun tileLayout(
     materialScope(context = context, deviceConfiguration = requestParams.deviceConfiguration) {
         primaryLayout(
             mainSlot = { oneSlotButtons() },
+            margins = MAX_PRIMARY_LAYOUT_MARGIN,
             bottomSlot = {
                 textEdgeButton(
                     onClick = clickable(),
@@ -134,6 +142,17 @@ private fun tileLayout(
         )
     }
 
+private fun MaterialScope.avatarButtonSample() =
+    avatarButton(
+        onClick = clickable(),
+        modifier = LayoutModifier.contentDescription("Avatar button"),
+        avatarContent = { avatarImage(AVATAR_ID) },
+        style = largeAvatarButtonStyle(),
+        horizontalAlignment = LayoutElementBuilders.HORIZONTAL_ALIGN_END,
+        labelContent = { text("Primary label overflowing".layoutString) },
+        secondaryLabelContent = { text("Secondary label overflowing".layoutString) },
+    )
+
 private fun MaterialScope.pillShapeButton() =
     button(
         onClick = clickable(),
@@ -142,6 +161,15 @@ private fun MaterialScope.pillShapeButton() =
         iconContent = { icon(ICON_ID) },
         labelContent = { text("Primary label".layoutString) },
         secondaryLabelContent = { text("Secondary label".layoutString) },
+    )
+
+private fun MaterialScope.compactShapeButton() =
+    compactButton(
+        onClick = clickable(),
+        modifier = LayoutModifier.contentDescription("Compact button"),
+        width = expand(),
+        iconContent = { icon(ICON_ID) },
+        labelContent = { text("Overflowing compact button".layoutString) },
     )
 
 private fun MaterialScope.oneSlotButtons() = buttonGroup {
@@ -184,10 +212,10 @@ private fun MaterialScope.appCardSample() =
         modifier = LayoutModifier.contentDescription("Sample Card"),
         colors =
             CardColors(
-                background = colorScheme.tertiary,
-                title = colorScheme.onTertiary,
-                content = colorScheme.onTertiary,
-                time = colorScheme.onTertiary
+                backgroundColor = colorScheme.tertiary,
+                titleColor = colorScheme.onTertiary,
+                contentColor = colorScheme.onTertiary,
+                timeColor = colorScheme.onTertiary
             ),
         title = {
             text(
@@ -231,20 +259,49 @@ private fun MaterialScope.graphicDataCardSample() =
             )
         },
         graphic = {
-            Box.Builder()
-                .setWidth(expand())
-                .setHeight(expand())
-                .setModifiers(
-                    Modifiers.Builder()
-                        .setBackground(
-                            Background.Builder()
-                                .setCorner(shapes.full)
-                                .setColor(colorScheme.background.prop)
-                                .build()
+            segmentedCircularProgressIndicator(
+                segmentCount = 6,
+                startAngleDegrees = 200F,
+                endAngleDegrees = 520F,
+                dynamicProgress = DynamicFloat.animate(0.0F, 1.5F, recommendedAnimationSpec),
+            )
+        }
+    )
+
+private fun MaterialScope.graphicDataCardSampleWithFallbackProgressIndicator(context: Context) =
+    graphicDataCard(
+        onClick = clickable(),
+        modifier = LayoutModifier.contentDescription("Graphic Data Card"),
+        height = expand(),
+        horizontalAlignment = LayoutElementBuilders.HORIZONTAL_ALIGN_END,
+        title = {
+            text(
+                "1,234!".layoutString,
+            )
+        },
+        content = {
+            text(
+                "steps".layoutString,
+            )
+        },
+        graphic = {
+            materialScope(
+                context = context,
+                deviceConfiguration =
+                    DeviceParametersBuilders.DeviceParameters.Builder()
+                        .setRendererSchemaVersion(
+                            VersionInfo.Builder().setMajor(1).setMinor(402).build()
                         )
                         .build()
+            ) {
+                segmentedCircularProgressIndicator(
+                    segmentCount = 6,
+                    startAngleDegrees = 200F,
+                    endAngleDegrees = 520F,
+                    dynamicProgress = DynamicFloat.animate(0.0F, 1.0F, recommendedAnimationSpec),
+                    size = dp(75F)
                 )
-                .build()
+            }
         }
     )
 

@@ -16,6 +16,8 @@
 
 package androidx.build.lint.replacewith
 
+import androidx.build.lint.ReplaceWithDetector
+import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -60,6 +62,13 @@ Fix for src/replacewith/PropertyJava.java line 43: Replace with `otherProperty`:
         """
                 .trimIndent()
 
-        check(*input).expect(expected).expectFixDiffs(expectedFixDiffs)
+        // Move to check(*input) when b/391690668 is fixed and verifyFixedFileSyntax is removed.
+        TestLintTask.lint()
+            .files(ANDROIDX_REPLACE_WITH_KT, ANDROIDX_ANY_THREAD_KT, *input)
+            .issues(ReplaceWithDetector.ISSUE)
+            .verifyFixedFileSyntax(false)
+            .run()
+            .expect(expected)
+            .expectFixDiffs(expectedFixDiffs)
     }
 }

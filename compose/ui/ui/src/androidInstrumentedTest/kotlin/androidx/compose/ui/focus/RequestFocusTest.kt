@@ -16,18 +16,30 @@
 
 package androidx.compose.ui.focus
 
+import android.view.View
+import android.widget.LinearLayout
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusStateImpl.Active
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Captured
 import androidx.compose.ui.focus.FocusStateImpl.Inactive
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
@@ -739,5 +751,56 @@ class RequestFocusTest {
                 .containsExactly("3 Inactive", "2 Inactive", "4 ActiveParent", "5 Active")
                 .inOrder()
         }
+    }
+
+    @Test
+    fun requestFocus_wrongDirection() {
+        val tag2 = "tag 2"
+        val tag3 = "tag 3"
+        lateinit var button2: View
+        lateinit var button3: View
+        lateinit var inputModeManager: InputModeManager
+
+        rule.setContent {
+            inputModeManager = LocalInputModeManager.current
+            AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = {
+                    LinearLayout(it).apply {
+                        orientation = LinearLayout.VERTICAL
+                        addView(
+                            ComposeView(it).apply {
+                                setContent { Button(onClick = {}) { Text("Button 1") } }
+                            }
+                        )
+                        addView(
+                            ComposeView(it).apply {
+                                button2 = this
+                                setContent {
+                                    Button(onClick = {}, Modifier.testTag(tag2)) {
+                                        Text("Button 2")
+                                    }
+                                }
+                            }
+                        )
+                        addView(
+                            ComposeView(it).apply {
+                                button3 = this
+                                setContent {
+                                    Button(onClick = {}, Modifier.testTag(tag3)) {
+                                        Text("Button 3")
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            )
+        }
+        rule.runOnIdle { inputModeManager.requestInputMode(InputMode.Keyboard) }
+        rule.runOnIdle { button3.requestFocus() }
+        rule.onNodeWithTag(tag3).assertIsFocused()
+        rule.runOnIdle { button2.requestFocus(View.FOCUS_UP, android.graphics.Rect()) }
+        rule.onNodeWithTag(tag2).assertIsFocused()
     }
 }

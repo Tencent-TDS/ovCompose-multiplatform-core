@@ -319,7 +319,7 @@ fun TransformingLazyColumnReducedMotionSample() {
                 }
             }
         ) { contentPadding ->
-            CompositionLocalProvider(LocalReduceMotion provides { enableReduceMotion }) {
+            CompositionLocalProvider(LocalReduceMotion provides enableReduceMotion) {
                 TransformingLazyColumn(
                     state = state,
                     contentPadding = contentPadding,

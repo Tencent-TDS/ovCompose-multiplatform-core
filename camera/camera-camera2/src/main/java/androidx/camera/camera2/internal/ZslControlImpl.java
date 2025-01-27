@@ -113,6 +113,9 @@ final class ZslControlImpl implements ZslControl {
 
     @Override
     public void setZslDisabledByUserCaseConfig(boolean disabled) {
+        if (mIsZslDisabledByUseCaseConfig != disabled && disabled) {
+            clearRingBuffer();
+        }
         mIsZslDisabledByUseCaseConfig = disabled;
     }
 
@@ -232,6 +235,11 @@ final class ZslControlImpl implements ZslControl {
     }
 
     @Override
+    public void clearZslConfig() {
+        cleanup();
+    }
+
+    @Override
     public @Nullable ImageProxy dequeueImageFromBuffer() {
         ImageProxy imageProxy = null;
         try {
@@ -269,16 +277,20 @@ final class ZslControlImpl implements ZslControl {
 
         // We might need synchronization here when clearing ring buffer while image is enqueued
         // at the same time. Will test this case.
-        ZslRingBuffer imageRingBuffer = mImageRingBuffer;
-        while (!imageRingBuffer.isEmpty()) {
-            ImageProxy imageProxy = imageRingBuffer.dequeue();
-            imageProxy.close();
-        }
+        clearRingBuffer();
 
         if (mReprocessingImageDeferrableSurface != null) {
             // Termination is triggered when the use count reaches 0.
             mReprocessingImageDeferrableSurface.close();
             mReprocessingImageDeferrableSurface = null;
+        }
+    }
+
+    private void clearRingBuffer() {
+        ZslRingBuffer imageRingBuffer = mImageRingBuffer;
+        while (!imageRingBuffer.isEmpty()) {
+            ImageProxy imageProxy = imageRingBuffer.dequeue();
+            imageProxy.close();
         }
     }
 

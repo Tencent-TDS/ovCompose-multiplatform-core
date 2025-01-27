@@ -85,6 +85,7 @@ dependencies {
     implementation("androidx.test:monitor:1.6.1")
     implementation(libs.wireRuntime)
     implementation(libs.moshi)
+    implementation(libs.kotlinCoroutinesAndroid)
     ksp(libs.moshiCodeGen)
 
     androidTestImplementation(libs.testRules)
