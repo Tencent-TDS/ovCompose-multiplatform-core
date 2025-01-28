@@ -141,7 +141,7 @@ class CupertinoOverscrollEffect(
 
     override val node: DelegatableNode = CupertinoOverscrollNode(
         offset = { visibleOverscrollOffset },
-        onCoordinatesUpdate = { scrollSize = it.size.toSize() },
+        onRemeasured = { scrollSize = it.size.toSize() },
         applyClip = applyClip
     )
 
@@ -441,11 +441,11 @@ class CupertinoOverscrollEffect(
 
 private class CupertinoOverscrollNode(
     val offset: Density.() -> IntOffset,
-    val onCoordinatesUpdate: (LayoutCoordinates) -> Unit,
+    val onRemeasured: (LayoutCoordinates) -> Unit,
     val applyClip: Boolean
 ): LayoutModifierNode, LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
     override fun onPlaced(coordinates: LayoutCoordinates) {
-        onCoordinatesUpdate(coordinates)
+        onRemeasured(coordinates)
     }
 
     override fun ContentDrawScope.draw() {
