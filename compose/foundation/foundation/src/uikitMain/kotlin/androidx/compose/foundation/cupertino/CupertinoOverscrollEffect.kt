@@ -32,7 +32,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
@@ -43,6 +42,7 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.round
@@ -141,7 +141,7 @@ class CupertinoOverscrollEffect(
 
     override val node: DelegatableNode = CupertinoOverscrollNode(
         offset = { visibleOverscrollOffset },
-        onRemeasured = { scrollSize = it.size.toSize() },
+        onNodeRemeasured = { scrollSize = it.toSize() },
         applyClip = applyClip
     )
 
@@ -441,12 +441,10 @@ class CupertinoOverscrollEffect(
 
 private class CupertinoOverscrollNode(
     val offset: Density.() -> IntOffset,
-    val onRemeasured: (LayoutCoordinates) -> Unit,
+    val onNodeRemeasured: (IntSize) -> Unit,
     val applyClip: Boolean
 ): LayoutModifierNode, LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
-    override fun onPlaced(coordinates: LayoutCoordinates) {
-        onRemeasured(coordinates)
-    }
+    override fun onRemeasured(size: IntSize) = onNodeRemeasured(size)
 
     override fun ContentDrawScope.draw() {
         if (applyClip) {
