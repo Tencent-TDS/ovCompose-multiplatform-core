@@ -25,7 +25,7 @@ data class ArtifactRedirecting(
     val targetVersions: Map<String, String>
 ) {
     fun versionForTargetOrDefault(target: String): String {
-        return targetVersions[target] ?: defaultVersion
+        return targetVersions[target.lowercase()] ?: defaultVersion
     }
 }
 
@@ -38,7 +38,7 @@ fun Project.artifactRedirecting(): ArtifactRedirecting {
     val fullId = groupId + "." + project.name
 
     val targetNames = (findProperty("artifactRedirecting.publication.targetNames") as? String ?: "")
-        .split(",").toSet()
+        .split(",").map { it.lowercase() }.toSet()
 
     var defaultVersion: String =
         findProperty("artifactRedirecting.${fullId}.version") as? String ?:
