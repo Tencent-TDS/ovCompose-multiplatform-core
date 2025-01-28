@@ -16,14 +16,17 @@
 
 package androidx.compose.foundation.gestures
 
-import androidx.compose.animation.core.cupertino.CupertinoScrollDecayAnimationSpec
 import androidx.compose.animation.core.generateDecayAnimationSpec
 import androidx.compose.foundation.gestures.cupertino.CupertinoFlingBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 
+@Suppress("DEPRECATION")
 internal actual fun platformDefaultFlingBehavior(): ScrollableDefaultFlingBehavior =
-    CupertinoFlingBehavior(CupertinoScrollDecayAnimationSpec().generateDecayAnimationSpec())
+    CupertinoFlingBehavior(
+        androidx.compose.animation.core.cupertino.CupertinoScrollDecayAnimationSpec()
+            .generateDecayAnimationSpec()
+    )
 
 @Composable
 internal actual fun rememberPlatformDefaultFlingBehavior(): FlingBehavior =

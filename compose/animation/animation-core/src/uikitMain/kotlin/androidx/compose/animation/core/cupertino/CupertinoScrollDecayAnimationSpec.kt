@@ -30,6 +30,7 @@ import platform.UIKit.UIScrollViewDecelerationRateNormal
  * @property decelerationRate The rate at which the velocity decelerates over time.
  * Default value is equal to one used by default UIScrollView behavior.
  */
+@Deprecated("Will be moved to separate library in the future")
 class CupertinoScrollDecayAnimationSpec(
     private val decelerationRate: Float = UIScrollViewDecelerationRateNormal.toFloat()
 ) : FloatDecayAnimationSpec {

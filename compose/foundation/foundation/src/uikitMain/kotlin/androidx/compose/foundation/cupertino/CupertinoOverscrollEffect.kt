@@ -20,7 +20,6 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -86,7 +85,7 @@ private data class CupertinoOverscrollAvailableDelta(
  * @param applyClip Some consumers of overscroll effect apply clip by themselves and some don't,
  * thus this flag is needed to update our modifier chain and make the clipping correct in every case while avoiding redundancy
  */
-@ExperimentalFoundationApi
+@Deprecated("Will be moved to separate library in the future")
 class CupertinoOverscrollEffect(
     private val density: Float,
     layoutDirection: LayoutDirection,

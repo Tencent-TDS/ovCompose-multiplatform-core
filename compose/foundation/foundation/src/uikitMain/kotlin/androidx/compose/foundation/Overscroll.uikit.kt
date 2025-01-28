@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.foundation
 
 import androidx.compose.foundation.cupertino.CupertinoOverscrollEffect
@@ -29,7 +31,6 @@ import androidx.compose.ui.unit.LayoutDirection
 internal actual fun rememberPlatformOverscrollEffect(): OverscrollEffect? =
     rememberOverscrollEffect(applyClip = false)
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect {
     val density = LocalDensity.current.density
