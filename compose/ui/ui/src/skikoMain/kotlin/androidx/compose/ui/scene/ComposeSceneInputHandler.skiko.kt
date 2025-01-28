@@ -49,7 +49,7 @@ import org.jetbrains.skiko.currentNanoTime
  */
 internal class ComposeSceneInputHandler(
     private val prepareForPointerInputEvent: () -> Unit,
-    processPointerInputEvent: (PointerInputEvent) -> AnyMovementConsumedResult,
+    processPointerInputEvent: (PointerInputEvent) -> PointerEventResult,
     private val processKeyEvent: (KeyEvent) -> Boolean,
 ) {
     private val defaultPointerStateTracker = DefaultPointerStateTracker()
@@ -79,7 +79,7 @@ internal class ComposeSceneInputHandler(
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ): AnyMovementConsumedResult {
+    ): PointerEventResult {
         defaultPointerStateTracker.onPointerEvent(button, eventType)
 
         val actualButtons = buttons ?: defaultPointerStateTracker.buttons
@@ -107,7 +107,7 @@ internal class ComposeSceneInputHandler(
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ): AnyMovementConsumedResult {
+    ): PointerEventResult {
         val event = PointerInputEvent(
             eventType,
             pointers,
@@ -122,7 +122,10 @@ internal class ComposeSceneInputHandler(
         val updatePointerPositionAnyMovementConsumed = updatePointerPosition()
         val anyMovementConsumed = syntheticEventSender.send(event)
         updatePointerPositions(event)
-        return updatePointerPositionAnyMovementConsumed || anyMovementConsumed
+        return PointerEventResult(
+            updatePointerPositionAnyMovementConsumed.anyMovementConsumed ||
+                anyMovementConsumed.anyMovementConsumed
+        )
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {

@@ -56,14 +56,26 @@ class BaseComposeSceneTest {
                 })
             }
             scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-            assertFalse(scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f)))
-            assertFalse(scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f)))
+            assertFalse(
+                scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f))
+                    .anyMovementConsumed
+            )
+            assertFalse(
+                scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f))
+                    .anyMovementConsumed
+            )
 
             consumeAll = true
 
             scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-            assertTrue(scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f)))
-            assertTrue(scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f)))
+            assertTrue(
+                scene.sendPointerEvent(PointerEventType.Move, Offset(11f, 10f))
+                    .anyMovementConsumed
+            )
+            assertTrue(
+                scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f))
+                    .anyMovementConsumed
+            )
         }
     }
 }

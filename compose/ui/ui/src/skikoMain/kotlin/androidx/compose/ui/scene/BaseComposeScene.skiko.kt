@@ -205,7 +205,7 @@ internal abstract class BaseComposeScene(
         keyboardModifiers: PointerKeyboardModifiers?,
         nativeEvent: Any?,
         button: PointerButton?
-    ): AnyMovementConsumedResult = postponeInvalidation(
+    ): PointerEventResult = postponeInvalidation(
         "BaseComposeScene:sendPointerEvent"
     ) {
         inputHandler.onPointerEvent(
@@ -234,7 +234,7 @@ internal abstract class BaseComposeScene(
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
-    ): AnyMovementConsumedResult = postponeInvalidation(
+    ): PointerEventResult = postponeInvalidation(
         "BaseComposeScene:sendPointerEvent"
     ) {
         inputHandler.onPointerEvent(
@@ -266,7 +266,7 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun processPointerInputEvent(
         event: PointerInputEvent
-    ): AnyMovementConsumedResult
+    ): PointerEventResult
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 

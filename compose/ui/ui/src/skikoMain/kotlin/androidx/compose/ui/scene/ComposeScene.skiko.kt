@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.pointerInteropFilter
+import kotlin.jvm.JvmInline
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -183,7 +184,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
-     * @return true if any of the pointer movements have been consumed, otherwise false.
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -195,7 +196,7 @@ interface ComposeScene {
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ): AnyMovementConsumedResult
+    ): PointerEventResult
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -216,7 +217,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
-     * @return true if any of the pointer movements have been consumed, otherwise false.
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -227,7 +228,7 @@ interface ComposeScene {
         timeMillis: Long = currentTimeForEvent(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ): AnyMovementConsumedResult
+    ): PointerEventResult
 
     /**
      * Send [KeyEvent] to the content.
@@ -248,9 +249,11 @@ private fun currentTimeForEvent(): Long =
     (currentNanoTime() / 1E6).toLong()
 
 /**
- * Result of the pointer movements of an event consumed by the compose scene. A 'true' value
- * indicates that at least one of the pointer movements in the pointer event has been consumed,
- * otherwise 'false'.
+ * The result of processing a pointer event.
+ *
+ * @property anyMovementConsumed Indicates whether any pointer movement was consumed during event
+ * processing.
  */
 @InternalComposeUiApi
-typealias AnyMovementConsumedResult = Boolean
+@JvmInline
+value class PointerEventResult(val anyMovementConsumed: Boolean)

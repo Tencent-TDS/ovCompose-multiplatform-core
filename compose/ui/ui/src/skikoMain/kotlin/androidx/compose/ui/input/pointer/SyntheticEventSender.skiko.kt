@@ -17,7 +17,7 @@
 package androidx.compose.ui.input.pointer
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.scene.AnyMovementConsumedResult
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.util.fastAny
 
 /**
@@ -49,9 +49,9 @@ import androidx.compose.ui.util.fastAny
  * touch first. For example, iOS simulator can send 2 touches simultaneously.
  */
 internal class SyntheticEventSender(
-    send: (PointerInputEvent) -> AnyMovementConsumedResult
+    send: (PointerInputEvent) -> PointerEventResult
 ) {
-    private val _send: (PointerInputEvent) -> AnyMovementConsumedResult = send
+    private val _send: (PointerInputEvent) -> PointerEventResult = send
     private var previousEvent: PointerInputEvent? = null
 
     /**
@@ -72,18 +72,20 @@ internal class SyntheticEventSender(
     /**
      * Send [event] and synthetic events before it if needed. On each sent event we just call [send]
      */
-    fun send(event: PointerInputEvent): AnyMovementConsumedResult {
+    fun send(event: PointerInputEvent): PointerEventResult {
         val syntheticMoveForHoverAnyMovementConsumed = sendMissingMoveForHover(event)
         val syntheticReleasesAnyMovementConsumed = sendMissingReleases(event)
         val syntheticPressesAnyMovementConsumed = sendMissingPresses(event)
         val eventAnyMovementConsumed = sendInternal(event)
-        return syntheticMoveForHoverAnyMovementConsumed ||
-            syntheticReleasesAnyMovementConsumed ||
-            syntheticPressesAnyMovementConsumed ||
-            eventAnyMovementConsumed
+        return PointerEventResult(
+            syntheticMoveForHoverAnyMovementConsumed.anyMovementConsumed ||
+            syntheticReleasesAnyMovementConsumed.anyMovementConsumed ||
+            syntheticPressesAnyMovementConsumed.anyMovementConsumed ||
+            eventAnyMovementConsumed.anyMovementConsumed
+        )
     }
 
-    fun updatePointerPosition(): Boolean {
+    fun updatePointerPosition(): PointerEventResult {
         if (needUpdatePointerPosition) {
             needUpdatePointerPosition = false
 
@@ -93,7 +95,7 @@ internal class SyntheticEventSender(
                 }
             }
         }
-        return false
+        return PointerEventResult(anyMovementConsumed = false)
     }
 
     /**
@@ -101,8 +103,8 @@ internal class SyntheticEventSender(
      */
     private fun sendSyntheticMove(
         pointersSourceEvent: PointerInputEvent
-    ): AnyMovementConsumedResult {
-        val previousEvent = previousEvent ?: return false
+    ): PointerEventResult {
+        val previousEvent = previousEvent ?: return PointerEventResult(anyMovementConsumed = false)
         val idToPosition = pointersSourceEvent.pointers.associate { it.id to it.position }
         return sendInternal(
             previousEvent.copySynthetic(
@@ -114,19 +116,19 @@ internal class SyntheticEventSender(
 
     private fun sendMissingMoveForHover(
         currentEvent: PointerInputEvent
-    ): AnyMovementConsumedResult {
+    ): PointerEventResult {
         // issuesEnterExit means that the pointer can issues hover events (enter/exit), and so we
         // should generate a synthetic Move (see why we need to do that in the class description)
         return if (currentEvent.pointers.any { it.activeHover } &&
             isMoveEventMissing(previousEvent, currentEvent)) {
             sendSyntheticMove(currentEvent)
         } else {
-            false
+            PointerEventResult(anyMovementConsumed = false)
         }
     }
 
-    private fun sendMissingReleases(currentEvent: PointerInputEvent): AnyMovementConsumedResult {
-        val previousEvent = previousEvent ?: return false
+    private fun sendMissingReleases(currentEvent: PointerInputEvent): PointerEventResult {
+        val previousEvent = previousEvent ?: return PointerEventResult(anyMovementConsumed = false)
         val previousPressed = previousEvent.pressedIds()
         val currentPressed = currentEvent.pressedIds()
         val newReleased = (previousPressed - currentPressed.toSet()).toList()
@@ -152,13 +154,13 @@ internal class SyntheticEventSender(
                     }
                 )
             ).also {
-                anyMovementConsumed = anyMovementConsumed || it
+                anyMovementConsumed = anyMovementConsumed || it.anyMovementConsumed
             }
         }
-        return anyMovementConsumed
+        return PointerEventResult(anyMovementConsumed)
     }
 
-    private fun sendMissingPresses(currentEvent: PointerInputEvent): AnyMovementConsumedResult {
+    private fun sendMissingPresses(currentEvent: PointerInputEvent): PointerEventResult {
         val previousPressed = previousEvent?.pressedIds().orEmpty()
         val currentPressed = currentEvent.pressedIds()
         val newPressed = (currentPressed - previousPressed.toSet()).toList()
@@ -181,16 +183,16 @@ internal class SyntheticEventSender(
                     }
                 )
             ).also {
-                anyMovementConsumed = anyMovementConsumed || it
+                anyMovementConsumed = anyMovementConsumed || it.anyMovementConsumed
             }
         }
-        return anyMovementConsumed
+        return PointerEventResult(anyMovementConsumed)
     }
 
     private fun PointerInputEvent.pressedIds(): Sequence<PointerId> =
         pointers.asSequence().filter { it.down }.map { it.id }
 
-    private fun sendInternal(event: PointerInputEvent): AnyMovementConsumedResult {
+    private fun sendInternal(event: PointerInputEvent): PointerEventResult {
         val anyMovementConsumed = _send(event)
         // We don't send nativeEvent for synthetic events.
         // Nullify to avoid memory leaks (native events can point to native views).

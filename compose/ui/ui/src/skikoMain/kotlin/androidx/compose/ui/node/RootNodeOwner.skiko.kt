@@ -70,7 +70,7 @@ import androidx.compose.ui.platform.setLightingInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.scene.AnyMovementConsumedResult
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
@@ -267,7 +267,7 @@ internal class RootNodeOwner(
     }
 
     @OptIn(InternalCoreApi::class)
-    fun onPointerInput(event: PointerInputEvent): AnyMovementConsumedResult {
+    fun onPointerInput(event: PointerInputEvent): PointerEventResult {
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
@@ -278,7 +278,7 @@ internal class RootNodeOwner(
             IdentityPositionCalculator,
             isInBounds = isInBounds
         )
-        return result.anyMovementConsumed
+        return PointerEventResult(result.anyMovementConsumed)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {

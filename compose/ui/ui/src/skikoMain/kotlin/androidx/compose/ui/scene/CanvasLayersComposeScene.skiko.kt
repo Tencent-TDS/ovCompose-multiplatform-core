@@ -223,22 +223,22 @@ private class CanvasLayersComposeSceneImpl(
         return mainOwner.hitTestInteropView(position)
     }
 
-    override fun processPointerInputEvent(event: PointerInputEvent): AnyMovementConsumedResult {
-        val anyMovementConsumed = when (event.eventType) {
+    override fun processPointerInputEvent(event: PointerInputEvent): PointerEventResult {
+        val result = when (event.eventType) {
             PointerEventType.Press -> processPress(event)
             PointerEventType.Release -> processRelease(event)
             PointerEventType.Move -> processMove(event)
             PointerEventType.Enter -> processMove(event)
             PointerEventType.Exit -> processMove(event)
             PointerEventType.Scroll -> processScroll(event)
-            else -> false
+            else -> PointerEventResult(anyMovementConsumed = false)
         }
 
         // Clean gestureOwner when there is no pressed pointers/buttons
         if (!event.isGestureInProgress) {
             gestureOwner = null
         }
-        return anyMovementConsumed
+        return result
     }
 
     override fun processKeyEvent(keyEvent: KeyEvent): Boolean =
@@ -281,7 +281,7 @@ private class CanvasLayersComposeSceneImpl(
         return true
     }
 
-    private fun processPress(event: PointerInputEvent): AnyMovementConsumedResult {
+    private fun processPress(event: PointerInputEvent): PointerEventResult {
         val currentGestureOwner = gestureOwner
         if (currentGestureOwner != null) {
             return currentGestureOwner.onPointerInput(event)
@@ -303,17 +303,17 @@ private class CanvasLayersComposeSceneImpl(
 
             // if the owner is in focus, do not pass the event to underlying owners
             if (layer == focusedLayer) {
-                return false
+                return PointerEventResult(anyMovementConsumed = false)
             }
         }
-        val anyMovementConsumed = mainOwner.onPointerInput(event)
+        val result = mainOwner.onPointerInput(event)
         gestureOwner = mainOwner
-        return anyMovementConsumed
+        return result
     }
 
-    private fun processRelease(event: PointerInputEvent): AnyMovementConsumedResult {
+    private fun processRelease(event: PointerInputEvent): PointerEventResult {
         // Send Release to gestureOwner even if is not hovered or under focusedOwner
-        val anyMovementConsumed = gestureOwner?.onPointerInput(event)
+        val result = gestureOwner?.onPointerInput(event)
         if (!event.isGestureInProgress) {
             val owner = hoveredOwner(event)
             if (isInteractive(owner)) {
@@ -328,10 +328,10 @@ private class CanvasLayersComposeSceneImpl(
                 focusedLayer?.onOutsidePointerEvent(event)
             }
         }
-        return anyMovementConsumed ?: false
+        return result ?: PointerEventResult(anyMovementConsumed = false)
     }
 
-    private fun processMove(event: PointerInputEvent): AnyMovementConsumedResult {
+    private fun processMove(event: PointerInputEvent): PointerEventResult {
         var owner = when {
             // All touch events or mouse with pressed button(s)
             event.isGestureInProgress -> gestureOwner
@@ -350,7 +350,8 @@ private class CanvasLayersComposeSceneImpl(
         processHover(event, owner)?.let {
             return it
         }
-        return owner?.onPointerInput(event.copy(eventType = PointerEventType.Move)) ?: false
+        return owner?.onPointerInput(event.copy(eventType = PointerEventType.Move))
+            ?: PointerEventResult(anyMovementConsumed = false)
     }
 
     /**
@@ -361,7 +362,7 @@ private class CanvasLayersComposeSceneImpl(
      */
     private fun processHover(
         event: PointerInputEvent, owner: RootNodeOwner?
-    ): AnyMovementConsumedResult? {
+    ): PointerEventResult? {
         if (event.pointers.fastAny { it.type != PointerType.Mouse }) {
             // Track hover only for mouse
             return null
@@ -375,23 +376,25 @@ private class CanvasLayersComposeSceneImpl(
             // Owner wasn't changed
             return null
         }
-        val anyMovementConsumedByLastHoverOwner =
+        val lastHoverOwnerResult =
             lastHoverOwner?.onPointerInput(event.copy(eventType = PointerEventType.Exit))
-        val anyMovementConsumedByOwner =
+        val ownerResult =
             owner?.onPointerInput(event.copy(eventType = PointerEventType.Enter))
         lastHoverOwner = owner
 
         // Changing hovering state replaces Move event, so treat it as consumed
-        return (anyMovementConsumedByLastHoverOwner ?: false) ||
-            (anyMovementConsumedByOwner ?: false)
+        return PointerEventResult(
+            (lastHoverOwnerResult?.anyMovementConsumed ?: false) ||
+                (ownerResult?.anyMovementConsumed ?: false)
+        )
     }
 
-    private fun processScroll(event: PointerInputEvent): AnyMovementConsumedResult {
+    private fun processScroll(event: PointerInputEvent): PointerEventResult {
         val owner = hoveredOwner(event)
         return if (isInteractive(owner)) {
             owner.onPointerInput(event)
         } else {
-            false
+            PointerEventResult(anyMovementConsumed = false)
         }
     }
 

@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.PointerEventType.Companion.Press
 import androidx.compose.ui.input.pointer.PointerEventType.Companion.Release
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.SyntheticEventSender
+import androidx.compose.ui.scene.PointerEventResult
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -185,36 +186,59 @@ class SyntheticEventSenderTest {
     fun `should consume move event when synthetic events added`() {
         val sender = SyntheticEventSender { event ->
             // Consume only synthetic move event
-            event.eventType == Move
+            PointerEventResult(anyMovementConsumed = event.eventType == Move)
         }
 
-        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
-        assertTrue(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertTrue(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
     }
 
     @Test
     fun `should not consume event none of synthetic events consumed`() {
-        val sender = SyntheticEventSender { false }
+        val sender = SyntheticEventSender {
+            PointerEventResult(anyMovementConsumed = false)
+        }
 
-        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
-        assertFalse(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertFalse(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
     }
 
     @Test
     fun `should consume event when any synthetic event consumed`() {
         val sender = SyntheticEventSender { event ->
-            event.eventType == Move
+            PointerEventResult(anyMovementConsumed = event.eventType == Move)
         }
 
-        assertFalse(sender.send(mouseEvent(Enter, 10f, 20f, pressed = false)))
-        assertTrue(sender.send(mouseEvent(Press, 10f, 25f, pressed = true)))
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertTrue(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
     }
 
     @Test
     fun `should consume press event when any synthetic event consumed`() {
         val sender = SyntheticEventSender { event ->
             // Consume only first synthetic Press event
-            event.eventType == Press && event.pointers.singleOrNull { it.down } != null
+            PointerEventResult(
+                anyMovementConsumed = event.eventType == Press &&
+                    event.pointers.singleOrNull { it.down } != null
+            )
         }
 
         assertTrue(
@@ -225,7 +249,7 @@ class SyntheticEventSenderTest {
                     2 to touch(10f, 20f, pressed = true),
                     3 to touch(100f, 200f, pressed = true),
                 )
-            )
+            ).anyMovementConsumed
         )
     }
 
@@ -233,7 +257,10 @@ class SyntheticEventSenderTest {
     fun `should consume release event when synthetic events consumed`() {
         val sender = SyntheticEventSender { event ->
             // Consume only first synthetic Release event
-            event.eventType == Release && event.pointers.singleOrNull { !it.down } != null
+            PointerEventResult(
+                anyMovementConsumed = event.eventType == Release &&
+                    event.pointers.singleOrNull { !it.down } != null
+            )
         }
 
         sender.send(
@@ -253,7 +280,7 @@ class SyntheticEventSenderTest {
                     2 to touch(10f, 20f, pressed = false),
                     3 to touch(100f, 200f, pressed = false),
                 ),
-            )
+            ).anyMovementConsumed
         )
     }
 
@@ -261,7 +288,9 @@ class SyntheticEventSenderTest {
         vararg inputEvents: PointerInputEvent
     ): List<PointerInputEvent> {
         val received = mutableListOf<PointerInputEvent>()
-        val sender = SyntheticEventSender(received::add)
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
         for (inputEvent in inputEvents) {
             sender.send(inputEvent)
         }
