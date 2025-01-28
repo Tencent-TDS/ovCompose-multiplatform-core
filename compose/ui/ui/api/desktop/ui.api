@@ -311,7 +311,6 @@ public abstract class androidx/compose/ui/autofill/AutofillManager {
 	public static final field $stable I
 	public abstract fun cancel ()V
 	public abstract fun commit ()V
-	public abstract fun requestAutofillForActiveElement ()V
 }
 
 public final class androidx/compose/ui/autofill/AutofillNode {
@@ -3135,6 +3134,7 @@ public abstract interface class androidx/compose/ui/node/DelegatableNode {
 
 public final class androidx/compose/ui/node/DelegatableNodeKt {
 	public static final fun invalidateSubtree (Landroidx/compose/ui/node/DelegatableNode;)V
+	public static final fun requestAutofill (Landroidx/compose/ui/node/DelegatableNode;)V
 	public static final fun requireDensity (Landroidx/compose/ui/node/DelegatableNode;)Landroidx/compose/ui/unit/Density;
 	public static final fun requireGraphicsContext (Landroidx/compose/ui/node/DelegatableNode;)Landroidx/compose/ui/graphics/GraphicsContext;
 	public static final fun requireLayoutCoordinates (Landroidx/compose/ui/node/DelegatableNode;)Landroidx/compose/ui/layout/LayoutCoordinates;
