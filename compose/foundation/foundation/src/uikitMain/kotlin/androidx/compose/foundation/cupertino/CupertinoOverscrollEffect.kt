@@ -468,8 +468,7 @@ private class CupertinoOverscrollNode(
     ): MeasureResult {
         val placeable = measurable.measure(constraints)
         return layout(placeable.width, placeable.height) {
-            val (x, y) = offset()
-            placeable.placeWithLayer(x, y)
+            placeable.placeWithLayer(offset())
         }
     }
 }
