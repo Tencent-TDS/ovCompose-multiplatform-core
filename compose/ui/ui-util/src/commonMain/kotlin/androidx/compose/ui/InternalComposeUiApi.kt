@@ -20,6 +20,12 @@ package androidx.compose.ui
  * Unstable API for use only between `compose-ui` modules sharing the same exact version, subject to
  * change without notice in major, minor, or patch releases.
  */
+@Target(
+    AnnotationTarget.CLASS,
+    AnnotationTarget.PROPERTY,
+    AnnotationTarget.FUNCTION,
+    AnnotationTarget.TYPEALIAS
+)
 @RequiresOptIn(
     "Unstable API for use only between compose-ui modules sharing the same exact version, " +
         "subject to change without notice in major, minor, or patch releases."

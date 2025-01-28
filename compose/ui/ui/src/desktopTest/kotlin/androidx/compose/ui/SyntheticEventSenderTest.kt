@@ -182,7 +182,7 @@ class SyntheticEventSenderTest {
     }
 
     @Test
-    fun `should consume event when synthetic events added`() {
+    fun `should consume move event when synthetic events added`() {
         val sender = SyntheticEventSender { event ->
             // Consume only synthetic move event
             event.eventType == Move
@@ -201,7 +201,7 @@ class SyntheticEventSenderTest {
     }
 
     @Test
-    fun `should consume event when synthetic  event`() {
+    fun `should consume event when any synthetic event consumed`() {
         val sender = SyntheticEventSender { event ->
             event.eventType == Move
         }
@@ -211,7 +211,7 @@ class SyntheticEventSenderTest {
     }
 
     @Test
-    fun `should consume press event when synthetic events consumed`() {
+    fun `should consume press event when any synthetic event consumed`() {
         val sender = SyntheticEventSender { event ->
             // Consume only first synthetic Press event
             event.eventType == Press && event.pointers.singleOrNull { it.down } != null

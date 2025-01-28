@@ -29,6 +29,7 @@ import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.unit.IntRect
 import org.jetbrains.skiko.currentNanoTime
 
 /**

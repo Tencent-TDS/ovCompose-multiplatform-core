@@ -79,22 +79,23 @@ internal abstract class BaseComposeScene(
         private set
 
     private var isInvalidationDisabled = false
-    private inline fun <T> postponeInvalidation(traceTag: String, crossinline block: () -> T): T = trace(traceTag) {
-        check(!isClosed) { "postponeInvalidation called after ComposeScene is closed" }
-        isInvalidationDisabled = true
-        return try {
-            // Try to get see the up-to-date state before running block
-            // Note that this doesn't guarantee it, if sendApplyNotifications is called concurrently
-            // in a different thread than this code.
-            snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
-            snapshotInvalidationTracker.performSnapshotChangesSynchronously(block)
-        } finally {
-            snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
-            isInvalidationDisabled = false
-        }.also {
-            updateInvalidations()
+    private inline fun <T> postponeInvalidation(traceTag: String, crossinline block: () -> T): T =
+        trace(traceTag) {
+            check(!isClosed) { "postponeInvalidation called after ComposeScene is closed" }
+            isInvalidationDisabled = true
+            return try {
+                // Try to get see the up-to-date state before running block
+                // Note that this doesn't guarantee it, if sendApplyNotifications is called concurrently
+                // in a different thread than this code.
+                snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
+                snapshotInvalidationTracker.performSnapshotChangesSynchronously(block)
+            } finally {
+                snapshotInvalidationTracker.sendAndPerformSnapshotChanges()
+                isInvalidationDisabled = false
+            }.also {
+                updateInvalidations()
+            }
         }
-    }
 
     @Volatile
     private var hasPendingDraws = true
@@ -129,28 +130,29 @@ internal abstract class BaseComposeScene(
 
     override fun hasInvalidations(): Boolean = hasPendingDraws || recomposer.hasPendingWork
 
-    override fun setContent(content: @Composable () -> Unit) = postponeInvalidation("BaseComposeScene:setContent") {
-        check(!isClosed) { "setContent called after ComposeScene is closed" }
-        inputHandler.onChangeContent()
+    override fun setContent(content: @Composable () -> Unit) =
+        postponeInvalidation("BaseComposeScene:setContent") {
+            check(!isClosed) { "setContent called after ComposeScene is closed" }
+            inputHandler.onChangeContent()
 
-        /*
+            /*
          * It's required before setting content to apply changed parameters
          * before first recomposition. Otherwise, it can lead to double recomposition.
          */
-        recomposer.performScheduledRecomposerTasks()
+            recomposer.performScheduledRecomposerTasks()
 
-        composition?.dispose()
-        composition = createComposition {
-            CompositionLocalProvider(
-                @Suppress("DEPRECATION")
-                LocalComposeScene provides this,
-                LocalComposeSceneContext provides composeSceneContext,
-                content = content
-            )
+            composition?.dispose()
+            composition = createComposition {
+                CompositionLocalProvider(
+                    @Suppress("DEPRECATION")
+                    LocalComposeScene provides this,
+                    LocalComposeSceneContext provides composeSceneContext,
+                    content = content
+                )
+            }
+
+            recomposer.performScheduledRecomposerTasks()
         }
-
-        recomposer.performScheduledRecomposerTasks()
-    }
 
     override fun render(canvas: Canvas, nanoTime: Long) {
         // This is a no-op if the scene is closed, this situation can happen if the scene is
@@ -203,7 +205,9 @@ internal abstract class BaseComposeScene(
         keyboardModifiers: PointerKeyboardModifiers?,
         nativeEvent: Any?,
         button: PointerButton?
-    ): Boolean = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): AnyMovementConsumedResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             position = position,
@@ -230,7 +234,9 @@ internal abstract class BaseComposeScene(
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
-    ): Boolean = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): AnyMovementConsumedResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             pointers = pointers,
@@ -258,7 +264,9 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition
 
-    protected abstract fun processPointerInputEvent(event: PointerInputEvent): Boolean
+    protected abstract fun processPointerInputEvent(
+        event: PointerInputEvent
+    ): AnyMovementConsumedResult
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 
