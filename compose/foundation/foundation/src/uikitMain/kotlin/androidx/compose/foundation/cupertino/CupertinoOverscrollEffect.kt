@@ -27,17 +27,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -138,16 +141,9 @@ class CupertinoOverscrollEffect(
 
     override val node: DelegatableNode = CupertinoOverscrollNode(
         offset = { visibleOverscrollOffset },
-        coordinates = { scrollSize = it.size.toSize() },
+        updateCoordinates = { scrollSize = it.size.toSize() },
         applyClip = applyClip
     )
-
-    private fun Modifier.clipIfNeeded(): Modifier =
-        if (applyClip) {
-            clipToBounds() then this
-        } else {
-            this
-        }
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {
@@ -445,29 +441,36 @@ class CupertinoOverscrollEffect(
 
 private class CupertinoOverscrollNode(
     val offset: Density.() -> IntOffset,
-    val coordinates: (LayoutCoordinates) -> Unit,
+    val updateCoordinates: (LayoutCoordinates) -> Unit,
     val applyClip: Boolean
-): LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
-
-    override val shouldAutoInvalidate: Boolean = true
+): LayoutModifierNode, LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
+    override fun onPlaced(coordinates: LayoutCoordinates) {
+        updateCoordinates(coordinates)
+    }
 
     override fun ContentDrawScope.draw() {
         if (applyClip) {
-            clipRect { this@draw.drawContentWithOffset() }
+            val offset = offset()
+            clipRect(
+                top = maxOf(0f, -offset.y.toFloat()),
+                bottom = size.height - maxOf(0, offset.y),
+                left = maxOf(0f, -offset.x.toFloat()),
+                right = size.width - maxOf(0, offset.x)
+            ) { this@draw.drawContent() }
         } else {
-            this@draw.drawContentWithOffset()
+            this@draw.drawContent()
         }
     }
 
-    private fun ContentDrawScope.drawContentWithOffset() {
-        val offset = offset()
-        translate(left = offset.x.toFloat(), top = offset.y.toFloat()) {
-            this@drawContentWithOffset.drawContent()
+    override fun MeasureScope.measure(
+        measurable: Measurable,
+        constraints: Constraints
+    ): MeasureResult {
+        val placeable = measurable.measure(constraints)
+        return layout(placeable.width, placeable.height) {
+            val (x, y) = offset()
+            placeable.placeWithLayer(x, y)
         }
-    }
-
-    override fun onPlaced(coordinates: LayoutCoordinates) {
-        coordinates(coordinates)
     }
 }
 
