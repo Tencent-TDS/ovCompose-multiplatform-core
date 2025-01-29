@@ -14,12 +14,20 @@
  * limitations under the License.
  */
 
+@file:JvmName("SavedStateKt")
+@file:JvmMultifileClass
+@file:Suppress("NOTHING_TO_INLINE")
+
 package androidx.savedstate
 
-import androidx.annotation.MainThread
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
-@MainThread
-internal actual fun platformPerformAttach(owner: SavedStateRegistryOwner) {
-    val lifecycle = owner.lifecycle
-    lifecycle.addObserver(Recreator(owner))
-}
+public actual class SavedState
+@PublishedApi
+internal constructor(@PublishedApi internal val map: MutableMap<String, Any?> = mutableMapOf())
+
+actual inline fun savedState(
+    initialState: Map<String, Any?>,
+    builderAction: SavedStateWriter.() -> Unit,
+): SavedState = SavedState(initialState.toMutableMap()).apply { write(builderAction) }
