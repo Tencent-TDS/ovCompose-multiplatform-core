@@ -119,13 +119,10 @@ internal class ComposeSceneInputHandler(
             button,
         )
         prepareForPointerInputEvent()
-        val updatePointerPositionAnyMovementConsumed = updatePointerPosition()
-        val anyMovementConsumed = syntheticEventSender.send(event)
+        val updatePointerPositionResult = updatePointerPosition()
+        val eventResult = syntheticEventSender.send(event)
         updatePointerPositions(event)
-        return PointerEventResult(
-            updatePointerPositionAnyMovementConsumed.anyMovementConsumed ||
-                anyMovementConsumed.anyMovementConsumed
-        )
+        return updatePointerPositionResult.merging(eventResult)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {

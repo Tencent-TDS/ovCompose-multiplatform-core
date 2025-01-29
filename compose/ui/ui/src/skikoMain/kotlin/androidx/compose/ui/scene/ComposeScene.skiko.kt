@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.pointerInteropFilter
-import kotlin.jvm.JvmInline
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -247,13 +246,3 @@ interface ComposeScene {
 
 private fun currentTimeForEvent(): Long =
     (currentNanoTime() / 1E6).toLong()
-
-/**
- * The result of processing a pointer event.
- *
- * @property anyMovementConsumed Indicates whether any pointer movement was consumed during event
- * processing.
- */
-@InternalComposeUiApi
-@JvmInline
-value class PointerEventResult(val anyMovementConsumed: Boolean)

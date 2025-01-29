@@ -378,15 +378,13 @@ private class CanvasLayersComposeSceneImpl(
         }
         val lastHoverOwnerResult =
             lastHoverOwner?.onPointerInput(event.copy(eventType = PointerEventType.Exit))
-        val ownerResult =
-            owner?.onPointerInput(event.copy(eventType = PointerEventType.Enter))
+                ?: PointerEventResult(anyMovementConsumed = false)
+        val ownerResult = owner?.onPointerInput(event.copy(eventType = PointerEventType.Enter))
+            ?: PointerEventResult(anyMovementConsumed = false)
         lastHoverOwner = owner
 
         // Changing hovering state replaces Move event, so treat it as consumed
-        return PointerEventResult(
-            (lastHoverOwnerResult?.anyMovementConsumed ?: false) ||
-                (ownerResult?.anyMovementConsumed ?: false)
-        )
+        return lastHoverOwnerResult.merging(ownerResult)
     }
 
     private fun processScroll(event: PointerInputEvent): PointerEventResult {

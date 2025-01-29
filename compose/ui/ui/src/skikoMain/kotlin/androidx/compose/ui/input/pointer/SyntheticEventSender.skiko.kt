@@ -18,6 +18,7 @@ package androidx.compose.ui.input.pointer
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.scene.PointerEventResult
+import androidx.compose.ui.scene.merging
 import androidx.compose.ui.util.fastAny
 
 /**
@@ -73,15 +74,14 @@ internal class SyntheticEventSender(
      * Send [event] and synthetic events before it if needed. On each sent event we just call [send]
      */
     fun send(event: PointerInputEvent): PointerEventResult {
-        val syntheticMoveForHoverAnyMovementConsumed = sendMissingMoveForHover(event)
-        val syntheticReleasesAnyMovementConsumed = sendMissingReleases(event)
-        val syntheticPressesAnyMovementConsumed = sendMissingPresses(event)
-        val eventAnyMovementConsumed = sendInternal(event)
-        return PointerEventResult(
-            syntheticMoveForHoverAnyMovementConsumed.anyMovementConsumed ||
-            syntheticReleasesAnyMovementConsumed.anyMovementConsumed ||
-            syntheticPressesAnyMovementConsumed.anyMovementConsumed ||
-            eventAnyMovementConsumed.anyMovementConsumed
+        val syntheticMoveForHoverResult = sendMissingMoveForHover(event)
+        val syntheticReleasesResult = sendMissingReleases(event)
+        val syntheticPressesResult = sendMissingPresses(event)
+        val eventResult = sendInternal(event)
+        return syntheticMoveForHoverResult.merging(
+            syntheticReleasesResult,
+            syntheticPressesResult,
+            eventResult
         )
     }
 
@@ -134,7 +134,7 @@ internal class SyntheticEventSender(
         val newReleased = (previousPressed - currentPressed.toSet()).toList()
         val sendingAsUp = HashSet<PointerId>(newReleased.size)
 
-        var anyMovementConsumed = false
+        var result = PointerEventResult(anyMovementConsumed = false)
         // Don't send the first released pointer
         // It will be sent as a real event. Here we only need to send synthetic events
         // before a real one.
@@ -154,10 +154,10 @@ internal class SyntheticEventSender(
                     }
                 )
             ).also {
-                anyMovementConsumed = anyMovementConsumed || it.anyMovementConsumed
+                result = result.merging(it)
             }
         }
-        return PointerEventResult(anyMovementConsumed)
+        return result
     }
 
     private fun sendMissingPresses(currentEvent: PointerInputEvent): PointerEventResult {
@@ -166,7 +166,7 @@ internal class SyntheticEventSender(
         val newPressed = (currentPressed - previousPressed.toSet()).toList()
         val sendingAsDown = HashSet<PointerId>(newPressed.size)
 
-        var anyMovementConsumed = false
+        var result = PointerEventResult(anyMovementConsumed = false)
         // Don't send the last pressed pointer (newPressed.size - 1)
         // It will be sent as a real event. Here we only need to send synthetic events
         // before a real one.
@@ -183,10 +183,10 @@ internal class SyntheticEventSender(
                     }
                 )
             ).also {
-                anyMovementConsumed = anyMovementConsumed || it.anyMovementConsumed
+                result = result.merging(it)
             }
         }
-        return PointerEventResult(anyMovementConsumed)
+        return result
     }
 
     private fun PointerInputEvent.pressedIds(): Sequence<PointerId> =
