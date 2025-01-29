@@ -13,10 +13,6 @@ BecameUnchecked: androidx.compose.ui.platform.AbstractComposeView#showLayoutBoun
     Removed property AbstractComposeView.showLayoutBounds from compatibility checked API surface
 
 
-ChangedType: androidx.compose.ui.layout.MeasureResult#getAlignmentLines():
-    Method androidx.compose.ui.layout.MeasureResult.getAlignmentLines has changed return type from java.util.Map<androidx.compose.ui.layout.AlignmentLine,java.lang.Integer> to java.util.Map<? extends androidx.compose.ui.layout.AlignmentLine,java.lang.Integer>
-
-
 RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionX():
     Removed method androidx.compose.ui.graphics.TransformOrigin.getPivotFractionX()
 RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionY():

@@ -138,7 +138,7 @@ class AndroidDragAndDropIntegrationTest {
 
         rule.waitForIdle()
 
-        assertClipData(assertNotNull(droppedClipData)).isEqualToClipData(sourceClipData)
+        assertClipData(assertNotNull(droppedClipData)).isEqualToClipData(sourceClipData, true)
     }
 }
 

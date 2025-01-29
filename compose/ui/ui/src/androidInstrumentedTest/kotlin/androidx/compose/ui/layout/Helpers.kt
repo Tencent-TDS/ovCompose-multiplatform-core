@@ -281,6 +281,10 @@ private class FakeOwner(
 
     override fun requestFocus() = TODO("Not yet implemented")
 
+    override fun requestAutofill(node: LayoutNode) {
+        TODO("Not yet implemented")
+    }
+
     override fun onSemanticsChange() {}
 
     override fun getFocusDirection(keyEvent: KeyEvent) = TODO("Not yet implemented")

@@ -19,12 +19,12 @@ package androidx.compose.ui.layout
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DelegatableNode.RegistrationHandle
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireLayoutNode
 import androidx.compose.ui.node.requireOwner
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.spatial.RelativeLayoutBounds
-import kotlinx.coroutines.DisposableHandle
 
 /**
  * Invokes [callback] with the position of this layout node relative to the coordinate system of the
@@ -86,10 +86,10 @@ private class OnLayoutRectChangedNode(
     var debounceMillis: Long,
     var callback: (RelativeLayoutBounds) -> Unit,
 ) : Modifier.Node() {
-    var handle: DisposableHandle? = null
+    var handle: RegistrationHandle? = null
 
     fun disposeAndRegister() {
-        handle?.dispose()
+        handle?.unregister()
         handle = registerOnLayoutRectChanged(throttleMillis, debounceMillis, callback)
     }
 
@@ -98,7 +98,7 @@ private class OnLayoutRectChangedNode(
     }
 
     override fun onDetach() {
-        handle?.dispose()
+        handle?.unregister()
     }
 }
 
@@ -129,7 +129,7 @@ fun DelegatableNode.registerOnLayoutRectChanged(
     throttleMillis: Long,
     debounceMillis: Long,
     callback: (RelativeLayoutBounds) -> Unit,
-): DisposableHandle {
+): RegistrationHandle {
     val layoutNode = requireLayoutNode()
     val id = layoutNode.semanticsId
     val rectManager = layoutNode.requireOwner().rectManager

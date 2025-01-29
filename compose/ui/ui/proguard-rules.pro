@@ -53,6 +53,3 @@
     *;
 }
 
--keepclassmembers class * {
-    @dalvik.annotation.optimization.NeverInline *;
-}

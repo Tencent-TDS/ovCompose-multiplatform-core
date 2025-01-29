@@ -18,10 +18,18 @@ package androidx.compose.ui.benchmark.autofill
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.Button
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentDataType
 import androidx.compose.ui.autofill.ContentType
@@ -29,6 +37,7 @@ import androidx.compose.ui.semantics.contentDataType
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.focused
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun RemovableAutofillText(state: MutableState<Boolean>) {
@@ -178,6 +187,76 @@ internal fun ChangingAutofillFocus(state: MutableState<Boolean>) {
             )
         }
     }
+}
+
+@Composable
+internal fun AutofillTextScreen() {
+    Column {
+        TextField(
+            value = data.firstName,
+            onValueChange = {},
+            label = { Text("Enter first name here: ") },
+            modifier =
+                Modifier.semantics {
+                    contentType = ContentType.PersonFirstName
+                    contentDataType = ContentDataType.Text
+                }
+        )
+        TextField(
+            value = data.lastName,
+            onValueChange = {},
+            label = { Text("Enter last name here: ") },
+            modifier =
+                Modifier.semantics {
+                    contentType = ContentType.PersonLastName
+                    contentDataType = ContentDataType.Text
+                }
+        )
+        TextField(
+            value = data.firstName,
+            onValueChange = {},
+            label = { Text("Enter first name here: ") },
+            modifier =
+                Modifier.semantics {
+                    contentType = ContentType.PersonFirstName
+                    contentDataType = ContentDataType.Text
+                }
+        )
+        TextField(
+            value = data.lastName,
+            onValueChange = {},
+            label = { Text("Enter last name here: ") },
+            modifier =
+                Modifier.semantics {
+                    contentType = ContentType.PersonLastName
+                    contentDataType = ContentDataType.Text
+                }
+        )
+    }
+}
+
+@Composable
+internal fun AutofillScreen() {
+    Scaffold(
+        content = { padding ->
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                // Navigation Button backwards
+                Button(onClick = {}, modifier = Modifier.align(Alignment.Start)) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Go to route.")
+                }
+
+                // Navigation Button forwards
+                Button(onClick = {}, modifier = Modifier.align(Alignment.Start)) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Go to next screen")
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                AutofillTextScreen()
+            }
+        }
+    )
 }
 
 internal data class PersonData(

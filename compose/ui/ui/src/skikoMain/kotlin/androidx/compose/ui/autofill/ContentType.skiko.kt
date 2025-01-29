@@ -18,7 +18,7 @@ package androidx.compose.ui.autofill
 
 // TODO https://youtrack.jetbrains.com/issue/CMP-7154/Adopt-Autofill-semantic-properties
 
-actual class ContentType actual constructor(contentHint: String) {
+actual sealed interface ContentType {
     actual companion object {
         actual val Username: ContentType = throw NotImplementedError()
         actual val Password: ContentType = throw NotImplementedError()

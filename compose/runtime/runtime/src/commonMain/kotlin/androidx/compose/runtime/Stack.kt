@@ -52,7 +52,6 @@ internal class IntStack {
     inline val size: Int
         get() = tos
 
-    @dalvik.annotation.optimization.NeverInline
     private fun resize(): IntArray {
         val copy = slots.copyOf(slots.size * 2)
         slots = copy

@@ -385,6 +385,10 @@ internal class RootNodeOwner(
         override val measureIteration: Long get() = measureAndLayoutDelegate.measureIteration
 
         override fun requestFocus() = platformContext.requestFocus()
+        override fun requestAutofill(node: LayoutNode) {
+            // TODO: 1.8.0-beta01 Adopt requestAutofill API
+            //  https://youtrack.jetbrains.com/issue/CMP-7485
+        }
 
         override fun onPreAttach(node: LayoutNode) {
             layoutNodes[node.semanticsId] = node

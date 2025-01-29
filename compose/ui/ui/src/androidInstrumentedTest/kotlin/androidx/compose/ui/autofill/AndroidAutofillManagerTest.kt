@@ -42,11 +42,14 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.elementOf
+import androidx.compose.ui.node.requestAutofill
 import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDataType
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.contentType
@@ -713,68 +716,6 @@ class AndroidAutofillManagerTest {
 
     @Test
     @SmallTest
-    @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_requestAutofillAfterFocus() {
-        val am: PlatformAutofillManager = mock()
-        val contextMenuTag = "menu_tag"
-        var autofillManager: AutofillManager?
-
-        rule.setContent {
-            autofillManager = LocalAutofillManager.current
-            (autofillManager as AndroidAutofillManager).platformAutofillManager = am
-            Box(
-                modifier =
-                    Modifier.semantics {
-                            testTag = contextMenuTag
-                            onAutofillText { true }
-                        }
-                        .focusProperties { canFocus = true }
-                        .clickable { autofillManager?.requestAutofillForActiveElement() }
-                        .size(height, width)
-            )
-        }
-
-        // `requestAutofill` is always called after an element is focused
-        rule.onNodeWithTag(contextMenuTag).requestFocus()
-        rule.runOnIdle { verify(am).notifyViewEntered(any(), any(), any()) }
-
-        // then `requestAutofill` is called on that same previously focused element
-        rule.onNodeWithTag(contextMenuTag).performClick()
-        rule.runOnIdle { verify(am).requestAutofill(any(), any(), any()) }
-    }
-
-    @Test
-    @SmallTest
-    @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_notAutofillable_doesNotrequestAutofillAfterFocus() {
-        val am: PlatformAutofillManager = mock()
-        val contextMenuTag = "menu_tag"
-        var autofillManager: AutofillManager?
-
-        rule.setContent {
-            autofillManager = LocalAutofillManager.current
-            (autofillManager as AndroidAutofillManager).platformAutofillManager = am
-            Box(
-                modifier =
-                    Modifier.semantics { testTag = contextMenuTag }
-                        .focusProperties { canFocus = true }
-                        .clickable { autofillManager?.requestAutofillForActiveElement() }
-                        .size(height, width)
-            )
-        }
-        clearInvocations(am)
-
-        // `requestAutofill` is always called after an element is focused
-        rule.onNodeWithTag(contextMenuTag).requestFocus()
-        rule.runOnIdle { verifyZeroInteractions(am) }
-
-        // then `requestAutofill` is called on that same previously focused element
-        rule.onNodeWithTag(contextMenuTag).performClick()
-        rule.runOnIdle { verifyNoMoreInteractions(am) }
-    }
-
-    @Test
-    @SmallTest
     fun autofillManager_lazyColumnScroll_callsCommit() {
         lateinit var state: LazyListState
         lateinit var coroutineScope: CoroutineScope
@@ -865,5 +806,36 @@ class AndroidAutofillManagerTest {
 
         // A column disappearing will call commit
         rule.runOnIdle { verify(am).commit() }
+    }
+
+    @Test
+    @SmallTest
+    @SdkSuppress(minSdkVersion = 26)
+    fun autofillManager_requestAutofill() {
+        val am: PlatformAutofillManager = mock()
+        val semanticsModifier = TestSemanticsModifier { testTag = "TestTag" }
+        var autofillManager: AutofillManager?
+
+        rule.setContent {
+            autofillManager = LocalAutofillManager.current
+            (autofillManager as AndroidAutofillManager).platformAutofillManager = am
+            Box(Modifier.elementOf(semanticsModifier))
+        }
+
+        // Act
+        rule.runOnIdle { semanticsModifier.requestAutofill() }
+
+        // Assert
+        rule.runOnIdle { verify(am).requestAutofill(any(), any(), any()) }
+    }
+
+    private class TestSemanticsModifier(
+        private val onApplySemantics: SemanticsPropertyReceiver.() -> Unit
+    ) : SemanticsModifierNode, Modifier.Node() {
+
+        override fun SemanticsPropertyReceiver.applySemantics() {
+            contentType = ContentType.Username
+            onApplySemantics.invoke(this)
+        }
     }
 }

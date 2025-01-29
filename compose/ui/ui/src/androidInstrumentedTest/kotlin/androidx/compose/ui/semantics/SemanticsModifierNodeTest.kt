@@ -77,9 +77,7 @@ class SemanticsModifierNodeTest(private val precomputedSemantics: Boolean) {
         // Assert.
         rule.runOnIdle {
             if (precomputedSemantics) {
-                // One invocation when the modifier node calls autoInvalidateNodeSelf and another
-                // when the Layout node is attached.
-                assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(2)
+                assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(1)
             } else {
                 assertThat(semanticsModifier.applySemanticsInvocations).isEqualTo(0)
             }
@@ -194,7 +192,7 @@ class SemanticsModifierNodeTest(private val precomputedSemantics: Boolean) {
         // Assert.
         rule.runOnIdle {
             assertThat(semanticsModifier.applySemanticsInvocations)
-                .isEqualTo(if (precomputedSemantics) 8 else 2)
+                .isEqualTo(if (precomputedSemantics) 7 else 2)
         }
     }
 

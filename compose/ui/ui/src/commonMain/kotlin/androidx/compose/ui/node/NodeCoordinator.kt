@@ -1540,7 +1540,7 @@ internal abstract class NodeCoordinator(
 @Suppress("PrimitiveInCollection")
 private fun compareEquals(
     a: MutableObjectIntMap<AlignmentLine>?,
-    b: Map<out AlignmentLine, Int>
+    b: Map<AlignmentLine, Int>
 ): Boolean {
     if (a == null) return false
     if (a.size != b.size) return false
