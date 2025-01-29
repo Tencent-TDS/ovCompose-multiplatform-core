@@ -376,33 +376,20 @@ public final class androidx/compose/ui/autofill/AutofillType : java/lang/Enum {
 	public static fun values ()[Landroidx/compose/ui/autofill/AutofillType;
 }
 
-public final class androidx/compose/ui/autofill/ContentDataType {
+public abstract interface class androidx/compose/ui/autofill/ContentDataType {
 	public static final field Companion Landroidx/compose/ui/autofill/ContentDataType$Companion;
-	public static final synthetic fun box-impl (I)Landroidx/compose/ui/autofill/ContentDataType;
-	public static fun constructor-impl (I)I
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (ILjava/lang/Object;)Z
-	public static final fun equals-impl0 (II)Z
-	public final fun getDataType ()I
-	public fun hashCode ()I
-	public static fun hashCode-impl (I)I
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (I)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()I
 }
 
 public final class androidx/compose/ui/autofill/ContentDataType$Companion {
-	public final fun getDate-A48pgw8 ()I
-	public final fun getList-A48pgw8 ()I
-	public final fun getNone-A48pgw8 ()I
-	public final fun getText-A48pgw8 ()I
-	public final fun getToggle-A48pgw8 ()I
+	public final fun getDate ()Landroidx/compose/ui/autofill/ContentDataType;
+	public final fun getList ()Landroidx/compose/ui/autofill/ContentDataType;
+	public final fun getNone ()Landroidx/compose/ui/autofill/ContentDataType;
+	public final fun getText ()Landroidx/compose/ui/autofill/ContentDataType;
+	public final fun getToggle ()Landroidx/compose/ui/autofill/ContentDataType;
 }
 
-public final class androidx/compose/ui/autofill/ContentType {
-	public static final field $stable I
+public abstract interface class androidx/compose/ui/autofill/ContentType {
 	public static final field Companion Landroidx/compose/ui/autofill/ContentType$Companion;
-	public fun <init> (Ljava/lang/String;)V
 }
 
 public final class androidx/compose/ui/autofill/ContentType$Companion {
@@ -2747,7 +2734,7 @@ public final class androidx/compose/ui/layout/MultiContentMeasurePolicyKt {
 }
 
 public final class androidx/compose/ui/layout/OnGlobalLayoutListenerKt {
-	public static final fun registerOnGlobalLayoutListener (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/DisposableHandle;
+	public static final fun registerOnGlobalLayoutListener (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Landroidx/compose/ui/node/DelegatableNode$RegistrationHandle;
 }
 
 public abstract interface class androidx/compose/ui/layout/OnGloballyPositionedModifier : androidx/compose/ui/Modifier$Element {
@@ -2769,7 +2756,7 @@ public final class androidx/compose/ui/layout/OnGloballyPositionedModifierKt {
 public final class androidx/compose/ui/layout/OnLayoutRectChangedModifierKt {
 	public static final fun onLayoutRectChanged (Landroidx/compose/ui/Modifier;JJLkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun onLayoutRectChanged$default (Landroidx/compose/ui/Modifier;JJLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun registerOnLayoutRectChanged (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/DisposableHandle;
+	public static final fun registerOnLayoutRectChanged (Landroidx/compose/ui/node/DelegatableNode;JJLkotlin/jvm/functions/Function1;)Landroidx/compose/ui/node/DelegatableNode$RegistrationHandle;
 }
 
 public abstract interface class androidx/compose/ui/layout/OnPlacedModifier : androidx/compose/ui/Modifier$Element {
@@ -3130,6 +3117,10 @@ public abstract interface class androidx/compose/ui/node/DelegatableNode {
 	public abstract fun getNode ()Landroidx/compose/ui/Modifier$Node;
 	public fun onDensityChange ()V
 	public fun onLayoutDirectionChange ()V
+}
+
+public abstract interface class androidx/compose/ui/node/DelegatableNode$RegistrationHandle {
+	public abstract fun unregister ()V
 }
 
 public final class androidx/compose/ui/node/DelegatableNodeKt {
@@ -4109,7 +4100,7 @@ public final class androidx/compose/ui/semantics/SemanticsPropertiesKt {
 	public static synthetic fun expand$default (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 	public static final fun getCollectionInfo (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/semantics/CollectionInfo;
 	public static final fun getCollectionItemInfo (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/semantics/CollectionItemInfo;
-	public static final fun getContentDataType (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)I
+	public static final fun getContentDataType (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/autofill/ContentDataType;
 	public static final fun getContentDescription (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Ljava/lang/String;
 	public static final fun getContentType (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/autofill/ContentType;
 	public static final fun getCustomActions (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Ljava/util/List;
@@ -4178,7 +4169,7 @@ public final class androidx/compose/ui/semantics/SemanticsPropertiesKt {
 	public static final fun setCollectionInfo (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/semantics/CollectionInfo;)V
 	public static final fun setCollectionItemInfo (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/semantics/CollectionItemInfo;)V
 	public static final fun setContainer (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Z)V
-	public static final fun setContentDataType-NTL_tik (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;I)V
+	public static final fun setContentDataType (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/autofill/ContentDataType;)V
 	public static final fun setContentDescription (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/lang/String;)V
 	public static final fun setContentType (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/autofill/ContentType;)V
 	public static final fun setCustomActions (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/util/List;)V

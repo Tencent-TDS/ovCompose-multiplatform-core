@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+@file:JvmName("ExposedDropdownMenu_skikoKt")
+@file:JvmMultifileClass
+
 package androidx.compose.material
 
 import androidx.compose.runtime.Composable
