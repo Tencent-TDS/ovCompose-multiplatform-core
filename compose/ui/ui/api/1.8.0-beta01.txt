@@ -290,28 +290,29 @@ package androidx.compose.ui.autofill {
     enum_constant @Deprecated public static final androidx.compose.ui.autofill.AutofillType Username;
   }
 
-  @kotlin.jvm.JvmInline public final value class ContentDataType {
-    ctor public ContentDataType(int dataType);
-    method public int getDataType();
-    property public final int dataType;
+  public sealed interface ContentDataType {
     field public static final androidx.compose.ui.autofill.ContentDataType.Companion Companion;
   }
 
   public static final class ContentDataType.Companion {
-    method public int getDate();
-    method public int getList();
-    method public int getNone();
-    method public int getText();
-    method public int getToggle();
-    property public final int Date;
-    property public final int List;
-    property public final int None;
-    property public final int Text;
-    property public final int Toggle;
+    method public androidx.compose.ui.autofill.ContentDataType getDate();
+    method public androidx.compose.ui.autofill.ContentDataType getList();
+    method public androidx.compose.ui.autofill.ContentDataType getNone();
+    method public androidx.compose.ui.autofill.ContentDataType getText();
+    method public androidx.compose.ui.autofill.ContentDataType getToggle();
+    property public final androidx.compose.ui.autofill.ContentDataType Date;
+    property public final androidx.compose.ui.autofill.ContentDataType List;
+    property public final androidx.compose.ui.autofill.ContentDataType None;
+    property public final androidx.compose.ui.autofill.ContentDataType Text;
+    property public final androidx.compose.ui.autofill.ContentDataType Toggle;
   }
 
-  public final class ContentType {
-    ctor public ContentType(String contentHint);
+  public final class ContentDataType_androidKt {
+    method public static androidx.compose.ui.autofill.ContentDataType ContentDataType(int dataType);
+    method public static int getDataType(androidx.compose.ui.autofill.ContentDataType);
+  }
+
+  public sealed interface ContentType {
     method public operator androidx.compose.ui.autofill.ContentType plus(androidx.compose.ui.autofill.ContentType other);
     field public static final androidx.compose.ui.autofill.ContentType.Companion Companion;
   }
@@ -389,6 +390,10 @@ package androidx.compose.ui.autofill {
     property public final androidx.compose.ui.autofill.ContentType PostalCodeExtended;
     property public final androidx.compose.ui.autofill.ContentType SmsOtpCode;
     property public final androidx.compose.ui.autofill.ContentType Username;
+  }
+
+  public final class ContentType_androidKt {
+    method public static androidx.compose.ui.autofill.ContentType ContentType(String contentHint);
   }
 
 }
@@ -2578,7 +2583,7 @@ package androidx.compose.ui.layout {
   }
 
   public final class OnGlobalLayoutListenerKt {
-    method public static kotlinx.coroutines.DisposableHandle registerOnGlobalLayoutListener(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
+    method public static androidx.compose.ui.node.DelegatableNode.RegistrationHandle registerOnGlobalLayoutListener(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
   }
 
   @kotlin.jvm.JvmDefaultWithCompatibility public interface OnGloballyPositionedModifier extends androidx.compose.ui.Modifier.Element {
@@ -2591,7 +2596,7 @@ package androidx.compose.ui.layout {
 
   public final class OnLayoutRectChangedModifierKt {
     method @androidx.compose.runtime.Stable public static androidx.compose.ui.Modifier onLayoutRectChanged(androidx.compose.ui.Modifier, optional long throttleMillis, optional long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
-    method public static kotlinx.coroutines.DisposableHandle registerOnLayoutRectChanged(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
+    method public static androidx.compose.ui.node.DelegatableNode.RegistrationHandle registerOnLayoutRectChanged(androidx.compose.ui.node.DelegatableNode, long throttleMillis, long debounceMillis, kotlin.jvm.functions.Function1<? super androidx.compose.ui.spatial.RelativeLayoutBounds,kotlin.Unit> callback);
   }
 
   @kotlin.jvm.JvmDefaultWithCompatibility public interface OnPlacedModifier extends androidx.compose.ui.Modifier.Element {
@@ -2855,6 +2860,10 @@ package androidx.compose.ui.node {
     method public default void onDensityChange();
     method public default void onLayoutDirectionChange();
     property public abstract androidx.compose.ui.Modifier.Node node;
+  }
+
+  public static fun interface DelegatableNode.RegistrationHandle {
+    method public void unregister();
   }
 
   public final class DelegatableNodeKt {
@@ -3884,7 +3893,7 @@ package androidx.compose.ui.semantics {
     method public static void expand(androidx.compose.ui.semantics.SemanticsPropertyReceiver, optional String? label, kotlin.jvm.functions.Function0<java.lang.Boolean>? action);
     method public static androidx.compose.ui.semantics.CollectionInfo getCollectionInfo(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
     method public static androidx.compose.ui.semantics.CollectionItemInfo getCollectionItemInfo(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
-    method public static int getContentDataType(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
+    method public static androidx.compose.ui.autofill.ContentDataType getContentDataType(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
     method public static String getContentDescription(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
     method public static androidx.compose.ui.autofill.ContentType getContentType(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
     method public static java.util.List<androidx.compose.ui.semantics.CustomAccessibilityAction> getCustomActions(androidx.compose.ui.semantics.SemanticsPropertyReceiver);
@@ -3937,7 +3946,7 @@ package androidx.compose.ui.semantics {
     method public static void setCollectionInfo(androidx.compose.ui.semantics.SemanticsPropertyReceiver, androidx.compose.ui.semantics.CollectionInfo);
     method public static void setCollectionItemInfo(androidx.compose.ui.semantics.SemanticsPropertyReceiver, androidx.compose.ui.semantics.CollectionItemInfo);
     method @Deprecated public static void setContainer(androidx.compose.ui.semantics.SemanticsPropertyReceiver, boolean);
-    method public static void setContentDataType(androidx.compose.ui.semantics.SemanticsPropertyReceiver, int);
+    method public static void setContentDataType(androidx.compose.ui.semantics.SemanticsPropertyReceiver, androidx.compose.ui.autofill.ContentDataType);
     method public static void setContentDescription(androidx.compose.ui.semantics.SemanticsPropertyReceiver, String);
     method public static void setContentType(androidx.compose.ui.semantics.SemanticsPropertyReceiver, androidx.compose.ui.autofill.ContentType);
     method public static void setCustomActions(androidx.compose.ui.semantics.SemanticsPropertyReceiver, java.util.List<androidx.compose.ui.semantics.CustomAccessibilityAction>);
@@ -3969,7 +3978,7 @@ package androidx.compose.ui.semantics {
     method public static void showTextSubstitution(androidx.compose.ui.semantics.SemanticsPropertyReceiver, optional String? label, kotlin.jvm.functions.Function1<? super java.lang.Boolean,java.lang.Boolean>? action);
     property public final androidx.compose.ui.semantics.CollectionInfo collectionInfo;
     property public final androidx.compose.ui.semantics.CollectionItemInfo collectionItemInfo;
-    property public final int contentDataType;
+    property public final androidx.compose.ui.autofill.ContentDataType contentDataType;
     property public final androidx.compose.ui.autofill.ContentType contentType;
     property public final java.util.List<? extends androidx.compose.ui.semantics.CustomAccessibilityAction> customActions;
     property public final androidx.compose.ui.text.AnnotatedString editableText;
