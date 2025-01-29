@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.animation.core.cupertino
+package androidx.compose.foundation.cupertino
 
 import androidx.compose.animation.core.FloatDecayAnimationSpec
 import kotlin.math.abs
@@ -30,8 +30,7 @@ import platform.UIKit.UIScrollViewDecelerationRateNormal
  * @property decelerationRate The rate at which the velocity decelerates over time.
  * Default value is equal to one used by default UIScrollView behavior.
  */
-@Deprecated("Will be moved to separate library in the future")
-class CupertinoScrollDecayAnimationSpec(
+internal class CupertinoScrollDecayAnimationSpec(
     private val decelerationRate: Float = UIScrollViewDecelerationRateNormal.toFloat()
 ) : FloatDecayAnimationSpec {
 
