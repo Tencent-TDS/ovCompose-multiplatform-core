@@ -72,6 +72,7 @@ import androidx.compose.ui.platform.setLightingInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
@@ -268,17 +269,18 @@ internal class RootNodeOwner(
     }
 
     @OptIn(InternalCoreApi::class)
-    fun onPointerInput(event: PointerInputEvent) {
+    fun onPointerInput(event: PointerInputEvent): PointerEventResult {
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit &&
             event.pointers.fastAll { isInBounds(it.position) }
-        pointerInputEventProcessor.process(
+        val result = pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
             isInBounds = isInBounds
         )
+        return PointerEventResult(result.anyMovementConsumed)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {
@@ -602,17 +604,19 @@ internal class RootNodeOwner(
             keyboardModifiers: PointerKeyboardModifiers?,
             nativeEvent: Any?,
             button: PointerButton?
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            position = position,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            type = type,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                position = position,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                type = type,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests.
@@ -626,16 +630,18 @@ internal class RootNodeOwner(
             timeMillis: Long,
             nativeEvent: Any?,
             button: PointerButton?,
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            pointers = pointers,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                pointers = pointers,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests or accessibility.
