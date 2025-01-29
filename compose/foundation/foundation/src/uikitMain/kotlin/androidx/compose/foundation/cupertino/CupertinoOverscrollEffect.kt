@@ -458,12 +458,6 @@ private class CupertinoOverscrollNode(
                 right = rect.right,
                 bottom = rect.bottom,
             ) { this@draw.drawContent() }
-//            clipRect(
-//                top = maxOf(0f, -offset.y.toFloat()),
-//                bottom = size.height - maxOf(0, offset.y),
-//                left = maxOf(0f, -offset.x.toFloat()),
-//                right = size.width - maxOf(0, offset.x)
-//            ) { this@draw.drawContent() }
         } else {
             this@draw.drawContent()
         }
