@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.accessibility.accessibilityCustomActions
 import androidx.compose.ui.platform.accessibility.accessibilityLabel
 import androidx.compose.ui.platform.accessibility.accessibilityTraits
 import androidx.compose.ui.platform.accessibility.accessibilityValue
-import androidx.compose.ui.platform.accessibility.canBeAccessibilityElement
 import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
@@ -35,6 +34,7 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getAllUncoveredSemanticsNodesToIntObjectMap
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.isImportantForAccessibility
 import androidx.compose.ui.semantics.sortByGeometryGroupings
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toRect
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
 import kotlin.coroutines.CoroutineContext
@@ -72,6 +73,9 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
+import platform.UIKit.UIAccessibilityContainerType
+import platform.UIKit.UIAccessibilityContainerTypeNone
+import platform.UIKit.UIAccessibilityContainerTypeSemanticGroup
 import platform.UIKit.UIAccessibilityCustomAction
 import platform.UIKit.UIAccessibilityFocusedElement
 import platform.UIKit.UIAccessibilityLayoutChangedNotification
@@ -127,6 +131,8 @@ private sealed interface AccessibilityNode {
     val accessibilityHint: String? get() = null
     val accessibilityValue: String? get() = null
     val accessibilityTraits: UIAccessibilityTraits get() = UIAccessibilityTraitNone
+    val accessibilityContainerType: UIAccessibilityContainerType
+        get() = UIAccessibilityContainerTypeNone
     val accessibilityIdentifier: String? get() = null
     val accessibilityInteropView: InteropWrappingView? get() = null
     val accessibilityCustomActions: List<UIAccessibilityCustomAction> get() = emptyList()
@@ -219,7 +225,7 @@ private sealed interface AccessibilityNode {
         }
 
         override fun accessibilityElementDidBecomeFocused() {
-            mediator.debugLogger?.apply {
+            accessibilityDebugLogger?.apply {
                 log(null)
                 log("Focused on:")
                 log(cachedConfig)
@@ -279,7 +285,7 @@ private sealed interface AccessibilityNode {
      * semantic node with all its children.
      */
     class Container(
-        containerNode: SemanticsNode,
+        private val containerNode: SemanticsNode,
         mediator: AccessibilityMediator,
         frame: IntRect?,
     ) : AccessibilityNode {
@@ -288,7 +294,16 @@ private sealed interface AccessibilityNode {
         override val isAccessibilityElement = false
 
         override val accessibilityFrame: CValue<CGRect> =
-            mediator.convertToAppWindowCGRect(frame?.toRect() ?: containerNode.unclippedBoundsInWindow)
+            mediator.convertToAppWindowCGRect(
+                frame?.toRect() ?: containerNode.unclippedBoundsInWindow
+            )
+
+        override val accessibilityContainerType: UIAccessibilityContainerType
+            get() = if (containerNode.isTraversalGroup) {
+                UIAccessibilityContainerTypeSemanticGroup
+            } else {
+                UIAccessibilityContainerTypeNone
+            }
     }
 }
 
@@ -576,15 +591,16 @@ internal interface AccessibilityDebugLogger {
 
 private val accessibilityDebugLogger: AccessibilityDebugLogger? = null
 // Uncomment for debugging:
-// private val accessibilityDebugLogger = object : AccessibilityDebugLogger {
-//     override fun log(message: Any?) {
-//         if (message == null) {
-//             println()
-//         } else {
-//             println("[a11y]: $message")
+// private val accessibilityDebugLogger: AccessibilityDebugLogger? =
+//     object : AccessibilityDebugLogger {
+//         override fun log(message: Any?) {
+//             if (message == null) {
+//                 println()
+//             } else {
+//                 println("[a11y]: $message")
+//             }
 //         }
 //     }
-// }
 
 private sealed interface AccessibilityElementFocusMode {
     val targetElementKey: AccessibilityElementKey?
@@ -624,7 +640,7 @@ internal class AccessibilityMediator(
     private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {
             field = value
-            debugLogger?.log("Focus mode: $focusMode")
+            accessibilityDebugLogger?.log("Focus mode: $focusMode")
         }
 
     /**
@@ -641,9 +657,6 @@ internal class AccessibilityMediator(
      * A set of node ids that had their bounds invalidated after the last sync.
      */
     private val invalidationChannel = Channel<Unit>(1, onBufferOverflow = BufferOverflow.DROP_LATEST)
-
-    var debugLogger: AccessibilityDebugLogger? = null
-        private set
 
     /**
      * Job to cancel tree syncing when the mediator is disposed.
@@ -701,15 +714,13 @@ internal class AccessibilityMediator(
                     // Workaround for the channel buffering two invalidations despite the capacity of 1
                 }
 
-                debugLogger = accessibilityDebugLogger.takeIf { isEnabled }
-
                 if (isEnabled) {
                     if (isAccessibilityActive) {
                         scheduleAccessibilityDisablingAndCleanup()
                         val time = measureTime {
                             sync(invalidationKind)
                         }
-                        debugLogger?.log("AccessibilityMediator.sync took $time")
+                        accessibilityDebugLogger?.log("AccessibilityMediator.sync took $time")
                     }
                 } else if (root.element != null) {
                     root.element = null
@@ -777,11 +788,11 @@ internal class AccessibilityMediator(
                 scrollResult.announceMessage()
             )
 
-            debugLogger?.log("PageScrolled")
+            accessibilityDebugLogger?.log("PageScrolled")
 
             if (accessibilityElementsMap[focusedNode.semanticsKey] == null) {
                 val element = findClosestElementToRect(rect = focusedRectInWindow)
-                debugLogger?.log("LayoutChanged, result: $element")
+                accessibilityDebugLogger?.log("LayoutChanged, result: $element")
 
                 (element as? AccessibilityElement)?.let {
                     focusMode = AccessibilityElementFocusMode.KeepFocus(element.key)
@@ -793,14 +804,14 @@ internal class AccessibilityMediator(
     }
 
     fun onSemanticsChange() {
-        debugLogger?.log("onSemanticsChange")
+        accessibilityDebugLogger?.log("onSemanticsChange")
 
         invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
         invalidationChannel.trySend(Unit)
     }
 
     fun onLayoutChange(nodeId: Int) {
-        debugLogger?.log("onLayoutChange (nodeId=$nodeId)")
+        accessibilityDebugLogger?.log("onLayoutChange (nodeId=$nodeId)")
 
         // TODO: Properly implement layout invalidation, taking into account that semantics
         //  can also change after the `onLayoutChange` event.
@@ -857,24 +868,46 @@ internal class AccessibilityMediator(
 
         val nodes = owner.getAllUncoveredSemanticsNodesToIntObjectMap(rootNode.id)
 
-        fun traverseSemanticsNode(node: SemanticsNode): AccessibilityElement {
+        // Flatten all children except nodes inside traversal groups to:
+        // - have the same traversal order as on Android
+        // - allow navigation between semantic containers on iOS
+        fun flattenChildrenInsideTraversalGroup(
+            node: SemanticsNode, semanticsChildren: ArrayList<SemanticsNode>
+        ) {
+            node.children.fastForEach { child ->
+                if (child.isValid && (nodes.contains(child.id) || child.isTraversalGroup)) {
+                    semanticsChildren.add(child)
+                }
+                if (!child.isTraversalGroup) {
+                    flattenChildrenInsideTraversalGroup(child, semanticsChildren)
+                }
+            }
+        }
+
+        fun traverseGroup(node: SemanticsNode): AccessibilityElement {
             presentIds.add(node.semanticsKey)
 
-            val childNodes = node.replacedChildren
-            val semanticsChildren = childNodes
-                .filter { it.isValid && nodes.contains(it.id) && it.boundsInWindow != Rect.Zero }
+            if (!node.isTraversalGroup && node.id != rootNode.id) {
+                return createOrUpdateAccessibilityElement(
+                    node = AccessibilityNode.Semantics(
+                        semanticsNode = node,
+                        mediator = this,
+                        frame = nodes[node.id]?.adjustedBounds
+                    ),
+                    children = emptyList()
+                )
+            }
+
+            val flattenSemanticsChildren = ArrayList<SemanticsNode>()
+            flattenChildrenInsideTraversalGroup(node, flattenSemanticsChildren)
+
+            val children = flattenSemanticsChildren
+                .filter { it.boundsInWindow != Rect.Zero }
                 .let { node.sortByGeometryGroupings(it) }
+                .map(::traverseGroup)
 
-            val children = semanticsChildren.map(::traverseSemanticsNode)
-
-            return if (node.canBeAccessibilityElement() && semanticsChildren.isNotEmpty()) {
-                presentIds.add(node.containerKey)
-
-                // Unlike Android, iOS Accessibility engine does not traverse inside accessibility
-                // elements which marked as accessible (focusable).
-                // To align behavior, flatting the node with all its children and arranging them
-                // inside the synthetic container node.
-                val containerElement = createOrUpdateAccessibilityElement(
+            val containerElement = node.takeIf { it.isImportantForAccessibility() }?.let {
+                createOrUpdateAccessibilityElement(
                     node = AccessibilityNode.Semantics(
                         semanticsNode = node,
                         mediator = this,
@@ -883,34 +916,27 @@ internal class AccessibilityMediator(
                     ),
                     children = emptyList()
                 )
-                createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Container(
-                        containerNode = node,
-                        mediator = this,
-                        frame = nodes[node.id]?.adjustedBounds
-                    ),
-                    children = listOf(containerElement) + children
-                )
-            } else {
-                createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(
-                        semanticsNode = node,
-                        mediator = this,
-                        frame = nodes[node.id]?.adjustedBounds
-                    ),
-                    children = children
-                )
             }
+
+            presentIds.add(node.containerKey)
+            return createOrUpdateAccessibilityElement(
+                node = AccessibilityNode.Container(
+                    containerNode = node,
+                    mediator = this,
+                    frame = nodes[node.id]?.adjustedBounds
+                ),
+                children = listOfNotNull(containerElement) + children
+            )
         }
 
-        val rootAccessibilityElement = traverseSemanticsNode(rootNode)
+        val rootAccessibilityElement = traverseGroup(rootNode)
 
         // Filter out [AccessibilityElement] in [accessibilityElementsMap] that are not present in the tree anymore
         accessibilityElementsMap.keys.retainAll {
             val isPresent = it in presentIds
 
             if (!isPresent) {
-                debugLogger?.log("$it removed")
+                accessibilityDebugLogger?.log("$it removed")
                 checkNotNull(accessibilityElementsMap[it]).dispose()
             }
 
@@ -943,7 +969,7 @@ internal class AccessibilityMediator(
 
         root.element = traverseSemanticsTree(rootSemanticsNode)
 
-        debugLogger?.let {
+        accessibilityDebugLogger?.let {
             debugTraverse(it, view)
         }
 
@@ -1149,3 +1175,7 @@ private val SemanticsNode.containerKey get() = AccessibilityElementKey.Container
  */
 private val SemanticsNode.isValid: Boolean
     get() = layoutNode.isPlaced && layoutNode.isAttached
+
+private val SemanticsNode.isTraversalGroup: Boolean
+    get() = unmergedConfig.getOrElse(SemanticsProperties.IsTraversalGroup) { false }
+

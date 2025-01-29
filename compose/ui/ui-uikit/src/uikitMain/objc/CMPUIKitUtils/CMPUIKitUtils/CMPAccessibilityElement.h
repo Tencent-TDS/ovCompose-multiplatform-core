@@ -31,6 +31,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (UIAccessibilityTraits)accessibilityTraits;
 
+- (UIAccessibilityContainerType)accessibilityContainerType;
+
 - (NSString *__nullable)accessibilityIdentifier;
 
 - (NSString *__nullable)accessibilityHint;
