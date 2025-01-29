@@ -89,13 +89,8 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
         currentInput?.value = newValue
     }
 
-    // TODO(https://github.com/JetBrains/compose-jb/issues/2040): probably the position of input method
-    //  popup isn't correct now
-    @Deprecated("This method should not be called, use BringIntoViewRequester instead.")
     override fun notifyFocusedRect(rect: Rect) {
-        currentInput?.let { input ->
-            input.focusedRect = rect
-        }
+        currentInput?.focusedRect = rect
     }
 
     fun onKeyEvent(keyEvent: KeyEvent) {
@@ -115,23 +110,23 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
     }
 
     private fun replaceInputMethodText(event: InputMethodEvent) {
-        currentInput?.let { input ->
-            val committed = event.text?.toStringUntil(event.committedCharacterCount).orEmpty()
-            val composing = event.text?.toStringFrom(event.committedCharacterCount).orEmpty()
-            val ops = mutableListOf<EditCommand>()
+        val input = currentInput ?: return
 
-            if (needToDeletePreviousChar && isMac && input.value.selection.min > 0 && composing.isEmpty()) {
-                needToDeletePreviousChar = false
-                ops.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
-            }
+        val committed = event.text?.toStringUntil(event.committedCharacterCount).orEmpty()
+        val composing = event.text?.toStringFrom(event.committedCharacterCount).orEmpty()
+        val ops = mutableListOf<EditCommand>()
 
-            ops.add(CommitTextCommand(committed, 1))
-            if (composing.isNotEmpty()) {
-                ops.add(SetComposingTextCommand(composing, 1))
-            }
-
-            input.onEditCommand.invoke(ops)
+        if (needToDeletePreviousChar && isMac && input.value.selection.min > 0 && composing.isEmpty()) {
+            needToDeletePreviousChar = false
+            ops.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
         }
+
+        ops.add(CommitTextCommand(committed, 1))
+        if (composing.isNotEmpty()) {
+            ops.add(SetComposingTextCommand(composing, 1))
+        }
+
+        input.onEditCommand.invoke(ops)
     }
 
     private fun methodRequestsForInput(input: CurrentInput) =
