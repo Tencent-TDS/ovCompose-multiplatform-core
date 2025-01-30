@@ -46,13 +46,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 internal class GraphicsLayerOwnerLayer(
-    private var graphicsLayer: GraphicsLayer,
+    graphicsLayer: GraphicsLayer,
     // when we have a context it means the object is created by us and we need to release it
     private val context: GraphicsContext?,
     private val layerManager: OwnedLayerManager,
     drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
     invalidateParentLayer: () -> Unit,
 ) : OwnedLayer {
+    internal var graphicsLayer: GraphicsLayer = graphicsLayer
+        private set
     private var drawBlock: ((canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit)? = drawBlock
     private var invalidateParentLayer: (() -> Unit)? = invalidateParentLayer
 
@@ -237,6 +239,8 @@ internal class GraphicsLayerOwnerLayer(
         isDirty = false
         if (context != null) {
             context.releaseGraphicsLayer(graphicsLayer)
+
+            // Recycle only in case of non-null context (meaning only for not external layers).
             layerManager.recycle(this)
         }
     }

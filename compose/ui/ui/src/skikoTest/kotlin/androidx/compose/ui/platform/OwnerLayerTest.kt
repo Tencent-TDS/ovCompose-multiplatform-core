@@ -549,18 +549,42 @@ class OwnerLayerTest {
         }
     }
 
-    private var graphicsContext: SkiaGraphicsContext? = null
+    @Test
+    fun destroyReleasesGraphicsLayer() {
+        val layer = TestRenderNodeLayer()
+        assertTrue(graphicsContext!!.layers.contains(layer.graphicsLayer))
+        layer.destroy()
+        assertFalse(graphicsContext!!.layers.contains(layer.graphicsLayer))
+    }
+
+    private var graphicsContext: TestGraphicsContext? = null
+
+    private class TestGraphicsContext : GraphicsContext {
+        private val skiaContext = SkiaGraphicsContext()
+        val layers = mutableListOf<GraphicsLayer>()
+
+        override fun createGraphicsLayer(): GraphicsLayer {
+            return skiaContext.createGraphicsLayer().also {
+                layers += it
+            }
+        }
+
+        override fun releaseGraphicsLayer(layer: GraphicsLayer) {
+            layers -= layer
+            skiaContext.releaseGraphicsLayer(layer)
+        }
+    }
 
     private fun TestRenderNodeLayer(
         invalidateBlock: () -> Unit = {},
         drawBlock: (Canvas, GraphicsLayer?) -> Unit = { _, _ -> },
     ): GraphicsLayerOwnerLayer {
         if (graphicsContext == null) {
-            graphicsContext = SkiaGraphicsContext()
+            graphicsContext = TestGraphicsContext()
         }
         return GraphicsLayerOwnerLayer(
             graphicsLayer = graphicsContext!!.createGraphicsLayer(),
-            context = null,
+            context = graphicsContext,
             layerManager = object : OwnedLayerManager {
                 override fun createLayer(
                     drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,

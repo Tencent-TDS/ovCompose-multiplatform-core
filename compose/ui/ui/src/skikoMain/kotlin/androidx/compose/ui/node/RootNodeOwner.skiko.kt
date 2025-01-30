@@ -671,7 +671,7 @@ internal class RootNodeOwner(
             explicitLayer: GraphicsLayer?
         ) = GraphicsLayerOwnerLayer(
             graphicsLayer = explicitLayer ?: graphicsContext.createGraphicsLayer(),
-            context = if (explicitLayer != null) graphicsContext else null,
+            context = if (explicitLayer != null) null else graphicsContext,
             layerManager = this,
             drawBlock = drawBlock,
             invalidateParentLayer = invalidateParentLayer,
