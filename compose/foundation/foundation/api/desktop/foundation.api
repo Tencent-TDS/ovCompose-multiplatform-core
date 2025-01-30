@@ -101,6 +101,7 @@ public final class androidx/compose/foundation/ComposeFoundationFlags {
 	public static field DragGesturePickUpEnabled Z
 	public static final field INSTANCE Landroidx/compose/foundation/ComposeFoundationFlags;
 	public static field NewNestedFlingPropagationEnabled Z
+	public static field isDetectTapGesturesImmediateCoroutineDispatchEnabled Z
 }
 
 public final class androidx/compose/foundation/ContextMenuData {
@@ -1923,8 +1924,8 @@ public abstract interface class androidx/compose/foundation/text/AutoSize {
 }
 
 public final class androidx/compose/foundation/text/AutoSize$Companion {
-	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/AutoSize;
-	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/AutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/AutoSize;
+	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/TextAutoSize;
+	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/AutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/TextAutoSize;
 }
 
 public final class androidx/compose/foundation/text/AutoSizeDefaults {
@@ -1960,9 +1961,9 @@ public final class androidx/compose/foundation/text/BasicTextKt {
 	public static final synthetic fun BasicText-4YKlhWE (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZILjava/util/Map;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-4YKlhWE (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-BpD7jsM (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZILandroidx/compose/runtime/Composer;II)V
-	public static final fun BasicText-CL7eQgs (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/AutoSize;Landroidx/compose/runtime/Composer;III)V
+	public static final fun BasicText-CL7eQgs (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/TextAutoSize;Landroidx/compose/runtime/Composer;III)V
 	public static final synthetic fun BasicText-RWo7tUw (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
-	public static final fun BasicText-RWo7tUw (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/AutoSize;Landroidx/compose/runtime/Composer;II)V
+	public static final fun BasicText-RWo7tUw (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/TextAutoSize;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-VhcvRP8 (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-VhcvRP8 (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
 }
@@ -2083,6 +2084,25 @@ public final class androidx/compose/foundation/text/KeyboardOptions {
 
 public final class androidx/compose/foundation/text/KeyboardOptions$Companion {
 	public final fun getDefault ()Landroidx/compose/foundation/text/KeyboardOptions;
+}
+
+public abstract interface class androidx/compose/foundation/text/TextAutoSize {
+	public static final field Companion Landroidx/compose/foundation/text/TextAutoSize$Companion;
+	public abstract fun equals (Ljava/lang/Object;)Z
+	public abstract fun getFontSize-Ci0_558 (Landroidx/compose/foundation/text/modifiers/TextAutoSizeLayoutScope;JLandroidx/compose/ui/text/AnnotatedString;)J
+	public abstract fun hashCode ()I
+}
+
+public final class androidx/compose/foundation/text/TextAutoSize$Companion {
+	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/TextAutoSize;
+	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/TextAutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/TextAutoSize;
+}
+
+public final class androidx/compose/foundation/text/TextAutoSizeDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/foundation/text/TextAutoSizeDefaults;
+	public final fun getMaxFontSize-XSAIIZE ()J
+	public final fun getMinFontSize-XSAIIZE ()J
 }
 
 public abstract interface class androidx/compose/foundation/text/TextContextMenu {
@@ -2277,6 +2297,10 @@ public final class androidx/compose/foundation/text/input/UndoState {
 	public final fun getCanUndo ()Z
 	public final fun redo ()V
 	public final fun undo ()V
+}
+
+public abstract interface class androidx/compose/foundation/text/modifiers/TextAutoSizeLayoutScope : androidx/compose/ui/unit/Density {
+	public abstract fun performLayout-5ZSfY2I (JLandroidx/compose/ui/text/AnnotatedString;J)Landroidx/compose/ui/text/TextLayoutResult;
 }
 
 public final class androidx/compose/foundation/text/selection/SelectionContainerKt {

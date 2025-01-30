@@ -17,6 +17,8 @@
 package androidx.compose.foundation.text.input
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.internal.readText
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
@@ -26,8 +28,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TEST_FONT_FAMILY
 import androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine
 import androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine
-import androidx.compose.foundation.text.input.internal.selection.FakeClipboardManager
+import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -37,8 +40,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -60,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.runBlocking
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -110,7 +114,7 @@ class TextFieldKeyEventTest {
     @Test
     fun secureTextField_doesNotAllowCopy() {
         keysSequenceTest("hello", secure = true) {
-            clipboardManager.setText(AnnotatedString("world"))
+            clipboard.setClipEntry(AnnotatedString("world").toClipEntry())
             withKeyDown(Key.CtrlLeft) {
                 pressKey(Key.A)
                 pressKey(Key.C)
@@ -147,7 +151,7 @@ class TextFieldKeyEventTest {
     @Test
     fun secureTextField_doesNotAllowCut() {
         keysSequenceTest("hello", secure = true) {
-            clipboardManager.setText(AnnotatedString("world"))
+            clipboard.setClipEntry(AnnotatedString("world").toClipEntry())
             withKeyDown(Key.CtrlLeft) {
                 pressKey(Key.A)
                 pressKey(Key.X)
@@ -851,9 +855,41 @@ class TextFieldKeyEventTest {
         }
     }
 
+    @Test
+    fun textField_keyEvent_functionReference() {
+        val state = mutableIntStateOf(0)
+        var handled = -1
+        val focusRequester = FocusRequester()
+        rule.setContent {
+            val stateValue = state.value
+
+            @Suppress("UNUSED_PARAMETER")
+            fun handle(key: KeyEvent): Boolean {
+                handled = stateValue
+                return true
+            }
+
+            BasicTextField(
+                value = "text",
+                onValueChange = {},
+                modifier = Modifier.focusRequester(focusRequester).testTag(tag).onKeyEvent(::handle)
+            )
+        }
+
+        rule.runOnIdle { focusRequester.requestFocus() }
+        rule.onNodeWithTag(tag).performKeyInput { pressKey(Key.A) }
+        rule.runOnIdle {
+            assertThat(handled).isEqualTo(0)
+            state.value += 1
+        }
+
+        rule.onNodeWithTag(tag).performKeyInput { pressKey(Key.A) }
+        rule.runOnIdle { assertThat(handled).isEqualTo(1) }
+    }
+
     private inner class SequenceScope(
         val state: TextFieldState,
-        val clipboardManager: ClipboardManager,
+        val clipboard: Clipboard,
         private val keyInjectionScope: KeyInjectionScope
     ) : KeyInjectionScope by keyInjectionScope {
 
@@ -878,8 +914,9 @@ class TextFieldKeyEventTest {
             rule.runOnIdle { assertThat(state.selection).isEqualTo(selection) }
         }
 
-        fun expectedClipboardText(text: String) {
-            rule.runOnIdle { assertThat(clipboardManager.getText()?.text).isEqualTo(text) }
+        suspend fun expectedClipboardText(text: String) {
+            rule.waitForIdle()
+            assertThat(clipboard.getClipEntry()?.readText()).isEqualTo(text)
         }
     }
 
@@ -895,15 +932,15 @@ class TextFieldKeyEventTest {
         singleLine: Boolean = false,
         secure: Boolean = false,
         noTextLayout: Boolean = false,
-        sequence: SequenceScope.() -> Unit,
+        sequence: suspend SequenceScope.() -> Unit,
     ) {
         val state = TextFieldState(initText, initSelection)
         val focusRequester = FocusRequester()
-        val clipboardManager = FakeClipboardManager("InitialTestText")
+        val clipboard = FakeClipboard("InitialTestText")
         rule.setContent {
             CompositionLocalProvider(
                 LocalDensity provides defaultDensity,
-                LocalClipboardManager provides clipboardManager,
+                LocalClipboard provides clipboard,
             ) {
                 if (!secure) {
                     BasicTextField(
@@ -938,7 +975,7 @@ class TextFieldKeyEventTest {
         rule.mainClock.advanceTimeBy(1000)
 
         rule.onNodeWithTag(tag).performKeyInput {
-            sequence(SequenceScope(state, clipboardManager, this@performKeyInput))
+            runBlocking { sequence(SequenceScope(state, clipboard, this@performKeyInput)) }
         }
     }
 }

@@ -42,11 +42,9 @@ actual constructor(
     }
 }
 
-@Immutable
-@ExperimentalMaterial3ExpressiveApi
-actual object ModalWideNavigationRailDefaults {
-    actual val Properties = ModalWideNavigationRailProperties()
-}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal actual fun createDefaultModalWideNavigationRailProperties() =
+    ModalWideNavigationRailProperties()
 
 @OptIn(ExperimentalComposeUiApi::class)
 @ExperimentalMaterial3ExpressiveApi

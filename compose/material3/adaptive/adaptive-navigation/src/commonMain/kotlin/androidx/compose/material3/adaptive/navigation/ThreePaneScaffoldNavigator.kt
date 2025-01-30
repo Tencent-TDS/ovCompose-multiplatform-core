@@ -407,7 +407,7 @@ internal class DefaultThreePaneScaffoldNavigator<T>(
             animateStateToCurrentScaffoldValue()
         } else {
             val previousScaffoldValue = peekPreviousScaffoldValue(backNavigationBehavior)
-            scaffoldState.seekTo(fraction, previousScaffoldValue)
+            scaffoldState.seekTo(fraction, previousScaffoldValue, isPredictiveBackInProgress = true)
         }
     }
 

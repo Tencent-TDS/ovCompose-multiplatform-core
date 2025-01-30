@@ -28,9 +28,3 @@ internal actual fun currentTimeMillis(): Long {
     return getTimeMillis()
 }
 
-private val threadCounter = atomic(0L)
-
-@kotlin.native.concurrent.ThreadLocal
-private var threadId: Long = threadCounter.addAndGet(1)
-
-internal actual fun getCurrentThreadId(): Long = threadId

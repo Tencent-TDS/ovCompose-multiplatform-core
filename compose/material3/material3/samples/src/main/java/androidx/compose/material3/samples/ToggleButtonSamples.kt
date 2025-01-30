@@ -22,9 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ElevatedToggleButton
@@ -57,13 +55,13 @@ fun ToggleButtonSample() {
 @Preview
 @Sampled
 @Composable
-fun RoundToggleButtonSample() {
+fun SquareToggleButtonSample() {
     var checked by remember { mutableStateOf(false) }
     val shapes =
         ButtonShapes(
-            shape = ToggleButtonDefaults.roundShape,
+            shape = ToggleButtonDefaults.squareShape,
             pressedShape = ToggleButtonDefaults.pressedShape,
-            checkedShape = ToggleButtonDefaults.squareShape
+            checkedShape = ToggleButtonDefaults.roundShape
         )
     ToggleButton(checked = checked, onCheckedChange = { checked = it }, shapes = shapes) {
         Text("Button")
@@ -111,12 +109,12 @@ fun ToggleButtonWithIconSample() {
     var checked by remember { mutableStateOf(false) }
     ElevatedToggleButton(checked = checked, onCheckedChange = { checked = it }) {
         Icon(
-            if (checked) Icons.Filled.Favorite else Icons.Outlined.Favorite,
+            if (checked) Icons.Filled.Edit else Icons.Outlined.Edit,
             contentDescription = "Localized description",
             modifier = Modifier.size(ButtonDefaults.IconSize)
         )
         Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-        Text("Like")
+        Text("Edit")
     }
 }
 
@@ -132,9 +130,9 @@ fun XSmallToggleButtonWithIconSample() {
         modifier = Modifier.heightIn(ButtonDefaults.XSmallContainerHeight),
         shapes =
             ToggleButtonDefaults.shapes(
-                shape = ToggleButtonDefaults.XSmallSquareShape,
+                shape = ToggleButtonDefaults.shape,
                 pressedShape = ToggleButtonDefaults.XSmallPressedShape,
-                checkedShape = ToggleButtonDefaults.checkedShape
+                checkedShape = ToggleButtonDefaults.XSmallCheckedSquareShape
             ),
         contentPadding = ButtonDefaults.XSmallContentPadding
     ) {
@@ -160,9 +158,9 @@ fun MediumToggleButtonWithIconSample() {
         modifier = Modifier.heightIn(ButtonDefaults.MediumContainerHeight),
         shapes =
             ToggleButtonDefaults.shapes(
-                shape = ToggleButtonDefaults.MediumSquareShape,
+                shape = ToggleButtonDefaults.shape,
                 pressedShape = ToggleButtonDefaults.MediumPressedShape,
-                checkedShape = ToggleButtonDefaults.checkedShape
+                checkedShape = ToggleButtonDefaults.MediumCheckedSquareShape
             ),
         contentPadding = ButtonDefaults.MediumContentPadding
     ) {
@@ -188,9 +186,9 @@ fun LargeToggleButtonWithIconSample() {
         modifier = Modifier.heightIn(ButtonDefaults.LargeContainerHeight),
         shapes =
             ToggleButtonDefaults.shapes(
-                shape = ToggleButtonDefaults.LargeSquareShape,
+                shape = ToggleButtonDefaults.shape,
                 pressedShape = ToggleButtonDefaults.LargePressedShape,
-                checkedShape = ToggleButtonDefaults.checkedShape
+                checkedShape = ToggleButtonDefaults.LargeCheckedSquareShape
             ),
         contentPadding = ButtonDefaults.LargeContentPadding
     ) {
@@ -216,9 +214,9 @@ fun XLargeToggleButtonWithIconSample() {
         modifier = Modifier.heightIn(ButtonDefaults.XLargeContainerHeight),
         shapes =
             ToggleButtonDefaults.shapes(
-                shape = ToggleButtonDefaults.XLargeSquareShape,
+                shape = ToggleButtonDefaults.shape,
                 pressedShape = ToggleButtonDefaults.XLargePressedShape,
-                checkedShape = ToggleButtonDefaults.checkedShape
+                checkedShape = ToggleButtonDefaults.XLargeCheckedSquareShape
             ),
         contentPadding = ButtonDefaults.XLargeContentPadding
     ) {

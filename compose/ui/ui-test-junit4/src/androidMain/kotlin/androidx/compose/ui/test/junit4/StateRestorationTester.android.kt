@@ -18,6 +18,7 @@ package androidx.compose.ui.test.junit4
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ class StateRestorationTester(private val composeTestRule: ComposeContentTestRule
                 this.registry = registry
                 composable()
             }
+            DisposableEffect(this) { onDispose { registry = null } }
         }
     }
 

@@ -330,6 +330,12 @@ private constructor(
      * This requires API 34+ (Android U), and currently does not work on Robolectric.
      *
      * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeTestRule_sample
+     *
+     * If you have a hybrid application with both Compose and Views, and you use both Compose Test
+     * and Espresso, then you should set up accessibility checks in both frameworks and share the
+     * configuration in the following way:
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_interopWithEspresso_withTestRule
      */
     @get:RequiresApi(34)
     @set:RequiresApi(34)
@@ -390,6 +396,13 @@ private constructor(
      * This requires API 34+ (Android U), and currently does not work on Robolectric.
      *
      * @sample androidx.compose.ui.test.samples.accessibilityChecks_withComposeTestRule_sample
+     *
+     * If you have a hybrid application with both Compose and Views, and you use both Compose Test
+     * and Espresso, then you should set up accessibility checks in both frameworks and share the
+     * configuration in the following way:
+     *
+     * @sample androidx.compose.ui.test.samples.accessibilityChecks_interopWithEspresso_withTestRule
+     * @see accessibilityValidator
      * @see disableAccessibilityChecks
      */
     @RequiresApi(34)

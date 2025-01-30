@@ -20,6 +20,7 @@ import android.view.KeyEvent
 import android.view.KeyEvent.META_ALT_ON
 import android.view.KeyEvent.META_CTRL_ON
 import android.view.KeyEvent.META_SHIFT_ON
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.text.BasicTextField
@@ -30,8 +31,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasSetTextAction
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -137,6 +139,14 @@ class HardwareKeyboardTest {
     }
 
     @Test
+    fun textField_newLineNumpad() {
+        keysSequenceTest(initText = "hello") {
+            Key.NumPadEnter.downAndUp()
+            expectedText("\nhello")
+        }
+    }
+
+    @Test
     fun textField_backspace() {
         keysSequenceTest(initText = "hello") {
             Key.DirectionRight.downAndUp()
@@ -155,7 +165,7 @@ class HardwareKeyboardTest {
     }
 
     @Test
-    fun textField_delete_atEnd() {
+    fun textField_delete_atEnd() = runTest {
         val text = "hello"
         val value =
             mutableStateOf(
@@ -398,7 +408,7 @@ class HardwareKeyboardTest {
     }
 
     @Test
-    fun textField_onValueChangeRecomposeTest() {
+    fun textField_onValueChangeRecomposeTest() = runTest {
         // sample code in b/200577798
         val value = mutableStateOf(TextFieldValue(""))
         var lastNewValue: TextFieldValue? = null
@@ -557,7 +567,7 @@ class HardwareKeyboardTest {
         modifier: Modifier = Modifier.fillMaxSize(),
         singleLine: Boolean = false,
         sequence: SequenceScope.() -> Unit,
-    ) {
+    ) = runTest {
         val value = mutableStateOf(TextFieldValue(initText))
         keysSequenceTest(
             value = value,
@@ -567,16 +577,16 @@ class HardwareKeyboardTest {
         )
     }
 
-    private fun keysSequenceTest(
+    private suspend fun keysSequenceTest(
         value: MutableState<TextFieldValue>,
         modifier: Modifier = Modifier.fillMaxSize(),
         onValueChange: (TextFieldValue) -> Unit = { value.value = it },
         singleLine: Boolean = false,
         sequence: SequenceScope.() -> Unit,
     ) {
-        lateinit var clipboardManager: ClipboardManager
+        lateinit var clipboard: Clipboard
         inputMethodInterceptor.setContent {
-            clipboardManager = LocalClipboardManager.current
+            clipboard = LocalClipboard.current
             BasicTextField(
                 value = value.value,
                 textStyle = TextStyle(fontFamily = TEST_FONT_FAMILY, fontSize = 10.sp),
@@ -587,7 +597,8 @@ class HardwareKeyboardTest {
         }
 
         rule.onNodeWithTag("textfield").requestFocus()
-        rule.runOnIdle { clipboardManager.setText(AnnotatedString("InitialTestText")) }
+        rule.waitForIdle()
+        clipboard.setClipEntry(AnnotatedString("InitialTestText").toClipEntry())
 
         sequence(SequenceScope(value) { rule.onNode(hasSetTextAction()) })
     }

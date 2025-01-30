@@ -437,7 +437,14 @@ internal class GraphicsViewLayer(
                 val pictureCanvas = p.beginRecording(size.width, size.height)
                 try {
                     pictureCanvasHolder?.drawInto(pictureCanvas) {
-                        pictureDrawScope?.draw(density, layoutDirection, this, size.toSize(), block)
+                        pictureDrawScope?.draw(
+                            density,
+                            layoutDirection,
+                            this,
+                            size.toSize(),
+                            layer,
+                            block
+                        )
                     }
                 } finally {
                     p.endRecording()

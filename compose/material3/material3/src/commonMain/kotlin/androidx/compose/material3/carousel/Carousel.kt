@@ -53,8 +53,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import kotlin.jvm.JvmInline
+import kotlin.math.roundToInt
 
 /**
  * <a href=https://m3.material.io/components/carousel/overview" class="external"
@@ -119,7 +119,7 @@ fun HorizontalMultiBrowseCarousel(
                     density = this,
                     carouselMainAxisSize = availableSpace,
                     preferredItemSize = preferredItemWidth.toPx(),
-                    itemCount = state.itemCountState.value.invoke(),
+                    itemCount = state.pagerState.pageCountState.value.invoke(),
                     itemSpacing = itemSpacingPx,
                     minSmallItemSize = minSmallItemWidth.toPx(),
                     maxSmallItemSize = maxSmallItemWidth.toPx(),

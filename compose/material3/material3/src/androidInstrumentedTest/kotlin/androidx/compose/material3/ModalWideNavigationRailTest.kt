@@ -97,7 +97,7 @@ class ModalWideNavigationRailTest {
             ) {
                 WideNavigationRailItem(
                     modifier = Modifier.testTag("item"),
-                    railExpanded = state.isExpanded,
+                    railExpanded = state.targetValue == WideNavigationRailValue.Expanded,
                     icon = { Icon(Icons.Filled.Favorite, null) },
                     label = { Text("ItemText") },
                     selected = true,
@@ -110,7 +110,7 @@ class ModalWideNavigationRailTest {
         rule.onNodeWithTag("header").performClick()
 
         // Assert rail is expanded.
-        assertThat(state.isExpanded).isTrue()
+        assertThat(state.targetValue.isExpanded).isTrue()
         // Assert width changed to expanded width.
         rule
             .onNodeWithTag("item")
@@ -136,7 +136,7 @@ class ModalWideNavigationRailTest {
                 }
             ) {
                 WideNavigationRailItem(
-                    railExpanded = state.isExpanded,
+                    railExpanded = state.targetValue.isExpanded,
                     icon = { Icon(Icons.Filled.Favorite, null) },
                     label = { Text("ItemText") },
                     selected = true,
@@ -149,7 +149,7 @@ class ModalWideNavigationRailTest {
         rule.onNodeWithTag("header").performClick()
 
         // Assert rail is collapsed.
-        assertThat(state.isExpanded).isFalse()
+        assertThat(state.targetValue.isExpanded).isFalse()
         // Assert width changed to collapse width.
         rule
             .onNodeWithTag("rail")
@@ -170,7 +170,7 @@ class ModalWideNavigationRailTest {
                 state = state,
             ) {
                 WideNavigationRailItem(
-                    railExpanded = state.isExpanded,
+                    railExpanded = state.targetValue.isExpanded,
                     icon = { Icon(Icons.Filled.Favorite, null) },
                     label = { Text("ItemText") },
                     selected = true,
@@ -186,7 +186,7 @@ class ModalWideNavigationRailTest {
         rule.waitForIdle()
 
         // Assert rail is collapsed.
-        assertThat(state.isExpanded).isFalse()
+        assertThat(state.targetValue.isExpanded).isFalse()
         // Assert width changed to collapse width.
         rule
             .onNodeWithTag("rail")
@@ -245,13 +245,13 @@ class ModalWideNavigationRailTest {
         }
 
         // Rail starts as expanded.
-        assertThat(state.isExpanded).isTrue()
+        assertThat(state.targetValue.isExpanded).isTrue()
         // Collapse rail.
         scope.launch { state.collapse() }
         rule.waitForIdle()
 
         // Assert rail is not expanded.
-        assertThat(state.isExpanded).isFalse()
+        assertThat(state.targetValue.isExpanded).isFalse()
         // Assert rail is not displayed.
         rule.onNodeWithTag("rail").assertDoesNotExist()
     }
@@ -285,7 +285,7 @@ class ModalWideNavigationRailTest {
         rule.waitForIdle()
 
         // Assert rail is expanded.
-        assertThat(state.isExpanded).isTrue()
+        assertThat(state.targetValue.isExpanded).isTrue()
         // Assert rail is displayed.
         rule.onNodeWithTag("rail").isDisplayed()
         // Assert rail's offset.
@@ -318,7 +318,7 @@ class ModalWideNavigationRailTest {
         rule.waitForIdle()
 
         // Assert rail is not expanded.
-        assertThat(state.isExpanded).isFalse()
+        assertThat(state.targetValue.isExpanded).isFalse()
         // Assert rail is not displayed.
         rule.onNodeWithTag("rail").assertDoesNotExist()
     }
@@ -347,7 +347,7 @@ class ModalWideNavigationRailTest {
         }
 
         // The rail should be expanded.
-        assertThat(state.isExpanded).isTrue()
+        assertThat(state.targetValue.isExpanded).isTrue()
 
         rule
             .onNodeWithContentDescription(closeRail)
@@ -356,7 +356,7 @@ class ModalWideNavigationRailTest {
         rule.waitForIdle()
 
         // Assert rail is not expanded.
-        assertThat(state.isExpanded).isFalse()
+        assertThat(state.targetValue.isExpanded).isFalse()
         // Assert rail is not displayed.
         rule.onNodeWithTag("item").assertDoesNotExist()
     }

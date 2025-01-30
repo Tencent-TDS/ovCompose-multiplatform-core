@@ -20,6 +20,7 @@ import androidx.collection.mutableLongListOf
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.VectorConverter
 import androidx.compose.animation.animateColor
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -565,5 +566,33 @@ class TransitionTest {
 
         rule.mainClock.advanceTimeBy(200)
         rule.runOnIdle { assertThat(durations.size).isGreaterThan(0) }
+    }
+
+    @Test
+    fun animateFloatCallerRecompositionCount() {
+        var recompositionCount = 0
+        val transitionState = MutableTransitionState(false)
+        rule.setContent {
+            if (transitionState.targetState) {
+                TestAnimatedContent(transitionState, { recompositionCount++ })
+            }
+        }
+
+        rule.runOnIdle { transitionState.targetState = true }
+
+        rule.runOnIdle {
+            // TODO(b/381537138): Once the bug is fixed, there should only be a single recomposition
+            assertEquals(2, recompositionCount)
+        }
+    }
+
+    @Composable
+    fun TestAnimatedContent(
+        transitionState: MutableTransitionState<Boolean>,
+        onRecomposition: () -> Unit
+    ) {
+        onRecomposition()
+        val transition = rememberTransition(transitionState)
+        transition.animateFloat { state -> if (state) 1f else 0f }
     }
 }

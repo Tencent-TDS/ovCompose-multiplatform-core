@@ -887,7 +887,6 @@ internal class LayoutNodeSubcompositionsState(
     private fun createNodeAt(index: Int) =
         LayoutNode(
                 isVirtual = true,
-                permitChildrenToDetachFromParentLookahead = true,
             )
             .also { node -> ignoreRemeasureRequests { root.insertAt(index, node) } }
 
@@ -929,7 +928,7 @@ internal class LayoutNodeSubcompositionsState(
         override fun layout(
             width: Int,
             height: Int,
-            alignmentLines: Map<out AlignmentLine, Int>,
+            alignmentLines: Map<AlignmentLine, Int>,
             rulers: (RulerScope.() -> Unit)?,
             placementBlock: Placeable.PlacementScope.() -> Unit
         ): MeasureResult {
@@ -941,7 +940,7 @@ internal class LayoutNodeSubcompositionsState(
                 override val height: Int
                     get() = height
 
-                override val alignmentLines: Map<out AlignmentLine, Int>
+                override val alignmentLines: Map<AlignmentLine, Int>
                     get() = alignmentLines
 
                 override val rulers: (RulerScope.() -> Unit)?

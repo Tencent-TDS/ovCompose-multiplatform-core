@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation
 
+import androidx.compose.foundation.gestures.detectTapAndPress
+import androidx.compose.foundation.gestures.detectTapGestures
 import kotlin.jvm.JvmField
 
 /**
@@ -71,4 +73,12 @@ object ComposeFoundationFlags {
      * continue the gesture until all pointers are up.
      */
     @Suppress("MutableBareField") @JvmField var DragGesturePickUpEnabled = true
+
+    /**
+     * Whether to use more immediate coroutine dispatching in [detectTapGestures] and
+     * [detectTapAndPress], true by default.
+     */
+    @Suppress("MutableBareField")
+    @JvmField
+    var isDetectTapGesturesImmediateCoroutineDispatchEnabled = true
 }

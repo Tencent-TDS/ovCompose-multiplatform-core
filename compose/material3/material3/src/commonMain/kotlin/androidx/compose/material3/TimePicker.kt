@@ -24,7 +24,7 @@ import androidx.collection.intListOf
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.SnapSpec
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.MutatePriority.PreventUserInput
@@ -55,7 +55,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.internal.Strings
-import androidx.compose.material3.internal.format
 import androidx.compose.material3.internal.getString
 import androidx.compose.material3.internal.rememberAccessibilityServiceState
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
@@ -99,6 +98,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -114,6 +114,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -163,6 +164,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -587,7 +589,7 @@ fun rememberTimePickerState(
 
 /** Represents the different configurations for the layout of the Time Picker */
 @Immutable
-@kotlin.jvm.JvmInline
+@JvmInline
 @ExperimentalMaterial3Api
 value class TimePickerLayoutType internal constructor(internal val value: Int) {
 
@@ -1678,9 +1680,11 @@ private fun ClockText(
     autoSwitchToMinute: Boolean
 ) {
     val style = ClockDialLabelTextFont.value
-    val maxDist = with(LocalDensity.current) { MaxDistance.toPx() }
+    val density: Density = LocalDensity.current
+    val maxDist = with(density) { MaxDistance.toPx() }
     var center by remember { mutableStateOf(Offset.Zero) }
     var parentCenter by remember { mutableStateOf(IntOffset.Zero) }
+    var boundsInParent by remember { mutableStateOf(Rect.Zero) }
     val scope = rememberCoroutineScope()
     val contentDescription =
         numberContentDescription(
@@ -1690,25 +1694,27 @@ private fun ClockText(
         )
 
     val text = value.toLocalString()
-    val selected =
-        if (state.selection == TimePickerSelectionMode.Minute) {
-            state.minute.toLocalString() == text
-        } else {
-            state.hour.toLocalString() == text
+    val selected by
+        remember(state) {
+            derivedStateOf {
+                val selectorPos = state.selectorPos
+                val offset = with(density) { Offset(selectorPos.x.toPx(), selectorPos.y.toPx()) }
+                boundsInParent.contains(offset)
+            }
         }
 
     // TODO Load the motionScheme tokens from the component tokens file
-    val animationSpec: FiniteAnimationSpec<Float> = MotionSchemeKeyTokens.DefaultSpatial.value()
     Box(
         contentAlignment = Alignment.Center,
         modifier =
             modifier
-                .minimumInteractiveComponentSize()
-                .size(MinimumInteractiveSize)
                 .onGloballyPositioned {
                     parentCenter = it.parentCoordinates?.size?.center ?: IntOffset.Zero
-                    center = it.boundsInParent().center
+                    boundsInParent = it.boundsInParent()
+                    center = boundsInParent.center
                 }
+                .minimumInteractiveComponentSize()
+                .size(MinimumInteractiveSize)
                 .focusable()
                 .semantics(mergeDescendants = true) {
                     onClick {
@@ -1719,7 +1725,7 @@ private fun ClockText(
                                 maxDist,
                                 autoSwitchToMinute,
                                 parentCenter,
-                                animationSpec
+                                SnapSpec()
                             )
                         }
                         true
@@ -1965,7 +1971,7 @@ internal fun numberContentDescription(
             Strings.TimePickerHourSuffix
         }
 
-    return getString(id).format(number)
+    return getString(id, number)
 }
 
 private fun dist(x1: Float, y1: Float, x2: Int, y2: Int): Float {

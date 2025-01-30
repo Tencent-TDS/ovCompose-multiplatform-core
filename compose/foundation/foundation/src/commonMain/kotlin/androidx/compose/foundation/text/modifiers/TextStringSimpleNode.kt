@@ -18,7 +18,6 @@ package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.internal.requirePreconditionNotNull
 import androidx.compose.foundation.text.DefaultMinLines
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
@@ -76,9 +75,11 @@ internal class TextStringSimpleNode(
     private var softWrap: Boolean = true,
     private var maxLines: Int = Int.MAX_VALUE,
     private var minLines: Int = DefaultMinLines,
-    private var overrideColor: ColorProducer? = null,
-    private var autoSize: TextAutoSize? = null
+    private var overrideColor: ColorProducer? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    override val shouldAutoInvalidate: Boolean
+        get() = false
+
     @Suppress("PrimitiveInCollection") // Map required for use in public API.
     // Usages of this collection are so few that the gains of using
     // MutableObjectIntMap<AlignmentLine> and then converting to a Map<AlignmentLine, Int>
@@ -97,8 +98,7 @@ internal class TextStringSimpleNode(
                         overflow,
                         softWrap,
                         maxLines,
-                        minLines,
-                        autoSize
+                        minLines
                     )
             }
             return _layoutCache!!
@@ -162,8 +162,7 @@ internal class TextStringSimpleNode(
         maxLines: Int,
         softWrap: Boolean,
         fontFamilyResolver: FontFamily.Resolver,
-        overflow: TextOverflow,
-        autoSize: TextAutoSize?
+        overflow: TextOverflow
     ): Boolean {
         var changed: Boolean
 
@@ -195,11 +194,6 @@ internal class TextStringSimpleNode(
             changed = true
         }
 
-        if (this.autoSize != autoSize) {
-            this.autoSize = autoSize
-            changed = true
-        }
-
         return changed
     }
 
@@ -214,8 +208,7 @@ internal class TextStringSimpleNode(
                 overflow = overflow,
                 softWrap = softWrap,
                 maxLines = maxLines,
-                minLines = minLines,
-                autoSize = autoSize
+                minLines = minLines
             )
         }
 
@@ -269,8 +262,7 @@ internal class TextStringSimpleNode(
                 overflow,
                 softWrap,
                 maxLines,
-                minLines,
-                autoSize
+                minLines
             ) ?: return false
         } else {
             val newTextSubstitution = TextSubstitutionValue(text, updatedText)
@@ -282,8 +274,7 @@ internal class TextStringSimpleNode(
                     overflow,
                     softWrap,
                     maxLines,
-                    minLines,
-                    autoSize
+                    minLines
                 )
             substitutionLayoutCache.density = layoutCache.density
             newTextSubstitution.layoutCache = substitutionLayoutCache

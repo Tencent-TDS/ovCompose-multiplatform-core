@@ -287,6 +287,40 @@ class ThreePaneScaffoldTest {
                 .isEqualTo(mockPaneExpansionState.maxExpansionWidth)
         }
     }
+
+    @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_noAnchorOnSettlingDirection() {
+        var mockDraggingPx = 0f
+        var expectedSettledOffsetPx = 0
+        lateinit var mockPaneExpansionState: PaneExpansionState
+        lateinit var scope: CoroutineScope
+
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            scope = rememberCoroutineScope()
+            mockPaneExpansionState =
+                rememberPaneExpansionState(
+                    anchors =
+                        listOf(
+                            PaneExpansionAnchor.Proportion(0f),
+                            PaneExpansionAnchor.Offset(MockPaneExpansionMiddleAnchor)
+                        )
+                )
+            mockDraggingPx = with(LocalDensity.current) { 200.dp.toPx() }
+            expectedSettledOffsetPx =
+                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.toPx().toInt() }
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule.runOnIdle {
+            mockPaneExpansionState.draggableState.dispatchRawDelta(mockDraggingPx)
+            scope.launch { mockPaneExpansionState.settleToAnchorIfNeeded(400F) }
+        }
+
+        rule.runOnIdle {
+            assertThat(mockPaneExpansionState.currentMeasuredDraggingOffset)
+                .isEqualTo(expectedSettledOffsetPx)
+        }
+    }
 }
 
 private val MockScaffoldDirective = PaneScaffoldDirective.Default

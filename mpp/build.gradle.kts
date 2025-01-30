@@ -55,6 +55,11 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:runtime:runtime-saveable", supportedPlatforms = ComposePlatforms.ALL),
         ComposeComponent(":compose:ui:ui"),
         ComposeComponent(":compose:ui:ui-geometry"),
+        ComposeComponent(
+            path = ":compose:ui:ui-backhandler",
+            supportedPlatforms = ComposePlatforms.SKIKO_SUPPORT,
+            neverRedirect = true
+        ),
         ComposeComponent(":compose:ui:ui-graphics"),
         ComposeComponent(":compose:ui:ui-test"),
         ComposeComponent(
@@ -115,6 +120,9 @@ val libraryToComponents = mapOf(
         ComposeComponent(":navigation:navigation-compose"),
         ComposeComponent(":navigation:navigation-common", viewModelPlatforms),
         ComposeComponent(":navigation:navigation-runtime", viewModelPlatforms),
+    ),
+    "PERFORMANCE" to listOf(
+        ComposeComponent(":performance:performance-annotation", viewModelPlatforms),
     ),
     "SAVEDSTATE" to listOf(
         ComposeComponent(":savedstate:savedstate", viewModelPlatforms),

@@ -115,7 +115,7 @@ internal class FocusRestorerNode(var fallback: FocusRequester) :
         pinnedHandle?.release()
         pinnedHandle = null
         if (restoreFocusedChild() || fallback == Cancel) {
-            cancelFocus()
+            cancelFocusChange()
         } else if (fallback != Default) {
             fallback.requestFocus()
         }

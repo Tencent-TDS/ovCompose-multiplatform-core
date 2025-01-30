@@ -27,6 +27,7 @@ import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.Handle
+import androidx.compose.foundation.text.KeyCommand
 import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.LocalAutofillHighlightColor
@@ -65,6 +66,7 @@ import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateSemantics
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.requestAutofill
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -201,8 +203,9 @@ internal class TextFieldDecoratorModifierNode(
     ObserverModifierNode,
     LayoutAwareModifierNode {
 
-    private val editable
-        get() = enabled && !readOnly
+    init {
+        textFieldSelectionState.requestAutofillAction = { requestAutofill() }
+    }
 
     private val pointerInputNode =
         delegate(
@@ -368,6 +371,22 @@ internal class TextFieldDecoratorModifierNode(
         }
 
     /**
+     * A handler dedicated for Clipboard related key commands. We extracted it from
+     * [textFieldKeyEventHandler] because Clipboard actions require a [coroutineScope] which is
+     * available here.
+     */
+    private val clipboardKeyCommandsHandler = ClipboardKeyCommandsHandler { keyCommand ->
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            when (keyCommand) {
+                KeyCommand.COPY -> textFieldSelectionState.copy(false)
+                KeyCommand.CUT -> textFieldSelectionState.cut()
+                KeyCommand.PASTE -> textFieldSelectionState.paste()
+                else -> Unit
+            }
+        }
+    }
+
+    /**
      * A coroutine job that observes text and layout changes in selection state to react to those
      * changes.
      */
@@ -413,9 +432,7 @@ internal class TextFieldDecoratorModifierNode(
         stylusHandwritingTrigger: MutableSharedFlow<Unit>?
     ) {
         // Find the diff: current previous and new values before updating current.
-        val previousEditable = this.editable
-        val editable = enabled && !readOnly
-
+        val previousEditable = this.enabled && !this.readOnly
         val previousEnabled = this.enabled
         val previousTextFieldState = this.textFieldState
         val previousKeyboardOptions = this.keyboardOptions
@@ -423,6 +440,7 @@ internal class TextFieldDecoratorModifierNode(
         val previousInteractionSource = this.interactionSource
         val previousIsPassword = this.isPassword
         val previousStylusHandwritingTrigger = this.stylusHandwritingTrigger
+        val editable = enabled && !readOnly
 
         // Apply the diff.
         this.textFieldState = textFieldState
@@ -470,6 +488,7 @@ internal class TextFieldDecoratorModifierNode(
                 textFieldSelectionState.receiveContentConfiguration =
                     receiveContentConfigurationProvider
             }
+            textFieldSelectionState.requestAutofillAction = { requestAutofill() }
         }
 
         if (interactionSource != previousInteractionSource) {
@@ -490,7 +509,8 @@ internal class TextFieldDecoratorModifierNode(
         if (!enabled) disabled()
         if (isPassword) password()
 
-        isEditable = this@TextFieldDecoratorModifierNode.editable
+        val editable = enabled && !readOnly
+        isEditable = editable
 
         // The developer will set `contentType`. TF populates the other autofill-related
         // semantics. And since we're in a TextField, set the `contentDataType` to be "Text".
@@ -586,19 +606,19 @@ internal class TextFieldDecoratorModifierNode(
         }
         if (!selection.collapsed && !isPassword) {
             copyText {
-                textFieldSelectionState.copy()
+                coroutineScope.launch { textFieldSelectionState.copy() }
                 true
             }
             if (enabled && !readOnly) {
                 cutText {
-                    textFieldSelectionState.cut()
+                    coroutineScope.launch { textFieldSelectionState.cut() }
                     true
                 }
             }
         }
         if (editable) {
             pasteText {
-                textFieldSelectionState.paste()
+                coroutineScope.launch { textFieldSelectionState.paste() }
                 true
             }
         }
@@ -613,6 +633,7 @@ internal class TextFieldDecoratorModifierNode(
         isElementFocused = focusState.isFocused
         onFocusChange()
 
+        val editable = enabled && !readOnly
         if (focusState.isFocused) {
             // Deselect when losing focus even if readonly.
             if (editable) {
@@ -684,9 +705,10 @@ internal class TextFieldDecoratorModifierNode(
             textFieldState = textFieldState,
             textLayoutState = textLayoutState,
             textFieldSelectionState = textFieldSelectionState,
+            clipboardKeyCommandsHandler = clipboardKeyCommandsHandler,
             editable = enabled && !readOnly,
             singleLine = singleLine,
-            onSubmit = { onImeActionPerformed(keyboardOptions.imeActionOrDefault) }
+            onSubmit = { onImeActionPerformed(keyboardOptions.imeActionOrDefault) },
         )
     }
 

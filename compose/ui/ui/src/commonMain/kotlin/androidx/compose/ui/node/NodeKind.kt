@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package androidx.compose.ui.node
 
 import androidx.collection.mutableObjectIntMapOf
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.classKeyForObject
 import androidx.compose.ui.draw.DrawModifier
@@ -329,19 +331,23 @@ private fun autoInvalidateNodeSelf(node: Modifier.Node, selfKindSet: Int, phase:
         node.invalidateDraw()
     }
     if (Nodes.Semantics in selfKindSet && node is SemanticsModifierNode) {
-        node.invalidateSemantics()
+        node.requireLayoutNode().isSemanticsInvalidated = true
     }
     if (Nodes.ParentData in selfKindSet && node is ParentDataModifierNode) {
         node.invalidateParentData()
     }
     if (
         Nodes.FocusProperties in selfKindSet &&
-        node is FocusPropertiesModifierNode &&
-        node.specifiesCanFocusProperty()
+            node is FocusPropertiesModifierNode &&
+            node.specifiesCanFocusProperty()
     ) {
-        when (phase) {
-            Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
-            else -> node.invalidateFocusProperties()
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled)
+            node.scheduleInvalidationOfAssociatedFocusTargets()
+        else {
+            when (phase) {
+                Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
+                else -> node.invalidateFocusProperties()
+            }
         }
     }
     if (Nodes.FocusEvent in selfKindSet && node is FocusEventModifierNode) {

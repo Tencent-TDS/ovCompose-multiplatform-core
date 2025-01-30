@@ -133,7 +133,9 @@ class ThreePaneScaffoldScreenshotTest {
                     tertiary = PaneAdaptedValue.Hidden,
                 )
             val scaffoldState = remember { MutableThreePaneScaffoldState(detailExtraExpanded) }
-            LaunchedEffect(Unit) { scaffoldState.seekTo(0f, listDetailExpanded) }
+            LaunchedEffect(Unit) {
+                scaffoldState.seekTo(0f, listDetailExpanded, isPredictiveBackInProgress = true)
+            }
             SampleThreePaneScaffoldWithScaffoldState(scaffoldState)
         }
 
@@ -162,7 +164,9 @@ class ThreePaneScaffoldScreenshotTest {
                     tertiary = PaneAdaptedValue.Hidden,
                 )
             val scaffoldState = remember { MutableThreePaneScaffoldState(detailExtraExpanded) }
-            LaunchedEffect(Unit) { scaffoldState.seekTo(0.1f, listDetailExpanded) }
+            LaunchedEffect(Unit) {
+                scaffoldState.seekTo(0.1f, listDetailExpanded, isPredictiveBackInProgress = true)
+            }
             SampleThreePaneScaffoldWithScaffoldState(scaffoldState)
         }
 
@@ -528,7 +532,8 @@ internal fun ThreePaneScaffoldScope.MockDragHandle(state: PaneExpansionState) {
             Modifier.paneExpansionDraggable(
                 state,
                 LocalMinimumInteractiveComponentSize.current,
-                interactionSource
+                interactionSource,
+                state.defaultDragHandleSemantics()
             ),
         interactionSource = interactionSource
     )

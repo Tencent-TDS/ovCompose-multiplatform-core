@@ -124,6 +124,10 @@ import kotlinx.coroutines.withTimeout
  *   mouse hover to trigger the tooltip through the state provided.
  * @param content the composable that the tooltip will anchor to.
  */
+@Deprecated(
+    "Deprecated in favor of TooltipBox API that contains onDismissRequest.",
+    level = DeprecationLevel.HIDDEN
+)
 @Composable
 @ExperimentalMaterial3Api
 fun TooltipBox(
@@ -131,6 +135,82 @@ fun TooltipBox(
     tooltip: @Composable TooltipScope.() -> Unit,
     state: TooltipState,
     modifier: Modifier = Modifier,
+    focusable: Boolean = true,
+    enableUserInput: Boolean = true,
+    content: @Composable () -> Unit,
+) =
+    TooltipBox(
+        positionProvider = positionProvider,
+        tooltip = tooltip,
+        state = state,
+        modifier = modifier,
+        onDismissRequest = null,
+        focusable = focusable,
+        enableUserInput = enableUserInput,
+        content = content
+    )
+
+/**
+ * Material TooltipBox that wraps a composable with a tooltip.
+ *
+ * tooltips provide a descriptive message for an anchor. It can be used to call the users attention
+ * to the anchor.
+ *
+ * Tooltip that is invoked when the anchor is long pressed:
+ *
+ * @sample androidx.compose.material3.samples.PlainTooltipSample
+ *
+ * If control of when the tooltip is shown is desired please see
+ *
+ * @sample androidx.compose.material3.samples.PlainTooltipWithManualInvocationSample
+ *
+ * Plain tooltip with caret shown on long press:
+ *
+ * @sample androidx.compose.material3.samples.PlainTooltipWithCaret
+ *
+ * Plain tooltip shown on long press with a custom caret:
+ *
+ * @sample androidx.compose.material3.samples.PlainTooltipWithCustomCaret
+ *
+ * Tooltip that is invoked when the anchor is long pressed:
+ *
+ * @sample androidx.compose.material3.samples.RichTooltipSample
+ *
+ * If control of when the tooltip is shown is desired please see
+ *
+ * @sample androidx.compose.material3.samples.RichTooltipWithManualInvocationSample
+ *
+ * Rich tooltip with caret shown on long press:
+ *
+ * @sample androidx.compose.material3.samples.RichTooltipWithCaretSample
+ *
+ * Rich tooltip shown on long press with a custom caret
+ *
+ * @sample androidx.compose.material3.samples.RichTooltipWithCustomCaretSample
+ * @param positionProvider [PopupPositionProvider] that will be used to place the tooltip relative
+ *   to the anchor content.
+ * @param tooltip the composable that will be used to populate the tooltip's content.
+ * @param state handles the state of the tooltip's visibility.
+ * @param modifier the [Modifier] to be applied to the TooltipBox.
+ * @param onDismissRequest executes when the user clicks outside of the tooltip. By default, the
+ *   tooltip will dismiss when it's being shown when a user clicks outside of the tooltip.
+ * @param focusable [Boolean] that determines if the tooltip is focusable. When true, the tooltip
+ *   will consume touch events while it's shown and will have accessibility focus move to the first
+ *   element of the component. When false, the tooltip won't consume touch events while it's shown
+ *   but assistive-tech users will need to swipe or drag to get to the first element of the
+ *   component.
+ * @param enableUserInput [Boolean] which determines if this TooltipBox will handle long press and
+ *   mouse hover to trigger the tooltip through the state provided.
+ * @param content the composable that the tooltip will anchor to.
+ */
+@Composable
+@ExperimentalMaterial3Api
+fun TooltipBox(
+    positionProvider: PopupPositionProvider,
+    tooltip: @Composable TooltipScope.() -> Unit,
+    state: TooltipState,
+    modifier: Modifier = Modifier,
+    onDismissRequest: (() -> Unit)? = null,
     focusable: Boolean = true,
     enableUserInput: Boolean = true,
     content: @Composable () -> Unit,
@@ -149,6 +229,7 @@ fun TooltipBox(
         tooltip = { Box(Modifier.animateTooltip(transition)) { scope.tooltip() } },
         focusable = focusable,
         enableUserInput = enableUserInput,
+        onDismissRequest = onDismissRequest,
         state = state,
         modifier = modifier,
         content = wrappedContent
@@ -176,50 +257,6 @@ internal class TooltipScopeImpl(val getAnchorBounds: () -> LayoutCoordinates?) :
         draw: CacheDrawScope.(LayoutCoordinates?) -> DrawResult
     ): Modifier = this.drawWithCache { draw(getAnchorBounds()) }
 }
-
-/**
- * Plain tooltip that provides a descriptive message.
- *
- * Usually used with [TooltipBox].
- *
- * @param modifier the [Modifier] to be applied to the tooltip.
- * @param caretSize [DpSize] for the caret of the tooltip, if a default caret is desired with a
- *   specific dimension. Please see [TooltipDefaults.caretSize] to see the default dimensions. Pass
- *   in Dp.Unspecified for this parameter if no caret is desired.
- * @param shape the [Shape] that should be applied to the tooltip container.
- * @param contentColor [Color] that will be applied to the tooltip's content.
- * @param containerColor [Color] that will be applied to the tooltip's container.
- * @param tonalElevation the tonal elevation of the tooltip.
- * @param shadowElevation the shadow elevation of the tooltip.
- * @param content the composable that will be used to populate the tooltip's content.
- */
-@Deprecated(
-    level = DeprecationLevel.HIDDEN,
-    message = "Maintained for binary compatibility. Use overload with maxWidth parameter."
-)
-@Composable
-@ExperimentalMaterial3Api
-fun TooltipScope.PlainTooltip(
-    modifier: Modifier = Modifier,
-    caretSize: DpSize = DpSize.Unspecified,
-    shape: Shape = TooltipDefaults.plainTooltipContainerShape,
-    contentColor: Color = TooltipDefaults.plainTooltipContentColor,
-    containerColor: Color = TooltipDefaults.plainTooltipContainerColor,
-    tonalElevation: Dp = 0.dp,
-    shadowElevation: Dp = 0.dp,
-    content: @Composable () -> Unit
-) =
-    PlainTooltip(
-        modifier = modifier,
-        caretSize = caretSize,
-        maxWidth = TooltipDefaults.plainTooltipMaxWidth,
-        shape = shape,
-        contentColor = contentColor,
-        containerColor = containerColor,
-        tonalElevation = tonalElevation,
-        shadowElevation = shadowElevation,
-        content = content
-    )
 
 /**
  * Plain tooltip that provides a descriptive message.
@@ -292,55 +329,6 @@ fun TooltipScope.PlainTooltip(
         }
     }
 }
-
-
-/**
- * Rich text tooltip that allows the user to pass in a title, text, and action. Tooltips are used to
- * provide a descriptive message.
- *
- * Usually used with [TooltipBox]
- *
- * @param modifier the [Modifier] to be applied to the tooltip.
- * @param title An optional title for the tooltip.
- * @param action An optional action for the tooltip.
- * @param caretSize [DpSize] for the caret of the tooltip, if a default caret is desired with a
- *   specific dimension. Please see [TooltipDefaults.caretSize] to see the default dimensions. Pass
- *   in Dp.Unspecified for this parameter if no caret is desired.
- * @param shape the [Shape] that should be applied to the tooltip container.
- * @param colors [RichTooltipColors] that will be applied to the tooltip's container and content.
- * @param tonalElevation the tonal elevation of the tooltip.
- * @param shadowElevation the shadow elevation of the tooltip.
- * @param text the composable that will be used to populate the rich tooltip's text.
- */
-@Deprecated(
-    level = DeprecationLevel.HIDDEN,
-    message = "Maintained for binary compatibility. Use overload with maxWidth parameter."
-)
-@Composable
-@ExperimentalMaterial3Api
-fun TooltipScope.RichTooltip(
-    modifier: Modifier = Modifier,
-    title: (@Composable () -> Unit)? = null,
-    action: (@Composable () -> Unit)? = null,
-    caretSize: DpSize = DpSize.Unspecified,
-    shape: Shape = TooltipDefaults.richTooltipContainerShape,
-    colors: RichTooltipColors = TooltipDefaults.richTooltipColors(),
-    tonalElevation: Dp = ElevationTokens.Level0,
-    shadowElevation: Dp = RichTooltipTokens.ContainerElevation,
-    text: @Composable () -> Unit
-) =
-    RichTooltip(
-        modifier = modifier,
-        title = title,
-        action = action,
-        caretSize = caretSize,
-        maxWidth = TooltipDefaults.richTooltipMaxWidth,
-        shape = shape,
-        colors = colors,
-        tonalElevation = tonalElevation,
-        shadowElevation = shadowElevation,
-        text = text
-    )
 
 /**
  * Rich text tooltip that allows the user to pass in a title, text, and action. Tooltips are used to

@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.focus
 
+import androidx.collection.MutableObjectList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.KeyEvent
@@ -144,6 +145,18 @@ internal interface FocusOwner : FocusManager {
     /** Schedule a FocusProperties node to be invalidated after onApplyChanges. */
     fun scheduleInvalidation(node: FocusPropertiesModifierNode)
 
+    /** Schedule the owner to be invalidated after onApplyChanges. */
+    fun scheduleInvalidationForOwner()
+
+    /** Listeners that will be notified when the active item changes. */
+    val listeners: MutableObjectList<FocusListener>
+
     /** The focus state of the root focus node. */
     val rootState: FocusState
+
+    /** The currently active [FocusTargetNode] or null if no node has focus. */
+    var activeFocusTargetNode: FocusTargetNode?
+
+    /** Whether the active focus target node has requested focus capture. */
+    var isFocusCaptured: Boolean
 }

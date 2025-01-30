@@ -140,9 +140,10 @@ import kotlinx.coroutines.launch
  * @param enabled whether or not component is enabled and can be interacted with or not
  * @param valueRange range of values that Slider value can take. Passed [value] will be coerced to
  *   this range
- * @param steps if positive, specifies the amount of discrete allowable values (in addition to the
- *   endpoints of the value range). Step values are evenly distributed across the range. If 0, the
- *   slider will behave continuously and allow any value from the range. Must not be negative.
+ * @param steps if positive, specifies the amount of discrete allowable values between the endpoints
+ *   of [valueRange]. For example, a range from 0 to 10 with 4 [steps] allows 4 values evenly
+ *   distributed between 0 and 10 (i.e., 2, 4, 6, 8). If [steps] is 0, the slider will behave
+ *   continuously and allow any value from the range. Must not be negative.
  * @param onValueChangeFinished lambda to be invoked when value change has ended. This callback
  *   shouldn't be used to update the slider value (use [onValueChange] for that), but rather to know
  *   when the user has completed selecting a new value by ending a drag or a click.
@@ -387,9 +388,10 @@ private fun Modifier.slideOnKeyEvents(
  * @param enabled whether or not component is enabled and can we interacted with or not
  * @param valueRange range of values that Range Slider values can take. Passed [value] will be
  *   coerced to this range
- * @param steps if positive, specifies the amount of discrete allowable values (in addition to the
- *   endpoints of the value range). Step values are evenly distributed across the range. If 0, the
- *   range slider will behave continuously and allow any value from the range. Must not be negative.
+ * @param steps if positive, specifies the amount of discrete allowable values between the endpoints
+ *   of [valueRange]. For example, a range from 0 to 10 with 4 [steps] allows 4 values evenly
+ *   distributed between 0 and 10 (i.e., 2, 4, 6, 8). If [steps] is 0, the slider will behave
+ *   continuously and allow any value from the range. Must not be negative.
  * @param onValueChangeFinished lambda to be invoked when value change has ended. This callback
  *   shouldn't be used to update the range slider values (use [onValueChange] for that), but rather
  *   to know when the user has completed selecting a new value by ending a drag or a click.

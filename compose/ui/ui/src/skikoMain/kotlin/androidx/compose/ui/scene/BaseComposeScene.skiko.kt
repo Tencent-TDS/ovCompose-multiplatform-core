@@ -129,28 +129,29 @@ internal abstract class BaseComposeScene(
 
     override fun hasInvalidations(): Boolean = hasPendingDraws || recomposer.hasPendingWork
 
-    override fun setContent(content: @Composable () -> Unit) = postponeInvalidation("BaseComposeScene:setContent") {
-        check(!isClosed) { "setContent called after ComposeScene is closed" }
-        inputHandler.onChangeContent()
+    override fun setContent(content: @Composable () -> Unit) =
+        postponeInvalidation("BaseComposeScene:setContent") {
+            check(!isClosed) { "setContent called after ComposeScene is closed" }
+            inputHandler.onChangeContent()
 
-        /*
+            /*
          * It's required before setting content to apply changed parameters
          * before first recomposition. Otherwise, it can lead to double recomposition.
          */
-        recomposer.performScheduledRecomposerTasks()
+            recomposer.performScheduledRecomposerTasks()
 
-        composition?.dispose()
-        composition = createComposition {
-            CompositionLocalProvider(
-                @Suppress("DEPRECATION")
-                LocalComposeScene provides this,
-                LocalComposeSceneContext provides composeSceneContext,
-                content = content
-            )
+            composition?.dispose()
+            composition = createComposition {
+                CompositionLocalProvider(
+                    @Suppress("DEPRECATION")
+                    LocalComposeScene provides this,
+                    LocalComposeSceneContext provides composeSceneContext,
+                    content = content
+                )
+            }
+
+            recomposer.performScheduledRecomposerTasks()
         }
-
-        recomposer.performScheduledRecomposerTasks()
-    }
 
     override fun render(canvas: Canvas, nanoTime: Long) {
         // This is a no-op if the scene is closed, this situation can happen if the scene is
@@ -173,7 +174,7 @@ internal abstract class BaseComposeScene(
 
             // Schedule synthetic events to be sent after `render` completes
             if (inputHandler.needUpdatePointerPosition) {
-                recomposer.scheduleAsEffect(updatePointerPosition)
+                recomposer.scheduleAsEffect { updatePointerPosition() }
             }
 
             // Between layout and draw, Android's Choreographer flushes the main dispatcher.
@@ -203,7 +204,9 @@ internal abstract class BaseComposeScene(
         keyboardModifiers: PointerKeyboardModifiers?,
         nativeEvent: Any?,
         button: PointerButton?
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): PointerEventResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             position = position,
@@ -214,8 +217,9 @@ internal abstract class BaseComposeScene(
             keyboardModifiers = keyboardModifiers,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     // TODO(demin): return Boolean (when it is consumed)
@@ -229,7 +233,9 @@ internal abstract class BaseComposeScene(
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): PointerEventResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             pointers = pointers,
@@ -239,8 +245,9 @@ internal abstract class BaseComposeScene(
             timeMillis = timeMillis,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
@@ -256,7 +263,9 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition
 
-    protected abstract fun processPointerInputEvent(event: PointerInputEvent)
+    protected abstract fun processPointerInputEvent(
+        event: PointerInputEvent
+    ): PointerEventResult
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 

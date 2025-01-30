@@ -118,6 +118,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
+                implementation(project(":performance:performance-annotation"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)

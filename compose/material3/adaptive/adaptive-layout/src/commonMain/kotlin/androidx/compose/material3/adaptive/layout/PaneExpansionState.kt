@@ -202,7 +202,6 @@ internal constructor(
     data: PaneExpansionStateData = PaneExpansionStateData(),
     anchors: List<PaneExpansionAnchor> = emptyList()
 ) {
-
     internal val firstPaneWidth
         get() =
             if (maxExpansionWidth == Unspecified || data.firstPaneWidthState == Unspecified) {
@@ -228,8 +227,30 @@ internal constructor(
     @VisibleForTesting
     internal var currentAnchor
         get() = data.currentAnchorState
-        set(value) {
+        private set(value) {
             data.currentAnchorState = value
+        }
+
+    internal val nextAnchor: PaneExpansionAnchor?
+        get() {
+            // maxExpansionWidth will be initialized in onMeasured and is backed by a state. Check
+            // it
+            // here so the next anchor will be updated when measuring is done.
+            if (maxExpansionWidth == Unspecified || anchors.isEmpty()) {
+                return null
+            }
+            val currentOffset =
+                if (currentDraggingOffset == Unspecified) {
+                    currentMeasuredDraggingOffset
+                } else {
+                    currentDraggingOffset
+                }
+            measuredAnchorPositions.forEach { index, position ->
+                if (currentOffset < position) {
+                    return anchors[index]
+                }
+            }
+            return anchors[0]
         }
 
     private var data by mutableStateOf(data)
@@ -255,11 +276,14 @@ internal constructor(
 
     private var anchors: List<PaneExpansionAnchor> by mutableStateOf(anchors)
 
+    internal var measuredAnchorPositions = IndexedAnchorPositionList(0)
+        private set
+
     private lateinit var anchoringAnimationSpec: FiniteAnimationSpec<Float>
 
     private lateinit var flingBehavior: FlingBehavior
 
-    private lateinit var measuredDensity: Density
+    private var measuredDensity: Density? = null
 
     private val dragScope =
         object : DragScope, ScrollScope {
@@ -350,6 +374,15 @@ internal constructor(
         dragMutex.mutate(MutatePriority.PreventUserInput) {
             this.data = data
             this.anchors = anchors
+            measuredDensity?.let {
+                measuredAnchorPositions =
+                    anchors.toPositions(
+                        // When maxExpansionWidth is updated, the anchor positions will be
+                        // recalculated.
+                        Snapshot.withoutReadObservation { maxExpansionWidth },
+                        it
+                    )
+            }
             if (!anchors.contains(Snapshot.withoutReadObservation { currentAnchor })) {
                 currentAnchor = null
             }
@@ -359,12 +392,13 @@ internal constructor(
     }
 
     internal fun onMeasured(measuredWidth: Int, density: Density) {
-        if (measuredWidth == maxExpansionWidth) {
+        if (measuredWidth == maxExpansionWidth && measuredDensity == density) {
             return
         }
         maxExpansionWidth = measuredWidth
         measuredDensity = density
         Snapshot.withoutReadObservation {
+            measuredAnchorPositions = anchors.toPositions(measuredWidth, density)
             // Changes will always apply to the ongoing measurement, no need to trigger remeasuring
             currentAnchor?.also { currentDraggingOffset = it.positionIn(measuredWidth, density) }
                 ?: {
@@ -380,9 +414,16 @@ internal constructor(
         currentMeasuredDraggingOffset = measuredOffset
     }
 
+    internal fun snapToAnchor(anchor: PaneExpansionAnchor) {
+        Snapshot.withoutReadObservation {
+            measuredDensity?.let {
+                currentDraggingOffset = anchor.positionIn(maxExpansionWidth, it)
+            }
+        }
+    }
+
     internal suspend fun settleToAnchorIfNeeded(velocity: Float) {
-        val currentAnchorPositions = anchors.toPositions(maxExpansionWidth, measuredDensity)
-        if (currentAnchorPositions.isEmpty()) {
+        if (measuredAnchorPositions.isEmpty()) {
             return
         }
 
@@ -390,7 +431,7 @@ internal constructor(
             isSettling = true
             val leftVelocity = flingBehavior.run { dragScope.performFling(velocity) }
             val anchorPosition =
-                currentAnchorPositions.getPositionOfTheClosestAnchor(
+                measuredAnchorPositions.getPositionOfTheClosestAnchor(
                     currentMeasuredDraggingOffset,
                     leftVelocity
                 )
@@ -420,13 +461,23 @@ internal constructor(
                 velocity >= AnchoringVelocityThreshold -> {
                     { anchorPosition: Int ->
                         val delta = anchorPosition - currentPosition
-                        if (delta < 0) Int.MAX_VALUE else delta
+                        if (delta < 0) {
+                            // If there's no anchor on the swiping direction, use the closet anchor
+                            maxExpansionWidth - delta
+                        } else {
+                            delta
+                        }
                     }
                 }
                 velocity <= -AnchoringVelocityThreshold -> {
                     { anchorPosition: Int ->
                         val delta = currentPosition - anchorPosition
-                        if (delta < 0) Int.MAX_VALUE else delta
+                        if (delta < 0) {
+                            // If there's no anchor on the swiping direction, use the closet anchor
+                            maxExpansionWidth - delta
+                        } else {
+                            delta
+                        }
                     }
                 }
                 else -> {
@@ -490,10 +541,16 @@ internal class PaneExpansionStateData(
  * the set anchors after user releases the drag.
  */
 @ExperimentalMaterial3AdaptiveApi
-sealed class PaneExpansionAnchor private constructor() {
+sealed class PaneExpansionAnchor {
     internal abstract fun positionIn(totalSizePx: Int, density: Density): Int
 
     internal abstract val type: Int
+
+    /**
+     * The description of the anchor that will be used in
+     * [androidx.compose.ui.semantics.SemanticsProperties] like accessibility services.
+     */
+    @get:Composable abstract val description: String
 
     /**
      * [PaneExpansionAnchor] implementation that specifies the anchor position in the proportion of
@@ -503,6 +560,14 @@ sealed class PaneExpansionAnchor private constructor() {
      */
     class Proportion(@FloatRange(0.0, 1.0) val proportion: Float) : PaneExpansionAnchor() {
         override val type = ProportionType
+
+        override val description
+            @Composable
+            get() =
+                getString(
+                    Strings.defaultPaneExpansionProportionAnchorDescription,
+                    (proportion * 100).toInt()
+                )
 
         override fun positionIn(totalSizePx: Int, density: Density) =
             (totalSizePx * proportion).roundToInt().coerceIn(0, totalSizePx)
@@ -530,6 +595,11 @@ sealed class PaneExpansionAnchor private constructor() {
     class Offset(val offset: Dp) : PaneExpansionAnchor() {
         override val type = OffsetType
 
+        override val description
+            @Composable
+            get() =
+                getString(Strings.defaultPaneExpansionOffsetAnchorDescription, offset.value.toInt())
+
         override fun positionIn(totalSizePx: Int, density: Density) =
             with(density) { offset.toPx() }.toInt().let { if (it < 0) totalSizePx + it else it }
 
@@ -550,6 +620,18 @@ sealed class PaneExpansionAnchor private constructor() {
         internal const val OffsetType = 2
     }
 }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+internal fun rememberDefaultPaneExpansionState(
+    keyProvider: () -> PaneExpansionStateKeyProvider,
+    mutable: Boolean
+): PaneExpansionState =
+    if (mutable) {
+        rememberPaneExpansionState(keyProvider())
+    } else {
+        remember { PaneExpansionState() } // Use a stub impl to avoid performance overhead
+    }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @VisibleForTesting
@@ -674,7 +756,7 @@ private fun <T : Comparable<T>> IndexedAnchorPositionList.minBy(
 }
 
 @JvmInline
-private value class IndexedAnchorPositionList(val value: MutableLongList) {
+internal value class IndexedAnchorPositionList(val value: MutableLongList) {
     constructor(size: Int) : this(MutableLongList(size))
 
     val size
@@ -689,8 +771,12 @@ private value class IndexedAnchorPositionList(val value: MutableLongList) {
     operator fun get(index: Int) = IndexedAnchorPosition(value[index])
 }
 
+internal inline fun IndexedAnchorPositionList.forEach(action: (index: Int, position: Int) -> Unit) {
+    value.forEach { with(IndexedAnchorPosition(it)) { action(index, position) } }
+}
+
 @JvmInline
-private value class IndexedAnchorPosition(val value: Long) {
+internal value class IndexedAnchorPosition(val value: Long) {
     constructor(position: Int, index: Int) : this(packInts(position, index))
 
     val position

@@ -25,6 +25,7 @@ import androidx.compose.material3.internal.snapTo
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,8 +56,11 @@ interface WideNavigationRailState {
     /** Whether the state is currently animating */
     val isAnimating: Boolean
 
-    /** Whether the rail is expanded. */
-    val isExpanded: Boolean
+    /** Whether the rail is going to be expanded or not. */
+    val targetValue: WideNavigationRailValue
+
+    /** Whether the rail is currently expanded or not. */
+    val currentValue: WideNavigationRailValue
 
     /** Expand the rail with animation and suspend until it fully expands. */
     suspend fun expand()
@@ -73,13 +77,13 @@ interface WideNavigationRailState {
     /**
      * Set the state without any animation and suspend until it's set.
      *
-     * @param targetValue the [WideNavigationRailValue] to set to
+     * @param targetValue the expanded boolean to set to
      */
     suspend fun snapTo(targetValue: WideNavigationRailValue)
 }
 
 /** Create and [remember] a [WideNavigationRailState]. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@ExperimentalMaterial3ExpressiveApi
 @Composable
 fun rememberWideNavigationRailState(
     initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed
@@ -94,58 +98,79 @@ fun rememberWideNavigationRailState(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal val WideNavigationRailValue.isExpanded
+    get() = this == WideNavigationRailValue.Expanded
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal operator fun WideNavigationRailValue.not(): WideNavigationRailValue {
+    return if (this == WideNavigationRailValue.Collapsed) {
+        WideNavigationRailValue.Expanded
+    } else {
+        WideNavigationRailValue.Collapsed
+    }
+}
+
 @ExperimentalMaterial3ExpressiveApi
 internal class WideNavigationRailStateImpl(
     var initialValue: WideNavigationRailValue,
     private val animationSpec: AnimationSpec<Float>,
 ) : WideNavigationRailState {
-    private val collapsed = 0f
-    private val expanded = 1f
-    private val internalValue =
-        if (initialValue == WideNavigationRailValue.Collapsed) collapsed else expanded
+
+    private val internalValue = if (initialValue.isExpanded) Expanded else Collapsed
     private val internalState = Animatable(internalValue, Float.VectorConverter)
+    private val _currentVal = derivedStateOf {
+        if (internalState.value == Expanded) {
+            WideNavigationRailValue.Expanded
+        } else {
+            WideNavigationRailValue.Collapsed
+        }
+    }
 
     override val isAnimating: Boolean
         get() = internalState.isRunning
 
-    private val currentValue: WideNavigationRailValue
+    override val targetValue: WideNavigationRailValue
         get() =
-            if (internalState.targetValue == collapsed) WideNavigationRailValue.Collapsed
-            else WideNavigationRailValue.Expanded
+            if (internalState.targetValue == Expanded) {
+                WideNavigationRailValue.Expanded
+            } else {
+                WideNavigationRailValue.Collapsed
+            }
 
-    override val isExpanded: Boolean
-        get() = currentValue == WideNavigationRailValue.Expanded
+    override val currentValue: WideNavigationRailValue
+        get() = _currentVal.value
 
     override suspend fun expand() {
-        internalState.animateTo(targetValue = expanded, animationSpec = animationSpec)
+        internalState.animateTo(targetValue = Expanded, animationSpec = animationSpec)
     }
 
     override suspend fun collapse() {
-        internalState.animateTo(targetValue = collapsed, animationSpec = animationSpec)
+        internalState.animateTo(targetValue = Collapsed, animationSpec = animationSpec)
     }
 
     override suspend fun toggle() {
         internalState.animateTo(
-            targetValue = if (isExpanded) collapsed else expanded,
+            targetValue = if (targetValue.isExpanded) Collapsed else Expanded,
             animationSpec = animationSpec
         )
     }
 
     override suspend fun snapTo(targetValue: WideNavigationRailValue) {
-        val target = if (targetValue == WideNavigationRailValue.Collapsed) collapsed else expanded
+        val target = if (targetValue.isExpanded) Expanded else Collapsed
         internalState.snapTo(target)
     }
 
     companion object {
+        private const val Collapsed = 0f
+        private const val Expanded = 1f
+
         /** The default [Saver] implementation for [WideNavigationRailState]. */
         fun Saver(
             animationSpec: AnimationSpec<Float>,
         ) =
             Saver<WideNavigationRailState, WideNavigationRailValue>(
-                save = {
-                    if (it.isExpanded) WideNavigationRailValue.Expanded
-                    else WideNavigationRailValue.Collapsed
-                },
+                save = { it.targetValue },
                 restore = { WideNavigationRailStateImpl(it, animationSpec) }
             )
     }
@@ -157,11 +182,9 @@ internal class ModalWideNavigationRailState(
     density: Density,
     val animationSpec: AnimationSpec<Float>,
 ) : WideNavigationRailState by state {
-    internal val anchoredDraggableState =
+    internal val anchoredDraggableState: AnchoredDraggableState<WideNavigationRailValue> =
         AnchoredDraggableState(
-            initialValue =
-                if (state.isExpanded) WideNavigationRailValue.Expanded
-                else WideNavigationRailValue.Collapsed,
+            initialValue = state.targetValue,
             positionalThreshold = { distance -> distance * 0.5f },
             velocityThreshold = { with(density) { 400.dp.toPx() } },
             animationSpec = { animationSpec },
@@ -174,7 +197,7 @@ internal class ModalWideNavigationRailState(
      * wide navigation rail is currently in. If a swipe or an animation is in progress, this
      * corresponds to the value the rail was in before the swipe or animation started.
      */
-    val currentValue: WideNavigationRailValue
+    override val currentValue: WideNavigationRailValue
         get() = anchoredDraggableState.currentValue
 
     /**
@@ -184,11 +207,8 @@ internal class ModalWideNavigationRailState(
      * finishes. If an animation is running, this is the target value of that animation. Finally, if
      * no swipe or animation is in progress, this is the same as the [currentValue].
      */
-    val targetValue: WideNavigationRailValue
+    override val targetValue: WideNavigationRailValue
         get() = anchoredDraggableState.targetValue
-
-    override val isExpanded: Boolean
-        get() = currentValue == WideNavigationRailValue.Expanded
 
     override val isAnimating: Boolean
         get() = anchoredDraggableState.isAnimationRunning
@@ -198,9 +218,7 @@ internal class ModalWideNavigationRailState(
     override suspend fun collapse() = animateTo(WideNavigationRailValue.Collapsed)
 
     override suspend fun toggle() {
-        animateTo(
-            if (isExpanded) WideNavigationRailValue.Collapsed else WideNavigationRailValue.Expanded
-        )
+        animateTo(!targetValue)
     }
 
     override suspend fun snapTo(targetValue: WideNavigationRailValue) {

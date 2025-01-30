@@ -130,7 +130,7 @@ class DateInputTest {
                 delayCompleted = true
             }
         }
-        rule.waitUntil("Waiting for focus", 3_000L) { delayCompleted }
+        rule.waitUntil("Waiting for focus", 5_000L) { delayCompleted }
         rule.onNodeWithText("05/11/2010").assertIsFocused()
     }
 
@@ -155,7 +155,7 @@ class DateInputTest {
                 delayCompleted = true
             }
         }
-        rule.waitUntil("Waiting for delay completion", 3_000L) { delayCompleted }
+        rule.waitUntil("Waiting for delay completion", 5_000L) { delayCompleted }
         rule.onNodeWithText("05/11/2010").assertIsNotFocused()
     }
 
@@ -192,7 +192,8 @@ class DateInputTest {
             val initialDateMillis = dayInUtcMilliseconds(year = 2022, month = 9, dayOfMonth = 10)
             state =
                 DatePickerState(
-                    locale = Locale.forLanguageTag("ar"),
+                    // Arabic locale with Arabic-Indic digits and symbols
+                    locale = Locale.forLanguageTag("ar-u-nu-arab"),
                     initialSelectedDateMillis = initialDateMillis,
                     initialDisplayMode = DisplayMode.Input
                 )

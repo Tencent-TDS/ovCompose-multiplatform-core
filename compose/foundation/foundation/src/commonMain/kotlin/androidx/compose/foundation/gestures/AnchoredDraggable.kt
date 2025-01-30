@@ -63,7 +63,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import kotlin.js.JsName
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min

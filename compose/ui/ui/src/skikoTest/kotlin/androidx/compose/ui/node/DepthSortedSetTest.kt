@@ -35,6 +35,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerIconService
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.TextToolbar
@@ -195,6 +196,7 @@ class DepthSortedSetTest {
         override val hapticFeedBack: HapticFeedback get() = throw IllegalStateException()
         override val inputModeManager: InputModeManager get() = throw IllegalStateException()
         override val clipboardManager: ClipboardManager get() = throw IllegalStateException()
+        override val clipboard: Clipboard get() = throw IllegalStateException()
         override val accessibilityManager: AccessibilityManager get() = throw IllegalStateException()
         override val graphicsContext: GraphicsContext get() = throw IllegalStateException()
         override val textToolbar: TextToolbar get() = throw IllegalStateException()
@@ -213,6 +215,7 @@ class DepthSortedSetTest {
         override fun localToScreen(localPosition: Offset): Offset = throw IllegalStateException()
         override val dragAndDropManager: DragAndDropManager get() = throw IllegalStateException()
         override val pointerIconService: PointerIconService get() = throw IllegalStateException()
+        override val semanticsOwner: SemanticsOwner get() = throw IllegalStateException()
         override val focusOwner: FocusOwner get() = throw IllegalStateException()
         override val windowInfo: WindowInfo get() = throw IllegalStateException()
         override val rectManager: RectManager get() = throw IllegalStateException()
@@ -224,11 +227,13 @@ class DepthSortedSetTest {
         override fun onRequestMeasure(layoutNode: LayoutNode, affectsLookahead: Boolean, forceRequest: Boolean, scheduleMeasureAndLayout: Boolean) = Unit
         override fun onRequestRelayout(layoutNode: LayoutNode, affectsLookahead: Boolean, forceRequest: Boolean) = Unit
         override fun requestOnPositionedCallback(layoutNode: LayoutNode) = Unit
-        override fun onAttach(node: LayoutNode) = Unit
+        override fun onPreAttach(node: LayoutNode) = Unit
+        override fun onPostAttach(node: LayoutNode) = Unit
         override fun onDetach(node: LayoutNode) = Unit
         override fun calculatePositionInWindow(localPosition: Offset): Offset = throw IllegalStateException()
         override fun calculateLocalPosition(positionInWindow: Offset): Offset = throw IllegalStateException()
         override fun requestFocus(): Boolean = throw IllegalStateException()
+        override fun requestAutofill(node: LayoutNode) = throw IllegalStateException()
         override fun measureAndLayout(sendPointerUpdate: Boolean) = throw IllegalStateException()
         override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) = throw IllegalStateException()
         override fun forceMeasureTheSubtree(layoutNode: LayoutNode, affectsLookahead: Boolean) = throw IllegalStateException()

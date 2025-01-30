@@ -16,16 +16,24 @@
 
 package androidx.compose.material3.adaptive.layout
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.Measurable
@@ -45,6 +53,55 @@ import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMap
 import kotlin.math.max
 import kotlin.math.min
+
+/** Interface that allows libraries to override the behavior of [ThreePaneScaffold]. */
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+interface ThreePaneScaffoldOverride {
+    /** Behavior function that is called by the [ThreePaneScaffold] composable. */
+    @Composable fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold()
+}
+
+/**
+ * Parameters available to [ThreePaneScaffold].
+ *
+ * @property modifier The modifier to be applied to the layout.
+ * @property scaffoldDirective The top-level directives about how the scaffold should arrange its
+ *   panes.
+ * @property scaffoldState The current state of the scaffold, containing information about the
+ *   adapted value of each pane of the scaffold and the transitions/animations in progress.
+ * @property paneOrder The horizontal order of the panes from start to end in the scaffold.
+ * @property secondaryPane The content of the secondary pane that has a priority lower then the
+ *   primary pane but higher than the tertiary pane.
+ * @property tertiaryPane The content of the tertiary pane that has the lowest priority.
+ * @property primaryPane The content of the primary pane that has the highest priority.
+ * @property paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
+ *   pane expansion state, `null` by default.
+ * @property paneExpansionState the state object of pane expansion state.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+class ThreePaneScaffoldOverrideContext
+internal constructor(
+    val modifier: Modifier,
+    val scaffoldDirective: PaneScaffoldDirective,
+    val scaffoldState: ThreePaneScaffoldState,
+    val paneOrder: ThreePaneScaffoldHorizontalOrder,
+    val primaryPane: @Composable () -> Unit,
+    val secondaryPane: @Composable () -> Unit,
+    val tertiaryPane: (@Composable () -> Unit)?,
+    val paneExpansionState: PaneExpansionState,
+    val paneExpansionDragHandle: (@Composable (PaneExpansionState) -> Unit)?,
+    internal val motionDataProvider: ThreePaneScaffoldMotionDataProvider
+)
+
+/** CompositionLocal containing the currently-selected [ThreePaneScaffoldOverride]. */
+@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:ExperimentalMaterial3AdaptiveComponentOverrideApi
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+val LocalThreePaneScaffoldOverride: ProvidableCompositionLocal<ThreePaneScaffoldOverride> =
+    compositionLocalOf {
+        DefaultThreePaneScaffoldOverride
+    }
 
 /**
  * A pane scaffold composable that can display up to three panes according to the instructions
@@ -69,6 +126,7 @@ import kotlin.math.min
  * @param tertiaryPane The content of the tertiary pane that has the lowest priority.
  * @param primaryPane The content of the primary pane that has the highest priority.
  */
+@OptIn(ExperimentalMaterial3AdaptiveComponentOverrideApi::class)
 @ExperimentalMaterial3AdaptiveApi
 @Composable
 internal fun ThreePaneScaffold(
@@ -78,7 +136,7 @@ internal fun ThreePaneScaffold(
     paneOrder: ThreePaneScaffoldHorizontalOrder,
     secondaryPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
     tertiaryPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(),
+    paneExpansionState: PaneExpansionState? = null,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
     primaryPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
@@ -98,6 +156,7 @@ internal fun ThreePaneScaffold(
     )
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveComponentOverrideApi::class)
 @ExperimentalMaterial3AdaptiveApi
 @Composable
 internal fun ThreePaneScaffold(
@@ -107,22 +166,28 @@ internal fun ThreePaneScaffold(
     paneOrder: ThreePaneScaffoldHorizontalOrder,
     secondaryPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
     tertiaryPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
-    paneExpansionState: PaneExpansionState = rememberPaneExpansionState(),
+    paneExpansionState: PaneExpansionState? = null,
     paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
         null,
     primaryPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
 ) {
+    val expansionState =
+        paneExpansionState
+            ?: rememberDefaultPaneExpansionState(
+                keyProvider = { scaffoldState.targetState },
+                mutable = paneExpansionDragHandle != null
+            )
     val layoutDirection = LocalLayoutDirection.current
     val ltrPaneOrder =
         remember(paneOrder, layoutDirection) { paneOrder.toLtrOrder(layoutDirection) }
     val paneMotions = scaffoldState.calculateThreePaneMotion(ltrPaneOrder)
-    val motionScope =
-        remember { ThreePaneScaffoldMotionScopeImpl() }
-            .apply { updateThreePaneMotion(paneMotions, ltrPaneOrder) }
+    val motionDataProvider =
+        remember { ThreePaneScaffoldMotionDataProvider() }
+            .apply { update(paneMotions, ltrPaneOrder) }
 
     val currentTransition = scaffoldState.rememberTransition()
     val transitionScope =
-        remember { ThreePaneScaffoldTransitionScopeImpl() }
+        remember { ThreePaneScaffoldTransitionScopeImpl(motionDataProvider) }
             .apply {
                 transitionState = scaffoldState
                 scaffoldStateTransition = currentTransition
@@ -130,50 +195,71 @@ internal fun ThreePaneScaffold(
 
     LookaheadScope {
         val scaffoldScope =
-            remember(currentTransition, this) {
-                ThreePaneScaffoldScopeImpl(motionScope, transitionScope, this)
-            }
-        // Create PaneWrappers for each of the panes and map the transitions according to each pane
-        // role and order.
+            remember(currentTransition, this) { ThreePaneScaffoldScopeImpl(transitionScope, this) }
+        with(LocalThreePaneScaffoldOverride.current) {
+            ThreePaneScaffoldOverrideContext(
+                    modifier = modifier,
+                    scaffoldDirective = scaffoldDirective,
+                    scaffoldState = scaffoldState,
+                    paneOrder = paneOrder,
+                    primaryPane = {
+                        rememberThreePaneScaffoldPaneScope(
+                                ThreePaneScaffoldRole.Primary,
+                                scaffoldScope,
+                                paneMotions[ThreePaneScaffoldRole.Primary]
+                            )
+                            .primaryPane()
+                    },
+                    secondaryPane = {
+                        rememberThreePaneScaffoldPaneScope(
+                                ThreePaneScaffoldRole.Secondary,
+                                scaffoldScope,
+                                paneMotions[ThreePaneScaffoldRole.Secondary]
+                            )
+                            .secondaryPane()
+                    },
+                    tertiaryPane =
+                        if (tertiaryPane == null) null
+                        else {
+                            {
+                                rememberThreePaneScaffoldPaneScope(
+                                        ThreePaneScaffoldRole.Tertiary,
+                                        scaffoldScope,
+                                        paneMotions[ThreePaneScaffoldRole.Tertiary]
+                                    )
+                                    .tertiaryPane()
+                            }
+                        },
+                    paneExpansionState = expansionState,
+                    paneExpansionDragHandle =
+                        if (paneExpansionDragHandle == null) null
+                        else {
+                            { paneExpansionState ->
+                                scaffoldScope.paneExpansionDragHandle(paneExpansionState)
+                            }
+                        },
+                    motionDataProvider = motionDataProvider
+                )
+                .ThreePaneScaffold()
+        }
+    }
+}
+
+/** [ThreePaneScaffoldOverride] used when no override is specified. */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+private object DefaultThreePaneScaffoldOverride : ThreePaneScaffoldOverride {
+    @Composable
+    override fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold() {
+        val layoutDirection = LocalLayoutDirection.current
+        val ltrPaneOrder =
+            remember(paneOrder, layoutDirection) { paneOrder.toLtrOrder(layoutDirection) }
         val contents =
             listOf<@Composable () -> Unit>(
-                {
-                    remember(scaffoldScope) {
-                            ThreePaneScaffoldPaneScopeImpl(
-                                ThreePaneScaffoldRole.Primary,
-                                scaffoldScope
-                            )
-                        }
-                        .apply { updatePaneMotion(paneMotions) }
-                        .primaryPane()
-                },
-                {
-                    remember(scaffoldScope) {
-                            ThreePaneScaffoldPaneScopeImpl(
-                                ThreePaneScaffoldRole.Secondary,
-                                scaffoldScope
-                            )
-                        }
-                        .apply { updatePaneMotion(paneMotions) }
-                        .secondaryPane()
-                },
-                {
-                    if (tertiaryPane != null) {
-                        remember(scaffoldScope) {
-                                ThreePaneScaffoldPaneScopeImpl(
-                                    ThreePaneScaffoldRole.Tertiary,
-                                    scaffoldScope
-                                )
-                            }
-                            .apply { updatePaneMotion(paneMotions) }
-                            .tertiaryPane()
-                    }
-                },
-                {
-                    if (paneExpansionDragHandle != null) {
-                        scaffoldScope.paneExpansionDragHandle(paneExpansionState)
-                    }
-                }
+                primaryPane,
+                secondaryPane,
+                tertiaryPane ?: {},
+                { paneExpansionDragHandle?.invoke(paneExpansionState) }
             )
 
         val measurePolicy =
@@ -183,7 +269,7 @@ internal fun ThreePaneScaffold(
                         scaffoldState.targetState,
                         paneExpansionState,
                         ltrPaneOrder,
-                        motionScope
+                        motionDataProvider
                     )
                 }
                 .apply {
@@ -192,7 +278,14 @@ internal fun ThreePaneScaffold(
                     this.paneOrder = ltrPaneOrder
                 }
 
-        Layout(contents = contents, modifier = modifier, measurePolicy = measurePolicy)
+        val predictiveBackScale = remember { Animatable(initialValue = 1f) }
+        PredictiveBackScaleEffect(scaffoldState, predictiveBackScale)
+
+        Layout(
+            contents = contents,
+            modifier = modifier.predictiveBackTransform(predictiveBackScale::value),
+            measurePolicy = measurePolicy,
+        )
     }
 }
 
@@ -202,7 +295,7 @@ private class ThreePaneContentMeasurePolicy(
     scaffoldValue: ThreePaneScaffoldValue,
     val paneExpansionState: PaneExpansionState,
     paneOrder: ThreePaneScaffoldHorizontalOrder,
-    val paneMotionScope: ThreePaneScaffoldMotionScopeImpl
+    val motionDataProvider: ThreePaneScaffoldMotionDataProvider
 ) : MultiContentMeasurePolicy {
     var scaffoldDirective by mutableStateOf(scaffoldDirective)
     var scaffoldValue by mutableStateOf(scaffoldValue)
@@ -220,7 +313,7 @@ private class ThreePaneContentMeasurePolicy(
             if (coordinates == null) {
                 return@layout
             }
-            paneMotionScope.scaffoldSize = IntSize(constraints.maxWidth, constraints.maxHeight)
+            motionDataProvider.scaffoldSize = IntSize(constraints.maxWidth, constraints.maxHeight)
             val visiblePanes =
                 getPanesMeasurables(
                     paneOrder = paneOrder,
@@ -614,7 +707,7 @@ private class ThreePaneContentMeasurePolicy(
                 return
             }
             with(it) {
-                val measuredData = paneMotionScope.paneMotionDataList[paneOrder.indexOf(it.role)]
+                val measuredData = motionDataProvider[it.role]
                 measureAndPlace(
                     measuredData.targetSize.width,
                     partitionHeight,
@@ -630,7 +723,7 @@ private class ThreePaneContentMeasurePolicy(
         if (!isLookingAhead) {
             return
         }
-        val paneMotionData = paneMotionScope.paneMotionDataList[paneOrder.indexOf(role)]
+        val paneMotionData = motionDataProvider[role]
         if (!paneMotionData.isOriginSizeAndPositionSet) {
             // During animation remeasuring can happen multiple times, with the measuring result
             // equals to the lookahead measure. We don't want to override the original measurement
@@ -701,6 +794,7 @@ private class ThreePaneContentMeasurePolicy(
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 private class PaneMeasurable(
     val measurable: Measurable,
     val priority: Int,
@@ -708,16 +802,17 @@ private class PaneMeasurable(
     defaultPreferredWidth: Int
 ) {
     private val data =
-        ((measurable.parentData as? PaneScaffoldParentData) ?: PaneScaffoldParentData())
+        ((measurable.parentData as? PaneScaffoldParentData) ?: PaneScaffoldParentDataImpl())
 
     var measuringWidth =
-        if (data.preferredWidth == null || data.preferredWidth!!.isNaN()) {
+        if (data.preferredWidth.isNaN()) {
             defaultPreferredWidth
         } else {
-            data.preferredWidth!!.toInt()
+            data.preferredWidth.toInt()
         }
 
-    val margins: PaneMargins = data.paneMargins
+    // TODO(conradchen): uncomment it when we can expose PaneMargins
+    // val margins: PaneMargins = data.paneMargins
 
     val isAnimatedPane = data.isAnimatedPane
 
@@ -791,3 +886,43 @@ internal object ThreePaneScaffoldDefaults {
      */
     const val HiddenPaneZIndex = -0.1f
 }
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+private fun PredictiveBackScaleEffect(
+    scaffoldState: ThreePaneScaffoldState,
+    animatable: Animatable<Float, AnimationVector1D>,
+) {
+    LaunchedEffect(scaffoldState) {
+        snapshotFlow { scaffoldState.progressFraction }
+            .collect { value ->
+                if (scaffoldState.isPredictiveBackInProgress) {
+                    val scale = convertStateProgressToPredictiveBackScale(value)
+                    animatable.snapTo(scale)
+                } else {
+                    animatable.animateTo(1f)
+                }
+            }
+    }
+}
+
+private const val PredictiveBackMinScale: Float = 0.95f
+
+private fun convertStateProgressToPredictiveBackScale(fraction: Float): Float {
+    // A decay curve such that: When fraction = 0, function returns 1.
+    // When fraction -> 1, function asymptotically approaches PredictiveBackMinScale
+    val delta = 1f - PredictiveBackMinScale
+    val shift = delta / 2
+    val curveScale = delta * delta / 2
+    return curveScale / (fraction + shift) + PredictiveBackMinScale
+}
+
+private fun Modifier.predictiveBackTransform(scale: () -> Float): Modifier = graphicsLayer {
+    val scaleValue = scale()
+    scaleX = scaleValue
+    scaleY = scaleValue
+    transformOrigin = TransformOriginTopCenter
+}
+
+// TODO(371450910): Investigate why animation fails if transform origin has y != 0.
+private val TransformOriginTopCenter = TransformOrigin(pivotFractionX = 0.5f, pivotFractionY = 0f)

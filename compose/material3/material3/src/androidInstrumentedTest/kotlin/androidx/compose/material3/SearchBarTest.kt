@@ -22,21 +22,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.onConsumedWindowInsetsChanged
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.Ref
@@ -45,13 +51,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -59,6 +70,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,6 +82,7 @@ class SearchBarTest {
     @get:Rule val rule = createComposeRule()
 
     private val SearchBarTestTag = "SearchBar"
+    private val ScrollableContentTestTag = "Scrollable"
     private val IconTestTag = "Icon"
     private val BackTestTag = "Back"
 
@@ -532,5 +545,164 @@ class SearchBarTest {
         assertThat(colors.inputFieldColors.focusedContainerColor).isEqualTo(Color.Red)
         assertThat(colors.inputFieldColors.unfocusedContainerColor).isEqualTo(Color.Red)
         assertThat(colors.inputFieldColors.disabledContainerColor).isEqualTo(Color.Red)
+    }
+
+    // Tests for new search bar APIs below this section
+
+    @Test
+    fun topSearchBar_scrollBehavior_showsAndHidesWithVerticalScroll() {
+        rule.setMaterialContent(lightColorScheme()) { SearchBarWithScrollableContent() }
+
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+
+        // swipe up/scroll down -> search bar hides
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsNotDisplayed()
+
+        // swipe down/scroll up -> search bar reappears
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeDown() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun topSearchBar_scrollBehavior_showsAndHidesWithVerticalScroll_reverseLayout() {
+        rule.setMaterialContent(lightColorScheme()) {
+            val reverseLayout = true
+            val scrollBehavior =
+                SearchBarDefaults.enterAlwaysSearchBarScrollBehavior(reverseLayout = reverseLayout)
+            SearchBarWithScrollableContent(
+                searchBarScrollBehavior = scrollBehavior,
+                reverseLayout = reverseLayout,
+            )
+        }
+
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+
+        // swipe down/scroll up -> search bar stays on screen
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeDown() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+
+        // swipe up/scroll down -> search bar hides
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsNotDisplayed()
+
+        // swipe down/scroll up -> search bar reappears
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeDown() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun topSearchBar_scrollBehavior_scrollDisabled() {
+        var canScroll by mutableStateOf(true)
+        rule.setMaterialContent(lightColorScheme()) {
+            val scrollBehavior =
+                SearchBarDefaults.enterAlwaysSearchBarScrollBehavior(
+                    canScroll = { canScroll },
+                )
+            SearchBarWithScrollableContent(
+                searchBarScrollBehavior = scrollBehavior,
+            )
+        }
+
+        // search bar is initially displayed
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+
+        rule.runOnIdle { canScroll = false }
+
+        // swipe up/scroll down -> search bar does NOT hide
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+
+        rule.runOnIdle { canScroll = true }
+
+        // swipe up/scroll down -> search bar hides
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsNotDisplayed()
+
+        rule.runOnIdle { canScroll = false }
+
+        // swipe down/scroll up -> search bar does NOT reappear
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeDown() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsNotDisplayed()
+
+        rule.runOnIdle { canScroll = true }
+
+        // swipe down/scroll up -> search bar reappears
+        rule.onNodeWithTag(ScrollableContentTestTag).performTouchInput { swipeDown() }
+        rule.waitForIdle()
+        rule.onNodeWithTag(SearchBarTestTag).assertIsDisplayed()
+    }
+
+    @Test
+    fun topSearchBar_scrollBehavior_restoresOffsetState() {
+        val restorationTester = StateRestorationTester(rule)
+        var scrollBehavior: SearchBarScrollBehavior? = null
+        restorationTester.setContent {
+            scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
+        }
+
+        rule.runOnIdle {
+            scrollBehavior!!.scrollOffsetLimit = -350f
+            scrollBehavior!!.scrollOffset = -300f
+        }
+
+        scrollBehavior = null
+
+        restorationTester.emulateSavedInstanceStateRestore()
+
+        rule.runOnIdle {
+            assertThat(scrollBehavior!!.scrollOffsetLimit).isEqualTo(-350f)
+            assertThat(scrollBehavior!!.scrollOffset).isEqualTo(-300f)
+        }
+    }
+
+    @Composable
+    private fun SearchBarWithScrollableContent(
+        searchBarScrollBehavior: SearchBarScrollBehavior =
+            SearchBarDefaults.enterAlwaysSearchBarScrollBehavior(),
+        reverseLayout: Boolean = false,
+    ) {
+        val textFieldState = rememberTextFieldState()
+        val searchBarState = rememberSearchBarState()
+        val scope = rememberCoroutineScope()
+        Scaffold(
+            modifier = Modifier.nestedScroll(searchBarScrollBehavior.nestedScrollConnection),
+            topBar = {
+                TopSearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    scrollBehavior = searchBarScrollBehavior,
+                    state = searchBarState,
+                    inputField = {
+                        SearchBarDefaults.InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            onSearch = { scope.launch { searchBarState.animateToCollapsed() } },
+                            placeholder = { Text("Search") },
+                        )
+                    },
+                    content = {},
+                )
+            }
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier.testTag(ScrollableContentTestTag),
+                contentPadding = innerPadding,
+                reverseLayout = reverseLayout,
+            ) {
+                items(100) {
+                    Box(modifier = Modifier.fillMaxWidth().height(60.dp)) {
+                        Text(text = it.toString())
+                    }
+                }
+            }
+        }
     }
 }

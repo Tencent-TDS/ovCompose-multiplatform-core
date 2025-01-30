@@ -161,6 +161,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
+                implementation(project(":performance:performance-annotation"))
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
 
@@ -173,6 +174,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api project(":compose:ui:ui-text")
                 api project(":compose:ui:ui-unit")
                 api project(":compose:ui:ui-util")
+                implementation(project(":compose:ui:ui-backhandler"))
 
                 // TODO(igor): figure out how to avoid downgrading runtime to 1.6 in case of project dependencies in mpp demo + pinned lifecycle here
                 implementation(project(":lifecycle:lifecycle-common"))
@@ -341,6 +343,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinCoroutinesSwing)
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(project(":compose:material:material"))
+                implementation(project(":compose:material3:material3"))
                 implementation(project(":compose:ui:ui-test-junit4"))
             }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
 
 package androidx.compose.ui.spatial
 
@@ -98,17 +98,21 @@ internal class RectList {
      * keep this in mind if you call this method and have cached any of those values in a local
      * variable, you may need to refresh them.
      */
-    internal fun allocateItemsIndex(): Int {
+    private inline fun allocateItemsIndex(): Int {
         val currentItems = items
         val currentSize = itemsSize
         itemsSize = currentSize + LongsPerItem
         val actualSize = currentItems.size
         if (actualSize <= currentSize + LongsPerItem) {
-            val newSize = max(actualSize * 2, currentSize + LongsPerItem)
-            items = currentItems.copyOf(newSize)
-            stack = stack.copyOf(newSize)
+            resizeStorage(actualSize, currentSize, currentItems)
         }
         return currentSize
+    }
+
+    private fun resizeStorage(actualSize: Int, currentSize: Int, currentItems: LongArray) {
+        val newSize = max(actualSize * 2, currentSize + LongsPerItem)
+        items = currentItems.copyOf(newSize)
+        stack = stack.copyOf(newSize)
     }
 
     /**
@@ -397,6 +401,28 @@ internal class RectList {
         return false
     }
 
+    /**
+     * Returns the first index for the item that matches the metadata value of [value], returns -1
+     * if the item wasn't found.
+     *
+     * Note that returned index corresponds to the Long that contains the topLeft data of the item.
+     */
+    fun indexOf(value: Int): Int {
+        val value = value and Lower26Bits
+        val items = items
+        val size = itemsSize
+        var i = 0
+        while (i < items.size - 2) {
+            if (i >= size) break
+            val meta = items[i + 2]
+            if (unpackMetaValue(meta) == value) {
+                return i
+            }
+            i += LongsPerItem
+        }
+        return -1
+    }
+
     fun metaFor(value: Int): Long {
         val value = value and Lower26Bits
         val items = items
@@ -487,6 +513,42 @@ internal class RectList {
             if (rectIntersectsRect(topLeft, bottomRight, destXY, destXY)) {
                 val meta = items[i + 2]
                 block(unpackMetaValue(meta))
+            }
+            i += LongsPerItem
+        }
+    }
+
+    /**
+     * For the rectangle at the given [index], calls [block] for each other rectangles that
+     * intersects with it. The parameters in [block] are the intersecting rect and its 'value'.
+     */
+    inline fun forEachIntersectingRectWithValueAt(
+        index: Int,
+        block: (Int, Int, Int, Int, Int) -> Unit
+    ) {
+        val items = items
+        val size = itemsSize
+
+        val destTopLeft = items[index]
+        val destBottomRight = items[index + 1]
+
+        var i = 0
+        while (i < items.size - 2) {
+            if (i >= size) break
+            if (i == index) {
+                i += LongsPerItem
+                continue
+            }
+            val topLeft = items[i + 0]
+            val bottomRight = items[i + 1]
+            if (rectIntersectsRect(topLeft, bottomRight, destTopLeft, destBottomRight)) {
+                block(
+                    unpackX(topLeft),
+                    unpackY(topLeft),
+                    unpackX(bottomRight),
+                    unpackY(bottomRight),
+                    unpackMetaValue(items[i + 2])
+                )
             }
             i += LongsPerItem
         }

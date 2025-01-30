@@ -367,12 +367,13 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
-private val coreKmpLibraries = setOf(
+private val jetBrainsLibrariesWithAndroidTarget = setOf(
     ":core:core-bundle",
     ":core:core-uri",
+    ":compose:ui:ui-backhandler",
 )
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
-    if (project.path !in coreKmpLibraries) return
+    if (project.path !in jetBrainsLibrariesWithAndroidTarget) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {
