@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
 import kotlin.math.roundToInt
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -378,7 +377,6 @@ class SkiaGraphicsLayerTest {
         )
     }
 
-    @Ignore // Enable after switching to dynamic shadows
     @Test
     fun testElevation() {
         var layer: GraphicsLayer?
@@ -421,7 +419,6 @@ class SkiaGraphicsLayerTest {
         )
     }
 
-    @Ignore // Enable after switching to dynamic shadows
     @Test
     fun testElevationPath() {
         var layer: GraphicsLayer?
@@ -476,7 +473,6 @@ class SkiaGraphicsLayerTest {
         )
     }
 
-    @Ignore // Enable after switching to dynamic shadows
     @Test
     fun testElevationRoundRect() {
         var layer: GraphicsLayer?
@@ -1030,6 +1026,7 @@ class SkiaGraphicsLayerTest {
         )
         val surface = Surface.makeRasterN32Premul(surfaceWidth, surfaceHeight)
         val canvas = surface.canvas
+
         val drawScope = CanvasDrawScope()
         try {
             drawScope.draw(
