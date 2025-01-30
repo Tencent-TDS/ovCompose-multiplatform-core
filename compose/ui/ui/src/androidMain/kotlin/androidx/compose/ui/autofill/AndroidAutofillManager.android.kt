@@ -27,7 +27,12 @@ import android.view.autofill.AutofillValue
 import androidx.annotation.RequiresApi
 import androidx.collection.MutableIntSet
 import androidx.collection.mutableObjectListOf
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.focus.FocusListener
+import androidx.compose.ui.focus.FocusTargetModifierNode
 import androidx.compose.ui.internal.checkPreconditionNotNull
+import androidx.compose.ui.node.requireSemanticsInfo
 import androidx.compose.ui.platform.coreshims.ViewCompatShims
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsConfiguration
@@ -54,7 +59,7 @@ internal class AndroidAutofillManager(
     private val view: View,
     private val rectManager: RectManager,
     private val packageName: String,
-) : AutofillManager(), SemanticsListener {
+) : AutofillManager(), SemanticsListener, FocusListener {
     private var reusableRect = Rect()
     private var rootAutofillId: AutofillId
 
@@ -72,16 +77,22 @@ internal class AndroidAutofillManager(
         platformAutofillManager.cancel()
     }
 
-    // This will be used to request autofill when
-    // `AutofillManager.requestAutofillForActiveElement()` is called (e.g. from the text toolbar).
-    private var previouslyFocusedId = -1
-
-    override fun requestAutofillForActiveElement() {
-        if (previouslyFocusedId <= 0) return
-
-        rectManager.rects.withRect(previouslyFocusedId) { left, top, right, bottom ->
-            reusableRect.set(left, top, right, bottom)
-            platformAutofillManager.requestAutofill(view, previouslyFocusedId, reusableRect)
+    override fun onFocusChanged(
+        previous: FocusTargetModifierNode?,
+        current: FocusTargetModifierNode?
+    ) {
+        previous?.requireSemanticsInfo()?.let {
+            if (it.semanticsConfiguration?.isAutofillable() == true) {
+                platformAutofillManager.notifyViewExited(view, it.semanticsId)
+            }
+        }
+        current?.requireSemanticsInfo()?.let {
+            if (it.semanticsConfiguration?.isAutofillable() == true) {
+                val semanticsId = it.semanticsId
+                rectManager.rects.withRect(semanticsId) { l, t, r, b ->
+                    platformAutofillManager.notifyViewEntered(view, semanticsId, Rect(l, t, r, b))
+                }
+            }
         }
     }
 
@@ -109,22 +120,17 @@ internal class AndroidAutofillManager(
         }
 
         // Check Focus.
-        // TODO: Instead of saving the focused item here, add some internal API to focusManager
-        //  so that this could be more efficient.
-        val previousFocus = prevConfig?.getOrNull(SemanticsProperties.Focused)
-        val currFocus = config?.getOrNull(SemanticsProperties.Focused)
-        if (previousFocus != true && currFocus == true && config.isAutofillable()) {
-            previouslyFocusedId = semanticsId
-            rectManager.rects.withRect(semanticsId) { left, top, right, bottom ->
-                platformAutofillManager.notifyViewEntered(
-                    view,
-                    semanticsId,
-                    Rect(left, top, right, bottom)
-                )
+        if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isTrackFocusEnabled) {
+            val previousFocus = prevConfig?.getOrNull(SemanticsProperties.Focused)
+            val currFocus = config?.getOrNull(SemanticsProperties.Focused)
+            if (previousFocus != true && currFocus == true && config.isAutofillable()) {
+                rectManager.rects.withRect(semanticsId) { l, t, r, b ->
+                    platformAutofillManager.notifyViewEntered(view, semanticsId, Rect(l, t, r, b))
+                }
             }
-        }
-        if (previousFocus == true && currFocus != true && prevConfig.isAutofillable()) {
-            platformAutofillManager.notifyViewExited(view, semanticsId)
+            if (previousFocus == true && currFocus != true && prevConfig.isAutofillable()) {
+                platformAutofillManager.notifyViewExited(view, semanticsId)
+            }
         }
 
         // Update currentlyDisplayedIDs if relevance to Autocommit has changed.
@@ -214,6 +220,13 @@ internal class AndroidAutofillManager(
     // be needed by ContentCapture and Accessibility.
     private var currentlyDisplayedIDs = MutableIntSet()
     private var pendingChangesToDisplayedIds = false
+
+    internal fun requestAutofill(semanticsInfo: SemanticsInfo) {
+        rectManager.rects.withRect(semanticsInfo.semanticsId) { left, top, right, bottom ->
+            reusableRect.set(left, top, right, bottom)
+            platformAutofillManager.requestAutofill(view, semanticsInfo.semanticsId, reusableRect)
+        }
+    }
 
     internal fun onPostAttach(semanticsInfo: SemanticsInfo) {
         if (semanticsInfo.semanticsConfiguration?.isRelatedToAutoCommit() == true) {

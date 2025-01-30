@@ -82,6 +82,9 @@ internal class TextAnnotatedStringNode(
     private var autoSize: TextAutoSize? = null,
     private var onShowTranslation: ((TextSubstitutionValue) -> Unit)? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    override val shouldAutoInvalidate: Boolean
+        get() = false
+
     @Suppress("PrimitiveInCollection")
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
 

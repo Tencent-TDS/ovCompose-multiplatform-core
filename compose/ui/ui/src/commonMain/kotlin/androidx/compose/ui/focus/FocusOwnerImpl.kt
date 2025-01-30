@@ -17,6 +17,7 @@
 package androidx.compose.ui.focus
 
 import androidx.collection.MutableLongSet
+import androidx.collection.MutableObjectList
 import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -465,15 +466,19 @@ internal class FocusOwnerImpl(
     override val rootState: FocusState
         get() = rootFocusNode.focusState
 
+    override val listeners: MutableObjectList<FocusListener> = MutableObjectList(1)
+
     override var activeFocusTargetNode: FocusTargetNode? = null
         set(value) {
             val previousValue = field
             field = value
             if (value == null || previousValue !== value) isFocusCaptured = false
+            if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isSemanticAutofillEnabled) {
+                listeners.forEach { it.onFocusChanged(previousValue, value) }
+            }
         }
 
     override var isFocusCaptured: Boolean = false
-        get() = field
         set(value) {
             requirePrecondition(!value || activeFocusTargetNode != null) {
                 "Cannot capture focus when the active focus target node is unset"

@@ -118,6 +118,12 @@ internal class LayoutNode(
                 if (newRoot != null) {
                     layoutDelegate.ensureLookaheadDelegateCreated()
                     forEachCoordinatorIncludingInner { it.ensureLookaheadDelegateCreated() }
+                } else {
+                    // When lookahead root is set to null, clear the lookahead pass delegate.
+                    // This can happen when lookaheadScope is removed in one of the parents, or
+                    // more likely when movableContent moves from a parent in a LookaheadScope to
+                    // a parent not in a LookaheadScope.
+                    layoutDelegate.clearLookaheadDelegate()
                 }
                 invalidateMeasurements()
             }
@@ -400,7 +406,15 @@ internal class LayoutNode(
 
     override fun isTransparent(): Boolean = outerCoordinator.isTransparent()
 
-    private var isSemanticsInvalidated = false
+    internal var isSemanticsInvalidated = false
+
+    internal fun requestAutofill() {
+        // Ignore calls while semantics are being applied (b/378114177).
+        if (isCurrentlyCalculatingSemanticsConfiguration) return
+
+        val owner = requireOwner()
+        owner.requestAutofill(this)
+    }
 
     internal fun invalidateSemantics() {
         // Ignore calls to invalidate Semantics while semantics are being applied (b/378114177).
@@ -923,6 +937,9 @@ internal class LayoutNode(
             requirePrecondition(!isDeactivated) { "modifier is updated when deactivated" }
             if (isAttached) {
                 applyModifier(value)
+                if (isSemanticsInvalidated) {
+                    invalidateSemantics()
+                }
             } else {
                 pendingModifier = value
             }
@@ -934,19 +951,6 @@ internal class LayoutNode(
         layoutDelegate.updateParentData()
         if (lookaheadRoot == null && nodes.has(Nodes.ApproachMeasure)) {
             lookaheadRoot = this
-        }
-        // Notify semantics listeners if semantics was invalidated.
-        @OptIn(ExperimentalComposeUiApi::class)
-        if (ComposeUiFlags.isSemanticAutofillEnabled && isSemanticsInvalidated) {
-            val prev = _semanticsConfiguration
-            _semanticsConfiguration = calculateSemanticsConfiguration()
-            isSemanticsInvalidated = false
-            val owner = requireOwner()
-            owner.semanticsOwner.notifySemanticsChange(this, prev)
-
-            // This is needed for Accessibility and ContentCapture. Remove after these systems
-            // are migrated to use SemanticsInfo and SemanticListeners.
-            owner.onSemanticsChange()
         }
     }
 

@@ -69,7 +69,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -302,7 +301,6 @@ internal fun BasicTextField(
     val currentHapticFeedback = LocalHapticFeedback.current
     val currentClipboard = LocalClipboard.current
     val currentTextToolbar = LocalTextToolbar.current
-    val autofillManager = LocalAutofillManager.current
 
     val textToolbarHandler =
         remember(coroutineScope, currentTextToolbar) {
@@ -361,7 +359,6 @@ internal fun BasicTextField(
             enabled = enabled,
             readOnly = readOnly,
             isPassword = isPassword,
-            autofillManager = autofillManager,
             showTextToolbar = textToolbarHandler
         )
     }

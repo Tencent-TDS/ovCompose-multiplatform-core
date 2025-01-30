@@ -77,6 +77,9 @@ internal class TextStringSimpleNode(
     private var minLines: Int = DefaultMinLines,
     private var overrideColor: ColorProducer? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    override val shouldAutoInvalidate: Boolean
+        get() = false
+
     @Suppress("PrimitiveInCollection") // Map required for use in public API.
     // Usages of this collection are so few that the gains of using
     // MutableObjectIntMap<AlignmentLine> and then converting to a Map<AlignmentLine, Int>

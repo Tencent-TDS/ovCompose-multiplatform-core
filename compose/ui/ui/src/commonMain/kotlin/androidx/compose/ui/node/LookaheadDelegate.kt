@@ -223,7 +223,7 @@ internal abstract class LookaheadCapablePlaceable :
     override fun layout(
         width: Int,
         height: Int,
-        alignmentLines: Map<out AlignmentLine, Int>,
+        alignmentLines: Map<AlignmentLine, Int>,
         rulers: (RulerScope.() -> Unit)?,
         placementBlock: PlacementScope.() -> Unit
     ): MeasureResult {
@@ -235,7 +235,7 @@ internal abstract class LookaheadCapablePlaceable :
             override val height: Int
                 get() = height
 
-            override val alignmentLines: Map<out AlignmentLine, Int>
+            override val alignmentLines: Map<AlignmentLine, Int>
                 get() = alignmentLines
 
             override val rulers: (RulerScope.() -> Unit)?

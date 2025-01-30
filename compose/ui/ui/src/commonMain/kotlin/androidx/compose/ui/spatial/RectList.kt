@@ -18,7 +18,6 @@
 
 package androidx.compose.ui.spatial
 
-import dalvik.annotation.optimization.NeverInline
 import kotlin.jvm.JvmField
 import kotlin.math.max
 import kotlin.math.min
@@ -110,7 +109,6 @@ internal class RectList {
         return currentSize
     }
 
-    @NeverInline
     private fun resizeStorage(actualSize: Int, currentSize: Int, currentItems: LongArray) {
         val newSize = max(actualSize * 2, currentSize + LongsPerItem)
         items = currentItems.copyOf(newSize)

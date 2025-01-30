@@ -49,6 +49,7 @@ import kotlin.math.min
  */
 internal class MultiParagraphLayoutCache(
     private var text: AnnotatedString,
+    /** The style used for layout. Ensure to call [markStyleAffectedDirty] when mutating. */
     private var style: TextStyle,
     private var fontFamilyResolver: FontFamily.Resolver,
     private var overflow: TextOverflow = TextOverflow.Clip,
@@ -134,6 +135,7 @@ internal class MultiParagraphLayoutCache(
             } else {
                 constraints
             }
+
         if (!layoutCache.newLayoutWillBeDifferent(finalConstraints, layoutDirection)) {
             if (finalConstraints == layoutCache!!.layoutInput.constraints) return false
             // we need to regen the input, constraints aren't the same
@@ -163,7 +165,7 @@ internal class MultiParagraphLayoutCache(
             // paragraphIntrinsics now does not match with style and needs to be set to null
             // otherwise the correct font size will not be used in layout
             style = style.copy(fontSize = optimalFontSize)
-            paragraphIntrinsics = null
+            markStyleAffectedDirty()
         }
 
         val multiParagraph = layoutText(finalConstraints, layoutDirection)
@@ -238,10 +240,18 @@ internal class MultiParagraphLayoutCache(
         val localWidth = cachedIntrinsicHeightInputWidth
         val localHeght = cachedIntrinsicHeight
         if (width == localWidth && localWidth != -1) return localHeght
+        val constraints = Constraints(0, width, 0, Constraints.Infinity)
+        val finalConstraints =
+            if (minLines > 1) {
+                useMinLinesConstrainer(constraints, layoutDirection)
+            } else {
+                constraints
+            }
         val result =
-            layoutText(Constraints(0, width, 0, Constraints.Infinity), layoutDirection)
+            layoutText(finalConstraints, layoutDirection)
                 .height
                 .ceilToIntPx()
+                .coerceAtLeast(finalConstraints.minHeight)
 
         cachedIntrinsicHeightInputWidth = width
         cachedIntrinsicHeight = result
@@ -360,20 +370,19 @@ internal class MultiParagraphLayoutCache(
         return false
     }
 
-    /**
-     * Compute the maxWidth for text layout from [Constraints]
-     *
-     * Falls back to [paragraphIntrinsics.maxIntrinsicWidth] when not exact constraints.
-     */
-    private fun maxWidth(constraints: Constraints): Int =
-        finalMaxWidth(constraints, softWrap, overflow, paragraphIntrinsics!!.maxIntrinsicWidth)
-
     private fun markDirty() {
         paragraphIntrinsics = null
         layoutCache = null
         cachedIntrinsicHeight = -1
         cachedIntrinsicHeightInputWidth = -1
         _textAutoSizeLayoutScope = null
+    }
+
+    private fun markStyleAffectedDirty() {
+        paragraphIntrinsics = null
+        layoutCache = null
+        cachedIntrinsicHeight = -1
+        cachedIntrinsicHeightInputWidth = -1
     }
 
     /** The width at which increasing the width of the text no longer decreases the height. */
@@ -408,6 +417,7 @@ internal class MultiParagraphLayoutCache(
             val scaledFontSize = fontSize.scaledToInitialFontSize()
             if (scaledFontSize != style.fontSize) {
                 style = style.copy(fontSize = scaledFontSize)
+                markStyleAffectedDirty()
             }
 
             val layoutConstraints =
@@ -428,6 +438,8 @@ internal class MultiParagraphLayoutCache(
                     layoutConstraints,
                     multiParagraph,
                 )
+            // We're restoring the original style but purposefully not marking the style-affected
+            // caches dirty as this will be done in layoutWithConstraints after auto size if needed.
             style = styleBeforeLayout
             return layoutCache!!
         }

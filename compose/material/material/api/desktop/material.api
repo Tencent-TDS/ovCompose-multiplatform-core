@@ -496,7 +496,7 @@ public final class androidx/compose/material/ExposedDropdownMenuDefaults {
 	public final fun textFieldColors-DlUQjxs (JJJJJJJJJJJJJJJJJJJJJJLandroidx/compose/runtime/Composer;IIII)Landroidx/compose/material/TextFieldColors;
 }
 
-public final class androidx/compose/material/ExposedDropdownMenuKt {
+public final class androidx/compose/material/ExposedDropdownMenu_skikoKt {
 	public static final fun ExposedDropdownMenuBox (ZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
