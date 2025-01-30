@@ -80,7 +80,7 @@ dependencies {
 
         implementation("androidx.activity:activity-ktx:1.7.0-rc01")
         implementation("androidx.core:core:1.9.0")
-        implementation('androidx.collection:collection:1.0.0')
+        implementation("androidx.collection:collection:1.5.0-beta02")
         implementation("androidx.customview:customview-poolingcontainer:1.0.0")
         implementation("androidx.savedstate:savedstate-ktx:1.2.0")
         implementation("androidx.lifecycle:lifecycle-runtime:2.6.0")
@@ -159,8 +159,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(project(":annotation:annotation"))
-                implementation(project(":collection:collection"))
+                implementation("androidx.annotation:annotation:1.9.1")
+                implementation("androidx.collection:collection:1.5.0-beta02")
                 implementation(project(":performance:performance-annotation"))
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
@@ -194,7 +194,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
                 implementation("androidx.activity:activity-ktx:1.7.0-rc01")
                 implementation("androidx.core:core:1.9.0")
-                implementation('androidx.collection:collection:1.0.0')
+                implementation("androidx.collection:collection:1.5.0-beta02")
                 implementation("androidx.customview:customview-poolingcontainer:1.0.0")
                 implementation("androidx.savedstate:savedstate-ktx:1.2.0")
                 implementation("androidx.lifecycle:lifecycle-runtime:2.6.0")

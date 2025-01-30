@@ -68,7 +68,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(project(":lifecycle:lifecycle-runtime"))
-                api(project(":annotation:annotation"))
+                api("androidx.annotation:annotation:1.9.1")
 
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)

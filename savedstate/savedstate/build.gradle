@@ -49,7 +49,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api("androidx.annotation:annotation:1.9.1")
                 api(project(":core:core-bundle"))
                 api("org.jetbrains.androidx.lifecycle:lifecycle-common:2.8.4")
             }

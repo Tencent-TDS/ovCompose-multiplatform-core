@@ -115,8 +115,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:ui:ui-backhandler"))
                 implementation(project(":compose:foundation:foundation-layout"))
-                implementation(project(":annotation:annotation"))
-                implementation(project(":collection:collection"))
+                implementation("androidx.annotation:annotation:1.9.1")
+                implementation("androidx.collection:collection:1.5.0-beta02")
             }
 
             androidMain.dependencies {

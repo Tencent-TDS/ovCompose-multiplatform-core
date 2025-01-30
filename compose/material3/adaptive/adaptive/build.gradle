@@ -71,7 +71,7 @@ kotlin {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api(project(":annotation:annotation"))
+                api("androidx.annotation:annotation:1.9.1")
                 //dependencies are not available in JB fork
                 //api(project(":annotation:annotation-experimental"))
                 //api(project(":window:window"))

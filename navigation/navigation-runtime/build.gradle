@@ -50,8 +50,8 @@ androidXMultiplatform {
     sourceSets {
         commonMain {
             dependencies {
-                api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
-                implementation "org.jetbrains.compose.collection-internal:collection:1.7.1"
+                api "androidx.annotation:annotation:1.9.1"
+                implementation "androidx.collection:collection:1.5.0-beta02"
                 api project(":core:core-bundle")
                 api project(":core:core-uri")
                 api "org.jetbrains.androidx.lifecycle:lifecycle-common:2.8.4"
