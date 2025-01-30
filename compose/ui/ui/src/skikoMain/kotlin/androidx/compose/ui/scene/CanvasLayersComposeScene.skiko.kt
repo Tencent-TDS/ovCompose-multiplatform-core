@@ -242,7 +242,11 @@ private class CanvasLayersComposeSceneImpl(
     }
 
     override fun cancelPointerInput() {
-        mainOwner.onCancelPointerInput()
+        _ownersCopyCache.withCopy {
+            it.fastForEach {
+                it.onCancelPointerInput()
+            }
+        }
 
         // Reset gesture owner because all ongoing gestures are cancelled
         gestureOwner = null
