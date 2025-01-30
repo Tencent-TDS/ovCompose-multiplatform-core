@@ -3737,6 +3737,7 @@ public final class androidx/compose/ui/scene/CanvasLayersComposeScene_skikoKt {
 
 public abstract interface class androidx/compose/ui/scene/ComposeScene {
 	public abstract fun calculateContentSize-YbymL2g ()J
+	public abstract fun cancelAllPointers ()V
 	public abstract fun close ()V
 	public abstract fun getCompositionLocalContext ()Landroidx/compose/runtime/CompositionLocalContext;
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;

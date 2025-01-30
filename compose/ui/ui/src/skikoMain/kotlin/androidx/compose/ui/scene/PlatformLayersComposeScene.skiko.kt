@@ -165,6 +165,10 @@ private class PlatformLayersComposeSceneImpl(
     override fun processPointerInputEvent(event: PointerInputEvent) =
         mainOwner.onPointerInput(event)
 
+    override fun cancelPointerInput() {
+        mainOwner.onCancelPointerInput()
+    }
+
     override fun processKeyEvent(keyEvent: KeyEvent): Boolean =
         mainOwner.onKeyEvent(keyEvent)
 

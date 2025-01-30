@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.scene
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
@@ -25,8 +26,10 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 
@@ -76,6 +79,58 @@ class BaseComposeSceneTest {
                 scene.sendPointerEvent(PointerEventType.Release, Offset(12f, 10f))
                     .anyMovementConsumed
             )
+        }
+    }
+
+    @Test
+    fun `cancel all pointers should cancel input coroutines`() = runTest(StandardTestDispatcher()) {
+        val scenes: List<ComposeScene> = listOf(
+            PlatformLayersComposeScene(size = IntSize(100, 100)),
+            CanvasLayersComposeScene(size = IntSize(100, 100))
+        )
+
+        scenes.forEach { scene ->
+            var cancellationsCount = 0
+            scene.setContent {
+                Box(modifier = Modifier.fillMaxSize().pointerInput(PointerEventPass.Initial) {
+                    suspendCancellableCoroutine {
+                        cancellationsCount++
+                    }
+                })
+            }
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
+            scene.sendPointerEvent(PointerEventType.Move, Offset(20f, 20f))
+            scene.cancelAllPointers()
+
+            assertEquals(1, cancellationsCount)
+        }
+    }
+
+    @Test
+    fun `cancel all pointers should cancel clicks`() = runTest(StandardTestDispatcher()) {
+        val scenes: List<ComposeScene> = listOf(
+            PlatformLayersComposeScene(size = IntSize(100, 100)),
+            CanvasLayersComposeScene(size = IntSize(100, 100))
+        )
+
+        scenes.forEach { scene ->
+            var clicksCount = 0
+            scene.setContent {
+                Box(modifier = Modifier.fillMaxSize().clickable {
+                    clicksCount++
+                })
+            }
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
+            scene.sendPointerEvent(PointerEventType.Move, Offset(20f, 20f))
+            scene.cancelAllPointers()
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
+            scene.sendPointerEvent(PointerEventType.Release, Offset(20f, 20f))
+
+            // Getting one click instead of two
+            assertEquals(1, clicksCount)
         }
     }
 }

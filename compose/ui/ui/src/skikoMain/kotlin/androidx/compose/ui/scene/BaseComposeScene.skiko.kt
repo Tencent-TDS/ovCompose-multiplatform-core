@@ -59,6 +59,7 @@ internal abstract class BaseComposeScene(
         ComposeSceneInputHandler(
             prepareForPointerInputEvent = ::doMeasureAndLayout,
             processPointerInputEvent = ::processPointerInputEvent,
+            cancelPointerInput = ::cancelPointerInput,
             processKeyEvent = ::processKeyEvent
         )
 
@@ -250,6 +251,10 @@ internal abstract class BaseComposeScene(
         }
     }
 
+    override fun cancelAllPointers() {
+        inputHandler.cancelAllPointers()
+    }
+
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
         inputHandler.onKeyEvent(keyEvent).also {
             recomposer.performScheduledEffects()
@@ -263,9 +268,9 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition
 
-    protected abstract fun processPointerInputEvent(
-        event: PointerInputEvent
-    ): PointerEventResult
+    protected abstract fun processPointerInputEvent(event: PointerInputEvent): PointerEventResult
+
+    protected abstract fun cancelPointerInput()
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 
