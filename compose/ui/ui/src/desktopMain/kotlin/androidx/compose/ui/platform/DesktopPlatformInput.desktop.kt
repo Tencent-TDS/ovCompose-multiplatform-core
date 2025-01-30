@@ -34,9 +34,10 @@ import java.awt.im.InputMethodRequests
 import java.text.AttributedCharacterIterator
 import java.text.AttributedString
 import java.text.CharacterIterator
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.hostOs
 
 internal class DesktopTextInputService(private val component: PlatformComponent) :
     PlatformTextInputService {
@@ -116,7 +117,7 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
         val composing = event.text?.toStringFrom(event.committedCharacterCount).orEmpty()
         val ops = mutableListOf<EditCommand>()
 
-        if (needToDeletePreviousChar && isMac && input.value.selection.min > 0 && composing.isEmpty()) {
+        if (needToDeletePreviousChar && input.value.selection.min > 0 && composing.isEmpty()) {
             needToDeletePreviousChar = false
             ops.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
         }
@@ -166,7 +167,7 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
             override fun getSelectedText(
                 attributes: Array<AttributedCharacterIterator.Attribute>?
             ): AttributedCharacterIterator {
-                if (charKeyPressed) {
+                if (charKeyPressed && (hostOs == OS.MacOS)) {
                     needToDeletePreviousChar = true
                 }
                 val str = input.value.text.substring(input.value.selection)
@@ -235,6 +236,3 @@ private fun AttributedCharacterIterator.toStringFrom(index: Int): String {
     }
     return String(strBuf)
 }
-
-private val isMac =
-    System.getProperty("os.name").lowercase(Locale.ENGLISH).startsWith("mac")
