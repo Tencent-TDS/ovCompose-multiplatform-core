@@ -59,8 +59,8 @@ android {
     defaultConfig {
         minSdk = 26
     }
-    lintOptions {
-        disable 'NullabilityAnnotationsDetector' // False alarm on transformed files.
+    lint {
+        disable.add("NullabilityAnnotationsDetector") // False alarm on transformed files.
     }
 
     // Use Robolectric 4.+

@@ -177,6 +177,7 @@ object SupportingPaneScaffoldDefaults {
  * three pane scaffolds. We suggest you to use the values defined here instead of the raw
  * [ThreePaneScaffoldRole] under the context of [SupportingPaneScaffold] for better code clarity.
  */
+@ExperimentalMaterial3AdaptiveApi
 object SupportingPaneScaffoldRole {
     /**
      * The main pane of [SupportingPaneScaffold], which is supposed to hold the major content of an

@@ -63,8 +63,8 @@ dependencies {
 android {
     compileSdk = 35
 
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true

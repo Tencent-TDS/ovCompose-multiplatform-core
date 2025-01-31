@@ -36,8 +36,8 @@ androidx {
  android {
      namespace = "androidx.camera.extensions.impl"
 
-     lintOptions {
-         enable 'CameraXQuirksClassDetector'
+     lint {
+         enable.add("CameraXQuirksClassDetector")
      }
  }
 

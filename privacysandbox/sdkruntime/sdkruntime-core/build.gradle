@@ -50,9 +50,9 @@ dependencies {
 }
 
 android {
-    lintOptions {
+    lint {
         // All components could be loaded from another app via client library
-        disable("BanKeepAnnotation")
+        disable.add("BanKeepAnnotation")
     }
 
     namespace = "androidx.privacysandbox.sdkruntime.core"

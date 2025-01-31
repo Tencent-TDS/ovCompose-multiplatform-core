@@ -54,9 +54,6 @@ dependencies {
 }
 
 android {
-    lintOptions {
-        disable("InvalidPackage")
-    }
     namespace = "androidx.car.app.testing"
 }
 

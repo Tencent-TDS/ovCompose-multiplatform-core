@@ -56,10 +56,8 @@ dependencies {
 ApkCopyHelperKt.setupAppApkCopy(project, "release")
 
 android {
-    defaultConfig {
-    }
-    lintOptions {
-        disable "UnusedResources"
+    lint {
+        disable.add("UnusedResources")
     }
     buildTypes {
         release {

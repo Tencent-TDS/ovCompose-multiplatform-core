@@ -68,14 +68,10 @@ dependencies {
 }
 
 android {
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
-    }
-
     testOptions.unitTests.includeAndroidResources = true
     namespace = "androidx.camera.viewfinder"
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
 }
 

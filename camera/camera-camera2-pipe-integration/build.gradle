@@ -87,8 +87,8 @@ dependencies {
 android {
     compileSdk = 35
 
-    lintOptions {
-        enable("CameraXQuirksClassDetector")
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
     namespace = "androidx.camera.camera2.pipe.integration"
 }

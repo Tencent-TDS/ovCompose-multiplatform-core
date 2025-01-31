@@ -82,8 +82,8 @@ android {
         consumerProguardFiles "proguard-rules.pro"
     }
 
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
 
     // Use Robolectric 4.+

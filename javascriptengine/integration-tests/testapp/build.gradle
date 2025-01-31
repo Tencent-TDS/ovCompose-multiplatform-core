@@ -44,8 +44,8 @@ android {
     defaultConfig {
         minSdk = 28
     }
-    lintOptions {
-        disable "UnusedResources"
+    lint {
+        disable.add("UnusedResources")
     }
     buildTypes {
         release {

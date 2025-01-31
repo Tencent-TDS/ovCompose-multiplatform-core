@@ -121,6 +121,7 @@ sealed class Metric {
      *
      * To validate results in tests, use [assertEqualMeasurements]
      */
+    @ConsistentCopyVisibility // Mirror copy()'s visibility with that of the constructor
     @ExperimentalMetricApi
     data class Measurement
     internal constructor(

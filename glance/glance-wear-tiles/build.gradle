@@ -78,11 +78,9 @@ android {
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
 
-    lintOptions {
+    lint {
         // TODO(b/191286558): Remove when lint is fixed.
-        disable "UnsafeOptInUsageError", "UnsafeOptInUsageWarning"
-        // protobuf generates unannotated methods
-        disable "UnknownNullness"
+        disable.add("UnsafeOptInUsageError")
     }
     namespace = "androidx.glance.wear.tiles"
 }
