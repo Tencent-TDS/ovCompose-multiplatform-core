@@ -241,7 +241,7 @@ private class CanvasLayersComposeSceneImpl(
         return result
     }
 
-    override fun cancelPointerInput() {
+    override fun processCancelPointerInput() {
         forEachOwner {
             it.onCancelPointerInput()
         }

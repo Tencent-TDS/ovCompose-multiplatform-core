@@ -59,7 +59,7 @@ internal abstract class BaseComposeScene(
         ComposeSceneInputHandler(
             prepareForPointerInputEvent = ::doMeasureAndLayout,
             processPointerInputEvent = ::processPointerInputEvent,
-            cancelPointerInput = ::cancelPointerInput,
+            cancelPointerInput = ::processCancelPointerInput,
             processKeyEvent = ::processKeyEvent
         )
 
@@ -251,8 +251,8 @@ internal abstract class BaseComposeScene(
         }
     }
 
-    override fun cancelAllPointers() {
-        inputHandler.cancelAllPointers()
+    override fun cancelPointerInput() {
+        inputHandler.cancelPointerInput()
     }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
@@ -270,7 +270,7 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun processPointerInputEvent(event: PointerInputEvent): PointerEventResult
 
-    protected abstract fun cancelPointerInput()
+    protected abstract fun processCancelPointerInput()
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 

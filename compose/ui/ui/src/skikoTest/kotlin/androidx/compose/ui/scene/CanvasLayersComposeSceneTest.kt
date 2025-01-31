@@ -70,7 +70,7 @@ class CanvasLayersComposeSceneTest {
             }
 
             scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-            scene.cancelAllPointers()
+            scene.cancelPointerInput()
 
             assertFalse(rootCancelled)
             assertTrue(popupCancelled)

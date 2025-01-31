@@ -99,9 +99,9 @@ internal class ComposeSceneInputHandler(
         )
     }
 
-    fun cancelAllPointers() {
+    fun cancelPointerInput() {
         syntheticEventSender.reset()
-        cancelPointerInput()
+        this.cancelPointerInput.invoke()
     }
 
     fun onPointerEvent(

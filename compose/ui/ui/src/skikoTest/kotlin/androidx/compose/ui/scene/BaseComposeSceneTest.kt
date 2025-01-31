@@ -101,7 +101,7 @@ class BaseComposeSceneTest {
             }
 
             scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-            scene.cancelAllPointers()
+            scene.cancelPointerInput()
 
             assertEquals(1, cancellationsCount)
         }
@@ -128,7 +128,7 @@ class BaseComposeSceneTest {
 
             // Start and cancel click
             scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
-            scene.cancelAllPointers()
+            scene.cancelPointerInput()
             scene.sendPointerEvent(PointerEventType.Release, Offset(40f, 40f))
 
             // Perform second click
