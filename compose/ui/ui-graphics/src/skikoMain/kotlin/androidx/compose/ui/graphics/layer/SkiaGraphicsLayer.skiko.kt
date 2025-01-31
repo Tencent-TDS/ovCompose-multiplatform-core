@@ -375,9 +375,9 @@ actual class GraphicsLayer internal constructor(
             renderNode.clip = clip
             val tmpOutline = outline
             when (tmpOutline) {
-                is Outline.Rectangle -> renderNode.setClipRect(tmpOutline.rect.toSkiaRect())
-                is Outline.Rounded -> renderNode.setClipRRect(tmpOutline.roundRect.toSkiaRRect())
-                is Outline.Generic -> renderNode.setClipPath(tmpOutline.path.asSkiaPath())
+                is Outline.Rectangle -> renderNode.setClipRect(tmpOutline.rect.toSkiaRect(), antiAlias = true)
+                is Outline.Rounded -> renderNode.setClipRRect(tmpOutline.roundRect.toSkiaRRect(), antiAlias = true)
+                is Outline.Generic -> renderNode.setClipPath(tmpOutline.path.asSkiaPath(), antiAlias = true)
             }
         }
         outlineDirty = false
