@@ -154,7 +154,6 @@ internal class UserInputGestureRecognizer(
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent) {
         super.touchesMoved(touches, withEvent)
-        NSRunLoop.mainRunLoop.runUntilDate(NSDate())
 
         val result = onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.MOVED)
         if (result.anyMovementConsumed) {
