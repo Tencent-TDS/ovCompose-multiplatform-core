@@ -31,13 +31,13 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
+import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -81,19 +81,19 @@ fun ButtonGroupSample() {
 @Composable
 fun SingleSelectConnectedButtonGroupSample() {
     val startButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ButtonGroupDefaults.connectedLeadingButtonShape,
             pressedShape = ButtonGroupDefaults.connectedLeadingButtonPressShape,
             checkedShape = ToggleButtonDefaults.checkedShape
         )
     val middleButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ShapeDefaults.Small,
             pressedShape = ToggleButtonDefaults.pressedShape,
             checkedShape = ToggleButtonDefaults.checkedShape
         )
     val endButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ButtonGroupDefaults.connectedTrailingButtonShape,
             pressedShape = ButtonGroupDefaults.connectedTrailingButtonPressShape,
             checkedShape = ToggleButtonDefaults.checkedShape
@@ -107,8 +107,8 @@ fun SingleSelectConnectedButtonGroupSample() {
 
     ButtonGroup(
         modifier = Modifier.padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.connectedSpaceBetween),
-        animateFraction = 0f
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        expandedRatio = 0f
     ) {
         options.forEachIndexed { index, label ->
             ToggleButton(
@@ -132,19 +132,19 @@ fun SingleSelectConnectedButtonGroupSample() {
 @Composable
 fun MultiSelectConnectedButtonGroupSample() {
     val startButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ButtonGroupDefaults.connectedLeadingButtonShape,
             pressedShape = ButtonGroupDefaults.connectedLeadingButtonPressShape,
             checkedShape = ToggleButtonDefaults.checkedShape
         )
     val middleButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ShapeDefaults.Small,
             pressedShape = ToggleButtonDefaults.pressedShape,
             checkedShape = ToggleButtonDefaults.checkedShape
         )
     val endButtonShapes =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = ButtonGroupDefaults.connectedTrailingButtonShape,
             pressedShape = ButtonGroupDefaults.connectedTrailingButtonPressShape,
             checkedShape = ToggleButtonDefaults.checkedShape
@@ -158,8 +158,8 @@ fun MultiSelectConnectedButtonGroupSample() {
 
     ButtonGroup(
         modifier = Modifier.padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.connectedSpaceBetween),
-        animateFraction = 0f
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        expandedRatio = 0f
     ) {
         options.forEachIndexed { index, label ->
             ToggleButton(

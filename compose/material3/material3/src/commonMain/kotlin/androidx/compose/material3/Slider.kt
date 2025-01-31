@@ -289,8 +289,6 @@ fun Slider(
 ) {
     val state =
         remember(steps, valueRange) { SliderState(value, steps, onValueChangeFinished, valueRange) }
-
-    state.onValueChangeFinished = onValueChangeFinished
     state.onValueChange = onValueChange
     state.value = value
 
@@ -2399,22 +2397,22 @@ class SliderState(
 
     private var valueState by mutableFloatStateOf(value)
 
-    /**
-     * [Float] that indicates the current value that the thumb currently is in respect to the track.
-     */
+    /** [Float] that indicates the value that the thumb currently is in respect to the track. */
     var value: Float
         set(newVal) {
-            val coercedValue = newVal.coerceIn(valueRange.start, valueRange.endInclusive)
-            val snappedValue =
-                snapValueToTick(
-                    coercedValue,
-                    tickFractions,
-                    valueRange.start,
-                    valueRange.endInclusive
-                )
-            valueState = snappedValue
+            valueState = calculateSnappedValue(newVal)
         }
         get() = valueState
+
+    private fun calculateSnappedValue(newVal: Float): Float {
+        val coercedValue = newVal.coerceIn(valueRange.start, valueRange.endInclusive)
+        return snapValueToTick(
+            coercedValue,
+            tickFractions,
+            valueRange.start,
+            valueRange.endInclusive
+        )
+    }
 
     override suspend fun drag(
         dragPriority: MutatePriority,
@@ -2448,7 +2446,7 @@ class SliderState(
         }
     }
 
-    /** callback in which value should be updated */
+    /** Callback in which value should be updated. */
     var onValueChange: ((Float) -> Unit)? = null
 
     internal val tickFractions = stepsToTickFractions(steps)
@@ -2471,7 +2469,7 @@ class SliderState(
                 value.coerceIn(valueRange.start, valueRange.endInclusive)
             )
 
-    internal var isDragging by mutableStateOf(false)
+    var isDragging by mutableStateOf(false)
         private set
 
     internal fun updateDimensions(

@@ -16,6 +16,7 @@
 
 package androidx.compose.material3
 
+import android.os.Build
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.onConsumedWindowInsetsChanged
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -66,8 +68,10 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -83,8 +87,11 @@ class SearchBarTest {
 
     private val SearchBarTestTag = "SearchBar"
     private val ScrollableContentTestTag = "Scrollable"
+    private val CollapsedInputFieldTestTag = "CollapsedInputField"
+    private val ExpandedInputFieldTestTag = "ExpandedInputField"
     private val IconTestTag = "Icon"
     private val BackTestTag = "Back"
+    private val ContentTestTag = "Content"
 
     @Test
     fun searchBar_becomesExpandedAndFocusedOnClick_andNotExpandedAndUnfocusedOnBack() {
@@ -549,6 +556,267 @@ class SearchBarTest {
 
     // Tests for new search bar APIs below this section
 
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun newSearchBar_becomesExpandedAndFocusedOnClick_andCollapsedAndUnfocusedOnBack() {
+        rule.setMaterialContent(lightColorScheme()) {
+            Box(Modifier.fillMaxSize()) {
+                val searchBarState = rememberSearchBarState()
+                val textFieldState = rememberTextFieldState("Query")
+
+                // Extra item for initial focus.
+                Box(Modifier.size(10.dp).focusable())
+
+                SearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(CollapsedInputFieldTestTag),
+                        )
+                    },
+                )
+                ExpandedFullScreenSearchBar(
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(ExpandedInputFieldTestTag),
+                        )
+                    },
+                ) {
+                    Text("Content", modifier = Modifier.testTag(ContentTestTag))
+                }
+            }
+        }
+
+        rule.onNodeWithTag(ContentTestTag).assertDoesNotExist()
+
+        rule.onNodeWithTag(SearchBarTestTag).performClick()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag(ContentTestTag).assertIsDisplayed()
+        rule.onNodeWithTag(ExpandedInputFieldTestTag).assertIsFocused()
+
+        // first dismiss keyboard, then dismiss search bar
+        repeat(2) {
+            Espresso.pressBack()
+            rule.waitForIdle()
+        }
+
+        rule.onNodeWithTag(ContentTestTag).assertDoesNotExist()
+        rule.onNodeWithTag(ExpandedInputFieldTestTag).assertDoesNotExist()
+        rule.onNodeWithTag(CollapsedInputFieldTestTag).assertIsNotFocused()
+    }
+
+    @Test
+    fun newSearchBar_doesNotOverwriteFocusOfOtherComponents() {
+        val focusRequester = FocusRequester()
+        rule.setMaterialContent(lightColorScheme()) {
+            Column(Modifier.fillMaxSize()) {
+                val searchBarState = rememberSearchBarState()
+                val textFieldState = rememberTextFieldState("Query")
+                SearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(CollapsedInputFieldTestTag),
+                        )
+                    },
+                )
+                ExpandedFullScreenSearchBar(
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(ExpandedInputFieldTestTag),
+                        )
+                    },
+                    content = {}
+                )
+
+                TextField(
+                    value = "",
+                    onValueChange = {},
+                    modifier = Modifier.testTag("SIBLING").focusRequester(focusRequester)
+                )
+            }
+        }
+
+        rule.runOnIdle { focusRequester.requestFocus() }
+
+        rule.onNodeWithTag("SIBLING").assertIsFocused()
+
+        rule.onNodeWithTag(SearchBarTestTag).performClick()
+        rule.onNodeWithTag(ExpandedInputFieldTestTag).assertIsFocused()
+    }
+
+    @Test
+    fun newSearchBar_onImeAction_executesSearchCallback() {
+        var capturedSearchQuery = ""
+
+        rule.setMaterialContent(lightColorScheme()) {
+            Box(Modifier.fillMaxSize()) {
+                val searchBarState = rememberSearchBarState()
+                val textFieldState = rememberTextFieldState("Query")
+                SearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            onSearch = { capturedSearchQuery = it },
+                            modifier = Modifier.testTag(CollapsedInputFieldTestTag),
+                        )
+                    },
+                )
+                ExpandedFullScreenSearchBar(
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            onSearch = { capturedSearchQuery = it },
+                            modifier = Modifier.testTag(ExpandedInputFieldTestTag),
+                        )
+                    },
+                    content = { Text("Content") }
+                )
+            }
+        }
+        rule.onNodeWithTag(CollapsedInputFieldTestTag).performImeAction()
+        assertThat(capturedSearchQuery).isEqualTo("Query")
+
+        capturedSearchQuery = ""
+
+        rule.onNodeWithTag(SearchBarTestTag).performClick()
+        rule.onNodeWithTag(ExpandedInputFieldTestTag).performImeAction()
+        assertThat(capturedSearchQuery).isEqualTo("Query")
+    }
+
+    @Test
+    fun newSearchBar_collapsedSize() {
+        rule
+            .setMaterialContentForSizeAssertions {
+                val searchBarState = rememberSearchBarState()
+                val textFieldState = rememberTextFieldState("Query")
+                SearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(CollapsedInputFieldTestTag),
+                        )
+                    },
+                )
+            }
+            .assertWidthIsEqualTo(SearchBarMinWidth)
+            .assertHeightIsEqualTo(SearchBarDefaults.InputFieldHeight)
+    }
+
+    @Test
+    fun newSearchBar_clickingIconButton_doesNotExpandSearchBarItself() {
+        var iconClicked = false
+
+        rule.setMaterialContent(lightColorScheme()) {
+            Box(Modifier.fillMaxSize()) {
+                val searchBarState = rememberSearchBarState()
+                val textFieldState = rememberTextFieldState("Query")
+                SearchBar(
+                    modifier = Modifier.testTag(SearchBarTestTag),
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(CollapsedInputFieldTestTag),
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { iconClicked = true },
+                                    modifier = Modifier.testTag(IconTestTag)
+                                ) {
+                                    Icon(Icons.Default.MoreVert, null)
+                                }
+                            },
+                        )
+                    },
+                )
+                ExpandedFullScreenSearchBar(
+                    state = searchBarState,
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = textFieldState,
+                            modifier = Modifier.testTag(ExpandedInputFieldTestTag),
+                            // don't need a trailing icon since the search bar should never expand
+                        )
+                    },
+                    content = { Text("Content", modifier = Modifier.testTag(ContentTestTag)) }
+                )
+            }
+        }
+
+        rule.onNodeWithTag(ContentTestTag).assertDoesNotExist()
+
+        // Click icon, not search bar
+        rule.onNodeWithTag(IconTestTag).performClick()
+        assertThat(iconClicked).isTrue()
+        rule.onNodeWithTag(ContentTestTag).assertDoesNotExist()
+    }
+
+    @Test
+    fun topSearchBar_usesAndConsumesWindowInsets() {
+        val parentTopInset = 10
+        val searchBarTopInset = 25
+
+        val searchBarPosition = Ref<Offset>()
+        val inputFieldPosition = Ref<Offset>()
+        lateinit var density: Density
+        lateinit var childConsumedInsets: WindowInsets
+
+        rule.setMaterialContent(lightColorScheme()) {
+            density = LocalDensity.current
+            val searchBarState = rememberSearchBarState()
+            Box(Modifier.windowInsetsPadding(WindowInsets(top = parentTopInset))) {
+                TopSearchBar(
+                    state = searchBarState,
+                    modifier =
+                        Modifier.onGloballyPositioned {
+                            searchBarPosition.value = it.positionInRoot()
+                        },
+                    windowInsets = WindowInsets(top = searchBarTopInset),
+                    inputField = {
+                        InputField(
+                            searchBarState = searchBarState,
+                            textFieldState = rememberTextFieldState(),
+                            modifier =
+                                Modifier.onGloballyPositioned {
+                                    inputFieldPosition.value = it.positionInRoot()
+                                },
+                        )
+
+                        Box(Modifier.onConsumedWindowInsetsChanged { childConsumedInsets = it })
+                    },
+                )
+            }
+        }
+
+        assertThat(searchBarPosition.value!!.y.roundToInt()).isEqualTo(parentTopInset)
+        assertThat(inputFieldPosition.value!!.y.roundToInt())
+            .isEqualTo(searchBarTopInset + with(density) { SearchBarAsTopBarPadding.roundToPx() })
+        assertThat(childConsumedInsets.getTop(density)).isEqualTo(searchBarTopInset)
+    }
+
     @Test
     fun topSearchBar_scrollBehavior_showsAndHidesWithVerticalScroll() {
         rule.setMaterialContent(lightColorScheme()) { SearchBarWithScrollableContent() }
@@ -665,6 +933,24 @@ class SearchBarTest {
     }
 
     @Composable
+    private fun InputField(
+        searchBarState: SearchBarState,
+        textFieldState: TextFieldState,
+        modifier: Modifier = Modifier,
+        onSearch: (String) -> Unit = {},
+        trailingIcon: (@Composable () -> Unit)? = null,
+    ) {
+        SearchBarDefaults.InputField(
+            searchBarState = searchBarState,
+            textFieldState = textFieldState,
+            onSearch = onSearch,
+            modifier = modifier,
+            placeholder = { Text("Search") },
+            trailingIcon = trailingIcon,
+        )
+    }
+
+    @Composable
     private fun SearchBarWithScrollableContent(
         searchBarScrollBehavior: SearchBarScrollBehavior =
             SearchBarDefaults.enterAlwaysSearchBarScrollBehavior(),
@@ -681,14 +967,12 @@ class SearchBarTest {
                     scrollBehavior = searchBarScrollBehavior,
                     state = searchBarState,
                     inputField = {
-                        SearchBarDefaults.InputField(
+                        InputField(
                             searchBarState = searchBarState,
                             textFieldState = textFieldState,
                             onSearch = { scope.launch { searchBarState.animateToCollapsed() } },
-                            placeholder = { Text("Search") },
                         )
                     },
-                    content = {},
                 )
             }
         ) { innerPadding ->

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.junit.Rule
@@ -178,7 +179,7 @@ class ThreePaneScaffoldTest {
             mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
             mockDraggingPx = with(LocalDensity.current) { 200.dp.toPx() }
             expectedSettledOffsetPx =
-                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.toPx().toInt() }
+                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.roundToPx() }
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
@@ -302,12 +303,12 @@ class ThreePaneScaffoldTest {
                     anchors =
                         listOf(
                             PaneExpansionAnchor.Proportion(0f),
-                            PaneExpansionAnchor.Offset(MockPaneExpansionMiddleAnchor)
+                            PaneExpansionAnchor.Offset.fromStart(MockPaneExpansionMiddleAnchor)
                         )
                 )
             mockDraggingPx = with(LocalDensity.current) { 200.dp.toPx() }
             expectedSettledOffsetPx =
-                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.toPx().toInt() }
+                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.roundToPx() }
             SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
         }
 
@@ -319,6 +320,83 @@ class ThreePaneScaffoldTest {
         rule.runOnIdle {
             assertThat(mockPaneExpansionState.currentMeasuredDraggingOffset)
                 .isEqualTo(expectedSettledOffsetPx)
+        }
+    }
+
+    @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_animateToAnchor() {
+        var expectedSettledOffsetPx = 0
+        lateinit var mockPaneExpansionState: PaneExpansionState
+        lateinit var scope: CoroutineScope
+
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
+            expectedSettledOffsetPx =
+                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.roundToPx() }
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule.runOnIdle {
+            scope.launch {
+                mockPaneExpansionState.animateTo(
+                    PaneExpansionAnchor.Offset.fromStart(MockPaneExpansionMiddleAnchor)
+                )
+            }
+        }
+
+        rule.runOnIdle {
+            assertThat(mockPaneExpansionState.currentMeasuredDraggingOffset)
+                .isEqualTo(expectedSettledOffsetPx)
+        }
+    }
+
+    @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_animateToAnchorWithVelocity() {
+        var expectedSettledOffsetPx = 0
+        lateinit var mockPaneExpansionState: PaneExpansionState
+        lateinit var scope: CoroutineScope
+
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
+            expectedSettledOffsetPx =
+                with(LocalDensity.current) { MockPaneExpansionMiddleAnchor.roundToPx() }
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule.runOnIdle {
+            scope.launch {
+                mockPaneExpansionState.animateTo(
+                    PaneExpansionAnchor.Offset.fromStart(MockPaneExpansionMiddleAnchor),
+                    200F
+                )
+            }
+        }
+
+        rule.runOnIdle {
+            assertThat(mockPaneExpansionState.currentMeasuredDraggingOffset)
+                .isEqualTo(expectedSettledOffsetPx)
+        }
+    }
+
+    @Test
+    fun threePaneScaffold_paneExpansionWithDragHandle_animateToNonExistAnchorThrows() {
+        lateinit var mockPaneExpansionState: PaneExpansionState
+        lateinit var scope: CoroutineScope
+
+        rule.setContentWithSimulatedSize(simulatedWidth = 1024.dp, simulatedHeight = 800.dp) {
+            scope = rememberCoroutineScope()
+            mockPaneExpansionState = rememberPaneExpansionState(anchors = MockPaneExpansionAnchors)
+            SampleThreePaneScaffoldWithPaneExpansion(mockPaneExpansionState) { MockDragHandle(it) }
+        }
+
+        rule.runOnIdle {
+            scope.launch {
+                assertFailsWith<IllegalArgumentException> {
+                    mockPaneExpansionState.animateTo(PaneExpansionAnchor.Offset.fromStart(10.dp))
+                }
+            }
         }
     }
 }
@@ -333,7 +411,7 @@ private val MockPaneExpansionMiddleAnchor = 400.dp
 private val MockPaneExpansionAnchors =
     listOf(
         PaneExpansionAnchor.Proportion(0f),
-        PaneExpansionAnchor.Offset(MockPaneExpansionMiddleAnchor),
+        PaneExpansionAnchor.Offset.fromStart(MockPaneExpansionMiddleAnchor),
         PaneExpansionAnchor.Proportion(1f),
     )
 

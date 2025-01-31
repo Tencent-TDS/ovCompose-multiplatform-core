@@ -48,7 +48,10 @@ internal actual value class Strings(val value: Int) {
         actual inline val defaultPaneExpansionProportionAnchorDescription
             get() = Strings(0)
 
-        actual inline val defaultPaneExpansionOffsetAnchorDescription
+        actual inline val defaultPaneExpansionStartOffsetAnchorDescription
+            get() = Strings(0)
+
+        actual inline val defaultPaneExpansionEndOffsetAnchorDescription
             get() = Strings(0)
     }
 }

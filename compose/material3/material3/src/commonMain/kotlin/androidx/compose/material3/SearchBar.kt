@@ -55,6 +55,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.onConsumedWindowInsetsChanged
 import androidx.compose.foundation.layout.only
@@ -139,14 +140,13 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.InterceptPlatformTextInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
@@ -154,17 +154,28 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.constrain
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
+import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastMap
+import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.lerp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.abs
@@ -186,16 +197,16 @@ import kotlinx.coroutines.launch
  * ![Search bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/search-bar.png)
  *
- * A search bar expands when focused to display dynamic suggestions or search results. An expanded
- * [SearchBar] displays its results in a full-screen dialog. If this expansion behavior is
- * undesirable, for example on large tablet screens, consider using [DockedSearchBar] instead.
+ * The [SearchBar] component represents a search bar in the collapsed state. It should be used in
+ * conjunction with an [ExpandedFullScreenSearchBar] or [ExpandedDockedSearchBar] to display search
+ * results when expanded.
  *
- * @param state the state of the search bar. This state should also be passed to the [inputField].
+ * @param state the state of the search bar. This state should also be passed to the [inputField]
+ *   and the expanded search bar.
  * @param inputField the input field of this search bar that allows entering a query, typically a
  *   [SearchBarDefaults.InputField].
  * @param modifier the [Modifier] to be applied to this search bar when collapsed.
- * @param shape the shape of this search bar when it is collapsed. When expanded, the shape will
- *   always be [SearchBarDefaults.fullScreenShape].
+ * @param shape the shape of this search bar when collapsed.
  * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
  *   in different states. See [SearchBarDefaults.colors].
  * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
@@ -203,8 +214,8 @@ import kotlinx.coroutines.launch
  *   value will result in a darker color in light theme and lighter color in dark theme. See also:
  *   [Surface].
  * @param shadowElevation the elevation for the shadow below this search bar.
- * @param content the content of this search bar to display search results below the [inputField].
  */
+@Suppress("ComposableLambdaParameterNaming", "ComposableLambdaParameterPosition")
 @ExperimentalMaterial3Api
 @Composable
 internal fun SearchBar(
@@ -215,27 +226,19 @@ internal fun SearchBar(
     colors: SearchBarColors = SearchBarDefaults.colors(),
     tonalElevation: Dp = SearchBarDefaults.TonalElevation,
     shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
-    content: @Composable ColumnScope.() -> Unit,
 ) {
-    CollapsedSearchBar(
-        // Modifier gets passed to Collapsed because Expanded opens a separate dialog.
-        modifier = modifier,
-        state = state,
-        inputField = inputField,
-        shape = shape,
-        colors = colors,
-        tonalElevation = tonalElevation,
-        shadowElevation = shadowElevation
-    )
-    ExpandedFullScreenSearchBar(
-        state = state,
-        inputField = inputField,
-        collapsedShape = shape,
-        colors = colors,
-        tonalElevation = tonalElevation,
-        shadowElevation = shadowElevation,
-        content = content
-    )
+    // Disable when collapsed to avoid keyboard flicker when the expanded search bar opens.
+    DisableSoftKeyboard {
+        Surface(
+            modifier = modifier.onGloballyPositioned { state.collapsedCoords = it },
+            shape = shape,
+            color = colors.containerColor,
+            contentColor = contentColorFor(colors.containerColor),
+            tonalElevation = tonalElevation,
+            shadowElevation = shadowElevation,
+            content = inputField,
+        )
+    }
 }
 
 /**
@@ -245,18 +248,21 @@ internal fun SearchBar(
  * A search bar represents a field that allows users to enter a keyword or phrase and get relevant
  * information. It can be used as a way to navigate through an app via search queries.
  *
- * A [TopSearchBar] can be used in conjunction with a [Scaffold] for a search bar that remains at
- * the top of the screen.
- *
  * ![Search bar
  * image](https://developer.android.com/images/reference/androidx/compose/material3/search-bar.png)
  *
- * @param state the state of the search bar. This state should also be passed to the [inputField].
+ * A [TopSearchBar] is a [SearchBar] with additional handling for top app bar behavior, such as
+ * window insets and scrolling. Using a [TopSearchBar] as the top bar of a [Scaffold] ensures that
+ * the search bar remains at the top of the screen. Like with [SearchBar], [TopSearchBar] should be
+ * used in conjunction with an [ExpandedFullScreenSearchBar] or [ExpandedDockedSearchBar] to display
+ * search results when expanded.
+ *
+ * @param state the state of the search bar. This state should also be passed to the [inputField]
+ *   and the expanded search bar.
  * @param inputField the input field of this search bar that allows entering a query, typically a
  *   [SearchBarDefaults.InputField].
  * @param modifier the [Modifier] to be applied to this search bar when collapsed.
- * @param shape the shape of this search bar when it is collapsed. When expanded, the shape will
- *   always be [SearchBarDefaults.fullScreenShape].
+ * @param shape the shape of this search bar when collapsed.
  * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
  *   in different states. See [SearchBarDefaults.colors].
  * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
@@ -264,13 +270,12 @@ internal fun SearchBar(
  *   value will result in a darker color in light theme and lighter color in dark theme. See also:
  *   [Surface].
  * @param shadowElevation the elevation for the shadow below this search bar.
- * @param windowInsets the window insets that the search bar will respect when collapsed. When
- *   expanded, the window insets will always be [SearchBarDefaults.fullScreenWindowInsets].
+ * @param windowInsets the window insets that the search bar will respect when collapsed.
  * @param scrollBehavior a [SearchBarScrollBehavior] which works in conjunction with a scrolled
  *   content to change the search bar appearance as the content scrolls. If null, the search bar
  *   will not automatically react to scrolling.
- * @param content the content of this search bar to display search results below the [inputField].
  */
+@Suppress("ComposableLambdaParameterNaming", "ComposableLambdaParameterPosition")
 @ExperimentalMaterial3Api
 @Composable
 internal fun TopSearchBar(
@@ -283,7 +288,6 @@ internal fun TopSearchBar(
     shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
     windowInsets: WindowInsets = SearchBarDefaults.windowInsets,
     scrollBehavior: SearchBarScrollBehavior? = null,
-    content: @Composable ColumnScope.() -> Unit,
 ) {
     SearchBar(
         state = state,
@@ -302,8 +306,168 @@ internal fun TopSearchBar(
         colors = colors,
         tonalElevation = tonalElevation,
         shadowElevation = shadowElevation,
-        content = content,
     )
+}
+
+/**
+ * [ExpandedFullScreenSearchBar] represents a search bar that is currently expanding or in the
+ * expanded state, showing search results. This component is displayed in a new full-screen dialog.
+ * If this expansion behavior is undesirable, for example on medium or large screens such as
+ * tablets, [ExpandedDockedSearchBar] can be used instead.
+ *
+ * @param state the state of the search bar. This state should also be passed to the [inputField]
+ *   and the collapsed search bar.
+ * @param inputField the input field of this search bar that allows entering a query, typically a
+ *   [SearchBarDefaults.InputField].
+ * @param modifier the [Modifier] to be applied to this expanded search bar.
+ * @param collapsedShape the shape of the search bar when it is collapsed. When fully expanded, the
+ *   shape will always be [SearchBarDefaults.fullScreenShape].
+ * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
+ *   in different states. See [SearchBarDefaults.colors].
+ * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
+ *   translucent primary color overlay is applied on top of the container. A higher tonal elevation
+ *   value will result in a darker color in light theme and lighter color in dark theme. See also:
+ *   [Surface].
+ * @param shadowElevation the elevation for the shadow below this search bar.
+ * @param windowInsets the window insets that this search bar will respect when expanded.
+ * @param properties the platform-specific properties to configure the dialog's behavior. Any
+ *   properties which limit the dialog's size (e.g. [DialogProperties.usePlatformDefaultWidth]) are
+ *   ignored.
+ * @param content the content of this search bar to display search results below the [inputField].
+ */
+@ExperimentalMaterial3Api
+@Composable
+internal fun ExpandedFullScreenSearchBar(
+    state: SearchBarState,
+    inputField: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    collapsedShape: Shape = SearchBarDefaults.inputFieldShape,
+    colors: SearchBarColors = SearchBarDefaults.colors(),
+    tonalElevation: Dp = SearchBarDefaults.TonalElevation,
+    shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
+    windowInsets: @Composable () -> WindowInsets = { SearchBarDefaults.fullScreenWindowInsets },
+    properties: DialogProperties = DialogProperties(),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (!state.isExpanded) return
+
+    val coroutineScope = rememberCoroutineScope()
+
+    BasicEdgeToEdgeDialog(
+        onDismissRequest = { coroutineScope.launch { state.animateToCollapsed() } },
+        properties = properties,
+    ) { predictiveBackState ->
+        val focusRequester = remember { FocusRequester() }
+        val softwareKeyboardController = LocalSoftwareKeyboardController.current
+        SideEffect { state.softwareKeyboardController = softwareKeyboardController }
+        FullScreenSearchBarLayout(
+            state = state,
+            predictiveBackState = predictiveBackState,
+            inputField = {
+                Box(
+                    modifier = Modifier.focusRequester(focusRequester),
+                    propagateMinConstraints = true,
+                ) {
+                    inputField()
+                }
+            },
+            modifier = modifier,
+            collapsedShape = collapsedShape,
+            colors = colors,
+            tonalElevation = tonalElevation,
+            shadowElevation = shadowElevation,
+            windowInsets = windowInsets(),
+            content = content,
+        )
+
+        // Focus the input field on the first expansion,
+        // but no need to re-focus if the focus gets cleared.
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    }
+}
+
+/**
+ * [ExpandedDockedSearchBar] represents a search bar that is currently expanding or in the expanded
+ * state, showing search results. This component is displayed in a popup over the collapsed search
+ * bar. It is recommended to use [ExpandedDockedSearchBar] on medium and large screens such as
+ * tablets, and to instead use [ExpandedFullScreenSearchBar] on compact screen such as phones.
+ *
+ * @param state the state of the search bar. This state should also be passed to the [inputField]
+ *   and the collapsed search bar.
+ * @param inputField the input field of this search bar that allows entering a query, typically a
+ *   [SearchBarDefaults.InputField].
+ * @param modifier the [Modifier] to be applied to this expanded search bar.
+ * @param shape the shape of this search bar.
+ * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
+ *   in different states. See [SearchBarDefaults.colors].
+ * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
+ *   translucent primary color overlay is applied on top of the container. A higher tonal elevation
+ *   value will result in a darker color in light theme and lighter color in dark theme. See also:
+ *   [Surface].
+ * @param shadowElevation the elevation for the shadow below this search bar.
+ * @param properties the platform-specific properties to configure the dialog's behavior. Any
+ *   properties which limit the dialog's size (e.g. [DialogProperties.usePlatformDefaultWidth]) are
+ *   ignored.
+ * @param content the content of this search bar to display search results below the [inputField].
+ */
+@ExperimentalMaterial3Api
+@Composable
+internal fun ExpandedDockedSearchBar(
+    state: SearchBarState,
+    inputField: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    shape: Shape = SearchBarDefaults.dockedShape,
+    colors: SearchBarColors = SearchBarDefaults.colors(),
+    tonalElevation: Dp = SearchBarDefaults.TonalElevation,
+    shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
+    properties: PopupProperties = PopupProperties(focusable = true, clippingEnabled = false),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (!state.isExpanded) return
+
+    val positionProvider =
+        remember(state) {
+            object : PopupPositionProvider {
+                override fun calculatePosition(
+                    anchorBounds: IntRect,
+                    windowSize: IntSize,
+                    layoutDirection: LayoutDirection,
+                    popupContentSize: IntSize
+                ): IntOffset = state.collapsedBounds.topLeft
+            }
+        }
+
+    val scope = rememberCoroutineScope()
+
+    Popup(
+        popupPositionProvider = positionProvider,
+        onDismissRequest = { scope.launch { state.animateToCollapsed() } },
+        properties = properties,
+    ) {
+        val focusRequester = remember { FocusRequester() }
+
+        DockedSearchBarLayout(
+            state = state,
+            inputField = {
+                Box(
+                    modifier = Modifier.focusRequester(focusRequester),
+                    propagateMinConstraints = true,
+                ) {
+                    inputField()
+                }
+            },
+            modifier = modifier,
+            shape = shape,
+            colors = colors,
+            tonalElevation = tonalElevation,
+            shadowElevation = shadowElevation,
+            content = content,
+        )
+
+        // Focus the input field on the first expansion,
+        // but no need to re-focus if the focus gets cleared.
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    }
 }
 
 /**
@@ -363,6 +527,7 @@ fun SearchBar(
     windowInsets: WindowInsets = SearchBarDefaults.windowInsets,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val animationProgress = remember { Animatable(initialValue = if (expanded) 1f else 0f) }
     val finalBackProgress = remember { mutableFloatStateOf(Float.NaN) }
     val firstBackEvent = remember { mutableStateOf<BackEventCompat?>(null) }
@@ -400,13 +565,15 @@ fun SearchBar(
                 finalBackProgress.floatValue = animationProgress.value
                 onExpandedChange(false)
             } catch (e: CancellationException) {
-                animationProgress.animateTo(
-                    targetValue = 1f,
-                    animationSpec = AnimationPredictiveBackExitFloatSpec
-                )
-                finalBackProgress.floatValue = Float.NaN
-                firstBackEvent.value = null
-                currentBackEvent.value = null
+                coroutineScope.launch {
+                    animationProgress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = AnimationPredictiveBackExitFloatSpec
+                    )
+                    finalBackProgress.floatValue = Float.NaN
+                    firstBackEvent.value = null
+                    currentBackEvent.value = null
+                }
             }
         }
     }
@@ -508,118 +675,7 @@ fun DockedSearchBar(
     BackHandler(enabled = expanded) { onExpandedChange(false) }
 }
 
-/**
- * A building block component representing a search bar in the collapsed state.
- *
- * Unless specific customization is needed, consider using a higher level component such as
- * [SearchBar] or [DockedSearchBar] instead.
- *
- * @param state the state of the search bar. This state should also be passed to the [inputField].
- * @param inputField the input field of this search bar that allows entering a query, typically a
- *   [SearchBarDefaults.InputField].
- * @param modifier the [Modifier] to be applied to this collapsed search bar.
- * @param shape the shape of this search bar.
- * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
- *   in different states. See [SearchBarDefaults.colors].
- * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
- *   translucent primary color overlay is applied on top of the container. A higher tonal elevation
- *   value will result in a darker color in light theme and lighter color in dark theme. See also:
- *   [Surface].
- * @param shadowElevation the elevation for the shadow below this search bar.
- */
-@Suppress("ComposableLambdaParameterNaming", "ComposableLambdaParameterPosition")
-@ExperimentalMaterial3Api
-@Composable
-internal fun CollapsedSearchBar(
-    state: SearchBarState,
-    inputField: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    shape: Shape = SearchBarDefaults.inputFieldShape,
-    colors: SearchBarColors = SearchBarDefaults.colors(),
-    tonalElevation: Dp = SearchBarDefaults.TonalElevation,
-    shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
-) {
-    // Disable when collapsed to avoid keyboard flicker when the expanded search bar opens.
-    DisableSoftKeyboard {
-        Surface(
-            modifier = modifier.onGloballyPositioned { state.collapsedCoords = it },
-            shape = shape,
-            color = colors.containerColor,
-            contentColor = contentColorFor(colors.containerColor),
-            tonalElevation = tonalElevation,
-            shadowElevation = shadowElevation,
-            content = inputField,
-        )
-    }
-}
-
-/**
- * A building block component representing a search bar that is currently expanding or in the
- * expanded state. This component is displayed in a new full-screen dialog.
- *
- * Unless specific customization is needed, consider using a higher level component such as
- * [SearchBar] or [DockedSearchBar] instead.
- *
- * @param state the state of the search bar. This state should also be passed to the [inputField].
- * @param inputField the input field of this search bar that allows entering a query, typically a
- *   [SearchBarDefaults.InputField].
- * @param modifier the [Modifier] to be applied to this expanded search bar.
- * @param collapsedShape the shape of the search bar when it is collapsed. When fully expanded, the
- *   shape will always be [SearchBarDefaults.fullScreenShape].
- * @param colors [SearchBarColors] that will be used to resolve the colors used for this search bar
- *   in different states. See [SearchBarDefaults.colors].
- * @param tonalElevation when [SearchBarColors.containerColor] is [ColorScheme.surface], a
- *   translucent primary color overlay is applied on top of the container. A higher tonal elevation
- *   value will result in a darker color in light theme and lighter color in dark theme. See also:
- *   [Surface].
- * @param shadowElevation the elevation for the shadow below this search bar.
- * @param windowInsets the window insets that this search bar will respect.
- * @param content the content of this search bar to display search results below the [inputField].
- */
-@ExperimentalMaterial3Api
-@Composable
-internal fun ExpandedFullScreenSearchBar(
-    state: SearchBarState,
-    inputField: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    collapsedShape: Shape = SearchBarDefaults.inputFieldShape,
-    colors: SearchBarColors = SearchBarDefaults.colors(),
-    tonalElevation: Dp = SearchBarDefaults.TonalElevation,
-    shadowElevation: Dp = SearchBarDefaults.ShadowElevation,
-    windowInsets: @Composable () -> WindowInsets = { SearchBarDefaults.fullScreenWindowInsets },
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    if (!state.isExpanded) return
-
-    val coroutineScope = rememberCoroutineScope()
-
-    BasicEdgeToEdgeDialog(
-        onDismissRequest = { coroutineScope.launch { state.animateToCollapsed() } }
-    ) { predictiveBackState ->
-        val softwareKeyboardController = LocalSoftwareKeyboardController.current
-        SideEffect { state.softwareKeyboardController = softwareKeyboardController }
-        FullScreenSearchBarLayout(
-            state = state,
-            predictiveBackState = predictiveBackState,
-            inputField = inputField,
-            modifier = modifier,
-            collapsedShape = collapsedShape,
-            colors = colors,
-            tonalElevation = tonalElevation,
-            shadowElevation = shadowElevation,
-            windowInsets = windowInsets(),
-            content = content,
-        )
-    }
-}
-
-/**
- * The state of a search bar.
- *
- * @property focusRequester The [FocusRequester] to request focus on the search bar.
- *   [SearchBarDefaults.InputField] applies this automatically. Custom input fields must attach this
- *   focus requester using [Modifier.focusRequester].
- */
+/** The state of a search bar. */
 @ExperimentalMaterial3Api
 @Stable
 internal class SearchBarState
@@ -627,7 +683,6 @@ private constructor(
     private val animatable: Animatable<Float, AnimationVector1D>,
     private val animationSpecForExpand: AnimationSpec<Float>,
     private val animationSpecForCollapse: AnimationSpec<Float>,
-    val focusRequester: FocusRequester,
 ) {
     /**
      * Construct a [SearchBarState].
@@ -635,21 +690,21 @@ private constructor(
      * @param initialExpanded the initial value of whether the search bar is expanded.
      * @param animationSpecForExpand the animation spec used when the search bar expands.
      * @param animationSpecForCollapse the animation spec used when the search bar collapses.
-     * @param focusRequester the focus requester to be applied to the search bar's input field.
      */
     constructor(
         initialExpanded: Boolean,
         animationSpecForExpand: AnimationSpec<Float>,
         animationSpecForCollapse: AnimationSpec<Float>,
-        focusRequester: FocusRequester = FocusRequester(),
     ) : this(
         animatable = Animatable(if (initialExpanded) 1f else 0f),
         animationSpecForExpand = animationSpecForExpand,
         animationSpecForCollapse = animationSpecForCollapse,
-        focusRequester = focusRequester,
     )
 
-    /** The layout coordinates, if available, of the search bar when it is collapsed. */
+    /**
+     * The layout coordinates, if available, of the search bar when it is collapsed. Used to
+     * coordinate the expansion animation.
+     */
     var collapsedCoords: LayoutCoordinates? by mutableStateOf(null)
 
     /**
@@ -660,9 +715,7 @@ private constructor(
     val progress: Float
         get() = animatable.value.coerceIn(0f, 1f)
 
-    /**
-     * Whether this search bar is expanded (showing search results), or in the process of expanding.
-     */
+    /** Whether this search bar is expanded or in the process of expanding. */
     val isExpanded: Boolean by derivedStateOf { progress > 0f }
 
     internal var softwareKeyboardController: SoftwareKeyboardController? = null
@@ -670,7 +723,6 @@ private constructor(
     /** Animate the search bar to its expanded state. */
     suspend fun animateToExpanded() {
         animatable.animateTo(targetValue = 1f, animationSpec = animationSpecForExpand)
-        focusRequester.requestFocus()
     }
 
     /** Animate the search bar to its collapsed state. */
@@ -688,7 +740,6 @@ private constructor(
         fun Saver(
             animationSpecForExpand: AnimationSpec<Float>,
             animationSpecForCollapse: AnimationSpec<Float>,
-            focusRequester: FocusRequester,
         ): Saver<SearchBarState, *> =
             listSaver(
                 save = { listOf(it.progress) },
@@ -697,7 +748,6 @@ private constructor(
                         animatable = Animatable(it[0], Float.VectorConverter),
                         animationSpecForExpand = animationSpecForExpand,
                         animationSpecForCollapse = animationSpecForCollapse,
-                        focusRequester = focusRequester,
                     )
                 },
             )
@@ -710,7 +760,6 @@ private constructor(
  * @param initialExpanded the initial value of whether the search bar is expanded.
  * @param animationSpecForExpand the animation spec used when the search bar expands.
  * @param animationSpecForCollapse the animation spec used when the search bar collapses.
- * @param focusRequester the focus requester to be applied to the search bar's input field.
  */
 @ExperimentalMaterial3Api
 @Composable
@@ -718,26 +767,21 @@ internal fun rememberSearchBarState(
     initialExpanded: Boolean = false,
     animationSpecForExpand: AnimationSpec<Float> = MotionSchemeKeyTokens.SlowSpatial.value(),
     animationSpecForCollapse: AnimationSpec<Float> = MotionSchemeKeyTokens.DefaultSpatial.value(),
-    focusRequester: FocusRequester? = null,
 ): SearchBarState {
-    @Suppress("NAME_SHADOWING") val focusRequester = focusRequester ?: remember { FocusRequester() }
     return rememberSaveable(
         initialExpanded,
         animationSpecForExpand,
         animationSpecForCollapse,
-        focusRequester,
         saver =
             SearchBarState.Saver(
                 animationSpecForExpand = animationSpecForExpand,
                 animationSpecForCollapse = animationSpecForCollapse,
-                focusRequester = focusRequester,
             )
     ) {
         SearchBarState(
             initialExpanded = initialExpanded,
             animationSpecForExpand = animationSpecForExpand,
             animationSpecForCollapse = animationSpecForCollapse,
-            focusRequester = focusRequester,
         )
     }
 }
@@ -1224,6 +1268,7 @@ object SearchBarDefaults {
 
         val focused = interactionSource.collectIsFocusedAsState().value
         val focusManager = LocalFocusManager.current
+        val focusRequester = remember { FocusRequester() }
 
         val searchSemantics = getString(Strings.SearchBarSearch)
         val suggestionsAvailableSemantics = getString(Strings.SuggestionsAvailable)
@@ -1245,7 +1290,7 @@ object SearchBarDefaults {
                         maxWidth = SearchBarMaxWidth,
                         minHeight = InputFieldHeight,
                     )
-                    .focusRequester(searchBarState.focusRequester)
+                    .focusRequester(focusRequester)
                     .onFocusChanged {
                         if (it.isFocused) {
                             coroutineScope.launch { searchBarState.animateToExpanded() }
@@ -1255,10 +1300,6 @@ object SearchBarDefaults {
                         contentDescription = searchSemantics
                         if (searchBarState.isExpanded) {
                             stateDescription = suggestionsAvailableSemantics
-                        }
-                        onClick {
-                            searchBarState.focusRequester.requestFocus()
-                            true
                         }
                     },
             enabled = enabled,
@@ -1415,10 +1456,6 @@ object SearchBarDefaults {
                         if (expanded) {
                             stateDescription = suggestionsAvailableSemantics
                         }
-                        onClick {
-                            focusRequester.requestFocus()
-                            true
-                        }
                     },
             enabled = enabled,
             readOnly = readOnly,
@@ -1553,10 +1590,6 @@ object SearchBarDefaults {
                         contentDescription = searchSemantics
                         if (expanded) {
                             stateDescription = suggestionsAvailableSemantics
-                        }
-                        onClick {
-                            focusRequester.requestFocus()
-                            true
                         }
                     },
             enabled = enabled,
@@ -2180,6 +2213,83 @@ private fun SearchBarLayout(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun DockedSearchBarLayout(
+    state: SearchBarState,
+    inputField: @Composable () -> Unit,
+    modifier: Modifier,
+    shape: Shape,
+    colors: SearchBarColors,
+    tonalElevation: Dp,
+    shadowElevation: Dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    BackHandler(enabled = state.isExpanded) { scope.launch { state.animateToCollapsed() } }
+
+    Surface(
+        shape = shape,
+        color = colors.containerColor,
+        contentColor = contentColorFor(colors.containerColor),
+        tonalElevation = tonalElevation,
+        shadowElevation = shadowElevation,
+        modifier = modifier.imePadding(),
+    ) {
+        val windowContainerHeight = getWindowContainerHeight()
+        val maxHeight = windowContainerHeight * DockedExpandedTableMaxHeightScreenRatio
+        val minHeight = DockedExpandedTableMinHeight.coerceAtMost(maxHeight)
+
+        Layout(
+            contents =
+                listOf(
+                    inputField,
+                    {
+                        Column {
+                            HorizontalDivider(color = colors.dividerColor)
+                            content()
+                        }
+                    },
+                )
+        ) { measurables, baseConstraints ->
+            val (inputFieldMeasurables, contentMeasurables) = measurables
+            val constraintMaxHeight =
+                lerp(state.collapsedBounds.height, maxHeight.roundToPx(), state.progress)
+            val constraints =
+                baseConstraints.constrain(
+                    Constraints(
+                        minHeight = minHeight.roundToPx().coerceAtMost(constraintMaxHeight),
+                        maxHeight = constraintMaxHeight,
+                    )
+                )
+            val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+
+            val inputFieldPlaceables =
+                inputFieldMeasurables.fastMap { it.measure(looseConstraints) }
+            val inputFieldWidth = inputFieldPlaceables.fastMaxOfOrNull { it.width } ?: 0
+            val inputFieldHeight = inputFieldPlaceables.fastMaxOfOrNull { it.height } ?: 0
+
+            val contentConstraints =
+                looseConstraints
+                    .offset(vertical = -inputFieldHeight)
+                    .copy(maxWidth = inputFieldWidth)
+            val contentPlaceables = contentMeasurables.fastMap { it.measure(contentConstraints) }
+
+            val height = inputFieldHeight + (contentPlaceables.fastMaxOfOrNull { it.height } ?: 0)
+            val width =
+                max(
+                    inputFieldWidth,
+                    contentPlaceables.fastMaxOfOrNull { it.width } ?: 0,
+                )
+
+            layout(constraints.constrainWidth(width), constraints.constrainHeight(height)) {
+                inputFieldPlaceables.fastForEach { it.place(0, 0) }
+                contentPlaceables.fastForEach { it.place(0, inputFieldHeight) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun FullScreenSearchBarLayout(
     state: SearchBarState,
     predictiveBackState: PredictiveBackState,
@@ -2279,30 +2389,30 @@ private fun FullScreenSearchBarLayout(
         },
     ) { measurables, constraints ->
         val predictiveBackProgress = lastInProgressValue.value.transform()
+        val collapsedWidth =
+            state.collapsedBounds.width.takeIf { it != 0 } ?: SearchBarMinWidth.roundToPx()
+        val collapsedHeight =
+            state.collapsedBounds.height.takeIf { it != 0 } ?: InputFieldHeight.roundToPx()
 
         val predictiveBackEndWidth =
             (constraints.maxWidth * SearchBarPredictiveBackMinScale)
                 .roundToInt()
-                .coerceAtLeast(state.collapsedBounds.width)
+                .coerceAtLeast(collapsedWidth)
         val predictiveBackEndHeight =
             (constraints.maxHeight * SearchBarPredictiveBackMinScale)
                 .roundToInt()
-                .coerceAtLeast(state.collapsedBounds.height)
+                .coerceAtLeast(collapsedHeight)
         val endWidth = lerp(constraints.maxWidth, predictiveBackEndWidth, predictiveBackProgress)
         val endHeight = lerp(constraints.maxHeight, predictiveBackEndHeight, predictiveBackProgress)
-        val width =
-            constraints.constrainWidth(lerp(state.collapsedBounds.width, endWidth, state.progress))
-        val height =
-            constraints.constrainHeight(
-                lerp(state.collapsedBounds.height, endHeight, state.progress)
-            )
+        val width = constraints.constrainWidth(lerp(collapsedWidth, endWidth, state.progress))
+        val height = constraints.constrainHeight(lerp(collapsedHeight, endHeight, state.progress))
 
         val surfaceMeasurable = measurables.fastFirst { it.layoutId == LayoutIdSurface }
         val surfacePlaceable = surfaceMeasurable.measure(Constraints.fixed(width, height))
 
         val inputFieldMeasurable = measurables.fastFirst { it.layoutId == LayoutIdInputField }
         val inputFieldPlaceable =
-            inputFieldMeasurable.measure(Constraints.fixed(width, state.collapsedBounds.height))
+            inputFieldMeasurable.measure(Constraints.fixed(width, collapsedHeight))
 
         val topPadding = unconsumedInsets.getTop(this@Layout) + SearchBarVerticalPadding.roundToPx()
         val bottomPadding = SearchBarVerticalPadding.roundToPx()
@@ -2398,7 +2508,7 @@ private fun DisableSoftKeyboard(content: @Composable () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 private val SearchBarState.collapsedBounds: IntRect
     get() =
-        collapsedCoords?.let { IntRect(offset = it.positionOnScreen().round(), size = it.size) }
+        collapsedCoords?.let { IntRect(offset = it.positionInWindow().round(), size = it.size) }
             ?: IntRect.Zero
 
 private fun calculatePredictiveBackMultiplier(
@@ -2508,7 +2618,7 @@ private const val LayoutIdSurface = "Surface"
 private const val LayoutIdSearchContent = "Content"
 
 // Measurement specs
-private val SearchBarAsTopBarPadding = 8.dp
+internal val SearchBarAsTopBarPadding = 8.dp
 @OptIn(ExperimentalMaterial3Api::class) private val SearchBarCornerRadius: Dp = InputFieldHeight / 2
 internal val DockedExpandedTableMinHeight: Dp = 240.dp
 private const val DockedExpandedTableMaxHeightScreenRatio: Float = 2f / 3f

@@ -47,6 +47,7 @@ import androidx.compose.ui.node.ParentDataModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
@@ -80,9 +81,13 @@ import kotlinx.coroutines.launch
  * @sample androidx.compose.material3.samples.MultiSelectConnectedButtonGroupSample
  * @sample androidx.compose.material3.samples.SingleSelectConnectedButtonGroupSample
  * @param modifier the [Modifier] to be applied to the button group.
- * @param animateFraction the percentage, represented by a float, of the width of the interacted
- *   child element that will be used to expand the interacted child element as well as compress the
- *   neighboring children.
+ * @param expandedRatio the percentage, represented by a float, of the width of the interacted child
+ *   element that will be used to expand the interacted child element as well as compress the
+ *   neighboring children. By Default, standard button group will expand the interacted child
+ *   element by [ButtonGroupDefaults.ExpandedRatio] of its width and this will be propagated to its
+ *   neighbors. If 0f is passed into this slot, then the interacted child element will not expand at
+ *   all and the neighboring elements will not compress. If 1f is passed into this slot, then the
+ *   interacted child element will expand to 200% of its default width when pressed.
  * @param horizontalArrangement The horizontal arrangement of the button group's children.
  * @param content the content displayed in the button group, expected to use a Material3 component
  *   or a composable that is tagged with [Modifier.interactionSourceData].
@@ -91,9 +96,8 @@ import kotlinx.coroutines.launch
 @ExperimentalMaterial3ExpressiveApi
 fun ButtonGroup(
     modifier: Modifier = Modifier,
-    @FloatRange(0.0) animateFraction: Float = ButtonGroupDefaults.animateFraction,
-    horizontalArrangement: Arrangement.Horizontal =
-        Arrangement.spacedBy(ButtonGroupDefaults.spaceBetween),
+    @FloatRange(0.0) expandedRatio: Float = ButtonGroupDefaults.ExpandedRatio,
+    horizontalArrangement: Arrangement.Horizontal = ButtonGroupDefaults.HorizontalArrangement,
     content: @Composable ButtonGroupScope.() -> Unit
 ) {
     // TODO Load the motionScheme tokens from the component tokens file
@@ -132,7 +136,7 @@ fun ButtonGroup(
                                 pressedIndex = index
                                 coroutineScope.launch {
                                     anim.animateTo(
-                                        targetValue = animateFraction,
+                                        targetValue = expandedRatio,
                                         animationSpec = defaultAnimationSpec
                                     )
                                 }
@@ -181,56 +185,66 @@ object ButtonGroupDefaults {
     /**
      * The default percentage, represented as a float, of the width of the interacted child element
      * that will be used to expand the interacted child element as well as compress the neighboring
-     * children.
+     * children. By Default, standard button group will expand the interacted child element by 15%
+     * of its width and this will be propagated to its neighbors.
      */
-    val animateFraction = 0.15f
+    val ExpandedRatio = 0.15f
 
-    /** The default spacing used between children. */
-    val spaceBetween = ButtonGroupSmallTokens.BetweenSpace
+    /** The default Arrangement used between children. */
+    val HorizontalArrangement: Arrangement.Horizontal =
+        Arrangement.spacedBy(ButtonGroupSmallTokens.BetweenSpace)
 
     /** The default spacing used between children for connected button group */
     // TODO replace with token value
-    val connectedSpaceBetween = 2.dp
+    val ConnectedSpaceBetween: Dp = 2.dp
 
     /** Default shape for the leading button in a connected button group */
-    val connectedLeadingButtonShape: Shape =
-        // TODO replace with token value
-        RoundedCornerShape(
-            topStart = ShapeDefaults.CornerFull,
-            bottomStart = ShapeDefaults.CornerFull,
-            topEnd = ShapeDefaults.CornerSmall,
-            bottomEnd = ShapeDefaults.CornerSmall
-        )
+    val connectedLeadingButtonShape: Shape
+        @Composable
+        get() =
+            // TODO replace with token value
+            RoundedCornerShape(
+                topStart = ShapeDefaults.CornerFull,
+                bottomStart = ShapeDefaults.CornerFull,
+                topEnd = ShapeDefaults.CornerSmall,
+                bottomEnd = ShapeDefaults.CornerSmall
+            )
 
     /** Default shape for the pressed state for the leading button in a connected button group. */
-    val connectedLeadingButtonPressShape: Shape =
-        // TODO replace with token value
-        RoundedCornerShape(
-            topStart = ShapeDefaults.CornerFull,
-            bottomStart = ShapeDefaults.CornerFull,
-            topEnd = ShapeDefaults.CornerExtraSmall,
-            bottomEnd = ShapeDefaults.CornerExtraSmall
-        )
+    val connectedLeadingButtonPressShape: Shape
+        @Composable
+        get() =
+            // TODO replace with token value
+            RoundedCornerShape(
+                topStart = ShapeDefaults.CornerFull,
+                bottomStart = ShapeDefaults.CornerFull,
+                topEnd = ShapeDefaults.CornerExtraSmall,
+                bottomEnd = ShapeDefaults.CornerExtraSmall
+            )
 
     /** Default shape for the trailing button in a connected button group */
-    val connectedTrailingButtonShape: Shape =
-        // TODO replace with token value
-        RoundedCornerShape(
-            topEnd = ShapeDefaults.CornerFull,
-            bottomEnd = ShapeDefaults.CornerFull,
-            topStart = ShapeDefaults.CornerSmall,
-            bottomStart = ShapeDefaults.CornerSmall
-        )
+    val connectedTrailingButtonShape: Shape
+        @Composable
+        get() =
+            // TODO replace with token value
+            RoundedCornerShape(
+                topEnd = ShapeDefaults.CornerFull,
+                bottomEnd = ShapeDefaults.CornerFull,
+                topStart = ShapeDefaults.CornerSmall,
+                bottomStart = ShapeDefaults.CornerSmall
+            )
 
     /** Default shape for the pressed state for the trailing button in a connected button group. */
-    val connectedTrailingButtonPressShape: Shape =
-        // TODO replace with token value
-        RoundedCornerShape(
-            topEnd = ShapeDefaults.CornerFull,
-            bottomEnd = ShapeDefaults.CornerFull,
-            topStart = ShapeDefaults.CornerExtraSmall,
-            bottomStart = ShapeDefaults.CornerExtraSmall
-        )
+    val connectedTrailingButtonPressShape: Shape
+        @Composable
+        get() =
+            // TODO replace with token value
+            RoundedCornerShape(
+                topEnd = ShapeDefaults.CornerFull,
+                bottomEnd = ShapeDefaults.CornerFull,
+                topStart = ShapeDefaults.CornerExtraSmall,
+                bottomStart = ShapeDefaults.CornerExtraSmall
+            )
 }
 
 private class ButtonGroupMeasurePolicy(

@@ -28,7 +28,14 @@
     <string name="m3_adaptive_default_pane_expansion_proportion_anchor_description">
         %d percent
     </string>
-    <!-- Spoken description of a pane expansion anchor point based on offset in DPs a user can
-         anchor the pane expansion to. -->
-    <string name="m3_adaptive_default_pane_expansion_offset_anchor_description">%d DPs</string>
+    <!-- Spoken description of a pane expansion anchor point based on offset from start in DPs a
+         user can anchor the pane expansion to. -->
+    <string name="m3_adaptive_default_pane_expansion_start_offset_anchor_description">
+        %d DPs from start
+    </string>
+    <!-- Spoken description of a pane expansion anchor point based on offset from end in DPs a user
+         can anchor the pane expansion to. -->
+    <string name="m3_adaptive_default_pane_expansion_end_offset_anchor_description">
+        %d DPs from end
+    </string>
 </resources>
