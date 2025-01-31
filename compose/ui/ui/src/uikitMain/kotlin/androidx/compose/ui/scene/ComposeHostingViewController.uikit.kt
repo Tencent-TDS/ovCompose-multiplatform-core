@@ -50,7 +50,6 @@ import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ComposeView
 import androidx.compose.ui.window.DisplayLinkListener
 import androidx.compose.ui.window.FocusStack
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import androidx.compose.ui.window.ViewControllerBasedLifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -70,7 +69,6 @@ import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
 import platform.UIKit.UIApplication
-import platform.UIKit.UIEvent
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
@@ -336,7 +334,6 @@ internal class ComposeHostingViewController(
                     createComposeSceneContext = ::createComposeSceneContext,
                     hostCompositionLocals = { ProvideContainerCompositionLocals(it) },
                     metalView = layers.metalView,
-                    onGestureEvent = layers::onGestureEvent,
                     initDensity = density,
                     initLayoutDirection = layoutDirection,
                     onFocusBehavior = configuration.onFocusBehavior,
@@ -381,7 +378,6 @@ internal class ComposeHostingViewController(
         windowContext = windowContext,
         coroutineContext = coroutineContext,
         redrawer = rootMetalView.redrawer,
-        onGestureEvent = ::onGestureEvent,
         composeSceneFactory = ::createComposeScene,
     ).also { mediator ->
         mediator.updateInteractionRect()
@@ -405,20 +401,6 @@ internal class ComposeHostingViewController(
             }
         }
         mediator?.isAccessibilityEnabled = isAccessibilityEnabled
-    }
-
-    /**
-     * When there is an ongoing gesture, we need notify redrawer about it. It should unconditionally
-     * unpause CADisplayLink which affects frequency of polling UITouch events on high frequency
-     * display and force it to match display refresh rate.
-     *
-     * Otherwise [UIEvent]s will be dispatched with the 60hz frequency.
-     */
-    private fun onGestureEvent(gestureEvent: GestureEvent) {
-        rootMetalView.needsProactiveDisplayLink = when (gestureEvent) {
-            GestureEvent.BEGAN -> true
-            GestureEvent.ENDED -> false
-        }
     }
 
     private fun dispose() {
