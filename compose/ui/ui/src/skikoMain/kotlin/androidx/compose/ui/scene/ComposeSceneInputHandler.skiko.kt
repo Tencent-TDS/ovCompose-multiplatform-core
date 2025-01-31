@@ -50,6 +50,7 @@ import org.jetbrains.skiko.currentNanoTime
 internal class ComposeSceneInputHandler(
     private val prepareForPointerInputEvent: () -> Unit,
     processPointerInputEvent: (PointerInputEvent) -> PointerEventResult,
+    private val cancelPointerInput: () -> Unit,
     private val processKeyEvent: (KeyEvent) -> Boolean,
 ) {
     private val defaultPointerStateTracker = DefaultPointerStateTracker()
@@ -96,6 +97,11 @@ internal class ComposeSceneInputHandler(
             nativeEvent,
             button
         )
+    }
+
+    fun cancelPointerInput() {
+        syntheticEventSender.reset()
+        this.cancelPointerInput.invoke()
     }
 
     fun onPointerEvent(

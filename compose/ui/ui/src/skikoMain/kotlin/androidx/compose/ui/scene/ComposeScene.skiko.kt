@@ -230,6 +230,12 @@ interface ComposeScene {
     ): PointerEventResult
 
     /**
+     * Cancel ongoing pointer input in the content. It's expected that upcoming pointer events will
+     * only represent new pointers.
+     */
+    fun cancelPointerInput()
+
+    /**
      * Send [KeyEvent] to the content.
      * @return true if the event was consumed by the content
      */

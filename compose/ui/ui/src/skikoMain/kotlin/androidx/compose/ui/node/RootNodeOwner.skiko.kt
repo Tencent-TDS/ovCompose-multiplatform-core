@@ -58,7 +58,6 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
@@ -265,6 +264,10 @@ internal class RootNodeOwner(
             density = density,
             containerSize = platformContext.windowInfo.containerSize
         )
+    }
+
+    fun onCancelPointerInput() {
+        pointerInputEventProcessor.processCancel()
     }
 
     @OptIn(InternalCoreApi::class)

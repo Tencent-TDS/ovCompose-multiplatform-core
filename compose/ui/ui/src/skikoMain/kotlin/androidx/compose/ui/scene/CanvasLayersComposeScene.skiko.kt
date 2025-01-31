@@ -241,6 +241,15 @@ private class CanvasLayersComposeSceneImpl(
         return result
     }
 
+    override fun processCancelPointerInput() {
+        forEachOwner {
+            it.onCancelPointerInput()
+        }
+
+        // Reset gesture owner because all ongoing gestures are cancelled
+        gestureOwner = null
+    }
+
     override fun processKeyEvent(keyEvent: KeyEvent): Boolean =
         focusedLayer?.onKeyEvent(keyEvent) ?: mainOwner.onKeyEvent(keyEvent)
 
