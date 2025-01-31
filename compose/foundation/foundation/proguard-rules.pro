@@ -21,6 +21,3 @@
     static java.lang.Void throw*Exception(...);
 }
 
--keepclassmembers class * {
-    @dalvik.annotation.optimization.NeverInline *;
-}

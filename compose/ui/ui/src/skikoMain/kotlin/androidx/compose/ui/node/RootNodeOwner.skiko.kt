@@ -58,11 +58,11 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
-import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
 import androidx.compose.ui.platform.GraphicsLayerOwnerLayer
+import androidx.compose.ui.platform.OwnedLayerManager
 import androidx.compose.ui.platform.PlatformClipboard
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
@@ -72,6 +72,7 @@ import androidx.compose.ui.platform.setLightingInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
@@ -173,6 +174,7 @@ internal class RootNodeOwner(
         }
 
     private val rootForTest = PlatformRootForTestImpl()
+    private val ownedLayerManager = OwnedLayerManagerImpl()
     private val pointerInputEventProcessor = PointerInputEventProcessor(owner.root)
     private val measureAndLayoutDelegate = MeasureAndLayoutDelegate(owner.root)
     private var isDisposed = false
@@ -241,10 +243,7 @@ internal class RootNodeOwner(
     }
 
     fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
-        owner.root.draw(
-            canvas = canvas,
-            graphicsLayer = null // the root node will provide the root graphics layer
-        )
+        ownedLayerManager.draw(canvas)
         clearInvalidObservations()
     }
 
@@ -267,18 +266,23 @@ internal class RootNodeOwner(
         )
     }
 
+    fun onCancelPointerInput() {
+        pointerInputEventProcessor.processCancel()
+    }
+
     @OptIn(InternalCoreApi::class)
-    fun onPointerInput(event: PointerInputEvent) {
+    fun onPointerInput(event: PointerInputEvent): PointerEventResult {
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit &&
             event.pointers.fastAll { isInBounds(it.position) }
-        pointerInputEventProcessor.process(
+        val result = pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
             isInBounds = isInBounds
         )
+        return PointerEventResult(result.anyMovementConsumed)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {
@@ -385,6 +389,10 @@ internal class RootNodeOwner(
         override val measureIteration: Long get() = measureAndLayoutDelegate.measureIteration
 
         override fun requestFocus() = platformContext.requestFocus()
+        override fun requestAutofill(node: LayoutNode) {
+            // TODO: 1.8.0-beta01 Adopt requestAutofill API
+            //  https://youtrack.jetbrains.com/issue/CMP-7485
+        }
 
         override fun onPreAttach(node: LayoutNode) {
             layoutNodes[node.semanticsId] = node
@@ -477,16 +485,11 @@ internal class RootNodeOwner(
             drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
             invalidateParentLayer: () -> Unit,
             explicitLayer: GraphicsLayer?,
-            forceUseOldLayers: Boolean
-        ) = GraphicsLayerOwnerLayer(
-            graphicsLayer = explicitLayer ?: graphicsContext.createGraphicsLayer(),
-            context = if (explicitLayer != null) graphicsContext else null,
+            forceUseOldLayers: Boolean // It's added for temporary workaround on Android, no need to support that
+        ) = ownedLayerManager.createLayer(
             drawBlock = drawBlock,
-            // TODO onDestroy = { needClearObservations = true }
-            invalidateParentLayer = {
-                invalidateParentLayer()
-                snapshotInvalidationTracker.requestDraw()
-            },
+            invalidateParentLayer = invalidateParentLayer,
+            explicitLayer = explicitLayer
         )
 
         override fun onSemanticsChange() {
@@ -602,17 +605,19 @@ internal class RootNodeOwner(
             keyboardModifiers: PointerKeyboardModifiers?,
             nativeEvent: Any?,
             button: PointerButton?
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            position = position,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            type = type,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                position = position,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                type = type,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests.
@@ -626,16 +631,18 @@ internal class RootNodeOwner(
             timeMillis: Long,
             nativeEvent: Any?,
             button: PointerButton?,
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            pointers = pointers,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                pointers = pointers,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests or accessibility.
@@ -665,6 +672,91 @@ internal class RootNodeOwner(
         // TODO https://youtrack.jetbrains.com/issue/CMP-7145/Properly-adopt-stylus-handwriting-hover-icon
         override fun getStylusHoverIcon(): PointerIcon? = null
         override fun setStylusHoverIcon(value: PointerIcon?) {}
+    }
+
+    private inner class OwnedLayerManagerImpl : OwnedLayerManager {
+        // OwnedLayers that are dirty and should be redrawn.
+        private val dirtyLayers = mutableListOf<OwnedLayer>()
+
+        // OwnerLayers that invalidated themselves during their last draw. They will be redrawn
+        // during the next AndroidComposeView dispatchDraw pass.
+        private var postponedDirtyLayers: MutableList<OwnedLayer>? = null
+
+        private var isDrawingContent = false
+
+        override fun createLayer(
+            drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
+            invalidateParentLayer: () -> Unit,
+            explicitLayer: GraphicsLayer?
+        ) = GraphicsLayerOwnerLayer(
+            graphicsLayer = explicitLayer ?: graphicsContext.createGraphicsLayer(),
+            context = if (explicitLayer != null) null else graphicsContext,
+            layerManager = this,
+            drawBlock = drawBlock,
+            invalidateParentLayer = invalidateParentLayer,
+        )
+
+        override fun recycle(layer: OwnedLayer): Boolean {
+            needClearObservations = true
+            dirtyLayers -= layer
+            return false
+        }
+
+        override fun notifyLayerIsDirty(layer: OwnedLayer, isDirty: Boolean) {
+            if (!isDirty) {
+                // It is correct to remove the layer here regardless of this if, but for performance
+                // we are hackily not doing the removal here in order to just do clear() a bit later.
+                if (!isDrawingContent) {
+                    dirtyLayers.remove(layer)
+                    postponedDirtyLayers?.remove(layer)
+                }
+            } else if (!isDrawingContent) {
+                dirtyLayers += layer
+            } else {
+                val postponed =
+                    postponedDirtyLayers
+                        ?: mutableListOf<OwnedLayer>().also { postponedDirtyLayers = it }
+                postponed += layer
+            }
+        }
+
+        override fun invalidate() {
+            snapshotInvalidationTracker.requestDraw()
+        }
+
+        fun draw(canvas: Canvas) {
+            isDrawingContent = true
+
+            // Unlike Android, "draw" forms actual render commands sequence, so updating
+            // display lists after that won't affect current frame result.
+            // So, we applying it before drawing to reflect the changes from previous phases.
+            // Changes that requires another round of invalidation will be scheduled to next frame.
+            if (dirtyLayers.isNotEmpty()) {
+                for (i in 0 until dirtyLayers.size) {
+                    val layer = dirtyLayers[i]
+                    layer.updateDisplayList()
+                }
+            }
+            dirtyLayers.clear()
+
+            // Draw root node
+            owner.root.draw(
+                canvas = canvas,
+                graphicsLayer = null // the root node will provide the root graphics layer
+            )
+
+            // updateDisplayList operations performed above (during root.draw and during the explicit
+            // layer.updateDisplayList() calls) can result in the same layers being invalidated. These
+            // layers have been added to postponedDirtyLayers and will be redrawn during the next
+            // dispatchDraw.
+            if (postponedDirtyLayers != null) {
+                val postponed = postponedDirtyLayers!!
+                dirtyLayers.addAll(postponed)
+                postponed.clear()
+            }
+
+            isDrawingContent = false
+        }
     }
 }
 

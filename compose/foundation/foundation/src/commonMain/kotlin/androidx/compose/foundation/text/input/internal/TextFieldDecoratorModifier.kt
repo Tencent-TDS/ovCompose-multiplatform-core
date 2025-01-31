@@ -66,6 +66,7 @@ import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateSemantics
 import androidx.compose.ui.node.observeReads
+import androidx.compose.ui.node.requestAutofill
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -202,8 +203,9 @@ internal class TextFieldDecoratorModifierNode(
     ObserverModifierNode,
     LayoutAwareModifierNode {
 
-    private val editable
-        get() = enabled && !readOnly
+    init {
+        textFieldSelectionState.requestAutofillAction = { requestAutofill() }
+    }
 
     private val pointerInputNode =
         delegate(
@@ -430,9 +432,7 @@ internal class TextFieldDecoratorModifierNode(
         stylusHandwritingTrigger: MutableSharedFlow<Unit>?
     ) {
         // Find the diff: current previous and new values before updating current.
-        val previousEditable = this.editable
-        val editable = enabled && !readOnly
-
+        val previousEditable = this.enabled && !this.readOnly
         val previousEnabled = this.enabled
         val previousTextFieldState = this.textFieldState
         val previousKeyboardOptions = this.keyboardOptions
@@ -440,6 +440,7 @@ internal class TextFieldDecoratorModifierNode(
         val previousInteractionSource = this.interactionSource
         val previousIsPassword = this.isPassword
         val previousStylusHandwritingTrigger = this.stylusHandwritingTrigger
+        val editable = enabled && !readOnly
 
         // Apply the diff.
         this.textFieldState = textFieldState
@@ -487,6 +488,7 @@ internal class TextFieldDecoratorModifierNode(
                 textFieldSelectionState.receiveContentConfiguration =
                     receiveContentConfigurationProvider
             }
+            textFieldSelectionState.requestAutofillAction = { requestAutofill() }
         }
 
         if (interactionSource != previousInteractionSource) {
@@ -507,7 +509,8 @@ internal class TextFieldDecoratorModifierNode(
         if (!enabled) disabled()
         if (isPassword) password()
 
-        isEditable = this@TextFieldDecoratorModifierNode.editable
+        val editable = enabled && !readOnly
+        isEditable = editable
 
         // The developer will set `contentType`. TF populates the other autofill-related
         // semantics. And since we're in a TextField, set the `contentDataType` to be "Text".
@@ -630,6 +633,7 @@ internal class TextFieldDecoratorModifierNode(
         isElementFocused = focusState.isFocused
         onFocusChange()
 
+        val editable = enabled && !readOnly
         if (focusState.isFocused) {
             // Deselect when losing focus even if readonly.
             if (editable) {

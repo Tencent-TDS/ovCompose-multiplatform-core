@@ -19,7 +19,6 @@
 package androidx.compose.ui.input.pointer.util
 
 import androidx.compose.ui.input.pointer.PointerId
-import dalvik.annotation.optimization.NeverInline
 
 /**
  * This collection is specifically for dealing with [PointerId] values. We know that they contain
@@ -145,7 +144,6 @@ internal class PointerIdArray {
         if (index >= size) size = index + 1
     }
 
-    @NeverInline
     private fun resizeStorage(minSize: Int): LongArray {
         return internalArray.copyOf(maxOf(minSize, internalArray.size * 2)).apply {
             internalArray = this

@@ -183,6 +183,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -194,7 +195,7 @@ interface ComposeScene {
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    )
+    ): PointerEventResult
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -215,6 +216,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -225,7 +227,13 @@ interface ComposeScene {
         timeMillis: Long = currentTimeForEvent(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    )
+    ): PointerEventResult
+
+    /**
+     * Cancel ongoing pointer input in the content. It's expected that upcoming pointer events will
+     * only represent new pointers.
+     */
+    fun cancelPointerInput()
 
     /**
      * Send [KeyEvent] to the content.

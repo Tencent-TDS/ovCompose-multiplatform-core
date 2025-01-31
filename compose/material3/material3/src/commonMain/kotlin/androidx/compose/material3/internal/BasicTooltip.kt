@@ -156,7 +156,8 @@ private fun TooltipPopup(
                 onDismissRequest()
             }
         },
-        properties = PopupProperties(focusable = focusable)
+        // TODO(https://youtrack.jetbrains.com/issue/CMP-963) Discuss how to support focusable
+        properties = PopupProperties(focusable = false),
     ) {
         Box(
             modifier =

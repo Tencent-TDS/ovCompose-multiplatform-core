@@ -46,23 +46,19 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 internal class GraphicsLayerOwnerLayer(
-    private var graphicsLayer: GraphicsLayer,
+    graphicsLayer: GraphicsLayer,
     // when we have a context it means the object is created by us and we need to release it
     private val context: GraphicsContext?,
+    private val layerManager: OwnedLayerManager,
     drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
     invalidateParentLayer: () -> Unit,
 ) : OwnedLayer {
+    internal var graphicsLayer: GraphicsLayer = graphicsLayer
+        private set
     private var drawBlock: ((canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit)? = drawBlock
     private var invalidateParentLayer: (() -> Unit)? = invalidateParentLayer
 
     private var size: IntSize = IntSize(Int.MAX_VALUE, Int.MAX_VALUE)
-    private var isDestroyed = false
-    private val matrixCache = Matrix()
-    private var inverseMatrixCache: Matrix? = null
-
-    private var isDirty = true
-    private var isParentLayerInvalidated = false
-
     private var density = Density(1f)
     private var layoutDirection = LayoutDirection.Ltr
     private val scope = CanvasDrawScope()
@@ -70,6 +66,17 @@ internal class GraphicsLayerOwnerLayer(
     private var transformOrigin: TransformOrigin = TransformOrigin.Center
     private var outline: Outline? = null
 
+    private val matrixCache = Matrix()
+    private var inverseMatrixCache: Matrix? = null
+
+    private var isDestroyed = false
+    private var isDirty = true
+        set(value) {
+            if (value != field) {
+                field = value
+                layerManager.notifyLayerIsDirty(this, value)
+            }
+        }
     private var isMatrixDirty = false
     private var isInverseMatrixDirty = false
     private var isIdentity = true
@@ -190,11 +197,8 @@ internal class GraphicsLayerOwnerLayer(
         }
     }
 
-    private var drawnWithEnabledZ = false
-
     override fun drawLayer(canvas: Canvas, parentLayer: GraphicsLayer?) {
         updateDisplayList()
-        drawnWithEnabledZ = graphicsLayer.shadowElevation > 0
         scope.drawContext.also {
             it.canvas = canvas
             it.graphicsLayer = parentLayer
@@ -213,7 +217,6 @@ internal class GraphicsLayerOwnerLayer(
             }
             graphicsLayer.record(density, layoutDirection, size, recordLambda)
             isDirty = false
-            isParentLayerInvalidated = false
         }
     }
 
@@ -226,11 +229,7 @@ internal class GraphicsLayerOwnerLayer(
     override fun invalidate() {
         if (isDestroyed) return
         isDirty = true
-        if (!isParentLayerInvalidated) {
-            // Parent layer caches drawing into skia's picture, so we need to reset it
-            invalidateParentLayer?.invoke()
-            isParentLayerInvalidated = true
-        }
+        layerManager.invalidate()
     }
 
     override fun destroy() {
@@ -238,7 +237,12 @@ internal class GraphicsLayerOwnerLayer(
         invalidateParentLayer = null
         isDestroyed = true
         isDirty = false
-        context?.releaseGraphicsLayer(graphicsLayer)
+        if (context != null) {
+            context.releaseGraphicsLayer(graphicsLayer)
+
+            // Recycle only in case of non-null context (meaning only for not external layers).
+            layerManager.recycle(this)
+        }
     }
 
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
@@ -293,7 +297,6 @@ internal class GraphicsLayerOwnerLayer(
         matrixCache.reset()
         inverseMatrixCache?.reset()
         transformOrigin = TransformOrigin.Center
-        drawnWithEnabledZ = false
         size = IntSize(Int.MAX_VALUE, Int.MAX_VALUE)
         outline = null
         mutatedFields = 0

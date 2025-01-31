@@ -446,6 +446,10 @@ class ModifierLocalConsumerEntityTest {
 
         override fun requestFocus() = TODO("Not yet implemented")
 
+        override fun requestAutofill(node: LayoutNode) {
+            TODO("Not yet implemented")
+        }
+
         override fun measureAndLayout(sendPointerUpdate: Boolean) = TODO("Not yet implemented")
 
         override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {

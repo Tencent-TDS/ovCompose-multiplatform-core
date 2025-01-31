@@ -383,6 +383,7 @@ public final class androidx/compose/runtime/FloatState$DefaultImpls {
 public final class androidx/compose/runtime/HotReloaderKt {
 	public static final fun clearCompositionErrors ()V
 	public static final fun currentCompositionErrors ()Ljava/util/List;
+	public static final fun getCurrentCompositionErrors ()Ljava/util/List;
 	public static final fun invalidateGroupsWithKey (I)V
 	public static final fun simulateHotReload (Ljava/lang/Object;)V
 }

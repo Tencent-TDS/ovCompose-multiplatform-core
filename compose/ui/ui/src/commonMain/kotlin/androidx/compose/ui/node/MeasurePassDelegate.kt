@@ -769,7 +769,7 @@ internal class MeasurePassDelegate(private val layoutNodeLayoutDelegate: LayoutN
         return true
     }
 
-    override fun calculateAlignmentLines(): Map<out AlignmentLine, Int> {
+    override fun calculateAlignmentLines(): Map<AlignmentLine, Int> {
         if (!duringAlignmentLinesQuery) {
             // Mark alignments used by modifier
             if (layoutState == LayoutState.Measuring) {

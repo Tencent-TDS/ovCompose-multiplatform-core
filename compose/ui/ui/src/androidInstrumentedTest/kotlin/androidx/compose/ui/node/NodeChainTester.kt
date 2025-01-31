@@ -521,6 +521,10 @@ private class MockOwner(
 
     override fun requestFocus(): Boolean = false
 
+    override fun requestAutofill(node: LayoutNode) {
+        TODO("Not yet implemented")
+    }
+
     override fun measureAndLayout(sendPointerUpdate: Boolean) {}
 
     override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {}

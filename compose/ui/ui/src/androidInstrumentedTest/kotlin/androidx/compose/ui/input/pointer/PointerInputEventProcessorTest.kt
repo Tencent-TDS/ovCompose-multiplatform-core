@@ -2846,6 +2846,10 @@ private class TestOwner : Owner {
 
     override fun requestFocus(): Boolean = false
 
+    override fun requestAutofill(node: LayoutNode) {
+        TODO("Not yet implemented")
+    }
+
     override val rootForTest: RootForTest
         get() = TODO("Not yet implemented")
 

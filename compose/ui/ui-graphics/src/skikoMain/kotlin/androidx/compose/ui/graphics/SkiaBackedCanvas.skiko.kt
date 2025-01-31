@@ -22,7 +22,6 @@ import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -119,11 +118,6 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     override fun clipPath(path: Path, clipOp: ClipOp) {
         val antiAlias = true
         skia.clipPath(path.asSkiaPath(), clipOp.toSkia(), antiAlias)
-    }
-
-    fun clipRoundRect(rect: RoundRect, clipOp: ClipOp = ClipOp.Intersect) {
-        val antiAlias = true
-        nativeCanvas.clipRRect(rect.toSkiaRRect(), clipOp.toSkia(), antiAlias)
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {

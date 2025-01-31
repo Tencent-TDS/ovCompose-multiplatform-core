@@ -26,7 +26,6 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Build.VERSION_CODES.M
 import android.os.Build.VERSION_CODES.N
 import android.os.Build.VERSION_CODES.O
-import android.os.Build.VERSION_CODES.P
 import android.os.Build.VERSION_CODES.Q
 import android.os.Build.VERSION_CODES.S
 import android.os.Looper
@@ -1047,7 +1046,7 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
                 focusedRect = previouslyFocusedRect?.toComposeRect()
             ) {
                 it.requestFocus(focusDirection)
-            } ?: false
+            } == true
         }
         // This view is already focused.
         if (isFocused) return true
@@ -1083,6 +1082,19 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         }
         if (foundFocusable) {
             return false // The requestFocus() from within the focusSearch was canceled
+        }
+
+        if (previouslyFocusedRect != null && !hasFocus()) {
+            // try searching, ignoring the previously focused rect. We've had a request to focus on
+            // this specific View
+            val altFocus =
+                focusOwner.focusSearch(focusDirection = focusDirection, focusedRect = null) {
+                    it.requestFocus(focusDirection)
+                }
+            if (altFocus == true) {
+                // found alternative focus
+                return true
+            }
         }
 
         // We advertised ourselves as focusable, but we aren't. Try to just move the focus to the
@@ -1232,6 +1244,13 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         @OptIn(ExperimentalComposeUiApi::class)
         if (autofillSupported() && ComposeUiFlags.isSemanticAutofillEnabled) {
             _autofillManager?.onDetach(node)
+        }
+    }
+
+    override fun requestAutofill(node: LayoutNode) {
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (autofillSupported() && ComposeUiFlags.isSemanticAutofillEnabled) {
+            _autofillManager?.requestAutofill(node)
         }
     }
 
@@ -1731,8 +1750,10 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
                 return layer
             }
 
-            // enable new layers on versions supporting render nodes
-            if (isHardwareAccelerated && SDK_INT >= M && SDK_INT != P) {
+            // Prior to M ViewLayer implementation might be doing extra drawing in order
+            // to support the software rendering. This extra drawing is breaking some of tests
+            // and we can't fully migrate to it until we figure out how to solve it.
+            if (SDK_INT >= M) {
                 return GraphicsLayerOwnerLayer(
                     graphicsLayer = graphicsContext.createGraphicsLayer(),
                     context = graphicsContext,
@@ -1794,7 +1815,7 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
 
     override fun onLayoutChange(layoutNode: LayoutNode) {
         composeAccessibilityDelegate.onLayoutChange(layoutNode)
-        contentCaptureManager.onLayoutChange(layoutNode)
+        contentCaptureManager.onLayoutChange()
     }
 
     override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {
@@ -2023,7 +2044,10 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         viewTreeObserver.addOnTouchModeChangeListener(touchModeChangeListener)
 
         if (SDK_INT >= S) AndroidComposeViewTranslationCallbackS.setViewTranslationCallback(this)
-        if (autofillSupported()) _autofillManager?.let { semanticsOwner.listeners += it }
+        _autofillManager?.let {
+            focusOwner.listeners += it
+            semanticsOwner.listeners += it
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -2048,7 +2072,10 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
         viewTreeObserver.removeOnTouchModeChangeListener(touchModeChangeListener)
 
         if (SDK_INT >= S) AndroidComposeViewTranslationCallbackS.clearViewTranslationCallback(this)
-        if (autofillSupported()) _autofillManager?.let { semanticsOwner.listeners -= it }
+        _autofillManager?.let {
+            semanticsOwner.listeners -= it
+            focusOwner.listeners -= it
+        }
     }
 
     override fun onProvideAutofillVirtualStructure(structure: ViewStructure?, flags: Int) {

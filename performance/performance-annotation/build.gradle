@@ -30,7 +30,7 @@ JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
 androidXMultiplatform {
     android()
-    desktop()
+    jvm()
     mac()
     linux()
     ios()

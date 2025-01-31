@@ -331,7 +331,7 @@ private fun autoInvalidateNodeSelf(node: Modifier.Node, selfKindSet: Int, phase:
         node.invalidateDraw()
     }
     if (Nodes.Semantics in selfKindSet && node is SemanticsModifierNode) {
-        node.invalidateSemantics()
+        node.requireLayoutNode().isSemanticsInvalidated = true
     }
     if (Nodes.ParentData in selfKindSet && node is ParentDataModifierNode) {
         node.invalidateParentData()

@@ -607,7 +607,6 @@ public final class androidx/compose/ui/test/SemanticsNodeInteraction {
 	public static synthetic fun assertIsDeactivated$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun fetchSemanticsNode (Ljava/lang/String;)Landroidx/compose/ui/semantics/SemanticsNode;
 	public static synthetic fun fetchSemanticsNode$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;ILjava/lang/Object;)Landroidx/compose/ui/semantics/SemanticsNode;
-	public final fun semanticsId ()I
 }
 
 public final class androidx/compose/ui/test/SemanticsNodeInteractionCollection {

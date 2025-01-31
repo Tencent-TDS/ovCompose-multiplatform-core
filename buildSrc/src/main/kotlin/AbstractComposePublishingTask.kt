@@ -45,7 +45,7 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
         val artifactRedirectingTargetNames = (project
             .findProperty("artifactRedirecting.publication.targetNames").let {
                 (it as? String)?.split(",") ?: emptyList()
-            }.toSet() + defaultArtifactRedirectingTargetNames).toMutableSet()
+            }.map { it.lowercase() }.toSet() + defaultArtifactRedirectingTargetNames).toMutableSet()
 
 
         if (component.neverRedirect) {

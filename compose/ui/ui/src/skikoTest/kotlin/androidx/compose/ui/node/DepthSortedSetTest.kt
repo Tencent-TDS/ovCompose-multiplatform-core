@@ -233,6 +233,7 @@ class DepthSortedSetTest {
         override fun calculatePositionInWindow(localPosition: Offset): Offset = throw IllegalStateException()
         override fun calculateLocalPosition(positionInWindow: Offset): Offset = throw IllegalStateException()
         override fun requestFocus(): Boolean = throw IllegalStateException()
+        override fun requestAutofill(node: LayoutNode) = throw IllegalStateException()
         override fun measureAndLayout(sendPointerUpdate: Boolean) = throw IllegalStateException()
         override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) = throw IllegalStateException()
         override fun forceMeasureTheSubtree(layoutNode: LayoutNode, affectsLookahead: Boolean) = throw IllegalStateException()

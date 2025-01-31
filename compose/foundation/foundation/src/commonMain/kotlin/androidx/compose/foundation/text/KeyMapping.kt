@@ -105,7 +105,8 @@ internal fun commonKeyMapping(shortcutModifier: (KeyEvent) -> Boolean): KeyMappi
                         MappedKeys.PageDown -> KeyCommand.PAGE_DOWN
                         MappedKeys.MoveHome -> KeyCommand.LINE_START
                         MappedKeys.MoveEnd -> KeyCommand.LINE_END
-                        MappedKeys.Enter, MappedKeys.NumPadEnter -> KeyCommand.NEW_LINE
+                        MappedKeys.Enter,
+                        MappedKeys.NumPadEnter -> KeyCommand.NEW_LINE
                         MappedKeys.Backspace -> KeyCommand.DELETE_PREV_CHAR
                         MappedKeys.Delete -> KeyCommand.DELETE_NEXT_CHAR
                         MappedKeys.Paste -> KeyCommand.PASTE
