@@ -306,3 +306,12 @@ project.tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile>().config
         "-Xwasm-enable-array-range-checks"
     )
 }
+
+configurations.all {
+    resolutionStrategy {
+        dependencySubstitution {
+            substitute(project(":collection:collection"))
+                .using(project(":compose:runtime:runtime"))
+        }
+    }
+}

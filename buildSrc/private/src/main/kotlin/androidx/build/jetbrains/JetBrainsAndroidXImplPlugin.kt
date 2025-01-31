@@ -20,16 +20,22 @@ package androidx.build.jetbrains
 
 import androidx.build.AndroidXExtension
 import androidx.build.multiplatformExtension
+import androidx.build.resolveProject
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.kotlin.dsl.KotlinClosure1
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.extra
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.mpp.AbstractKotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinSoftwareComponentWithCoordinatesAndPublication
+import org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
 import org.jetbrains.kotlin.konan.target.KonanTarget
 
 open class JetbrainsExtensions(
@@ -136,10 +142,86 @@ class JetBrainsAndroidXImplPlugin : Plugin<Project> {
             multiplatformExtension
         )
 
+        // it simply returns the requested project, but having a unique function name
+        // clarifies its purpose
+        project.extra.set("relocatedProject", KotlinClosure1<String, Project>(
+            function = {
+                // `this` refers to the first parameter of the closure.
+                project.resolveProject(this)
+            }
+        ))
+
         // Note: Currently we call it unconditionally since Androidx provides the same set of
         // Konan targets for all multiplatform libs they publish.
         // In the future we might need to call it with non-default konan targets set in some modules
         extension.configureKNativeRedirectingDependenciesInKlibManifest()
+
+        multiplatformExtension.removeRelocatedProjectsFromTestDependencies()
+        project.configureRelocatingPublication()
+    }
+
+    private fun Project.configureRelocatingPublication() {
+        val shouldRelocate = project.findProperty("artifactRedirecting.relocated") == "true"
+
+        if (shouldRelocate) {
+            extensions.configure(PublishingExtension::class.java) {
+                it.publications {
+                    // we use artifactRedirecting function here, because relocation
+                    // is a more broad/full case of artifact redirection,
+                    // so we can get all the necessary data from it
+                    val relocatedTo = project.artifactRedirecting()
+                    it.create<MavenPublication>("relocation") {
+                        pom {
+                            groupId = project.group.toString() // our published groupId
+                            artifactId = project.name
+                            it.distributionManagement {
+                                it.relocation {
+                                    it.groupId.set(relocatedTo.groupId)
+                                    it.artifactId.set(project.name)
+                                    it.version.set(relocatedTo.defaultVersion)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun KotlinMultiplatformExtension.removeRelocatedProjectsFromTestDependencies() {
+//        val project = this.project
+        targets.all { target ->
+            if (target is KotlinJsIrTarget) {
+                val c = target.compilations.getByName("test")
+                val main = target.compilations.getByName("main")
+                listOf(c, main).flatMap {
+                    val configurations = it.configurations
+                    listOf(
+                        configurations.compileDependencyConfiguration,
+                        configurations.runtimeDependencyConfiguration,
+                        configurations.apiConfiguration,
+                        configurations.implementationConfiguration,
+                        configurations.runtimeOnlyConfiguration,
+                        configurations.compileOnlyConfiguration
+                    )
+                }.forEach { conf ->
+                    conf?.resolutionStrategy {
+                        it.dependencySubstitution {
+                            it.substitute(it.project(":collection:collection")).using(
+                                // dumb dependency
+//                                it.project(project.path)
+                                it.module("androidx.collection:collection:1.5.0-beta02")
+                            )
+                            it.substitute(it.project(":annotation:annotation")).using(
+                                // dumb dependency
+//                                it.project(project.path)
+                                it.module("androidx.annotation:annotation:1.9.1")
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

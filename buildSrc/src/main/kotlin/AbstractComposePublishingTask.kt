@@ -42,6 +42,13 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
     fun publishMultiplatform(component: ComposeComponent) {
         val project = project.rootProject.findProject(component.path) ?:
             throw IllegalArgumentException("Cannot find project ${component.path}")
+
+        val isRelocated = project.findProperty("artifactRedirecting.relocated") == "true"
+        if (isRelocated) {
+            dependsOnComposeTask("${component.path}:publishRelocationPublicationTo$repository")
+            return
+        }
+
         val artifactRedirectingTargetNames = (project
             .findProperty("artifactRedirecting.publication.targetNames").let {
                 (it as? String)?.split(",") ?: emptyList()

@@ -67,6 +67,7 @@ kotlin {
             dependencies {
                 api(libs.kotlinStdlib)
                 implementation("androidx.annotation:annotation:1.9.1")
+                implementation(relocatedProject(":annotation:annotation"))
                 implementation(libs.atomicFu)
             }
         }
