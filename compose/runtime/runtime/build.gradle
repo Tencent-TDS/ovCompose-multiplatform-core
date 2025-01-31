@@ -116,9 +116,16 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
+                implementation(project(":performance:performance-annotation"))
+
+                // Keep both project and module dependency for pseudo-relocated modules.
+                // The projects are actually empty, but we need them here just to
+                // make sure their maven coordinates are added to dependencies graph in user projects.
+                // It's a workaround until https://youtrack.jetbrains.com/issue/KT-61096/KLIB-Resolve-Drop-KLIB-resolve-inside-the-Kotlin-compiler
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
-                implementation(project(":performance:performance-annotation"))
+                implementation("androidx.annotation:annotation:1.9.1")
+                implementation("androidx.collection:collection:1.5.0-beta02")
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)
