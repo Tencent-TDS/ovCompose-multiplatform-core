@@ -259,7 +259,10 @@ constructor(
     }
 
     /** Cached shapes used in components */
-    internal var defaultToggleButtonShapesCached: ButtonShapes? = null
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    internal var defaultButtonShapesCached: ButtonShapes? = null
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    internal var defaultToggleButtonShapesCached: ToggleButtonShapes? = null
     internal var defaultVerticalDragHandleShapesCached: DragHandleShapes? = null
 }
 

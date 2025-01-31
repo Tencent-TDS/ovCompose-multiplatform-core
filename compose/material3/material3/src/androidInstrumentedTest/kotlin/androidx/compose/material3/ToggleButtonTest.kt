@@ -310,7 +310,7 @@ class ToggleButtonTest {
     @Test
     fun buttonShapes_AllRounded_hasRoundedShapesIsTrue() {
         assertThat(
-                ButtonShapes(
+                ToggleButtonShapes(
                         shape = RoundedCornerShape(10.dp),
                         pressedShape = RoundedCornerShape(10.dp),
                         checkedShape = RoundedCornerShape(4.dp),
@@ -323,7 +323,7 @@ class ToggleButtonTest {
     @Test
     fun buttonShapes_mixedShapes_hasRoundedShapesIsFalse() {
         assertThat(
-                ButtonShapes(
+                ToggleButtonShapes(
                         shape = RectangleShape,
                         pressedShape = RoundedCornerShape(10.dp),
                         checkedShape = RoundedCornerShape(4.dp),

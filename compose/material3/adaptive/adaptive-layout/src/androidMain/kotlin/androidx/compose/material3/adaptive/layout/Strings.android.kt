@@ -59,7 +59,12 @@ internal actual value class Strings(@StringRes val value: Int) {
             get() =
                 Strings(R.string.m3_adaptive_default_pane_expansion_proportion_anchor_description)
 
-        actual inline val defaultPaneExpansionOffsetAnchorDescription
-            get() = Strings(R.string.m3_adaptive_default_pane_expansion_offset_anchor_description)
+        actual inline val defaultPaneExpansionStartOffsetAnchorDescription
+            get() =
+                Strings(R.string.m3_adaptive_default_pane_expansion_start_offset_anchor_description)
+
+        actual inline val defaultPaneExpansionEndOffsetAnchorDescription
+            get() =
+                Strings(R.string.m3_adaptive_default_pane_expansion_end_offset_anchor_description)
     }
 }

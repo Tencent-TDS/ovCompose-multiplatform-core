@@ -101,9 +101,9 @@ class ButtonGroupTest {
     @Test
     fun default_firstPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.15f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction)
+        val expandedWeight = 0.15f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
@@ -147,9 +147,9 @@ class ButtonGroupTest {
     @Test
     fun default_secondPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.15f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * (animateFraction / 2f))
+        val expandedWeight = 0.15f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * (expandedWeight / 2f))
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
@@ -193,9 +193,9 @@ class ButtonGroupTest {
     @Test
     fun default_thirdPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.15f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * (animateFraction / 2f))
+        val expandedWeight = 0.15f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * (expandedWeight / 2f))
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
@@ -239,9 +239,9 @@ class ButtonGroupTest {
     @Test
     fun default_fourthPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.15f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction)
+        val expandedWeight = 0.15f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
@@ -285,13 +285,13 @@ class ButtonGroupTest {
     @Test
     fun customAnimateFraction_firstPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.3f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction)
+        val expandedWeight = 0.3f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
-                ButtonGroup(animateFraction = animateFraction) {
+                ButtonGroup(expandedRatio = expandedWeight) {
                     Button(modifier = Modifier.width(width).testTag(aButton), onClick = {}) {
                         Text("A")
                     }
@@ -331,13 +331,13 @@ class ButtonGroupTest {
     @Test
     fun customAnimateFraction_secondPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.3f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction / 2f)
+        val expandedWeight = 0.3f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight / 2f)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
-                ButtonGroup(animateFraction = animateFraction) {
+                ButtonGroup(expandedRatio = expandedWeight) {
                     Button(modifier = Modifier.width(width).testTag(aButton), onClick = {}) {
                         Text("A")
                     }
@@ -377,13 +377,13 @@ class ButtonGroupTest {
     @Test
     fun customAnimateFraction_thirdPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.3f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction / 2f)
+        val expandedWeight = 0.3f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight / 2f)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
-                ButtonGroup(animateFraction = animateFraction) {
+                ButtonGroup(expandedRatio = expandedWeight) {
                     Button(modifier = Modifier.width(width).testTag(aButton), onClick = {}) {
                         Text("A")
                     }
@@ -423,13 +423,13 @@ class ButtonGroupTest {
     @Test
     fun customAnimateFraction_fourthPressed_buttonSizing() {
         val width = 75.dp
-        val animateFraction = 0.3f
-        val expectedExpandWidth = width + (width * animateFraction)
-        val expectedCompressWidth = width - (width * animateFraction)
+        val expandedWeight = 0.3f
+        val expectedExpandWidth = width + (width * expandedWeight)
+        val expectedCompressWidth = width - (width * expandedWeight)
 
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
-                ButtonGroup(animateFraction = animateFraction) {
+                ButtonGroup(expandedRatio = expandedWeight) {
                     Button(modifier = Modifier.width(width).testTag(aButton), onClick = {}) {
                         Text("A")
                     }

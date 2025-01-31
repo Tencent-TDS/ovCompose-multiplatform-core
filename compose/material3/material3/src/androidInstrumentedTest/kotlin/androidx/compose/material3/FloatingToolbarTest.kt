@@ -26,25 +26,32 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.FloatingToolbarDefaults.ScreenOffset
 import androidx.compose.material3.FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.Bottom
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.End
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertPixels
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
@@ -64,6 +71,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.tooling.preview.datasource.LoremIpsum
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -92,7 +100,7 @@ class FloatingToolbarTest {
         val scrollHeightOffsetDp = 20.dp
         var scrollHeightOffsetPx = 0f
         var containerSizePx = 0f
-        val screenOffsetDp = FloatingToolbarDefaults.ScreenOffset
+        val screenOffsetDp = ScreenOffset
         var screenOffsetPx = 0f
 
         rule.setMaterialContent(lightColorScheme()) {
@@ -143,7 +151,7 @@ class FloatingToolbarTest {
         val scrollHeightOffsetDp = 20.dp
         var scrollHeightOffsetPx = 0f
         var containerSizePx = 0f
-        val screenOffsetDp = FloatingToolbarDefaults.ScreenOffset
+        val screenOffsetDp = ScreenOffset
         var screenOffsetPx = 0f
 
         rule.setMaterialContent(lightColorScheme()) {
@@ -916,6 +924,76 @@ class FloatingToolbarTest {
             swipeUp(bottom, bottom - thresholdPx)
         }
         rule.runOnIdle { assertThat(expanded).isEqualTo(false) }
+    }
+
+    @Test
+    fun verticalFloatingToolbar_scrollBehavior() {
+        rule.setMaterialContent(lightColorScheme()) {
+            val scrollBehavior =
+                FloatingToolbarDefaults.exitAlwaysScrollBehavior(exitDirection = End)
+            Scaffold(modifier = Modifier.nestedScroll(scrollBehavior).testTag(mainLayoutTag)) {
+                innerPadding ->
+                Box(Modifier.padding(innerPadding)) {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        Text(text = remember { LoremIpsum().values.first() })
+                    }
+                    VerticalFloatingToolbar(
+                        expanded = true,
+                        floatingActionButton = { ToolbarFab() },
+                        modifier = Modifier.align(Alignment.CenterEnd).offset(x = -ScreenOffset),
+                        scrollBehavior = scrollBehavior,
+                    ) {
+                        ToolbarContent()
+                    }
+                }
+            }
+        }
+
+        // Check that the FAB and a sample from the toolbar content are displayed.
+        rule.onNodeWithTag(FloatingActionButtonTestTag).assertIsDisplayed()
+        rule.onNodeWithTag(FloatingToolbarContentLastItemTestTag).assertIsDisplayed()
+
+        // Swipe the content up to collapse the FloatingToolbar.
+        rule.onNodeWithTag(mainLayoutTag).performTouchInput { swipeUp(bottom, bottom - 1000) }
+        rule.waitForIdle()
+        // Check that the FAB and a sample from the toolbar content are not displayed.
+        rule.onNodeWithTag(FloatingActionButtonTestTag).assertIsNotDisplayed()
+        rule.onNodeWithTag(FloatingToolbarContentLastItemTestTag).assertIsNotDisplayed()
+    }
+
+    @Test
+    fun horizontalFloatingToolbar_scrollBehavior() {
+        rule.setMaterialContent(lightColorScheme()) {
+            val scrollBehavior =
+                FloatingToolbarDefaults.exitAlwaysScrollBehavior(exitDirection = End)
+            Scaffold(modifier = Modifier.nestedScroll(scrollBehavior).testTag(mainLayoutTag)) {
+                innerPadding ->
+                Box(Modifier.padding(innerPadding)) {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        Text(text = remember { LoremIpsum().values.first() })
+                    }
+                    HorizontalFloatingToolbar(
+                        expanded = true,
+                        floatingActionButton = { ToolbarFab() },
+                        modifier = Modifier.align(Alignment.BottomCenter).offset(y = -ScreenOffset),
+                        scrollBehavior = scrollBehavior,
+                    ) {
+                        ToolbarContent()
+                    }
+                }
+            }
+        }
+
+        // Check that the FAB and a sample from the toolbar content are displayed.
+        rule.onNodeWithTag(FloatingActionButtonTestTag).assertIsDisplayed()
+        rule.onNodeWithTag(FloatingToolbarContentLastItemTestTag).assertIsDisplayed()
+
+        // Swipe the content up to collapse the FloatingToolbar.
+        rule.onNodeWithTag(mainLayoutTag).performTouchInput { swipeUp(bottom, bottom - 1000) }
+        rule.waitForIdle()
+        // Check that the FAB and a sample from the toolbar content are not displayed.
+        rule.onNodeWithTag(FloatingActionButtonTestTag).assertIsNotDisplayed()
+        rule.onNodeWithTag(FloatingToolbarContentLastItemTestTag).assertIsNotDisplayed()
     }
 
     @Composable

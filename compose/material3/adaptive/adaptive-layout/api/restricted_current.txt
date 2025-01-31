@@ -110,12 +110,28 @@ package androidx.compose.material3.adaptive.layout {
     property @androidx.compose.runtime.Composable public abstract String description;
   }
 
-  public static final class PaneExpansionAnchor.Offset extends androidx.compose.material3.adaptive.layout.PaneExpansionAnchor {
-    ctor public PaneExpansionAnchor.Offset(float offset);
-    method @androidx.compose.runtime.Composable public String getDescription();
-    method public float getOffset();
-    property @androidx.compose.runtime.Composable public String description;
+  public abstract static class PaneExpansionAnchor.Offset extends androidx.compose.material3.adaptive.layout.PaneExpansionAnchor {
+    method public final int getDirection();
+    method public final float getOffset();
+    property public final int direction;
     property public final float offset;
+    field public static final androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset.Companion Companion;
+  }
+
+  public static final class PaneExpansionAnchor.Offset.Companion {
+    method public androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset fromEnd(float offset);
+    method public androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset fromStart(float offset);
+  }
+
+  @kotlin.jvm.JvmInline public static final value class PaneExpansionAnchor.Offset.Direction {
+    field public static final androidx.compose.material3.adaptive.layout.PaneExpansionAnchor.Offset.Direction.Companion Companion;
+  }
+
+  public static final class PaneExpansionAnchor.Offset.Direction.Companion {
+    method public int getFromEnd();
+    method public int getFromStart();
+    property public final int FromEnd;
+    property public final int FromStart;
   }
 
   public static final class PaneExpansionAnchor.Proportion extends androidx.compose.material3.adaptive.layout.PaneExpansionAnchor {
@@ -131,10 +147,13 @@ package androidx.compose.material3.adaptive.layout {
   }
 
   @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi @androidx.compose.runtime.Stable public final class PaneExpansionState {
+    method public suspend Object? animateTo(androidx.compose.material3.adaptive.layout.PaneExpansionAnchor anchor, optional float initialVelocity, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public void clear();
+    method public androidx.compose.material3.adaptive.layout.PaneExpansionAnchor? getCurrentAnchor();
     method public boolean isUnspecified();
     method public void setFirstPaneProportion(@FloatRange(from=0.0, to=1.0) float firstPaneProportion);
     method public void setFirstPaneWidth(int firstPaneWidth);
+    property public final androidx.compose.material3.adaptive.layout.PaneExpansionAnchor? currentAnchor;
     field public static final androidx.compose.material3.adaptive.layout.PaneExpansionState.Companion Companion;
     field public static final int Unspecified = -1; // 0xffffffff
   }
@@ -168,12 +187,8 @@ package androidx.compose.material3.adaptive.layout {
     property @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi public static final androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.adaptive.layout.AnimatedPaneOverride> LocalAnimatedPaneOverride;
   }
 
-  @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public interface PaneMotion {
-    method public androidx.compose.animation.EnterTransition getEnterTransition(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<? extends java.lang.Object?>);
-    method public androidx.compose.animation.ExitTransition getExitTransition(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<? extends java.lang.Object?>);
+  @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi @androidx.compose.runtime.Stable public sealed interface PaneMotion {
     method public int getType();
-    property public androidx.compose.animation.EnterTransition enterTransition;
-    property public androidx.compose.animation.ExitTransition exitTransition;
     property public abstract int type;
     field public static final androidx.compose.material3.adaptive.layout.PaneMotion.Companion Companion;
   }
@@ -248,6 +263,8 @@ package androidx.compose.material3.adaptive.layout {
   }
 
   public final class PaneMotionKt {
+    method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public static <Role> androidx.compose.animation.EnterTransition calculateDefaultEnterTransition(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role>, Role role);
+    method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public static <Role> androidx.compose.animation.ExitTransition calculateDefaultExitTransition(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role>, Role role);
     method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public static inline <Role> void forEach(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role>, kotlin.jvm.functions.Function2<? super Role,? super androidx.compose.material3.adaptive.layout.PaneMotionData,kotlin.Unit> action);
     method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public static inline <Role> void forEachReversed(androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role>, kotlin.jvm.functions.Function2<? super Role,? super androidx.compose.material3.adaptive.layout.PaneMotionData,kotlin.Unit> action);
   }
@@ -312,13 +329,9 @@ package androidx.compose.material3.adaptive.layout {
   }
 
   @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi public sealed interface PaneScaffoldTransitionScope<Role, ScaffoldValue extends androidx.compose.material3.adaptive.layout.PaneScaffoldValue<Role>> {
-    method public default androidx.compose.animation.EnterTransition getEnterTransition(androidx.compose.material3.adaptive.layout.PaneMotion);
-    method public default androidx.compose.animation.ExitTransition getExitTransition(androidx.compose.material3.adaptive.layout.PaneMotion);
     method public androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role> getMotionDataProvider();
     method @FloatRange(from=0.0, to=1.0) public float getMotionProgress();
     method public androidx.compose.animation.core.Transition<ScaffoldValue> getScaffoldStateTransition();
-    property public androidx.compose.animation.EnterTransition enterTransition;
-    property public androidx.compose.animation.ExitTransition exitTransition;
     property public abstract androidx.compose.material3.adaptive.layout.PaneScaffoldMotionDataProvider<Role> motionDataProvider;
     property @FloatRange(from=0.0, to=1.0) public abstract float motionProgress;
     property public abstract androidx.compose.animation.core.Transition<ScaffoldValue> scaffoldStateTransition;

@@ -67,7 +67,7 @@ import androidx.compose.ui.unit.dp
  * [checked]'s value. It also morphs between the three shapes provided in [shapes] depending on the
  * state of the interaction with the toggle button as long as the three shapes provided our
  * [CornerBasedShape]s. If a shape in [shapes] isn't a [CornerBasedShape], then toggle button will
- * toggle between the [ButtonShapes] according to user interaction.
+ * toggle between the [ToggleButtonShapes] according to user interaction.
  *
  * TODO link to an image when available
  *
@@ -93,7 +93,7 @@ import androidx.compose.ui.unit.dp
  * @param enabled controls the enabled state of this toggle button. When `false`, this component
  *   will not respond to user input, and it will appear visually disabled and disabled to
  *   accessibility services.
- * @param shapes the [ButtonShapes] that the toggle button will morph between depending on the
+ * @param shapes the [ToggleButtonShapes] that the toggle button will morph between depending on the
  *   user's interaction with the toggle button.
  * @param colors [ToggleButtonColors] that will be used to resolve the colors used for this toggle
  *   button in different states. See [ToggleButtonDefaults.toggleButtonColors].
@@ -117,7 +117,7 @@ fun ToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
+    shapes: ToggleButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.toggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
@@ -197,7 +197,7 @@ fun ToggleButton(
  * [checked]'s value. It also morphs between the three shapes provided in [shapes] depending on the
  * state of the interaction with the toggle button as long as the three shapes provided our
  * [CornerBasedShape]s. If a shape in [shapes] isn't a [CornerBasedShape], then toggle button will
- * toggle between the [ButtonShapes] according to user interaction.
+ * toggle between the [ToggleButtonShapes] according to user interaction.
  *
  * TODO link to an image when available
  *
@@ -214,7 +214,7 @@ fun ToggleButton(
  * @param enabled controls the enabled state of this toggle button. When `false`, this component
  *   will not respond to user input, and it will appear visually disabled and disabled to
  *   accessibility services.
- * @param shapes the [ButtonShapes] that the toggle button will morph between depending on the
+ * @param shapes the [ToggleButtonShapes] that the toggle button will morph between depending on the
  *   user's interaction with the toggle button.
  * @param colors [ToggleButtonColors] that will be used to resolve the colors used for this toggle
  *   button in different states. See [ToggleButtonDefaults.elevatedToggleButtonColors].
@@ -238,7 +238,7 @@ fun ElevatedToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
+    shapes: ToggleButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.elevatedToggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.elevatedButtonElevation(),
     border: BorderStroke? = null,
@@ -267,7 +267,7 @@ fun ElevatedToggleButton(
  * [checked]'s value. It also morphs between the three shapes provided in [shapes] depending on the
  * state of the interaction with the toggle button as long as the three shapes provided our
  * [CornerBasedShape]s. If a shape in [shapes] isn't a [CornerBasedShape], then toggle button will
- * toggle between the [ButtonShapes] according to user interaction.
+ * toggle between the [ToggleButtonShapes] according to user interaction.
  *
  * TODO link to an image when available
  *
@@ -287,7 +287,7 @@ fun ElevatedToggleButton(
  * @param enabled controls the enabled state of this toggle button. When `false`, this component
  *   will not respond to user input, and it will appear visually disabled and disabled to
  *   accessibility services.
- * @param shapes the [ButtonShapes] that the toggle button will morph between depending on the
+ * @param shapes the [ToggleButtonShapes] that the toggle button will morph between depending on the
  *   user's interaction with the toggle button.
  * @param colors [ToggleButtonColors] that will be used to resolve the colors used for this toggle
  *   button in different states. See [ToggleButtonDefaults.tonalToggleButtonColors].
@@ -311,7 +311,7 @@ fun TonalToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
+    shapes: ToggleButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.tonalToggleButtonColors(),
     elevation: ButtonElevation? = ButtonDefaults.filledTonalButtonElevation(),
     border: BorderStroke? = null,
@@ -340,7 +340,7 @@ fun TonalToggleButton(
  * [checked]'s value. It also morphs between the three shapes provided in [shapes] depending on the
  * state of the interaction with the toggle button as long as the three shapes provided our
  * [CornerBasedShape]s. If a shape in [shapes] isn't a [CornerBasedShape], then toggle button will
- * toggle between the [ButtonShapes] according to user interaction.
+ * toggle between the [ToggleButtonShapes] according to user interaction.
  *
  * TODO link to an image when available
  *
@@ -358,7 +358,7 @@ fun TonalToggleButton(
  * @param enabled controls the enabled state of this toggle button. When `false`, this component
  *   will not respond to user input, and it will appear visually disabled and disabled to
  *   accessibility services.
- * @param shapes the [ButtonShapes] that the toggle button will morph between depending on the
+ * @param shapes the [ToggleButtonShapes] that the toggle button will morph between depending on the
  *   user's interaction with the toggle button.
  * @param colors [ToggleButtonColors] that will be used to resolve the colors used for this toggle
  *   button in different states. See [ToggleButtonDefaults.outlinedToggleButtonColors].
@@ -382,7 +382,7 @@ fun OutlinedToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    shapes: ButtonShapes = ToggleButtonDefaults.shapes(),
+    shapes: ToggleButtonShapes = ToggleButtonDefaults.shapes(),
     colors: ToggleButtonColors = ToggleButtonDefaults.outlinedToggleButtonColors(),
     elevation: ButtonElevation? = null,
     border: BorderStroke? = if (!checked) ButtonDefaults.outlinedButtonBorder(enabled) else null,
@@ -439,36 +439,36 @@ object ToggleButtonDefaults {
         )
 
     /**
-     * Creates a [ButtonShapes] that represents the default shape, pressedShape, and checkedShape
-     * used in a [ToggleButton].
+     * Creates a [ToggleButtonShapes] that represents the default shape, pressedShape, and
+     * checkedShape used in a [ToggleButton].
      */
-    @Composable fun shapes() = MaterialTheme.shapes.defaultShapes
+    @Composable fun shapes() = MaterialTheme.shapes.defaultToggleButtonShapes
 
     /**
-     * Creates a [ButtonShapes] that represents the default shape, pressedShape, and checkedShape
-     * used in a [ToggleButton] and its variants.
+     * Creates a [ToggleButtonShapes] that represents the default shape, pressedShape, and
+     * checkedShape used in a [ToggleButton] and its variants.
      *
-     * @param shape the unchecked shape for [ButtonShapes]
-     * @param pressedShape the unchecked shape for [ButtonShapes]
-     * @param checkedShape the unchecked shape for [ButtonShapes]
+     * @param shape the unchecked shape for [ToggleButtonShapes]
+     * @param pressedShape the unchecked shape for [ToggleButtonShapes]
+     * @param checkedShape the unchecked shape for [ToggleButtonShapes]
      */
     @Composable
     fun shapes(
         shape: Shape? = null,
         pressedShape: Shape? = null,
         checkedShape: Shape? = null
-    ): ButtonShapes =
-        MaterialTheme.shapes.defaultShapes.copy(
+    ): ToggleButtonShapes =
+        MaterialTheme.shapes.defaultToggleButtonShapes.copy(
             shape = shape,
             pressedShape = pressedShape,
             checkedShape = checkedShape
         )
 
-    internal val Shapes.defaultShapes: ButtonShapes
+    internal val Shapes.defaultToggleButtonShapes: ToggleButtonShapes
         @Composable
         get() {
             return defaultToggleButtonShapesCached
-                ?: ButtonShapes(
+                ?: ToggleButtonShapes(
                         shape = shape,
                         pressedShape = pressedShape,
                         checkedShape = checkedShape
@@ -885,14 +885,16 @@ class ToggleButtonColors(
  * @property pressedShape is the pressed shape.
  * @property checkedShape is the checked shape.
  */
-class ButtonShapes(val shape: Shape, val pressedShape: Shape, val checkedShape: Shape) {
-    /** Returns a copy of this ButtonShapes, optionally overriding some of the values. */
+@ExperimentalMaterial3ExpressiveApi
+@Immutable
+class ToggleButtonShapes(val shape: Shape, val pressedShape: Shape, val checkedShape: Shape) {
+    /** Returns a copy of this ToggleButtonShapes, optionally overriding some of the values. */
     fun copy(
         shape: Shape? = this.shape,
         pressedShape: Shape? = this.pressedShape,
         checkedShape: Shape? = this.checkedShape
     ) =
-        ButtonShapes(
+        ToggleButtonShapes(
             shape = shape.takeOrElse { this.shape },
             pressedShape = pressedShape.takeOrElse { this.pressedShape },
             checkedShape = checkedShape.takeOrElse { this.checkedShape }
@@ -902,7 +904,7 @@ class ButtonShapes(val shape: Shape, val pressedShape: Shape, val checkedShape: 
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || other !is ButtonShapes) return false
+        if (other == null || other !is ToggleButtonShapes) return false
 
         if (shape != other.shape) return false
         if (pressedShape != other.pressedShape) return false
@@ -920,15 +922,17 @@ class ButtonShapes(val shape: Shape, val pressedShape: Shape, val checkedShape: 
     }
 }
 
-internal val ButtonShapes.hasRoundedCornerShapes: Boolean
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal val ToggleButtonShapes.hasRoundedCornerShapes: Boolean
     get() =
         shape is RoundedCornerShape &&
             pressedShape is RoundedCornerShape &&
             checkedShape is RoundedCornerShape
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun shapeByInteraction(
-    shapes: ButtonShapes,
+    shapes: ToggleButtonShapes,
     pressed: Boolean,
     checked: Boolean,
     animationSpec: FiniteAnimationSpec<Float>
@@ -938,7 +942,9 @@ private fun shapeByInteraction(
             shapes.pressedShape
         } else if (checked) {
             shapes.checkedShape
-        } else shapes.shape
+        } else {
+            shapes.shape
+        }
 
     if (shapes.hasRoundedCornerShapes)
         return key(shapes) {

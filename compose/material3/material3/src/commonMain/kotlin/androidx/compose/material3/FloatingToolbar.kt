@@ -51,12 +51,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FloatingToolbarDefaults.horizontalEnterTransition
 import androidx.compose.material3.FloatingToolbarDefaults.horizontalExitTransition
+import androidx.compose.material3.FloatingToolbarDefaults.standardFloatingToolbarColors
 import androidx.compose.material3.FloatingToolbarDefaults.verticalEnterTransition
 import androidx.compose.material3.FloatingToolbarDefaults.verticalExitTransition
+import androidx.compose.material3.FloatingToolbarDefaults.vibrantFloatingToolbarColors
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.Bottom
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.End
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.Start
 import androidx.compose.material3.FloatingToolbarExitDirection.Companion.Top
+import androidx.compose.material3.FloatingToolbarState.Companion.Saver
 import androidx.compose.material3.tokens.ColorSchemeKeyTokens
 import androidx.compose.material3.tokens.ElevationTokens
 import androidx.compose.material3.tokens.FabBaselineTokens
@@ -262,11 +265,22 @@ fun HorizontalFloatingToolbar(
  * other content, and even in a `Scaffold`'s floating action button slot. Its [expanded] flag
  * controls the visibility of the actions with a slide animations.
  *
- * Note that if your app uses a `Snackbar`, it's best to position the toolbar in a `Scaffold`'s FAB
- * slot. This ensures the `Snackbar` appears above the toolbar, preventing any visual overlap or
- * interference.
+ * In case the toolbar is aligned to the right or the left of the screen, you may apply a
+ * [FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll] `Modifier` to update the [expanded]
+ * state when scrolling occurs, as this sample shows:
  *
  * @sample androidx.compose.material3.samples.HorizontalFloatingToolbarWithFabSample
+ *
+ * In case the toolbar is positioned along a center edge of the screen (like top or bottom center),
+ * it's recommended to maintain the expanded state on scroll and to attach a [scrollBehavior] in
+ * order to hide or show the entire component, as this sample shows:
+ *
+ * @sample androidx.compose.material3.samples.CenteredHorizontalFloatingToolbarWithFabSample
+ *
+ * Note that if your app uses a `Snackbar`, it's best to position the toolbar in a `Scaffold`'s FAB
+ * slot. This ensures the `Snackbar` appears above the toolbar, preventing any visual overlap or
+ * interference. See this sample:
+ *
  * @sample androidx.compose.material3.samples.HorizontalFloatingToolbarAsScaffoldFabSample
  * @param expanded whether the floating toolbar is expanded or not. In its expanded state, the FAB
  *   and the toolbar content are organized horizontally. Otherwise, only the FAB is visible.
@@ -279,6 +293,12 @@ fun HorizontalFloatingToolbar(
  *   [FloatingToolbarDefaults.vibrantFloatingToolbarColors] which you can use or modify. See also
  *   [floatingActionButton] for more information on the right FAB to use for proper styling.
  * @param contentPadding the padding applied to the content of this floating toolbar.
+ * @param scrollBehavior a [FloatingToolbarScrollBehavior]. If provided, this FloatingToolbar will
+ *   automatically react to scrolling. If your toolbar is positioned along a center edge of the
+ *   screen (like top or bottom center), it's best to use this scroll behavior to make the entire
+ *   toolbar scroll off-screen as the user scrolls. This would prevent the FAB from appearing
+ *   off-center, which may occur in this case when using the [expanded] flag to simply expand or
+ *   collapse the toolbar.
  * @param shape the shape used for this floating toolbar content.
  * @param floatingActionButtonPosition the position of the floating toolbar's floating action
  *   button. By default, the FAB is placed at the end of the toolbar (i.e. aligned to the right in
@@ -296,6 +316,7 @@ fun HorizontalFloatingToolbar(
     modifier: Modifier = Modifier,
     colors: FloatingToolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
     contentPadding: PaddingValues = FloatingToolbarDefaults.ContentPadding,
+    scrollBehavior: FloatingToolbarScrollBehavior? = null,
     shape: Shape = FloatingToolbarDefaults.ContainerShape,
     floatingActionButtonPosition: FloatingToolbarHorizontalFabPosition =
         FloatingToolbarHorizontalFabPosition.End,
@@ -308,6 +329,7 @@ fun HorizontalFloatingToolbar(
         colors = colors,
         toolbarToFabGap = FloatingToolbarDefaults.ToolbarToFabGap,
         toolbarContentPadding = contentPadding,
+        scrollBehavior = scrollBehavior,
         toolbarShape = shape,
         animationSpec = animationSpec,
         fab = floatingActionButton,
@@ -469,7 +491,17 @@ fun VerticalFloatingToolbar(
  * other content, and its [expanded] flag controls the visibility of the actions with a slide
  * animations.
  *
+ * In case the toolbar is aligned to the top or the bottom of the screen, you may apply a
+ * [FloatingToolbarDefaults.floatingToolbarVerticalNestedScroll] `Modifier` to update the [expanded]
+ * state when scrolling occurs, as this sample shows:
+ *
  * @sample androidx.compose.material3.samples.VerticalFloatingToolbarWithFabSample
+ *
+ * In case the toolbar is positioned along a center edge of the screen (like left or right center),
+ * it's recommended to maintain the expanded state on scroll and to attach a [scrollBehavior] in
+ * order to hide or show the entire component, as this sample shows:
+ *
+ * @sample androidx.compose.material3.samples.CenteredVerticalFloatingToolbarWithFabSample
  * @param expanded whether the floating toolbar is expanded or not. In its expanded state, the FAB
  *   and the toolbar content are organized vertically. Otherwise, only the FAB is visible.
  * @param floatingActionButton a floating action button to be displayed by the toolbar. It's
@@ -481,6 +513,12 @@ fun VerticalFloatingToolbar(
  *   [FloatingToolbarDefaults.vibrantFloatingToolbarColors] which you can use or modify. See also
  *   [floatingActionButton] for more information on the right FAB to use for proper styling.
  * @param contentPadding the padding applied to the content of this floating toolbar.
+ * @param scrollBehavior a [FloatingToolbarScrollBehavior]. If provided, this FloatingToolbar will
+ *   automatically react to scrolling. If your toolbar is positioned along a center edge of the
+ *   screen (like left or right center), it's best to use this scroll behavior to make the entire
+ *   toolbar scroll off-screen as the user scrolls. This would prevent the FAB from appearing
+ *   off-center, which may occur in this case when using the [expanded] flag to simply expand or
+ *   collapse the toolbar.
  * @param shape the shape used for this floating toolbar content.
  * @param floatingActionButtonPosition the position of the floating toolbar's floating action
  *   button. By default, the FAB is placed at the bottom of the toolbar (i.e. aligned to the
@@ -498,6 +536,7 @@ fun VerticalFloatingToolbar(
     modifier: Modifier = Modifier,
     colors: FloatingToolbarColors = FloatingToolbarDefaults.standardFloatingToolbarColors(),
     contentPadding: PaddingValues = FloatingToolbarDefaults.ContentPadding,
+    scrollBehavior: FloatingToolbarScrollBehavior? = null,
     shape: Shape = FloatingToolbarDefaults.ContainerShape,
     floatingActionButtonPosition: FloatingToolbarVerticalFabPosition =
         FloatingToolbarVerticalFabPosition.Bottom,
@@ -510,6 +549,7 @@ fun VerticalFloatingToolbar(
         colors = colors,
         toolbarToFabGap = FloatingToolbarDefaults.ToolbarToFabGap,
         toolbarContentPadding = contentPadding,
+        scrollBehavior = scrollBehavior,
         toolbarShape = shape,
         animationSpec = animationSpec,
         fab = floatingActionButton,
@@ -1489,6 +1529,7 @@ private fun HorizontalFloatingToolbarWithFabLayout(
     colors: FloatingToolbarColors,
     toolbarToFabGap: Dp,
     toolbarContentPadding: PaddingValues,
+    scrollBehavior: FloatingToolbarScrollBehavior?,
     toolbarShape: Shape,
     animationSpec: FiniteAnimationSpec<Float>,
     fab: @Composable () -> Unit,
@@ -1514,7 +1555,12 @@ private fun HorizontalFloatingToolbarWithFabLayout(
             fab()
         },
         modifier =
-            modifier.defaultMinSize(minHeight = FloatingToolbarDefaults.FabSizeRange.endInclusive)
+            modifier
+                .defaultMinSize(minHeight = FloatingToolbarDefaults.FabSizeRange.endInclusive)
+                .then(
+                    scrollBehavior?.let { with(it) { Modifier.floatingScrollBehavior() } }
+                        ?: Modifier
+                )
     ) { measurables, constraints ->
         val toolbarMeasurable = measurables[0]
         val fabMeasurable = measurables[1]
@@ -1596,6 +1642,7 @@ private fun VerticalFloatingToolbarWithFabLayout(
     colors: FloatingToolbarColors,
     toolbarToFabGap: Dp,
     toolbarContentPadding: PaddingValues,
+    scrollBehavior: FloatingToolbarScrollBehavior?,
     toolbarShape: Shape,
     animationSpec: FiniteAnimationSpec<Float>,
     fab: @Composable () -> Unit,
@@ -1621,7 +1668,12 @@ private fun VerticalFloatingToolbarWithFabLayout(
             fab()
         },
         modifier =
-            modifier.defaultMinSize(minWidth = FloatingToolbarDefaults.FabSizeRange.endInclusive)
+            modifier
+                .defaultMinSize(minWidth = FloatingToolbarDefaults.FabSizeRange.endInclusive)
+                .then(
+                    scrollBehavior?.let { with(it) { Modifier.floatingScrollBehavior() } }
+                        ?: Modifier
+                )
     ) { measurables, constraints ->
         val toolbarMeasurable = measurables[0]
         val fabMeasurable = measurables[1]

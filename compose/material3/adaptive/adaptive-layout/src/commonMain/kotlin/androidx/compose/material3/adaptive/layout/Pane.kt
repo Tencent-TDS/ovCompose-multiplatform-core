@@ -93,8 +93,8 @@ val LocalAnimatedPaneOverride: ProvidableCompositionLocal<AnimatedPaneOverride> 
 @Composable
 fun <S, T : PaneScaffoldValue<S>> ExtendedPaneScaffoldPaneScope<S, T>.AnimatedPane(
     modifier: Modifier = Modifier,
-    enterTransition: EnterTransition = paneMotion.enterTransition,
-    exitTransition: ExitTransition = paneMotion.exitTransition,
+    enterTransition: EnterTransition = motionDataProvider.calculateDefaultEnterTransition(paneRole),
+    exitTransition: ExitTransition = motionDataProvider.calculateDefaultExitTransition(paneRole),
     boundsAnimationSpec: FiniteAnimationSpec<IntRect> = PaneMotionDefaults.AnimationSpec,
     content: (@Composable AnimatedPaneScope.() -> Unit),
 ) {

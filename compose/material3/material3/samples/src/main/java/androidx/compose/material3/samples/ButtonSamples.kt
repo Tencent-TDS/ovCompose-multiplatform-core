@@ -41,7 +41,15 @@ import androidx.compose.ui.tooling.preview.Preview
 @Sampled
 @Composable
 fun ButtonSample() {
-    Button(onClick = { /* Do something! */ }) { Text("Button") }
+    Button(onClick = {}) { Text("Button") }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun ButtonWithAnimatedShapeSample() {
+    Button(onClick = {}, shapes = ButtonDefaults.shapes()) { Text("Button") }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -72,11 +80,29 @@ fun ElevatedButtonSample() {
     ElevatedButton(onClick = { /* Do something! */ }) { Text("Elevated Button") }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun ElevatedButtonWithAnimatedShapeSample() {
+    ElevatedButton(onClick = {}, shapes = ButtonDefaults.shapes()) { Text("Elevated Button") }
+}
+
 @Preview
 @Sampled
 @Composable
 fun FilledTonalButtonSample() {
     FilledTonalButton(onClick = { /* Do something! */ }) { Text("Filled Tonal Button") }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun FilledTonalButtonWithAnimatedShapeSample() {
+    FilledTonalButton(onClick = {}, shapes = ButtonDefaults.shapes()) {
+        Text("Filled Tonal Button")
+    }
 }
 
 @Preview
@@ -86,11 +112,27 @@ fun OutlinedButtonSample() {
     OutlinedButton(onClick = { /* Do something! */ }) { Text("Outlined Button") }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun OutlinedButtonWithAnimatedShapeSample() {
+    OutlinedButton(onClick = {}, shapes = ButtonDefaults.shapes()) { Text("Outlined Button") }
+}
+
 @Preview
 @Sampled
 @Composable
 fun TextButtonSample() {
     TextButton(onClick = { /* Do something! */ }) { Text("Text Button") }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun TextButtonWithAnimatedShapeSample() {
+    TextButton(onClick = {}, shapes = ButtonDefaults.shapes()) { Text("Text Button") }
 }
 
 @Preview
