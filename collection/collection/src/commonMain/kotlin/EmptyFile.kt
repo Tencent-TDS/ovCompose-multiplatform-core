@@ -20,4 +20,3 @@
 // There is an intention to drop this behaviour: https://youtrack.jetbrains.com/issue/KT-61096/KLIB-Resolve-Drop-KLIB-resolve-inside-the-Kotlin-compiler
 // The actual klib is published at androidx maven coordinates in Google maven.
 // This module depends on the actual klib, so the module API will be available transitively.
-private class EmptyFile
