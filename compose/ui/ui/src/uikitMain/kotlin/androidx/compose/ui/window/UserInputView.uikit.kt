@@ -18,10 +18,10 @@ package androidx.compose.ui.window
 
 import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
-import androidx.compose.ui.unit.toPlatformInsets
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
+import kotlin.math.abs
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -31,11 +31,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
-import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSDate
-import platform.Foundation.NSRunLoop
-import platform.Foundation.runUntilDate
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UIGestureRecognizerState
@@ -52,6 +48,8 @@ import platform.UIKit.UIScrollView
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.setState
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
 /**
  * A reason for why touches are sent to Compose
@@ -96,7 +94,7 @@ internal class UserInputGestureRecognizer(
     /**
      * Touches that are currently tracked by the gesture recognizer.
      */
-    private val trackedTouches: MutableMap<UITouch, UIKitInteropInteractionMode?> = mutableMapOf()
+    private val trackedTouches: MutableMap<UITouch, UIView?> = mutableMapOf()
 
     /**
      * Scheduled job for the gesture recognizer failure.
@@ -121,7 +119,7 @@ internal class UserInputGestureRecognizer(
             touch as UITouch
             val point = touch.locationInView(view)
             val hitTestResult = view?.hitTest(point, withEvent)?.takeIf { it != view }
-            touch to hitTestResult?.findAncestorInteropWrappingView()?.interactionMode
+            touch to hitTestResult
         }.toMap()
 
         fun startTouchesEvent() {
@@ -135,7 +133,9 @@ internal class UserInputGestureRecognizer(
             }
         }
 
-        val interactionMode = touchesToInteractionMode.values.findMostRestrictedInteractionMode()
+        val interactionMode = touchesToInteractionMode.values.map {
+            it?.findAncestorInteropWrappingView()?.interactionMode
+        }.findMostRestrictedInteractionMode()
         when (interactionMode) {
             is UIKitInteropInteractionMode.Cooperative -> {
                 startTouchesEvent()
@@ -155,13 +155,29 @@ internal class UserInputGestureRecognizer(
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent) {
         super.touchesMoved(touches, withEvent)
 
-        val result = onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.MOVED)
-        if (result.anyMovementConsumed) {
-            if (!state.isOngoing) {
-                setState(UIGestureRecognizerStateBegan)
-
-                cancelTouchesFailure()
+        fun processGesture() {
+            if (trackedTouches.isEmpty()) {
+                return
             }
+            val result = onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.MOVED)
+            if (result.anyMovementConsumed) {
+                if (!state.isOngoing) {
+                    setState(UIGestureRecognizerStateBegan)
+                    cancelTouchesFailure()
+                }
+            }
+        }
+
+        // The UserInputGestureRecognizer receives touches earlier than its interop scroll views,
+        // if any. If an interop scroll view is involved in tracking touches, we let it capture
+        // the pan gesture first in order to prioritise the scrolling gesture of the child scroll
+        // view.
+        val postponeGesture = state == UIGestureRecognizerStatePossible &&
+            touches.any { trackedTouches[it].hasTrackingUIScrollView() }
+        if (postponeGesture) {
+            CoroutineScope(Dispatchers.Main).launch { processGesture() }
+        } else {
+            processGesture()
         }
     }
 
@@ -217,7 +233,7 @@ internal class UserInputGestureRecognizer(
             && preventingGestureRecognizer.state.isOngoing) {
             cancelAllTrackedTouches()
             true
-        } else if (isViewInChildHierarchy(preventingGestureRecognizer.view)) {
+        } else if (isInChildHierarchy(preventingGestureRecognizer.view)) {
             if ((state == UIGestureRecognizerStatePossible || state.isOngoing) &&
                 isScrollViewAtTheEndOfScrollableContent(preventingGestureRecognizer)
             ) {
@@ -239,7 +255,7 @@ internal class UserInputGestureRecognizer(
     override fun canPreventGestureRecognizer(
         preventedGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        return if (isViewInChildHierarchy(preventedGestureRecognizer.view)) {
+        return if (isInChildHierarchy(preventedGestureRecognizer.view)) {
             super.canPreventGestureRecognizer(preventedGestureRecognizer)
         } else if (preventedGestureRecognizer is UIScreenEdgePanGestureRecognizer) {
             false
@@ -257,26 +273,28 @@ internal class UserInputGestureRecognizer(
     private fun isScrollViewAtTheEndOfScrollableContent(recognizer: UIGestureRecognizer): Boolean {
         val pan = recognizer as? UIPanGestureRecognizer ?: return false
         val scrollView = recognizer.view as? UIScrollView ?: return false
-        if (scrollView.isDecelerating()) return false
+        if (scrollView.isDecelerating() || scrollView.isDragging()) {
+            return false
+        }
 
         val (diffX, diffY) = pan.translationInView(scrollView).useContents { x to y }
         val (offsetX, offsetY) = scrollView.contentOffset.useContents { x to y }
         val (contentWidth, contentHeight) = scrollView.contentSize.useContents { width to height }
         val (scrollWidth, scrollHeight) = scrollView.bounds.useContents { size.width to size.height }
-        val insets = scrollView.contentInset.toPlatformInsets()
+        val insets = scrollView.contentInset.useContents { this }
 
-        val endOfHorizontal = (diffX > 0 && offsetX <= insets.left.value) ||
-            (diffX < 0 && offsetX >= contentWidth - scrollWidth + insets.right.value) ||
-            diffX == 0.0
+        val endOfHorizontal = (diffX >= 0 && offsetX.equalWithinPixelTolerance(-insets.left)) ||
+            (diffX <= 0 &&
+                offsetX.equalWithinPixelTolerance(contentWidth - scrollWidth + insets.right))
 
-        val endOfVertical = (diffY > 0 && offsetY <= insets.top.value) ||
-            (diffY < 0 && offsetY >= contentHeight - scrollHeight + insets.bottom.value) ||
-            diffY == 0.0
+        val endOfVertical = (diffY >= 0 && offsetY.equalWithinPixelTolerance(-insets.top)) ||
+            (diffY <= 0 &&
+                offsetY.equalWithinPixelTolerance(contentHeight - scrollHeight + insets.bottom))
 
         return endOfHorizontal && endOfVertical
     }
 
-    private fun isViewInChildHierarchy(child: UIView?): Boolean {
+    private fun isInChildHierarchy(child: UIView?): Boolean {
         val view = view ?: return false
         var iteratingView = child
         while (iteratingView != null) {
@@ -296,6 +314,8 @@ internal class UserInputGestureRecognizer(
     fun dispose() {
         cancelTouchesFailure()
         onTouchesEvent = { _, _, _ -> PointerEventResult(anyMovementConsumed = false) }
+        onCancelAllTouches = {}
+        canIgnoreDragGesture = { false }
         trackedTouches.clear()
     }
 
@@ -415,7 +435,6 @@ internal class UserInputView(
         gestureRecognizer.dispose()
 
         hitTestInteropView = { null }
-
         isPointInsideInteractionBounds = { false }
         canIgnoreDragGesture = { false }
         onKeyboardPresses = {}
@@ -423,10 +442,9 @@ internal class UserInputView(
 }
 
 /**
- * There is no way
- * to associate [InteropWrappingView.interactionMode] with a given [UIView.hitTest] query.
- * This extension method allows finding the nearest [InteropWrappingView] up the view hierarchy
- * and request the value retroactively.
+ * There is no way to associate [InteropWrappingView.interactionMode] with a given [UIView.hitTest]
+ * query. This extension method allows finding the nearest [InteropWrappingView] up the view
+ * hierarchy and request the value retroactively.
  */
 private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
     var view: UIView? = this
@@ -439,32 +457,27 @@ private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
     return null
 }
 
-/**
- * Calculate the centroid location of the touches in the given collection.
- *
- * @param view The view in which coordinate space calculation is performed.
- *
- * @return The centroid location of the touches in [this] collection in the coordinate space
- * of the given [view]. Or `null` if [this] is empty.
- */
-internal fun Collection<UITouch>.centroidLocationInView(view: UIView): CValue<CGPoint>? {
-    if (isEmpty()) {
-        return null
-    }
+private fun Double.equalWithinPixelTolerance(other: Double): Boolean {
+    return abs(other - this) < 0.1 // Any number smaller than a pixel size is sufficient here
+}
 
-    var centroidX = 0.0
-    var centroidY = 0.0
-
-    for (touch in this) {
-        val location = touch.locationInView(view)
-        location.useContents {
-            centroidX += x
-            centroidY += y
+private fun UIView?.hasTrackingUIScrollView(): Boolean {
+    var view: UIView? = this
+    while (view != null) {
+        if (view is InteropWrappingView) {
+            return false
         }
+        if (view is UIScrollView &&
+            view.userInteractionEnabled &&
+            view.panGestureRecognizer.isEnabled()) {
+            if ((view.panGestureRecognizer.state == UIGestureRecognizerStatePossible ||
+                    view.panGestureRecognizer.state == UIGestureRecognizerStateBegan) &&
+                view.isTracking()
+            ) {
+                return true
+            }
+        }
+        view = view.superview
     }
-
-    return CGPointMake(
-        x = centroidX / size.toDouble(),
-        y = centroidY / size.toDouble()
-    )
+    return false
 }
