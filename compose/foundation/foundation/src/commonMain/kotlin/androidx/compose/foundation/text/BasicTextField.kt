@@ -347,6 +347,7 @@ internal fun BasicTextField(
             }
         }
 
+    // TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
     rememberClipboardEventsHandler(
         isEnabled = isFocused,
         onPaste = { textFieldSelectionState.pasteAsPlainText(it) },
