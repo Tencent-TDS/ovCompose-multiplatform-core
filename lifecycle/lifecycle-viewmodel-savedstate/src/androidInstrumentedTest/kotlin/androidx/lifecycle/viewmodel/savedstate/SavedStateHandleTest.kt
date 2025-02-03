@@ -20,8 +20,6 @@ import android.os.Bundle
 import androidx.annotation.MainThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.SavedStateHandle
-import androidx.savedstate.read
-import androidx.savedstate.savedState
 import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
@@ -31,8 +29,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.withIndex
-import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertThrows
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -197,7 +194,7 @@ class SavedStateHandleTest {
     }
 
     @Test
-    fun savedStateValueFlow() = runTest {
+    fun savedStateValueFlow() = runBlocking {
         val handle = SavedStateHandle()
 
         handle
@@ -219,7 +216,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_nullInitial() = runTest {
+    fun newFlow_nullInitial() = runBlocking {
         val handle = SavedStateHandle()
         handle
             .getStateFlow<String?>("aa", null)
@@ -230,7 +227,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_withInitialGet() = runTest {
+    fun newFlow_withInitialGet() = runBlocking {
         val handle = SavedStateHandle()
         val flow = handle.getStateFlow("aa", "xx")
 
@@ -246,7 +243,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_existingValue_withInitial() = runTest {
+    fun newFlow_existingValue_withInitial() = runBlocking {
         val handle = SavedStateHandle()
         handle["aa"] = "existing"
 
@@ -261,7 +258,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_existingValue_withNullInitial() = runTest {
+    fun newFlow_existingValue_withNullInitial() = runBlocking {
         val handle = SavedStateHandle()
         handle["aa"] = "existing"
 
@@ -276,7 +273,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_existingNullValue_withInitial() = runTest {
+    fun newFlow_existingNullValue_withInitial() = runBlocking {
         val handle = SavedStateHandle()
         handle["aa"] = null
 
@@ -289,7 +286,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun newFlow_setNullValue_nonNullFlow() = runTest {
+    fun newFlow_setNullValue_nonNullFlow() = runBlocking {
         val handle = SavedStateHandle()
         val flow = handle.getStateFlow("aa", "xx")
 
@@ -306,7 +303,7 @@ class SavedStateHandleTest {
 
     @Test
     @UiThreadTest
-    fun flow_setByLiveDataSetValue() = runTest {
+    fun flow_setByLiveDataSetValue() = runBlocking {
         val handle = SavedStateHandle()
         val flow = handle.getStateFlow("aa", "xx")
 
@@ -323,206 +320,6 @@ class SavedStateHandleTest {
         ld.value = "yy"
         ld.assertValue("yy")
         assertThat(flow.value).isEqualTo("yy")
-    }
-
-    @Test
-    fun getMutableStateFlow_savedStateValueFlow() = runTest {
-        val handle = SavedStateHandle()
-
-        handle
-            .getMutableStateFlow("test", 1)
-            .take(3)
-            .withIndex()
-            .onEach { (index, value) ->
-                val expectedValue = index + 1
-                assertWithMessage("Flow emitted unexpected value")
-                    .that(value)
-                    .isEqualTo(expectedValue)
-
-                if (expectedValue < 3) {
-                    handle["test"] = expectedValue + 1
-                }
-            }
-            .collect()
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_nullInitial() = runTest {
-        val handle = SavedStateHandle()
-        handle
-            .getMutableStateFlow<String?>("aa", null)
-            .take(1)
-            .onEach { assertWithMessage("Flow should emit a null value").that(it).isNull() }
-            .collect()
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_withInitialGet() = runTest {
-        val handle = SavedStateHandle()
-        val flow = handle.getMutableStateFlow("aa", "xx")
-
-        flow
-            .take(1)
-            .onEach {
-                assertWithMessage("Flow should emit the initial value").that(it).isEqualTo("xx")
-            }
-            .collect()
-
-        assertThat(flow.value).isEqualTo("xx")
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_existingValue_withInitial() = runTest {
-        val handle = SavedStateHandle()
-        handle["aa"] = "existing"
-
-        handle
-            .getMutableStateFlow("aa", "xx")
-            .take(1)
-            .onEach {
-                assertWithMessage("Flow should emit a null value").that(it).isEqualTo("existing")
-            }
-            .collect()
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_existingValue_withNullInitial() = runTest {
-        val handle = SavedStateHandle()
-        handle["aa"] = "existing"
-
-        handle
-            .getMutableStateFlow<String?>("aa", null)
-            .take(1)
-            .onEach {
-                assertWithMessage("Flow should emit the set value").that(it).isEqualTo("existing")
-            }
-            .collect()
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_existingNullValue_withInitial() = runTest {
-        val handle = SavedStateHandle()
-        handle["aa"] = null
-
-        handle
-            .getMutableStateFlow<String?>("aa", "xx")
-            .take(1)
-            .onEach { assertWithMessage("Flow should emit a null value").that(it).isNull() }
-            .collect()
-    }
-
-    @Test
-    @UiThreadTest
-    fun getMutableStateFlow_setNullValue_nonNullFlow() = runTest {
-        val handle = SavedStateHandle()
-        val flow = handle.getMutableStateFlow("aa", "xx")
-
-        flow
-            .take(1)
-            .onEach {
-                assertWithMessage("Flow should emit the initial value").that(it).isEqualTo("xx")
-            }
-            .collect()
-
-        handle["aa"] = null
-        assertThat(flow.value).isNull()
-    }
-
-    @Test
-    fun getMutableStateFlow_keyUsedByLiveData() = runTest {
-        val handle = SavedStateHandle()
-        handle.getLiveData(key = "key", initialValue = "test")
-
-        assertThrows(IllegalArgumentException::class.java) {
-            handle.getMutableStateFlow(key = "key", initialValue = "test")
-        }
-    }
-
-    @Test
-    fun getLiveData_keyUsedByMutableStateFlow() = runTest {
-        val handle = SavedStateHandle()
-        handle.getMutableStateFlow(key = "key", initialValue = "test")
-
-        assertThrows(IllegalArgumentException::class.java) {
-            handle.getLiveData(key = "key", initialValue = "test")
-        }
-    }
-
-    @Test
-    fun getRegular_keyUsedByMutableStateFlow() = runTest {
-        val handle = SavedStateHandle()
-        val mutableFlow = handle.getMutableStateFlow(key = "key", initialValue = 1)
-
-        assertThat(mutableFlow.value).isEqualTo(1)
-        assertThat(handle.get<Int>("key")).isEqualTo(1)
-
-        mutableFlow.value = 3
-        assertThat(mutableFlow.value).isEqualTo(3)
-        assertThat(handle.get<Int>("key")).isEqualTo(3)
-
-        handle["key"] = 4
-        assertThat(mutableFlow.value).isEqualTo(4)
-        assertThat(handle.get<Int>("key")).isEqualTo(4)
-    }
-
-    @Test
-    fun getStateFlow_keyUsedByMutableStateFlow() = runTest {
-        val handle = SavedStateHandle()
-        val mutableFlow = handle.getMutableStateFlow(key = "key", initialValue = 1)
-        val flow = handle.getStateFlow(key = "key", initialValue = 2)
-
-        assertThat(mutableFlow.value).isEqualTo(1)
-        assertThat(flow.value).isEqualTo(1)
-
-        mutableFlow.value = 3
-        assertThat(mutableFlow.value).isEqualTo(3)
-        assertThat(flow.value).isEqualTo(3)
-
-        handle["key"] = 4
-        assertThat(mutableFlow.value).isEqualTo(4)
-        assertThat(flow.value).isEqualTo(4)
-    }
-
-    @Test
-    fun savedStateProvider() = runTest {
-        val handle = SavedStateHandle()
-        for (i in 1..10) {
-            handle["Regular$i"] = i
-            handle.getLiveData(key = "MutableLiveData$i", initialValue = i)
-            handle.getStateFlow(key = "StateFlow$i", initialValue = i)
-            handle.getMutableStateFlow(key = "MutableStateFlow$i", initialValue = i)
-            handle.setSavedStateProvider(
-                key = "SavedStateProvider$i",
-                provider = { savedState(mapOf("SavedState$i" to i)) },
-            )
-        }
-
-        val savedState = handle.savedStateProvider().saveState()
-
-        assertThat(savedState.size()).isEqualTo(50)
-        for (i in 1..10) {
-            val regularValue = savedState.read { getInt("Regular$i") }
-            assertThat(regularValue).isEqualTo(i)
-
-            val mutableLiveDataValue = savedState.read { getInt("MutableLiveData$i") }
-            assertThat(mutableLiveDataValue).isEqualTo(i)
-
-            val stateFlowValue = savedState.read { getInt("StateFlow$i") }
-            assertThat(stateFlowValue).isEqualTo(i)
-
-            val mutableStateFlowValue = savedState.read { getInt("MutableStateFlow$i") }
-            assertThat(mutableStateFlowValue).isEqualTo(i)
-
-            val actualSavedState = savedState.read { getSavedState("SavedStateProvider$i") }
-            val expectedSavedState = savedState(mapOf("SavedState$i" to i))
-            val isDeepEquals = actualSavedState.read { contentDeepEquals(expectedSavedState) }
-            assertThat(isDeepEquals).isTrue()
-        }
     }
 
     @MainThread

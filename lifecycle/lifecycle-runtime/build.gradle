@@ -6,8 +6,10 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.JetbrainsAndroidXPlugin
+import androidx.build.KmpPlatformsKt
 import androidx.build.PlatformIdentifier
+import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
@@ -16,6 +18,11 @@ plugins {
     id("com.android.library")
     id("JetbrainsAndroidXPlugin")
 }
+
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
+
+def jsEnabled = KmpPlatformsKt.enableJs(project)
+def wasmEnabled = KmpPlatformsKt.enableWasm(project)
 
 androidXMultiplatform {
     android()
@@ -26,11 +33,25 @@ androidXMultiplatform {
     js()
     wasm()
 
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
-
     defaultPlatform(PlatformIdentifier.ANDROID)
+}
+
+kotlin {
+    js {
+        browser()
+    }
+    wasmJs()
+
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+    mingwX64()
+
+    explicitApi = ExplicitApiMode.Strict
 
     sourceSets {
         commonMain {
@@ -73,9 +94,8 @@ androidXMultiplatform {
             dependsOn(jvmCommonMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
-                implementation("androidx.core:core-viewtree:1.0.0-alpha01")
                 implementation("androidx.arch.core:core-runtime:2.2.0")
-                implementation("androidx.profileinstaller:profileinstaller:1.4.0")
+                implementation("androidx.profileinstaller:profileinstaller:1.3.1")
             }
         }
 
@@ -90,7 +110,6 @@ androidXMultiplatform {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
-                implementation("androidx.core:core-viewtree:1.0.0-alpha01")
                 implementation(libs.junit)
                 implementation(libs.truth)
                 implementation(libs.testExtJunit)
@@ -100,12 +119,8 @@ androidXMultiplatform {
             }
         }
 
-        nonJvmCommonMain {
-            dependsOn(commonMain)
-        }
-        nonJvmCommonTest {
-            dependsOn(commonTest)
-        }
+        nonJvmCommonMain.dependsOn(commonMain)
+        nonJvmCommonTest.dependsOn(commonTest)
 
         nativeMain {
             dependsOn(nonJvmCommonMain)
@@ -114,16 +129,11 @@ androidXMultiplatform {
             languageSettings.optIn("kotlin.experimental.ExperimentalNativeApi")
         }
 
-        nativeTest {
-            dependsOn(nonJvmCommonTest)
-        }
+        nativeTest.dependsOn(nonJvmCommonTest)
 
-        webMain {
-            dependsOn(nonJvmCommonMain)
-        }
-
-        webTest {
-            dependsOn(nonJvmCommonTest)
+        if (jsEnabled || wasmEnabled) {
+            webMain.dependsOn(nonJvmCommonMain)
+            webTest.dependsOn(nonJvmCommonTest)
         }
 
         targets.configureEach { target ->
@@ -148,17 +158,6 @@ androidXMultiplatform {
     }
 }
 
-kotlin {
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
-    mingwX64()
-}
-
 dependencies {
     lintPublish(project(":lifecycle:lifecycle-runtime-lint"))
 }
@@ -178,8 +177,7 @@ android {
 
 androidx {
     name = "Lifecycle Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear "2017"
     description "Android Lifecycle Runtime"
-    metalavaK2UastEnabled = false
 }

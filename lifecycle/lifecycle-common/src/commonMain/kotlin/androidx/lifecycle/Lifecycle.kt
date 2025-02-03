@@ -355,15 +355,9 @@ internal class LifecycleCoroutineScopeImpl(
 public val Lifecycle.eventFlow: Flow<Lifecycle.Event>
     get() =
         callbackFlow {
-                val observer = LifecycleEventObserver { _, event ->
-                    trySend(event)
+                val observer =
+                    LifecycleEventObserver { _, event -> trySend(event) }.also { addObserver(it) }
 
-                    // Completes the producer if lifecycle is `DESTROYED`.
-                    if (event == Lifecycle.Event.ON_DESTROY) {
-                        close()
-                    }
-                }
-                addObserver(observer)
                 awaitClose { removeObserver(observer) }
             }
             .flowOn(Dispatchers.Main.immediate)

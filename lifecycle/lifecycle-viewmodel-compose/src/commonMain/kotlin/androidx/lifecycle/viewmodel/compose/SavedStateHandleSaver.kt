@@ -30,7 +30,6 @@ import androidx.core.bundle.Bundle
 import androidx.core.bundle.bundleOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.SavedStateHandle.Companion.validateValue
-import androidx.savedstate.savedState
 import kotlin.jvm.JvmName
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -63,7 +62,7 @@ fun <T : Any> SavedStateHandle.saveable(
 
     // Hook up saving the state to the SavedStateHandle
     setSavedStateProvider(key) {
-        savedState(mapOf("value" to with(saver) { SaverScope(::validateValue).save(value) }))
+        bundleOf("value" to with(saver) { SaverScope(::validateValue).save(value) })
     }
     return value
 }

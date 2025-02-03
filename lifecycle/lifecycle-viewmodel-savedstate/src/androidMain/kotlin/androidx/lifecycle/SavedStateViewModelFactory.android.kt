@@ -28,7 +28,6 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
-import kotlin.reflect.KClass
 
 /**
  * [androidx.lifecycle.ViewModelProvider.Factory] that can create ViewModels accessing and
@@ -40,8 +39,7 @@ import kotlin.reflect.KClass
  * constructor that receives [SavedStateHandle] only. [androidx.lifecycle.AndroidViewModel] is only
  * supported if you pass a non-null [Application] instance.
  */
-actual class SavedStateViewModelFactory :
-    ViewModelProvider.OnRequeryFactory, ViewModelProvider.Factory {
+class SavedStateViewModelFactory : ViewModelProvider.OnRequeryFactory, ViewModelProvider.Factory {
     private var application: Application? = null
     private val factory: ViewModelProvider.Factory
     private var defaultArgs: Bundle? = null
@@ -56,7 +54,7 @@ actual class SavedStateViewModelFactory :
      *
      * @see [createSavedStateHandle] docs for more details.
      */
-    actual constructor() {
+    constructor() {
         factory = ViewModelProvider.AndroidViewModelFactory()
     }
 
@@ -104,10 +102,6 @@ actual class SavedStateViewModelFactory :
             else ViewModelProvider.AndroidViewModelFactory()
     }
 
-    actual override fun <T : ViewModel> create(modelClass: KClass<T>, extras: CreationExtras): T {
-        return create(modelClass.java, extras)
-    }
-
     /**
      * {@inheritDoc}
      *
@@ -116,7 +110,7 @@ actual class SavedStateViewModelFactory :
      */
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         val key =
-            extras[ViewModelProvider.VIEW_MODEL_KEY]
+            extras[ViewModelProvider.NewInstanceFactory.VIEW_MODEL_KEY]
                 ?: throw IllegalStateException(
                     "VIEW_MODEL_KEY must always be provided by ViewModelProvider"
                 )

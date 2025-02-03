@@ -18,7 +18,6 @@
 package androidx.lifecycle
 
 import android.view.View
-import androidx.core.viewtree.getParentOrViewTreeDisjointParent
 import androidx.lifecycle.viewmodel.R
 
 /**
@@ -45,14 +44,9 @@ public fun View.setViewTreeViewModelStoreOwner(viewModelStoreOwner: ViewModelSto
  */
 @JvmName("get")
 public fun View.findViewTreeViewModelStoreOwner(): ViewModelStoreOwner? {
-    var currentView: View? = this
-    while (currentView != null) {
-        val storeOwner =
-            currentView.getTag(R.id.view_tree_view_model_store_owner) as? ViewModelStoreOwner
-        if (storeOwner != null) {
-            return storeOwner
+    return generateSequence(this) { view -> view.parent as? View }
+        .mapNotNull { view ->
+            view.getTag(R.id.view_tree_view_model_store_owner) as? ViewModelStoreOwner
         }
-        currentView = currentView.getParentOrViewTreeDisjointParent() as? View
-    }
-    return null
+        .firstOrNull()
 }

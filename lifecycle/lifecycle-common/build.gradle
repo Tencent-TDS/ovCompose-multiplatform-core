@@ -21,8 +21,11 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+
+import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.PlatformIdentifier
+import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
@@ -30,6 +33,8 @@ plugins {
     id("AndroidXPlugin")
     id("JetbrainsAndroidXPlugin")
 }
+
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
 androidXMultiplatform {
     jvm {
@@ -41,11 +46,25 @@ androidXMultiplatform {
     js()
     wasm()
 
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
-
     defaultPlatform(PlatformIdentifier.JVM)
+}
+
+kotlin {
+    js {
+        browser()
+    }
+    wasmJs()
+
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+    mingwX64()
+
+    explicitApi = ExplicitApiMode.Strict
 
     sourceSets {
         commonMain {
@@ -61,7 +80,6 @@ androidXMultiplatform {
         }
 
         jvmTest {
-            dependsOn(commonTest)
             dependencies {
                 implementation(libs.junit)
                 implementation(libs.mockitoCore4)
@@ -75,7 +93,7 @@ androidXMultiplatform {
             }
         }
 
-        targets.configureEach { target ->
+        targets.all { target ->
             if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.common]) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nonJvmCommonMain)
@@ -85,23 +103,11 @@ androidXMultiplatform {
     }
 }
 
-kotlin {
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
-    mingwX64()
-}
-
 androidx {
     name = "Lifecycle-Common"
-    type = LibraryType.PUBLISHED_LIBRARY
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2017"
     description = "Android Lifecycle-Common"
-    metalavaK2UastEnabled = false
 }
 
 java {

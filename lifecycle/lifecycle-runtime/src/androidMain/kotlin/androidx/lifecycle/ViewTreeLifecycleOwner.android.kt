@@ -18,7 +18,6 @@
 package androidx.lifecycle
 
 import android.view.View
-import androidx.core.viewtree.getParentOrViewTreeDisjointParent
 import androidx.lifecycle.runtime.R
 
 /**
@@ -48,13 +47,9 @@ public fun View.setViewTreeLifecycleOwner(lifecycleOwner: LifecycleOwner?) {
  */
 @JvmName("get")
 public fun View.findViewTreeLifecycleOwner(): LifecycleOwner? {
-    var currentView: View? = this
-    while (currentView != null) {
-        val lifecycleOwner = currentView.getTag(R.id.view_tree_lifecycle_owner) as? LifecycleOwner
-        if (lifecycleOwner != null) {
-            return lifecycleOwner
+    return generateSequence(this) { currentView -> currentView.parent as? View }
+        .mapNotNull { viewParent ->
+            viewParent.getTag(R.id.view_tree_lifecycle_owner) as? LifecycleOwner
         }
-        currentView = currentView.getParentOrViewTreeDisjointParent() as? View
-    }
-    return null
+        .firstOrNull()
 }

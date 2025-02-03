@@ -19,27 +19,58 @@ package androidx.lifecycle
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.core.bundle.bundleOf
 import androidx.savedstate.SavedStateRegistry.SavedStateProvider
 import kotlin.jvm.JvmStatic
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
-expect class SavedStateHandle {
+/**
+ * A handle to saved state passed down to [androidx.lifecycle.ViewModel]. You should use
+ * [SavedStateViewModelFactory] if you want to receive this object in `ViewModel`'s
+ * constructor.
+ *
+ * This is a key-value map that will let you write and retrieve objects to and from the saved state.
+ * These values will persist after the process is killed by the system
+ * and remain available via the same object.
+ */
+actual class SavedStateHandle {
+    private val regular = mutableMapOf<String, Any?>()
+    private val savedStateProviders = mutableMapOf<String, SavedStateProvider>()
+    private val flows = mutableMapOf<String, MutableStateFlow<Any?>>()
+    private val savedStateProvider =
+        SavedStateProvider {
+            // Get the saved state from each SavedStateProvider registered with this
+            // SavedStateHandle, iterating through a copy to avoid re-entrance
+            val map = savedStateProviders.toMap()
+            for ((key, value) in map) {
+                val savedState = value.saveState()
+                set(key, savedState)
+            }
+            // Convert the Map of current values into a Bundle
+            bundleOf(*regular.toList().toTypedArray())
+        }
 
     /**
      * Creates a handle with the given initial arguments.
      *
      * @param initialState initial arguments for the SavedStateHandle
      */
-    constructor(initialState: Map<String, Any?>)
+    actual constructor(initialState: Map<String, Any?>) {
+        regular.putAll(initialState)
+    }
 
     /**
      * Creates a handle with the empty state.
      */
-    constructor()
+    actual constructor()
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    fun savedStateProvider(): SavedStateProvider
+    actual fun savedStateProvider(): SavedStateProvider {
+        return savedStateProvider
+    }
 
     /**
      * @param key          The identifier for the value
@@ -47,7 +78,9 @@ expect class SavedStateHandle {
      * @return true if there is value associated with the given key.
      */
     @MainThread
-    operator fun contains(key: String): Boolean
+    actual operator fun contains(key: String): Boolean {
+        return regular.containsKey(key)
+    }
 
     /**
      * Returns a [StateFlow] that will emit the currently active value associated with the given
@@ -82,7 +115,19 @@ expect class SavedStateHandle {
      * with the given `initialValue`.
      */
     @MainThread
-    fun <T> getStateFlow(key: String, initialValue: T): StateFlow<T>
+    actual fun <T> getStateFlow(key: String, initialValue: T): StateFlow<T> {
+        @Suppress("UNCHECKED_CAST")
+        // If a flow exists we should just return it, and since it is a StateFlow and a value must
+        // always be set, we know a value must already be available
+        return flows.getOrPut(key) {
+            // If there is not a value associated with the key, add the initial value, otherwise,
+            // use the one we already have.
+            if (!regular.containsKey(key)) {
+                regular[key] = initialValue
+            }
+            MutableStateFlow(regular[key]).apply { flows[key] = this }
+        }.asStateFlow() as StateFlow<T>
+    }
 
     /**
      * Returns all keys contained in this [SavedStateHandle]
@@ -91,7 +136,7 @@ expect class SavedStateHandle {
      * keys used in regular [set].
      */
     @MainThread
-    fun keys(): Set<String>
+    actual fun keys(): Set<String> = regular.keys + savedStateProviders.keys
 
     /**
      * Returns a value associated with the given key.
@@ -111,7 +156,17 @@ expect class SavedStateHandle {
      * @param key a key used to retrieve a value.
      */
     @MainThread
-    operator fun <T> get(key: String): T?
+    actual operator fun <T> get(key: String): T? {
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            regular[key] as T?
+        } catch (e: ClassCastException) {
+            // Instead of failing on ClassCastException, we remove the value from the
+            // SavedStateHandle and return null.
+            remove<T>(key)
+            null
+        }
+    }
 
     /**
      * Associate the given value with the key. The value must have a type that could be stored in
@@ -125,7 +180,15 @@ expect class SavedStateHandle {
      * @throws IllegalArgumentException value cannot be saved in saved state
      */
     @MainThread
-    operator fun <T> set(key: String, value: T?)
+    actual operator fun <T> set(key: String, value: T?) {
+        if (!validateValue(value)) {
+            throw IllegalArgumentException(
+                "Can't put value with type ${value!!::class} into saved state"
+            )
+        }
+        regular[key] = value
+        flows[key]?.value = value
+    }
 
     /**
      * Removes a value associated with the given key. If there is a [StateFlow]
@@ -140,7 +203,12 @@ expect class SavedStateHandle {
      * @return a value that was previously associated with the given key.
      */
     @MainThread
-    fun <T> remove(key: String): T?
+    actual fun <T> remove(key: String): T? {
+        @Suppress("UNCHECKED_CAST")
+        val latestValue = regular.remove(key) as T?
+        flows.remove(key)
+        return latestValue
+    }
 
     /**
      * Set a [SavedStateProvider] that will have its state saved into this SavedStateHandle.
@@ -169,7 +237,9 @@ expect class SavedStateHandle {
      * [SavedStateProvider.saveState] when the state should be saved
      */
     @MainThread
-    fun setSavedStateProvider(key: String, provider: SavedStateProvider)
+    actual fun setSavedStateProvider(key: String, provider: SavedStateProvider) {
+        savedStateProviders[key] = provider
+    }
 
     /**
      * Clear any [SavedStateProvider] that was previously set via
@@ -181,14 +251,86 @@ expect class SavedStateHandle {
      * @param key a key previously used with [setSavedStateProvider]
      */
     @MainThread
-    fun clearSavedStateProvider(key: String)
+    actual fun clearSavedStateProvider(key: String) {
+        savedStateProviders.remove(key)
+    }
 
-    companion object {
+    actual companion object {
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @JvmStatic
-        fun createHandle(restoredState: Bundle?, defaultState: Bundle?): SavedStateHandle
+        @Suppress("DEPRECATION")
+        actual fun createHandle(restoredState: Bundle?, defaultState: Bundle?): SavedStateHandle {
+            if (restoredState == null) {
+                return if (defaultState == null) {
+                    // No restored state and no default state -> empty SavedStateHandle
+                    SavedStateHandle()
+                } else {
+                    val state: MutableMap<String, Any?> = HashMap()
+                    for (key in defaultState.keySet()) {
+                        state[key as String] = defaultState[key]
+                    }
+                    SavedStateHandle(state)
+                }
+            }
+            val state = mutableMapOf<String, Any?>()
+            for (key in restoredState.keySet()) {
+                state[key as String] = restoredState[key]
+            }
+            return SavedStateHandle(state)
+        }
 
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        fun validateValue(value: Any?): Boolean
+        actual fun validateValue(value: Any?): Boolean =
+            when (value) {
+                null -> true
+
+                // Scalars
+                is Boolean,
+                is Byte,
+                is Char,
+                is Double,
+                is Float,
+                is Int,
+                is Long,
+                is Short -> true
+
+                // References
+                is Bundle,
+                is String,
+                is CharSequence -> true
+
+                // Scalar arrays
+                is BooleanArray,
+                is ByteArray,
+                is CharArray,
+                is DoubleArray,
+                is FloatArray,
+                is IntArray,
+                is LongArray,
+                is ShortArray -> true
+
+                // Reference arrays
+                is Array<*> -> {
+                    // Unlike JVM, there is no reflection available to check component type
+                    when (value.firstOrNull()) {
+                        is String,
+                        is CharSequence -> true
+                        // Narrowed alternative of Android's [putParcelableArray]
+                        is Bundle -> true
+                        else -> value.isEmpty()
+                    }
+                }
+                // [bundleOf] might support [List] instead of [ArrayList] in some cases.
+                is List<*> -> {
+                    // Unlike JVM, there is no reflection available to check component type
+                    when (value.firstOrNull()) {
+                        is Int,
+                        is String -> true
+                        else -> value.isEmpty()
+                    }
+                }
+
+                else -> false
+            }
     }
 }
