@@ -298,6 +298,7 @@ internal fun CoreTextField(
     manager.editable = !readOnly
     manager.enabled = enabled
 
+    // TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
     rememberClipboardEventsHandler(
         isEnabled = state.hasFocus,
         onCopy = { manager.onCopyWithResult() },
