@@ -42,7 +42,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(project(":navigation:navigation-compose"))
-                implementation("org.jetbrains.compose.material:material:1.7.3")
+                implementation(project(":compose:material:material"))
                 implementation(libs.kotlinStdlib)
             }
         }
