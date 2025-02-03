@@ -41,6 +41,10 @@ NS_ASSUME_NONNULL_BEGIN
     return [super accessibilityTraits];
 }
 
+- (UIAccessibilityContainerType)accessibilityContainerType {
+    return [super accessibilityContainerType];
+}
+
 - (NSString *__nullable)accessibilityIdentifier {
     return [super accessibilityIdentifier];
 }
