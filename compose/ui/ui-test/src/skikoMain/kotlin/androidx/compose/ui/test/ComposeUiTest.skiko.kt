@@ -60,6 +60,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import org.jetbrains.skia.Color
 import org.jetbrains.skia.IRect
 import org.jetbrains.skia.Surface
 import org.jetbrains.skiko.currentNanoTime
@@ -237,6 +238,7 @@ class SkikoComposeUiTest @InternalTestApi constructor(
      * Render the scene at the given time.
      */
     private fun render(timeMillis: Long) {
+        surface.canvas.clear(Color.TRANSPARENT)
         scene.render(
             surface.canvas.asComposeCanvas(),
             timeMillis * NanoSecondsPerMilliSecond
