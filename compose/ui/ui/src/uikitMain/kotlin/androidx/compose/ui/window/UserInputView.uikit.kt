@@ -273,9 +273,6 @@ internal class UserInputGestureRecognizer(
     private fun isScrollViewAtTheEndOfScrollableContent(recognizer: UIGestureRecognizer): Boolean {
         val pan = recognizer as? UIPanGestureRecognizer ?: return false
         val scrollView = recognizer.view as? UIScrollView ?: return false
-        if (scrollView.isDecelerating() || scrollView.isDragging()) {
-            return false
-        }
 
         val (diffX, diffY) = pan.translationInView(scrollView).useContents { x to y }
         val (offsetX, offsetY) = scrollView.contentOffset.useContents { x to y }
