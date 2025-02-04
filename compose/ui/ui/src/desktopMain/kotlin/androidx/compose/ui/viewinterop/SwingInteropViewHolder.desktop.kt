@@ -61,8 +61,8 @@ internal class SwingInteropViewHolder<T : Component>(
         override fun focusGained(e: FocusEvent) {
             if (e.isFocusGainedHandledBySwingPanel(group)) {
                 when (e.cause) {
-                    FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveForward()
-                    FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBackward()
+                    FocusEvent.Cause.TRAVERSAL_FORWARD -> focusSwitcher.moveAfterInteropView()
+                    FocusEvent.Cause.TRAVERSAL_BACKWARD -> focusSwitcher.moveBeforeInteropView()
                     else -> Unit
                 }
             }
