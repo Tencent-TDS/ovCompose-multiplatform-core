@@ -29,8 +29,9 @@ internal actual suspend fun ClipEntry.readText(): String? {
     if (!hasText()) return null
 
     return withContext(Dispatchers.IO) {
+        val transferable = nativeClipEntry as? java.awt.datatransfer.Transferable
         try {
-            transferable.getTransferData(DataFlavor.stringFlavor) as? String
+            transferable?.getTransferData(DataFlavor.stringFlavor) as? String
         } catch (_: IOException) {
             // the data is no longer available in the requested flavor
             null
@@ -52,13 +53,16 @@ internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
 
 internal actual fun ClipEntry?.hasText(): Boolean {
     if (this == null) return false
+    val transferable = nativeClipEntry as? java.awt.datatransfer.Transferable ?: return false
     return transferable.isDataFlavorSupported(DataFlavor.stringFlavor)
 }
 
 // Here we rely on the NativeClipboard directly instead of using ClipEntry,
 // because getClipEntry is a suspend function, but in ContextMenu.desktop.kt we have older code
 // expecting a synchronous execution.
-internal fun NativeClipboard.blockingHasText(): Boolean {
+// Note: the name can't be just `hasText` because NativeClipboard is a typealias to Any,
+// so it would conflict with ClipEntry?.hasText declaration. Therefore, we need a unique name.
+internal fun NativeClipboard.nativeClipboardHasText(): Boolean {
     val awtClipboard = this as? java.awt.datatransfer.Clipboard ?: return false
     return awtClipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)
 }

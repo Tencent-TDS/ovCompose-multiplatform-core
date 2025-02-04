@@ -25,7 +25,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.JPopupContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.contextMenuOpenDetector
-import androidx.compose.foundation.internal.blockingHasText
+import androidx.compose.foundation.internal.nativeClipboardHasText
 import androidx.compose.foundation.text.TextContextMenu.TextManager
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.selection.SelectionManager
@@ -106,7 +106,7 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
         }
 
     override val paste: (() -> Unit)? get() =
-        if (editable && clipboard?.nativeClipboard?.blockingHasText() == true) {
+        if (editable && clipboard?.nativeClipboard?.nativeClipboardHasText() == true) {
             {
                 paste()
                 focusRequester?.requestFocus()

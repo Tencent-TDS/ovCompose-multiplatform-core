@@ -66,7 +66,7 @@ class ClipboardTest {
 
         val ce = clipboard!!.getClipEntry()
         assertNotNull(ce)
-        assertEquals("test", ce.transferable.getTransferData(DataFlavor.stringFlavor))
+        assertEquals("test", ce.asAwtTransferable!!.getTransferData(DataFlavor.stringFlavor))
 
         clipboard!!.setClipEntry(null)
         assertNull(clipboard!!.getClipEntry())
