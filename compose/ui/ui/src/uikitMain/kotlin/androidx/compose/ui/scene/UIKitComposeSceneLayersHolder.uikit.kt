@@ -22,14 +22,12 @@ import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ComposeView
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.Canvas
-import platform.UIKit.UIEvent
 import platform.UIKit.UIWindow
 
 /**
@@ -49,8 +47,6 @@ internal class UIKitComposeSceneLayersHolder(
     }
 
     fun withLayers(block: (List<UIKitComposeSceneLayer>) -> Unit) = layersCache.withCopy(block)
-
-    private var ongoingGesturesCount = 0
 
     /**
      * Transactions of the layers that were imperatively removed before their changes were applied.
@@ -87,34 +83,6 @@ internal class UIKitComposeSceneLayersHolder(
             animations.map {
                 scope.launch { it.invoke(duration) }
             }.joinAll()
-        }
-    }
-
-    /**
-     * When there is an ongoing gesture, we need notify redrawer about it. It should unconditionally
-     * unpause CADisplayLink which affects frequency of polling UITouch events on high frequency
-     * display and force it to match display refresh rate.
-     *
-     * Otherwise [UIEvent]s will be dispatched with the 60hz frequency.
-     */
-    fun onGestureEvent(event: GestureEvent) {
-        val hadAnyOngoingGestures = ongoingGesturesCount > 0
-
-        when (event) {
-            GestureEvent.BEGAN -> {
-                ongoingGesturesCount++
-
-                if (!hadAnyOngoingGestures && ongoingGesturesCount > 0) {
-                    metalView.needsProactiveDisplayLink = true
-                }
-            }
-            GestureEvent.ENDED -> {
-                ongoingGesturesCount--
-
-                if (hadAnyOngoingGestures && ongoingGesturesCount == 0) {
-                    metalView.needsProactiveDisplayLink = false
-                }
-            }
         }
     }
 

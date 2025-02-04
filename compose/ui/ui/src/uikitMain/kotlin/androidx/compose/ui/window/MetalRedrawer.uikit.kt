@@ -166,11 +166,15 @@ internal class MetalRedrawer(
     }
 
     /**
-     * Set to `true` if need always running invalidation-independent displayLink for forcing UITouch
-     * events to come at the fastest possible cadence.
-     * Otherwise, touch events can come at rate lower than actual display refresh rate.
+     * Runs invalidation-independent displayLink for forcing UITouch events to come at the fastest
+     * possible cadence. Otherwise, touch events can come at rate lower than actual display refresh
+     * rate.
      */
-    var needsProactiveDisplayLink by displayLinkConditions::needsToBeProactive
+    var ongoingInteractionEventsCount: Int = 0
+        set(value) {
+            field = value
+            displayLinkConditions.needsToBeProactive = value > 0
+        }
 
     /**
      * True if Metal layer can be opaque. In this case if no interop views are present, Metal

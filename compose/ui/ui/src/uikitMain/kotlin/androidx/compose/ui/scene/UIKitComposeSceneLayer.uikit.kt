@@ -19,7 +19,6 @@ package androidx.compose.ui.scene
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.backhandler.LocalBackGestureDispatcher
 import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
 import androidx.compose.ui.graphics.Canvas
@@ -41,11 +40,9 @@ import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.window.FocusStack
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
 import platform.UIKit.UIWindow
 
@@ -54,7 +51,6 @@ internal class UIKitComposeSceneLayer(
     private val createComposeSceneContext: (PlatformContext) -> ComposeSceneContext,
     private val hostCompositionLocals: @Composable (@Composable () -> Unit) -> Unit,
     private val metalView: MetalView,
-    onGestureEvent: (GestureEvent) -> Unit,
     private val initDensity: Density,
     private val initLayoutDirection: LayoutDirection,
     private val onAccessibilityChanged: () -> Unit,
@@ -85,7 +81,6 @@ internal class UIKitComposeSceneLayer(
         windowContext = windowContext,
         coroutineContext = compositionContext.effectCoroutineContext,
         redrawer = metalView.redrawer,
-        onGestureEvent = onGestureEvent,
         composeSceneFactory = ::createComposeScene
     )
 
@@ -163,7 +158,6 @@ internal class UIKitComposeSceneLayer(
         view.removeFromSuperview()
     }
 
-    @OptIn(ExperimentalComposeApi::class)
     @Composable
     private fun ProvideComposeSceneLayerCompositionLocals(
         content: @Composable () -> Unit

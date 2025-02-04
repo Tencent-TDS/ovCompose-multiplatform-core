@@ -17,17 +17,18 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.interop.UIKitViewController
 import androidx.compose.ui.semantics.AccessibilityKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.uikit.utils.CMPInteropWrappingView
-import androidx.compose.ui.interop.UIKitView
-import androidx.compose.ui.interop.UIKitViewController
 import kotlinx.cinterop.readValue
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIResponder
 import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.UIKit.setIsAccessibilityElement
 
 /**
  * On iOS [InteropView] is a [UIResponder], which is a base class for [UIView] and [UIViewController]
@@ -51,11 +52,18 @@ internal actual typealias InteropViewGroup = UIView
  * @see UIKitInteropInteractionMode
  */
 internal class InteropWrappingView(
-    var interactionMode: UIKitInteropInteractionMode?
+    interactionMode: UIKitInteropInteractionMode?
 ) : CMPInteropWrappingView(frame = CGRectZero.readValue()) {
     var actualAccessibilityContainer: Any? = null
 
+    var interactionMode: UIKitInteropInteractionMode? = interactionMode
+        set(value) {
+            field = value
+            setIsAccessibilityElement(value != null)
+        }
+
     init {
+        setIsAccessibilityElement(interactionMode != null)
         // required to properly clip the content of the wrapping view in case interop unclipped
         // bounds are larger than clipped bounds
         clipsToBounds = true
