@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
@@ -29,8 +28,11 @@ import kotlin.jvm.JvmStatic
 public expect open class NavDeepLinkRequest
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 constructor(
-    uri: Uri?, action: String?, mimeType: String?,
+    uri: Uri?,
+    action: String?,
+    mimeType: String?,
 ) {
+
     /**
      * The uri from the NavDeepLinkRequest.
      *
@@ -53,7 +55,7 @@ constructor(
     public open val mimeType: String?
 
     /** A builder for constructing [NavDeepLinkRequest] instances. */
-    public class Builder {
+    public class Builder private constructor() {
 
         /**
          * Set the uri for the [NavDeepLinkRequest].
@@ -96,8 +98,7 @@ constructor(
              * @param uri The uri to add to the NavDeepLinkRequest
              * @return a [Builder] instance
              */
-            @JvmStatic
-            public fun fromUri(uri: Uri): Builder
+            @JvmStatic public fun fromUri(uri: Uri): Builder
 
             /**
              * Creates a [NavDeepLinkRequest.Builder] with a set action.
@@ -106,8 +107,7 @@ constructor(
              * @return a [Builder] instance
              * @throws IllegalArgumentException if the action is empty.
              */
-            @JvmStatic
-            public fun fromAction(action: String): Builder
+            @JvmStatic public fun fromAction(action: String): Builder
 
             /**
              * Creates a [NavDeepLinkRequest.Builder] with a set mimeType.
@@ -115,8 +115,7 @@ constructor(
              * @param mimeType the mimeType for the NavDeepLinkRequest
              * @return a [Builder] instance
              */
-            @JvmStatic
-            public fun fromMimeType(mimeType: String): Builder
+            @JvmStatic public fun fromMimeType(mimeType: String): Builder
         }
     }
 }

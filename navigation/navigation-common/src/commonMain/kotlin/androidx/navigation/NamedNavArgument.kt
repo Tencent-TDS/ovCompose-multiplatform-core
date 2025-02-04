@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+@file:JvmName("NamedNavArgumentKt")
+@file:JvmMultifileClass
+
 package androidx.navigation
+
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
 /** Construct a new [NavArgument] */
 public fun navArgument(name: String, builder: NavArgumentBuilder.() -> Unit): NamedNavArgument =

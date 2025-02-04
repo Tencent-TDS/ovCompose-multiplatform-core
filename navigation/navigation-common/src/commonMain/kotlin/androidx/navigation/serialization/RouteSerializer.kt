@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 
 package androidx.navigation.serialization
 
@@ -24,7 +24,6 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import kotlin.jvm.JvmName
 import kotlin.reflect.KType
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.PolymorphicSerializer
@@ -105,15 +104,16 @@ public fun <T> KSerializer<T>.generateNavArguments(
         navArgument(name) {
             val element = descriptor.getElementDescriptor(index)
             val isNullable = element.isNullable
-            type = element.computeNavType(typeMap)
-                ?: throw IllegalArgumentException(
-                    unknownNavTypeErrorMessage(
-                        name,
-                        element.serialName,
-                        this@generateNavArguments.descriptor.serialName,
-                        typeMap.toString()
+            type =
+                element.computeNavType(typeMap)
+                    ?: throw IllegalArgumentException(
+                        unknownNavTypeErrorMessage(
+                            name,
+                            element.serialName,
+                            this@generateNavArguments.descriptor.serialName,
+                            typeMap.toString()
+                        )
                     )
-                )
             nullable = isNullable
             if (descriptor.isElementOptional(index)) {
                 // Navigation mostly just cares about defaultValuePresent state for

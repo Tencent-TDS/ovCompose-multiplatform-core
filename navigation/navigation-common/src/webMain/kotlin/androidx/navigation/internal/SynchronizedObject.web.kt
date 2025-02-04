@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.navigation.internal
 
-internal actual class Lock {
-    actual inline fun <T> withLockImpl(crossinline block: () -> T): T =
-        synchronized(lock = this, block = block)
-}
+internal actual class SynchronizedObject actual constructor()
+
+internal actual inline fun <T> synchronizedImpl(
+    lock: SynchronizedObject,
+    crossinline action: () -> T
+): T = action()

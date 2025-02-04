@@ -33,28 +33,18 @@ import platform.posix.pthread_mutexattr_settype
 import platform.posix.pthread_mutexattr_t
 
 /**
- * Wrapper for platform.posix.PTHREAD_MUTEX_RECURSIVE which
- * is represented as kotlin.Int on darwin platforms and kotlin.UInt on linuxX64
- * See: https://youtrack.jetbrains.com/issue/KT-41509
+ * Wrapper for platform.posix.PTHREAD_MUTEX_RECURSIVE which is represented as kotlin.Int on darwin
+ * platforms and kotlin.UInt on linuxX64 See: // https://youtrack.jetbrains.com/issue/KT-41509
  */
 internal expect val PTHREAD_MUTEX_RECURSIVE: Int
 
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
-internal actual class Lock actual constructor() {
+internal actual class SynchronizedObject actual constructor() {
+
     private val resource = Resource()
 
     @Suppress("unused") // The returned Cleaner must be assigned to a property
     @OptIn(ExperimentalNativeApi::class)
-    private val cleaner = createCleaner(resource, Resource::destroy)
-
-    actual inline fun <T> withLockImpl(crossinline block: () -> T): T {
-        lock()
-        return try {
-            block()
-        } finally {
-            unlock()
-        }
-    }
+    private val cleaner = createCleaner(resource, Resource::dispose)
 
     fun lock() {
         resource.lock()
@@ -80,10 +70,22 @@ internal actual class Lock actual constructor() {
 
         fun unlock(): Int = pthread_mutex_unlock(mutex.ptr)
 
-        fun destroy() {
+        fun dispose() {
             pthread_mutex_destroy(mutex.ptr)
             pthread_mutexattr_destroy(attr.ptr)
             arena.clear()
         }
+    }
+}
+
+internal actual inline fun <T> synchronizedImpl(
+    lock: SynchronizedObject,
+    crossinline action: () -> T
+): T {
+    lock.lock()
+    return try {
+        action()
+    } finally {
+        lock.unlock()
     }
 }

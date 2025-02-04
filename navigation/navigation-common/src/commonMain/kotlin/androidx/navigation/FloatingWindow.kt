@@ -18,7 +18,7 @@ package androidx.navigation
 
 /**
  * A marker interface for [NavDestination] subclasses that float above the view of other
- * destinations.
+ * destinations (i.e. [androidx.navigation.fragment.DialogFragmentNavigator.Destination]).
  *
  * Destinations that implement this interface will automatically be popped off the back stack when
  * you navigate to a new destination.

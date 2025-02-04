@@ -16,13 +16,14 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
 
 /**
  * NavArgument denotes an argument that is supported by a [NavDestination].
  *
  * A NavArgument has a type and optionally a default value, that are used to read/write it in a
- * Bundle. It can also be nullable if the type supports it.
+ * SavedState. It can also be nullable if the type supports it.
  */
 public class NavArgument
 internal constructor(
@@ -70,7 +71,7 @@ internal constructor(
     public val defaultValue: Any?
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public fun putDefaultValue(name: String, bundle: Bundle) {
+    public fun putDefaultValue(name: String, bundle: SavedState) {
         // even if there is defaultValuePresent, the defaultValue itself could be null as in the
         // case of safe args where we know there is default value present but we are not able to
         // read the actual default (serializer limitations), so the defaultValue is set to null.
@@ -81,13 +82,13 @@ internal constructor(
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @Suppress("DEPRECATION")
-    public fun verify(name: String, bundle: Bundle): Boolean {
-        if (!isNullable && bundle.containsKey(name) && bundle[name] == null) {
+    public fun verify(name: String, bundle: SavedState): Boolean {
+        if (!isNullable && bundle.read { contains(name) && isNull(name) }) {
             return false
         }
         try {
             type[bundle, name]
-        } catch (e: ClassCastException) {
+        } catch (e: IllegalStateException) {
             return false
         }
         return true
@@ -226,7 +227,7 @@ internal constructor(
  * the predicate `isArgumentMissing`.
  *
  * @param [isArgumentMissing] predicate that returns true if the key of a required NavArgument is
- *   missing from a Bundle that is expected to contain it.
+ *   missing from a SavedState that is expected to contain it.
  */
 internal fun Map<String, NavArgument?>.missingRequiredArguments(
     isArgumentMissing: (key: String) -> Boolean

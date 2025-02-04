@@ -69,11 +69,8 @@ public inline fun NavGraphBuilder.navigation(
     builder: NavGraphBuilder.() -> Unit
 ): Unit = destination(NavGraphBuilder(provider, id, startDestination).apply(builder))
 
-
-/** DSL for constructing a new [NavGraph] */
 @NavDestinationDsl
 public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
-    /** The [NavGraphBuilder]'s [NavigatorProvider]. */
     public actual val provider: NavigatorProvider
     @IdRes private var startDestinationId: Int = 0
     private var startDestinationRoute: String? = null
@@ -105,14 +102,6 @@ public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
         this.startDestinationId = startDestination
     }
 
-    /**
-     * DSL for constructing a new [NavGraph]
-     *
-     * @param provider navigator used to create the destination
-     * @param startDestination the starting destination's route for this NavGraph
-     * @param route the graph's unique route
-     * @return the newly created NavGraph
-     */
     public actual constructor(
         provider: NavigatorProvider,
         startDestination: String,
@@ -122,17 +111,6 @@ public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
         this.startDestinationRoute = startDestination
     }
 
-    /**
-     * DSL for constructing a new [NavGraph]
-     *
-     * @param provider navigator used to create the destination
-     * @param startDestination the starting destination's route as a [KClass] for this NavGraph. The
-     *   respective NavDestination must be added with route from a [KClass] in order to match.
-     * @param route the graph's unique route as a [KClass]
-     * @param typeMap A mapping of KType to custom NavType<*> in the [route]. May be empty if
-     *   [route] does not use custom NavTypes.
-     * @return the newly created NavGraph
-     */
     public actual constructor(
         provider: NavigatorProvider,
         startDestination: KClass<*>,
@@ -143,17 +121,6 @@ public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
         this.startDestinationClass = startDestination
     }
 
-    /**
-     * DSL for constructing a new [NavGraph]
-     *
-     * @param provider navigator used to create the destination
-     * @param startDestination the starting destination's route as an Object for this NavGraph. The
-     *   respective NavDestination must be added with route from a [KClass] in order to match.
-     * @param route the graph's unique route as a [KClass]
-     * @param typeMap A mapping of KType to custom NavType<*> in the [route]. May be empty if
-     *   [route] does not use custom NavTypes.
-     * @return the newly created NavGraph
-     */
     public actual constructor(
         provider: NavigatorProvider,
         startDestination: Any,
@@ -166,23 +133,20 @@ public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
 
     private val destinations = mutableListOf<NavDestination>()
 
-    /** Build and add a new destination to the [NavGraphBuilder] */
     public actual fun <D : NavDestination> destination(navDestination: NavDestinationBuilder<D>) {
         destinations += navDestination.build()
     }
 
-    /** Adds this destination to the [NavGraphBuilder] */
     public actual operator fun NavDestination.unaryPlus() {
         addDestination(this)
     }
 
-    /** Add the destination to the [NavGraphBuilder] */
     public actual fun addDestination(destination: NavDestination) {
         destinations += destination
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun build(): NavGraph =
+    actual override fun build(): NavGraph =
         super.build().also { navGraph ->
             navGraph.addDestinations(destinations)
             if (

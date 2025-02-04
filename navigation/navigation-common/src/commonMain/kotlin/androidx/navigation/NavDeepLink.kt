@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
-import androidx.core.bundle.bundleOf
 import androidx.core.uri.Uri
 import androidx.core.uri.UriUtils
 import androidx.navigation.serialization.generateRoutePattern
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
+import androidx.savedstate.write
+import kotlin.jvm.JvmOverloads
 import kotlin.jvm.JvmStatic
 import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
@@ -54,13 +57,10 @@ internal constructor(
      */
     public val mimeType: String?
 ) {
-
     // path
     private val pathArgs = mutableListOf<String>()
     private var pathRegex: String? = null
-    private val pathPattern by lazy {
-        pathRegex?.let { Regex(it, RegexOption.IGNORE_CASE) }
-    }
+    private val pathPattern by lazy { pathRegex?.let { Regex(it, RegexOption.IGNORE_CASE) } }
 
     // query
     private val isParameterizedQuery by lazy {
@@ -71,13 +71,11 @@ internal constructor(
 
     // fragment
     private val fragArgsAndRegex: Pair<MutableList<String>, String>? by
-    lazy(LazyThreadSafetyMode.NONE) { parseFragment() }
+        lazy(LazyThreadSafetyMode.NONE) { parseFragment() }
     private val fragArgs by
-    lazy(LazyThreadSafetyMode.NONE) { fragArgsAndRegex?.first ?: mutableListOf() }
+        lazy(LazyThreadSafetyMode.NONE) { fragArgsAndRegex?.first ?: mutableListOf() }
     private val fragRegex by lazy(LazyThreadSafetyMode.NONE) { fragArgsAndRegex?.second }
-    private val fragPattern by lazy {
-        fragRegex?.let { Regex(it, RegexOption.IGNORE_CASE) }
-    }
+    private val fragPattern by lazy { fragRegex?.let { Regex(it, RegexOption.IGNORE_CASE) } }
 
     // mime
     private var mimeTypeRegex: String? = null
@@ -173,53 +171,56 @@ internal constructor(
      * 2. wrong value type (i.e. null for non-nullable arg)
      * 3. other exceptions from parsing an argument value
      *
-     * May return empty bundle if any of the following:
+     * May return empty SavedState if any of the following:
      * 1. deeplink has no arguments
      * 2. deeplink contains arguments with unknown default values (i.e. deeplink from safe args with
      *    unknown default values)
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public fun getMatchingArguments(deepLink: Uri, arguments: Map<String, NavArgument?>): Bundle? {
+    public fun getMatchingArguments(
+        deepLink: Uri,
+        arguments: Map<String, NavArgument?>
+    ): SavedState? {
         // first check overall uri pattern for quick return if general pattern does not match
         val result = pathPattern?.matchEntire(deepLink.toString()) ?: return null
 
         // get matching path and query arguments and store in bundle
-        val bundle = Bundle()
-        if (!getMatchingPathArguments(result, bundle, arguments)) return null
-        if (isParameterizedQuery && !getMatchingQueryArguments(deepLink, bundle, arguments)) {
+        val savedState = savedState()
+        if (!getMatchingPathArguments(result, savedState, arguments)) return null
+        if (isParameterizedQuery && !getMatchingQueryArguments(deepLink, savedState, arguments)) {
             return null
         }
         // no match on optional fragment should not prevent a link from matching otherwise
-        getMatchingUriFragment(deepLink.getFragment(), bundle, arguments)
+        getMatchingUriFragment(deepLink.getFragment(), savedState, arguments)
 
         // Check that all required arguments are present in bundle
         val missingRequiredArguments =
-            arguments.missingRequiredArguments { argName -> !bundle.containsKey(argName) }
+            arguments.missingRequiredArguments { argName -> !savedState.read { contains(argName) } }
         if (missingRequiredArguments.isNotEmpty()) return null
 
-        return bundle
+        return savedState
     }
 
     /**
-     * Returns a bundle containing matching path and query arguments with the requested uri. It
-     * returns empty bundle if this Deeplink's path pattern does not match with the uri.
+     * Returns a SavedState containing matching path and query arguments with the requested uri. It
+     * returns empty SavedState if this Deeplink's path pattern does not match with the uri.
      */
     internal fun getMatchingPathAndQueryArgs(
         deepLink: Uri?,
         arguments: Map<String, NavArgument?>
-    ): Bundle {
-        val bundle = Bundle()
-        if (deepLink == null) return bundle
-        val result = pathPattern?.matchEntire(deepLink.toString()) ?: return bundle
+    ): SavedState {
+        val savedState = savedState()
+        if (deepLink == null) return savedState
+        val result = pathPattern?.matchEntire(deepLink.toString()) ?: return savedState
 
-        getMatchingPathArguments(result, bundle, arguments)
-        if (isParameterizedQuery) getMatchingQueryArguments(deepLink, bundle, arguments)
-        return bundle
+        getMatchingPathArguments(result, savedState, arguments)
+        if (isParameterizedQuery) getMatchingQueryArguments(deepLink, savedState, arguments)
+        return savedState
     }
 
     private fun getMatchingUriFragment(
         fragment: String?,
-        bundle: Bundle,
+        savedState: SavedState,
         arguments: Map<String, NavArgument?>
     ) {
         // Base condition of a matching fragment is a complete match on regex pattern. If a
@@ -231,7 +232,7 @@ internal constructor(
             val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
-                parseArgument(bundle, argumentName, value, argument)
+                parseArgument(savedState, argumentName, value, argument)
             } catch (e: IllegalArgumentException) {
                 // parse failed, quick return
                 return
@@ -241,14 +242,14 @@ internal constructor(
 
     private fun getMatchingPathArguments(
         result: MatchResult,
-        bundle: Bundle,
+        savedState: SavedState,
         arguments: Map<String, NavArgument?>
     ): Boolean {
         this.pathArgs.mapIndexed { index, argumentName ->
             val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
-                parseArgument(bundle, argumentName, value, argument)
+                parseArgument(savedState, argumentName, value, argument)
             } catch (e: IllegalArgumentException) {
                 // Failed to parse means this isn't a valid deep link
                 // for the given URI - i.e., the URI contains a non-integer
@@ -262,7 +263,7 @@ internal constructor(
 
     private fun getMatchingQueryArguments(
         deepLink: Uri,
-        bundle: Bundle,
+        savedState: SavedState,
         arguments: Map<String, NavArgument?>
     ): Boolean {
         // key is queryParameterName (argName could be different), value is NavDeepLink.ParamQuery
@@ -283,7 +284,7 @@ internal constructor(
                     inputParams = listOf(argValue)
                 }
             }
-            val parseSuccess = parseInputParams(inputParams, storedParam, bundle, arguments)
+            val parseSuccess = parseInputParams(inputParams, storedParam, savedState, arguments)
             if (!parseSuccess) return false
         }
         // parse success
@@ -300,10 +301,10 @@ internal constructor(
     private fun parseInputParams(
         inputParams: List<String>,
         storedParam: ParamQuery,
-        bundle: Bundle,
+        savedState: SavedState,
         arguments: Map<String, NavArgument?>,
     ): Boolean {
-        val tempBundle = bundleOf()
+        val tempSavedState = savedState()
         // try to start off by adding an empty bundle if there is no default value.
         storedParam.arguments.forEach { argName ->
             val argument = arguments[argName]
@@ -311,14 +312,11 @@ internal constructor(
             // for CollectionNavType, only fallback to empty collection if there isn't a default
             // value
             if (navType is CollectionNavType && !argument.isDefaultValuePresent) {
-                navType.put(tempBundle, argName, navType.emptyCollection())
+                navType.put(tempSavedState, argName, navType.emptyCollection())
             }
         }
         inputParams.forEach { inputParam ->
-            val argMatchResult =
-                storedParam.paramRegex?.let {
-                    Regex(it).matchEntire(inputParam)
-                }
+            val argMatchResult = storedParam.paramRegex?.let { Regex(it).matchEntire(inputParam) }
             // check if this particular arg value matches the expected regex.
             // for example, if the query was list of Int like "...?intId=1&intId=2&intId=abc",
             // this would return false when matching "abc".
@@ -337,13 +335,13 @@ internal constructor(
                 val argument = arguments[argName]
 
                 try {
-                    if (!tempBundle.containsKey(argName)) {
+                    if (!tempSavedState.read { contains(argName) }) {
                         // Passing in a value the exact same as the placeholder will be treated the
                         // as if no value was passed (unless value is based on String),
                         // being replaced if it is optional or throwing an error if it is required.
-                        parseArgument(tempBundle, argName, value, argument)
+                        parseArgument(tempSavedState, argName, value, argument)
                     } else {
-                        parseArgumentForRepeatedParam(tempBundle, argName, value, argument)
+                        parseArgumentForRepeatedParam(tempSavedState, argName, value, argument)
                     }
                 } catch (e: IllegalArgumentException) {
                     // Failed to parse means that at least one of the arguments that
@@ -353,7 +351,7 @@ internal constructor(
                 }
             }
         }
-        bundle.putAll(tempBundle)
+        savedState.write { putAll(tempSavedState) }
         // parse success
         return true
     }
@@ -369,38 +367,43 @@ internal constructor(
     }
 
     /**
-     * Parses [value] based on the NavArgument's NavType and stores the result inside the [bundle].
-     * Throws if parse fails.
+     * Parses [value] based on the NavArgument's NavType and stores the result inside the
+     * [savedState]. Throws if parse fails.
      */
-    private fun parseArgument(bundle: Bundle, name: String, value: String, argument: NavArgument?) {
+    private fun parseArgument(
+        savedState: SavedState,
+        name: String,
+        value: String,
+        argument: NavArgument?
+    ) {
         if (argument != null) {
             val type = argument.type
-            type.parseAndPut(bundle, name, value)
+            type.parseAndPut(savedState, name, value)
         } else {
-            bundle.putString(name, value)
+            savedState.write { putString(name, value) }
         }
     }
 
     /**
      * Parses subsequent arg values under the same queryParameterName
      *
-     * For example with route "...?myArg=one&myArg=two&myArg=three", [bundle] is expected to already
-     * contain bundleOf([name] to "one"), and this function will parse & put values "two" and
-     * "three" into the bundle under the same [name].
+     * For example with route "...?myArg=one&myArg=two&myArg=three", [savedState] is expected to
+     * already contain bundleOf([name] to "one"), and this function will parse & put values "two"
+     * and "three" into the SavedState under the same [name].
      */
     private fun parseArgumentForRepeatedParam(
-        bundle: Bundle,
+        savedState: SavedState,
         name: String,
         value: String?,
         argument: NavArgument?
     ): Boolean {
-        if (!bundle.containsKey(name)) {
+        if (!savedState.read { contains(name) }) {
             return true
         }
         if (argument != null) {
             val type = argument.type
-            val previousValue = type[bundle, name]
-            type.parseAndPut(bundle, name, value, previousValue)
+            val previousValue = type[savedState, name]
+            type.parseAndPut(savedState, name, value, previousValue)
         }
         return false
     }
@@ -541,14 +544,67 @@ internal constructor(
         public inline fun <reified T : Any> setUriPattern(
             basePath: String,
             typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
-        ): Builder = setUriPattern(basePath, T::class, typeMap)
+        ): Builder = setUriPattern(T::class, basePath, typeMap)
 
+        /**
+         * Set the uri pattern for the [NavDeepLink].
+         *
+         * Arguments extracted from destination [T] will be automatically appended to the base path
+         * provided in [basePath].
+         *
+         * Arguments are appended based on property name and in the same order as their declaration
+         * order in [T]. They are appended as query parameters if the argument has either:
+         * 1. a default value
+         * 2. a [NavType] of [CollectionNavType]
+         *
+         * Otherwise, the argument will be appended as path parameters. The final uriPattern is
+         * generated by concatenating `uriPattern + path parameters + query parameters`.
+         *
+         * For example, the `name` property in this class does not meet either conditions and will
+         * be appended as a path param.
+         *
+         * ```
+         * @Serializable
+         * class MyClass(val name: String)
+         * ```
+         *
+         * Given a uriPattern of "www.example.com", the generated final uriPattern will be
+         * `www.example.com/{name}`.
+         *
+         * The `name` property in this class has a default value and will be appended as a query.
+         *
+         * ```
+         * @Serializable
+         * class MyClass(val name: String = "default")
+         * ```
+         *
+         * Given a uriPattern of "www.example.com", the final generated uriPattern will be
+         * `www.example.com?name={name}`
+         *
+         * The append order is based on their declaration order in [T]
+         *
+         * ```
+         * @Serializable
+         * class MyClass(val name: String = "default", val id: Int, val code: Int)
+         * ```
+         *
+         * Given a uriPattern of "www.example.com", the final generated uriPattern will be
+         * `www.example.com/{id}/{code}?name={name}`. In this example, `name` is appended first as a
+         * query param, then `id` and `code` respectively as path params. The final pattern is then
+         * concatenated with `uriPattern + path + query`.
+         *
+         * @param route The destination's route from KClass
+         * @param basePath The base uri path to append arguments onto
+         * @param typeMap map of destination arguments' kotlin type [KType] to its respective custom
+         *   [NavType]. May be empty if [T] does not use custom NavTypes.
+         * @return This builder.
+         */
         @OptIn(InternalSerializationApi::class)
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // need to be public for reified delegation
+        @JvmOverloads
         public fun <T : Any> setUriPattern(
-            basePath: String,
             route: KClass<T>,
-            typeMap: Map<KType, NavType<*>> = emptyMap(),
+            basePath: String,
+            typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
         ): Builder {
             this.uriPattern = route.serializer().generateRoutePattern(typeMap, basePath)
             return this
@@ -620,7 +676,7 @@ internal constructor(
                 typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
             ): Builder {
                 val builder = Builder()
-                builder.setUriPattern(basePath, T::class, typeMap)
+                builder.setUriPattern(T::class, basePath, typeMap)
                 return builder
             }
 
@@ -760,13 +816,13 @@ internal constructor(
         mimeTypeRegex = regex.replace("*|[*]", "[\\s\\S]")
     }
 
-    //for more info see #Regexp.escape platform actuals
+    // for more info see #Regexp.escape platform actuals
     private fun String.saveWildcardInRegex(): String =
-        //non-js regex escaping
+        // non-js regex escaping
         if (this.contains("\\Q") && this.contains("\\E")) replace(".*", "\\E.*\\Q")
-        //js regex escaping
+        // js regex escaping
         else if (this.contains("\\.\\*")) replace("\\.\\*", ".*")
-        //fallback
+        // fallback
         else this
 
     init {

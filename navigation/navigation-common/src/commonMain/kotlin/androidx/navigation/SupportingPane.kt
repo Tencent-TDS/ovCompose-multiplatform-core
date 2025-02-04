@@ -16,20 +16,15 @@
 
 package androidx.navigation
 
-import androidx.annotation.RestrictTo
-import androidx.savedstate.SavedState
-
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public actual class NoOpNavigator
-actual constructor(): Navigator<NavDestination>("NoOp") {
-    public actual override fun createDestination(): NavDestination = NavDestination(this)
-
-    public actual override fun navigate(
-        destination: NavDestination,
-        args: SavedState?,
-        navOptions: NavOptions?,
-        navigatorExtras: Extras?
-    ): NavDestination = destination
-
-    public actual override fun popBackStack(): Boolean = true
-}
+/**
+ * A marker interface for [NavDestination] subclasses that sit alongside the view of other
+ * destinations.
+ *
+ * Supporting pane destinations have the same lifecycle as the other visible destinations (e.g., a
+ * non-SupportingPane destination will continue to be resumed when a supporting pane is added to the
+ * back stack).
+ *
+ * [androidx.navigation.NavController.OnDestinationChangedListener] instances can also customize
+ * their behavior based on whether the destination is a SupportingPane.
+ */
+public interface SupportingPane

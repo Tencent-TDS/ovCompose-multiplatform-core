@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@ import androidx.annotation.RestrictTo
 import kotlin.reflect.KClass
 
 @NavOptionsDsl
-public actual class NavOptionsBuilder {
+public actual class NavOptionsBuilder actual constructor() {
     private val builder = NavOptions.Builder()
+
     public actual var launchSingleTop: Boolean = false
 
     @get:Suppress("GetterOnBuilder", "GetterSetterNames")
@@ -95,14 +96,12 @@ public actual class NavOptionsBuilder {
         popUpTo(T::class, popUpToBuilder)
     }
 
-    // this restricted public is needed so that the public reified [popUpTo] can call
-    // private popUpToRouteClass setter
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Suppress("BuilderSetStyle")
     public actual fun <T : Any> popUpTo(
-        klass: KClass<T>,
+        route: KClass<T>,
         popUpToBuilder: PopUpToBuilder.() -> Unit
     ) {
-        popUpToRouteClass = klass
+        popUpToRouteClass = route
         popUpToId = -1
         popUpToRoute = null
         val builder = PopUpToBuilder().apply(popUpToBuilder)

@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.navigation
+package androidx.navigation.serialization
 
-import androidx.annotation.RestrictTo
-import androidx.savedstate.SavedState
+import androidx.navigation.NavType
+import kotlinx.serialization.descriptors.SerialDescriptor
 
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public actual class NoOpNavigator
-actual constructor(): Navigator<NavDestination>("NoOp") {
-    public actual override fun createDestination(): NavDestination = NavDestination(this)
+internal actual fun SerialDescriptor.parseEnum(): NavType<*> = UNKNOWN
 
-    public actual override fun navigate(
-        destination: NavDestination,
-        args: SavedState?,
-        navOptions: NavOptions?,
-        navigatorExtras: Extras?
-    ): NavDestination = destination
+internal actual fun SerialDescriptor.parseNullableEnum(): NavType<*> = UNKNOWN
 
-    public actual override fun popBackStack(): Boolean = true
-}
+internal actual fun SerialDescriptor.parseEnumList(): NavType<*> = UNKNOWN

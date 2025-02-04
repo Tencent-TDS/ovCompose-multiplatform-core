@@ -16,6 +16,9 @@
 
 package androidx.navigation.internal
 
-internal actual class Lock actual constructor() {
-    actual inline fun <T> withLockImpl(block: () -> T): T = block()
-}
+internal actual class SynchronizedObject actual constructor()
+
+internal actual inline fun <T> synchronizedImpl(
+    lock: SynchronizedObject,
+    crossinline action: () -> T
+): T = kotlin.synchronized(lock, action)
