@@ -25,7 +25,7 @@ import kotlinx.coroutines.runBlocking
 @OptIn(ExperimentalTestApi::class)
 class UiKitPlatformClipboardTest {
 
-    // TODO: consider writing instrumental tests for Clipboard
+    // TODO: consider writing instrumented tests for Clipboard
     // The unit tests can't use (copy/paste) the native UIPasteboard:
     // "Cannot connect to pasteboard server" - an error at runtime
 
@@ -61,7 +61,7 @@ class UiKitPlatformClipboardTest {
         assertNotNull(nativeClipboard)
 
         runBlocking {
-            // Can't do much more asserts in a unit test. For more checks use a UI (instrumental) test
+            // Can't do much more asserts in a unit test. For more checks use an instrumented test
             clipboard!!.setClipEntry(null)
             clipboard!!.setClipEntry(ClipEntry.withPlainText("test"))
             clipboard!!.getClipEntry()
