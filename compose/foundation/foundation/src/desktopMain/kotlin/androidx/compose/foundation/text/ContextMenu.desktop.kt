@@ -25,6 +25,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.JPopupContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.contextMenuOpenDetector
+import androidx.compose.foundation.internal.blockingHasText
 import androidx.compose.foundation.text.TextContextMenu.TextManager
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.selection.SelectionManager
@@ -40,14 +41,10 @@ import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalLocalization
-import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.getSelectedText
 import java.awt.Component
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.UnsupportedFlavorException
-import java.io.IOException
 import javax.swing.JPopupMenu
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -109,7 +106,7 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
         }
 
     override val paste: (() -> Unit)? get() =
-        if (editable && clipboard?.nativeClipboard?.hasText() == true) {
+        if (editable && clipboard?.nativeClipboard?.blockingHasText() == true) {
             {
                 paste()
                 focusRequester?.requestFocus()
@@ -130,21 +127,6 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
 
     override fun selectWordAtPositionIfNotAlreadySelected(offset: Offset) {
         this@textManager.selectWordAtPositionIfNotAlreadySelected(offset)
-    }
-}
-
-// Here we rely on the NativeClipboard directly instead of using ClipEntry,
-// because getClipEntry is a suspend function, but above we have an older code
-// expecting a synchronous execution.
-private fun NativeClipboard.hasText(): Boolean {
-    return try {
-        (getData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
-    } catch (_: UnsupportedFlavorException) {
-        false
-    } catch (_: IllegalStateException) {
-        false
-    } catch (_: IOException) {
-        false
     }
 }
 

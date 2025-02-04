@@ -17,6 +17,7 @@
 package androidx.compose.foundation.internal
 
 import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.text.AnnotatedString
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
@@ -36,7 +37,7 @@ internal actual suspend fun ClipEntry.readText(): String? {
 }
 
 internal actual suspend fun ClipEntry.readAnnotatedString(): AnnotatedString? {
-    return readText()?.let { return AnnotatedString(it) }
+    return readText()?.let { AnnotatedString(it) }
 }
 
 internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
@@ -48,6 +49,22 @@ internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
 internal actual fun ClipEntry?.hasText(): Boolean {
     return try {
         (this?.transferable?.getTransferData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
+    } catch (_: UnsupportedFlavorException) {
+        false
+    } catch (_: IllegalStateException) {
+        false
+    } catch (_: IOException) {
+        false
+    }
+}
+
+// Here we rely on the NativeClipboard directly instead of using ClipEntry,
+// because getClipEntry is a suspend function, but in ContextMenu.desktop.kt we have older code
+// expecting a synchronous execution.
+internal fun NativeClipboard.blockingHasText(): Boolean {
+    val awtClipboard = this as? java.awt.datatransfer.Clipboard ?: return false
+    return try {
+        (awtClipboard.getData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
     } catch (_: UnsupportedFlavorException) {
         false
     } catch (_: IllegalStateException) {

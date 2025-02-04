@@ -16,12 +16,13 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 
-actual typealias NativeClipboard = java.awt.datatransfer.Clipboard
+actual typealias NativeClipboard = Any
 
 internal class AwtPlatformClipboard internal constructor() : Clipboard {
 
@@ -48,11 +49,21 @@ internal class AwtPlatformClipboard internal constructor() : Clipboard {
     }
 
     /**
-     * Provides the [java.awt.datatransfer.Clipboard] instance.
+     * Provides an instance of a platform clipboard.
+     * The actual implementation may vary depending on the underlying GUI toolkit.
+     * See [awtClipboard] to access [java.awt.datatransfer.Clipboard].
      */
     override val nativeClipboard: NativeClipboard
         get() = systemClipboard ?: error("systemClipboard is not available in headless mode")
 }
+
+/**
+ * Returns [java.awt.datatransfer.Clipboard] instance if it's available, or null otherwise.
+ * It might throw an exception when accessed in a headless mode.
+ */
+@ExperimentalComposeUiApi
+val Clipboard.awtClipboard: java.awt.datatransfer.Clipboard?
+    get() = nativeClipboard as? java.awt.datatransfer.Clipboard
 
 /**
  * A wrapper for [Transferable] instance which can be used to access or set the Clipboard content.

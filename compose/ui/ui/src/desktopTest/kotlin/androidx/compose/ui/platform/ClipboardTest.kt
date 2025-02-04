@@ -32,33 +32,37 @@ import org.junit.Test
 class ClipboardTest {
 
     var clipboard: Clipboard? = null
+    var awtClipboard: java.awt.datatransfer.Clipboard? = null
 
     @Before
     fun setup() {
         clipboard = null
+        awtClipboard = null
     }
 
     @Test
     fun hasClipboard() = clipboardTest {
         assertNotNull(clipboard)
         assertNotNull(clipboard!!.nativeClipboard)
+        assertTrue(clipboard!!.nativeClipboard is java.awt.datatransfer.Clipboard)
+        assertNotNull(awtClipboard)
     }
 
     @Test
     fun makeClipboardEmpty() = clipboardTest {
         clipboard!!.setClipEntry(null)
         assertNull(clipboard!!.getClipEntry())
-        assertTrue(clipboard!!.nativeClipboard.availableDataFlavors.isEmpty())
+        assertTrue(awtClipboard!!.availableDataFlavors.isEmpty())
     }
 
     @Test
     fun setTextToClipboard() = clipboardTest {
         clipboard!!.setClipEntry(null)
         assertNull(clipboard!!.getClipEntry())
-        assertTrue(clipboard!!.nativeClipboard.availableDataFlavors.isEmpty())
+        assertTrue(awtClipboard!!.availableDataFlavors.isEmpty())
 
         clipboard!!.setClipEntry(ClipEntry(StringSelection("test")))
-        assertEquals("test", clipboard!!.nativeClipboard.getData(DataFlavor.stringFlavor))
+        assertEquals("test", awtClipboard!!.getData(DataFlavor.stringFlavor))
 
         val ce = clipboard!!.getClipEntry()
         assertNotNull(ce)
@@ -66,7 +70,7 @@ class ClipboardTest {
 
         clipboard!!.setClipEntry(null)
         assertNull(clipboard!!.getClipEntry())
-        assertTrue(clipboard!!.nativeClipboard.availableDataFlavors.isEmpty())
+        assertTrue(awtClipboard!!.availableDataFlavors.isEmpty())
     }
 
     private fun clipboardTest(block: suspend WindowTestScope.() -> Unit) = runApplicationTest {
@@ -77,6 +81,7 @@ class ClipboardTest {
             window.size = Dimension(300, 400)
             window.setContent {
                 clipboard = LocalClipboard.current
+                awtClipboard = clipboard!!.nativeClipboard as java.awt.datatransfer.Clipboard
             }
             window.isUndecorated = true
             window.isVisible = true
