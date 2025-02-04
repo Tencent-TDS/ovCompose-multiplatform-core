@@ -21,25 +21,29 @@ import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.text.AnnotatedString
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.awt.datatransfer.UnsupportedFlavorException
 import java.io.IOException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal actual suspend fun ClipEntry.readText(): String? {
-    return try {
-        transferable.getTransferData(DataFlavor.stringFlavor) as String?
-    } catch (_: UnsupportedFlavorException) {
-        null
-    } catch (_: IllegalStateException) {
-        null
-    } catch (_: IOException) {
-        null
+    if (!hasText()) return null
+
+    return withContext(Dispatchers.IO) {
+        try {
+            transferable.getTransferData(DataFlavor.stringFlavor) as? String
+        } catch (_: IOException) {
+            // the data is no longer available in the requested flavor
+            null
+        }
     }
 }
 
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7543/Support-styled-text-in-PlatformClipboard-implementations
 internal actual suspend fun ClipEntry.readAnnotatedString(): AnnotatedString? {
     return readText()?.let { AnnotatedString(it) }
 }
 
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7543/Support-styled-text-in-PlatformClipboard-implementations
 internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
     if (this == null) return null
     val transferable = StringSelection(this.text)
@@ -47,15 +51,8 @@ internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
 }
 
 internal actual fun ClipEntry?.hasText(): Boolean {
-    return try {
-        (this?.transferable?.getTransferData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
-    } catch (_: UnsupportedFlavorException) {
-        false
-    } catch (_: IllegalStateException) {
-        false
-    } catch (_: IOException) {
-        false
-    }
+    if (this == null) return false
+    return transferable.isDataFlavorSupported(DataFlavor.stringFlavor)
 }
 
 // Here we rely on the NativeClipboard directly instead of using ClipEntry,
@@ -63,13 +60,5 @@ internal actual fun ClipEntry?.hasText(): Boolean {
 // expecting a synchronous execution.
 internal fun NativeClipboard.blockingHasText(): Boolean {
     val awtClipboard = this as? java.awt.datatransfer.Clipboard ?: return false
-    return try {
-        (awtClipboard.getData(DataFlavor.stringFlavor) as? String)?.isNotEmpty() == true
-    } catch (_: UnsupportedFlavorException) {
-        false
-    } catch (_: IllegalStateException) {
-        false
-    } catch (_: IOException) {
-        false
-    }
+    return awtClipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)
 }

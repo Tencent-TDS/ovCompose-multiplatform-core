@@ -19,10 +19,27 @@ package androidx.compose.foundation.internal
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.text.AnnotatedString
 
+// TODO: upstreaming the KDoc https://youtrack.jetbrains.com/issue/CMP-7544/Upstream-ClipboardUtils.kt-kdoc
+
+/**
+ * Returns a string if it's available in the ClipEntry.
+ * This method must not throw any Exceptions. It can return null if the string can not be retrieved.
+ */
 internal expect suspend fun ClipEntry.readText(): String?
 
+/**
+ * Returns [AnnotatedString] if it's available in the ClipEntry.
+ * This method must not throw any Exceptions. It can return null if the string can not be retrieved.
+ */
 internal expect suspend fun ClipEntry.readAnnotatedString(): AnnotatedString?
 
+/**
+ * Creates a [ClipEntry] from the [AnnotatedString]
+ */
 internal expect fun AnnotatedString?.toClipEntry(): ClipEntry?
 
+/**
+ * Returns true if [ClipEntry] has a valid text representation.
+ * Otherwise, it returns false.
+ */
 internal expect fun ClipEntry?.hasText(): Boolean
