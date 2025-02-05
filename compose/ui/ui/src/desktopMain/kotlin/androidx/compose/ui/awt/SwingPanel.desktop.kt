@@ -71,6 +71,8 @@ public fun <T : Component> SwingPanel(
         )
     }
 
+    // TODO(https://youtrack.jetbrains.com/issue/CMP-7557/SwingInteropViewHolder.-Commonization-of-focus-logic-with-different-targets)
+    //  we probably can commonize this logic across different targets (including Android)
     val focusSwitcher = remember { InteropFocusSwitcher(group, focusManager) }
 
     val interopViewHolder = remember {

@@ -26,10 +26,17 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.viewinterop.InteropViewGroup
-import java.awt.event.FocusEvent
 import java.awt.event.FocusEvent.Cause.TRAVERSAL_BACKWARD
 import java.awt.event.FocusEvent.Cause.TRAVERSAL_FORWARD
 
+/**
+ * This class is for supporting seamless focus switching between Compose and SwingPanel components:
+ * - adds a special [modifier] that redirects focus from Compose to the SwingPanel components
+ * - adds [moveBeforeInteropView], [moveAfterInteropView] that
+ *   redirect focus from SwingPanel to Compose
+ *
+ * See ComposeFocusTest for all edge cases.
+ */
 internal class InteropFocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
@@ -48,7 +55,6 @@ internal class InteropFocusSwitcher(
                 FocusDirection.Previous -> {
                     focusPolicy.getLastComponent(group)?.requestFocus(TRAVERSAL_BACKWARD)
                 }
-                else -> null
             }
         }
     )
