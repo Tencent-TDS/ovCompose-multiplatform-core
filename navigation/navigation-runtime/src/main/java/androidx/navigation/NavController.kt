@@ -961,14 +961,14 @@ public open class NavController(
         val deepLinkIds = extras!!.getIntArray(KEY_DEEP_LINK_IDS)!!.toMutableList()
         val deepLinkArgs = extras.getParcelableArrayList<Bundle>(KEY_DEEP_LINK_ARGS)
 
+        // Probably deep linked to a single destination only.
+        if (deepLinkIds.size < 2) {
+            return false
+        }
+
         // Remove the leaf destination to pop up to one level above it
         var leafDestinationId = deepLinkIds.removeLastKt()
         deepLinkArgs?.removeLastKt()
-
-        // Probably deep linked to a single destination only.
-        if (deepLinkIds.isEmpty()) {
-            return false
-        }
 
         // Find the destination if the leaf destination was a NavGraph
         with(graph.findDestinationComprehensive(leafDestinationId, false)) {
