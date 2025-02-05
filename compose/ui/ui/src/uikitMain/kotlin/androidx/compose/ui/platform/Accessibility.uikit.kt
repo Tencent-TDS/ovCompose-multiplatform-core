@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
 import androidx.compose.ui.platform.accessibility.unclippedBoundsInWindow
-import androidx.compose.ui.scene.ComposeSceneMediatorView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -55,6 +54,7 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -70,6 +70,7 @@ import platform.CoreGraphics.CGRectGetMidX
 import platform.CoreGraphics.CGRectGetMidY
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
+import platform.CoreGraphics.CGRectIntersectsRect
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
@@ -85,7 +86,15 @@ import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraits
+import platform.UIKit.UICoordinateSpaceProtocol
 import platform.UIKit.UIEdgeInsetsInsetRect
+import platform.UIKit.UIFocusAnimationCoordinator
+import platform.UIKit.UIFocusEnvironmentProtocol
+import platform.UIKit.UIFocusItemContainerProtocol
+import platform.UIKit.UIFocusItemProtocol
+import platform.UIKit.UIFocusSystem
+import platform.UIKit.UIFocusUpdateContext
+import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityElementAtIndex
 import platform.UIKit.accessibilityElementCount
@@ -146,6 +155,11 @@ private sealed interface AccessibilityNode {
     fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean = false
     fun accessibilityPerformEscape(): Boolean = false
 
+    // Focus API
+    val canBecomeFocused: Boolean get() = false
+    fun didBecomeFocused() {}
+    fun didResignFocused() {}
+
     /**
      * Represents a projection of the Compose semantics node to the iOS world.
      * The object itself is a node in a generated tree that matches 1-to-1 with the [SemanticsNode].
@@ -165,7 +179,9 @@ private sealed interface AccessibilityNode {
             get() = semanticsNode.isScreenReaderFocusable()
 
         override val accessibilityFrame: CValue<CGRect>
-            get() = mediator.convertToAppWindowCGRect(frame?.toRect() ?: semanticsNode.unclippedBoundsInWindow)
+            get() = mediator.convertToAppWindowCGRect(
+                frame?.toRect() ?: semanticsNode.unclippedBoundsInWindow
+            )
 
         override val accessibilityInteropView: InteropWrappingView?
             get() = if (ignoreSemanticChildren) {
@@ -275,6 +291,20 @@ private sealed interface AccessibilityNode {
                 return false
             }
         }
+
+        override val canBecomeFocused: Boolean
+            get() = semanticsNode.unmergedConfig.contains(SemanticsProperties.Focused)
+
+        override fun didBecomeFocused() {
+            accessibilityScrollToVisible()
+            mediator.keyboardFocusedElementKey = key
+        }
+
+        override fun didResignFocused() {
+            if (mediator.keyboardFocusedElementKey == key) {
+                mediator.keyboardFocusedElementKey = null
+            }
+        }
     }
 
     /**
@@ -322,8 +352,10 @@ private object CachedAccessibilityPropertyKeys {
 @OptIn(BetaInteropApi::class)
 @ExportObjCClass
 private class AccessibilityRoot(
-    val mediator: AccessibilityMediator
-) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
+    val mediator: AccessibilityMediator,
+    var onKeyboardPresses: (Set<*>) -> Unit = {}
+) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER),
+    UIFocusItemContainerProtocol {
     var element: AccessibilityElement? = null
         set(value) {
             field = value
@@ -346,6 +378,31 @@ private class AccessibilityRoot(
 
     override fun accessibilityFrame(): CValue<CGRect> =
         mediator.view.convertRect(mediator.view.bounds, toView = null)
+
+    // UIFocusItemContainerProtocol
+
+    override fun coordinateSpace(): UICoordinateSpaceProtocol {
+        return mediator.view
+    }
+
+    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
+        return if (mediator.isEnabled) {
+            mediator.activateAccessibilityIfNeeded()
+            listOfNotNull(element as? UIFocusItemProtocol)
+        } else {
+            emptyList<Any>()
+        }
+    }
+
+    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
+        onKeyboardPresses(presses)
+        super.pressesBegan(presses, withEvent)
+    }
+
+    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
+        onKeyboardPresses(presses)
+        super.pressesEnded(presses, withEvent)
+    }
 }
 
 @OptIn(BetaInteropApi::class)
@@ -353,7 +410,9 @@ private class AccessibilityRoot(
 private class AccessibilityElement(
     private var node: AccessibilityNode,
     children: List<AccessibilityElement>
-) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
+) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER),
+    UIFocusItemProtocol,
+    UIFocusItemContainerProtocol {
     /**
      * A cache for the properties that are computed from the [SemanticsNode.config] and are communicated
      * to iOS Accessibility services.
@@ -429,7 +488,10 @@ private class AccessibilityElement(
      * value using the given [block] and caches it.
      */
     @Suppress("UNCHECKED_CAST") // cast is safe because the set value is constrained by the key T
-    private inline fun <T>getOrElse(key: CachedAccessibilityPropertyKey<T>, crossinline block: () -> T): T {
+    private inline fun <T> getOrElse(
+        key: CachedAccessibilityPropertyKey<T>,
+        crossinline block: () -> T
+    ): T {
         val value = cachedProperties.getOrElse(key) {
             val newValue = block()
             cachedProperties[key] = newValue
@@ -540,7 +602,7 @@ private class AccessibilityElement(
         }
 
     override fun accessibilityFrame(): CValue<CGRect> =
-        // No need to cache accessibility frame because it invalidates much frequently
+    // No need to cache accessibility frame because it invalidates much frequently
         // then requests by the iOS Accessibility
         node.accessibilityFrame
 
@@ -572,6 +634,69 @@ private class AccessibilityElement(
             log("$indent  accessibilityCustomActions: ${accessibilityCustomActions()}")
         }
     }
+
+    // UIFocusItemProtocol & UIFocusItemContainerProtocol
+
+    override fun canBecomeFocused(): Boolean = node.canBecomeFocused
+
+    override fun didUpdateFocusInContext(
+        context: UIFocusUpdateContext,
+        withAnimationCoordinator: UIFocusAnimationCoordinator
+    ) {
+        if (context.previouslyFocusedItem === this) {
+            node.didResignFocused()
+        }
+        if (context.nextFocusedItem === this) {
+            node.didBecomeFocused()
+        }
+    }
+
+    override fun focusItemContainer(): UIFocusItemContainerProtocol = this
+
+    override fun frame(): CValue<CGRect> = accessibilityFrame()
+
+    override fun parentFocusEnvironment(): UIFocusEnvironmentProtocol? =
+        accessibilityContainer as? UIFocusEnvironmentProtocol
+
+    override fun preferredFocusEnvironments(): List<*> =
+        allChildren.mapNotNull { it as? UIFocusEnvironmentProtocol }
+
+    private var updateFocusScheduled = false
+    override fun setNeedsFocusUpdate() {
+        if (updateFocusScheduled) {
+            return
+        }
+        updateFocusScheduled = true
+        CoroutineScope(Dispatchers.Main).launch {
+            updateFocusIfNeeded()
+            updateFocusScheduled = false
+        }
+    }
+
+    override fun updateFocusIfNeeded() {
+        UIFocusSystem.focusSystemForEnvironment(environment = this)?.updateFocusIfNeeded()
+    }
+
+    override fun shouldUpdateFocusInContext(context: UIFocusUpdateContext): Boolean = true
+
+    override fun coordinateSpace(): UICoordinateSpaceProtocol {
+        var component: Any? = accessibilityContainer
+        while (component != null) {
+            when (component) {
+                is UIView -> return component.window ?: component
+                is CMPAccessibilityElement -> component = component.accessibilityContainer
+                else -> error("Unexpected coordinate space.")
+            }
+        }
+        error("Unexpected coordinate space.")
+    }
+
+    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> = allChildren.filter {
+        it is UIFocusItemProtocol &&
+            CGRectIntersectsRect((it as NSObject).accessibilityFrame, rect)
+    }
+
+    override fun isTransparentFocusItem(): Boolean = true
 }
 
 private class NodesSyncResult(
@@ -632,16 +757,19 @@ private sealed interface AccessibilityElementFocusMode {
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
 internal class AccessibilityMediator(
-    val view: ComposeSceneMediatorView,
+    val view: UIView,
     val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
-    val performEscape: () -> Boolean
+    val performEscape: () -> Boolean,
+    onKeyboardPresses: (Set<*>) -> Unit,
 ) {
     private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {
             field = value
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
         }
+
+    var keyboardFocusedElementKey: AccessibilityElementKey? = null
 
     /**
      * The kind of invalidation that determines what kind of logic will be executed in the next sync.
@@ -668,7 +796,7 @@ internal class AccessibilityMediator(
      */
     private val coroutineScope = CoroutineScope(coroutineContext + job)
 
-    private val root = AccessibilityRoot(mediator = this)
+    private val root = AccessibilityRoot(mediator = this, onKeyboardPresses = onKeyboardPresses)
 
     /**
      * A map of all [AccessibilityElementKey] currently present in the tree to corresponding
@@ -718,11 +846,12 @@ internal class AccessibilityMediator(
                     if (isAccessibilityActive) {
                         scheduleAccessibilityDisablingAndCleanup()
                         val time = measureTime {
-                            sync(invalidationKind)
+                            sync(invalidationKind).postNotification()
                         }
                         accessibilityDebugLogger?.log("AccessibilityMediator.sync took $time")
                     }
                 } else if (root.element != null) {
+                    refocusKeyboardElementIfNeeded()
                     root.element = null
                     UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
                 }
@@ -826,7 +955,10 @@ internal class AccessibilityMediator(
     fun dispose() {
         job.cancel()
         disableAccessibilityJob?.cancel()
+
+        refocusKeyboardElementIfNeeded()
         view.accessibilityElements = listOf<NSObject>()
+        root.onKeyboardPresses = {}
 
         for (element in accessibilityElementsMap.values) {
             element.dispose()
@@ -867,6 +999,13 @@ internal class AccessibilityMediator(
         val presentIds = mutableSetOf<AccessibilityElementKey>()
 
         val nodes = owner.getAllUncoveredSemanticsNodesToIntObjectMap(rootNode.id)
+        keyboardFocusedElementKey?.id?.let {
+            if (!nodes.contains(it)) {
+                // The keyboard-focused node is removed. It's important to trigger focus reload
+                // before the node is actually removed.
+                refocusKeyboardElementIfNeeded()
+            }
+        }
 
         // Flatten all children except nodes inside traversal groups to:
         // - have the same traversal order as on Android
@@ -1089,6 +1228,15 @@ internal class AccessibilityMediator(
             UIAccessibilityLayoutChangedNotification
         }
         UIAccessibilityPostNotification(notificationName, newElementToFocus)
+    }
+
+    private fun refocusKeyboardElementIfNeeded() {
+        if (keyboardFocusedElementKey != null) {
+            view.window?.let {
+                UIFocusSystem.focusSystemForEnvironment(it)?.requestFocusUpdateToEnvironment(it)
+            }
+            keyboardFocusedElementKey = null
+        }
     }
 }
 

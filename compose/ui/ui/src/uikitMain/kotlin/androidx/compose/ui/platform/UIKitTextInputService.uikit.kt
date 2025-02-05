@@ -24,6 +24,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -65,6 +66,7 @@ internal class UIKitTextInputService(
      * Erasure happens due to K/N not supporting Obj-C lightweight generics.
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
+    private val focusManager: () -> ComposeSceneFocusManager
 ) : PlatformTextInputService, TextToolbar {
 
     private var currentInput: CurrentInput? = null
@@ -218,6 +220,7 @@ internal class UIKitTextInputService(
         return when (event.key) {
             Key.Enter -> handleEnterKey(event)
             Key.Backspace -> handleBackspace(event)
+            Key.Escape -> handleEscape(event)
             else -> false
         }
     }
@@ -262,6 +265,15 @@ internal class UIKitTextInputService(
     private fun handleBackspace(event: KeyEvent): Boolean {
         // This prevents two characters from being removed for one hardware backspace key press.
         return event.type == KeyEventType.KeyDown
+    }
+
+    private fun handleEscape(event: KeyEvent): Boolean {
+        return if (currentInput != null && event.type == KeyEventType.KeyUp) {
+            focusManager().releaseFocus()
+            true
+        } else {
+            false
+        }
     }
 
     private val editCommandsBatch = mutableListOf<EditCommand>()

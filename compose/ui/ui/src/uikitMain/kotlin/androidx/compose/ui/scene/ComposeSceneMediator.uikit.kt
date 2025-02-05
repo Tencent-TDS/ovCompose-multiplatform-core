@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.animation.withAnimationProgress
+import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
 import androidx.compose.ui.draganddrop.UIKitDragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -107,9 +108,10 @@ import platform.UIKit.UIView
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 private class SemanticsOwnerListenerImpl(
-    private val rootView: ComposeSceneMediatorView,
+    private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
-    private val performEscape: () -> Boolean
+    private val performEscape: () -> Boolean,
+    private val onKeyboardPresses: (Set<*>) -> Unit,
 ) : PlatformContext.SemanticsOwnerListener {
 
     private var accessibilityMediator: AccessibilityMediator? = null
@@ -126,7 +128,8 @@ private class SemanticsOwnerListenerImpl(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
-                performEscape
+                performEscape,
+                onKeyboardPresses
             ).also {
                 it.isEnabled = isEnabled
             }
@@ -167,6 +170,7 @@ internal class ComposeSceneMediator(
     private val windowContext: PlatformWindowContext,
     private val coroutineContext: CoroutineContext,
     private val redrawer: MetalRedrawer,
+    private val backGestureDispatcher: UIKitBackGestureDispatcher,
     composeSceneFactory: (
         invalidate: () -> Unit,
         platformContext: PlatformContext,
@@ -268,14 +272,15 @@ internal class ComposeSceneMediator(
 
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
-            rootView = view,
+            rootView = parentView,
             coroutineContext = coroutineContext,
             performEscape = {
                 val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
                 val up = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyUp))
 
                 down || up
-            }
+            },
+            onKeyboardPresses = ::onKeyboardPresses
         )
     }
 
@@ -305,7 +310,8 @@ internal class ComposeSceneMediator(
             onInputStarted = {
                 animateKeyboardOffsetChanges = true
             },
-            onKeyboardPresses = ::onKeyboardPresses
+            onKeyboardPresses = ::onKeyboardPresses,
+            focusManager = { scene.focusManager }
         ).also {
             KeyboardVisibilityListener.initialize()
         }
@@ -561,6 +567,7 @@ internal class ComposeSceneMediator(
         textInputService.onPreviewKeyEvent(keyEvent) // TODO: fix redundant call
             || onPreviewKeyEvent(keyEvent)
             || scene.sendKeyEvent(keyEvent)
+            || backGestureDispatcher.onKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
 
     private inner class PlatformContextImpl : PlatformContext by PlatformContext.Empty {
