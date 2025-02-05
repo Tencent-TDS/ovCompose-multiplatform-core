@@ -40,7 +40,7 @@ fun runDesktopComposeUiTest(
 }
 
 @ExperimentalTestApi
-class DesktopComposeUiTest internal constructor(
+class DesktopComposeUiTest(
     width: Int = 1024,
     height: Int = 768,
     effectContext: CoroutineContext = EmptyCoroutineContext,
