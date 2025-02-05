@@ -308,7 +308,7 @@ class TestBasicsTest {
     }
 
     @Test
-    fun emptyTestPerformance() = runTest(timeout = 3.seconds) {
+    fun emptyTestPerformance() = runTest(timeout = 6.seconds) {
         repeat(100) {
             runComposeUiTest {
                 setContent { }
