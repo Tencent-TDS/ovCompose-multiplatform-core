@@ -3342,8 +3342,9 @@ public final class androidx/compose/ui/platform/AccessibilityManager$DefaultImpl
 
 public final class androidx/compose/ui/platform/ClipEntry {
 	public static final field $stable I
-	public fun <init> ()V
+	public fun <init> (Ljava/lang/Object;)V
 	public final fun getClipMetadata ()Landroidx/compose/ui/platform/ClipMetadata;
+	public final fun getNativeClipEntry ()Ljava/lang/Object;
 }
 
 public final class androidx/compose/ui/platform/ClipMetadata {
@@ -3353,13 +3354,13 @@ public final class androidx/compose/ui/platform/ClipMetadata {
 
 public abstract interface class androidx/compose/ui/platform/Clipboard {
 	public abstract fun getClipEntry (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun getNativeClipboard ()Landroidx/compose/ui/platform/NativeClipboard;
+	public abstract fun getNativeClipboard ()Ljava/lang/Object;
 	public abstract fun setClipEntry (Landroidx/compose/ui/platform/ClipEntry;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public abstract interface class androidx/compose/ui/platform/ClipboardManager {
 	public fun getClip ()Landroidx/compose/ui/platform/ClipEntry;
-	public fun getNativeClipboard ()Landroidx/compose/ui/platform/NativeClipboard;
+	public fun getNativeClipboard ()Ljava/lang/Object;
 	public abstract fun getText ()Landroidx/compose/ui/text/AnnotatedString;
 	public fun hasText ()Z
 	public fun setClip (Landroidx/compose/ui/platform/ClipEntry;)V
@@ -3482,9 +3483,9 @@ public final class androidx/compose/ui/platform/JvmActuals_jvmKt {
 	public static final synthetic fun synchronized (Landroidx/compose/ui/platform/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 
-public final class androidx/compose/ui/platform/NativeClipboard {
-	public static final field $stable I
-	public fun <init> ()V
+public final class androidx/compose/ui/platform/PlatformClipboard_desktopKt {
+	public static final fun getAsAwtTransferable (Landroidx/compose/ui/platform/ClipEntry;)Ljava/awt/datatransfer/Transferable;
+	public static final fun getAwtClipboard (Landroidx/compose/ui/platform/Clipboard;)Ljava/awt/datatransfer/Clipboard;
 }
 
 public abstract interface class androidx/compose/ui/platform/PlatformContext {

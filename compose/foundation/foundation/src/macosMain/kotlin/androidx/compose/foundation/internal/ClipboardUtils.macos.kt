@@ -14,13 +14,25 @@
  * limitations under the License.
  */
 
+@file:OptIn(ExperimentalComposeUiApi::class)
+
 package androidx.compose.foundation.internal
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.text.AnnotatedString
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-7402
-internal actual fun ClipEntry.readText(): String? = null
-internal actual fun ClipEntry.readAnnotatedString(): AnnotatedString? = null
-internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? = null
-internal actual fun ClipEntry?.hasText(): Boolean = false
+
+internal actual suspend fun ClipEntry.readText(): String? = getPlainText()
+
+internal actual suspend fun ClipEntry.readAnnotatedString(): AnnotatedString? {
+    val text = getPlainText() ?: return null
+    return AnnotatedString(text)
+}
+
+internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
+    if (this == null) return null
+    return ClipEntry.withPlainText(this.text)
+}
+
+internal actual fun ClipEntry?.hasText(): Boolean = this?.getPlainText() != null
