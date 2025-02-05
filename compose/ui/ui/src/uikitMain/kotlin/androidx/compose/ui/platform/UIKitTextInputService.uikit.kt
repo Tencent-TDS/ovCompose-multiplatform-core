@@ -26,6 +26,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
@@ -41,9 +42,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.toDpSize
 import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
@@ -73,7 +78,7 @@ internal class UIKitTextInputService(
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
-    private var textLayoutResult : TextLayoutResult? = null
+    private var textLayoutResult: TextLayoutResult? = null
 
     /**
      * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and
@@ -248,6 +253,13 @@ internal class UIKitTextInputService(
         this.textLayoutResult = textLayoutResult
     }
 
+    override fun notifyFocusedRect(rect: Rect) {
+//        println("notifyFocusedRect(), rect = ${rect}, size = ${rect.size}")
+        currentInput?.let { input ->
+            input.focusedRect = rect
+        }
+    }
+
     private fun handleEnterKey(event: KeyEvent): Boolean {
         _tempImeActionIsCalledWithHardwareReturnKey = false
         return when (event.type) {
@@ -343,6 +355,7 @@ internal class UIKitTextInputService(
     }
 
     private fun getState(): TextFieldValue? = currentInput?.value
+    private fun getFocusedRect(): Rect? = currentInput?.focusedRect
 
     override fun showMenu(
         rect: Rect,
@@ -408,7 +421,7 @@ internal class UIKitTextInputService(
 
     private fun createSkikoInput() = object : IOSSkikoInput {
 
-        private var floatingCursorTranslation : Offset? = null
+        private var floatingCursorTranslation: Offset? = null
 
         override fun beginFloatingCursor(offset: DpOffset) {
             val cursorPos = getCursorPos() ?: getState()?.selection?.start ?: return
@@ -619,10 +632,114 @@ internal class UIKitTextInputService(
 
             return resultPosition.toLong()
         }
+
+        override fun currentFocusedDpRect(): DpRect? = getFocusedRect()?.toDpRect(rootView.density)
+
+        override fun caretDpRectForPosition(position: Long): DpRect? {
+            val text = getState()?.text ?: return null
+            if (position < 0 || position > text.length) {
+                return null
+            }
+            val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null
+            return rect.toDpRect(rootView.density)
+        }
+
+        override fun selectionDpRectsForRange(range: IntRange): List<DpRect> {
+            println("selectionDpRectsForRange")
+            val currentSelection = getState()?.selection
+//
+//            val adjustedRange: IntRange = when {
+//                // 1. Not in the selection range
+//                range.start < currentSelection.start && range.endInclusive > currentSelection.end -> return emptyList()
+//                // 2. Start is not included, end is included
+//                range.start < currentSelection.start && range.endInclusive <= currentSelection.end -> return emptyList()
+//                // 3. Start is included, end is not included
+//                // 4. Start and end are the same with selection
+//                // 5. Start and end are inside the selection
+//                // 6. Start == end TODO: Check iOS behavior and move to the first if necessary
+//            }
+//            val currentTextLayoutResult = textLayoutResult ?: return emptyList()
+//            val density = rootView.density // TODO: extract it to the private method
+//            // Either LTR or RTL, it should be a higher selection handle
+//            val topLeadingDpRect = currentTextLayoutResult.getBoundingBox(range.first).toDpRect(rootView.density)
+//            // Like previously, it should be a lower selection handle, despite the layout direction
+//            val bottomTrailingDpRect = currentTextLayoutResult.getBoundingBox(range.last).toDpRect(rootView.density)
+            println("Range = ${range.start}, ${range.endInclusive}")
+            println("Selection = ${currentSelection?.start}, ${currentSelection?.end}")
+            return emptyList()
+        }
+
+        override fun closestPositionToPoint(point: DpOffset): Long? {
+            return textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
+                ?.toLong()
+        }
+
+        override fun closestPositionToPoint(point: DpOffset, withinRange: IntRange): Long? {
+            val pointOffset =
+                textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
+                    ?: return null
+            if (pointOffset !in withinRange) {
+                return null
+            }
+            return pointOffset.toLong()
+        }
+
+        override fun characterRangeAtPoint(point: DpOffset): IntRange? {
+            val pointOffset =
+                textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
+                    ?: return null
+            return textLayoutResult?.getWordBoundary(pointOffset)?.toIntRange()
+        }
+
+        override fun getCurrentTextBoundingRect(): DpRect? {
+            val currentDensity = rootView.density
+            val currentTextLayoutResult = textLayoutResult ?: return null
+            val leadingRect = currentTextLayoutResult.getBoundingBox(0)
+                .toDpRect(currentDensity) // TODO: Text may be empty
+            val textDpSize = currentTextLayoutResult.size.toSize().toDpSize(currentDensity)
+            val textBoundingRect = DpRect(
+                left = leadingRect.left,
+                top = leadingRect.top,
+                right = leadingRect.right + textDpSize.width,
+                bottom = leadingRect.bottom + textDpSize.height,
+            ) //TODO: CHECK RTL
+
+            println(
+                "Probable text bounding rect: ${textBoundingRect}"
+            )
+
+            return null
+        }
+
+        override fun positionWithinRange(range: IntRange, atCharacterOffset: Long): Long? {
+            TODO("Not yet implemented")
+        }
+
+        override fun positionWithinRange(range: IntRange, farthestIndirection: String): Long? {
+            TODO("Not yet implemented")
+        }
+
+        override fun characterRangeByExtendingPosition(
+            position: Long,
+            direction: String
+        ): IntRange? {
+            TODO("Not yet implemented")
+        }
+
+        override fun baseWritingDirectionForPosition(position: Long, inDirection: String): String? {
+            TODO("Not yet implemented")
+        }
+
+        override fun offset(fromPosition: Long, toPosition: Long): Long {
+            TODO("Not yet implemented")
+        }
     }
+
+    private fun TextRange.toIntRange(): IntRange = IntRange(this.start, this.end) // TODO: check RTL
 }
 
 private data class CurrentInput(
     var value: TextFieldValue,
-    val onEditCommand: (List<EditCommand>) -> Unit
+    val onEditCommand: (List<EditCommand>) -> Unit,
+    var focusedRect: Rect? = null
 )

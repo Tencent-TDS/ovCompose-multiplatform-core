@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.DpRect
 
 internal interface IOSSkikoInput {
 
@@ -125,4 +126,28 @@ internal interface IOSSkikoInput {
      * Returned value must be in range between 0 and length of text (inclusive).
      */
     fun positionFromPosition(position: Long, offset: Long): Long
+
+    fun currentFocusedDpRect(): DpRect?
+
+    fun caretDpRectForPosition(position: Long): DpRect?
+
+    fun selectionDpRectsForRange(range: IntRange): List<DpRect>
+
+    fun closestPositionToPoint(point: DpOffset): Long?
+
+    fun closestPositionToPoint(point: DpOffset, withinRange: IntRange): Long?
+
+    fun characterRangeAtPoint(point: DpOffset): IntRange?
+
+    fun getCurrentTextBoundingRect(): DpRect?
+
+    fun positionWithinRange(range: IntRange, atCharacterOffset: Long): Long?
+
+    fun positionWithinRange(range: IntRange, farthestIndirection: String): Long?
+    
+    fun characterRangeByExtendingPosition(position: Long, direction: String): IntRange?
+
+    fun baseWritingDirectionForPosition(position: Long, inDirection: String): String?
+
+    fun offset(fromPosition: Long, toPosition: Long): Long
 }

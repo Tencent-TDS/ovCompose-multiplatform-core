@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
@@ -23,7 +24,9 @@ import androidx.compose.ui.platform.TextActions
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toDpRect
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
@@ -384,25 +387,49 @@ internal class IntermediateTextInputUIView(
         // TODO support RTL text direction
     }
 
-    //Working with Geometry and Hit-Testing. All methods return stubs for now.
-    override fun firstRectForRange(range: UITextRange): CValue<CGRect> = CGRectNull.readValue()
-    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
-        /* TODO: https://youtrack.jetbrains.com/issue/COMPOSE-332/
-            CGRectNull here led to crash with Speech-to-text on iOS 16.0
-            Set all fields to 1.0 to avoid potential dividing by zero
-            Ideally, here should be correct rect for caret from Compose.
-         */
-        return CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+    //Working with Geometry and Hit-Testing. Some methods return stubs for now.
+    override fun firstRectForRange(range: UITextRange): CValue<CGRect> {
+        println("firstRectForRange iOS side")
+        return input?.currentFocusedDpRect()?.asCGRect() ?: return CGRectNull.readValue()
     }
 
-    override fun selectionRectsForRange(range: UITextRange): List<*> = listOf<UITextSelectionRect>()
-    override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? = null
+    override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
+        println("caretRectForPosition iOS side")
+        val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+        val longPosition = (position as? IntermediateTextPosition)?.position ?: return fallbackRect
+        return input?.caretDpRectForPosition(longPosition)?.asCGRect() ?: fallbackRect
+    }
+
+    override fun selectionRectsForRange(range: UITextRange): List<*> {
+        println("selectionRectsForRange iOS side: range(${(range.start as? IntermediateTextPosition)?.position}, ${(range.end as? IntermediateTextPosition)?.position})")
+        val fallbackList = listOf<UITextSelectionRect>()
+        val start = (range.start as? IntermediateTextPosition)?.position ?: return fallbackList
+        val end = (range.end as? IntermediateTextPosition)?.position ?: return fallbackList
+        input?.selectionDpRectsForRange(IntRange(start.toInt(), end.toInt()))
+        return fallbackList
+    }
+
+    override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? {
+        println("closestPositionToPoint iOS side")
+        val closestPosition = input?.closestPositionToPoint(point.useContents { DpOffset(x.dp, y.dp) }) ?: return null
+        return IntermediateTextPosition(closestPosition)
+    }
+
     override fun closestPositionToPoint(
         point: CValue<CGPoint>,
         withinRange: UITextRange
-    ): UITextPosition? = null
+    ): UITextPosition? {
+        println("closestPositionToPoint withinRange iOS side")
+        val intWithinRange = IntermediateTextRange(withinRange.start as IntermediateTextPosition, withinRange.end as IntermediateTextPosition).toIntRange() // TODO: ensure to use it in new methods
+        val closestPosition = input?.closestPositionToPoint(point.useContents { DpOffset(x.dp, y.dp) }, intWithinRange) ?: return null
+        return IntermediateTextPosition(closestPosition)
+    }
 
-    override fun characterRangeAtPoint(point: CValue<CGPoint>): UITextRange? = null
+    override fun characterRangeAtPoint(point: CValue<CGPoint>): UITextRange? {
+        println("characterRangeAtPoint iOS side")
+        val characterRange = input?.characterRangeAtPoint(point.useContents { DpOffset(x.dp, y.dp) }) ?: return null
+        return IntermediateTextRange(characterRange.start, characterRange.endInclusive)
+    }
 
     override fun textStylingAtPosition(
         position: UITextPosition,
@@ -481,7 +508,7 @@ internal class IntermediateTextInputUIView(
         _inputDelegate?.selectionDidChange(this)
     }
 
-    override fun isUserInteractionEnabled(): Boolean = false // disable clicks
+    override fun isUserInteractionEnabled(): Boolean = true
 
     override fun editMenuDelay(): Double =
         viewConfiguration.doubleTapTimeoutMillis.milliseconds.toDouble(DurationUnit.SECONDS)
