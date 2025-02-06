@@ -36,7 +36,9 @@ fun runDesktopComposeUiTest(
     effectContext: CoroutineContext = EmptyCoroutineContext,
     block: DesktopComposeUiTest.() -> Unit
 ) {
-    DesktopComposeUiTest(width, height, effectContext).runDesktopTest(block)
+    with(DesktopComposeUiTest(width, height, effectContext)) {
+        runTest { block() }
+    }
 }
 
 @ExperimentalTestApi
@@ -64,12 +66,6 @@ class DesktopComposeUiTest(
     fun unregisterIdlingResource(idlingResource: IdlingResource) {
         synchronized(idlingResources) {
             idlingResources.remove(idlingResource)
-        }
-    }
-
-    fun runDesktopTest(block: DesktopComposeUiTest.() -> Unit) {
-        runTest {
-            block()
         }
     }
 }
