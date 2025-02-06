@@ -183,6 +183,98 @@ class SyntheticEventSenderTest {
     }
 
     @Test
+    fun `touch, should generate one press at a time on simultaneous touches press`() {
+        eventsSentBy(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true)
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true)
+            ),
+        ) positionAndDownShouldEqual listOf(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true)
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true)
+            )
+        )
+    }
+
+    @Test
+    fun `touch, should generate one release at a time on simultaneous touches release`() {
+        eventsSentBy(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+        ) positionAndDownShouldEqual listOf(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            )
+        )
+    }
+
+    @Test
     fun `should consume move event when synthetic events added`() {
         val sender = SyntheticEventSender { event ->
             // Consume only synthetic move event
