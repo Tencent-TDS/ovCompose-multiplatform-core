@@ -135,7 +135,6 @@ public final class androidx/compose/ui/test/DesktopComposeUiTest : androidx/comp
 	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;)V
 	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
-	public final fun runDesktopTest (Lkotlin/jvm/functions/Function1;)V
 	public final fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 }
 
