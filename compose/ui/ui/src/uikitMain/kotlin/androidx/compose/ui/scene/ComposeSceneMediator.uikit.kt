@@ -66,11 +66,13 @@ import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.roundToIntSize
+import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toPlatformInsets
 import androidx.compose.ui.unit.toSize
@@ -98,6 +100,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGPoint
 import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
+import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIEvent
 import platform.UIKit.UIPress
 import platform.UIKit.UITouch
@@ -640,6 +643,16 @@ internal class ComposeSceneMediator(
 
         override fun updateSelectionState(newState: TextFieldValue) {
             textInputService.updateState(oldValue = null, newValue = newState)
+        }
+
+        override fun notifyGeometry(nodeRect: Rect, unclippedTextRect: Rect) {
+            val textFieldFrame = nodeRect.toDpRect(density).asCGRect()
+            val contentBounds = Rect(
+                offset = nodeRect.topLeft - unclippedTextRect.topLeft,
+                size = unclippedTextRect.size
+            ).toDpRect(density).asCGRect()
+
+            println(">> Frame: ${NSStringFromCGRect(textFieldFrame)} | Bounds: ${NSStringFromCGRect(contentBounds)}")
         }
     }
 }

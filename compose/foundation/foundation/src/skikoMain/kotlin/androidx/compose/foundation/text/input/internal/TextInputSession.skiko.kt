@@ -26,6 +26,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -77,6 +80,12 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         }
     }
 
+    class TextGeometry(
+        val focusRect: Rect,
+        val unclippedTextRect: Rect,
+        val nodeRect: Rect
+    )
+
     coroutineScope {
         launch {
             state.collectImeNotifications { _, newValue, _ ->
@@ -89,20 +98,37 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             snapshotFlow {
                 val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
                 val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
-                focusedRectInRoot(
-                    layoutResult = layoutResult,
-                    layoutCoordinates = layoutCoords,
-                    focusOffset = state.visualText.selection.max,
-                    sizeForDefaultText = {
-                        layoutResult.layoutInput.let {
-                            computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
-                        }
-                    }
+                val nodeCoords = layoutState.coreNodeCoordinates ?: return@snapshotFlow null
 
+                TextGeometry(
+                    focusRect = focusedRectInRoot(
+                        layoutResult = layoutResult,
+                        layoutCoordinates = layoutCoords,
+                        focusOffset = state.visualText.selection.max,
+                        sizeForDefaultText = {
+                            layoutResult.layoutInput.let {
+                                computeSizeForDefaultText(
+                                    it.style,
+                                    it.density,
+                                    it.fontFamilyResolver
+                                )
+                            }
+                        }
+                    ),
+                    unclippedTextRect = Rect(
+                        topLeft = layoutCoords.positionInRoot(),
+                        bottomRight = layoutCoords.localToRoot(
+                            layoutCoords.size.toSize().let {
+                                Offset(x = it.width, y = it.height)
+                            }
+                        ),
+                    ),
+                    nodeRect = nodeCoords.boundsInRoot()
                 )
-            }.collect { rect ->
-                if (rect != null) {
-                    notifyFocusedRect(rect)
+            }.collect { geometry ->
+                if (geometry != null) {
+                    notifyFocusedRect(geometry.focusRect)
+                    notifyGeometry(geometry.nodeRect, geometry.unclippedTextRect)
                 }
             }
         }

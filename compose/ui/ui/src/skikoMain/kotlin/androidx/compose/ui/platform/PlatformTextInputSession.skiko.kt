@@ -28,4 +28,7 @@ actual interface PlatformTextInputSession {
 
     @ExperimentalComposeUiApi
     fun notifyFocusedRect(rect: Rect) = Unit
+
+    @ExperimentalComposeUiApi
+    fun notifyGeometry(nodeRect: Rect, unclippedTextRect: Rect) = Unit
 }

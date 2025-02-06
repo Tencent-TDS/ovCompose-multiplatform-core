@@ -43,7 +43,6 @@ import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toDpSize
@@ -56,6 +55,7 @@ import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
 import platform.UIKit.reloadInputViews
@@ -251,6 +251,23 @@ internal class UIKitTextInputService(
 
     fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
         this.textLayoutResult = textLayoutResult
+
+        val matrix = Matrix()
+        textFieldToRootTransform(matrix)
+        val textFieldFrame = matrix.map(innerTextFieldBounds)
+        val contentFrame = matrix.map(
+            Rect(
+                offset = Offset.Zero,
+                size = textLayoutResult.size.toSize()
+            )
+        )
+        val frame = textFieldFrame.toDpRect(rootView.density).asCGRect()
+        val bounds = Rect(
+            offset = textFieldFrame.topLeft - contentFrame.topLeft,
+            size = contentFrame.size
+        ).toDpRect(rootView.density).asCGRect()
+
+        println(">> Frame: ${NSStringFromCGRect(frame)} | Bounds: ${NSStringFromCGRect(bounds)}")
     }
 
     override fun notifyFocusedRect(rect: Rect) {
