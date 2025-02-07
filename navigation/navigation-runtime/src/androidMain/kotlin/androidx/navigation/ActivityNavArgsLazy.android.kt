@@ -15,6 +15,7 @@
  */
 
 @file:JvmName("ActivityNavArgsLazyKt")
+@file:JvmMultifileClass
 
 package androidx.navigation
 

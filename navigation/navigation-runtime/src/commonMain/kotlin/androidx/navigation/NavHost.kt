@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2018 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ package androidx.navigation
 
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
+import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 
@@ -71,7 +72,7 @@ public inline fun NavHost.createGraph(
 public inline fun NavHost.createGraph(
     startDestination: KClass<*>,
     route: KClass<*>? = null,
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     builder: NavGraphBuilder.() -> Unit
 ): NavGraph = navController.createGraph(startDestination, route, typeMap, builder)
 
@@ -88,6 +89,6 @@ public inline fun NavHost.createGraph(
 public inline fun NavHost.createGraph(
     startDestination: Any,
     route: KClass<*>? = null,
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     builder: NavGraphBuilder.() -> Unit
 ): NavGraph = navController.createGraph(startDestination, route, typeMap, builder)

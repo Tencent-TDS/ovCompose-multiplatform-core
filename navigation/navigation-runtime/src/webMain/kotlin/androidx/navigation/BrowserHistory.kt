@@ -16,7 +16,8 @@
 
 package androidx.navigation
 
-import androidx.core.bundle.Bundle
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
@@ -160,18 +161,17 @@ private fun NavBackStackEntry.getRouteWithArgs(): String? {
     val entry = this
     val route = entry.destination.route ?: return null
     if (!route.contains(argPlaceholder)) return route
-    val args = entry.arguments ?: Bundle()
+    val args = entry.arguments ?: savedState()
     val nameToTypedValue = entry.destination.arguments.mapValues { (name, arg) ->
         arg.type.serializeAsValue(arg.type[args, name])
     }
 
     val routeWithFilledArgs = route.replace(argPlaceholder) { match ->
         val key = match.value.trim('{', '}')
-        nameToTypedValue[key] ?: if (args.containsKey(key)) {
-            //untyped args stored as strings
-            //see: androidx.navigation.NavDeepLink.parseArgument
-            args.getString(key)!!
-        } else ""
+        nameToTypedValue[key]
+        //untyped args stored as strings
+        //see: androidx.navigation.NavDeepLink.parseArgument
+            ?: args.read { getStringOrElse(key) { "" } }
     }
 
     return routeWithFilledArgs

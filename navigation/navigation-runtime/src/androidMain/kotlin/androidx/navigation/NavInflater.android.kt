@@ -20,7 +20,6 @@ import android.content.Context
 import android.content.res.Resources
 import android.content.res.TypedArray
 import android.content.res.XmlResourceParser
-import android.os.Bundle
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.util.Xml
@@ -29,6 +28,9 @@ import androidx.annotation.RestrictTo
 import androidx.core.content.res.use
 import androidx.core.content.withStyledAttributes
 import androidx.navigation.common.R
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import java.io.IOException
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
@@ -137,7 +139,7 @@ public class NavInflater(
     @Throws(XmlPullParserException::class)
     private fun inflateArgumentForBundle(
         res: Resources,
-        bundle: Bundle,
+        savedState: SavedState,
         attrs: AttributeSet,
         graphResId: Int
     ) {
@@ -147,7 +149,7 @@ public class NavInflater(
                     ?: throw XmlPullParserException("Arguments must have a name")
             val argument = inflateArgument(array, res, graphResId)
             if (argument.isDefaultValuePresent) {
-                argument.putDefaultValue(name, bundle)
+                argument.putDefaultValue(name, savedState)
             }
         }
     }
@@ -309,7 +311,7 @@ public class NavInflater(
             builder.setPopEnterAnim(getResourceId(R.styleable.NavAction_popEnterAnim, -1))
             builder.setPopExitAnim(getResourceId(R.styleable.NavAction_popExitAnim, -1))
             action.navOptions = builder.build()
-            val args = Bundle()
+            val args = savedState()
             val innerDepth = parser.depth + 1
             var type: Int
             var depth = 0
@@ -329,7 +331,7 @@ public class NavInflater(
                     inflateArgumentForBundle(res, args, attrs, graphResId)
                 }
             }
-            if (!args.isEmpty) {
+            if (!args.read { isEmpty() }) {
                 action.defaultArguments = args
             }
             dest.putAction(id, action)

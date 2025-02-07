@@ -15,6 +15,7 @@
  */
 
 @file:JvmName("ViewKt")
+@file:JvmMultifileClass
 
 package androidx.navigation
 

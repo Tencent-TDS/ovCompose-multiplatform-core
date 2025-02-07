@@ -21,7 +21,6 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
-import android.os.Bundle
 import android.util.AttributeSet
 import android.util.Log
 import androidx.annotation.CallSuper
@@ -29,6 +28,8 @@ import androidx.annotation.RestrictTo
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.content.res.use
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
 import java.util.regex.Pattern
 
 /** ActivityNavigator implements cross-activity navigation. */
@@ -75,7 +76,7 @@ public open class ActivityNavigator(
     @Suppress("DEPRECATION")
     override fun navigate(
         destination: Destination,
-        args: Bundle?,
+        args: SavedState?,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ): NavDestination? {
@@ -92,14 +93,18 @@ public open class ActivityNavigator(
                 val fillInPattern = Pattern.compile("\\{(.+?)\\}")
                 val matcher = fillInPattern.matcher(dataPattern)
                 while (matcher.find()) {
-                    val argName = matcher.group(1)
-                    if (args.containsKey(argName)) {
-                        matcher.appendReplacement(data, "")
-                        data.append(Uri.encode(args[argName].toString()))
-                    } else {
-                        throw IllegalArgumentException(
+                    args.read {
+                        val argName = matcher.group(1)!!
+                        require(contains(argName)) {
                             "Could not find $argName in $args to fill data pattern $dataPattern"
-                        )
+                        }
+                        matcher.appendReplacement(data, "")
+                        // Serialize with NavType if present, otherwise fallback to toString()
+                        val navType = destination.arguments[argName]?.type
+                        val value =
+                            navType?.serializeAsValue(navType[args, argName])
+                                ?: Uri.encode(args.get(argName).toString())
+                        data.append(value)
                     }
                 }
                 matcher.appendTail(data)

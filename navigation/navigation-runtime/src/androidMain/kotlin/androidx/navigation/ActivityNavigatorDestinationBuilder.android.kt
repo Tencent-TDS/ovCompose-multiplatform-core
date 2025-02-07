@@ -15,7 +15,7 @@
  */
 
 @file:JvmName("ActivityNavigatorDestinationBuilderKt")
-@file:Suppress("NOTHING_TO_INLINE")
+@file:JvmMultifileClass
 
 package androidx.navigation
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.navigation
+package androidx.navigation.internal
 
-internal expect class AtomicInt(initialValue: Int) {
-    fun incrementAndGet(): Int
-    fun decrementAndGet(): Int
-    fun get(): Int
-}
+internal actual fun identityHashCode(instance: Any?): Int = System.identityHashCode(instance)

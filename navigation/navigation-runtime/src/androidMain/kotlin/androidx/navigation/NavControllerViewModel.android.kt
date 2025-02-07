@@ -20,63 +20,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.get
 
-/**
- * NavControllerViewModel is the always up to date view of the NavController's non configuration
- * state
- */
-internal actual class NavControllerViewModel : ViewModel(), NavViewModelStoreProvider {
-    private val viewModelStores = mutableMapOf<String, ViewModelStore>()
-
-    actual fun clear(backStackEntryId: String) {
-        // Clear and remove the NavGraph's ViewModelStore
-        val viewModelStore = viewModelStores.remove(backStackEntryId)
-        viewModelStore?.clear()
-    }
-
-    override fun onCleared() {
-        for (store in viewModelStores.values) {
-            store.clear()
-        }
-        viewModelStores.clear()
-    }
-
-    override fun getViewModelStore(backStackEntryId: String): ViewModelStore {
-        var viewModelStore = viewModelStores[backStackEntryId]
-        if (viewModelStore == null) {
-            viewModelStore = ViewModelStore()
-            viewModelStores[backStackEntryId] = viewModelStore
-        }
-        return viewModelStore
-    }
-
-    override fun toString(): String {
-        val sb = StringBuilder("NavControllerViewModel{")
-        sb.append(Integer.toHexString(System.identityHashCode(this)))
-        sb.append("} ViewModelStores (")
-        val viewModelStoreIterator: Iterator<String> = viewModelStores.keys.iterator()
-        while (viewModelStoreIterator.hasNext()) {
-            sb.append(viewModelStoreIterator.next())
-            if (viewModelStoreIterator.hasNext()) {
-                sb.append(", ")
-            }
-        }
-        sb.append(')')
-        return sb.toString()
-    }
-
-    actual companion object {
-        private val FACTORY: ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return NavControllerViewModel() as T
-                }
-            }
-
-        @JvmStatic
-        actual fun getInstance(viewModelStore: ViewModelStore): NavControllerViewModel {
-            val viewModelProvider = ViewModelProvider(viewModelStore, FACTORY)
-            return viewModelProvider.get()
+private val FACTORY: ViewModelProvider.Factory =
+    object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return NavControllerViewModel() as T
         }
     }
+
+internal fun NavControllerViewModel.Companion.getInstance(
+    viewModelStore: ViewModelStore
+): NavControllerViewModel {
+    val viewModelProvider = ViewModelProvider(viewModelStore, FACTORY)
+    return viewModelProvider.get()
 }

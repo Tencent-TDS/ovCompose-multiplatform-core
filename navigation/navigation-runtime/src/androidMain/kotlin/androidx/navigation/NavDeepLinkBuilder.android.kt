@@ -21,11 +21,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.os.Bundle
 import androidx.annotation.IdRes
 import androidx.annotation.NavigationRes
 import androidx.core.app.TaskStackBuilder
 import androidx.navigation.NavDestination.Companion.createRoute
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
 
 /**
  * Class used to construct deep links to a particular destination in a [NavGraph].
@@ -50,7 +51,8 @@ import androidx.navigation.NavDestination.Companion.createRoute
  * @see NavDeepLinkBuilder.setComponentName
  */
 public class NavDeepLinkBuilder(private val context: Context) {
-    private class DeepLinkDestination constructor(val destinationId: Int, val arguments: Bundle?)
+    private class DeepLinkDestination
+    constructor(val destinationId: Int, val arguments: SavedState?)
 
     private val activity: Activity? =
         generateSequence(context) { (it as? ContextWrapper)?.baseContext }
@@ -67,7 +69,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
             .also { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK) }
     private var graph: NavGraph? = null
     private val destinations = mutableListOf<DeepLinkDestination>()
-    private var globalArgs: Bundle? = null
+    private var globalArgs: SavedState? = null
 
     /** @see NavController.createDeepLink */
     internal constructor(navController: NavController) : this(navController.context) {
@@ -132,7 +134,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
      * @return this object for chaining
      */
     @JvmOverloads
-    public fun setDestination(@IdRes destId: Int, args: Bundle? = null): NavDeepLinkBuilder {
+    public fun setDestination(@IdRes destId: Int, args: SavedState? = null): NavDeepLinkBuilder {
         destinations.clear()
         destinations.add(DeepLinkDestination(destId, args))
         if (graph != null) {
@@ -152,7 +154,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
      * @return this object for chaining
      */
     @JvmOverloads
-    public fun setDestination(destRoute: String, args: Bundle? = null): NavDeepLinkBuilder {
+    public fun setDestination(destRoute: String, args: SavedState? = null): NavDeepLinkBuilder {
         destinations.clear()
         destinations.add(DeepLinkDestination(createRoute(destRoute).hashCode(), args))
         if (graph != null) {
@@ -190,7 +192,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
      * @return this object for chaining
      */
     @JvmOverloads
-    public fun addDestination(@IdRes destId: Int, args: Bundle? = null): NavDeepLinkBuilder {
+    public fun addDestination(@IdRes destId: Int, args: SavedState? = null): NavDeepLinkBuilder {
         destinations.add(DeepLinkDestination(destId, args))
         if (graph != null) {
             verifyAllDestinations()
@@ -210,7 +212,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
      * @return this object for chaining
      */
     @JvmOverloads
-    public fun addDestination(route: String, args: Bundle? = null): NavDeepLinkBuilder {
+    public fun addDestination(route: String, args: SavedState? = null): NavDeepLinkBuilder {
         destinations.add(DeepLinkDestination(createRoute(route).hashCode(), args))
         if (graph != null) {
             verifyAllDestinations()
@@ -249,7 +251,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
 
     private fun fillInIntent() {
         val deepLinkIds = mutableListOf<Int>()
-        val deepLinkArgs = ArrayList<Bundle?>()
+        val deepLinkArgs = ArrayList<SavedState?>()
         var previousDestination: NavDestination? = null
         for (destination in destinations) {
             val destId = destination.destinationId
@@ -278,7 +280,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
      * @param args arguments to pass to each destination
      * @return this object for chaining
      */
-    public fun setArguments(args: Bundle?): NavDeepLinkBuilder {
+    public fun setArguments(args: SavedState?): NavDeepLinkBuilder {
         globalArgs = args
         intent.putExtra(NavController.KEY_DEEP_LINK_EXTRAS, args)
         return this
@@ -330,22 +332,13 @@ public class NavDeepLinkBuilder(private val context: Context) {
      */
     @Suppress("DEPRECATION")
     public fun createPendingIntent(): PendingIntent {
-        var requestCode = 0
-        globalArgs?.let { globalArgs ->
-            for (key in globalArgs.keySet()) {
-                val value = globalArgs[key]
-                requestCode = 31 * requestCode + (value?.hashCode() ?: 0)
-            }
-        }
+        var requestCode = globalArgs?.read { contentDeepHashCode() } ?: 0
         for (destination in destinations) {
             val destId = destination.destinationId
             requestCode = 31 * requestCode + destId
-            val arguments = destination.arguments
-            if (arguments != null) {
-                for (key in arguments.keySet()) {
-                    val value = arguments[key]
-                    requestCode = 31 * requestCode + (value?.hashCode() ?: 0)
-                }
+            val argumentsHashCode = destination.arguments?.read { contentDeepHashCode() }
+            if (argumentsHashCode != null) {
+                requestCode = 31 * requestCode + argumentsHashCode
             }
         }
         return createTaskStackBuilder()
@@ -369,7 +362,7 @@ public class NavDeepLinkBuilder(private val context: Context) {
 
                 override fun navigate(
                     destination: NavDestination,
-                    args: Bundle?,
+                    args: SavedState?,
                     navOptions: NavOptions?,
                     navigatorExtras: Extras?
                 ): NavDestination? {
