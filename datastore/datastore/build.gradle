@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
@@ -40,7 +47,7 @@ androidXMultiplatform {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
-                api("androidx.annotation:annotation:1.2.0")
+                api(project(":annotation:annotation"))
                 api(project(":datastore:datastore-core"))
                 api(project(":datastore:datastore-core-okio"))
             }
@@ -57,11 +64,10 @@ androidXMultiplatform {
                 implementation(project(":internal-testutils-datastore"))
             }
         }
-        jvmMain {
+        commonJvmMain {
             dependsOn(commonMain)
-
         }
-        jvmTest {
+        commonJvmTest {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.kotlinTest)
@@ -69,14 +75,20 @@ androidXMultiplatform {
                 implementation(project(":internal-testutils-datastore"))
             }
         }
+        jvmMain {
+            dependsOn(commonJvmMain)
+        }
+        jvmTest {
+            dependsOn(commonJvmTest)
+        }
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(commonJvmMain)
             dependencies {
                 implementation(libs.okio)
             }
         }
         androidInstrumentedTest {
-            dependsOn(jvmTest)
+            dependsOn(commonJvmTest)
             dependencies {
                 implementation(libs.junit)
                 implementation(libs.truth)
@@ -88,17 +100,6 @@ androidXMultiplatform {
                 implementation(libs.testCore)
             }
 
-        }
-
-        targets.all { target ->
-            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
-                target.compilations["main"].defaultSourceSet {
-                    dependsOn(nativeMain)
-                }
-                target.compilations["test"].defaultSourceSet {
-                    dependsOn(nativeTest)
-                }
-            }
         }
     }
 }

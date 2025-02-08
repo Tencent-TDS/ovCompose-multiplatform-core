@@ -17,11 +17,9 @@
 package androidx.viewpager2.widget
 
 import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.core.view.ViewCompat
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.test.filters.LargeTest
-import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import androidx.testutils.LocaleTestUtils
@@ -40,10 +38,7 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
     private val enhancedA11yEnabled = ViewPager2.sFeatureEnhancedA11yEnabled
     private var uiDevice: Any? = null
 
-    data class TestConfig(
-        @ViewPager2.Orientation val orientation: Int,
-        val rtl: Boolean
-    )
+    data class TestConfig(@ViewPager2.Orientation val orientation: Int, val rtl: Boolean)
 
     companion object {
         @JvmStatic
@@ -58,10 +53,8 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
             localeUtil.resetLocale()
             localeUtil.setLocale(LocaleTestUtils.RTL_LANGUAGE)
         }
-        if (Build.VERSION.SDK_INT >= 18) {
-            // Make sure accessibility is enabled (side effect of creating a UI Automator instance)
-            uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        }
+        // Make sure accessibility is enabled (side effect of creating a UI Automator instance)
+        uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
 
     override fun tearDown() {
@@ -71,27 +64,25 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 16)
     fun test_onPerformPageAction() {
         setUpTest(config.orientation).apply {
             setAdapterSync(viewAdapterProvider.provider(stringSequence(6)))
             val initialPage = viewPager.currentItem
             assertBasicState(initialPage)
 
-            listOf(1, 2, 3, 2, 3, 2, 3, 4, 5, 4, 5, 4, 3, 2, 1, 0, 1).forEach {
-                targetPage ->
+            listOf(1, 2, 3, 2, 3, 2, 3, 4, 5, 4, 5, 4, 3, 2, 1, 0, 1).forEach { targetPage ->
                 val currentPage = viewPager.currentItem
                 val latch = viewPager.addWaitForScrolledLatch(targetPage)
                 runOnUiThreadSync {
                     if (targetPage - currentPage == 1) {
-                        ViewCompat.performAccessibilityAction(
-                            viewPager,
-                            getNextPageAction(config.orientation, viewPager.isRtl), null
+                        viewPager.performAccessibilityAction(
+                            getNextPageAction(config.orientation, viewPager.isRtl),
+                            null
                         )
                     } else {
-                        ViewCompat.performAccessibilityAction(
-                            viewPager,
-                            getPreviousPageAction(config.orientation, viewPager.isRtl), null
+                        viewPager.performAccessibilityAction(
+                            getPreviousPageAction(config.orientation, viewPager.isRtl),
+                            null
                         )
                     }
                 }
@@ -102,27 +93,23 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     fun test_collectionInfo() {
         test_collectionInfo(6)
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     fun test_collectionInfo_zeroItems() {
         test_collectionInfo(0)
     }
 
-    @RequiresApi(19)
+    @Suppress("DEPRECATION") // AccessibilityNodeInfo.obtain()
     private fun test_collectionInfo(numberOfItems: Int) {
         setUpTest(config.orientation).apply {
             setAdapterSync(viewAdapterProvider.provider(stringSequence(numberOfItems)))
             assertBasicState(viewPager.currentItem, null)
 
-            var node = AccessibilityNodeInfoCompat.obtain()
-            runOnUiThreadSync {
-                ViewCompat.onInitializeAccessibilityNodeInfo(viewPager, node)
-            }
+            var node = AccessibilityNodeInfo.obtain()
+            runOnUiThreadSync { viewPager.onInitializeAccessibilityNodeInfo(node) }
             var collectionInfo = node.collectionInfo
             if (config.orientation == ORIENTATION_VERTICAL) {
                 assertThat(collectionInfo.rowCount, equalTo(numberOfItems))
@@ -138,19 +125,17 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
         }
     }
 
+    @Suppress("DEPRECATION") // AccessibilityNodeInfo.obtain()
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     fun test_collectionItemInfo() {
         setUpTest(config.orientation).apply {
             setAdapterSync(viewAdapterProvider.provider(stringSequence(6)))
             listOf(1, 0, 2, 5).forEach { targetPage ->
                 viewPager.setCurrentItemSync(targetPage, false, 2, TimeUnit.SECONDS)
                 assertBasicState(targetPage)
-                var nodeChild = AccessibilityNodeInfoCompat.obtain()
+                var nodeChild = AccessibilityNodeInfo.obtain()
                 val item = viewPager.linearLayoutManager.findViewByPosition(targetPage)
-                runOnUiThreadSync {
-                    ViewCompat.onInitializeAccessibilityNodeInfo(item!!, nodeChild)
-                }
+                runOnUiThreadSync { item!!.onInitializeAccessibilityNodeInfo(nodeChild) }
                 var collectionItemInfo = nodeChild.collectionItemInfo
                 if (config.orientation == ORIENTATION_VERTICAL) {
                     assertThat(collectionItemInfo.rowIndex, equalTo(targetPage))
@@ -219,9 +204,7 @@ class AccessibilityTest(private val config: TestConfig) : BaseTest() {
 
 private fun createTestSet(): List<AccessibilityTest.TestConfig> {
     return listOf(ORIENTATION_HORIZONTAL, ORIENTATION_VERTICAL).flatMap { orientation ->
-        listOf(true, false).map { rtl ->
-            AccessibilityTest.TestConfig(orientation, rtl)
-        }
+        listOf(true, false).map { rtl -> AccessibilityTest.TestConfig(orientation, rtl) }
     }
 }
 

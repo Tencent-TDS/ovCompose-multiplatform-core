@@ -54,7 +54,7 @@ import kotlinx.serialization.serializer
 public actual open class NavGraph actual constructor(navGraphNavigator: Navigator<out NavGraph>) :
     NavDestination(navGraphNavigator), Iterable<NavDestination> {
 
-    public val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
+    public actual val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
     private var startDestId = 0

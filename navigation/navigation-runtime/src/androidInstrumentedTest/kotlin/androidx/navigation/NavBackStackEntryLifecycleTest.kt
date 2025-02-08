@@ -30,8 +30,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take

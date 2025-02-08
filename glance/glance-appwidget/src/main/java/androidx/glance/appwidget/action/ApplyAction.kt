@@ -22,7 +22,6 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
-import androidx.annotation.DoNotInline
 import androidx.annotation.IdRes
 import androidx.annotation.RequiresApi
 import androidx.core.os.bundleOf
@@ -49,16 +48,14 @@ internal fun applyAction(
     val targetId = translationContext.actionTargetId ?: viewId
     try {
         if (translationContext.isLazyCollectionDescendant) {
-            val fillInIntent =
-                getFillInIntentForAction(action, translationContext, targetId)
+            val fillInIntent = getFillInIntentForAction(action, translationContext, targetId)
             if (action is CompoundButtonAction && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 ApplyActionApi31Impl.setOnCheckedChangeResponse(rv, targetId, fillInIntent)
             } else {
                 rv.setOnClickFillInIntent(targetId, fillInIntent)
             }
         } else {
-            val pendingIntent =
-                getPendingIntentForAction(action, translationContext, targetId)
+            val pendingIntent = getPendingIntentForAction(action, translationContext, targetId)
             if (action is CompoundButtonAction && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 ApplyActionApi31Impl.setOnCheckedChangeResponse(rv, targetId, pendingIntent)
             } else {
@@ -75,6 +72,7 @@ private fun getPendingIntentForAction(
     translationContext: TranslationContext,
     @IdRes viewId: Int,
     editParams: (ActionParameters) -> ActionParameters = { it },
+    mutability: Int = PendingIntent.FLAG_IMMUTABLE,
 ): PendingIntent {
     when (action) {
         is StartActivityAction -> {
@@ -86,29 +84,34 @@ private fun getPendingIntentForAction(
                     // If there is no data URI set already, add a unique URI to ensure we get a
                     // distinct PendingIntent.
                     if (data == null) {
-                        data = createUniqueUri(
-                            translationContext,
-                            viewId,
-                            ActionTrampolineType.CALLBACK,
-                        )
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                                flags.toString()
+                            )
                     }
                 },
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                mutability or PendingIntent.FLAG_UPDATE_CURRENT,
                 action.activityOptions,
             )
         }
         is StartServiceAction -> {
-            val intent = getServiceIntent(action, translationContext).apply {
-                if (data == null) {
-                    data = createUniqueUri(
-                        translationContext,
-                        viewId,
-                        ActionTrampolineType.CALLBACK,
-                    )
+            val intent =
+                getServiceIntent(action, translationContext).apply {
+                    if (data == null) {
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                                flags.toString(),
+                            )
+                    }
                 }
-            }
-            return if (action.isForegroundService &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            return if (
+                action.isForegroundService && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
             ) {
                 ApplyActionApi26Impl.getForegroundServicePendingIntent(
                     context = translationContext.context,
@@ -119,7 +122,7 @@ private fun getPendingIntentForAction(
                     translationContext.context,
                     0,
                     intent,
-                    PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    mutability or PendingIntent.FLAG_UPDATE_CURRENT,
                 )
             }
         }
@@ -129,14 +132,16 @@ private fun getPendingIntentForAction(
                 0,
                 getBroadcastReceiverIntent(action, translationContext).apply {
                     if (data == null) {
-                        data = createUniqueUri(
-                            translationContext,
-                            viewId,
-                            ActionTrampolineType.CALLBACK,
-                        )
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                                flags.toString(),
+                            )
                     }
                 },
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                mutability or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         }
         is RunCallbackAction -> {
@@ -144,19 +149,19 @@ private fun getPendingIntentForAction(
                 translationContext.context,
                 0,
                 ActionCallbackBroadcastReceiver.createIntent(
-                    translationContext.context,
-                    action.callbackClass,
-                    translationContext.appWidgetId,
-                    editParams(action.parameters)
-                ).apply {
-                    data =
-                        createUniqueUri(
-                            translationContext,
-                            viewId,
-                            ActionTrampolineType.CALLBACK,
-                        )
-                },
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                        translationContext,
+                        action.callbackClass,
+                        editParams(action.parameters)
+                    )
+                    .apply {
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                            )
+                    },
+                mutability or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         }
         is LambdaAction -> {
@@ -167,19 +172,20 @@ private fun getPendingIntentForAction(
                 translationContext.context,
                 0,
                 LambdaActionBroadcasts.createIntent(
-                    translationContext.actionBroadcastReceiver,
-                    action.key,
-                    translationContext.appWidgetId,
-                ).apply {
-                    data =
-                        createUniqueUri(
-                            translationContext,
-                            viewId,
-                            ActionTrampolineType.CALLBACK,
-                            action.key,
-                        )
-                },
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                        translationContext.actionBroadcastReceiver,
+                        action.key,
+                        translationContext.appWidgetId,
+                    )
+                    .apply {
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                                action.key,
+                            )
+                    },
+                mutability or PendingIntent.FLAG_UPDATE_CURRENT,
             )
         }
         is CompoundButtonAction -> {
@@ -188,6 +194,20 @@ private fun getPendingIntentForAction(
                 translationContext,
                 viewId,
                 action.getActionParameters(),
+                mutability =
+                    if (
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                            action.innerAction !is LambdaAction
+                    ) {
+                        // RemoteViews.setOnCheckedChangedResponse (API 31+) requires a mutable
+                        // PendingIntent in order to set the EXTRA_CHECKED extra with the current
+                        // state
+                        // of the button. Lambda actions do not use this extra so they can be
+                        // immutable.
+                        PendingIntent.FLAG_MUTABLE
+                    } else {
+                        mutability
+                    }
             )
         }
         else -> error("Cannot create PendingIntent for action type: $action")
@@ -199,90 +219,89 @@ private fun getFillInIntentForAction(
     translationContext: TranslationContext,
     @IdRes viewId: Int,
     editParams: (ActionParameters) -> ActionParameters = { it }
-): Intent = when (action) {
-    is StartActivityAction -> {
-        getStartActivityIntent(
-            action = action,
-            translationContext = translationContext,
-            params = editParams(action.parameters)
-        ).apply {
-            if (data == null) {
-                data =
-                    createUniqueUri(
-                        translationContext,
-                        viewId,
-                        ActionTrampolineType.CALLBACK,
-                    )
+): Intent =
+    when (action) {
+        is StartActivityAction -> {
+            getStartActivityIntent(
+                    action = action,
+                    translationContext = translationContext,
+                    params = editParams(action.parameters)
+                )
+                .apply {
+                    if (data == null) {
+                        data =
+                            createUniqueUri(
+                                translationContext,
+                                viewId,
+                                ActionTrampolineType.CALLBACK,
+                                flags.toString(),
+                            )
+                    }
+                }
+        }
+        is StartServiceAction -> {
+            getServiceIntent(action = action, translationContext = translationContext)
+                .applyTrampolineIntent(
+                    translationContext,
+                    viewId = viewId,
+                    type =
+                        if (action.isForegroundService) {
+                            ActionTrampolineType.FOREGROUND_SERVICE
+                        } else {
+                            ActionTrampolineType.SERVICE
+                        },
+                )
+        }
+        is SendBroadcastAction -> {
+            getBroadcastReceiverIntent(action = action, translationContext = translationContext)
+                .applyTrampolineIntent(
+                    translationContext,
+                    viewId = viewId,
+                    type = ActionTrampolineType.BROADCAST,
+                )
+        }
+        is RunCallbackAction -> {
+            ActionCallbackBroadcastReceiver.createIntent(
+                    translationContext,
+                    action.callbackClass,
+                    editParams(action.parameters)
+                )
+                .applyTrampolineIntent(
+                    translationContext,
+                    viewId = viewId,
+                    type = ActionTrampolineType.BROADCAST,
+                )
+        }
+        is LambdaAction -> {
+            requireNotNull(translationContext.actionBroadcastReceiver) {
+                "In order to use LambdaAction, actionBroadcastReceiver must be provided"
             }
+            LambdaActionBroadcasts.createIntent(
+                    receiver = translationContext.actionBroadcastReceiver,
+                    actionKey = action.key,
+                    appWidgetId = translationContext.appWidgetId,
+                )
+                .applyTrampolineIntent(
+                    translationContext,
+                    viewId = viewId,
+                    type = ActionTrampolineType.BROADCAST,
+                )
         }
-    }
-    is StartServiceAction -> {
-        getServiceIntent(
-            action = action,
-            translationContext = translationContext
-        ).applyTrampolineIntent(
-            translationContext,
-            viewId = viewId,
-            type = if (action.isForegroundService) {
-                ActionTrampolineType.FOREGROUND_SERVICE
-            } else {
-                ActionTrampolineType.SERVICE
-            },
-        )
-    }
-    is SendBroadcastAction -> {
-        getBroadcastReceiverIntent(
-            action = action,
-            translationContext = translationContext
-        ).applyTrampolineIntent(
-            translationContext,
-            viewId = viewId,
-            type = ActionTrampolineType.BROADCAST,
-        )
-    }
-    is RunCallbackAction -> {
-        ActionCallbackBroadcastReceiver.createIntent(
-            context = translationContext.context,
-            callbackClass = action.callbackClass,
-            appWidgetId = translationContext.appWidgetId,
-            parameters = editParams(action.parameters)
-        ).applyTrampolineIntent(
-            translationContext,
-            viewId = viewId,
-            type = ActionTrampolineType.BROADCAST,
-        )
-    }
-    is LambdaAction -> {
-        requireNotNull(translationContext.actionBroadcastReceiver) {
-            "In order to use LambdaAction, actionBroadcastReceiver must be provided"
+        is CompoundButtonAction -> {
+            getFillInIntentForAction(
+                action.innerAction,
+                translationContext,
+                viewId,
+                action.getActionParameters(),
+            )
         }
-        LambdaActionBroadcasts.createIntent(
-            receiver = translationContext.actionBroadcastReceiver,
-            actionKey = action.key,
-            appWidgetId = translationContext.appWidgetId,
-        ).applyTrampolineIntent(
-            translationContext,
-            viewId = viewId,
-            type = ActionTrampolineType.BROADCAST,
-        )
+        else -> error("Cannot create fill-in Intent for action type: $action")
     }
-    is CompoundButtonAction -> {
-        getFillInIntentForAction(
-            action.innerAction,
-            translationContext,
-            viewId,
-            action.getActionParameters(),
-        )
-    }
-    else -> error("Cannot create fill-in Intent for action type: $action")
-}
 
 private fun CompoundButtonAction.getActionParameters(): (ActionParameters) -> ActionParameters =
     { params: ActionParameters ->
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            params.toMutableParameters().apply {
-                set(ToggleableStateKey, !checked)
-            }
+            params.toMutableParameters().apply { set(ToggleableStateKey, !checked) }
         } else {
             params
         }
@@ -291,40 +310,38 @@ private fun CompoundButtonAction.getActionParameters(): (ActionParameters) -> Ac
 private fun getBroadcastReceiverIntent(
     action: SendBroadcastAction,
     translationContext: TranslationContext,
-): Intent = when (action) {
-    is SendBroadcastComponentAction -> Intent().setComponent(action.componentName)
-    is SendBroadcastClassAction ->
-        Intent(translationContext.context, action.receiverClass)
-    is SendBroadcastIntentAction -> action.intent
-    is SendBroadcastActionAction ->
-        Intent(action.action).setComponent(action.componentName)
-}
+): Intent =
+    when (action) {
+        is SendBroadcastComponentAction -> Intent().setComponent(action.componentName)
+        is SendBroadcastClassAction -> Intent(translationContext.context, action.receiverClass)
+        is SendBroadcastIntentAction -> action.intent
+        is SendBroadcastActionAction -> Intent(action.action).setComponent(action.componentName)
+    }
 
 private fun getServiceIntent(
     action: StartServiceAction,
     translationContext: TranslationContext,
-): Intent = when (action) {
-    is StartServiceComponentAction -> Intent().setComponent(action.componentName)
-    is StartServiceClassAction ->
-        Intent(translationContext.context, action.serviceClass)
-    is StartServiceIntentAction -> action.intent
-}
+): Intent =
+    when (action) {
+        is StartServiceComponentAction -> Intent().setComponent(action.componentName)
+        is StartServiceClassAction -> Intent(translationContext.context, action.serviceClass)
+        is StartServiceIntentAction -> action.intent
+    }
 
 private fun getStartActivityIntent(
     action: StartActivityAction,
     translationContext: TranslationContext,
     params: ActionParameters,
 ): Intent {
-    val activityIntent = when (action) {
-        is StartActivityComponentAction -> Intent().setComponent(action.componentName)
-        is StartActivityClassAction -> Intent(translationContext.context, action.activityClass)
-        is StartActivityIntentAction -> action.intent
-        else -> error("Action type not defined in app widget package: $action")
-    }
+    val activityIntent =
+        when (action) {
+            is StartActivityComponentAction -> Intent().setComponent(action.componentName)
+            is StartActivityClassAction -> Intent(translationContext.context, action.activityClass)
+            is StartActivityIntentAction -> action.intent
+            else -> error("Action type not defined in app widget package: $action")
+        }
 
-    val parametersPairs = params.asMap().map { (key, value) ->
-        key.name to value
-    }.toTypedArray()
+    val parametersPairs = params.asMap().map { (key, value) -> key.name to value }.toTypedArray()
 
     activityIntent.putExtras(bundleOf(*parametersPairs))
     return activityIntent
@@ -333,22 +350,18 @@ private fun getStartActivityIntent(
 @RequiresApi(Build.VERSION_CODES.S)
 private object ApplyActionApi31Impl {
 
-    @DoNotInline
     fun setOnCheckedChangeResponse(rv: RemoteViews, viewId: Int, intent: PendingIntent) {
         rv.setOnCheckedChangeResponse(viewId, RemoteViews.RemoteResponse.fromPendingIntent(intent))
     }
 
-    @DoNotInline
     fun setOnCheckedChangeResponse(rv: RemoteViews, viewId: Int, intent: Intent) {
         rv.setOnCheckedChangeResponse(viewId, RemoteViews.RemoteResponse.fromFillInIntent(intent))
     }
 
-    @DoNotInline
     fun unsetOnCheckedChangeResponse(rv: RemoteViews, viewId: Int) {
         rv.setOnCheckedChangeResponse(viewId, RemoteViews.RemoteResponse())
     }
 
-    @DoNotInline
     fun unsetOnClickResponse(rv: RemoteViews, viewId: Int) {
         rv.setOnClickResponse(viewId, RemoteViews.RemoteResponse())
     }
@@ -356,21 +369,18 @@ private object ApplyActionApi31Impl {
 
 @RequiresApi(Build.VERSION_CODES.Q)
 private object ApplyActionApi29Impl {
-    @DoNotInline
-    fun setIntentIdentifier(intent: Intent, viewId: Int): Intent = intent.apply {
-        identifier = viewId.toString()
-    }
+    fun setIntentIdentifier(intent: Intent, viewId: Int): Intent =
+        intent.apply { identifier = viewId.toString() }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
 private object ApplyActionApi26Impl {
-    @DoNotInline
     fun getForegroundServicePendingIntent(context: Context, intent: Intent): PendingIntent {
         return PendingIntent.getForegroundService(
             context,
             0,
             intent,
-            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
     }
 }

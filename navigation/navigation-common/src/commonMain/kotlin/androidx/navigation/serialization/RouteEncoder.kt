@@ -24,6 +24,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationStrategy
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.AbstractEncoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
@@ -83,6 +84,11 @@ public class RouteEncoder<T : Any>(
     /** Called for primitive / non-primitives of null value */
     override fun encodeNull() {
         internalEncodeValue(null)
+    }
+
+    override fun encodeInline(descriptor: SerialDescriptor): Encoder {
+        if (descriptor.isValueClass()) elementIndex = 0
+        return super.encodeInline(descriptor)
     }
 
     private fun internalEncodeValue(value: Any?) {

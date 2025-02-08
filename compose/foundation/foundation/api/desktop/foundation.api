@@ -24,6 +24,7 @@ public final class androidx/compose/foundation/BasicTooltipDefaults {
 }
 
 public final class androidx/compose/foundation/BasicTooltipKt {
+	public static final fun BasicTooltipBox (Landroidx/compose/ui/window/PopupPositionProvider;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/BasicTooltipState;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun BasicTooltipState (ZZLandroidx/compose/foundation/MutatorMutex;)Landroidx/compose/foundation/BasicTooltipState;
 	public static synthetic fun BasicTooltipState$default (ZZLandroidx/compose/foundation/MutatorMutex;ILjava/lang/Object;)Landroidx/compose/foundation/BasicTooltipState;
 	public static final fun rememberBasicTooltipState (ZZLandroidx/compose/foundation/MutatorMutex;Landroidx/compose/runtime/Composer;II)Landroidx/compose/foundation/BasicTooltipState;
@@ -36,10 +37,6 @@ public abstract interface class androidx/compose/foundation/BasicTooltipState {
 	public abstract fun onDispose ()V
 	public abstract fun show (Landroidx/compose/foundation/MutatePriority;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun show$default (Landroidx/compose/foundation/BasicTooltipState;Landroidx/compose/foundation/MutatePriority;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
-}
-
-public final class androidx/compose/foundation/BasicTooltip_skikoKt {
-	public static final fun BasicTooltipBox (Landroidx/compose/ui/window/PopupPositionProvider;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/BasicTooltipState;Landroidx/compose/ui/Modifier;ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/foundation/BorderKt {
@@ -76,15 +73,18 @@ public final class androidx/compose/foundation/CheckScrollableContainerConstrain
 }
 
 public final class androidx/compose/foundation/ClickableKt {
-	public static final fun CombinedClickableNode-nSzSaCc (Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/IndicationNodeFactory;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;)Landroidx/compose/foundation/CombinedClickableNode;
 	public static final fun clickable-O2vRcR0 (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun clickable-O2vRcR0$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static final fun clickable-XHw0xAI (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun clickable-XHw0xAI$default (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun combinedClickable-XVZzFYc (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
+	public static final synthetic fun combinedClickable-XVZzFYc (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun combinedClickable-XVZzFYc$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun combinedClickable-cJG_KMw (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
+	public static final fun combinedClickable-auXiCPI (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZLkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun combinedClickable-auXiCPI$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/Indication;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZLkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final synthetic fun combinedClickable-cJG_KMw (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun combinedClickable-cJG_KMw$default (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final fun combinedClickable-f5TDLPQ (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZLkotlin/jvm/functions/Function0;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun combinedClickable-f5TDLPQ$default (Landroidx/compose/ui/Modifier;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ZLkotlin/jvm/functions/Function0;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/foundation/Clickable_desktopKt {
@@ -96,8 +96,12 @@ public final class androidx/compose/foundation/ClipScrollableContainerKt {
 	public static final fun clipScrollableContainer (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Orientation;)Landroidx/compose/ui/Modifier;
 }
 
-public abstract interface class androidx/compose/foundation/CombinedClickableNode : androidx/compose/ui/node/PointerInputModifierNode {
-	public abstract fun update-nSzSaCc (Lkotlin/jvm/functions/Function0;Ljava/lang/String;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/IndicationNodeFactory;ZLjava/lang/String;Landroidx/compose/ui/semantics/Role;)V
+public final class androidx/compose/foundation/ComposeFoundationFlags {
+	public static final field $stable I
+	public static field DragGesturePickUpEnabled Z
+	public static final field INSTANCE Landroidx/compose/foundation/ComposeFoundationFlags;
+	public static field NewNestedFlingPropagationEnabled Z
+	public static field isDetectTapGesturesImmediateCoroutineDispatchEnabled Z
 }
 
 public final class androidx/compose/foundation/ContextMenuData {
@@ -299,12 +303,23 @@ public final class androidx/compose/foundation/OnClick_skikoKt {
 public abstract interface class androidx/compose/foundation/OverscrollEffect {
 	public abstract fun applyToFling-BMRW4eQ (JLkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public abstract fun applyToScroll-Rhakbz0 (JILkotlin/jvm/functions/Function1;)J
-	public abstract fun getEffectModifier ()Landroidx/compose/ui/Modifier;
+	public fun getEffectModifier ()Landroidx/compose/ui/Modifier;
+	public fun getNode ()Landroidx/compose/ui/node/DelegatableNode;
 	public abstract fun isInProgress ()Z
 }
 
+public abstract interface class androidx/compose/foundation/OverscrollFactory {
+	public abstract fun createOverscrollEffect ()Landroidx/compose/foundation/OverscrollEffect;
+	public abstract fun equals (Ljava/lang/Object;)Z
+	public abstract fun hashCode ()I
+}
+
 public final class androidx/compose/foundation/OverscrollKt {
+	public static final fun getLocalOverscrollFactory ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 	public static final fun overscroll (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/OverscrollEffect;)Landroidx/compose/ui/Modifier;
+	public static final fun rememberOverscrollEffect (Landroidx/compose/runtime/Composer;I)Landroidx/compose/foundation/OverscrollEffect;
+	public static final fun withoutEventHandling (Landroidx/compose/foundation/OverscrollEffect;)Landroidx/compose/foundation/OverscrollEffect;
+	public static final fun withoutVisualEffect (Landroidx/compose/foundation/OverscrollEffect;)Landroidx/compose/foundation/OverscrollEffect;
 }
 
 public abstract interface class androidx/compose/foundation/PointerMatcher {
@@ -332,10 +347,14 @@ public final class androidx/compose/foundation/ProgressSemanticsKt {
 }
 
 public final class androidx/compose/foundation/ScrollKt {
+	public static final fun horizontalScroll (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;Z)Landroidx/compose/ui/Modifier;
 	public static final fun horizontalScroll (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;ZLandroidx/compose/foundation/gestures/FlingBehavior;Z)Landroidx/compose/ui/Modifier;
+	public static synthetic fun horizontalScroll$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun horizontalScroll$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;ZLandroidx/compose/foundation/gestures/FlingBehavior;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static final fun rememberScrollState (ILandroidx/compose/runtime/Composer;II)Landroidx/compose/foundation/ScrollState;
+	public static final fun verticalScroll (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;Z)Landroidx/compose/ui/Modifier;
 	public static final fun verticalScroll (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;ZLandroidx/compose/foundation/gestures/FlingBehavior;Z)Landroidx/compose/ui/Modifier;
+	public static synthetic fun verticalScroll$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun verticalScroll$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/ScrollState;ZLandroidx/compose/foundation/gestures/FlingBehavior;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 }
 
@@ -500,11 +519,8 @@ public final class androidx/compose/foundation/content/TransferableContent_skiko
 }
 
 public final class androidx/compose/foundation/draganddrop/DragAndDropSourceKt {
-	public static final fun dragAndDropSource (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;)Landroidx/compose/ui/Modifier;
-}
-
-public abstract interface class androidx/compose/foundation/draganddrop/DragAndDropSourceScope : androidx/compose/ui/input/pointer/PointerInputScope {
-	public abstract fun startTransfer (Landroidx/compose/ui/draganddrop/DragAndDropTransferData;)V
+	public static final fun dragAndDropSource (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
+	public static final fun dragAndDropSource (Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/Modifier;
 }
 
 public final class androidx/compose/foundation/draganddrop/DragAndDropTargetKt {
@@ -516,24 +532,45 @@ public abstract interface class androidx/compose/foundation/gestures/AnchoredDra
 	public static synthetic fun dragTo$default (Landroidx/compose/foundation/gestures/AnchoredDragScope;FFILjava/lang/Object;)V
 }
 
+public final class androidx/compose/foundation/gestures/AnchoredDraggableDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/foundation/gestures/AnchoredDraggableDefaults;
+	public final fun flingBehavior (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Lkotlin/jvm/functions/Function1;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/runtime/Composer;II)Landroidx/compose/foundation/gestures/TargetedFlingBehavior;
+	public final fun getDecayAnimationSpec ()Landroidx/compose/animation/core/DecayAnimationSpec;
+	public final fun getPositionalThreshold ()Lkotlin/jvm/functions/Function1;
+	public final fun getSnapAnimationSpec ()Landroidx/compose/animation/core/AnimationSpec;
+}
+
 public final class androidx/compose/foundation/gestures/AnchoredDraggableKt {
+	public static final fun AnchoredDraggableState (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;)Landroidx/compose/foundation/gestures/AnchoredDraggableState;
+	public static final fun AnchoredDraggableState (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;)Landroidx/compose/foundation/gestures/AnchoredDraggableState;
+	public static synthetic fun AnchoredDraggableState$default (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/foundation/gestures/AnchoredDraggableState;
+	public static synthetic fun AnchoredDraggableState$default (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/foundation/gestures/AnchoredDraggableState;
 	public static final fun DraggableAnchors (Lkotlin/jvm/functions/Function1;)Landroidx/compose/foundation/gestures/DraggableAnchors;
-	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Z)Landroidx/compose/ui/Modifier;
-	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Z)Landroidx/compose/ui/Modifier;
-	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static final fun animateTo (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public static final fun animateToWithDecay (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;FLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Landroidx/compose/foundation/gestures/FlingBehavior;)Landroidx/compose/ui/Modifier;
+	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;)Landroidx/compose/ui/Modifier;
+	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Landroidx/compose/foundation/gestures/FlingBehavior;)Landroidx/compose/ui/Modifier;
+	public static final fun anchoredDraggable (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Landroidx/compose/foundation/gestures/FlingBehavior;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;Landroidx/compose/foundation/gestures/FlingBehavior;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static synthetic fun anchoredDraggable$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/AnchoredDraggableState;ZLandroidx/compose/foundation/gestures/Orientation;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/foundation/OverscrollEffect;ZLandroidx/compose/foundation/gestures/FlingBehavior;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
+	public static final fun animateTo (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun animateTo$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun animateToWithDecay (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;FLandroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun animateToWithDecay$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;FLandroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun forEach (Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function2;)V
 	public static final fun snapTo (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class androidx/compose/foundation/gestures/AnchoredDraggableState {
 	public static final field $stable I
 	public static final field Companion Landroidx/compose/foundation/gestures/AnchoredDraggableState$Companion;
-	public fun <init> (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;)V
-	public synthetic fun <init> (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun <init> (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;)V
-	public synthetic fun <init> (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/Object;)V
+	public fun <init> (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;)V
+	public fun <init> (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Ljava/lang/Object;Landroidx/compose/foundation/gestures/DraggableAnchors;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Ljava/lang/Object;Lkotlin/jvm/functions/Function1;)V
 	public final fun anchoredDrag (Landroidx/compose/foundation/MutatePriority;Lkotlin/jvm/functions/Function3;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun anchoredDrag (Ljava/lang/Object;Landroidx/compose/foundation/MutatePriority;Lkotlin/jvm/functions/Function4;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun anchoredDrag$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/MutatePriority;Lkotlin/jvm/functions/Function3;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
@@ -552,13 +589,17 @@ public final class androidx/compose/foundation/gestures/AnchoredDraggableState {
 	public final fun progress (Ljava/lang/Object;Ljava/lang/Object;)F
 	public final fun requireOffset ()F
 	public final fun settle (FLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun settle (Landroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun updateAnchors (Landroidx/compose/foundation/gestures/DraggableAnchors;Ljava/lang/Object;)V
 	public static synthetic fun updateAnchors$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState;Landroidx/compose/foundation/gestures/DraggableAnchors;Ljava/lang/Object;ILjava/lang/Object;)V
 }
 
 public final class androidx/compose/foundation/gestures/AnchoredDraggableState$Companion {
+	public final fun Saver ()Landroidx/compose/runtime/saveable/Saver;
 	public final fun Saver (Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;)Landroidx/compose/runtime/saveable/Saver;
+	public final fun Saver (Lkotlin/jvm/functions/Function1;)Landroidx/compose/runtime/saveable/Saver;
 	public static synthetic fun Saver$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState$Companion;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/DecayAnimationSpec;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/runtime/saveable/Saver;
+	public static synthetic fun Saver$default (Landroidx/compose/foundation/gestures/AnchoredDraggableState$Companion;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/runtime/saveable/Saver;
 }
 
 public abstract interface class androidx/compose/foundation/gestures/BringIntoViewSpec {
@@ -568,7 +609,6 @@ public abstract interface class androidx/compose/foundation/gestures/BringIntoVi
 }
 
 public final class androidx/compose/foundation/gestures/BringIntoViewSpec$Companion {
-	public final fun getDefaultScrollAnimationSpec ()Landroidx/compose/animation/core/AnimationSpec;
 }
 
 public final class androidx/compose/foundation/gestures/BringIntoViewSpec_skikoKt {
@@ -614,9 +654,7 @@ public abstract interface class androidx/compose/foundation/gestures/DragScope {
 public final class androidx/compose/foundation/gestures/Draggable2DKt {
 	public static final fun Draggable2DState (Lkotlin/jvm/functions/Function1;)Landroidx/compose/foundation/gestures/Draggable2DState;
 	public static final fun draggable2D (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Draggable2DState;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Z)Landroidx/compose/ui/Modifier;
-	public static final synthetic fun draggable2D (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Draggable2DState;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;ZLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Z)Landroidx/compose/ui/Modifier;
 	public static synthetic fun draggable2D$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Draggable2DState;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun draggable2D$default (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/gestures/Draggable2DState;ZLandroidx/compose/foundation/interaction/MutableInteractionSource;ZLkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;ZILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static final fun rememberDraggable2DState (Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;I)Landroidx/compose/foundation/gestures/Draggable2DState;
 }
 
@@ -627,13 +665,14 @@ public abstract interface class androidx/compose/foundation/gestures/Draggable2D
 }
 
 public abstract interface class androidx/compose/foundation/gestures/DraggableAnchors {
+	public abstract fun anchorAt (I)Ljava/lang/Object;
 	public abstract fun closestAnchor (F)Ljava/lang/Object;
 	public abstract fun closestAnchor (FZ)Ljava/lang/Object;
-	public abstract fun forEach (Lkotlin/jvm/functions/Function2;)V
 	public abstract fun getSize ()I
-	public abstract fun hasAnchorFor (Ljava/lang/Object;)Z
-	public abstract fun maxAnchor ()F
-	public abstract fun minAnchor ()F
+	public abstract fun hasPositionFor (Ljava/lang/Object;)Z
+	public abstract fun maxPosition ()F
+	public abstract fun minPosition ()F
+	public abstract fun positionAt (I)F
 	public abstract fun positionOf (Ljava/lang/Object;)F
 }
 
@@ -658,6 +697,9 @@ public abstract interface class androidx/compose/foundation/gestures/DraggableSt
 
 public final class androidx/compose/foundation/gestures/DraggableState$DefaultImpls {
 	public static synthetic fun drag$default (Landroidx/compose/foundation/gestures/DraggableState;Landroidx/compose/foundation/MutatePriority;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract interface annotation class androidx/compose/foundation/gestures/ExperimentalTapGestureDetectorBehaviorApi : java/lang/annotation/Annotation {
 }
 
 public abstract interface class androidx/compose/foundation/gestures/FlingBehavior {
@@ -720,7 +762,6 @@ public abstract interface class androidx/compose/foundation/gestures/ScrollScope
 public final class androidx/compose/foundation/gestures/ScrollableDefaults {
 	public static final field $stable I
 	public static final field INSTANCE Landroidx/compose/foundation/gestures/ScrollableDefaults;
-	public final fun bringIntoViewSpec ()Landroidx/compose/foundation/gestures/BringIntoViewSpec;
 	public final fun flingBehavior (Landroidx/compose/runtime/Composer;I)Landroidx/compose/foundation/gestures/FlingBehavior;
 	public final fun overscrollEffect (Landroidx/compose/runtime/Composer;I)Landroidx/compose/foundation/OverscrollEffect;
 	public final fun reverseDirection (Landroidx/compose/ui/unit/LayoutDirection;Landroidx/compose/foundation/gestures/Orientation;Z)Z
@@ -764,9 +805,15 @@ public final class androidx/compose/foundation/gestures/TapGestureDetectorKt {
 	public static synthetic fun awaitFirstDown$default (Landroidx/compose/ui/input/pointer/AwaitPointerEventScope;ZLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun detectTapGestures (Landroidx/compose/ui/input/pointer/PointerInputScope;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun detectTapGestures$default (Landroidx/compose/ui/input/pointer/PointerInputScope;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun getDetectTapGesturesEnableNewDispatchingBehavior ()Z
+	public static final fun setDetectTapGesturesEnableNewDispatchingBehavior (Z)V
 	public static final fun waitForUpOrCancellation (Landroidx/compose/ui/input/pointer/AwaitPointerEventScope;Landroidx/compose/ui/input/pointer/PointerEventPass;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static final synthetic fun waitForUpOrCancellation (Landroidx/compose/ui/input/pointer/AwaitPointerEventScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun waitForUpOrCancellation$default (Landroidx/compose/ui/input/pointer/AwaitPointerEventScope;Landroidx/compose/ui/input/pointer/PointerEventPass;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class androidx/compose/foundation/gestures/TapGestureDetector_skikoKt {
+	public static final fun isDeepPress (Landroidx/compose/ui/input/pointer/PointerEvent;)Z
 }
 
 public final class androidx/compose/foundation/gestures/TapGesturesDetector_skikoKt {
@@ -820,6 +867,8 @@ public final class androidx/compose/foundation/gestures/TransformableState$Defau
 
 public final class androidx/compose/foundation/gestures/TransformableStateKt {
 	public static final fun TransformableState (Lkotlin/jvm/functions/Function3;)Landroidx/compose/foundation/gestures/TransformableState;
+	public static final fun animateBy-Su4bsnU (Landroidx/compose/foundation/gestures/TransformableState;FJFLandroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun animateBy-Su4bsnU$default (Landroidx/compose/foundation/gestures/TransformableState;FJFLandroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun animatePanBy-ubNVwUQ (Landroidx/compose/foundation/gestures/TransformableState;JLandroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun animatePanBy-ubNVwUQ$default (Landroidx/compose/foundation/gestures/TransformableState;JLandroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public static final fun animateRotateBy (Landroidx/compose/foundation/gestures/TransformableState;FLandroidx/compose/animation/core/AnimationSpec;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -844,14 +893,6 @@ public final class androidx/compose/foundation/gestures/snapping/LazyListSnapLay
 	public static final fun SnapLayoutInfoProvider (Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/gestures/snapping/SnapPosition;)Landroidx/compose/foundation/gestures/snapping/SnapLayoutInfoProvider;
 	public static synthetic fun SnapLayoutInfoProvider$default (Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/gestures/snapping/SnapPosition;ILjava/lang/Object;)Landroidx/compose/foundation/gestures/snapping/SnapLayoutInfoProvider;
 	public static final fun rememberSnapFlingBehavior (Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Landroidx/compose/runtime/Composer;II)Landroidx/compose/foundation/gestures/FlingBehavior;
-}
-
-public final class androidx/compose/foundation/gestures/snapping/SnapFlingBehavior : androidx/compose/foundation/gestures/TargetedFlingBehavior {
-	public static final field $stable I
-	public fun <init> (Landroidx/compose/foundation/gestures/snapping/SnapLayoutInfoProvider;Landroidx/compose/animation/core/DecayAnimationSpec;Landroidx/compose/animation/core/AnimationSpec;)V
-	public fun equals (Ljava/lang/Object;)Z
-	public fun hashCode ()I
-	public fun performFling (Landroidx/compose/foundation/gestures/ScrollScope;FLkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 }
 
 public final class androidx/compose/foundation/gestures/snapping/SnapFlingBehaviorKt {
@@ -992,9 +1033,11 @@ public final class androidx/compose/foundation/interaction/PressInteractionKt {
 
 public final class androidx/compose/foundation/lazy/LazyDslKt {
 	public static final synthetic fun LazyColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun LazyColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun LazyColumn (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun LazyRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun LazyRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun LazyRow (Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final fun items (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static final synthetic fun items (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static final fun items (Landroidx/compose/foundation/lazy/LazyListScope;[Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
@@ -1016,8 +1059,6 @@ public final class androidx/compose/foundation/lazy/LazyDslKt {
 public abstract interface class androidx/compose/foundation/lazy/LazyItemScope {
 	public fun animateItem (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun animateItem$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public fun animateItemPlacement (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun animateItemPlacement$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public abstract fun fillParentMaxHeight (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
 	public static synthetic fun fillParentMaxHeight$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public abstract fun fillParentMaxSize (Landroidx/compose/ui/Modifier;F)Landroidx/compose/ui/Modifier;
@@ -1029,8 +1070,6 @@ public abstract interface class androidx/compose/foundation/lazy/LazyItemScope {
 public final class androidx/compose/foundation/lazy/LazyItemScope$DefaultImpls {
 	public static fun animateItem (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun animateItem$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public static fun animateItemPlacement (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun animateItemPlacement$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun fillParentMaxHeight$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun fillParentMaxSize$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun fillParentMaxWidth$default (Landroidx/compose/foundation/lazy/LazyItemScope;Landroidx/compose/ui/Modifier;FILjava/lang/Object;)Landroidx/compose/ui/Modifier;
@@ -1091,8 +1130,10 @@ public abstract interface class androidx/compose/foundation/lazy/LazyListScope {
 	public synthetic fun items (ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/LazyListScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/LazyListScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
-	public abstract fun stickyHeader (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)V
+	public synthetic fun stickyHeader (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)V
+	public fun stickyHeader (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun stickyHeader$default (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun stickyHeader$default (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 }
 
 public final class androidx/compose/foundation/lazy/LazyListScope$DefaultImpls {
@@ -1104,7 +1145,14 @@ public final class androidx/compose/foundation/lazy/LazyListScope$DefaultImpls {
 	public static synthetic fun items (Landroidx/compose/foundation/lazy/LazyListScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/LazyListScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/LazyListScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+	public static synthetic fun stickyHeader (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;)V
+	public static fun stickyHeader (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun stickyHeader$default (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static synthetic fun stickyHeader$default (Landroidx/compose/foundation/lazy/LazyListScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+}
+
+public final class androidx/compose/foundation/lazy/LazyListScrollScopeKt {
+	public static final fun LazyLayoutScrollScope (Landroidx/compose/foundation/lazy/LazyListState;Landroidx/compose/foundation/gestures/ScrollScope;)Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;
 }
 
 public final class androidx/compose/foundation/lazy/LazyListState : androidx/compose/foundation/gestures/ScrollableState {
@@ -1188,8 +1236,10 @@ public final class androidx/compose/foundation/lazy/grid/GridItemSpan {
 }
 
 public final class androidx/compose/foundation/lazy/grid/LazyGridDslKt {
-	public static final fun LazyHorizontalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun LazyVerticalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyHorizontalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun LazyHorizontalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyVerticalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun LazyVerticalGrid (Landroidx/compose/foundation/lazy/grid/GridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final fun items (Landroidx/compose/foundation/lazy/grid/LazyGridScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static final fun items (Landroidx/compose/foundation/lazy/grid/LazyGridScope;[Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/grid/LazyGridScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
@@ -1211,6 +1261,7 @@ public abstract interface class androidx/compose/foundation/lazy/grid/LazyGridIt
 	public abstract fun getOffset-nOcc-ac ()J
 	public abstract fun getRow ()I
 	public abstract fun getSize-YbymL2g ()J
+	public abstract fun getSpan ()I
 }
 
 public final class androidx/compose/foundation/lazy/grid/LazyGridItemInfo$Companion {
@@ -1221,8 +1272,6 @@ public final class androidx/compose/foundation/lazy/grid/LazyGridItemInfo$Compan
 public abstract interface class androidx/compose/foundation/lazy/grid/LazyGridItemScope {
 	public abstract fun animateItem (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun animateItem$default (Landroidx/compose/foundation/lazy/grid/LazyGridItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public fun animateItemPlacement (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun animateItemPlacement$default (Landroidx/compose/foundation/lazy/grid/LazyGridItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 }
 
 public abstract interface class androidx/compose/foundation/lazy/grid/LazyGridItemSpanScope {
@@ -1234,6 +1283,7 @@ public abstract interface class androidx/compose/foundation/lazy/grid/LazyGridLa
 	public abstract fun getAfterContentPadding ()I
 	public abstract fun getBeforeContentPadding ()I
 	public abstract fun getMainAxisItemSpacing ()I
+	public abstract fun getMaxSpan ()I
 	public abstract fun getOrientation ()Landroidx/compose/foundation/gestures/Orientation;
 	public abstract fun getReverseLayout ()Z
 	public abstract fun getTotalItemsCount ()I
@@ -1264,9 +1314,15 @@ public abstract interface class androidx/compose/foundation/lazy/grid/LazyGridSc
 	public static synthetic fun item$default (Landroidx/compose/foundation/lazy/grid/LazyGridScope;Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Ljava/lang/Object;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
 	public abstract fun items (ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/grid/LazyGridScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+	public abstract fun stickyHeader (Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;)V
+	public static synthetic fun stickyHeader$default (Landroidx/compose/foundation/lazy/grid/LazyGridScope;Ljava/lang/Object;Ljava/lang/Object;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 }
 
 public abstract interface annotation class androidx/compose/foundation/lazy/grid/LazyGridScopeMarker : java/lang/annotation/Annotation {
+}
+
+public final class androidx/compose/foundation/lazy/grid/LazyGridScrollScopeKt {
+	public static final fun LazyLayoutScrollScope (Landroidx/compose/foundation/lazy/grid/LazyGridState;Landroidx/compose/foundation/gestures/ScrollScope;)Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;
 }
 
 public final class androidx/compose/foundation/lazy/grid/LazyGridSpanKt {
@@ -1347,7 +1403,6 @@ public abstract interface class androidx/compose/foundation/lazy/layout/LazyLayo
 }
 
 public final class androidx/compose/foundation/lazy/layout/LazyLayoutKt {
-	public static final fun LazyLayout (Landroidx/compose/foundation/lazy/layout/LazyLayoutItemProvider;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/layout/LazyLayoutPrefetchState;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 	public static final fun LazyLayout (Lkotlin/jvm/functions/Function0;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/layout/LazyLayoutPrefetchState;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
@@ -1425,6 +1480,17 @@ public abstract interface class androidx/compose/foundation/lazy/layout/LazyLayo
 	public abstract fun markAsUrgent ()V
 }
 
+public abstract interface class androidx/compose/foundation/lazy/layout/LazyLayoutScrollScope : androidx/compose/foundation/gestures/ScrollScope {
+	public abstract fun calculateDistanceTo (II)I
+	public static synthetic fun calculateDistanceTo$default (Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;IIILjava/lang/Object;)I
+	public abstract fun getFirstVisibleItemIndex ()I
+	public abstract fun getFirstVisibleItemScrollOffset ()I
+	public abstract fun getItemCount ()I
+	public abstract fun getLastVisibleItemIndex ()I
+	public abstract fun snapToItem (II)V
+	public static synthetic fun snapToItem$default (Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;IIILjava/lang/Object;)V
+}
+
 public final class androidx/compose/foundation/lazy/layout/Lazy_desktopKt {
 	public static final fun getDefaultLazyLayoutKey (I)Ljava/lang/Object;
 }
@@ -1456,8 +1522,10 @@ public abstract interface class androidx/compose/foundation/lazy/layout/Prefetch
 }
 
 public final class androidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridDslKt {
-	public static final fun LazyHorizontalStaggeredGrid-cJHQLPU (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;FLandroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
-	public static final fun LazyVerticalStaggeredGrid-zadm560 (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZFLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyHorizontalStaggeredGrid-121YqSk (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;FLandroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun LazyHorizontalStaggeredGrid-cJHQLPU (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZLandroidx/compose/foundation/layout/Arrangement$Vertical;FLandroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
+	public static final fun LazyVerticalStaggeredGrid-6qCrX9Q (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZFLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLandroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun LazyVerticalStaggeredGrid-zadm560 (Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridCells;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/layout/PaddingValues;ZFLandroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/foundation/gestures/FlingBehavior;ZLkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final fun items (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static final fun items (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScope;[Ljava/lang/Object;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScope;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
@@ -1480,8 +1548,6 @@ public abstract interface class androidx/compose/foundation/lazy/staggeredgrid/L
 public abstract interface class androidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridItemScope {
 	public abstract fun animateItem (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
 	public static synthetic fun animateItem$default (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
-	public fun animateItemPlacement (Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;)Landroidx/compose/ui/Modifier;
-	public static synthetic fun animateItemPlacement$default (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridItemScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/FiniteAnimationSpec;ILjava/lang/Object;)Landroidx/compose/ui/Modifier;
 }
 
 public abstract interface class androidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridLayoutInfo {
@@ -1501,6 +1567,10 @@ public abstract interface class androidx/compose/foundation/lazy/staggeredgrid/L
 	public static synthetic fun item$default (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScope;Ljava/lang/Object;Ljava/lang/Object;Landroidx/compose/foundation/lazy/staggeredgrid/StaggeredGridItemSpan;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
 	public abstract fun items (ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun items$default (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScope;ILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+}
+
+public final class androidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridScrollScopeKt {
+	public static final fun LazyLayoutScrollScope (Landroidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState;Landroidx/compose/foundation/gestures/ScrollScope;)Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;
 }
 
 public final class androidx/compose/foundation/lazy/staggeredgrid/LazyStaggeredGridState : androidx/compose/foundation/gestures/ScrollableState {
@@ -1607,8 +1677,10 @@ public final class androidx/compose/foundation/pager/PagerDefaults {
 }
 
 public final class androidx/compose/foundation/pager/PagerKt {
-	public static final fun HorizontalPager-oI3XNZo (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
-	public static final fun VerticalPager-oI3XNZo (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
+	public static final fun HorizontalPager--8jOkeI (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Landroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun HorizontalPager-oI3XNZo (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Vertical;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
+	public static final fun VerticalPager--8jOkeI (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Landroidx/compose/foundation/OverscrollEffect;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun VerticalPager-oI3XNZo (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/PaddingValues;Landroidx/compose/foundation/pager/PageSize;IFLandroidx/compose/ui/Alignment$Horizontal;Landroidx/compose/foundation/gestures/TargetedFlingBehavior;ZZLkotlin/jvm/functions/Function1;Landroidx/compose/ui/input/nestedscroll/NestedScrollConnection;Landroidx/compose/foundation/gestures/snapping/SnapPosition;Lkotlin/jvm/functions/Function4;Landroidx/compose/runtime/Composer;III)V
 }
 
 public abstract interface class androidx/compose/foundation/pager/PagerLayoutInfo {
@@ -1627,6 +1699,10 @@ public abstract interface class androidx/compose/foundation/pager/PagerLayoutInf
 }
 
 public abstract interface class androidx/compose/foundation/pager/PagerScope {
+}
+
+public final class androidx/compose/foundation/pager/PagerScrollScopeKt {
+	public static final fun LazyLayoutScrollScope (Landroidx/compose/foundation/pager/PagerState;Landroidx/compose/foundation/gestures/ScrollScope;)Landroidx/compose/foundation/lazy/layout/LazyLayoutScrollScope;
 }
 
 public abstract interface class androidx/compose/foundation/pager/PagerSnapDistance {
@@ -1843,8 +1919,29 @@ public final class androidx/compose/foundation/shape/RoundedCornerShapeKt {
 	public static final fun getCircleShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
 }
 
+public abstract interface class androidx/compose/foundation/text/AutoSize {
+	public static final field Companion Landroidx/compose/foundation/text/AutoSize$Companion;
+}
+
+public final class androidx/compose/foundation/text/AutoSize$Companion {
+	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/TextAutoSize;
+	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/AutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/TextAutoSize;
+}
+
+public final class androidx/compose/foundation/text/AutoSizeDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/foundation/text/AutoSizeDefaults;
+	public final fun getMaxFontSize-XSAIIZE ()J
+	public final fun getMinFontSize-XSAIIZE ()J
+}
+
+public final class androidx/compose/foundation/text/AutofillHighlightKt {
+	public static final fun getLocalAutofillHighlightColor ()Landroidx/compose/runtime/ProvidableCompositionLocal;
+}
+
 public final class androidx/compose/foundation/text/BasicSecureTextFieldKt {
-	public static final fun BasicSecureTextField-Jb9bMDk (Landroidx/compose/foundation/text/input/TextFieldState;Landroidx/compose/ui/Modifier;ZLandroidx/compose/foundation/text/input/InputTransformation;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/foundation/text/KeyboardOptions;Landroidx/compose/foundation/text/input/KeyboardActionHandler;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/ui/graphics/Brush;Landroidx/compose/foundation/text/input/TextFieldDecorator;ICLandroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun BasicSecureTextField-Jb9bMDk (Landroidx/compose/foundation/text/input/TextFieldState;Landroidx/compose/ui/Modifier;ZLandroidx/compose/foundation/text/input/InputTransformation;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/foundation/text/KeyboardOptions;Landroidx/compose/foundation/text/input/KeyboardActionHandler;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/ui/graphics/Brush;Landroidx/compose/foundation/text/input/TextFieldDecorator;ICLandroidx/compose/runtime/Composer;III)V
+	public static final fun BasicSecureTextField-egD4TGM (Landroidx/compose/foundation/text/input/TextFieldState;Landroidx/compose/ui/Modifier;ZZLandroidx/compose/foundation/text/input/InputTransformation;Landroidx/compose/ui/text/TextStyle;Landroidx/compose/foundation/text/KeyboardOptions;Landroidx/compose/foundation/text/input/KeyboardActionHandler;Lkotlin/jvm/functions/Function2;Landroidx/compose/foundation/interaction/MutableInteractionSource;Landroidx/compose/ui/graphics/Brush;Landroidx/compose/foundation/text/input/TextFieldDecorator;ICLandroidx/compose/runtime/Composer;III)V
 }
 
 public final class androidx/compose/foundation/text/BasicTextFieldKt {
@@ -1864,22 +1961,19 @@ public final class androidx/compose/foundation/text/BasicTextKt {
 	public static final synthetic fun BasicText-4YKlhWE (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZILjava/util/Map;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-4YKlhWE (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-BpD7jsM (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZILandroidx/compose/runtime/Composer;II)V
-	public static final fun BasicText-RWo7tUw (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
+	public static final fun BasicText-CL7eQgs (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/TextAutoSize;Landroidx/compose/runtime/Composer;III)V
+	public static final synthetic fun BasicText-RWo7tUw (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
+	public static final fun BasicText-RWo7tUw (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/foundation/text/TextAutoSize;Landroidx/compose/runtime/Composer;II)V
 	public static final synthetic fun BasicText-VhcvRP8 (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILjava/util/Map;Landroidx/compose/runtime/Composer;II)V
-	public static final fun BasicText-VhcvRP8 (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun BasicText-VhcvRP8 (Ljava/lang/String;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;Lkotlin/jvm/functions/Function1;IZIILandroidx/compose/ui/graphics/ColorProducer;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/foundation/text/ClickableTextKt {
-	public static final fun ClickableText-03UYbkw (Landroidx/compose/ui/text/AnnotatedString;Lkotlin/jvm/functions/Function1;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;ZIILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 	public static final fun ClickableText-4YKlhWE (Landroidx/compose/ui/text/AnnotatedString;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/text/TextStyle;ZIILkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/foundation/text/ComposableSingletons$BasicTextFieldKt {
 	public static final field INSTANCE Landroidx/compose/foundation/text/ComposableSingletons$BasicTextFieldKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
-	public static field lambda-2 Lkotlin/jvm/functions/Function3;
-	public static field lambda-3 Lkotlin/jvm/functions/Function3;
-	public static field lambda-4 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$foundation ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda-2$foundation ()Lkotlin/jvm/functions/Function3;
@@ -1889,8 +1983,6 @@ public final class androidx/compose/foundation/text/ComposableSingletons$BasicTe
 
 public final class androidx/compose/foundation/text/ComposableSingletons$BasicTextField_desktopKt {
 	public static final field INSTANCE Landroidx/compose/foundation/text/ComposableSingletons$BasicTextField_desktopKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
-	public static field lambda-2 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$foundation ()Lkotlin/jvm/functions/Function3;
 	public final fun getLambda-2$foundation ()Lkotlin/jvm/functions/Function3;
@@ -1898,7 +1990,6 @@ public final class androidx/compose/foundation/text/ComposableSingletons$BasicTe
 
 public final class androidx/compose/foundation/text/ComposableSingletons$CoreTextFieldKt {
 	public static final field INSTANCE Landroidx/compose/foundation/text/ComposableSingletons$CoreTextFieldKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function3;
 	public fun <init> ()V
 	public final fun getLambda-1$foundation ()Lkotlin/jvm/functions/Function3;
 }
@@ -1993,6 +2084,25 @@ public final class androidx/compose/foundation/text/KeyboardOptions {
 
 public final class androidx/compose/foundation/text/KeyboardOptions$Companion {
 	public final fun getDefault ()Landroidx/compose/foundation/text/KeyboardOptions;
+}
+
+public abstract interface class androidx/compose/foundation/text/TextAutoSize {
+	public static final field Companion Landroidx/compose/foundation/text/TextAutoSize$Companion;
+	public abstract fun equals (Ljava/lang/Object;)Z
+	public abstract fun getFontSize-Ci0_558 (Landroidx/compose/foundation/text/modifiers/TextAutoSizeLayoutScope;JLandroidx/compose/ui/text/AnnotatedString;)J
+	public abstract fun hashCode ()I
+}
+
+public final class androidx/compose/foundation/text/TextAutoSize$Companion {
+	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/TextAutoSize;
+	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/TextAutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/TextAutoSize;
+}
+
+public final class androidx/compose/foundation/text/TextAutoSizeDefaults {
+	public static final field $stable I
+	public static final field INSTANCE Landroidx/compose/foundation/text/TextAutoSizeDefaults;
+	public final fun getMaxFontSize-XSAIIZE ()J
+	public final fun getMinFontSize-XSAIIZE ()J
 }
 
 public abstract interface class androidx/compose/foundation/text/TextContextMenu {
@@ -2157,6 +2267,7 @@ public final class androidx/compose/foundation/text/input/TextFieldStateKt {
 	public static final fun rememberTextFieldState-Le-punE (Ljava/lang/String;JLandroidx/compose/runtime/Composer;II)Landroidx/compose/foundation/text/input/TextFieldState;
 	public static final fun setTextAndPlaceCursorAtEnd (Landroidx/compose/foundation/text/input/TextFieldState;Ljava/lang/String;)V
 	public static final fun setTextAndSelectAll (Landroidx/compose/foundation/text/input/TextFieldState;Ljava/lang/String;)V
+	public static final fun toTextFieldBuffer (Landroidx/compose/foundation/text/input/TextFieldState;)Landroidx/compose/foundation/text/input/TextFieldBuffer;
 }
 
 public final class androidx/compose/foundation/text/input/TextObfuscationMode {
@@ -2186,6 +2297,10 @@ public final class androidx/compose/foundation/text/input/UndoState {
 	public final fun getCanUndo ()Z
 	public final fun redo ()V
 	public final fun undo ()V
+}
+
+public abstract interface class androidx/compose/foundation/text/modifiers/TextAutoSizeLayoutScope : androidx/compose/ui/unit/Density {
+	public abstract fun performLayout-5ZSfY2I (JLandroidx/compose/ui/text/AnnotatedString;J)Landroidx/compose/ui/text/TextLayoutResult;
 }
 
 public final class androidx/compose/foundation/text/selection/SelectionContainerKt {
@@ -2220,7 +2335,6 @@ public final class androidx/compose/foundation/v2/Scrollbar_desktopKt {
 
 public final class androidx/compose/foundation/window/ComposableSingletons$WindowDraggableArea_desktopKt {
 	public static final field INSTANCE Landroidx/compose/foundation/window/ComposableSingletons$WindowDraggableArea_desktopKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function2;
 	public fun <init> ()V
 	public final fun getLambda-1$foundation ()Lkotlin/jvm/functions/Function2;
 }

@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
  * set a valid [Composable] by setting it directly on an instantiated [Destination] or calling
  * [composable].
  */
-public expect class ComposeNavigator : Navigator<Destination> {
+public expect class ComposeNavigator() : Navigator<Destination> {
 
     /**
      * Get the map of transitions currently in progress from the [state].
@@ -57,6 +57,8 @@ public expect class ComposeNavigator : Navigator<Destination> {
      * a transition such as when using predictive back.
      */
     public fun prepareForTransition(entry: NavBackStackEntry)
+
+    public override fun createDestination(): Destination
 
     /**
      * Callback to mark a navigation in transition as complete.

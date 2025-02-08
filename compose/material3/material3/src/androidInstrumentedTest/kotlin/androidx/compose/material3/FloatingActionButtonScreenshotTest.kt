@@ -17,24 +17,27 @@ package androidx.compose.material3
 
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.assertAgainstGolden
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.platform.LocalInputModeManager
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -54,7 +57,6 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-@OptIn(ExperimentalTestApi::class)
 class FloatingActionButtonScreenshotTest {
 
     @get:Rule val rule = createComposeRule()
@@ -227,6 +229,48 @@ class FloatingActionButtonScreenshotTest {
     }
 
     @Test
+    fun smallFab() {
+        rule.setMaterialContent(lightColorScheme()) {
+            SmallFloatingActionButton(onClick = {}) {
+                Icon(Icons.Filled.Favorite, contentDescription = null)
+            }
+        }
+
+        assertClickableAgainstGolden("fab_small_size")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun mediumFab() {
+        rule.setMaterialContent(lightColorScheme()) {
+            MediumFloatingActionButton(onClick = {}) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Localized description",
+                    modifier = Modifier.size(FloatingActionButtonDefaults.MediumIconSize),
+                )
+            }
+        }
+
+        assertClickableAgainstGolden("fab_medium_size")
+    }
+
+    @Test
+    fun largeFab() {
+        rule.setMaterialContent(lightColorScheme()) {
+            LargeFloatingActionButton(onClick = {}) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Localized description",
+                    modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize),
+                )
+            }
+        }
+
+        assertClickableAgainstGolden("fab_large_size")
+    }
+
+    @Test
     fun text() {
         rule.setMaterialContent(lightColorScheme()) {
             ExtendedFloatingActionButton(
@@ -249,6 +293,99 @@ class FloatingActionButtonScreenshotTest {
         }
 
         assertClickableAgainstGolden("fab_extended_text_and_icon")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun smallExtendedFabTextOnly() {
+        rule.setMaterialContent(lightColorScheme()) {
+            SmallExtendedFloatingActionButton(
+                onClick = {},
+                content = { Text("EXTENDED") },
+            )
+        }
+
+        assertClickableAgainstGolden("fab_small_extended_text")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun smallExtendedFabTextAndIcon() {
+        rule.setMaterialContent(lightColorScheme()) {
+            SmallExtendedFloatingActionButton(
+                text = { Text("EXTENDED") },
+                icon = { Icon(Icons.Filled.Favorite, contentDescription = null) },
+                onClick = {}
+            )
+        }
+
+        assertClickableAgainstGolden("fab_small_extended_text_and_icon")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun mediumExtendedFabTextOnly() {
+        rule.setMaterialContent(lightColorScheme()) {
+            MediumExtendedFloatingActionButton(
+                onClick = {},
+                content = { Text("EXTENDED") },
+            )
+        }
+
+        assertClickableAgainstGolden("fab_medium_extended_text")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun mediumExtendedFabTextAndIcon() {
+        rule.setMaterialContent(lightColorScheme()) {
+            MediumExtendedFloatingActionButton(
+                text = { Text("EXTENDED") },
+                icon = {
+                    Icon(
+                        Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(FloatingActionButtonDefaults.MediumIconSize)
+                    )
+                },
+                onClick = {}
+            )
+        }
+
+        assertClickableAgainstGolden("fab_medium_extended_text_and_icon")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun largeExtendedFabTextOnly() {
+        rule.setMaterialContent(lightColorScheme()) {
+            LargeExtendedFloatingActionButton(
+                onClick = {},
+                content = { Text("EXTENDED") },
+            )
+        }
+
+        assertClickableAgainstGolden("fab_large_extended_text")
+    }
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+    @Test
+    fun largeExtendedFabTextAndIcon() {
+        rule.setMaterialContent(lightColorScheme()) {
+            LargeExtendedFloatingActionButton(
+                text = { Text("EXTENDED") },
+                icon = {
+                    Icon(
+                        Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(FloatingActionButtonDefaults.LargeIconSize)
+                    )
+                },
+                onClick = {}
+            )
+        }
+
+        assertClickableAgainstGolden("fab_large_extended_text_and_icon")
     }
 
     @Test
@@ -308,7 +445,6 @@ class FloatingActionButtonScreenshotTest {
         }
 
         rule.runOnIdle {
-            @OptIn(ExperimentalComposeUiApi::class)
             localInputModeManager!!.requestInputMode(InputMode.Keyboard)
             focusRequester.requestFocus()
         }
@@ -318,12 +454,16 @@ class FloatingActionButtonScreenshotTest {
         assertRootAgainstGolden("fab_focus")
     }
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Test
     fun extended_fab_half_way_animation() {
         rule.mainClock.autoAdvance = false
 
         var expanded by mutableStateOf(true)
+        lateinit var motionSpec: FiniteAnimationSpec<Float>
         rule.setMaterialContent(lightColorScheme()) {
+            // Loads the same FiniteAnimationSpec that is used by the ExtendedFloatingActionButton
+            motionSpec = MotionSchemeKeyTokens.FastSpatial.value()
             ExtendedFloatingActionButton(
                 expanded = expanded,
                 onClick = {},
@@ -336,7 +476,18 @@ class FloatingActionButtonScreenshotTest {
 
         rule.runOnIdle { expanded = false }
 
-        rule.mainClock.advanceTimeBy(127)
+        // Calculate the time it should take the current motion to run and advance the clock to
+        // 50% of it.
+        val duration =
+            motionSpec
+                .vectorize(Float.VectorConverter)
+                .getDurationNanos(
+                    initialValue = AnimationVector1D(0f),
+                    targetValue = AnimationVector1D(1f),
+                    initialVelocity = AnimationVector1D(0f)
+                ) / 1_000_000.0
+
+        rule.mainClock.advanceTimeBy(duration.toLong() / 2)
 
         assertRootAgainstGolden("fab_extended_animation")
     }

@@ -33,6 +33,7 @@ internal fun Translations.sw() = mapOf(
     Strings.MenuCollapsed to "Imekunjwa",
     Strings.ToggleDropdownMenu to "Badilisha hali ya menyu kunjuzi",
     Strings.SnackbarDismiss to "Ondoa",
+    Strings.SnackbarPaneTitle to "Arifa",
     Strings.SearchBarSearch to "Tafuta",
     Strings.SuggestionsAvailable to "Mapendekezo yaliyo hapa chini",
     Strings.DatePickerTitle to "Chagua tarehe",
@@ -85,4 +86,6 @@ internal fun Translations.sw() = mapOf(
     Strings.TimePickerHour to "Saa",
     Strings.TimePickerMinuteTextField to "cha dakika",
     Strings.TimePickerHourTextField to "cha moja",
+    Strings.CloseRail to "Funga reli ya usogezaji",
+    Strings.WideNavigationRailPaneTitle to "Reli ya usogezaji",
 )

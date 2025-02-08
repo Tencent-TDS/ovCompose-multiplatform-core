@@ -28,4 +28,5 @@ internal fun Translations.si() = mapOf(
     Strings.DefaultErrorMessage to "වලංගු නොවන ආදානයකි",
     Strings.SliderRangeStart to "පරාස ආරම්භය",
     Strings.SliderRangeEnd to "පරාස අන්තය",
+    Strings.SnackbarPaneTitle to "ඇඟවීම",
 )

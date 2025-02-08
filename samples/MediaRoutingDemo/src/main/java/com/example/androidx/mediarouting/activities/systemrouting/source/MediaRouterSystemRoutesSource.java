@@ -18,41 +18,52 @@ package com.example.androidx.mediarouting.activities.systemrouting.source;
 
 import android.content.Context;
 import android.media.MediaRouter;
-import android.os.Build;
+import android.text.TextUtils;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import com.example.androidx.mediarouting.activities.systemrouting.SystemRouteItem;
-import com.example.androidx.mediarouting.activities.systemrouting.SystemRouteUtils;
 import com.example.androidx.mediarouting.activities.systemrouting.SystemRoutesSourceItem;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /** Implements {@link SystemRoutesSource} using {@link MediaRouter}. */
-@RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
 public final class MediaRouterSystemRoutesSource extends SystemRoutesSource {
 
     @NonNull
     private final MediaRouter mMediaRouter;
 
     @NonNull
-    private final MediaRouter.Callback mCallback = new MediaRouter.SimpleCallback() {
-        @Override
-        public void onRouteAdded(MediaRouter router, MediaRouter.RouteInfo info) {
-            super.onRouteAdded(router, info);
-            mOnRoutesChangedListener.onRouteAdded(createRouteItemFor(info));
-        }
+    private final MediaRouter.Callback mCallback =
+            new MediaRouter.SimpleCallback() {
+                @Override
+                public void onRouteAdded(MediaRouter router, MediaRouter.RouteInfo info) {
+                    mOnRoutesChangedListener.run();
+                }
 
-        @Override
-        public void onRouteRemoved(MediaRouter router, MediaRouter.RouteInfo info) {
-            super.onRouteRemoved(router, info);
-            mOnRoutesChangedListener.onRouteRemoved(createRouteItemFor(info));
-        }
-    };
+                @Override
+                public void onRouteRemoved(MediaRouter router, MediaRouter.RouteInfo info) {
+                    mOnRoutesChangedListener.run();
+                }
+
+                @Override
+                public void onRouteChanged(MediaRouter router, MediaRouter.RouteInfo info) {
+                    mOnRoutesChangedListener.run();
+                }
+
+                @Override
+                public void onRouteUnselected(
+                        MediaRouter router, int type, MediaRouter.RouteInfo info) {
+                    mOnRoutesChangedListener.run();
+                }
+
+                @Override
+                public void onRouteSelected(
+                        MediaRouter router, int type, MediaRouter.RouteInfo info) {
+                    mOnRoutesChangedListener.run();
+                }
+            };
 
     /** Returns a new instance. */
     @NonNull
@@ -79,8 +90,7 @@ public final class MediaRouterSystemRoutesSource extends SystemRoutesSource {
     @NonNull
     @Override
     public SystemRoutesSourceItem getSourceItem() {
-        return new SystemRoutesSourceItem.Builder(SystemRoutesSourceItem.ROUTE_SOURCE_MEDIA_ROUTER)
-                .build();
+        return new SystemRoutesSourceItem(/* name= */ "Legacy MediaRouter");
     }
 
     @NonNull
@@ -90,46 +100,47 @@ public final class MediaRouterSystemRoutesSource extends SystemRoutesSource {
 
         List<SystemRouteItem> out = new ArrayList<>();
 
+        MediaRouter.RouteInfo selectedRoute =
+                mMediaRouter.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_AUDIO);
         for (int i = 0; i < count; i++) {
             MediaRouter.RouteInfo info = mMediaRouter.getRouteAt(i);
-
-            if (!SystemRouteUtils.isSystemMediaRouterRoute(info)) {
-                continue;
+            if (info.getPlaybackType() == MediaRouter.RouteInfo.PLAYBACK_TYPE_LOCAL) {
+                // We are only interested in system routes.
+                out.add(createRouteItemFor(info, /* isSelected= */ selectedRoute == info));
             }
-
-            out.add(createRouteItemFor(info));
         }
 
         return out;
     }
 
-    @NonNull
-    private static SystemRouteItem createRouteItemFor(@NonNull MediaRouter.RouteInfo routeInfo) {
-        SystemRouteItem.Builder builder =
-                new SystemRouteItem.Builder(/* id= */ routeInfo.getName().toString())
-                        .setName(routeInfo.getName().toString());
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            CharSequence description = Api18Impl.getDescription(routeInfo);
-
-            if (description != null) {
-                builder.setDescription(String.valueOf(description));
+    @Override
+    public boolean select(@NonNull SystemRouteItem item) {
+        int routeCount = mMediaRouter.getRouteCount();
+        for (int i = 0; i < routeCount; i++) {
+            MediaRouter.RouteInfo route = mMediaRouter.getRouteAt(i);
+            if (TextUtils.equals(route.getName().toString(), item.mId)) {
+                mMediaRouter.selectRoute(MediaRouter.ROUTE_TYPE_LIVE_AUDIO, route);
+                return true;
             }
+        }
+        return false;
+    }
+
+    @NonNull
+    private SystemRouteItem createRouteItemFor(
+            @NonNull MediaRouter.RouteInfo routeInfo, boolean isSelected) {
+        SystemRouteItem.Builder builder =
+                new SystemRouteItem.Builder(getSourceId(), /* id= */ routeInfo.getName().toString())
+                        .setName(routeInfo.getName().toString());
+        builder.setSelectionSupportState(
+                isSelected
+                        ? SystemRouteItem.SelectionSupportState.RESELECTABLE
+                        : SystemRouteItem.SelectionSupportState.SELECTABLE);
+        CharSequence description = routeInfo.getDescription();
+        if (description != null) {
+            builder.setDescription(String.valueOf(description));
         }
 
         return builder.build();
-    }
-
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    static class Api18Impl {
-        private Api18Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        @Nullable
-        static CharSequence getDescription(MediaRouter.RouteInfo routeInfo) {
-            return routeInfo.getDescription();
-        }
     }
 }

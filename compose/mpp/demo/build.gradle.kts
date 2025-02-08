@@ -19,7 +19,6 @@ import androidx.build.JetbrainsAndroidXPlugin
 import java.util.*
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
@@ -163,6 +162,7 @@ kotlin {
                 implementation(project(":compose:ui:ui"))
                 implementation(project(":compose:ui:ui-graphics"))
                 implementation(project(":compose:ui:ui-text"))
+                implementation(project(":compose:ui:ui-backhandler"))
                 implementation(project(":lifecycle:lifecycle-common"))
                 implementation(project(":lifecycle:lifecycle-runtime"))
                 implementation(project(":lifecycle:lifecycle-runtime-compose"))
@@ -203,6 +203,9 @@ kotlin {
 
         val wasmJsMain by getting {
             dependsOn(webMain)
+            dependencies {
+                api(libs.kotlinXw3c)
+            }
         }
 
         val nativeMain by creating { dependsOn(skikoMain) }

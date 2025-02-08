@@ -28,6 +28,7 @@ internal fun Translations.zhCN() = mapOf(
     Strings.DefaultErrorMessage to "输入无效",
     Strings.SliderRangeStart to "范围起点",
     Strings.SliderRangeEnd to "范围终点",
+    Strings.SnackbarPaneTitle to "提醒",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -39,6 +40,7 @@ internal fun Translations.zhHK() = mapOf(
     Strings.DefaultErrorMessage to "輸入嘅資料無效",
     Strings.SliderRangeStart to "範圍開始",
     Strings.SliderRangeEnd to "範圍結束",
+    Strings.SnackbarPaneTitle to "警示",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -50,4 +52,5 @@ internal fun Translations.zhTW() = mapOf(
     Strings.DefaultErrorMessage to "輸入內容無效",
     Strings.SliderRangeStart to "範圍起點",
     Strings.SliderRangeEnd to "範圍終點",
+    Strings.SnackbarPaneTitle to "快訊",
 )

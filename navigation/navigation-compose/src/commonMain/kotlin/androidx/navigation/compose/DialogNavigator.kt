@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
  * [Dialog]. Every destination using this Navigator must  set a valid [Composable] by setting it
  * directly on an instantiated [Destination] or calling [dialog].
  */
-public expect class DialogNavigator : Navigator<Destination> {
+public expect class DialogNavigator() : Navigator<Destination> {
 
     /**
      * Get the back stack from the [state].
@@ -50,6 +50,8 @@ public expect class DialogNavigator : Navigator<Destination> {
     internal fun dismiss(backStackEntry: NavBackStackEntry)
 
     internal fun onTransitionComplete(entry: NavBackStackEntry)
+
+    override fun createDestination(): Destination
 
     /**
      * NavDestination specific to [DialogNavigator]

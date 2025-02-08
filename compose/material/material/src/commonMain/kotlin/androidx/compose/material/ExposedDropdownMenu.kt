@@ -13,9 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7502
+//  aosp/3466924 reverts naming commonization in last minute before 1.8.0-beta01
+//  so it had to be re-done during 1.9 development cycle
+//  For now revert naming into 1.7.x state to avoid extra changes
+@file:JvmName("ExposedDropdownMenu_skikoKt")
+@file:JvmMultifileClass
+
 package androidx.compose.material
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -23,26 +32,45 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.internal.JvmDefaultWithCompatibility
+import androidx.compose.material.internal.ExposedDropdownMenuPopup
+import androidx.compose.material.internal.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.node.Ref
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntRect
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
+import kotlin.math.max
 
 /**
  * [Material Design Exposed Dropdown
@@ -65,12 +93,69 @@ import androidx.compose.ui.semantics.semantics
  */
 @ExperimentalMaterialApi
 @Composable
-expect fun ExposedDropdownMenuBox(
+fun ExposedDropdownMenuBox(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable ExposedDropdownMenuBoxScope.() -> Unit
-)
+) {
+    val density = LocalDensity.current
+    val windowBoundsCalculator = platformWindowBoundsCalculator()
+    var width by remember { mutableIntStateOf(0) }
+    var menuHeight by remember { mutableIntStateOf(0) }
+    val verticalMarginInPx = with(density) { MenuVerticalMargin.roundToPx() }
+    val coordinates = remember { Ref<LayoutCoordinates>() }
+
+    val scope =
+        remember(density, menuHeight, width) {
+            object : ExposedDropdownMenuBoxScope() {
+                override fun Modifier.exposedDropdownSize(matchTextFieldWidth: Boolean): Modifier {
+                    return with(density) {
+                        heightIn(max = menuHeight.toDp()).let {
+                            if (matchTextFieldWidth) {
+                                it.width(width.toDp())
+                            } else it
+                        }
+                    }
+                }
+            }
+        }
+    val focusRequester = remember { FocusRequester() }
+
+    Box(
+        modifier
+            .onGloballyPositioned {
+                width = it.size.width
+                coordinates.value = it
+                updateHeight(
+                    windowBounds = windowBoundsCalculator.getVisibleWindowBounds(),
+                    coordinates = coordinates.value,
+                    verticalMarginInPx = verticalMarginInPx
+                ) { newHeight ->
+                    menuHeight = newHeight
+                }
+            }
+            .expandable(
+                onExpandedChange = { onExpandedChange(!expanded) },
+                menuLabel = getString(Strings.ExposedDropdownMenu)
+            )
+            .focusRequester(focusRequester)
+    ) {
+        scope.content()
+    }
+
+    SideEffect { if (expanded) focusRequester.requestFocus() }
+
+    OnPlatformWindowBoundsChange {
+        updateHeight(
+            windowBounds = windowBoundsCalculator.getVisibleWindowBounds(),
+            coordinates = coordinates.value,
+            verticalMarginInPx = verticalMarginInPx
+        ) { newHeight ->
+            menuHeight = newHeight
+        }
+    }
+}
 
 /** Scope for [ExposedDropdownMenuBox]. */
 @ExperimentalMaterialApi
@@ -106,41 +191,41 @@ abstract class ExposedDropdownMenuBoxScope {
         scrollState: ScrollState = rememberScrollState(),
         content: @Composable ColumnScope.() -> Unit
     ) {
-        ExposedDropdownMenuDefaultImpl(
-            expanded, onDismissRequest, modifier, scrollState, content
-        )
+        // TODO(b/202810604): use DropdownMenu when PopupProperties constructor is stable
+        // return DropdownMenu(
+        //     expanded = expanded,
+        //     onDismissRequest = onDismissRequest,
+        //     modifier = modifier.exposedDropdownSize(),
+        //     properties = ExposedDropdownMenuDefaults.PopupProperties,
+        //     content = content
+        // )
+
+        val expandedStates = remember { MutableTransitionState(false) }
+        expandedStates.targetState = expanded
+
+        if (expandedStates.currentState || expandedStates.targetState) {
+            val transformOriginState = remember { mutableStateOf(TransformOrigin.Center) }
+            val density = LocalDensity.current
+            val popupPositionProvider =
+                DropdownMenuPositionProvider(DpOffset.Zero, density) { parentBounds, menuBounds ->
+                    transformOriginState.value = calculateTransformOrigin(parentBounds, menuBounds)
+                }
+
+            ExposedDropdownMenuPopup(
+                onDismissRequest = onDismissRequest,
+                popupPositionProvider = popupPositionProvider
+            ) {
+                DropdownMenuContent(
+                    expandedStates = expandedStates,
+                    transformOriginState = transformOriginState,
+                    scrollState = scrollState,
+                    modifier = modifier.exposedDropdownSize(),
+                    content = content
+                )
+            }
+        }
     }
 }
-
-@Composable
-internal expect fun ExposedDropdownMenuBoxScope.ExposedDropdownMenuDefaultImpl(
-    expanded: Boolean,
-    onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier,
-    scrollState: ScrollState = rememberScrollState(),
-    content: @Composable ColumnScope.() -> Unit
-)
-
-internal fun Modifier.expandable(onExpandedChange: () -> Unit, menuLabel: String) =
-    pointerInput(onExpandedChange) {
-        awaitEachGesture {
-            // Must be PointerEventPass.Initial to observe events before the text field consumes
-            // them
-            // in the Main pass
-            awaitFirstDown(pass = PointerEventPass.Initial)
-            val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
-            if (upEvent != null) {
-                onExpandedChange()
-            }
-        }
-    }
-        .semantics {
-            contentDescription = menuLabel // this should be a localised string
-            onClick {
-                onExpandedChange()
-                true
-            }
-        }
 
 /** Contains default values used by Exposed Dropdown Menu. */
 @ExperimentalMaterialApi
@@ -362,7 +447,39 @@ object ExposedDropdownMenuDefaults {
         )
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+private fun Modifier.expandable(onExpandedChange: () -> Unit, menuLabel: String) =
+    pointerInput(onExpandedChange) {
+            awaitEachGesture {
+                // Must be PointerEventPass.Initial to observe events before the text field consumes
+                // them
+                // in the Main pass
+                awaitFirstDown(pass = PointerEventPass.Initial)
+                val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+                if (upEvent != null) {
+                    onExpandedChange()
+                }
+            }
+        }
+        .semantics {
+            contentDescription = menuLabel // this should be a localised string
+            onClick {
+                onExpandedChange()
+                true
+            }
+        }
+
+private fun updateHeight(
+    windowBounds: IntRect,
+    coordinates: LayoutCoordinates?,
+    verticalMarginInPx: Int,
+    onHeightUpdate: (Int) -> Unit
+) {
+    coordinates ?: return
+    val heightAbove = coordinates.boundsInWindow().top - windowBounds.top
+    val heightBelow = windowBounds.bottom - windowBounds.top - coordinates.boundsInWindow().bottom
+    onHeightUpdate(max(heightAbove, heightBelow).toInt() - verticalMarginInPx)
+}
+
 @Immutable
 private class DefaultTextFieldForExposedDropdownMenusColors(
     private val textColor: Color,
@@ -549,3 +666,11 @@ private class DefaultTextFieldForExposedDropdownMenusColors(
         return result
     }
 }
+
+internal expect class WindowBoundsCalculator {
+    fun getVisibleWindowBounds(): IntRect
+}
+
+@Composable internal expect fun platformWindowBoundsCalculator(): WindowBoundsCalculator
+
+@Composable internal expect fun OnPlatformWindowBoundsChange(block: () -> Unit)

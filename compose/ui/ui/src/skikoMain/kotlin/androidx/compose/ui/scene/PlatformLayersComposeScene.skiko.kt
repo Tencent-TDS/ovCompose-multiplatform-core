@@ -126,7 +126,8 @@ private class PlatformLayersComposeSceneImpl(
 
     override val focusManager = ComposeSceneFocusManager { mainOwner.focusOwner }
 
-    override val dragAndDropTarget = ComposeSceneDragAndDropTarget { mainOwner.dragAndDropOwner }
+    // TODO: Extract to interface and return `mainOwner.dragAndDropOwner.rootDragAndDropNode`
+    override val rootDragAndDropNode = ComposeSceneDragAndDropNode { mainOwner.dragAndDropOwner }
 
     init {
         onOwnerAppended(mainOwner)
@@ -163,6 +164,10 @@ private class PlatformLayersComposeSceneImpl(
 
     override fun processPointerInputEvent(event: PointerInputEvent) =
         mainOwner.onPointerInput(event)
+
+    override fun processCancelPointerInput() {
+        mainOwner.onCancelPointerInput()
+    }
 
     override fun processKeyEvent(keyEvent: KeyEvent): Boolean =
         mainOwner.onKeyEvent(keyEvent)

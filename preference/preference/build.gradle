@@ -14,7 +14,7 @@
  * limitations under the License
  */
 
-import androidx.build.Publish
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -42,7 +42,6 @@ dependencies {
     androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
 }
 
 android {
@@ -55,10 +54,9 @@ android {
 
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
-        multiDexEnabled true
     }
 
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     namespace "androidx.preference"
@@ -66,8 +64,9 @@ android {
 
 androidx {
     name = "Preference"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2015"
     description = "AndroidX Preference"
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

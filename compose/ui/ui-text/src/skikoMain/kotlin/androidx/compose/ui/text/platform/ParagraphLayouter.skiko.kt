@@ -61,7 +61,7 @@ internal class ParagraphLayouter(
     val text: String,
     textDirection: ResolvedTextDirection,
     style: TextStyle,
-    spanStyles: List<AnnotatedString.Range<SpanStyle>>,
+    annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
     placeholders: List<AnnotatedString.Range<Placeholder>>,
     density: Density,
     fontFamilyResolver: FontFamily.Resolver
@@ -70,7 +70,7 @@ internal class ParagraphLayouter(
         fontFamilyResolver = fontFamilyResolver,
         text = text,
         textStyle = style,
-        spanStyles = spanStyles,
+        annotations = annotations,
         placeholders = placeholders,
         density = density,
         textDirection = textDirection
@@ -85,7 +85,7 @@ internal class ParagraphLayouter(
     private fun invalidateParagraph(onlyForeground: Boolean = false) {
         // skia's updateForegroundPaint applies the same style to every span,
         // so if we have any, we need to rebuild the entire paragraph :'(
-        if (onlyForeground && builder.spanStyles.isEmpty()) {
+        if (onlyForeground && builder.annotations.isEmpty()) {
             updateForeground = true
         } else {
             paragraphCache = null
@@ -151,7 +151,9 @@ internal class ParagraphLayouter(
             // but we have to invalidate it because it's backed into skia's paragraph.
             // Since it affects only [ShaderBrush] we can keep the cache if it's not used.
             if (builder.textStyle.brush is ShaderBrush ||
-                builder.spanStyles.any { it.item.brush is ShaderBrush }) {
+                builder.annotations.any {
+                    it.item is SpanStyle && // TODO(ivan): Verify that we need only [SpanStyle] here
+                    it.item.brush is ShaderBrush }) {
                 invalidateParagraph(onlyForeground = true)
             }
         }

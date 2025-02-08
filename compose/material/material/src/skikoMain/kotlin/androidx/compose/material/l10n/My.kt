@@ -28,4 +28,5 @@ internal fun Translations.my() = mapOf(
     Strings.DefaultErrorMessage to "ထည့်သွင်းမှု မမှန်ကန်ပါ",
     Strings.SliderRangeStart to "အပိုင်းအခြား အစ",
     Strings.SliderRangeEnd to "အပိုင်းအခြား အဆုံး",
+    Strings.SnackbarPaneTitle to "သတိပေးချက်",
 )

@@ -42,9 +42,8 @@ import kotlinx.coroutines.launch
  *
  * Calling this in your composable adds the given lambda to the [OnBackPressedDispatcher] of the
  * [LocalOnBackPressedDispatcherOwner]. The lambda passes in a Flow<BackEventCompat> where each
- * [BackEventCompat] reflects the progress of current gesture back. The lambda content should
- * follow this structure:
- *
+ * [BackEventCompat] reflects the progress of current gesture back. The lambda content should follow
+ * this structure:
  * ```
  * PredictiveBackHandler { progress: Flow<BackEventCompat> ->
  *      // code for gesture back started
@@ -59,28 +58,28 @@ import kotlinx.coroutines.launch
  * }
  * ```
  *
- * If this is called by nested composables, if enabled, the inner most composable will consume
- * the call to system back and invoke its lambda. The call will continue to propagate up until it
- * finds an enabled BackHandler.
+ * If this is called by nested composables, if enabled, the inner most composable will consume the
+ * call to system back and invoke its lambda. The call will continue to propagate up until it finds
+ * an enabled BackHandler.
  *
  * @sample androidx.activity.compose.samples.PredictiveBack
- *
  * @param enabled if this BackHandler should be enabled, true by default
  * @param onBack the action invoked by back gesture
  */
 @Composable
 public fun PredictiveBackHandler(
     enabled: Boolean = true,
-    onBack: suspend (progress: @JvmSuppressWildcards Flow<BackEventCompat>) ->
-        @JvmSuppressWildcards Unit
+    onBack:
+        suspend (progress: @JvmSuppressWildcards Flow<BackEventCompat>) -> @JvmSuppressWildcards
+            Unit
 ) {
     // ensure we don't re-register callbacks when onBack changes
     val currentOnBack by rememberUpdatedState(onBack)
     val onBackScope = rememberCoroutineScope()
+    var onBackInstance: OnBackInstance? = null
 
     val backCallBack = remember {
         object : OnBackPressedCallback(enabled) {
-            var onBackInstance: OnBackInstance? = null
 
             override fun handleOnBackStarted(backEvent: BackEventCompat) {
                 super.handleOnBackStarted(backEvent)
@@ -114,50 +113,54 @@ public fun PredictiveBackHandler(
                 // finally, we close the channel to ensure no more events can be sent
                 // but let the job complete normally
                 onBackInstance?.close()
+                onBackInstance?.isPredictiveBack = false
             }
 
             override fun handleOnBackCancelled() {
                 super.handleOnBackCancelled()
                 // cancel will purge the channel of any sent events that are yet to be received
                 onBackInstance?.cancel()
+                onBackInstance?.isPredictiveBack = false
             }
         }
     }
 
     LaunchedEffect(enabled) {
         backCallBack.isEnabled = enabled
+        if (!enabled) {
+            onBackInstance?.close()
+            onBackInstance = null
+        }
     }
 
-    val backDispatcher = checkNotNull(LocalOnBackPressedDispatcherOwner.current) {
-            "No OnBackPressedDispatcherOwner was provided via LocalOnBackPressedDispatcherOwner"
-        }.onBackPressedDispatcher
+    val backDispatcher =
+        checkNotNull(LocalOnBackPressedDispatcherOwner.current) {
+                "No OnBackPressedDispatcherOwner was provided via LocalOnBackPressedDispatcherOwner"
+            }
+            .onBackPressedDispatcher
 
+    @Suppress("deprecation", "KotlinRedundantDiagnosticSuppress") // TODO b/330570365
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, backDispatcher) {
         backDispatcher.addCallback(lifecycleOwner, backCallBack)
 
-        onDispose {
-            backCallBack.remove()
-        }
+        onDispose { backCallBack.remove() }
     }
 }
 
 private class OnBackInstance(
     scope: CoroutineScope,
-    val isPredictiveBack: Boolean,
+    var isPredictiveBack: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit,
 ) {
     val channel = Channel<BackEventCompat>(capacity = BUFFERED, onBufferOverflow = SUSPEND)
-    val job = scope.launch {
-        var completed = false
-        onBack(channel.consumeAsFlow().onCompletion {
-            completed = true
-        })
-        check(completed) {
-            "You must collect the progress flow"
+    val job =
+        scope.launch {
+            var completed = false
+            onBack(channel.consumeAsFlow().onCompletion { completed = true })
+            check(completed) { "You must collect the progress flow" }
         }
-    }
 
     fun send(backEvent: BackEventCompat) = channel.trySend(backEvent)
 

@@ -76,7 +76,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
             }
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
             desktopTest.kotlin.srcDirs("src/test/kotlin")
 

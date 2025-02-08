@@ -16,8 +16,7 @@
 
 package androidx.camera.core.processing;
 
-import static android.graphics.ImageFormat.JPEG;
-
+import static androidx.camera.core.internal.utils.ImageUtil.isJpegFormats;
 import static androidx.core.util.Preconditions.checkNotNull;
 
 import android.graphics.Bitmap;
@@ -25,12 +24,10 @@ import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.media.Image;
-import android.os.Build;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageInfo;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -59,7 +56,6 @@ import java.nio.ByteBuffer;
  * @param <T> image data type. Possible values are {@link ImageProxy}, {@link ByteBuffer},
  *            {@link Bitmap} etc.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 @AutoValue
 public abstract class Packet<T> {
 
@@ -89,7 +85,8 @@ public abstract class Packet<T> {
      *
      * <p>This value must match the format of the image in {@link #getData()}.
      *
-     * <p>For {@link Bitmap} type, the value is {@link ImageFormat#FLEX_RGBA_8888}.
+     * <p>For {@link Bitmap} type, the value is {@link ImageFormat#FLEX_RGBA_8888}. If the Bitmap
+     * has a gainmap, it can be converted to JPEG_R format on API level 34+
      */
     public abstract int getFormat();
 
@@ -174,7 +171,7 @@ public abstract class Packet<T> {
             @NonNull Size size, @NonNull Rect cropRect, int rotationDegrees,
             @NonNull Matrix sensorToBufferTransform,
             @NonNull CameraCaptureResult cameraCaptureResult) {
-        if (data.getFormat() == JPEG) {
+        if (isJpegFormats(data.getFormat())) {
             checkNotNull(exif, "JPEG image must have Exif.");
         }
         return new AutoValue_Packet<>(data, exif, data.getFormat(), size, cropRect, rotationDegrees,

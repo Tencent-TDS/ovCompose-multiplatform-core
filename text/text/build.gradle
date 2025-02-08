@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.Publish
 
 plugins {
@@ -26,6 +33,7 @@ plugins {
 dependencies {
     implementation(libs.kotlinStdlib)
     implementation("androidx.core:core:1.7.0")
+    implementation("androidx.emoji2:emoji2:1.4.0")
 
     api "androidx.annotation:annotation:1.2.0"
 
@@ -33,6 +41,7 @@ dependencies {
     testImplementation(libs.testRunner)
     testImplementation(libs.junit)
 
+    androidTestImplementation("androidx.emoji2:emoji2-bundled:1.4.0")
     androidTestImplementation(project(":internal-testutils-fonts"))
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.testRunner)

@@ -21,7 +21,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SmallTest
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertWithMessage
 import org.junit.Test
 
 @SmallTest

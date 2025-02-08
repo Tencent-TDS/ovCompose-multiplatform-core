@@ -19,9 +19,7 @@ package androidx.compose.ui.window
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
-import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPointMake
@@ -30,16 +28,9 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIsEmpty
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
-import platform.Foundation.NSRunLoop
-import platform.Foundation.NSRunLoopCommonModes
-import platform.QuartzCore.CADisplayLink
 import platform.UIKit.UIView
 import platform.UIKit.UIViewAnimationOptionCurveEaseInOut
 import platform.UIKit.UIViewAnimationOptions
-import platform.darwin.NSObject
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
-import platform.darwin.sel_registerName
 
 internal class ComposeSceneKeyboardOffsetManager(
     private val view: UIView,
@@ -70,7 +61,7 @@ internal class ComposeSceneKeyboardOffsetManager(
 
     private val animationViews = mutableListOf<UIView>()
 
-    private var keyboardAnimationListener: CADisplayLink? = null
+    private var keyboardAnimationListener: DisplayLinkListener? = null
 
     val isAnimating get() = keyboardAnimationListener != null
 
@@ -176,18 +167,9 @@ internal class ComposeSceneKeyboardOffsetManager(
             return layer.frame.useContents { size.height / animationTargetSize }
         }
 
-        //animation listener
-        val keyboardDisplayLink = CADisplayLink.displayLinkWithTarget(
-            target = object : NSObject() {
-                @OptIn(BetaInteropApi::class)
-                @Suppress("unused")
-                @ObjCAction
-                fun animationDidUpdate() {
-                    updateAnimationValues(getCurrentAnimationProgress())
-                }
-            },
-            selector = sel_registerName("animationDidUpdate")
-        )
+        val keyboardDisplayLink = DisplayLinkListener {
+            updateAnimationValues(getCurrentAnimationProgress())
+        }
         keyboardAnimationListener = keyboardDisplayLink
 
         UIView.animateWithDuration(
@@ -208,11 +190,6 @@ internal class ComposeSceneKeyboardOffsetManager(
                 }
             }
         )
-        // HACK: Add display link observer to run loop in the next run loop cycle to fix issue
-        // where view's presentationLayer sometimes gets end bounds on the first animation frame
-        // instead of the initial one.
-        dispatch_async(dispatch_get_main_queue()) {
-            keyboardDisplayLink.addToRunLoop(NSRunLoop.mainRunLoop, NSRunLoopCommonModes)
-        }
+        keyboardDisplayLink.start()
     }
 }

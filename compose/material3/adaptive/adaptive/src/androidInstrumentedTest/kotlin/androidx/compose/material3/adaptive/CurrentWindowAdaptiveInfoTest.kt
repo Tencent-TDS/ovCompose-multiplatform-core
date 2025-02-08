@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import androidx.test.filters.SmallTest
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowLayoutInfo
-import androidx.window.layout.WindowMetricsCalculator
 import androidx.window.testing.layout.WindowLayoutInfoPublisherRule
+import androidx.window.testing.layout.WindowMetricsCalculatorRule
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -39,31 +39,29 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
+@Suppress("DEPRECATION") // WindowSizeClass#compute is deprecated
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class CurrentWindowAdaptiveInfoTest {
     private val composeRule = createComposeRule()
     private val layoutInfoRule = WindowLayoutInfoPublisherRule()
+    private val windowMetricsCalculatorRule = WindowMetricsCalculatorRule()
 
-    @get:Rule val testRule: TestRule
-
-    init {
-        testRule = RuleChain.outerRule(layoutInfoRule).around(composeRule)
-    }
+    @get:Rule
+    val testRule: TestRule =
+        RuleChain.outerRule(windowMetricsCalculatorRule).around(layoutInfoRule).around(composeRule)
 
     @Test
     fun test_currentWindowAdaptiveInfo() {
         lateinit var actualAdaptiveInfo: WindowAdaptiveInfo
         val mockWindowSize = mutableStateOf(MockWindowSize1)
-        WindowMetricsCalculator.overrideDecorator(
-            MockWindowMetricsCalculatorDecorator(mockWindowSize)
-        )
 
         composeRule.setContent {
             val testConfiguration = Configuration(LocalConfiguration.current)
             testConfiguration.screenWidthDp = mockWindowSize.value.width
             testConfiguration.screenHeightDp = mockWindowSize.value.height
+            windowMetricsCalculatorRule.overrideWindowSize(mockWindowSize)
             CompositionLocalProvider(
                 LocalDensity provides MockDensity,
                 LocalConfiguration provides testConfiguration

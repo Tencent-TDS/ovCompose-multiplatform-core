@@ -45,6 +45,8 @@ import androidx.compose.material.icons.sharp.FlashOff
 import androidx.compose.material.icons.sharp.FlashOn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -64,8 +66,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.launch
 
-@VisibleForTesting
-internal const val DEFAULT_LENS_FACING = CameraSelector.LENS_FACING_FRONT
+@VisibleForTesting internal const val DEFAULT_LENS_FACING = CameraSelector.LENS_FACING_FRONT
 private const val DEFAULT_FLASH_MODE = ImageCapture.FLASH_MODE_OFF
 
 // State Holder for ImageCaptureScreen
@@ -75,7 +76,7 @@ class ImageCaptureScreenState(
     initialLensFacing: Int = DEFAULT_LENS_FACING,
     initialFlashMode: Int = DEFAULT_FLASH_MODE
 ) {
-    var lensFacing by mutableStateOf(initialLensFacing)
+    var lensFacing by mutableIntStateOf(initialLensFacing)
         private set
 
     var hasFlashUnit by mutableStateOf(false)
@@ -84,60 +85,52 @@ class ImageCaptureScreenState(
     var isCameraReady by mutableStateOf(false)
         private set
 
-    var flashMode: Int by mutableStateOf(getValidInitialFlashMode(initialFlashMode))
+    var flashMode: Int by mutableIntStateOf(getValidInitialFlashMode(initialFlashMode))
         private set
 
     var flashModeIcon: ImageVector = getFlashModeImageVector()
         private set
         get() = getFlashModeImageVector()
 
-    var linearZoom by mutableStateOf(0f)
+    var linearZoom by mutableFloatStateOf(0f)
         private set
 
-    var zoomRatio by mutableStateOf(1f)
+    var zoomRatio by mutableFloatStateOf(1f)
         private set
 
     var qrCodeBoundingBox by mutableStateOf<Rect?>(null)
         private set
 
     // Configure QR Code Scanner
-    private val barcodeScanner = BarcodeScanning.getClient(
-        BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .build()
-    )
+    private val barcodeScanner =
+        BarcodeScanning.getClient(
+            BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+        )
 
     // Uses COORDINATE_SYSTEM_VIEW_REFERENCED to transform bounding box
     // to PreviewView's coordinates
     // We need to acquire OutputTransform from PreviewView for this to work
-    private val mlKitAnalyzer = MlKitAnalyzer(
-        listOf(barcodeScanner),
-        COORDINATE_SYSTEM_VIEW_REFERENCED,
-        Dispatchers.Main.asExecutor()
-    ) { result ->
-        val barcodes = result.getValue(barcodeScanner)
-        qrCodeBoundingBox = if (barcodes != null && barcodes.size > 0) {
-            barcodes[0].boundingBox
-        } else {
-            null
+    private val mlKitAnalyzer =
+        MlKitAnalyzer(
+            listOf(barcodeScanner),
+            ImageAnalysis.COORDINATE_SYSTEM_VIEW_REFERENCED,
+            Dispatchers.Main.asExecutor()
+        ) { result ->
+            val barcodes = result.getValue(barcodeScanner)
+            qrCodeBoundingBox =
+                if (barcodes != null && barcodes.size > 0) {
+                    barcodes[0].boundingBox
+                } else {
+                    null
+                }
         }
-    }
 
     // Use Cases
     private val preview = Preview.Builder().build()
-    private val imageCapture = ImageCapture
-        .Builder()
-        .setFlashMode(flashMode)
-        .build()
-    private val imageAnalysis = ImageAnalysis
-        .Builder()
-        .setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST)
-        .build()
-        .also {
-            it.setAnalyzer(
-                Dispatchers.Main.asExecutor(),
-                mlKitAnalyzer
-            )
+    private val imageCapture = ImageCapture.Builder().setFlashMode(flashMode).build()
+    private val imageAnalysis =
+        ImageAnalysis.Builder().setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST).build().also {
+            it.setAnalyzer(Dispatchers.Main.asExecutor(), mlKitAnalyzer)
         }
 
     private var camera: Camera? = null
@@ -180,29 +173,31 @@ class ImageCaptureScreenState(
 
     fun toggleLensFacing() {
         Log.d(TAG, "Toggling Lens")
-        lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
-            CameraSelector.LENS_FACING_FRONT
-        } else {
-            CameraSelector.LENS_FACING_BACK
-        }
+        lensFacing =
+            if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                CameraSelector.LENS_FACING_FRONT
+            } else {
+                CameraSelector.LENS_FACING_BACK
+            }
     }
 
     fun toggleFlashMode() {
         Log.d(TAG, "Toggling Flash Mode")
-        flashMode = when (flashMode) {
-            ImageCapture.FLASH_MODE_OFF -> {
-                ImageCapture.FLASH_MODE_AUTO
+        flashMode =
+            when (flashMode) {
+                ImageCapture.FLASH_MODE_OFF -> {
+                    ImageCapture.FLASH_MODE_AUTO
+                }
+                ImageCapture.FLASH_MODE_AUTO -> {
+                    ImageCapture.FLASH_MODE_ON
+                }
+                ImageCapture.FLASH_MODE_ON -> {
+                    ImageCapture.FLASH_MODE_OFF
+                }
+                else -> {
+                    throw IllegalStateException("Flash Mode: $flashMode is invalid!")
+                }
             }
-            ImageCapture.FLASH_MODE_AUTO -> {
-                ImageCapture.FLASH_MODE_ON
-            }
-            ImageCapture.FLASH_MODE_ON -> {
-                ImageCapture.FLASH_MODE_OFF
-            }
-            else -> {
-                throw IllegalStateException("Flash Mode: $flashMode is invalid!")
-            }
-        }
         imageCapture.flashMode = flashMode
     }
 
@@ -216,41 +211,42 @@ class ImageCaptureScreenState(
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider = cameraProviderFuture.get()
 
-            val cameraSelector = CameraSelector
-                .Builder()
-                .requireLensFacing(lensFacing)
-                .build()
+                val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
-            // Remove observers from the old camera instance
-            removeZoomStateObservers(lifecycleOwner)
+                // Remove observers from the old camera instance
+                removeZoomStateObservers(lifecycleOwner)
 
-            // Reset internal State of Camera
-            camera = null
-            hasFlashUnit = false
-            isCameraReady = false
+                // Reset internal State of Camera
+                camera = null
+                hasFlashUnit = false
+                isCameraReady = false
 
-            try {
-                cameraProvider.unbindAll()
-                val camera = cameraProvider.bindToLifecycle(
-                    lifecycleOwner,
-                    cameraSelector,
-                    preview,
-                    imageCapture,
-                    imageAnalysis
-                )
+                try {
+                    cameraProvider.unbindAll()
+                    val camera =
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageCapture,
+                            imageAnalysis
+                        )
 
-                // Setup components that require Camera
-                this.camera = camera
-                setupZoomStateObserver(lifecycleOwner)
-                hasFlashUnit = camera.cameraInfo.hasFlashUnit()
-                isCameraReady = true
-            } catch (exc: Exception) {
-                Log.e(TAG, "Use Cases binding failed", exc)
-            }
-        }, ContextCompat.getMainExecutor(context))
+                    // Setup components that require Camera
+                    this.camera = camera
+                    setupZoomStateObserver(lifecycleOwner)
+                    hasFlashUnit = camera.cameraInfo.hasFlashUnit()
+                    isCameraReady = true
+                } catch (exc: Exception) {
+                    Log.e(TAG, "Use Cases binding failed", exc)
+                }
+            },
+            ContextCompat.getMainExecutor(context)
+        )
     }
 
     fun takePhoto(context: Context) {
@@ -276,19 +272,18 @@ class ImageCaptureScreenState(
 
     private fun getOutputFileOptions(context: Context): ImageCapture.OutputFileOptions {
         val contentResolver = context.contentResolver
-        val displayName = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
-            .format(System.currentTimeMillis())
-        val contentValues = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+        val displayName =
+            SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())
+        val contentValues =
+            ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX-Image")
+                }
             }
-        }
 
-        return ImageCapture
-            .OutputFileOptions
-            .Builder(
+        return ImageCapture.OutputFileOptions.Builder(
                 contentResolver,
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 contentValues
@@ -357,22 +352,19 @@ class ImageCaptureScreenState(
     companion object {
         private const val TAG = "ImageCaptureScreenState"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private val VALID_FLASH_MODES = listOf(
-            ImageCapture.FLASH_MODE_ON,
-            ImageCapture.FLASH_MODE_OFF,
-            ImageCapture.FLASH_MODE_AUTO
-        )
-        val saver: Saver<ImageCaptureScreenState, *> = listSaver(
-            save = {
-                listOf(it.lensFacing, it.flashMode)
-            },
-            restore = {
-                ImageCaptureScreenState(
-                    initialLensFacing = it[0],
-                    initialFlashMode = it[1]
-                )
-            }
-        )
+        private val VALID_FLASH_MODES =
+            listOf(
+                ImageCapture.FLASH_MODE_ON,
+                ImageCapture.FLASH_MODE_OFF,
+                ImageCapture.FLASH_MODE_AUTO
+            )
+        val saver: Saver<ImageCaptureScreenState, *> =
+            listSaver(
+                save = { listOf(it.lensFacing, it.flashMode) },
+                restore = {
+                    ImageCaptureScreenState(initialLensFacing = it[0], initialFlashMode = it[1])
+                }
+            )
     }
 }
 

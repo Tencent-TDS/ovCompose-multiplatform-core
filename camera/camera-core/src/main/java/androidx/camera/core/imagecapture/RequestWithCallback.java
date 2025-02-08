@@ -21,12 +21,12 @@ import static androidx.core.util.Preconditions.checkState;
 
 import static java.util.Objects.requireNonNull;
 
-import android.os.Build;
+import android.graphics.Bitmap;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
@@ -41,8 +41,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  * connection allows us to manipulate the propagation of the callback. For example, failures
  * might be retried before sent to the app.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-class RequestWithCallback implements TakePictureCallback {
+public class RequestWithCallback implements TakePictureCallback {
 
     private final TakePictureRequest mTakePictureRequest;
     private final TakePictureRequest.RetryControl mRetryControl;
@@ -143,12 +142,34 @@ class RequestWithCallback implements TakePictureCallback {
     public void onFinalResult(@NonNull ImageProxy imageProxy) {
         checkMainThread();
         if (mIsAborted) {
+            imageProxy.close();
             // Do not deliver result if the request has been aborted.
             return;
         }
         checkOnImageCaptured();
         markComplete();
         mTakePictureRequest.onResult(imageProxy);
+    }
+
+    @Override
+    public void onCaptureProcessProgressed(int progress) {
+        checkMainThread();
+        if (mIsAborted) {
+            return;
+        }
+
+        mTakePictureRequest.onCaptureProcessProgressed(progress);
+    }
+
+    @Override
+    public void onPostviewBitmapAvailable(@NonNull Bitmap bitmap) {
+        checkMainThread();
+        if (mIsAborted) {
+            // Do not deliver result if the request has been aborted.
+            return;
+        }
+
+        mTakePictureRequest.onPostviewBitmapAvailable(bitmap);
     }
 
     @MainThread
@@ -247,6 +268,12 @@ class RequestWithCallback implements TakePictureCallback {
     ListenableFuture<Void> getCompleteFuture() {
         checkMainThread();
         return mCompleteFuture;
+    }
+
+    @VisibleForTesting
+    @NonNull
+    public TakePictureRequest getTakePictureRequest() {
+        return mTakePictureRequest;
     }
 
     private void checkOnImageCaptured() {

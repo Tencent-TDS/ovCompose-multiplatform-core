@@ -16,43 +16,45 @@
 
 package androidx.compose.foundation.layout
 
+import androidx.compose.runtime.Composable
+
 private val ZeroInsets = WindowInsets(0, 0, 0, 0)
 
 actual val WindowInsets.Companion.captionBar: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.displayCutout: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.ime: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.mandatorySystemGestures: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.navigationBars: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.statusBars: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.systemBars: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.systemGestures: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.tappableElement: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.waterfall: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.safeDrawing: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.safeGestures: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets
 
 actual val WindowInsets.Companion.safeContent: WindowInsets
-    get() = ZeroInsets
+    @Composable get() = ZeroInsets

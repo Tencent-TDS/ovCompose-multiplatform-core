@@ -35,7 +35,6 @@ import android.widget.RemoteViews;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresFeature;
-import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.browser.customtabs.CustomTabsService.Relation;
 import androidx.browser.customtabs.CustomTabsService.Result;
@@ -115,6 +114,46 @@ public final class CustomTabsSession {
             return mService.mayLaunchUrl(mCallback, url, extras, otherLikelyBundles);
         } catch (RemoteException e) {
             return false;
+        }
+    }
+
+    /**
+     * Request the browser to start navigational prefetch to the page that will be used for future
+     * navigations.
+     *
+     * @param url     The url to be prefetched for upcoming navigations.
+     * @param options The option used for prefetch request. Please see
+     *                {@link PrefetchOptions}.
+     */
+    @ExperimentalPrefetch
+    @SuppressWarnings("NullAway")  // TODO: b/142938599
+    public void prefetch(@NonNull Uri url, @NonNull PrefetchOptions options) {
+        Bundle optionsWithId = createBundleWithId(options.toBundle());
+        try {
+            mService.prefetch(mCallback, url, optionsWithId);
+        } catch (RemoteException e) {
+            return;
+        }
+    }
+
+    /**
+     * Request the browser to start navigational prefetch to the pages that will be used for future
+     * navigations.
+     *
+     * @param urls     The urls to be prefetched for upcoming navigations.
+     * @param options The option used for prefetch request. Please see
+     *                {@link PrefetchOptions}.
+     */
+    @ExperimentalPrefetch
+    @SuppressWarnings("NullAway")  // TODO: b/142938599
+    public void prefetch(@NonNull List<Uri> urls, @NonNull PrefetchOptions options) {
+        Bundle optionsWithId = createBundleWithId(options.toBundle());
+        try {
+            for (Uri uri : urls) {
+                mService.prefetch(mCallback, uri, optionsWithId);
+            }
+        } catch (RemoteException e) {
+            return;
         }
     }
 
@@ -525,12 +564,12 @@ public final class CustomTabsSession {
     }
 
     /**
-     * A class to be used instead of {@link CustomTabsSession} before we are connected
-     * {@link CustomTabsService}.
+     * A class to be used instead of {@link CustomTabsSession} when a Custom Tab is launched before
+     * a Service connection is established.
      *
      * Use {@link CustomTabsClient#attachSession(PendingSession)} to get {@link CustomTabsSession}.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @ExperimentalPendingSession
     public static class PendingSession {
         @Nullable
         private final CustomTabsCallback mCallback;
@@ -576,6 +615,12 @@ public final class CustomTabsSession {
         public boolean mayLaunchUrl(ICustomTabsCallback callback, Uri url, Bundle extras,
                 List<Bundle> otherLikelyBundles) throws RemoteException {
             return false;
+        }
+
+        @Override
+        @ExperimentalPrefetch
+        public void prefetch(ICustomTabsCallback callback, Uri url, Bundle options)
+                throws RemoteException {
         }
 
         @SuppressWarnings("NullAway")  // TODO: b/142938599

@@ -16,149 +16,308 @@
 
 package androidx.privacysandbox.ui.integration.testapp
 
+import android.os.Build
 import android.os.Bundle
 import android.os.ext.SdkExtensions
 import android.util.Log
-import android.view.ViewGroup
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.Spinner
+import android.widget.Toast
 import androidx.annotation.RequiresExtension
 import androidx.appcompat.app.AppCompatActivity
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.drawerlayout.widget.DrawerLayout.DrawerListener
 import androidx.privacysandbox.sdkruntime.client.SdkSandboxManagerCompat
+import androidx.privacysandbox.sdkruntime.client.SdkSandboxProcessDeathCallbackCompat
+import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
-import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
-import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionState
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionStateChangedListener
-import androidx.privacysandbox.ui.client.view.SandboxedSdkView
-import androidx.privacysandbox.ui.integration.testaidl.ISdkApi
+import androidx.privacysandbox.ui.integration.sdkproviderutils.MediateeSdkApiImpl
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.switchmaterial.SwitchMaterial
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var mSdkSandboxManager: SdkSandboxManagerCompat
+    private lateinit var sdkSandboxManager: SdkSandboxManagerCompat
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navigationView: NavigationView
+    private lateinit var currentFragment: BaseFragment
+    private lateinit var triggerSandboxDeathButton: Button
+    private lateinit var zOrderToggleButton: SwitchMaterial
+    private lateinit var viewabilityToggleButton: SwitchMaterial
+    private lateinit var mediationDropDownMenu: Spinner
+    private lateinit var adTypeDropDownMenu: Spinner
 
-    private var mSdkLoaded = false
+    @AdType private var adType = AdType.BASIC_NON_WEBVIEW
 
-    private lateinit var mSandboxedSdkView1: SandboxedSdkView
-    private lateinit var mSandboxedSdkView2: SandboxedSdkView
-    private lateinit var resizableSandboxedSdkView: SandboxedSdkView
-    private lateinit var mNewAdButton: Button
-    private lateinit var mResizeButton: Button
-    private lateinit var mResizeSdkButton: Button
+    @MediationOption private var mediationOption = MediationOption.NON_MEDIATED
+    private var drawViewabilityLayer = false
 
     // TODO(b/257429573): Remove this line once fixed.
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 5)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        drawerLayout = findViewById(R.id.drawer)
+        navigationView = findViewById(R.id.navigation_view)
+        zOrderToggleButton = findViewById(R.id.zorder_below_switch)
+        viewabilityToggleButton = findViewById(R.id.display_viewability_switch)
+        triggerSandboxDeathButton = findViewById(R.id.trigger_sandbox_death)
+        mediationDropDownMenu = findViewById(R.id.mediation_dropdown_menu)
+        adTypeDropDownMenu = findViewById(R.id.ad_type_dropdown_menu)
 
-        mSdkSandboxManager = SdkSandboxManagerCompat.from(applicationContext)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // there is no sandbox to kill on T-
+            triggerSandboxDeathButton.visibility = View.GONE
+        } else {
+            triggerSandboxDeathButton.setOnClickListener {
+                triggerSandboxDeath()
+                disableAllControls()
+            }
+        }
 
-        if (!mSdkLoaded) {
-            Log.i(TAG, "Loading SDK")
-            CoroutineScope(Dispatchers.Default).launch {
-                try {
-                    val loadedSdk = mSdkSandboxManager.loadSdk(SDK_NAME, Bundle())
-                    onLoadedSdk(loadedSdk)
-                } catch (e: LoadSdkCompatException) {
-                    Log.i(TAG, "loadSdk failed with errorCode: " + e.loadSdkErrorCode +
-                        " and errorMsg: " + e.message)
+        sdkSandboxManager = SdkSandboxManagerCompat.from(applicationContext)
+        sdkSandboxManager.addSdkSandboxProcessDeathCallback(Runnable::run, DeathCallbackImpl())
+        Log.i(TAG, "Loading SDK")
+        CoroutineScope(Dispatchers.Default).launch {
+            try {
+                val loadedSdks = sdkSandboxManager.getSandboxedSdks()
+                val loadedSdk = loadedSdks.firstOrNull { it.getSdkInfo()?.name == SDK_NAME }
+                if (loadedSdk == null) {
+                    sdkSandboxManager.loadSdk(SDK_NAME, Bundle())
+                    sdkSandboxManager.loadSdk(MEDIATEE_SDK_NAME, Bundle())
+                    sdkSandboxManager.registerAppOwnedSdkSandboxInterface(
+                        AppOwnedSdkSandboxInterfaceCompat(
+                            MEDIATEE_SDK_NAME,
+                            /*version=*/ 0,
+                            MediateeSdkApiImpl(applicationContext)
+                        )
+                    )
+                }
+
+                // TODO(b/337793172): Replace with a default fragment
+                switchContentFragment(ResizeFragment(), "Resize CUJ")
+
+                initializeOptionsButton()
+                initializeDrawer()
+            } catch (e: LoadSdkCompatException) {
+                Log.i(
+                    TAG,
+                    "loadSdk failed with errorCode: " +
+                        e.loadSdkErrorCode +
+                        " and errorMsg: " +
+                        e.message
+                )
+            }
+        }
+        initializeToggles()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        sdkSandboxManager.unregisterAppOwnedSdkSandboxInterface(MEDIATEE_SDK_NAME)
+    }
+
+    private inner class DeathCallbackImpl : SdkSandboxProcessDeathCallbackCompat {
+        override fun onSdkSandboxDied() {
+            runOnUiThread {
+                Log.i(TAG, "Sandbox died")
+                Toast.makeText(applicationContext, "Sandbox died", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /** Kill the sandbox process */
+    private fun triggerSandboxDeath() {
+        currentFragment.getSdkApi().triggerProcessDeath()
+    }
+
+    private fun initializeToggles() {
+        initializeViewabilityToggleButton()
+        initializeMediationDropDown()
+        initializeAdTypeDropDown()
+        initializeZOrderToggleButton()
+    }
+
+    private fun disableAllControls() {
+        mediationDropDownMenu.isEnabled = false
+        adTypeDropDownMenu.isEnabled = false
+        viewabilityToggleButton.isEnabled = false
+        zOrderToggleButton.isEnabled = false
+    }
+
+    private fun enableAllControls() {
+        mediationDropDownMenu.isEnabled = true
+        adTypeDropDownMenu.isEnabled = true
+        viewabilityToggleButton.isEnabled = true
+        zOrderToggleButton.isEnabled = true
+    }
+
+    private fun initializeViewabilityToggleButton() {
+        viewabilityToggleButton.setOnCheckedChangeListener { _, isChecked ->
+            drawViewabilityLayer = isChecked
+            loadAllAds()
+        }
+    }
+
+    private fun initializeMediationDropDown() {
+        // Supply the mediation_option array to the mediationDropDownMenu spinner.
+        ArrayAdapter.createFromResource(
+                applicationContext,
+                R.array.mediation_dropdown_menu_array,
+                android.R.layout.simple_spinner_item
+            )
+            .also { adapter ->
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                mediationDropDownMenu.adapter = adapter
+            }
+
+        mediationDropDownMenu.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                var isCalledOnStartingApp = true
+
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    selectedMediationOptionId: Long
+                ) {
+                    if (isCalledOnStartingApp) {
+                        isCalledOnStartingApp = false
+                        return
+                    }
+
+                    mediationOption = selectedMediationOptionId.toInt()
+                    loadAllAds()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+    }
+
+    private fun initializeAdTypeDropDown() {
+        ArrayAdapter.createFromResource(
+                applicationContext,
+                R.array.ad_type_dropdown_menu_array,
+                android.R.layout.simple_spinner_item
+            )
+            .also { adapter ->
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                adTypeDropDownMenu.adapter = adapter
+            }
+
+        adTypeDropDownMenu.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                var isCalledOnStartingApp = true
+
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    selectedAdOptionId: Long
+                ) {
+                    if (isCalledOnStartingApp) {
+                        isCalledOnStartingApp = false
+                        return
+                    }
+                    adType =
+                        when (position) {
+                            0 -> AdType.BASIC_NON_WEBVIEW
+                            1 -> AdType.BASIC_WEBVIEW
+                            2 -> AdType.WEBVIEW_FROM_LOCAL_ASSETS
+                            3 -> AdType.NON_WEBVIEW_VIDEO
+                            else -> AdType.BASIC_NON_WEBVIEW
+                        }
+                    loadAllAds()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+    }
+
+    private fun initializeZOrderToggleButton() {
+        zOrderToggleButton.setOnCheckedChangeListener { _, isChecked ->
+            BaseFragment.isZOrderOnTop = !isChecked
+        }
+    }
+
+    private fun initializeOptionsButton() {
+        val button: Button = findViewById(R.id.toggle_drawer_button)
+        button.setOnClickListener {
+            if (drawerLayout.isOpen) {
+                drawerLayout.closeDrawers()
+            } else {
+                drawerLayout.open()
+            }
+        }
+    }
+
+    private fun initializeDrawer() {
+        drawerLayout.addDrawerListener(
+            object : DrawerListener {
+                private var isDrawerOpen = false
+
+                override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                    if (!isDrawerOpen) {
+                        isDrawerOpen = true
+                        currentFragment.handleDrawerStateChange(isDrawerOpen = true)
+                    } else if (slideOffset == 0f) {
+                        isDrawerOpen = false
+                        currentFragment.handleDrawerStateChange(isDrawerOpen = false)
+                    }
+                }
+
+                override fun onDrawerOpened(drawerView: View) {}
+
+                override fun onDrawerClosed(drawerView: View) {}
+
+                override fun onDrawerStateChanged(newState: Int) {}
+            }
+        )
+        navigationView.setNavigationItemSelectedListener {
+            val itemId = it.itemId
+            when (itemId) {
+                R.id.item_resize -> switchContentFragment(ResizeFragment(), it.title)
+                R.id.item_scroll -> switchContentFragment(ScrollFragment(), it.title)
+                R.id.item_pooling_container ->
+                    switchContentFragment(PoolingContainerFragment(), it.title)
+                else -> {
+                    Log.e(TAG, "Invalid fragment option")
+                    true
                 }
             }
         }
     }
-    private fun onLoadedSdk(sandboxedSdk: SandboxedSdkCompat) {
-        Log.i(TAG, "Loaded successfully")
-        mSdkLoaded = true
-        val sdkApi = ISdkApi.Stub.asInterface(sandboxedSdk.getInterface())
 
-        mSandboxedSdkView1 = findViewById(R.id.rendered_view)
-        mSandboxedSdkView1.addStateChangedListener(StateChangeListener(mSandboxedSdkView1))
-        mSandboxedSdkView1.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(
-            sdkApi.loadAd(/*isWebView=*/ true, /*text=*/ "", /*withSlowDraw*/ false)
-        ))
-
-        mSandboxedSdkView2 = SandboxedSdkView(this@MainActivity)
-        mSandboxedSdkView2.addStateChangedListener(StateChangeListener(mSandboxedSdkView2))
-        mSandboxedSdkView2.layoutParams = findViewById<LinearLayout>(
-            R.id.bottom_banner_container).layoutParams
-        runOnUiThread {
-            findViewById<LinearLayout>(R.id.bottom_banner_container).addView(mSandboxedSdkView2)
-        }
-        mSandboxedSdkView2.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(
-            sdkApi.loadAd(/*isWebView=*/ false, /*text=*/ "Hey!", /*withSlowDraw*/ false)
-        ))
-
-        resizableSandboxedSdkView = findViewById(R.id.new_ad_view)
-        resizableSandboxedSdkView.addStateChangedListener(
-            StateChangeListener(resizableSandboxedSdkView))
-
-        mNewAdButton = findViewById(R.id.new_ad_button)
-
-        resizableSandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(
-            sdkApi.loadAd(/*isWebView=*/ false, /*text=*/ "Resize view",
-                /*withSlowDraw*/ true)))
-
-        var count = 1
-        mNewAdButton.setOnClickListener {
-            resizableSandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(
-                sdkApi.loadAd(/*isWebView=*/ false, /*text=*/ "Ad #$count",
-                    /*withSlowDraw*/ true)))
-            count++
-        }
-
-        val maxWidthPixels = 1000
-        val maxHeightPixels = 1000
-        val newSize = { currentSize: Int, maxSize: Int ->
-            (currentSize + (100..200).random()) % maxSize
-        }
-
-        mResizeButton = findViewById(R.id.resize_button)
-        mResizeButton.setOnClickListener {
-            val newWidth = newSize(resizableSandboxedSdkView.width, maxWidthPixels)
-            val newHeight = newSize(resizableSandboxedSdkView.height, maxHeightPixels)
-            resizableSandboxedSdkView.layoutParams = resizableSandboxedSdkView.layoutParams.apply {
-                width = newWidth
-                height = newHeight
-            }
-        }
-
-        mResizeSdkButton = findViewById(R.id.resize_sdk_button)
-        mResizeSdkButton.setOnClickListener {
-            val newWidth = newSize(resizableSandboxedSdkView.width, maxWidthPixels)
-            val newHeight = newSize(resizableSandboxedSdkView.height, maxHeightPixels)
-            sdkApi.requestResize(newWidth, newHeight)
-        }
+    private fun switchContentFragment(fragment: BaseFragment, title: CharSequence?): Boolean {
+        enableAllControls()
+        drawerLayout.closeDrawers()
+        supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.content_fragment_container, fragment)
+            .commit()
+        currentFragment = fragment
+        title?.let { runOnUiThread { setTitle(it) } }
+        return true
     }
 
-    private inner class StateChangeListener(val view: SandboxedSdkView) :
-        SandboxedSdkUiSessionStateChangedListener {
-        override fun onStateChanged(state: SandboxedSdkUiSessionState) {
-            Log.i(TAG, "UI session state changed to: " + state.toString())
-            if (state is SandboxedSdkUiSessionState.Error) {
-                // If the session fails to open, display the error.
-                val parent = view.parent as ViewGroup
-                val index = parent.indexOfChild(view)
-                val textView = TextView(this@MainActivity)
-                textView.text = state.throwable.message
-
-                runOnUiThread {
-                    parent.removeView(view)
-                    parent.addView(textView, index)
-                }
-            }
-        }
+    /** Loads all ads in the current fragment. */
+    private fun loadAllAds() {
+        currentFragment.handleLoadAdFromDrawer(adType, mediationOption, drawViewabilityLayer)
     }
 
     companion object {
         private const val TAG = "TestSandboxClient"
 
-        /**
-         * Name of the SDK to be loaded.
-         */
+        /** Name of the SDK to be loaded. */
         private const val SDK_NAME = "androidx.privacysandbox.ui.integration.testsdkprovider"
+        private const val MEDIATEE_SDK_NAME =
+            "androidx.privacysandbox.ui.integration.mediateesdkprovider"
     }
 }

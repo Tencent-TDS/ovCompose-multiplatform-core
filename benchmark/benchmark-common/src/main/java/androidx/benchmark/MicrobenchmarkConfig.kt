@@ -17,12 +17,13 @@
 package androidx.benchmark
 
 /**
- * Experimental config object for microbenchmarks for defining custom metrics, tracing behavior,
- * and profiling, which overrides options set in
+ * Experimental config object for microbenchmarks for defining custom metrics, tracing behavior, and
+ * profiling, which overrides options set in
  * [instrumentation arguments](https://developer.android.com/topic/performance/benchmarking/microbenchmark-instrumentation-args).
  */
 @ExperimentalBenchmarkConfigApi
-class MicrobenchmarkConfig constructor(
+class MicrobenchmarkConfig
+constructor(
     /**
      * Timing metrics for primary phase, post-warmup
      *
@@ -35,8 +36,9 @@ class MicrobenchmarkConfig constructor(
      *
      * Defaults to false to minimize interference.
      */
-    @get:JvmName("shouldEnableTraceAppTag")
-    val shouldEnableTraceAppTag: Boolean = false,
+    @get:Suppress("GetterSetterNames") // enabled is more idiomatic for config constructor
+    @get:JvmName("isTraceAppTagEnabled")
+    val traceAppTagEnabled: Boolean = false,
 
     /**
      * Set to true to enable capture of tracing-perfetto trace events, such as in Compose
@@ -44,11 +46,10 @@ class MicrobenchmarkConfig constructor(
      *
      * Defaults to false to minimize interference.
      */
-    @get:JvmName("shouldEnablePerfettoSdkTracing")
-    val shouldEnablePerfettoSdkTracing: Boolean = false,
+    @get:Suppress("GetterSetterNames") // enabled is more idiomatic for config constructor
+    @get:JvmName("isPerfettoSdkTracingEnabled")
+    val perfettoSdkTracingEnabled: Boolean = false,
 
-    /**
-     * Optional profiler to be used after the primary timing phase.
-     */
+    /** Optional profiler to be used after the primary timing phase. */
     val profiler: ProfilerConfig? = null,
 )

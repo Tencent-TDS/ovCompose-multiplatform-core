@@ -34,7 +34,7 @@ import androidx.compose.mpp.demo.Screen
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
 import platform.UIKit.UIModalPresentationFormSheet

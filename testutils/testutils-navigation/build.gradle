@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -21,7 +30,10 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("JetbrainsAndroidXPlugin")
 }
+
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
 androidXMultiplatform {
     android()
@@ -29,7 +41,7 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
-    js { browser() }
+    js()
     wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)

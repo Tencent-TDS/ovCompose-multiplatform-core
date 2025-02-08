@@ -28,4 +28,5 @@ internal fun Translations.or() = mapOf(
     Strings.DefaultErrorMessage to "ଅବୈଧ ଇନପୁଟ୍",
     Strings.SliderRangeStart to "ରେଞ୍ଜ ଆରମ୍ଭ",
     Strings.SliderRangeEnd to "ରେଞ୍ଜ ଶେଷ",
+    Strings.SnackbarPaneTitle to "ଆଲର୍ଟ",
 )

@@ -37,8 +37,8 @@ import androidx.test.filters.MediumTest
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
 import androidx.testutils.withActivity
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith

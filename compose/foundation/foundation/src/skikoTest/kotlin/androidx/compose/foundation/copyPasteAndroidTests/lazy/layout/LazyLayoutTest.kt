@@ -19,20 +19,26 @@ package androidx.compose.foundation.copyPasteAndroidTests.lazy.layout
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.assertThat
+import androidx.compose.foundation.copyPasteAndroidTests.pager.TestPrefetchScheduler
+import androidx.compose.foundation.hasSize
 import androidx.compose.foundation.isEqualTo
 import androidx.compose.foundation.isFalse
 import androidx.compose.foundation.isNotEqualTo
 import androidx.compose.foundation.isTrue
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemProvider
 import androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScope
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
+import androidx.compose.foundation.lazy.layout.PrefetchRequest
+import androidx.compose.foundation.lazy.layout.PrefetchScheduler
 import androidx.compose.foundation.lazy.layout.getDefaultLazyLayoutKey
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -40,6 +46,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.Remeasurement
+import androidx.compose.ui.layout.RemeasurementModifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -67,10 +75,11 @@ class LazyLayoutTest {
                 override val alignmentLines: Map<AlignmentLine, Int> = emptyMap()
                 override val height: Int = 10
                 override val width: Int = 10
+
                 override fun placeChildren() {}
             }
         }
-        val itemProvider = itemProvider({ 0 }) { }
+        val itemProvider = itemProvider({ 0 }) {}
 
         setContent {
             counter.value // just to trigger recomposition
@@ -88,16 +97,13 @@ class LazyLayoutTest {
             counter.value++
         }
 
-        runOnIdle {
-            assertThat(remeasureCount).isEqualTo(1)
-        }
+        runOnIdle { assertThat(remeasureCount).isEqualTo(1) }
     }
 
     @Test
     fun measureAndPlaceTwoItems() = runSkikoComposeUiTest {
-        val itemProvider = itemProvider({ 2 }) { index ->
-            Box(Modifier.fillMaxSize().testTag("$index"))
-        }
+        val itemProvider =
+            itemProvider({ 2 }) { index -> Box(Modifier.fillMaxSize().testTag("$index")) }
         setContent {
             LazyLayout(itemProvider) {
                 val item1 = measure(0, Constraints.fixed(50, 50))[0]
@@ -119,10 +125,11 @@ class LazyLayoutTest {
 
     @Test
     fun measureAndPlaceMultipleLayoutsInOneItem() = runSkikoComposeUiTest {
-        val itemProvider = itemProvider({ 1 }) { index ->
-            Box(Modifier.fillMaxSize().testTag("${index}x0"))
-            Box(Modifier.fillMaxSize().testTag("${index}x1"))
-        }
+        val itemProvider =
+            itemProvider({ 1 }) { index ->
+                Box(Modifier.fillMaxSize().testTag("${index}x0"))
+                Box(Modifier.fillMaxSize().testTag("${index}x1"))
+            }
 
         setContent {
             LazyLayout(itemProvider) {
@@ -144,22 +151,19 @@ class LazyLayoutTest {
 
     @Test
     fun updatingitemProvider() = runSkikoComposeUiTest {
-        var itemProvider by mutableStateOf(itemProvider({ 1 }) { index ->
-            Box(Modifier.fillMaxSize().testTag("$index"))
-        })
+        var itemProvider by
+        mutableStateOf(
+            itemProvider({ 1 }) { index -> Box(Modifier.fillMaxSize().testTag("$index")) }
+        )
 
         setContent {
             LazyLayout(itemProvider) {
                 val constraints = Constraints.fixed(100, 100)
                 val items = mutableListOf<Placeable>()
-                repeat(itemProvider.itemCount) { index ->
+                repeat(itemProvider().itemCount) { index ->
                     items.addAll(measure(index, constraints))
                 }
-                layout(100, 100) {
-                    items.forEach {
-                        it.place(0, 0)
-                    }
-                }
+                layout(100, 100) { items.forEach { it.place(0, 0) } }
             }
         }
 
@@ -167,9 +171,8 @@ class LazyLayoutTest {
         onNodeWithTag("1").assertDoesNotExist()
 
         runOnIdle {
-            itemProvider = itemProvider({ 2 }) { index ->
-                Box(Modifier.fillMaxSize().testTag("$index"))
-            }
+            itemProvider =
+                itemProvider({ 2 }) { index -> Box(Modifier.fillMaxSize().testTag("$index")) }
         }
 
         onNodeWithTag("0").assertIsDisplayed()
@@ -179,70 +182,61 @@ class LazyLayoutTest {
     @Test
     fun stateBaseditemProvider() = runSkikoComposeUiTest {
         var itemCount by mutableStateOf(1)
-        val itemProvider = itemProvider({ itemCount }) { index ->
-            Box(Modifier.fillMaxSize().testTag("$index"))
-        }
+        val itemProvider =
+            itemProvider({ itemCount }) { index -> Box(Modifier.fillMaxSize().testTag("$index")) }
 
         setContent {
             LazyLayout(itemProvider) {
                 val constraints = Constraints.fixed(100, 100)
                 val items = mutableListOf<Placeable>()
-                repeat(itemProvider.itemCount) { index ->
+                repeat(itemProvider().itemCount) { index ->
                     items.addAll(measure(index, constraints))
                 }
-                layout(100, 100) {
-                    items.forEach {
-                        it.place(0, 0)
-                    }
-                }
+                layout(100, 100) { items.forEach { it.place(0, 0) } }
             }
         }
 
         onNodeWithTag("0").assertIsDisplayed()
         onNodeWithTag("1").assertDoesNotExist()
 
-        runOnIdle {
-            itemCount = 2
-        }
+        runOnIdle { itemCount = 2 }
 
         onNodeWithTag("0").assertIsDisplayed()
         onNodeWithTag("1").assertIsDisplayed()
     }
 
     @Test
-    fun getDefaultLazyLayoutKeyIsFollowingClaimedRequirements() = runSkikoComposeUiTest {
+    fun getDefaultLazyLayoutKeyIsFollowingClaimedRequirements() {
         assertThat(getDefaultLazyLayoutKey(0)).isEqualTo(getDefaultLazyLayoutKey(0))
         assertThat(getDefaultLazyLayoutKey(0)).isNotEqualTo(getDefaultLazyLayoutKey(1))
         assertThat(getDefaultLazyLayoutKey(0)).isNotEqualTo(0)
-        // assertThat(getDefaultLazyLayoutKey(0)).isInstanceOf(Parcelable::class.java)
     }
 
     @Test
-    @Ignore // TODO: the tests fails
     fun prefetchItem() = runSkikoComposeUiTest {
         val constraints = Constraints.fixed(50, 50)
         var measureCount = 0
         @Suppress("NAME_SHADOWING")
-        val modifier = Modifier.layout { measurable, constraints ->
-            measureCount++
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, placeable.height) {
-                placeable.place(0, 0)
+        val modifier =
+            Modifier.layout { measurable, constraints ->
+                measureCount++
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) { placeable.place(0, 0) }
             }
-        }
-        val itemProvider = itemProvider({ 1 }) { index ->
-            Box(Modifier.fillMaxSize().testTag("$index").then(modifier))
-        }
+        val itemProvider =
+            itemProvider({ 1 }) { index ->
+                Box(Modifier.fillMaxSize().testTag("$index").then(modifier))
+            }
         var needToCompose by mutableStateOf(false)
-        val prefetchState = LazyLayoutPrefetchState()
+        val scheduler = TestPrefetchScheduler()
+        val prefetchState = LazyLayoutPrefetchState(scheduler)
         setContent {
             LazyLayout(itemProvider, prefetchState = prefetchState) {
-                val item = if (needToCompose) {
-                    measure(0, constraints)[0]
-                } else null
-                layout(100, 100) {
-                    item?.place(0, 0)
-                }
+                val item =
+                    if (needToCompose) {
+                        measure(0, constraints)[0]
+                    } else null
+                layout(100, 100) { item?.place(0, 0) }
             }
         }
 
@@ -250,9 +244,10 @@ class LazyLayoutTest {
             assertThat(measureCount).isEqualTo(0)
 
             prefetchState.schedulePrefetch(0, constraints)
-        }
 
-        waitUntil { measureCount == 1 }
+            scheduler.executeActiveRequests()
+            assertThat(measureCount).isEqualTo(1)
+        }
 
         onNodeWithTag("0").assertIsNotDisplayed()
 
@@ -263,58 +258,115 @@ class LazyLayoutTest {
 
         onNodeWithTag("0").assertIsDisplayed()
 
-        runOnIdle {
-            assertThat(measureCount).isEqualTo(1)
-        }
+        runOnIdle { assertThat(measureCount).isEqualTo(1) }
     }
 
     @Test
-    @Ignore // TODO: the tests fails
-    fun cancelPrefetchedItem() = runSkikoComposeUiTest {
-        var composed = false
-        val itemProvider = itemProvider({ 1 }) {
-            Box(Modifier.fillMaxSize())
-            DisposableEffect(Unit) {
-                composed = true
-                onDispose {
-                    composed = false
-                }
+    fun prefetchItemWithContentType() = runSkikoComposeUiTest {
+        val constraints = Constraints.fixed(50, 50)
+        var measureCount = 0
+        @Suppress("NAME_SHADOWING")
+        val modifier =
+            Modifier.layout { measurable, constraints ->
+                measureCount++
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) { placeable.place(0, 0) }
             }
-        }
-        val prefetchState = LazyLayoutPrefetchState()
+        val itemProvider =
+            itemProvider({ 1 }, true) { index ->
+                Box(Modifier.fillMaxSize().testTag("$index").then(modifier))
+            }
+        var needToCompose by mutableStateOf(false)
+        val scheduler = TestPrefetchScheduler()
+        val prefetchState = LazyLayoutPrefetchState(scheduler)
         setContent {
             LazyLayout(itemProvider, prefetchState = prefetchState) {
-                layout(100, 100) {}
+                val item =
+                    if (needToCompose) {
+                        measure(0, constraints)[0]
+                    } else null
+                layout(100, 100) { item?.place(0, 0) }
             }
         }
 
-        val handle = runOnIdle {
-            prefetchState.schedulePrefetch(0, Constraints.fixed(50, 50))
+        runOnIdle {
+            assertThat(measureCount).isEqualTo(0)
+
+            prefetchState.schedulePrefetch(0, constraints)
+
+            scheduler.executeActiveRequests()
+            assertThat(measureCount).isEqualTo(1)
         }
 
-        waitUntil { composed }
+        onNodeWithTag("0").assertIsNotDisplayed()
 
         runOnIdle {
+            assertThat(measureCount).isEqualTo(1)
+            needToCompose = true
+        }
+
+        onNodeWithTag("0").assertIsDisplayed()
+
+        runOnIdle { assertThat(measureCount).isEqualTo(1) }
+    }
+
+    @Test
+    fun cancelPrefetchedItem() = runSkikoComposeUiTest {
+        var composed = false
+        val itemProvider =
+            itemProvider({ 1 }) {
+                Box(Modifier.fillMaxSize())
+                DisposableEffect(Unit) {
+                    composed = true
+                    onDispose { composed = false }
+                }
+            }
+        val scheduler = TestPrefetchScheduler()
+        val prefetchState = LazyLayoutPrefetchState(scheduler)
+        setContent {
+            LazyLayout(itemProvider, prefetchState = prefetchState) { layout(100, 100) {} }
+        }
+
+        runOnIdle {
+            val handle = prefetchState.schedulePrefetch(0, Constraints.fixed(50, 50))
+            scheduler.executeActiveRequests()
+            assertThat(composed).isTrue()
             handle.cancel()
         }
 
-        runOnIdle {
-            assertThat(composed).isFalse()
+        runOnIdle { assertThat(composed).isFalse() }
+    }
+
+    @Test
+    fun prefetchItemWithCustomExecutor() = runSkikoComposeUiTest {
+        val itemProvider =
+            itemProvider({ 1 }) { index -> Box(Modifier.fillMaxSize().testTag("$index")) }
+
+        val executor = RecordingPrefetchScheduler()
+        val prefetchState = LazyLayoutPrefetchState(executor)
+        setContent {
+            LazyLayout(itemProvider, prefetchState = prefetchState) { layout(100, 100) {} }
         }
+
+        runOnIdle { prefetchState.schedulePrefetch(0, Constraints.fixed(50, 50)) }
+
+        assertThat(executor.requests).hasSize(1)
+
+        // Default PrefetchScheduler behavior should be overridden
+        onNodeWithTag("0").assertDoesNotExist()
     }
 
     @Test
     fun keptForReuseItemIsDisposedWhenCanceled() = runSkikoComposeUiTest {
         val needChild = mutableStateOf(true)
         var composed = true
-        val itemProvider = itemProvider({ 1 }) {
-            DisposableEffect(Unit) {
-                composed = true
-                onDispose {
-                    composed = false
+        val itemProvider =
+            itemProvider({ 1 }) {
+                DisposableEffect(Unit) {
+                    composed = true
+                    onDispose { composed = false }
                 }
             }
-        }
 
         setContent {
             LazyLayout(itemProvider) { constraints ->
@@ -330,36 +382,31 @@ class LazyLayoutTest {
             needChild.value = false
         }
 
-        runOnIdle {
-            assertThat(composed).isFalse()
-        }
+        runOnIdle { assertThat(composed).isFalse() }
     }
 
     @Test
     fun nodeIsReusedWithoutExtraRemeasure() = runSkikoComposeUiTest {
         var indexToCompose by mutableStateOf<Int?>(0)
         var remeasuresCount = 0
-        val modifier = Modifier.layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            remeasuresCount++
-            layout(placeable.width, placeable.height) {
-                placeable.place(0, 0)
+        val modifier =
+            Modifier.layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                remeasuresCount++
+                layout(placeable.width, placeable.height) { placeable.place(0, 0) }
             }
-        }.fillMaxSize()
-        val itemProvider = itemProvider({ 2 }) {
-            Box(modifier)
-        }
+                .fillMaxSize()
+        val itemProvider = itemProvider({ 2 }) { Box(modifier) }
 
         setContent {
             LazyLayout(itemProvider) { constraints ->
-                val node = if (indexToCompose != null) {
-                    measure(indexToCompose!!, constraints).first()
-                } else {
-                    null
-                }
-                layout(10, 10) {
-                    node?.place(0, 0)
-                }
+                val node =
+                    if (indexToCompose != null) {
+                        measure(indexToCompose!!, constraints).first()
+                    } else {
+                        null
+                    }
+                layout(10, 10) { node?.place(0, 0) }
             }
         }
 
@@ -374,22 +421,156 @@ class LazyLayoutTest {
             indexToCompose = 1
         }
 
+        runOnIdle { assertThat(remeasuresCount).isEqualTo(1) }
+    }
+
+    @Ignore // TODO(b/369188686)
+    @Test
+    fun nodeIsReusedWhenRemovedFirst() = runSkikoComposeUiTest {
+        var itemCount by mutableStateOf(1)
+        var remeasuresCount = 0
+        val modifier =
+            Modifier.layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                remeasuresCount++
+                layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+            }
+                .fillMaxSize()
+        val itemProvider = itemProvider({ itemCount }) { Box(modifier) }
+
+        setContent {
+            LazyLayout(itemProvider) { constraints ->
+                val node =
+                    if (itemCount == 1) {
+                        measure(0, constraints).first()
+                    } else {
+                        null
+                    }
+                layout(10, 10) { node?.place(0, 0) }
+            }
+        }
+
         runOnIdle {
             assertThat(remeasuresCount).isEqualTo(1)
+            // node will be kept for reuse
+            itemCount = 0
         }
+
+        runOnIdle {
+            // node should be now reused
+            itemCount = 1
+        }
+
+        runOnIdle { assertThat(remeasuresCount).isEqualTo(1) }
+    }
+
+    @Test
+    fun skippingItemBlockWhenKeyIsObservableButDidntChange() = runSkikoComposeUiTest {
+        val stateList = mutableStateListOf(0)
+        var itemCalls = 0
+        val itemProvider =
+            object : LazyLayoutItemProvider {
+                @Composable
+                override fun Item(index: Int, key: Any) {
+                    assertThat(index).isEqualTo(0)
+                    assertThat(key).isEqualTo(index)
+                    itemCalls++
+                }
+
+                override val itemCount: Int
+                    get() = stateList.size
+
+                override fun getKey(index: Int) = stateList[index]
+            }
+        setContent {
+            LazyLayout({ itemProvider }) { constraint ->
+                measure(0, constraint)
+                layout(100, 100) {}
+            }
+        }
+
+        runOnIdle {
+            assertThat(itemCalls).isEqualTo(1)
+
+            stateList += 1
+        }
+
+        runOnIdle { assertThat(itemCalls).isEqualTo(1) }
+    }
+
+    @Test
+    fun subcomposeNodeContentIsResetWhenReused() = runSkikoComposeUiTest {
+        var indexToCompose by mutableStateOf(0)
+        var remeasurement: Remeasurement? = null
+        val itemProvider =
+            itemProvider({ 3 }) {
+                BoxWithConstraints(Modifier.testTag("Box $it")) { Box(Modifier.testTag("$it")) }
+            }
+
+        setContent {
+            LazyLayout(
+                itemProvider = itemProvider,
+                modifier =
+                    object : RemeasurementModifier {
+                        @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+                        override fun onRemeasurementAvailable(value: Remeasurement) {
+                            remeasurement = value
+                        }
+                    }
+            ) { constraints ->
+                val node = measure(indexToCompose, constraints).first()
+                layout(node.width, node.height) { node.place(0, 0) }
+            }
+        }
+
+        runOnIdle {
+            indexToCompose = 1
+            remeasurement?.forceRemeasure()
+            indexToCompose = 2
+            remeasurement?.forceRemeasure()
+        }
+
+        onNodeWithTag("Box 0").assertDoesNotExist()
+
+        onNodeWithTag("0").assertDoesNotExist()
+
+        onNodeWithTag("Box 2").assertExists()
+
+        onNodeWithTag("2").assertExists()
     }
 
     private fun itemProvider(
         itemCount: () -> Int,
+        hasContentType: Boolean? = false,
         itemContent: @Composable (Int) -> Unit
-    ): LazyLayoutItemProvider {
-        return object : LazyLayoutItemProvider {
-            @Composable
-            override fun Item(index: Int, key: Any) {
-                itemContent(index)
-            }
+    ): () -> LazyLayoutItemProvider {
+        val provider =
+            object : LazyLayoutItemProvider {
+                @Composable
+                override fun Item(index: Int, key: Any) {
+                    itemContent(index)
+                }
 
-            override val itemCount: Int get() = itemCount()
+                override fun getContentType(index: Int): Any? {
+                    hasContentType?.let {
+                        return if (hasContentType) index else null
+                    }
+                    return null
+                }
+
+                override val itemCount: Int
+                    get() = itemCount()
+            }
+        return { provider }
+    }
+
+    private class RecordingPrefetchScheduler : PrefetchScheduler {
+
+        private val _requests: MutableList<PrefetchRequest> = mutableListOf()
+        val requests: List<PrefetchRequest> = _requests
+
+        override fun schedulePrefetch(prefetchRequest: PrefetchRequest) {
+            _requests.add(prefetchRequest)
         }
     }
 }

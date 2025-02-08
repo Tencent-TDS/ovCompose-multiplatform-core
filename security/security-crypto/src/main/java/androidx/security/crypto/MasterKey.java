@@ -26,7 +26,6 @@ import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,18 +43,24 @@ import java.security.cert.CertificateException;
  *
  * <p>On Android M (API 23) and above, this is class references a key that's stored in the
  * Android Keystore. On Android L (API 21, 22), there isn't a master key.
+ * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
  */
+@Deprecated
 public final class MasterKey {
     static final String KEYSTORE_PATH_URI = "android-keystore://";
 
     /**
      * The default master key alias.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final String DEFAULT_MASTER_KEY_ALIAS = "_androidx_security_master_key_";
 
     /**
      * The default and recommended size for the master key.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final int DEFAULT_AES_GCM_MASTER_KEY_SIZE = 256;
 
     private static final int DEFAULT_AUTHENTICATION_VALIDITY_DURATION_SECONDS = 5 * 60;
@@ -67,7 +72,9 @@ public final class MasterKey {
 
     /**
      * Algorithm/Cipher choices used for the master key.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public enum KeyScheme {
         AES256_GCM
     }
@@ -166,7 +173,9 @@ public final class MasterKey {
 
     /**
      * Builder for generating a {@link MasterKey}.
+     * @deprecated Use {@link javax.crypto.KeyGenerator} with AndroidKeyStore instance instead.
      */
+    @Deprecated
     public static final class Builder {
         @NonNull
         final String mKeyAlias;
@@ -329,7 +338,6 @@ public final class MasterKey {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static String getKeystoreAlias(KeyGenParameterSpec keyGenParameterSpec) {
                 return keyGenParameterSpec.getKeystoreAlias();
             }
@@ -387,7 +395,6 @@ public final class MasterKey {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static void setIsStrongBoxBacked(KeyGenParameterSpec.Builder builder) {
                     builder.setIsStrongBoxBacked(true);
                 }
@@ -399,7 +406,6 @@ public final class MasterKey {
                     // This class is not instantiable.
                 }
 
-                @DoNotInline
                 static void setUserAuthenticationParameters(KeyGenParameterSpec.Builder builder,
                         int timeout,
                         int type) {
@@ -416,12 +422,10 @@ public final class MasterKey {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isUserAuthenticationRequired(KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.isUserAuthenticationRequired();
         }
 
-        @DoNotInline
         static int getUserAuthenticationValidityDurationSeconds(
                 KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.getUserAuthenticationValidityDurationSeconds();
@@ -434,7 +438,6 @@ public final class MasterKey {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isStrongBoxBacked(KeyGenParameterSpec keyGenParameterSpec) {
             return keyGenParameterSpec.isStrongBoxBacked();
         }

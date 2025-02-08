@@ -16,9 +16,11 @@
 
 package androidx.room.writer
 
+import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
 import androidx.room.ext.CommonTypeNames
+import androidx.room.ext.KotlinCollectionMemberNames
 import androidx.room.ext.RoomMemberNames
 import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.capitalize
@@ -27,21 +29,31 @@ import androidx.room.vo.FtsEntity
 import java.util.Locale
 
 class FtsTableInfoValidationWriter(val entity: FtsEntity) : ValidationWriter() {
-    override fun write(dbParamName: String, scope: CountingCodeGenScope) {
+    override fun write(connectionParamName: String, scope: CountingCodeGenScope) {
         val suffix = entity.tableName.stripNonJava().capitalize(Locale.US)
         val expectedInfoVar = scope.getTmpVar("_info$suffix")
         scope.builder.apply {
             val columnSetVar = scope.getTmpVar("_columns$suffix")
-            val columnsSetType = CommonTypeNames.HASH_SET.parametrizedBy(CommonTypeNames.STRING)
+            val columnsSetType = CommonTypeNames.MUTABLE_SET.parametrizedBy(CommonTypeNames.STRING)
             addLocalVariable(
                 name = columnSetVar,
                 typeName = columnsSetType,
-                assignExpr = XCodeBlock.ofNewInstance(
-                    language,
-                    columnsSetType,
-                    "%L",
-                    entity.fields.size
-                )
+                assignExpr =
+                    when (language) {
+                        CodeLanguage.JAVA ->
+                            XCodeBlock.ofNewInstance(
+                                language,
+                                CommonTypeNames.HASH_SET.parametrizedBy(CommonTypeNames.STRING),
+                                "%L",
+                                entity.fields.size
+                            )
+                        CodeLanguage.KOTLIN ->
+                            XCodeBlock.of(
+                                language,
+                                "%M()",
+                                KotlinCollectionMemberNames.MUTABLE_SET_OF
+                            )
+                    }
             )
             entity.nonHiddenFields.forEach {
                 addStatement("%L.add(%S)", columnSetVar, it.columnName)
@@ -50,13 +62,15 @@ class FtsTableInfoValidationWriter(val entity: FtsEntity) : ValidationWriter() {
             addLocalVariable(
                 name = expectedInfoVar,
                 typeName = RoomTypeNames.FTS_TABLE_INFO,
-                assignExpr = XCodeBlock.ofNewInstance(
-                    language,
-                    RoomTypeNames.FTS_TABLE_INFO,
-                    "%S, %L, %S",
-                    entity.tableName, columnSetVar, entity.createTableQuery
-
-                )
+                assignExpr =
+                    XCodeBlock.ofNewInstance(
+                        language,
+                        RoomTypeNames.FTS_TABLE_INFO,
+                        "%S, %L, %S",
+                        entity.tableName,
+                        columnSetVar,
+                        entity.createTableQuery
+                    )
             )
 
             val existingVar = scope.getTmpVar("_existing$suffix")
@@ -64,7 +78,9 @@ class FtsTableInfoValidationWriter(val entity: FtsEntity) : ValidationWriter() {
                 existingVar,
                 RoomTypeNames.FTS_TABLE_INFO,
                 "%M(%L, %S)",
-                RoomMemberNames.FTS_TABLE_INFO_READ, dbParamName, entity.tableName
+                RoomMemberNames.FTS_TABLE_INFO_READ,
+                connectionParamName,
+                entity.tableName
             )
 
             beginControlFlow("if (!%L.equals(%L))", expectedInfoVar, existingVar).apply {
@@ -72,7 +88,7 @@ class FtsTableInfoValidationWriter(val entity: FtsEntity) : ValidationWriter() {
                     "return %L",
                     XCodeBlock.ofNewInstance(
                         language,
-                        RoomTypeNames.OPEN_HELPER_VALIDATION_RESULT,
+                        RoomTypeNames.ROOM_OPEN_DELEGATE_VALIDATION_RESULT,
                         "false, %S + %L + %S + %L",
                         "${entity.tableName}(${entity.element.qualifiedName}).\n Expected:\n",
                         expectedInfoVar,

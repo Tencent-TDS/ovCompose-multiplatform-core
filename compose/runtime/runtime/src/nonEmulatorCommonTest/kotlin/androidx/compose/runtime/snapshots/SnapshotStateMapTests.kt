@@ -19,22 +19,23 @@
 package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import androidx.compose.runtime.runTest
-import kotlinx.test.IgnoreJsAndNative
+import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
-import kotlinx.test.IgnoreNativeTarget
+import kotlinx.test.IgnoreJsAndNative
 
 class SnapshotStateMapTests {
     @Test
@@ -49,9 +50,7 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateSize() {
-        validateRead { map, normalMap ->
-            assertEquals(normalMap.size, map.size)
-        }
+        validateRead { map, normalMap -> assertEquals(normalMap.size, map.size) }
     }
 
     @Test
@@ -84,9 +83,7 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateIsEmpty() {
-        validateRead { map, normalMap ->
-            assertEquals(normalMap.isEmpty(), map.isEmpty())
-        }
+        validateRead { map, normalMap -> assertEquals(normalMap.isEmpty(), map.isEmpty()) }
         validateRead(mutableStateMapOf()) { map, normalMap ->
             assertEquals(normalMap.isEmpty(), map.isEmpty())
         }
@@ -130,16 +127,12 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateEntriesSize() {
-        validateRead { map, normalMap ->
-            assertEquals(normalMap.entries.size, map.entries.size)
-        }
+        validateRead { map, normalMap -> assertEquals(normalMap.entries.size, map.entries.size) }
     }
 
     @Test
     fun validateEntriesClear() {
-        validateWrite { map ->
-            map.entries.clear()
-        }
+        validateWrite { map -> map.entries.clear() }
     }
 
     @Test
@@ -174,11 +167,13 @@ class SnapshotStateMapTests {
             val normalOne = normalMap.entries.first()
             assertEquals(normalMap.entries.contains(normalOne), map.entries.contains(one))
             assertEquals(normalMap.entries.contains(one), map.entries.contains(normalOne))
-            val independent = object : MutableMap.MutableEntry<Int, Float> {
-                override val key = 1
-                override var value = 1f
-                override fun setValue(newValue: Float) = error("not supported")
-            }
+            val independent =
+                object : MutableMap.MutableEntry<Int, Float> {
+                    override val key = 1
+                    override var value = 1f
+
+                    override fun setValue(newValue: Float) = error("not supported")
+                }
             assertEquals(normalMap.entries.contains(independent), map.entries.contains(independent))
         }
     }
@@ -198,16 +193,20 @@ class SnapshotStateMapTests {
                 normalMap.entries.containsAll(listOf(one, two)),
                 map.entries.containsAll(listOf(normalOne, normalTwo))
             )
-            val independentOne = object : MutableMap.MutableEntry<Int, Float> {
-                override val key = 1
-                override var value = 1f
-                override fun setValue(newValue: Float) = error("not supported")
-            }
-            val independentTwo = object : MutableMap.MutableEntry<Int, Float> {
-                override val key = 1
-                override var value = 1f
-                override fun setValue(newValue: Float) = error("not supported")
-            }
+            val independentOne =
+                object : MutableMap.MutableEntry<Int, Float> {
+                    override val key = 1
+                    override var value = 1f
+
+                    override fun setValue(newValue: Float) = error("not supported")
+                }
+            val independentTwo =
+                object : MutableMap.MutableEntry<Int, Float> {
+                    override val key = 1
+                    override var value = 1f
+
+                    override fun setValue(newValue: Float) = error("not supported")
+                }
             assertEquals(
                 normalMap.entries.containsAll(listOf(independentOne, independentTwo)),
                 map.entries.containsAll(listOf(independentOne, independentTwo))
@@ -217,37 +216,29 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateEntriesRemove() {
-        validateWrite { map ->
-            map.entries.remove(map.entries.first())
-        }
+        validateWrite { map -> map.entries.remove(map.entries.first()) }
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun validateEntriesRemoveAll() {
-        validateWrite { map ->
-            map.entries.removeAll(map.entries.filter { it.key % 2 == 0 })
-        }
+        validateWrite { map -> map.entries.removeAll(map.entries.filter { it.key % 2 == 0 }) }
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun validateEntriesRetainAll() {
-        validateWrite { map ->
-            map.entries.retainAll(map.entries.filter { it.key % 2 == 0 })
-        }
+        validateWrite { map -> map.entries.retainAll(map.entries.filter { it.key % 2 == 0 }) }
     }
 
     @Test
     fun validateKeysSize() {
-        validateRead { map, normalMap ->
-            assertEquals(normalMap.keys.size, map.keys.size)
-        }
+        validateRead { map, normalMap -> assertEquals(normalMap.keys.size, map.keys.size) }
     }
 
     @Test
     fun validateKeysClear() {
-        validateWrite { map ->
-            map.keys.clear()
-        }
+        validateWrite { map -> map.keys.clear() }
     }
 
     @Test
@@ -296,9 +287,7 @@ class SnapshotStateMapTests {
     @Test
     fun validateKeysIterator() {
         validateRead { map, normalMap ->
-            map.keys.zip(normalMap.keys).forEach {
-                assertEquals(it.second, it.first)
-            }
+            map.keys.zip(normalMap.keys).forEach { assertEquals(it.second, it.first) }
         }
     }
 
@@ -312,16 +301,12 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateKeysRemoveAll() {
-        validateWrite { map ->
-            map.keys.removeAll(map.keys.filter { it % 2 == 0 })
-        }
+        validateWrite { map -> map.keys.removeAll(map.keys.filter { it % 2 == 0 }) }
     }
 
     @Test
     fun validateKeysRetainAll() {
-        validateWrite { map ->
-            map.keys.retainAll(map.keys.filter { it % 2 == 0 })
-        }
+        validateWrite { map -> map.keys.retainAll(map.keys.filter { it % 2 == 0 }) }
     }
 
     @Test
@@ -337,29 +322,19 @@ class SnapshotStateMapTests {
         validateRead { map, normalMap ->
             val l1 = listOf(1, 2, 3)
             val l2 = listOf(1, 2, 3, 100)
-            assertEquals(
-                normalMap.keys.containsAll(l1),
-                map.keys.containsAll(l1)
-            )
-            assertEquals(
-                normalMap.keys.containsAll(l2),
-                map.keys.containsAll(l2)
-            )
+            assertEquals(normalMap.keys.containsAll(l1), map.keys.containsAll(l1))
+            assertEquals(normalMap.keys.containsAll(l2), map.keys.containsAll(l2))
         }
     }
 
     @Test
     fun validateValuesSize() {
-        validateRead { map, normalMap ->
-            assertEquals(normalMap.values.size, map.values.size)
-        }
+        validateRead { map, normalMap -> assertEquals(normalMap.values.size, map.values.size) }
     }
 
     @Test
     fun validateValuesClear() {
-        validateWrite { map ->
-            map.values.clear()
-        }
+        validateWrite { map -> map.values.clear() }
     }
 
     @Test
@@ -408,9 +383,7 @@ class SnapshotStateMapTests {
     @Test
     fun validateValuesIterator() {
         validateRead { map, normalMap ->
-            map.values.zip(normalMap.values).forEach {
-                assertEquals(it.second, it.first)
-            }
+            map.values.zip(normalMap.values).forEach { assertEquals(it.second, it.first) }
         }
     }
 
@@ -428,16 +401,12 @@ class SnapshotStateMapTests {
 
     @Test
     fun validateValuesRemoveAll() {
-        validateWrite { map ->
-            map.values.removeAll(map.values.filter { it > 2f })
-        }
+        validateWrite { map -> map.values.removeAll(map.values.filter { it > 2f }) }
     }
 
     @Test
     fun validateValuesRetainAll() {
-        validateWrite { map ->
-            map.values.retainAll(map.values.filter { it > 2f })
-        }
+        validateWrite { map -> map.values.retainAll(map.values.filter { it > 2f }) }
     }
 
     @Test
@@ -453,22 +422,14 @@ class SnapshotStateMapTests {
         validateRead { map, normalMap ->
             val l1 = listOf(1f, 2f, 3f)
             val l2 = listOf(1f, 2f, 3f, 100f)
-            assertEquals(
-                normalMap.values.containsAll(l1),
-                map.values.containsAll(l1)
-            )
-            assertEquals(
-                normalMap.values.containsAll(l2),
-                map.values.containsAll(l2)
-            )
+            assertEquals(normalMap.values.containsAll(l1), map.values.containsAll(l1))
+            assertEquals(normalMap.values.containsAll(l2), map.values.containsAll(l2))
         }
     }
 
     @Test
     fun validateClear() {
-        validateWrite { map ->
-            map.clear()
-        }
+        validateWrite { map -> map.clear() }
     }
 
     @Test
@@ -481,9 +442,7 @@ class SnapshotStateMapTests {
 
     @Test
     fun validatePutAll() {
-        validateWrite { map ->
-            map.putAll(listOf(1 to 20f, 100 to 100f))
-        }
+        validateWrite { map -> map.putAll(listOf(1 to 20f, 100 to 100f)) }
     }
 
     @Test
@@ -520,159 +479,126 @@ class SnapshotStateMapTests {
         repeat(100) { index ->
             val current = maps[index]
             assertEquals(index + 1, current.size)
-            repeat(index) {
-                assertEquals(current[it], it.toString())
-            }
+            repeat(index) { assertEquals(current[it], it.toString()) }
         }
     }
 
     @Test
     @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_new() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_new() = runTest {
         repeat(100) {
             val map = mutableStateMapOf<Int, String>()
             coroutineScope {
-                repeat(100) {
-                    launch(Dispatchers.Default) {
-                        map[it] = it.toString()
-                    }
-                }
+                repeat(100) { launch(Dispatchers.Default) { map[it] = it.toString() } }
             }
 
-            repeat(100) {
-                assertEquals(map[it], it.toString())
-            }
+            repeat(100) { assertEquals(map[it], it.toString()) }
         }
     }
 
     @Test
     @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_replace() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_replace() = runTest {
         repeat(100) {
             val map = mutableStateMapOf(*Array(100) { it to "default" })
             coroutineScope {
-                repeat(100) {
-                    launch(Dispatchers.Default) {
-                        map[it] = it.toString()
-                    }
-                }
+                repeat(100) { launch(Dispatchers.Default) { map[it] = it.toString() } }
             }
 
-            repeat(100) {
-                assertEquals(map[it], it.toString())
-            }
+            repeat(100) { assertEquals(map[it], it.toString()) }
         }
     }
 
     @Test
     fun modificationAcrossSnapshots() {
         val map = mutableStateMapOf<Int, Int>()
-        repeat(100) {
-            Snapshot.withMutableSnapshot {
-                map[it] = it
-            }
-        }
-        repeat(100) {
-            assertEquals(it, map[it])
-        }
+        repeat(100) { Snapshot.withMutableSnapshot { map[it] = it } }
+        repeat(100) { assertEquals(it, map[it]) }
     }
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     @IgnoreJsTarget // Not relevant in a single threaded environment
-    fun concurrentMixingWriteApply_set() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) { index ->
-                        maps.fastForEach { map ->
-                            map[index] = index
+    fun concurrentMixingWriteApply_set() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) { index ->
+                            maps.fastForEach { map -> map[index] = index }
+
+                            // Simulate the write observer
+                            channel.trySend(Unit)
                         }
-
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach {
-                        Snapshot.notifyObjectsInitialized()
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
                     }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
     @IgnoreJsTarget // Not relevant in a single threaded environment
-    fun concurrentMixingWriteApply_clear() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) {
-                        maps.fastForEach { map ->
-                            repeat(10) { index -> map[index] = index }
-                            map.clear()
+    fun concurrentMixingWriteApply_clear() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) {
+                            maps.fastForEach { map ->
+                                repeat(10) { index -> map[index] = index }
+                                map.clear()
+                            }
+
+                            // Simulate the write observer
+                            channel.trySend(Unit)
                         }
-
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach {
-                        Snapshot.notifyObjectsInitialized()
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
                     }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     fun toStringOfSnapshotStateMapDoesNotTriggerReadObserver() {
         val state = mutableStateMapOf(0 to 0)
-        val normalReads = readsOf {
-            state.readable
-        }
+        val normalReads = readsOf { state.readable }
         assertEquals(1, normalReads)
-        val toStringReads = readsOf {
-            state.toString()
-        }
+        val toStringReads = readsOf { state.toString() }
         assertEquals(0, toStringReads)
     }
 
     @Test
     fun testValueOfStateMapToString() {
         val state = mutableStateMapOf(0 to 0, 1 to 1)
-        assertEquals(
-            "SnapshotStateMap(value={0=0, 1=1})@${state.hashCode()}",
-            state.toString()
-        )
+        assertEquals("SnapshotStateMap(value={0=0, 1=1})@${state.hashCode()}", state.toString())
     }
 
     private fun validateRead(
         initialMap: MutableMap<Int, Float> = defaultMap(),
         block: (Map<Int, Float>, Map<Int, Float>) -> Unit
     ) {
-        validateMaps(initialMap) { map, normalMap ->
-            block(map, normalMap)
-        }
+        validateMaps(initialMap) { map, normalMap -> block(map, normalMap) }
     }
 
     private fun validateWrite(
@@ -701,7 +627,6 @@ class SnapshotStateMapTests {
         }
     }
 
-    private fun defaultMap() = mutableStateMapOf(
-        1 to 1f, 2 to 2f, 3 to 3f, 4 to 4f, 5 to 1f, 6 to 2f, 7 to 3f, 8 to 4f
-    )
+    private fun defaultMap() =
+        mutableStateMapOf(1 to 1f, 2 to 2f, 3 to 3f, 4 to 4f, 5 to 1f, 6 to 2f, 7 to 3f, 8 to 4f)
 }

@@ -17,14 +17,12 @@ package androidx.camera.core.imagecapture;
 
 import static androidx.core.util.Preconditions.checkState;
 
-import android.os.Build;
 import android.util.Pair;
 import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.MetadataImageReader;
 import androidx.camera.core.SettableImageProxy;
@@ -47,7 +45,6 @@ import java.util.concurrent.Executor;
  * cannot be merged. For example, for Extensions and {@link StreamSharing}, the incoming
  * {@link CameraCaptureResult} does not have matching timestamps with {@link ImageProxy}.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class NoMetadataImageReader implements ImageReaderProxy {
     @NonNull
     private final ImageReaderProxy mWrappedImageReader;
@@ -68,6 +65,10 @@ public class NoMetadataImageReader implements ImageReaderProxy {
     void acceptProcessingRequest(@NonNull ProcessingRequest request) {
         checkState(mPendingRequest == null, "Pending request should be null");
         mPendingRequest = request;
+    }
+
+    void clearProcessingRequest() {
+        mPendingRequest = null;
     }
 
     @Nullable
@@ -130,9 +131,10 @@ public class NoMetadataImageReader implements ImageReaderProxy {
         if (originalImage == null) {
             return null;
         }
-        checkState(mPendingRequest != null, "Pending request should not be null");
-        TagBundle tagBundle = TagBundle.create(new Pair<>(mPendingRequest.getTagBundleKey(),
-                mPendingRequest.getStageIds().get(0)));
+        TagBundle tagBundle =
+                (mPendingRequest == null) ? TagBundle.emptyBundle() :
+                        TagBundle.create(new Pair<>(mPendingRequest.getTagBundleKey(),
+                                mPendingRequest.getStageIds().get(0)));
         mPendingRequest = null;
         return new SettableImageProxy(originalImage,
                 new Size(originalImage.getWidth(), originalImage.getHeight()),

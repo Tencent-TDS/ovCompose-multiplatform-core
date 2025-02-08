@@ -37,7 +37,6 @@ import android.view.Display;
 import android.view.DragEvent;
 import android.view.View;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
@@ -241,11 +240,7 @@ public class ActivityCompat extends ContextCompat {
      */
     public static void startActivityForResult(@NonNull Activity activity, @NonNull Intent intent,
             int requestCode, @Nullable Bundle options) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            Api16Impl.startActivityForResult(activity, intent, requestCode, options);
-        } else {
-            activity.startActivityForResult(intent, requestCode);
-        }
+        activity.startActivityForResult(intent, requestCode, options);
     }
 
     /**
@@ -278,13 +273,8 @@ public class ActivityCompat extends ContextCompat {
             @NonNull IntentSender intent, int requestCode, @Nullable Intent fillInIntent,
             int flagsMask, int flagsValues, int extraFlags, @Nullable Bundle options)
             throws IntentSender.SendIntentException {
-        if (Build.VERSION.SDK_INT >= 16) {
-            Api16Impl.startIntentSenderForResult(activity, intent, requestCode, fillInIntent,
-                    flagsMask, flagsValues, extraFlags, options);
-        } else {
-            activity.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask,
-                    flagsValues, extraFlags);
-        }
+        activity.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask,
+                flagsValues, extraFlags, options);
     }
 
     /**
@@ -295,11 +285,7 @@ public class ActivityCompat extends ContextCompat {
      * method. For other platforms {@link Activity#finish()} will be called instead.</p>
      */
     public static void finishAffinity(@NonNull Activity activity) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            Api16Impl.finishAffinity(activity);
-        } else {
-            activity.finish();
-        }
+        activity.finishAffinity();
     }
 
     /**
@@ -479,7 +465,7 @@ public class ActivityCompat extends ContextCompat {
      * </p>
      * <p>
      * Calling this API for permissions already granted to your app would show UI
-     * to the user to decided whether the app can still hold these permissions. This
+     * to the user to decide whether the app can still hold these permissions. This
      * can be useful if the way your app uses the data guarded by the permissions
      * changes significantly.
      * </p>
@@ -779,13 +765,11 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setLocusContext(@NonNull final Activity activity,
                 @Nullable final LocusIdCompat locusId, @Nullable final Bundle bundle) {
             activity.setLocusContext(locusId == null ? null : locusId.toLocusId(), bundle);
         }
 
-        @DoNotInline
         static Display getDisplay(ContextWrapper contextWrapper) {
             return contextWrapper.getDisplay();
         }
@@ -797,7 +781,6 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isLaunchedFromBubble(@NonNull final Activity activity)  {
             return activity.isLaunchedFromBubble();
         }
@@ -809,7 +792,6 @@ public class ActivityCompat extends ContextCompat {
          * </a>
          */
         @SuppressLint("BanUncheckedReflection")
-        @DoNotInline
         static boolean shouldShowRequestPermissionRationale(Activity activity, String permission) {
             try {
                 // 1. Background of the problem：Fix shouldShowRequestPermissionRationale causing memory leak in Android 12，
@@ -841,35 +823,8 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean shouldShowRequestPermissionRationale(Activity activity, String permission) {
             return activity.shouldShowRequestPermissionRationale(permission);
-        }
-    }
-
-    @RequiresApi(16)
-    static class Api16Impl {
-        private Api16Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void startActivityForResult(Activity activity, Intent intent, int requestCode,
-                Bundle options) {
-            activity.startActivityForResult(intent, requestCode, options);
-        }
-
-        @DoNotInline
-        static void startIntentSenderForResult(Activity activity, IntentSender intent,
-                int requestCode, Intent fillInIntent, int flagsMask, int flagsValues,
-                int extraFlags, Bundle options) throws IntentSender.SendIntentException {
-            activity.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask,
-                    flagsValues, extraFlags, options);
-        }
-
-        @DoNotInline
-        static void finishAffinity(Activity activity) {
-            activity.finishAffinity();
         }
     }
 
@@ -879,29 +834,24 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void finishAfterTransition(Activity activity) {
             activity.finishAfterTransition();
         }
 
-        @DoNotInline
         static void setEnterSharedElementCallback(Activity activity,
                 android.app.SharedElementCallback callback) {
             activity.setEnterSharedElementCallback(callback);
         }
 
-        @DoNotInline
         static void setExitSharedElementCallback(Activity activity,
                 android.app.SharedElementCallback callback) {
             activity.setExitSharedElementCallback(callback);
         }
 
-        @DoNotInline
         static void postponeEnterTransition(Activity activity) {
             activity.postponeEnterTransition();
         }
 
-        @DoNotInline
         static void startPostponedEnterTransition(Activity activity) {
             activity.startPostponedEnterTransition();
         }
@@ -913,7 +863,6 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Uri getReferrer(Activity activity) {
             return activity.getReferrer();
         }
@@ -926,7 +875,6 @@ public class ActivityCompat extends ContextCompat {
         }
 
         @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
-        @DoNotInline
         static <T> T requireViewById(Activity activity, int id) {
             return (T) activity.requireViewById(id);
         }
@@ -938,17 +886,14 @@ public class ActivityCompat extends ContextCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void requestPermissions(Activity activity, String[] permissions, int requestCode) {
             activity.requestPermissions(permissions, requestCode);
         }
 
-        @DoNotInline
         static boolean shouldShowRequestPermissionRationale(Activity activity, String permission) {
             return activity.shouldShowRequestPermissionRationale(permission);
         }
 
-        @DoNotInline
         static void onSharedElementsReady(Object onSharedElementsReadyListener) {
             ((android.app.SharedElementCallback.OnSharedElementsReadyListener)
                     onSharedElementsReadyListener).onSharedElementsReady();

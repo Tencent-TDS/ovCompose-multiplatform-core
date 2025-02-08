@@ -35,7 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.text.AnnotatedString.Range
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.FontRasterizationSettings
 import androidx.compose.ui.text.Placeholder
@@ -265,8 +265,8 @@ internal class ParagraphBuilder(
     var brushSize: Size = Size.Unspecified,
     var ellipsis: String = "",
     var maxLines: Int = Int.MAX_VALUE,
-    val spanStyles: List<Range<SpanStyle>>,
-    val placeholders: List<Range<Placeholder>>,
+    var annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
+    val placeholders: List<AnnotatedString.Range<Placeholder>>,
     val density: Density,
     val textDirection: ResolvedTextDirection,
     var drawStyle: DrawStyle? = null,
@@ -310,7 +310,7 @@ internal class ParagraphBuilder(
     fun build(): SkParagraph {
         prepareDefaultStyle()
         ops = makeOps(
-            spanStyles,
+            annotations,
             placeholders
         )
 
@@ -422,13 +422,17 @@ internal class ParagraphBuilder(
     }
 
     private fun makeOps(
-        spans: List<Range<SpanStyle>>,
-        placeholders: List<Range<Placeholder>>
+        annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
+        placeholders: List<AnnotatedString.Range<Placeholder>>
     ): List<Op> {
         val cuts = mutableListOf<Cut>()
-        for (span in spans) {
-            cuts.add(Cut.StyleAdd(span.start, span.item))
-            cuts.add(Cut.StyleRemove(span.end, span.item))
+        for (annotation in annotations) {
+
+            // TODO https://youtrack.jetbrains.com/issue/CMP-7151
+            if (annotation.item !is SpanStyle) continue
+
+            cuts.add(Cut.StyleAdd(annotation.start, annotation.item))
+            cuts.add(Cut.StyleRemove(annotation.end, annotation.item))
         }
 
         for (placeholder in placeholders) {

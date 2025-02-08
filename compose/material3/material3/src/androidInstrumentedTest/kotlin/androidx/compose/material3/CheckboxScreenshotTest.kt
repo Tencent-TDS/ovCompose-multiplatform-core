@@ -25,17 +25,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -48,6 +50,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.screenshot.AndroidXScreenshotTestRule
 import org.junit.After
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -56,7 +59,6 @@ import org.junit.runners.Parameterized
 @MediumTest
 @RunWith(Parameterized::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-@OptIn(ExperimentalTestApi::class)
 class CheckboxScreenshotTest(private val scheme: ColorSchemeWrapper) {
 
     @get:Rule val rule = createComposeRule()
@@ -95,6 +97,7 @@ class CheckboxScreenshotTest(private val scheme: ColorSchemeWrapper) {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun checkBox_pressed() {
         rule.setMaterialContent(scheme.colorScheme) {
             Box(wrap.testTag(wrapperTestTag)) {
@@ -251,7 +254,6 @@ class CheckboxScreenshotTest(private val scheme: ColorSchemeWrapper) {
         }
 
         rule.runOnIdle {
-            @OptIn(ExperimentalComposeUiApi::class)
             localInputModeManager!!.requestInputMode(InputMode.Keyboard)
             focusRequester.requestFocus()
         }
@@ -311,6 +313,73 @@ class CheckboxScreenshotTest(private val scheme: ColorSchemeWrapper) {
         rule.waitForIdle()
 
         assertToggeableAgainstGolden("checkBox_${scheme.name}_customCheckboxColorsConstruct")
+    }
+
+    @Test
+    fun checkBox_customStroke_checked() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            val stroke =
+                Stroke(
+                    width = with(LocalDensity.current) { CheckboxDefaults.StrokeWidth.toPx() },
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            Box(wrap.testTag(wrapperTestTag)) {
+                Checkbox(
+                    modifier = wrap,
+                    checked = true,
+                    onCheckedChange = {},
+                    checkmarkStroke = stroke,
+                    outlineStroke = stroke
+                )
+            }
+        }
+        assertToggeableAgainstGolden("checkBox_${scheme.name}_customStroke_checked")
+    }
+
+    @Test
+    fun checkBox_customStroke_unchecked() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            // Have the stroke thinner so we can verify it's being applied to the rounded box.
+            val stroke =
+                Stroke(
+                    width = with(LocalDensity.current) { CheckboxDefaults.StrokeWidth.toPx() / 4 },
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            Box(wrap.testTag(wrapperTestTag)) {
+                Checkbox(
+                    modifier = wrap,
+                    checked = false,
+                    onCheckedChange = {},
+                    checkmarkStroke = stroke,
+                    outlineStroke = stroke
+                )
+            }
+        }
+        assertToggeableAgainstGolden("checkBox_${scheme.name}_customStroke_unchecked")
+    }
+
+    @Test
+    fun checkBox_customStroke_indeterminate() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            val stroke =
+                Stroke(
+                    width = with(LocalDensity.current) { CheckboxDefaults.StrokeWidth.toPx() },
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            Box(wrap.testTag(wrapperTestTag)) {
+                TriStateCheckbox(
+                    state = ToggleableState.Indeterminate,
+                    checkmarkStroke = stroke,
+                    outlineStroke = stroke,
+                    modifier = wrap,
+                    onClick = {}
+                )
+            }
+        }
+        assertToggeableAgainstGolden("checkBox_${scheme.name}_customStroke_indeterminate")
     }
 
     @Composable

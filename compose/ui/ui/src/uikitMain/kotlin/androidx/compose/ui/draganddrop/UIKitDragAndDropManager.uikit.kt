@@ -26,14 +26,17 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.PlatformDragAndDropSource
 import androidx.compose.ui.platform.toUIImage
-import androidx.compose.ui.scene.ComposeSceneDragAndDropTarget
+import androidx.compose.ui.scene.ComposeSceneDragAndDropNode
 import androidx.compose.ui.uikit.utils.CMPDragInteractionProxy
 import androidx.compose.ui.uikit.utils.CMPDropInteractionProxy
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.UserInputView
 import kotlin.math.roundToInt
 import kotlinx.cinterop.readValue
@@ -43,23 +46,24 @@ import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIBezierPath
 import platform.UIKit.UIColor
 import platform.UIKit.UIDragInteraction
+import platform.UIKit.UIDragInteractionDelegateProtocol
 import platform.UIKit.UIDragItem
 import platform.UIKit.UIDragSessionProtocol
 import platform.UIKit.UIDropInteraction
-import platform.UIKit.UIDropOperationForbidden
-import platform.UIKit.UIDropProposal
-import platform.UIKit.UIDropSessionProtocol
-import platform.UIKit.addInteraction
-import platform.UIKit.UIDragInteractionDelegateProtocol
 import platform.UIKit.UIDropInteractionDelegateProtocol
 import platform.UIKit.UIDropOperation
 import platform.UIKit.UIDropOperationCopy
+import platform.UIKit.UIDropOperationForbidden
+import platform.UIKit.UIDropProposal
+import platform.UIKit.UIDropSessionProtocol
 import platform.UIKit.UIImageView
+import platform.UIKit.UILongPressGestureRecognizer
 import platform.UIKit.UIPreviewParameters
 import platform.UIKit.UIPreviewTarget
 import platform.UIKit.UITargetedDragPreview
 import platform.UIKit.UIView
 import platform.UIKit.UIViewContentMode
+import platform.UIKit.addInteraction
 
 /**
  * Context of a drag session initiated from Compose.
@@ -163,9 +167,12 @@ internal class DropSessionContext(
  * context between iOS and Compose.
  */
 internal class UIKitDragAndDropManager(
-    val view: UserInputView,
-    val getDragAndDropTarget: () -> ComposeSceneDragAndDropTarget
+    private val view: UserInputView,
+    private val getComposeRootDragAndDropNode: () -> ComposeSceneDragAndDropNode
 ) : PlatformDragAndDropManager {
+    private val rootNode: ComposeSceneDragAndDropNode
+        get() = getComposeRootDragAndDropNode()
+
     /**
      * Context for an ongoing drag session initiated from Compose.
      */
@@ -190,41 +197,35 @@ internal class UIKitDragAndDropManager(
         override fun itemsForBeginningSession(
             session: UIDragSessionProtocol, interaction: UIDragInteraction
         ): List<*> {
-            // TODO: temporary stubs
-            return emptyList<UIDragItem>()
-//            val scope = object : DragAndDropSourceScope {
-//                override fun startDragAndDropTransfer(
-//                    transferData: DragAndDropTransferData,
-//                    decorationSize: Size,
-//                    drawDragDecoration: DrawScope.() -> Unit
-//                ): Boolean {
-//                    dragSessionContext = DragSessionContext(
-//                        transferData = transferData,
-//                        decorationSize = decorationSize,
-//                        drawDragDecoration = drawDragDecoration
-//                    )
-//                    return true
-//                }
-//            }
-//
-//            val density = Density(density = view.window?.screen?.scale?.toFloat() ?: 1f)
-//            val offset = session
-//                .locationInView(view)
-//                .useContents {
-//                    asDpOffset()
-//                }
-//                .toOffset(density)
-//
-//            with(rootDragAndDropNode) {
-//                scope.startDragAndDropTransfer(
-//                    offset = offset,
-//                    isTransferStarted = {
-//                        dragSessionContext != null
-//                    }
-//                )
-//            }
-//
-//            return dragSessionContext?.transferData?.items ?: emptyList<UIDragItem>()
+            val startTransferScope = object : PlatformDragAndDropSource.StartTransferScope {
+                override fun startDragAndDropTransfer(
+                    transferData: DragAndDropTransferData,
+                    decorationSize: Size,
+                    drawDragDecoration: DrawScope.() -> Unit
+                ): Boolean {
+                    dragSessionContext = DragSessionContext(
+                        transferData = transferData,
+                        decorationSize = decorationSize,
+                        drawDragDecoration = drawDragDecoration
+                    )
+                    return true
+                }
+            }
+
+            val density = Density(density = view.window?.screen?.scale?.toFloat() ?: 1f)
+            val offset = session
+                .locationInView(view)
+                .useContents { asDpOffset() }
+                .toOffset(density)
+
+            with(rootNode) {
+                startTransferScope.startDragAndDropTransfer(
+                    offset = offset,
+                    isTransferStarted = { dragSessionContext != null }
+                )
+            }
+
+            return dragSessionContext?.transferData?.items ?: emptyList<UIDragItem>()
         }
 
         override fun previewForLiftingItemInSession(
@@ -262,9 +263,7 @@ internal class UIKitDragAndDropManager(
             if (dropSessionContext != null) return false
 
             val context = DropSessionContext(view, session)
-
-            val accepts = dragAndDropTarget.acceptDragAndDropTransfer(context.event)
-
+            val accepts = rootNode.acceptDragAndDropTransfer(context.event)
             if (accepts) {
                 dropSessionContext = context
             }
@@ -277,15 +276,15 @@ internal class UIKitDragAndDropManager(
             session: UIDropSessionProtocol, interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onDrop(event)
+                rootNode.onDrop(event)
             }
         }
 
         override fun proposalForSessionUpdate(
             session: UIDropSessionProtocol, interaction: UIDropInteraction
         ): UIDropProposal = withDropSessionContext {
-            dragAndDropTarget.onMoved(event)
-            if (dragAndDropTarget.hasEligibleDropTarget) {
+            rootNode.onMoved(event)
+            if (rootNode.hasEligibleDropTarget) {
                 UIDropProposal(UIDropOperationCopy)
             } else {
                 UIDropProposal(UIDropOperationForbidden)
@@ -297,7 +296,7 @@ internal class UIKitDragAndDropManager(
             interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onEntered(event)
+                rootNode.onEntered(event)
             }
         }
 
@@ -306,30 +305,31 @@ internal class UIKitDragAndDropManager(
             interaction: UIDropInteraction
         ) {
             withDropSessionContext {
-                dragAndDropTarget.onExited(event)
+                rootNode.onExited(event)
             }
         }
 
         override fun sessionDidEnd(session: UIDropSessionProtocol, interaction: UIDropInteraction) {
             withDropSessionContext {
-                dragAndDropTarget.onEnded(event)
+                rootNode.onEnded(event)
             }
 
             dropSessionContext = null
         }
     }
 
-    /**
-     * The root [DragAndDropNode] that is used to perform traversal of the drag and drop aware
-     * nodes in the hierarchy. `null` returned implies that the root node is not an actual
-     * [DragAndDropTarget].
-     */
-    private val dragAndDropTarget: ComposeSceneDragAndDropTarget
-        get() = getDragAndDropTarget()
-
     init {
         view.addInteraction(UIDragInteraction(delegate = dragInteractionProxy))
         view.addInteraction(UIDropInteraction(delegate = dropInteractionProxy))
+
+        // UIDragInteraction adds its own gesture recogniser that can cancel the gesture that is
+        // responsive to touch handling. Ignore this gesture if the drag session is not started
+        // or empty.
+        view.canIgnoreDragGesture = { gestureRecognizer ->
+            (gestureRecognizer is UILongPressGestureRecognizer &&
+                gestureRecognizer.view == view &&
+                dragSessionContext?.transferData?.items?.isNotEmpty() != true)
+        }
     }
 
     private fun <R> withDragSessionContext(block: DragSessionContext.() -> R): R? =

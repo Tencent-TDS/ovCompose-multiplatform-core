@@ -28,4 +28,5 @@ internal fun Translations.vi() = mapOf(
     Strings.DefaultErrorMessage to "Giá trị nhập không hợp lệ",
     Strings.SliderRangeStart to "Điểm bắt đầu phạm vi",
     Strings.SliderRangeEnd to "Điểm kết thúc phạm vi",
+    Strings.SnackbarPaneTitle to "Cảnh báo",
 )

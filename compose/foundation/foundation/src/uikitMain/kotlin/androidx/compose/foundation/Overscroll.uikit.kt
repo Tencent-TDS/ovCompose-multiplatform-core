@@ -17,27 +17,39 @@
 package androidx.compose.foundation
 
 import androidx.compose.foundation.cupertino.CupertinoOverscrollEffect
-import androidx.compose.foundation.gestures.UiKitScrollConfig
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalAccessorScope
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect =
+internal actual fun rememberPlatformOverscrollEffect(): OverscrollEffect? =
     rememberOverscrollEffect(applyClip = false)
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect =
-    if (UiKitScrollConfig.isRubberBandingOverscrollEnabled) {
-        val density = LocalDensity.current.density
-        val layoutDirection = LocalLayoutDirection.current
+internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect {
+    val density = LocalDensity.current.density
+    val layoutDirection = LocalLayoutDirection.current
 
-        remember(density, layoutDirection) {
-            CupertinoOverscrollEffect(density, layoutDirection, applyClip)
-        }
-    } else {
-        NoOpOverscrollEffect
+    return remember(density, layoutDirection) {
+        CupertinoOverscrollEffect(density, layoutDirection, applyClip)
     }
+}
+
+internal actual fun CompositionLocalAccessorScope.defaultOverscrollFactory(): OverscrollFactory? {
+    val density = LocalDensity.currentValue
+    val layoutDirection = LocalLayoutDirection.currentValue
+    return CupertinoOverscrollEffectFactory(density, layoutDirection)
+}
+
+private data class CupertinoOverscrollEffectFactory(
+    private val density: Density,
+    private val layoutDirection: LayoutDirection
+) : OverscrollFactory {
+    override fun createOverscrollEffect(): OverscrollEffect {
+        return CupertinoOverscrollEffect(density.density, layoutDirection, applyClip = false)
+    }
+}

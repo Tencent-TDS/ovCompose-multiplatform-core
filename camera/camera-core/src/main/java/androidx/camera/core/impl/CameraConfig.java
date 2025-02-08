@@ -19,7 +19,6 @@ package androidx.camera.core.impl;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.Preview;
 
@@ -29,7 +28,6 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Configuration for a {@link androidx.camera.core.Camera}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraConfig extends ReadableConfig {
 
     // Option Declarations:
@@ -50,6 +48,12 @@ public interface CameraConfig extends ReadableConfig {
 
     Option<Boolean> OPTION_ZSL_DISABLED =
             Option.create("camerax.core.camera.isZslDisabled", Boolean.class);
+
+    Option<Boolean> OPTION_POSTVIEW_SUPPORTED =
+            Option.create("camerax.core.camera.isPostviewSupported", Boolean.class);
+
+    Option<Boolean> OPTION_CAPTURE_PROCESS_PROGRESS_SUPPORTED =
+            Option.create("camerax.core.camera.isCaptureProcessProgressSupported", Boolean.class);
 
     /**
      * No rule is required when the camera is opened by the camera config.
@@ -110,6 +114,20 @@ public interface CameraConfig extends ReadableConfig {
     }
 
     /**
+     * Returns if postview is supported or not.
+     */
+    default boolean isPostviewSupported() {
+        return retrieveOption(OPTION_POSTVIEW_SUPPORTED, false);
+    }
+
+    /**
+     * Returns if capture process progress is supported.
+     */
+    default boolean isCaptureProcessProgressSupported() {
+        return retrieveOption(OPTION_CAPTURE_PROCESS_PROGRESS_SUPPORTED, false);
+    }
+
+    /**
      * Returns the session processor which will transform the stream configurations and will
      * perform the repeating request and still capture request when being requested by CameraX.
      *
@@ -160,5 +178,15 @@ public interface CameraConfig extends ReadableConfig {
          */
         @NonNull
         B setZslDisabled(boolean disabled);
+
+        /**
+         * Sets if the postview is supported or not.
+         */
+        B setPostviewSupported(boolean postviewSupported);
+
+        /**
+         * Sets if the capture process progress is supported.
+         */
+        B setCaptureProcessProgressSupported(boolean supported);
     }
 }

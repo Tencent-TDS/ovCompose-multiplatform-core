@@ -16,9 +16,9 @@
 
 package androidx.benchmark
 
-import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -33,19 +33,16 @@ class BenchmarkStateConfigTest {
         expectedWarmups: Int?,
         expectedMeasurements: Int,
         expectedIterations: Int?,
-        expectedUsesProfiler: Boolean = false
+        expectedUsesProfiler: Boolean = false,
+        expectedProfilerIterations: Int = 0
     ) {
         val state = BenchmarkState(config)
         var count = 0
         while (state.keepRunning()) {
-            if (Build.VERSION.SDK_INT < 21) {
-                // This spin loop works around an issue where on Mako API 17, nanoTime is only
-                // precise to 30us. A more ideal fix might introduce an automatic divisor to
-                // WarmupManager when the duration values it sees are 0, but this is simple.
-                val start = System.nanoTime()
-                @Suppress("ControlFlowWithEmptyBody")
-                while (System.nanoTime() == start) {}
-            }
+            // This spin loop works around an issue where nanoTime is only precise to 30us on some
+            // devices. This was reproduced on api 17 and emulators api 33. (b/331226761)
+            val start = System.nanoTime()
+            @Suppress("ControlFlowWithEmptyBody") while (System.nanoTime() == start) {}
             count++
         }
 
@@ -58,7 +55,7 @@ class BenchmarkStateConfigTest {
         if (!usesProfiler) {
             assertEquals(calculatedIterations, count)
         } else if (config.profiler!!.requiresSingleMeasurementIteration) {
-            assertEquals(calculatedIterations + 1, count)
+            assertEquals(calculatedIterations + expectedProfilerIterations, count)
         } else {
             throw IllegalStateException("Test doesn't support validating profiler $config.profiler")
         }
@@ -72,101 +69,137 @@ class BenchmarkStateConfigTest {
     }
 
     @Test
-    fun dryRunMode() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = true, // everything after is ignored
-            startupMode = true,
-            simplifiedTimingOnlyMode = true,
-            profiler = null,
-            warmupCount = 100,
-            measurementCount = 1000,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = 0,
-        expectedMeasurements = 1,
-        expectedIterations = 1,
-    )
+    fun dryRunMode() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = true, // everything after is ignored
+                startupMode = true,
+                simplifiedTimingOnlyMode = true,
+                profiler = null,
+                profilerPerfCompareMode = false,
+                warmupCount = 100,
+                measurementCount = 1000,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 0,
+            expectedMeasurements = 1,
+            expectedIterations = 1,
+        )
 
     @Test
-    fun startupMode() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = false,
-            startupMode = true, // everything after is ignored
-            simplifiedTimingOnlyMode = true,
-            profiler = null,
-            warmupCount = 100,
-            measurementCount = 1000,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = 0,
-        expectedMeasurements = 10,
-        expectedIterations = 10,
-    )
+    fun startupMode() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = true, // everything after is ignored
+                simplifiedTimingOnlyMode = true,
+                profiler = null,
+                profilerPerfCompareMode = false,
+                warmupCount = 100,
+                measurementCount = 1000,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 0,
+            expectedMeasurements = 10,
+            expectedIterations = 10,
+        )
 
     @LargeTest // due to dynamic warmup
     @Test
-    fun basic() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = false,
-            startupMode = false,
-            simplifiedTimingOnlyMode = false,
-            profiler = null,
-            warmupCount = null,
-            measurementCount = null,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = null,
-        expectedMeasurements = 55, // includes allocations
-        expectedIterations = null,
-    )
+    fun basic() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = false,
+                simplifiedTimingOnlyMode = false,
+                profiler = null,
+                profilerPerfCompareMode = false,
+                warmupCount = null,
+                measurementCount = null,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = null,
+            expectedMeasurements = 55, // includes allocations
+            expectedIterations = null,
+        )
 
     @Test
-    fun basicOverride() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = false,
-            startupMode = false,
-            simplifiedTimingOnlyMode = false,
-            profiler = null,
-            warmupCount = 10,
-            measurementCount = 100,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = 10,
-        expectedMeasurements = 105, // includes allocations
-        expectedIterations = null,
-    )
+    fun basicOverride() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = false,
+                simplifiedTimingOnlyMode = false,
+                profiler = null,
+                profilerPerfCompareMode = false,
+                warmupCount = 10,
+                measurementCount = 100,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 10,
+            expectedMeasurements = 105, // includes allocations
+            expectedIterations = null, // iterations are dynamic
+        )
+
+    @SdkSuppress(minSdkVersion = 22) // See b/300658578
+    @Test
+    fun profilerMethodTracing() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = false,
+                simplifiedTimingOnlyMode = false,
+                profiler = MethodTracing,
+                profilerPerfCompareMode = false,
+                warmupCount = 5,
+                measurementCount = 10,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 5,
+            expectedMeasurements = 15, // 10 timing + 5 allocations
+            expectedIterations = null, // iterations are dynamic
+            expectedUsesProfiler = true,
+            expectedProfilerIterations = 1,
+        )
+
+    @SdkSuppress(minSdkVersion = 22) // See b/300658578
+    @Test
+    fun profilerMethodTracing_perfCompareMode() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = false,
+                simplifiedTimingOnlyMode = false,
+                profiler = MethodTracing,
+                profilerPerfCompareMode = true,
+                warmupCount = 5,
+                measurementCount = 10,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 5,
+            expectedMeasurements = 15,
+            expectedIterations =
+                30, // fixed iterations to be consistent between measurement/profiling
+            expectedUsesProfiler = true,
+            expectedProfilerIterations = 10,
+        )
 
     @Test
-    fun profilerMethodTracing() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = false,
-            startupMode = false,
-            simplifiedTimingOnlyMode = false,
-            profiler = MethodTracing,
-            warmupCount = 5,
-            measurementCount = 10,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = 5,
-        expectedMeasurements = 15, // profiler not measured, not accounted for here
-        expectedIterations = null,
-        expectedUsesProfiler = true,
-    )
-
-    @Test
-    fun simplifiedTimingOnlyMode_ignoresProfiler() = validateConfig(
-        MicrobenchmarkPhase.Config(
-            dryRunMode = false,
-            startupMode = false,
-            simplifiedTimingOnlyMode = true,
-            profiler = MethodTracing,
-            warmupCount = 100,
-            measurementCount = 10,
-            metrics = arrayOf(TimeCapture()),
-        ),
-        expectedWarmups = 100,
-        expectedMeasurements = 10,
-        expectedIterations = null,
-        expectedUsesProfiler = false, // ignored due to simplifiedTimingOnlyMode
-    )
+    fun simplifiedTimingOnlyMode_ignoresProfiler() =
+        validateConfig(
+            MicrobenchmarkPhase.Config(
+                dryRunMode = false,
+                startupMode = false,
+                simplifiedTimingOnlyMode = true,
+                profiler = MethodTracing,
+                profilerPerfCompareMode = true,
+                warmupCount = 100,
+                measurementCount = 10,
+                metrics = arrayOf(TimeCapture()),
+            ),
+            expectedWarmups = 100,
+            expectedMeasurements = 10,
+            expectedIterations = null,
+            expectedUsesProfiler = false, // ignored due to simplifiedTimingOnlyMode
+        )
 }

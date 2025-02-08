@@ -17,8 +17,14 @@
 package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
+import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
@@ -28,6 +34,7 @@ import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,6 +48,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     imeOptions: ImeOptions,
     receiveContentConfiguration: ReceiveContentConfiguration?,
     onImeAction: ((ImeAction) -> Unit)?,
+    updateSelectionState: (() -> Unit)?,
     stylusHandwritingTrigger: MutableSharedFlow<Unit>?,
     viewConfiguration: ViewConfiguration?
 ): Nothing {
@@ -62,7 +70,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
             val untransformedSelection = state.mapFromTransformed(newValue.selection)
-            setSelection(untransformedSelection.start, untransformedSelection.end)
+            setSelectionCoerced(untransformedSelection.start, untransformedSelection.end)
 
             val composition = newValue.composition
             if (composition == null) {
@@ -77,9 +85,31 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
 
     coroutineScope {
         launch {
-            state.collectImeNotifications{ _, newValue, _ ->
+            state.collectImeNotifications { _, newValue, _ ->
                 val newTextFieldValue = TextFieldValue(newValue.text.toString(), newValue.selection, newValue.composition)
                 updateSelectionState(newTextFieldValue)
+            }
+        }
+
+        launch {
+            snapshotFlow {
+                val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
+                val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
+                focusedRectInRoot(
+                    layoutResult = layoutResult,
+                    layoutCoordinates = layoutCoords,
+                    focusOffset = state.visualText.selection.max,
+                    sizeForDefaultText = {
+                        layoutResult.layoutInput.let {
+                            computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
+                        }
+                    }
+
+                )
+            }.collect { rect ->
+                if (rect != null) {
+                    notifyFocusedRect(rect)
+                }
             }
         }
 
@@ -107,5 +137,32 @@ private data class SkikoPlatformTextInputMethodRequest(
     override val onEditCommand: (List<EditCommand>) -> Unit,
     override val onImeAction: ((ImeAction) -> Unit)?,
     override val editProcessor: EditProcessor?,
-    override val textLayoutResult: Flow<TextLayoutResult>
+    override val textLayoutResult: Flow<TextLayoutResult>,
 ): PlatformTextInputMethodRequest
+
+/**
+ * Computes the bounds of the area where text editing is in progress, relative to the root.
+ */
+// Adapted from TextFieldDelegate.notifyFocusedRect
+// TODO: Move this function into TextFieldDelegate.kt, and call it from both places.
+private fun focusedRectInRoot(
+    layoutResult: TextLayoutResult,
+    layoutCoordinates: LayoutCoordinates,
+    focusOffset: Int,
+    sizeForDefaultText: () -> IntSize
+): Rect {
+    val bbox = when {
+        focusOffset < layoutResult.layoutInput.text.length -> {
+            layoutResult.getBoundingBox(focusOffset)
+        }
+        focusOffset != 0 -> {
+            layoutResult.getBoundingBox(focusOffset - 1)
+        }
+        else -> { // empty text.
+            val size = sizeForDefaultText()
+            Rect(0f, 0f, 1.0f, size.height.toFloat())
+        }
+    }
+    val globalLT = layoutCoordinates.localToRoot(Offset(bbox.left, bbox.top))
+    return Rect(Offset(globalLT.x, globalLT.y), Size(bbox.width, bbox.height))
+}

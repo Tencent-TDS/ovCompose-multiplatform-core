@@ -25,8 +25,12 @@ import androidx.compose.ui.text.platform.PlatformFont
 import org.jetbrains.skia.paragraph.FontCollection
 
 internal class SkiaFontLoader(
-    private val fontCache: FontCache = FontCache()
+    fontCacheProvider: () -> FontCache
 ) : PlatformFontLoader {
+
+    constructor(fontCache: FontCache = FontCache()) : this (fontCacheProvider = { fontCache })
+
+    private val fontCache: FontCache by lazy(fontCacheProvider)
 
     val fontCollection: FontCollection
         get() = fontCache.fonts
@@ -63,5 +67,6 @@ internal class SkiaFontLoader(
         return loadBlocking(font)
     }
 
-    override val cacheKey: Any = fontCache // results are valid for all shared caches
+    override val cacheKey: Any
+        get() = fontCache // results are valid for all shared caches
 }

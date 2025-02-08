@@ -24,7 +24,6 @@ import android.os.Build.VERSION.SDK_INT
 import android.util.Log
 import android.util.SizeF
 import android.widget.RemoteViews
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.core.util.SizeFCompat
 import kotlin.math.ceil
@@ -38,17 +37,18 @@ internal val SizeFCompat.area: Float
     get() = width * height
 
 /**
- * Updates the app widget with [appWidgetId], creating a [RemoteViews] for each size assigned to
- * the app widget by [AppWidgetManager], invoking [factory] to create each alternative view.
+ * Updates the app widget with [appWidgetId], creating a [RemoteViews] for each size assigned to the
+ * app widget by [AppWidgetManager], invoking [factory] to create each alternative view.
  *
- * This provides ["exact" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-exact-layouts)
+ * This provides
+ * ["exact" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-exact-layouts)
  * , which allows you to tailor your app widget appearance to the exact size at which it is
- * displayed. If you are only concerned with a small number of size thresholds, it is preferable
- * to use "responsive" sizing by providing a fixed set of sizes that your app widget supports.
+ * displayed. If you are only concerned with a small number of size thresholds, it is preferable to
+ * use "responsive" sizing by providing a fixed set of sizes that your app widget supports.
  *
  * As your [factory] may be invoked multiple times, if there is expensive computation of state that
- * is shared among each size, it is recommended to perform that computation before calling this
- * and cache the results as necessary.
+ * is shared among each size, it is recommended to perform that computation before calling this and
+ * cache the results as necessary.
  *
  * To handle resizing of your app widget, it is necessary to call this function during both
  * [android.appwidget.AppWidgetProvider.onUpdate] and
@@ -68,14 +68,15 @@ public fun AppWidgetManager.updateAppWidget(
  * Creates a [RemoteViews] associated with each size assigned to the app widget by
  * [AppWidgetManager], invoking [factory] to create each alternative view.
  *
- * This provides ["exact" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-exact-layouts)
+ * This provides
+ * ["exact" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-exact-layouts)
  * , which allows you to tailor your app widget appearance to the exact size at which it is
- * displayed. If you are only concerned with a small number of size thresholds, it is preferable
- * to use "responsive" sizing by providing a fixed set of sizes that your app widget supports.
+ * displayed. If you are only concerned with a small number of size thresholds, it is preferable to
+ * use "responsive" sizing by providing a fixed set of sizes that your app widget supports.
  *
  * As your [factory] may be invoked multiple times, if there is expensive computation of state that
- * is shared among each size, it is recommended to perform that computation before calling this
- * and cache the results as necessary.
+ * is shared among each size, it is recommended to perform that computation before calling this and
+ * cache the results as necessary.
  *
  * To handle resizing of your app widget, it is necessary to call [AppWidgetManager.updateAppWidget]
  * during both [android.appwidget.AppWidgetProvider.onUpdate] and
@@ -99,14 +100,7 @@ public fun createExactSizeAppWidget(
                 factory
             )
         }
-        SDK_INT >= 16 -> {
-            AppWidgetManagerApi16Impl.createExactSizeAppWidget(
-                appWidgetManager,
-                appWidgetId,
-                factory
-            )
-        }
-        else -> createAppWidgetFromProviderInfo(appWidgetManager, appWidgetId, factory)
+        else -> createExactSizeAppWidgetInner(appWidgetManager, appWidgetId, factory)
     }
 }
 
@@ -114,13 +108,14 @@ public fun createExactSizeAppWidget(
  * Updates the app widget with [appWidgetId], creating a [RemoteViews] for each size provided in
  * [dpSizes].
  *
- * This provides ["responsive" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-responsive-layouts)
+ * This provides
+ * ["responsive" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-responsive-layouts)
  * , which allows for smoother resizing and a more consistent experience across different host
  * configurations.
  *
  * As your [factory] may be invoked multiple times, if there is expensive computation of state that
- * is shared among each size, it is recommended to perform that computation before calling this
- * and cache the results as necessary.
+ * is shared among each size, it is recommended to perform that computation before calling this and
+ * cache the results as necessary.
  *
  * To handle resizing of your app widget, it is necessary to call this function during both
  * [android.appwidget.AppWidgetProvider.onUpdate] and
@@ -129,9 +124,9 @@ public fun createExactSizeAppWidget(
  *
  * @param appWidgetId the id of the app widget
  * @param dpSizes a collection of sizes (in dp) that your app widget supports. Must not be empty or
- * contain more than 16 elements.
+ *   contain more than 16 elements.
  * @param factory a function to create a [RemoteViews] for a given width and height (in dp). It is
- * guaranteed that [factory] will only ever be called with the values provided in [dpSizes].
+ *   guaranteed that [factory] will only ever be called with the values provided in [dpSizes].
  */
 public fun AppWidgetManager.updateAppWidget(
     appWidgetId: Int,
@@ -144,13 +139,14 @@ public fun AppWidgetManager.updateAppWidget(
 /**
  * Creating a [RemoteViews] associated with each size provided in [dpSizes].
  *
- * This provides ["responsive" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-responsive-layouts)
+ * This provides
+ * ["responsive" sizing](https://developer.android.com/guide/topics/appwidgets/layouts#provide-responsive-layouts)
  * , which allows for smoother resizing and a more consistent experience across different host
  * configurations.
  *
  * As your [factory] may be invoked multiple times, if there is expensive computation of state that
- * is shared among each size, it is recommended to perform that computation before calling this
- * and cache the results as necessary.
+ * is shared among each size, it is recommended to perform that computation before calling this and
+ * cache the results as necessary.
  *
  * To handle resizing of your app widget, it is necessary to call [AppWidgetManager.updateAppWidget]
  * during both [android.appwidget.AppWidgetProvider.onUpdate] and
@@ -160,9 +156,9 @@ public fun AppWidgetManager.updateAppWidget(
  * @param appWidgetManager the [AppWidgetManager] to provide information about [appWidgetId]
  * @param appWidgetId the id of the app widget
  * @param dpSizes a collection of sizes (in dp) that your app widget supports. Must not be empty or
- * contain more than 16 elements.
+ *   contain more than 16 elements.
  * @param factory a function to create a [RemoteViews] for a given width and height (in dp). It is
- * guaranteed that [factory] will only ever be called with the values provided in [dpSizes].
+ *   guaranteed that [factory] will only ever be called with the values provided in [dpSizes].
  */
 public fun createResponsiveSizeAppWidget(
     appWidgetManager: AppWidgetManager,
@@ -175,15 +171,7 @@ public fun createResponsiveSizeAppWidget(
     require(dpSizes.size <= 16) { "At most 16 sizes may be provided" }
     return when {
         SDK_INT >= 31 -> AppWidgetManagerApi31Impl.createResponsiveSizeAppWidget(dpSizes, factory)
-        SDK_INT >= 16 -> {
-            AppWidgetManagerApi16Impl.createResponsiveSizeAppWidget(
-                appWidgetManager,
-                appWidgetId,
-                dpSizes,
-                factory
-            )
-        }
-        else -> createAppWidgetFromProviderInfo(appWidgetManager, appWidgetId, factory)
+        else -> createResponsiveSizeAppWidgetInner(appWidgetManager, appWidgetId, dpSizes, factory)
     }
 }
 
@@ -194,7 +182,6 @@ private fun AppWidgetManager.requireValidAppWidgetId(appWidgetId: Int) {
 @RequiresApi(31)
 @Suppress("DEPRECATION")
 private object AppWidgetManagerApi31Impl {
-    @DoNotInline
     fun createExactSizeAppWidget(
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
@@ -208,16 +195,11 @@ private object AppWidgetManagerApi31Impl {
                 "App widget SizeF sizes not found in the options bundle, falling back to the " +
                     "min/max sizes"
             )
-            return AppWidgetManagerApi16Impl.createExactSizeAppWidget(
-                appWidgetManager,
-                appWidgetId,
-                factory
-            )
+            return createExactSizeAppWidgetInner(appWidgetManager, appWidgetId, factory)
         }
         return RemoteViews(sizes.associateWith { factory(it.toSizeFCompat()) })
     }
 
-    @DoNotInline
     fun createResponsiveSizeAppWidget(
         dpSizes: Collection<SizeFCompat>,
         factory: (SizeFCompat) -> RemoteViews
@@ -228,90 +210,82 @@ private object AppWidgetManagerApi31Impl {
     private fun SizeF.toSizeFCompat() = SizeFCompat.toSizeFCompat(this)
 }
 
-@RequiresApi(16)
-private object AppWidgetManagerApi16Impl {
-    @DoNotInline
-    fun createExactSizeAppWidget(
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        factory: (SizeFCompat) -> RemoteViews
-    ): RemoteViews {
-        val (landscapeSize, portraitSize) =
-            getSizesFromOptionsBundle(appWidgetManager, appWidgetId)
-                ?: run {
-                    Log.w(
-                        LogTag,
-                        "App widget sizes not found in the options bundle, falling back to the " +
-                            "provider size"
-                    )
-                    return createAppWidgetFromProviderInfo(appWidgetManager, appWidgetId, factory)
-                }
-        return createAppWidget(landscapeSize = landscapeSize, portraitSize = portraitSize, factory)
+internal fun createExactSizeAppWidgetInner(
+    appWidgetManager: AppWidgetManager,
+    appWidgetId: Int,
+    factory: (SizeFCompat) -> RemoteViews
+): RemoteViews {
+    val (landscapeSize, portraitSize) =
+        getSizesFromOptionsBundle(appWidgetManager, appWidgetId)
+            ?: run {
+                Log.w(
+                    LogTag,
+                    "App widget sizes not found in the options bundle, falling back to the " +
+                        "provider size"
+                )
+                return createAppWidgetFromProviderInfo(appWidgetManager, appWidgetId, factory)
+            }
+    return createAppWidget(landscapeSize = landscapeSize, portraitSize = portraitSize, factory)
+}
+
+internal fun createResponsiveSizeAppWidgetInner(
+    appWidgetManager: AppWidgetManager,
+    appWidgetId: Int,
+    sizes: Collection<SizeFCompat>,
+    factory: (SizeFCompat) -> RemoteViews
+): RemoteViews {
+    val minSize = sizes.minByOrNull { it.area } ?: error("Sizes cannot be empty")
+    val (landscapeSize, portraitSize) =
+        getSizesFromOptionsBundle(appWidgetManager, appWidgetId)
+            ?: run {
+                Log.w(
+                    LogTag,
+                    "App widget sizes not found in the options bundle, falling back to the " +
+                        "smallest supported size ($minSize)"
+                )
+                LandscapePortraitSizes(minSize, minSize)
+            }
+    val effectiveLandscapeSize =
+        sizes.filter { landscapeSize approxDominates it }.maxByOrNull { it.area } ?: minSize
+    val effectivePortraitSize =
+        sizes.filter { portraitSize approxDominates it }.maxByOrNull { it.area } ?: minSize
+    return createAppWidget(
+        landscapeSize = effectiveLandscapeSize,
+        portraitSize = effectivePortraitSize,
+        factory
+    )
+}
+
+private fun createAppWidget(
+    landscapeSize: SizeFCompat,
+    portraitSize: SizeFCompat,
+    factory: (SizeFCompat) -> RemoteViews
+): RemoteViews {
+    return if (landscapeSize == portraitSize) {
+        factory(landscapeSize)
+    } else {
+        RemoteViews(/* landscape= */ factory(landscapeSize), /* portrait= */ factory(portraitSize))
     }
+}
 
-    @DoNotInline
-    fun createResponsiveSizeAppWidget(
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        sizes: Collection<SizeFCompat>,
-        factory: (SizeFCompat) -> RemoteViews
-    ): RemoteViews {
-        val minSize = sizes.minByOrNull { it.area } ?: error("Sizes cannot be empty")
-        val (landscapeSize, portraitSize) =
-            getSizesFromOptionsBundle(appWidgetManager, appWidgetId)
-                ?: run {
-                    Log.w(
-                        LogTag,
-                        "App widget sizes not found in the options bundle, falling back to the " +
-                            "smallest supported size ($minSize)"
-                    )
-                    LandscapePortraitSizes(minSize, minSize)
-                }
-        val effectiveLandscapeSize =
-            sizes.filter { landscapeSize approxDominates it }.maxByOrNull { it.area } ?: minSize
-        val effectivePortraitSize =
-            sizes.filter { portraitSize approxDominates it }.maxByOrNull { it.area } ?: minSize
-        return createAppWidget(
-            landscapeSize = effectiveLandscapeSize,
-            portraitSize = effectivePortraitSize,
-            factory
-        )
-    }
+private fun getSizesFromOptionsBundle(
+    appWidgetManager: AppWidgetManager,
+    appWidgetId: Int
+): LandscapePortraitSizes? {
+    val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
 
-    private fun createAppWidget(
-        landscapeSize: SizeFCompat,
-        portraitSize: SizeFCompat,
-        factory: (SizeFCompat) -> RemoteViews
-    ): RemoteViews {
-        return if (landscapeSize == portraitSize) {
-            factory(landscapeSize)
-        } else {
-            RemoteViews(
-                /* landscape= */ factory(landscapeSize),
-                /* portrait= */ factory(portraitSize)
-            )
-        }
-    }
+    val portWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1)
+    val portHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, -1)
+    if (portWidthDp < 0 || portHeightDp < 0) return null
 
-    private fun getSizesFromOptionsBundle(
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int
-    ): LandscapePortraitSizes? {
-        val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+    val landWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, -1)
+    val landHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, -1)
+    if (landWidthDp < 0 || landHeightDp < 0) return null
 
-        val portWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1)
-        val portHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, -1)
-        if (portWidthDp < 0 || portHeightDp < 0) return null
-
-        val landWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, -1)
-        val landHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, -1)
-        if (landWidthDp < 0 || landHeightDp < 0) return null
-
-        return LandscapePortraitSizes(
-            landscape = SizeFCompat(landWidthDp.toFloat(), landHeightDp.toFloat()),
-            portrait = SizeFCompat(portWidthDp.toFloat(), portHeightDp.toFloat())
-        )
-    }
+    return LandscapePortraitSizes(
+        landscape = SizeFCompat(landWidthDp.toFloat(), landHeightDp.toFloat()),
+        portrait = SizeFCompat(portWidthDp.toFloat(), portHeightDp.toFloat())
+    )
 }
 
 internal fun createAppWidgetFromProviderInfo(

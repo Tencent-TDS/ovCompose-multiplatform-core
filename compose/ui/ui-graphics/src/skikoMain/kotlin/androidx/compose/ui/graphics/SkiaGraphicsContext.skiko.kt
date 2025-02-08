@@ -16,28 +16,44 @@
 
 package androidx.compose.ui.graphics
 
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import org.jetbrains.skiko.node.RenderNode
+import org.jetbrains.skiko.node.RenderNodeContext
 
 @InternalComposeUiApi
-class SkiaGraphicsContext() : GraphicsContext {
-    private val snapshotObserver = SnapshotStateObserver { command ->
-        command()
-    }
-
-    init {
-        snapshotObserver.start()
-    }
+class SkiaGraphicsContext(
+    measureDrawBounds: Boolean = false,
+): GraphicsContext {
+    private val renderNodeContext = RenderNodeContext(
+        measureDrawBounds = measureDrawBounds,
+    )
 
     fun dispose() {
-        snapshotObserver.stop()
-        snapshotObserver.clear()
+        renderNodeContext.close()
     }
 
-    override fun createGraphicsLayer(): GraphicsLayer {
-        return GraphicsLayer(snapshotObserver)
+    fun setLightingInfo(
+        centerX: Float = Float.MIN_VALUE,
+        centerY: Float = Float.MIN_VALUE,
+        centerZ: Float = Float.MIN_VALUE,
+        radius: Float = 0f,
+        ambientShadowAlpha: Float = 0f,
+        spotShadowAlpha: Float = 0f
+    ) {
+        renderNodeContext.setLightingInfo(
+            centerX,
+            centerY,
+            centerZ,
+            radius,
+            ambientShadowAlpha,
+            spotShadowAlpha
+        )
     }
+
+    override fun createGraphicsLayer() = GraphicsLayer(
+        renderNode = RenderNode(renderNodeContext)
+    )
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
         layer.release()

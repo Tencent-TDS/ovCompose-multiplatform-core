@@ -116,8 +116,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
+                implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
+                implementation(project(":performance:performance-annotation"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)
@@ -147,34 +148,41 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
 
-            jbMain.dependsOn(commonMain)
-            jbTest.dependsOn(commonTest)
-
-            jsMain {
+            nonAndroidMain.dependsOn(commonMain)
+            nonJvmMain {
+                dependsOn(commonMain)
                 dependencies {
-                    implementation(libs.kotlinStdlibJs)
+                    implementation(libs.atomicFu)
                 }
             }
+            webMain.dependsOn(nonAndroidMain)
+            webMain.dependsOn(nonJvmMain)
 
-            jsNativeMain.dependsOn(jbMain)
-            jsWasmMain.dependsOn(jsNativeMain)
-            jsMain.dependsOn(jsWasmMain)
-            desktopMain.dependsOn(jbMain)
-
-            desktopTest.dependsOn(jbTest)
-            jsTest.dependsOn(jbTest)
-            nativeTest.dependsOn(jbTest)
-
+            desktopMain.dependsOn(nonAndroidMain)
+            nativeMain.dependsOn(nonAndroidMain)
+            nativeMain.dependsOn(nonJvmMain)
+            jsMain.dependsOn(webMain)
             wasmJsMain {
-                dependsOn(jsWasmMain)
+                dependsOn(webMain)
                 dependencies {
                     implementation(libs.kotlinXw3c)
                 }
             }
+
+            nonJvmMain {
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
+            }
+
+            desktopTest.dependsOn(jbTest)
+            jsTest.dependsOn(jbTest)
+            nativeTest.dependsOn(jbTest)
+            jbTest.dependsOn(commonTest)
             wasmJsTest.dependsOn(jbTest)
 
             nativeMain {
-                dependsOn(jsNativeMain)
+                dependsOn(nonJvmMain)
                 dependencies {
                     implementation(libs.atomicFu)
                 }

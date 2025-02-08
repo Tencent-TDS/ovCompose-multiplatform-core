@@ -40,10 +40,12 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
     private val defaultArtifactRedirectingTargetNames = setOf("android")
 
     fun publishMultiplatform(component: ComposeComponent) {
-        val artifactRedirectingTargetNames = (project.rootProject.findProject(component.path)!!
+        val project = project.rootProject.findProject(component.path) ?:
+            throw IllegalArgumentException("Cannot find project ${component.path}")
+        val artifactRedirectingTargetNames = (project
             .findProperty("artifactRedirecting.publication.targetNames").let {
                 (it as? String)?.split(",") ?: emptyList()
-            }.toSet() + defaultArtifactRedirectingTargetNames).toMutableSet()
+            }.map { it.lowercase() }.toSet() + defaultArtifactRedirectingTargetNames).toMutableSet()
 
 
         if (component.neverRedirect) {

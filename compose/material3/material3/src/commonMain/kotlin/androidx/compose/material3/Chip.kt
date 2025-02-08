@@ -58,18 +58,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.layout.IntrinsicMeasurable
+import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
+import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastSumBy
 
 /**
  * <a href="https://m3.material.io/components/chips/overview" class="external"
@@ -92,7 +101,6 @@ import androidx.compose.ui.util.fastFirstOrNull
  * Example of a flat AssistChip:
  *
  * @sample androidx.compose.material3.samples.AssistChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -169,7 +177,6 @@ fun AssistChip(
  * Example of a flat AssistChip:
  *
  * @sample androidx.compose.material3.samples.AssistChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -256,7 +263,6 @@ fun AssistChip(
  * Example of an elevated AssistChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.ElevatedAssistChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -332,7 +338,6 @@ fun ElevatedAssistChip(
  * Example of an elevated AssistChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.ElevatedAssistChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -424,7 +429,6 @@ fun ElevatedAssistChip(
  * Example of a FilterChip with both a leading icon and a selected icon:
  *
  * @sample androidx.compose.material3.samples.FilterChipWithLeadingIconSample
- *
  * @param selected whether this chip is selected or not
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
@@ -508,7 +512,6 @@ fun FilterChip(
  * Example of an elevated FilterChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.ElevatedFilterChipSample
- *
  * @param selected whether this chip is selected or not
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
@@ -600,7 +603,6 @@ fun ElevatedFilterChip(
  * Alternatively, use [androidx.compose.foundation.layout.FlowRow] to wrap chips to a new line.
  *
  * @sample androidx.compose.material3.samples.ChipGroupReflowSample
- *
  * @param selected whether this chip is selected or not
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
@@ -708,7 +710,6 @@ fun InputChip(
  * Example of a flat SuggestionChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.SuggestionChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -782,7 +783,6 @@ fun SuggestionChip(
  * Example of a flat SuggestionChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.SuggestionChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -866,7 +866,6 @@ fun SuggestionChip(
  * Example of an elevated SuggestionChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.ElevatedSuggestionChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -939,7 +938,6 @@ fun ElevatedSuggestionChip(
  * Example of an elevated SuggestionChip with a trailing icon:
  *
  * @sample androidx.compose.material3.samples.ElevatedSuggestionChipSample
- *
  * @param onClick called when this chip is clicked
  * @param label text label for this chip
  * @param modifier the [Modifier] to be applied to this chip
@@ -1329,7 +1327,7 @@ object FilterChipDefaults {
                         containerColor = Color.Transparent,
                         labelColor = fromToken(FilterChipTokens.UnselectedLabelTextColor),
                         leadingIconColor = fromToken(FilterChipTokens.UnselectedLeadingIconColor),
-                        trailingIconColor = fromToken(FilterChipTokens.UnselectedLeadingIconColor),
+                        trailingIconColor = fromToken(FilterChipTokens.UnselectedTrailingIconColor),
                         disabledContainerColor = Color.Transparent,
                         disabledLabelColor =
                             fromToken(FilterChipTokens.DisabledLabelTextColor)
@@ -1338,8 +1336,8 @@ object FilterChipDefaults {
                             fromToken(FilterChipTokens.DisabledLeadingIconColor)
                                 .copy(alpha = FilterChipTokens.DisabledLeadingIconOpacity),
                         disabledTrailingIconColor =
-                            fromToken(FilterChipTokens.DisabledLeadingIconColor)
-                                .copy(alpha = FilterChipTokens.DisabledLeadingIconOpacity),
+                            fromToken(FilterChipTokens.DisabledTrailingIconColor)
+                                .copy(alpha = FilterChipTokens.DisabledTrailingIconOpacity),
                         selectedContainerColor =
                             fromToken(FilterChipTokens.FlatSelectedContainerColor),
                         disabledSelectedContainerColor =
@@ -1351,7 +1349,7 @@ object FilterChipDefaults {
                         selectedLeadingIconColor =
                             fromToken(FilterChipTokens.SelectedLeadingIconColor),
                         selectedTrailingIconColor =
-                            fromToken(FilterChipTokens.SelectedLeadingIconColor)
+                            fromToken(FilterChipTokens.SelectedTrailingIconColor)
                     )
                     .also { defaultFilterChipColorsCached = it }
         }
@@ -1487,7 +1485,7 @@ object FilterChipDefaults {
                             fromToken(FilterChipTokens.ElevatedUnselectedContainerColor),
                         labelColor = fromToken(FilterChipTokens.UnselectedLabelTextColor),
                         leadingIconColor = fromToken(FilterChipTokens.UnselectedLeadingIconColor),
-                        trailingIconColor = fromToken(FilterChipTokens.UnselectedLeadingIconColor),
+                        trailingIconColor = fromToken(FilterChipTokens.UnselectedTrailingIconColor),
                         disabledContainerColor =
                             fromToken(FilterChipTokens.ElevatedDisabledContainerColor)
                                 .copy(alpha = FilterChipTokens.ElevatedDisabledContainerOpacity),
@@ -1498,7 +1496,7 @@ object FilterChipDefaults {
                             fromToken(FilterChipTokens.DisabledLeadingIconColor)
                                 .copy(alpha = FilterChipTokens.DisabledLeadingIconOpacity),
                         disabledTrailingIconColor =
-                            fromToken(FilterChipTokens.DisabledLeadingIconColor)
+                            fromToken(FilterChipTokens.DisabledTrailingIconColor)
                                 .copy(alpha = FilterChipTokens.DisabledLeadingIconOpacity),
                         selectedContainerColor =
                             fromToken(FilterChipTokens.ElevatedSelectedContainerColor),
@@ -1509,7 +1507,7 @@ object FilterChipDefaults {
                         selectedLeadingIconColor =
                             fromToken(FilterChipTokens.SelectedLeadingIconColor),
                         selectedTrailingIconColor =
-                            fromToken(FilterChipTokens.SelectedLeadingIconColor)
+                            fromToken(FilterChipTokens.SelectedTrailingIconColor)
                     )
                     .also { defaultElevatedFilterChipColorsCached = it }
         }
@@ -2092,45 +2090,71 @@ private fun ChipContent(
                         }
                     )
                 }
-            }
-        ) { measurables, constraints ->
-            val leadingIconPlaceable: Placeable? =
-                measurables
-                    .fastFirstOrNull { it.layoutId == LeadingIconLayoutId }
-                    ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
-            val leadingIconWidth = widthOrZero(leadingIconPlaceable)
-            val leadingIconHeight = heightOrZero(leadingIconPlaceable)
+            },
+            measurePolicy = remember { ChipLayoutMeasurePolicy() },
+        )
+    }
+}
 
-            val trailingIconPlaceable: Placeable? =
-                measurables
-                    .fastFirstOrNull { it.layoutId == TrailingIconLayoutId }
-                    ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
-            val trailingIconWidth = widthOrZero(trailingIconPlaceable)
-            val trailingIconHeight = heightOrZero(trailingIconPlaceable)
+private class ChipLayoutMeasurePolicy : MeasurePolicy {
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints
+    ): MeasureResult {
+        val leadingIconPlaceable: Placeable? =
+            measurables
+                .fastFirstOrNull { it.layoutId == LeadingIconLayoutId }
+                ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val leadingIconWidth = leadingIconPlaceable.widthOrZero
+        val leadingIconHeight = leadingIconPlaceable.heightOrZero
 
-            val labelPlaceable =
-                measurables
-                    .fastFirst { it.layoutId == LabelLayoutId }
-                    .measure(
-                        constraints.offset(horizontal = -(leadingIconWidth + trailingIconWidth))
-                    )
+        val trailingIconPlaceable: Placeable? =
+            measurables
+                .fastFirstOrNull { it.layoutId == TrailingIconLayoutId }
+                ?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val trailingIconWidth = trailingIconPlaceable.widthOrZero
+        val trailingIconHeight = trailingIconPlaceable.heightOrZero
 
-            val width = leadingIconWidth + labelPlaceable.width + trailingIconWidth
-            val height = maxOf(leadingIconHeight, labelPlaceable.height, trailingIconHeight)
+        val labelPlaceable =
+            measurables
+                .fastFirst { it.layoutId == LabelLayoutId }
+                .measure(constraints.offset(horizontal = -(leadingIconWidth + trailingIconWidth)))
 
-            layout(width, height) {
-                leadingIconPlaceable?.placeRelative(
-                    0,
-                    Alignment.CenterVertically.align(leadingIconHeight, height)
-                )
-                labelPlaceable.placeRelative(leadingIconWidth, 0)
-                trailingIconPlaceable?.placeRelative(
-                    leadingIconWidth + labelPlaceable.width,
-                    Alignment.CenterVertically.align(trailingIconHeight, height)
-                )
-            }
+        val width = leadingIconWidth + labelPlaceable.width + trailingIconWidth
+        val height = maxOf(leadingIconHeight, labelPlaceable.height, trailingIconHeight)
+
+        return layout(width, height) {
+            leadingIconPlaceable?.placeRelative(
+                0,
+                Alignment.CenterVertically.align(leadingIconHeight, height)
+            )
+            labelPlaceable.placeRelative(leadingIconWidth, 0)
+            trailingIconPlaceable?.placeRelative(
+                leadingIconWidth + labelPlaceable.width,
+                Alignment.CenterVertically.align(trailingIconHeight, height)
+            )
         }
     }
+
+    override fun IntrinsicMeasureScope.minIntrinsicHeight(
+        measurables: List<IntrinsicMeasurable>,
+        width: Int
+    ): Int = measurables.fastMaxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
+
+    override fun IntrinsicMeasureScope.maxIntrinsicHeight(
+        measurables: List<IntrinsicMeasurable>,
+        width: Int
+    ): Int = measurables.fastMaxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
+
+    override fun IntrinsicMeasureScope.minIntrinsicWidth(
+        measurables: List<IntrinsicMeasurable>,
+        height: Int
+    ): Int = measurables.fastSumBy { it.minIntrinsicWidth(height) }
+
+    override fun IntrinsicMeasureScope.maxIntrinsicWidth(
+        measurables: List<IntrinsicMeasurable>,
+        height: Int
+    ): Int = measurables.fastSumBy { it.maxIntrinsicWidth(height) }
 }
 
 /**

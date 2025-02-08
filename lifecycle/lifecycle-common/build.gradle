@@ -71,7 +71,7 @@ kotlin {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
-                api(project(":annotation:annotation"))
+                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
             }
         }
 
@@ -86,7 +86,7 @@ kotlin {
             }
         }
 
-        nonJvmMain {
+        nonJvmCommonMain {
             dependsOn(commonMain)
             dependencies {
                 implementation(libs.atomicFu)
@@ -96,7 +96,7 @@ kotlin {
         targets.all { target ->
             if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.common]) {
                 target.compilations["main"].defaultSourceSet {
-                    dependsOn(nonJvmMain)
+                    dependsOn(nonJvmCommonMain)
                 }
             }
         }
@@ -111,6 +111,6 @@ androidx {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }

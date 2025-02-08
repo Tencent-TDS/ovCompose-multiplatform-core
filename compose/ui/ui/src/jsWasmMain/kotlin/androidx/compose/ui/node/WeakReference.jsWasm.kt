@@ -17,7 +17,7 @@
 package androidx.compose.ui.node
 
 // TODO: https://youtrack.jetbrains.com/issue/COMPOSE-1286/Properly-implement-WeakReference-on-Web
-actual class WeakReference<T : Any> actual constructor(referent: T) {
+internal actual class WeakReference<T : Any> actual constructor(referent: T) {
     private var instance: T? = null
 
     actual fun clear() {

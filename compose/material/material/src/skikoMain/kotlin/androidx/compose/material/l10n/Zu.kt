@@ -28,4 +28,5 @@ internal fun Translations.zu() = mapOf(
     Strings.DefaultErrorMessage to "Okufakwayo okungalungile",
     Strings.SliderRangeStart to "Ukuqala kobubanzi",
     Strings.SliderRangeEnd to "Umkhawulo wobubanzi",
+    Strings.SnackbarPaneTitle to "Isexwayiso",
 )

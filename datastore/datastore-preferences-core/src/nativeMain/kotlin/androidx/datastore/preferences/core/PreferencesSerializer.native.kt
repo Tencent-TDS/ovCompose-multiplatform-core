@@ -36,15 +36,16 @@ import okio.BufferedSource
 actual object PreferencesSerializer : OkioSerializer<Preferences> {
     internal const val fileExtension = "preferences_pb"
 
-    override val defaultValue: Preferences
+    actual override val defaultValue: Preferences
         get() = emptyPreferences()
 
-    override suspend fun readFrom(source: BufferedSource): Preferences {
-        val prefMap: PreferencesMap = try {
-            ProtoBuf.decodeFromByteArray(source.readByteArray())
-        } catch (e: SerializationException) {
-            throw CorruptionException("Unable to parse preferences proto.", e)
-        }
+    actual override suspend fun readFrom(source: BufferedSource): Preferences {
+        val prefMap: PreferencesMap =
+            try {
+                ProtoBuf.decodeFromByteArray(source.readByteArray())
+            } catch (e: SerializationException) {
+                throw CorruptionException("Unable to parse preferences proto.", e)
+            }
 
         val mutablePreferences = mutablePreferencesOf()
 
@@ -55,7 +56,7 @@ actual object PreferencesSerializer : OkioSerializer<Preferences> {
         return mutablePreferences.toPreferences()
     }
 
-    override suspend fun writeTo(t: Preferences, sink: BufferedSink) {
+    actual override suspend fun writeTo(t: Preferences, sink: BufferedSink) {
         val preferences = t.asMap()
         val prefMap = mutableMapOf<String, Value>()
         for ((key, value) in preferences) {
@@ -83,8 +84,7 @@ actual object PreferencesSerializer : OkioSerializer<Preferences> {
         } else if (value.string != null) {
             mutablePreferences[stringPreferencesKey(name)] = value.string
         } else if (value.stringSet != null) {
-            mutablePreferences[stringSetPreferencesKey(name)] =
-                value.stringSet.strings.toSet()
+            mutablePreferences[stringSetPreferencesKey(name)] = value.stringSet.strings.toSet()
         } else if (value.bytes != null) {
             mutablePreferences[byteArrayPreferencesKey(name)] = value.bytes
         } else {
@@ -104,19 +104,17 @@ actual object PreferencesSerializer : OkioSerializer<Preferences> {
                 @Suppress("UNCHECKED_CAST")
                 Value(stringSet = StringSet(strings = value.map { it.toString() }))
             is ByteArray -> Value(bytes = value.copyOf())
-            else -> throw IllegalStateException(
-                "PreferencesSerializer does not support type: ${value::class}"
-            )
+            else ->
+                throw IllegalStateException(
+                    "PreferencesSerializer does not support type: ${value::class}"
+                )
         }
     }
 }
 
 // These data classes below map directly to
 // datastore/datastore-preferences-proto/src/main/proto/preferences.proto
-@Serializable
-internal data class PreferencesMap(
-    val preferences: Map<String, Value> = emptyMap()
-)
+@Serializable internal data class PreferencesMap(val preferences: Map<String, Value> = emptyMap())
 
 @Serializable
 internal data class Value(

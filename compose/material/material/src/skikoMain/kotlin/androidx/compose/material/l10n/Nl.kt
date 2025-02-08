@@ -28,4 +28,5 @@ internal fun Translations.nl() = mapOf(
     Strings.DefaultErrorMessage to "Ongeldige invoer",
     Strings.SliderRangeStart to "Start bereik",
     Strings.SliderRangeEnd to "Einde bereik",
+    Strings.SnackbarPaneTitle to "Melding",
 )

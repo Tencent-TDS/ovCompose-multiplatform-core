@@ -43,7 +43,6 @@ import android.text.TextDirectionHeuristic;
 import android.text.TextDirectionHeuristics;
 import android.text.TextPaint;
 import android.text.method.PasswordTransformationMethod;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.Menu;
@@ -52,7 +51,6 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.TextView;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.FloatRange;
 import androidx.annotation.IntDef;
@@ -68,7 +66,6 @@ import androidx.core.util.Preconditions;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -80,8 +77,6 @@ import java.util.Locale;
  * Helper for accessing features in {@link TextView}.
  */
 public final class TextViewCompat {
-    private static final String LOG_TAG = "TextViewCompat";
-
     /**
      * The TextView does not auto-size text (default).
      */
@@ -98,40 +93,8 @@ public final class TextViewCompat {
     @Retention(RetentionPolicy.SOURCE)
     public @interface AutoSizeTextType {}
 
-    private static Field sMaximumField;
-    private static boolean sMaximumFieldFetched;
-    private static Field sMaxModeField;
-    private static boolean sMaxModeFieldFetched;
-
-    private static Field sMinimumField;
-    private static boolean sMinimumFieldFetched;
-    private static Field sMinModeField;
-    private static boolean sMinModeFieldFetched;
-
-    private static final int LINES = 1;
-
     // Hide constructor
     private TextViewCompat() {}
-
-    private static Field retrieveField(String fieldName) {
-        Field field = null;
-        try {
-            field = TextView.class.getDeclaredField(fieldName);
-            field.setAccessible(true);
-        } catch (NoSuchFieldException e) {
-            Log.e(LOG_TAG, "Could not retrieve " + fieldName + " field.");
-        }
-        return field;
-    }
-
-    private static int retrieveIntFromField(Field field, TextView textView) {
-        try {
-            return field.getInt(textView);
-        } catch (IllegalAccessException e) {
-            Log.d(LOG_TAG, "Could not retrieve value of " + field.getName() + " field.");
-        }
-        return -1;
-    }
 
     /**
      * Sets the Drawables (if any) to appear to the start of, above, to the end
@@ -152,18 +115,14 @@ public final class TextViewCompat {
      * @attr name android:drawableTop
      * @attr name android:drawableEnd
      * @attr name android:drawableBottom
+     * @deprecated Call {@link TextView#setCompoundDrawablesRelative()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.setCompoundDrawablesRelative(start, top, end, bottom)")
     public static void setCompoundDrawablesRelative(@NonNull TextView textView,
             @Nullable Drawable start, @Nullable Drawable top, @Nullable Drawable end,
             @Nullable Drawable bottom) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            Api17Impl.setCompoundDrawablesRelative(textView, start, top, end, bottom);
-        } else if (Build.VERSION.SDK_INT >= 17) {
-            boolean rtl = Api17Impl.getLayoutDirection(textView) == View.LAYOUT_DIRECTION_RTL;
-            textView.setCompoundDrawables(rtl ? end : start, top, rtl ? start : end, bottom);
-        } else {
-            textView.setCompoundDrawables(start, top, end, bottom);
-        }
+        textView.setCompoundDrawablesRelative(start, top, end, bottom);
     }
 
     /**
@@ -184,20 +143,14 @@ public final class TextViewCompat {
      * @attr name android:drawableTop
      * @attr name android:drawableEnd
      * @attr name android:drawableBottom
+     * @deprecated Call {@link TextView#setCompoundDrawablesRelativeWithIntrinsicBounds()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom)")
     public static void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
             @Nullable Drawable start, @Nullable Drawable top, @Nullable Drawable end,
             @Nullable Drawable bottom) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            Api17Impl.setCompoundDrawablesRelativeWithIntrinsicBounds(textView, start, top, end,
-                    bottom);
-        } else if (Build.VERSION.SDK_INT >= 17) {
-            boolean rtl = Api17Impl.getLayoutDirection(textView) == View.LAYOUT_DIRECTION_RTL;
-            textView.setCompoundDrawablesWithIntrinsicBounds(rtl ? end : start, top,
-                    rtl ? start : end,  bottom);
-        } else {
-            textView.setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
-        }
+        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom);
     }
 
     /**
@@ -217,72 +170,36 @@ public final class TextViewCompat {
      * @attr name android:drawableTop
      * @attr name android:drawableEnd
      * @attr name android:drawableBottom
+     * @deprecated Call {@link TextView#setCompoundDrawablesRelativeWithIntrinsicBounds()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom)")
     public static void setCompoundDrawablesRelativeWithIntrinsicBounds(@NonNull TextView textView,
             @DrawableRes int start, @DrawableRes int top, @DrawableRes int end,
             @DrawableRes int bottom) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            Api17Impl.setCompoundDrawablesRelativeWithIntrinsicBounds(textView, start, top, end,
-                    bottom);
-        } else if (Build.VERSION.SDK_INT >= 17) {
-            boolean rtl = Api17Impl.getLayoutDirection(textView) == View.LAYOUT_DIRECTION_RTL;
-            textView.setCompoundDrawablesWithIntrinsicBounds(rtl ? end : start, top,
-                    rtl ? start : end, bottom);
-        } else {
-            textView.setCompoundDrawablesWithIntrinsicBounds(start, top, end, bottom);
-        }
+        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom);
     }
 
     /**
      * Returns the maximum number of lines displayed in the given TextView, or -1 if the maximum
      * height was set in pixels instead.
+     * @deprecated Call {@link TextView#getMaxLines()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.getMaxLines()")
     public static int getMaxLines(@NonNull TextView textView) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            return Api16Impl.getMaxLines(textView);
-        }
-
-        if (!sMaxModeFieldFetched) {
-            sMaxModeField = retrieveField("mMaxMode");
-            sMaxModeFieldFetched = true;
-        }
-        if (sMaxModeField != null && retrieveIntFromField(sMaxModeField, textView) == LINES) {
-            // If the max mode is using lines, we can grab the maximum value
-            if (!sMaximumFieldFetched) {
-                sMaximumField = retrieveField("mMaximum");
-                sMaximumFieldFetched = true;
-            }
-            if (sMaximumField != null) {
-                return retrieveIntFromField(sMaximumField, textView);
-            }
-        }
-        return -1;
+        return textView.getMaxLines();
     }
 
     /**
      * Returns the minimum number of lines displayed in the given TextView, or -1 if the minimum
      * height was set in pixels instead.
+     * @deprecated Call {@link TextView#getMinLines()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.getMinLines()")
     public static int getMinLines(@NonNull TextView textView) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            return Api16Impl.getMinLines(textView);
-        }
-
-        if (!sMinModeFieldFetched) {
-            sMinModeField = retrieveField("mMinMode");
-            sMinModeFieldFetched = true;
-        }
-        if (sMinModeField != null && retrieveIntFromField(sMinModeField, textView) == LINES) {
-            // If the min mode is using lines, we can grab the maximum value
-            if (!sMinimumFieldFetched) {
-                sMinimumField = retrieveField("mMinimum");
-                sMinimumFieldFetched = true;
-            }
-            if (sMinimumField != null) {
-                return retrieveIntFromField(sMinimumField, textView);
-            }
-        }
-        return -1;
+        return textView.getMinLines();
     }
 
     /**
@@ -304,25 +221,13 @@ public final class TextViewCompat {
 
     /**
      * Returns drawables for the start, top, end, and bottom borders from the given text view.
+     * @deprecated Call {@link TextView#getCompoundDrawablesRelative()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.getCompoundDrawablesRelative()")
     @NonNull
     public static Drawable[] getCompoundDrawablesRelative(@NonNull TextView textView) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            return Api17Impl.getCompoundDrawablesRelative(textView);
-        }
-        if (Build.VERSION.SDK_INT >= 17) {
-            final boolean rtl = Api17Impl.getLayoutDirection(textView) == View.LAYOUT_DIRECTION_RTL;
-            final Drawable[] compounds = textView.getCompoundDrawables();
-            if (rtl) {
-                // If we're on RTL, we need to invert the horizontal result like above
-                final Drawable start = compounds[2];
-                final Drawable end = compounds[0];
-                compounds[0] = start;
-                compounds[2] = end;
-            }
-            return compounds;
-        }
-        return textView.getCompoundDrawables();
+        return textView.getCompoundDrawablesRelative();
     }
 
     /**
@@ -518,7 +423,10 @@ public final class TextViewCompat {
      *
      * @param textView The TextView to set the action selection mode callback on.
      * @param callback The action selection mode callback to set on textView.
+     * @deprecated Call {@link TextView#setCustomSelectionActionModeCallback(ActionMode.Callback)} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "textView.setCustomSelectionActionModeCallback(callback)")
     public static void setCustomSelectionActionModeCallback(@NonNull final TextView textView,
                 @NonNull final ActionMode.Callback callback) {
         textView.setCustomSelectionActionModeCallback(
@@ -736,10 +644,7 @@ public final class TextViewCompat {
 
         final Paint.FontMetricsInt fontMetrics = textView.getPaint().getFontMetricsInt();
         final int fontMetricsTop;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN
-                // The includeFontPadding attribute was introduced
-                // in SDK16, and it is true by default.
-                || Api16Impl.getIncludeFontPadding(textView)) {
+        if (textView.getIncludeFontPadding()) {
             fontMetricsTop = fontMetrics.top;
         } else {
             fontMetricsTop = fontMetrics.ascent;
@@ -778,10 +683,7 @@ public final class TextViewCompat {
 
         final Paint.FontMetricsInt fontMetrics = textView.getPaint().getFontMetricsInt();
         final int fontMetricsBottom;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN
-                // The includeFontPadding attribute was introduced
-                // in SDK16, and it is true by default.
-                || Api16Impl.getIncludeFontPadding(textView)) {
+        if (textView.getIncludeFontPadding()) {
             fontMetricsBottom = fontMetrics.bottom;
         } else {
             fontMetricsBottom = fontMetrics.descent;
@@ -893,9 +795,7 @@ public final class TextViewCompat {
                 builder.setBreakStrategy(Api23Impl.getBreakStrategy(textView));
                 builder.setHyphenationFrequency(Api23Impl.getHyphenationFrequency(textView));
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                builder.setTextDirection(getTextDirectionHeuristic(textView));
-            }
+            builder.setTextDirection(getTextDirectionHeuristic(textView));
             return builder.build();
         }
     }
@@ -911,9 +811,7 @@ public final class TextViewCompat {
 
         // There is no way of setting text direction heuristics to TextView.
         // Convert to the View's text direction int values.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            Api17Impl.setTextDirection(textView, getTextDirection(params.getTextDirection()));
-        }
+        textView.setTextDirection(getTextDirection(params.getTextDirection()));
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             float paintTextScaleX = params.getTextPaint().getTextScaleX();
@@ -974,7 +872,6 @@ public final class TextViewCompat {
      *
      * @return the current {@link TextDirectionHeuristic}.
      */
-    @RequiresApi(18)
     private static TextDirectionHeuristic getTextDirectionHeuristic(@NonNull TextView textView) {
         if (textView.getTransformationMethod() instanceof PasswordTransformationMethod) {
             // passwords fields should be LTR
@@ -988,7 +885,7 @@ public final class TextViewCompat {
                 // have LTR digits, but some locales, such as those written in the Adlam or N'Ko
                 // scripts, have RTL digits.
                 final DecimalFormatSymbols symbols =
-                        Api24Impl.getInstance(Api17Impl.getTextLocale(textView));
+                        Api24Impl.getInstance(textView.getTextLocale());
                 final String zero = Api28Impl.getDigitStrings(symbols)[0];
                 // In case the zero digit is multi-codepoint, just use the first codepoint to
                 // determine direction.
@@ -1005,10 +902,10 @@ public final class TextViewCompat {
 
         // Always need to resolve layout direction first
         final boolean defaultIsRtl =
-                (Api17Impl.getLayoutDirection(textView) == View.LAYOUT_DIRECTION_RTL);
+                (textView.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
 
         // Now, we can select the heuristic
-        switch (Api17Impl.getTextDirection(textView)) {
+        switch (textView.getTextDirection()) {
             default:
             case TEXT_DIRECTION_FIRST_STRONG:
                 return (defaultIsRtl ? TextDirectionHeuristics.FIRSTSTRONG_RTL :
@@ -1031,7 +928,6 @@ public final class TextViewCompat {
     /**
      * Convert TextDirectionHeuristic to TextDirection int values
      */
-    @RequiresApi(18)
     private static int getTextDirection(@NonNull  TextDirectionHeuristic heuristic) {
         if (heuristic == TextDirectionHeuristics.FIRSTSTRONG_RTL) {
             return TEXT_DIRECTION_FIRST_STRONG;
@@ -1123,90 +1019,16 @@ public final class TextViewCompat {
         return null;
     }
 
-    @RequiresApi(17)
-    static class Api17Impl {
-        private Api17Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void setCompoundDrawablesRelative(TextView textView, Drawable start, Drawable top,
-                Drawable end, Drawable bottom) {
-            textView.setCompoundDrawablesRelative(start, top, end, bottom);
-        }
-
-        @DoNotInline
-        static int getLayoutDirection(View view) {
-            return view.getLayoutDirection();
-        }
-
-        @DoNotInline
-        static void setCompoundDrawablesRelativeWithIntrinsicBounds(TextView textView,
-                Drawable start, Drawable top, Drawable end, Drawable bottom) {
-            textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom);
-        }
-
-        @DoNotInline
-        static void setCompoundDrawablesRelativeWithIntrinsicBounds(TextView textView, int start,
-                int top, int end, int bottom) {
-            textView.setCompoundDrawablesRelativeWithIntrinsicBounds(start, top, end, bottom);
-        }
-
-        @DoNotInline
-        static Drawable[] getCompoundDrawablesRelative(TextView textView) {
-            return textView.getCompoundDrawablesRelative();
-        }
-
-        @DoNotInline
-        static void setTextDirection(View view, int textDirection) {
-            view.setTextDirection(textDirection);
-        }
-
-        @DoNotInline
-        static Locale getTextLocale(TextView textView) {
-            return textView.getTextLocale();
-        }
-
-        @DoNotInline
-        static int getTextDirection(View view) {
-            return view.getTextDirection();
-        }
-    }
-
-    @RequiresApi(16)
-    static class Api16Impl {
-        private Api16Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static int getMaxLines(TextView textView) {
-            return textView.getMaxLines();
-        }
-
-        @DoNotInline
-        static int getMinLines(TextView textView) {
-            return textView.getMinLines();
-        }
-
-        @DoNotInline
-        static boolean getIncludeFontPadding(TextView textView) {
-            return textView.getIncludeFontPadding();
-        }
-    }
-
     @RequiresApi(26)
     static class Api26Impl {
         private Api26Impl() {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setAutoSizeTextTypeWithDefaults(TextView textView, int autoSizeTextType) {
             textView.setAutoSizeTextTypeWithDefaults(autoSizeTextType);
         }
 
-        @DoNotInline
         static void setAutoSizeTextTypeUniformWithConfiguration(TextView textView,
                 int autoSizeMinTextSize, int autoSizeMaxTextSize, int autoSizeStepGranularity,
                 int unit) {
@@ -1214,33 +1036,27 @@ public final class TextViewCompat {
                     autoSizeMaxTextSize, autoSizeStepGranularity, unit);
         }
 
-        @DoNotInline
         static void setAutoSizeTextTypeUniformWithPresetSizes(TextView textView, int[] presetSizes,
                 int unit) {
             textView.setAutoSizeTextTypeUniformWithPresetSizes(presetSizes, unit);
         }
 
-        @DoNotInline
         static int getAutoSizeTextType(TextView textView) {
             return textView.getAutoSizeTextType();
         }
 
-        @DoNotInline
         static int getAutoSizeStepGranularity(TextView textView) {
             return textView.getAutoSizeStepGranularity();
         }
 
-        @DoNotInline
         static int getAutoSizeMinTextSize(TextView textView) {
             return textView.getAutoSizeMinTextSize();
         }
 
-        @DoNotInline
         static int getAutoSizeMaxTextSize(TextView textView) {
             return textView.getAutoSizeMaxTextSize();
         }
 
-        @DoNotInline
         static int[] getAutoSizeTextAvailableSizes(TextView textView) {
             return textView.getAutoSizeTextAvailableSizes();
         }
@@ -1252,22 +1068,18 @@ public final class TextViewCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setFirstBaselineToTopHeight(TextView textView, int firstBaselineToTopHeight) {
             textView.setFirstBaselineToTopHeight(firstBaselineToTopHeight);
         }
 
-        @DoNotInline
         static PrecomputedText.Params getTextMetricsParams(TextView textView) {
             return textView.getTextMetricsParams();
         }
 
-        @DoNotInline
         static String[] getDigitStrings(DecimalFormatSymbols decimalFormatSymbols) {
             return decimalFormatSymbols.getDigitStrings();
         }
 
-        @DoNotInline
         static CharSequence castToCharSequence(PrecomputedText precomputedText) {
             return precomputedText;
         }
@@ -1280,42 +1092,34 @@ public final class TextViewCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static int getBreakStrategy(TextView textView) {
             return textView.getBreakStrategy();
         }
 
-        @DoNotInline
         static void setBreakStrategy(TextView textView, int breakStrategy) {
             textView.setBreakStrategy(breakStrategy);
         }
 
-        @DoNotInline
         static int getHyphenationFrequency(TextView textView) {
             return textView.getHyphenationFrequency();
         }
 
-        @DoNotInline
         static void setHyphenationFrequency(TextView textView, int hyphenationFrequency) {
             textView.setHyphenationFrequency(hyphenationFrequency);
         }
 
-        @DoNotInline
         static PorterDuff.Mode getCompoundDrawableTintMode(TextView textView) {
             return textView.getCompoundDrawableTintMode();
         }
 
-        @DoNotInline
         static ColorStateList getCompoundDrawableTintList(TextView textView) {
             return textView.getCompoundDrawableTintList();
         }
 
-        @DoNotInline
         static void setCompoundDrawableTintList(TextView textView, ColorStateList tint) {
             textView.setCompoundDrawableTintList(tint);
         }
 
-        @DoNotInline
         static void setCompoundDrawableTintMode(TextView textView, PorterDuff.Mode tintMode) {
             textView.setCompoundDrawableTintMode(tintMode);
         }
@@ -1327,7 +1131,6 @@ public final class TextViewCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static DecimalFormatSymbols getInstance(Locale locale) {
             return DecimalFormatSymbols.getInstance(locale);
         }
@@ -1339,7 +1142,6 @@ public final class TextViewCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         public static void setLineHeight(
                 @NonNull TextView textView,
                 int unit,

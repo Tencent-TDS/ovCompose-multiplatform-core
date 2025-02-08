@@ -17,14 +17,13 @@
 package androidx.fragment.app
 
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import android.util.AttributeSet
 import androidx.annotation.LayoutRes
 
 /**
- * This fragment watches its primary lifecycle events and throws IllegalStateException
- * if any of them are called out of order or from a bad/unexpected state.
+ * This fragment watches its primary lifecycle events and throws IllegalStateException if any of
+ * them are called out of order or from a bad/unexpected state.
  */
 open class StrictFragment(@LayoutRes contentLayoutId: Int = 0) : Fragment(contentLayoutId) {
     var currentState: State = State.DETACHED
@@ -47,15 +46,11 @@ open class StrictFragment(@LayoutRes contentLayoutId: Int = 0) : Fragment(conten
     }
 
     fun checkGetActivity() {
-        checkNotNull(activity) {
-            "getActivity() returned null at unexpected time"
-        }
+        checkNotNull(activity) { "getActivity() returned null at unexpected time" }
     }
 
     fun checkActivityNotDestroyed() {
-        if (Build.VERSION.SDK_INT >= 17) {
-            check(!requireActivity().isDestroyed)
-        }
+        check(!requireActivity().isDestroyed)
     }
 
     fun checkState(caller: String, vararg expected: State) {
@@ -72,16 +67,14 @@ open class StrictFragment(@LayoutRes contentLayoutId: Int = 0) : Fragment(conten
             expectString.append(" or ").append(expected[i])
         }
         throw IllegalStateException(
-            "$caller called while fragment was $currentState; " +
-                "expected $expectString"
+            "$caller called while fragment was $currentState; " + "expected $expectString"
         )
     }
 
     fun checkStateAtLeast(caller: String, minState: State) {
         if (currentState < minState) {
             throw IllegalStateException(
-                "$caller called while fragment was $currentState; " +
-                    "expected at least $minState"
+                "$caller called while fragment was $currentState; " + "expected at least $minState"
             )
         }
     }

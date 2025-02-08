@@ -22,7 +22,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.Nullable;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.DynamicRange;
@@ -42,7 +42,6 @@ import java.util.concurrent.Executor;
  * that contains the actual implementation and can be cast to an implementation specific class.
  * If the instance itself is the implementation instance, then it should return <code>this</code>.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraInfoInternal extends CameraInfo {
 
     /**
@@ -52,6 +51,26 @@ public interface CameraInfoInternal extends CameraInfo {
      */
     @NonNull
     String getCameraId();
+
+    /**
+     * Returns the camera characteristics of this camera. The actual type is determined by the
+     * underlying camera implementation. For camera2 implementation, the actual type of the
+     * returned object is {@link android.hardware.camera2.CameraCharacteristics}.
+     */
+    @NonNull
+    Object getCameraCharacteristics();
+
+    /**
+     * Returns the camera characteristics of the specified physical camera id associated with
+     * the current camera.
+     *
+     * <p>It returns {@code null} if the physical camera id does not belong to
+     * the current logical camera. The actual type is determined by the underlying camera
+     * implementation. For camera2 implementation, the actual type of the returned object is
+     * {@link android.hardware.camera2.CameraCharacteristics}.
+     */
+    @Nullable
+    Object getPhysicalCameraCharacteristics(@NonNull String physicalCameraId);
 
     /**
      * Adds a {@link CameraCaptureCallback} which will be invoked when session capture request is
@@ -79,6 +98,14 @@ public interface CameraInfoInternal extends CameraInfo {
     /** Returns the {@link Timebase} of frame output by this camera. */
     @NonNull
     Timebase getTimebase();
+
+    /**
+     * Returns the supported output formats of this camera.
+     *
+     * @return a set of supported output format, or an empty set if no output format is supported.
+     */
+    @NonNull
+    Set<Integer> getSupportedOutputFormats();
 
     /**
      * Returns the supported resolutions of this camera based on the input image format.
@@ -135,6 +162,20 @@ public interface CameraInfoInternal extends CameraInfo {
     @NonNull
     default CameraInfoInternal getImplementation() {
         return this;
+    }
+
+    /**
+     * Returns if postview is supported or not.
+     */
+    default boolean isPostviewSupported() {
+        return false;
+    }
+
+    /**
+     * Returns if capture process progress is supported or not.
+     */
+    default boolean isCaptureProcessProgressSupported() {
+        return false;
     }
 
     /** {@inheritDoc} */

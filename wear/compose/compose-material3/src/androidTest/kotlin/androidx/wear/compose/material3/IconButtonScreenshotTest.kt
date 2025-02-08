@@ -18,15 +18,21 @@ package androidx.wear.compose.material3.test
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -45,6 +51,8 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.OutlinedIconButton
 import androidx.wear.compose.material3.SCREENSHOT_GOLDEN_PATH
 import androidx.wear.compose.material3.TEST_TAG
+import androidx.wear.compose.material3.rememberAnimatedCornerBasedShape
+import androidx.wear.compose.material3.rememberAnimatedRoundedCornerShape
 import androidx.wear.compose.material3.setContentWithTheme
 import androidx.wear.compose.material3.touchTargetAwareSize
 import org.junit.Rule
@@ -57,14 +65,11 @@ import org.junit.runner.RunWith
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 class IconButtonScreenshotTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
-    @get:Rule
-    val screenshotRule = AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
+    @get:Rule val screenshotRule = AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
-    @get:Rule
-    val testName = TestName()
+    @get:Rule val testName = TestName()
 
     @Test
     fun filled_icon_button_enabled() = verifyScreenshot {
@@ -122,10 +127,9 @@ class IconButtonScreenshotTest {
     }
 
     @Test
-    fun filled_tonal_compact_icon_button_disabled() =
-        verifyScreenshot {
-            sampleFilledTonalIconButton(enabled = false, isCompact = true)
-        }
+    fun filled_tonal_compact_icon_button_disabled() = verifyScreenshot {
+        sampleFilledTonalIconButton(enabled = false, isCompact = true)
+    }
 
     @Test
     fun outlined_compact_icon_button_enabled() = verifyScreenshot {
@@ -152,24 +156,95 @@ class IconButtonScreenshotTest {
         sampleIconButton(enabled = true, isCompact = false, modifier = Modifier.offset(10.dp))
     }
 
+    @Test
+    fun button_with_corner_animation() = verifyScreenshot {
+        val interactionSource = remember { MutableInteractionSource() }
+        sampleOutlinedIconButton(
+            shape = IconButtonDefaults.animatedShape(interactionSource),
+            interactionSource = interactionSource
+        )
+    }
+
+    @Test
+    fun button_with_corner_animation_50pct() {
+        verifyScreenshot { sampleOutlinedIconButton(shape = animatedShapesAtPct(0.5f)) }
+    }
+
+    @Test
+    fun button_with_corner_animation_100pct() {
+        verifyScreenshot { sampleOutlinedIconButton(shape = animatedShapesAtPct(1.0f)) }
+    }
+
+    @Test
+    fun button_with_morph_animation() = verifyScreenshot {
+        val interactionSource = remember { MutableInteractionSource() }
+        sampleOutlinedIconButton(
+            shape =
+                IconButtonDefaults.animatedShape(
+                    interactionSource,
+                    shape = CutCornerShape(15.dp),
+                    pressedShape = RoundedCornerShape(15.dp)
+                ),
+            interactionSource = interactionSource,
+        )
+    }
+
+    @Test
+    fun button_with_morph_animation_50pct() = verifyScreenshot {
+        sampleOutlinedIconButton(shape = morphShapesAtPct(0.5f))
+    }
+
+    @Test
+    fun button_with_morph_animation_100pct() = verifyScreenshot {
+        sampleOutlinedIconButton(shape = morphShapesAtPct(1.0f))
+    }
+
+    @Composable
+    private fun animatedShapesAtPct(progress: Float): Shape {
+        val progressShape =
+            rememberAnimatedRoundedCornerShape(
+                IconButtonDefaults.shape,
+                MaterialTheme.shapes.small as RoundedCornerShape,
+                mutableStateOf(progress)
+            )
+
+        return progressShape
+    }
+
+    @Composable
+    private fun morphShapesAtPct(progress: Float): Shape {
+        val progressShape =
+            rememberAnimatedCornerBasedShape(
+                CutCornerShape(15.dp),
+                RoundedCornerShape(15.dp),
+                mutableStateOf(progress)
+            )
+
+        return progressShape
+    }
+
     @Composable
     private fun sampleFilledIconButton(enabled: Boolean, isCompact: Boolean) {
         FilledIconButton(
-            onClick = {}, enabled = enabled, modifier = Modifier
-                .testTag(TEST_TAG)
-                .then(
-                    if (isCompact)
-                        Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
-                    else Modifier
-                )
+            onClick = {},
+            enabled = enabled,
+            modifier =
+                Modifier.testTag(TEST_TAG)
+                    .then(
+                        if (isCompact)
+                            Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
+                        else Modifier
+                    )
         ) {
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = "Home",
-                modifier = if (isCompact) Modifier.size(
-                    IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
-                )
-                else Modifier
+                modifier =
+                    if (isCompact)
+                        Modifier.size(
+                            IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
+                        )
+                    else Modifier
             )
         }
     }
@@ -177,69 +252,95 @@ class IconButtonScreenshotTest {
     @Composable
     private fun sampleFilledTonalIconButton(enabled: Boolean, isCompact: Boolean) {
         FilledTonalIconButton(
-            onClick = {}, enabled = enabled, modifier = Modifier
-                .testTag(TEST_TAG)
-                .then(
-                    if (isCompact)
-                        Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
-                    else Modifier
-                )
+            onClick = {},
+            enabled = enabled,
+            modifier =
+                Modifier.testTag(TEST_TAG)
+                    .then(
+                        if (isCompact)
+                            Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
+                        else Modifier
+                    )
         ) {
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = "Home",
-                modifier = if (isCompact) Modifier.size(
-                    IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
-                )
-                else Modifier
+                modifier =
+                    if (isCompact)
+                        Modifier.size(
+                            IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
+                        )
+                    else Modifier
             )
         }
     }
 
     @Composable
-    private fun sampleOutlinedIconButton(enabled: Boolean, isCompact: Boolean) {
+    private fun sampleOutlinedIconButton(
+        enabled: Boolean = true,
+        isCompact: Boolean = false,
+        shape: Shape = IconButtonDefaults.shape,
+        modifier: Modifier = Modifier,
+        interactionSource: MutableInteractionSource? = null
+    ) {
         OutlinedIconButton(
-            onClick = {}, enabled = enabled, modifier = Modifier
-                .testTag(TEST_TAG)
-                .then(
-                    if (isCompact)
-                        Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
-                    else Modifier
-                )
+            onClick = {},
+            enabled = enabled,
+            shape = shape,
+            interactionSource = interactionSource,
+            modifier =
+                modifier
+                    .testTag(TEST_TAG)
+                    .then(
+                        if (isCompact)
+                            Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
+                        else Modifier
+                    )
         ) {
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = "Home",
-                modifier = if (isCompact) Modifier.size(
-                    IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
-                )
-                else Modifier
+                modifier =
+                    if (isCompact)
+                        Modifier.size(
+                            IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
+                        )
+                    else Modifier
             )
         }
     }
 
     @Composable
     private fun sampleIconButton(
-        enabled: Boolean,
-        isCompact: Boolean,
-        modifier: Modifier = Modifier
+        enabled: Boolean = true,
+        isCompact: Boolean = false,
+        shape: Shape = IconButtonDefaults.shape,
+        modifier: Modifier = Modifier,
+        interactionSource: MutableInteractionSource? = null
     ) {
         IconButton(
-            onClick = {}, enabled = enabled, modifier = modifier
-                .testTag(TEST_TAG)
-                .then(
-                    if (isCompact)
-                        Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
-                    else Modifier
-                )
+            onClick = {},
+            enabled = enabled,
+            shape = shape,
+            interactionSource = interactionSource,
+            modifier =
+                modifier
+                    .testTag(TEST_TAG)
+                    .then(
+                        if (isCompact)
+                            Modifier.touchTargetAwareSize(IconButtonDefaults.ExtraSmallButtonSize)
+                        else Modifier
+                    )
         ) {
             Icon(
                 imageVector = Icons.Outlined.Home,
                 contentDescription = "Home",
-                modifier = if (isCompact) Modifier.size(
-                    IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
-                )
-                else Modifier
+                modifier =
+                    if (isCompact)
+                        Modifier.size(
+                            IconButtonDefaults.iconSizeFor(IconButtonDefaults.SmallIconSize)
+                        )
+                    else Modifier
             )
         }
     }
@@ -250,15 +351,15 @@ class IconButtonScreenshotTest {
     ) {
         rule.setContentWithTheme {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             ) {
                 content()
             }
         }
 
-        rule.onNodeWithTag(TEST_TAG).captureToImage()
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .captureToImage()
             .assertAgainstGolden(screenshotRule, methodName)
     }
 }

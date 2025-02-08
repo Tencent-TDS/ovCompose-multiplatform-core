@@ -21,6 +21,7 @@ import androidx.compose.mpp.demo.Screen
 val TextDemos = Screen.Selection(
     "Text",
     Screen.Example("FontFamilies") { FontFamilies() },
+    Screen.Example("VariableFonts") { VariableFonts() },
     Screen.Example("FontRasterization") { FontRasterization() },
     Screen.Example("LineHeightStyle") { LineHeightStyleDemo() },
     Screen.Example("TextDirection") { TextDirection() },

@@ -17,7 +17,6 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +25,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropNode
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
@@ -39,15 +39,13 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.PlatformContext
-import androidx.compose.ui.platform.setContent
+import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.pointerInteropFilter
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
 import org.jetbrains.skiko.currentNanoTime
 
 /**
@@ -111,10 +109,12 @@ interface ComposeScene {
     val focusManager: ComposeSceneFocusManager
 
     /**
-     * The object through which drag-and-drop implementations report drop-target events to the
-     * scene.
+     * The root drag&drop node that provides APIs for [PlatformDragAndDropManager] to integrate
+     * [ComposeScene] with the platform.
+     *
+     * @see DragAndDropNode
      */
-    val dragAndDropTarget: ComposeSceneDragAndDropTarget
+    val rootDragAndDropNode: ComposeSceneDragAndDropNode
 
     /**
      * Close all resources and subscriptions. Not calling this method when [ComposeScene] is no
@@ -183,6 +183,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -194,7 +195,7 @@ interface ComposeScene {
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    )
+    ): PointerEventResult
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -215,6 +216,7 @@ interface ComposeScene {
      * @param nativeEvent The original native event.
      * @param button Represents the index of a button which state changed in this event. It's null
      * when there was no change of the buttons state or when button is not applicable (e.g. touch event).
+     * @return event processing result
      */
     fun sendPointerEvent(
         eventType: PointerEventType,
@@ -225,7 +227,13 @@ interface ComposeScene {
         timeMillis: Long = currentTimeForEvent(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    )
+    ): PointerEventResult
+
+    /**
+     * Cancel ongoing pointer input in the content. It's expected that upcoming pointer events will
+     * only represent new pointers.
+     */
+    fun cancelPointerInput()
 
     /**
      * Send [KeyEvent] to the content.

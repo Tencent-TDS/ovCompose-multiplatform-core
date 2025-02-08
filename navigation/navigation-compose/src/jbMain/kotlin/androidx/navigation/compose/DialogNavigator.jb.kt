@@ -25,7 +25,8 @@ import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 import androidx.navigation.compose.DialogNavigator.Destination
 
-public actual class DialogNavigator : Navigator<Destination>(NAME) {
+public actual class DialogNavigator
+actual constructor() : Navigator<Destination>(NAME) {
     internal actual val backStack
         get() = state.backStack
 
@@ -44,7 +45,7 @@ public actual class DialogNavigator : Navigator<Destination>(NAME) {
         entries.forEach { entry -> state.push(entry) }
     }
 
-    override fun createDestination(): Destination {
+    actual override fun createDestination(): Destination {
         return Destination(this) {}
     }
 

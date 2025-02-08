@@ -25,9 +25,6 @@ dependencies {
     api(project(":camera:camera-core"))
 }
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
     testOptions.unitTests.includeAndroidResources = true
     namespace "androidx.camera.effects.stillportrait"
 }
@@ -39,4 +36,5 @@ androidx {
     description = "A post-processing effect that works with CameraX Library, providing a portrait" +
             " mode effect that applies to still image captures."
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

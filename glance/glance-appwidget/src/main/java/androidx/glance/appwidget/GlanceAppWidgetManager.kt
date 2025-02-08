@@ -16,23 +16,27 @@
 
 package androidx.glance.appwidget
 
+import android.app.Application
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.unit.DpSize
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.glance.GlanceId
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 
 /**
@@ -47,10 +51,9 @@ class GlanceAppWidgetManager(private val context: Context) {
         val receiverToProviderName: Map<ComponentName, String> = emptyMap(),
         val providerNameToReceivers: Map<String, List<ComponentName>> = emptyMap(),
     ) {
-        constructor(receiverToProviderName: Map<ComponentName, String>) : this(
-            receiverToProviderName,
-            receiverToProviderName.reverseMapping()
-        )
+        constructor(
+            receiverToProviderName: Map<ComponentName, String>
+        ) : this(receiverToProviderName, receiverToProviderName.reverseMapping())
     }
 
     private val appWidgetManager = AppWidgetManager.getInstance(context)
@@ -58,11 +61,18 @@ class GlanceAppWidgetManager(private val context: Context) {
 
     private fun getOrCreateDataStore(): DataStore<Preferences> {
         synchronized(GlanceAppWidgetManager) {
-            return dataStoreSingleton ?: run {
-                val newValue = context.appManagerDataStore
-                dataStoreSingleton = newValue
-                newValue
-            }
+            return dataStoreSingleton
+                ?: run {
+                    // Delete old file format that did not include the process name.
+                    context
+                        .preferencesDataStoreFile("GlanceAppWidgetManager")
+                        .takeIf { it.exists() }
+                        ?.delete()
+
+                    val newValue = context.appManagerDataStore
+                    dataStoreSingleton = newValue
+                    newValue
+                }
         }
     }
 
@@ -70,13 +80,16 @@ class GlanceAppWidgetManager(private val context: Context) {
         receiver: R,
         provider: P,
     ) {
-        val receiverName = requireNotNull(receiver.javaClass.canonicalName) { "no receiver name" }
-        val providerName = requireNotNull(provider.javaClass.canonicalName) { "no provider name" }
+        val receiverName = receiver.canonicalName()
+        val providerName = provider.canonicalName()
         dataStore.updateData { pref ->
-            pref.toMutablePreferences().also { builder ->
-                builder[providersKey] = (pref[providersKey] ?: emptySet()) + receiverName
-                builder[providerKey(receiverName)] = providerName
-            }.toPreferences()
+            pref
+                .toMutablePreferences()
+                .also { builder ->
+                    builder[providersKey] = (pref[providersKey] ?: emptySet()) + receiverName
+                    builder[providerKey(receiverName)] = providerName
+                }
+                .toPreferences()
         }
     }
 
@@ -84,20 +97,33 @@ class GlanceAppWidgetManager(private val context: Context) {
         val packageName = context.packageName
         val receivers = prefs[providersKey] ?: return State()
         return State(
-            receivers.mapNotNull { receiverName ->
-                val comp = ComponentName(packageName, receiverName)
-                val providerName = prefs[providerKey(receiverName)] ?: return@mapNotNull null
-                comp to providerName
-            }.toMap()
+            receivers
+                .mapNotNull { receiverName ->
+                    val comp = ComponentName(packageName, receiverName)
+                    val providerName = prefs[providerKey(receiverName)] ?: return@mapNotNull null
+                    comp to providerName
+                }
+                .toMap()
         )
     }
 
-    private suspend fun getState() =
-        dataStore.data.firstOrNull()?.let { createState(it) } ?: State()
+    private suspend fun getState(): State {
+        // Preferences won't contain value for providersKey when either -
+        // 1. App doesn't have any widget placed, but app requested for glanceIds for a widget class
+        // 2. User cleared app data, so, the provider to receivers mapping is lost (even if widgets
+        // are still pinned).
+        // In case of #2, we want to return an appropriate list of glance ids, so, we back-fill the
+        // datastore with all known glance receivers and providers.
+        // #1 isn't something that an app would commonly do, and even if it does, it would get empty
+        // IDs as expected.
+        return createState(
+            prefs =
+                dataStore.data.first().takeIf { it[providersKey] != null }
+                    ?: addAllReceiversAndProvidersToPreferences()
+        )
+    }
 
-    /**
-     * Returns the [GlanceId] of the App Widgets installed for a particular provider.
-     */
+    /** Returns the [GlanceId] of the App Widgets installed for a particular provider. */
     suspend fun <T : GlanceAppWidget> getGlanceIds(provider: Class<T>): List<GlanceId> {
         val state = getState()
         val providerName = requireNotNull(provider.canonicalName) { "no canonical provider name" }
@@ -138,23 +164,20 @@ class GlanceAppWidgetManager(private val context: Context) {
      * Retrieve the GlanceId of the provided AppWidget ID.
      *
      * @throws IllegalArgumentException if the provided id is not associated with an existing
-     * GlanceId
+     *   GlanceId
      */
     fun getGlanceIdBy(appWidgetId: Int): GlanceId {
-        requireNotNull(appWidgetManager.getAppWidgetInfo(appWidgetId)) {
-            "Invalid AppWidget ID."
-        }
+        requireNotNull(appWidgetManager.getAppWidgetInfo(appWidgetId)) { "Invalid AppWidget ID." }
         return AppWidgetId(appWidgetId)
     }
 
-    /**
-     * Retrieve the GlanceId from the configuration activity intent or null if not valid
-     */
+    /** Retrieve the GlanceId from the configuration activity intent or null if not valid */
     fun getGlanceIdBy(configurationIntent: Intent): GlanceId? {
-        val appWidgetId = configurationIntent.extras?.getInt(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID
-        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        val appWidgetId =
+            configurationIntent.extras?.getInt(
+                AppWidgetManager.EXTRA_APPWIDGET_ID,
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             return null
@@ -164,23 +187,21 @@ class GlanceAppWidgetManager(private val context: Context) {
     }
 
     /**
-     * Request to pin the [GlanceAppWidget] of the given receiver on the current launcher
-     * (if supported).
+     * Request to pin the [GlanceAppWidget] of the given receiver on the current launcher (if
+     * supported).
      *
      * Note: the request is only supported for SDK 26 and beyond, for lower versions this method
      * will be no-op and return false.
      *
      * @param receiver the target [GlanceAppWidgetReceiver] class
      * @param preview the instance of the GlanceAppWidget to compose the preview that will be shown
-     * in the request dialog. When not provided the app widget previewImage (as defined in the
-     * meta-data) will be used instead, or the app's icon if not available either.
+     *   in the request dialog. When not provided the app widget previewImage (as defined in the
+     *   meta-data) will be used instead, or the app's icon if not available either.
      * @param previewState the state (as defined by the [GlanceAppWidget.stateDefinition] to use for
-     * the preview
+     *   the preview
      * @param successCallback a [PendingIntent] to be invoked if the app widget pinning is accepted
-     * by the user
-     *
+     *   by the user
      * @return true if the request was successfully sent to the system, false otherwise
-     *
      * @see AppWidgetManager.requestPinAppWidget for more information and limitations
      */
     suspend fun <T : GlanceAppWidgetReceiver> requestPinGlanceAppWidget(
@@ -189,26 +210,65 @@ class GlanceAppWidgetManager(private val context: Context) {
         previewState: Any? = null,
         successCallback: PendingIntent? = null,
     ): Boolean {
+        return requestPinGlanceAppWidget(
+            receiver = receiver,
+            preview = preview,
+            previewSize = null,
+            previewState = previewState,
+            successCallback = successCallback,
+        )
+    }
+
+    /**
+     * Request to pin the [GlanceAppWidget] of the given receiver on the current launcher (if
+     * supported).
+     *
+     * Note: the request is only supported for SDK 26 and beyond, for lower versions this method
+     * will be no-op and return false.
+     *
+     * @param receiver the target [GlanceAppWidgetReceiver] class
+     * @param preview the instance of the GlanceAppWidget to compose the preview that will be shown
+     *   in the request dialog. When not provided the app widget previewImage (as defined in the
+     *   meta-data) will be used instead, or the app's icon if not available either.
+     * @param previewState the state (as defined by the [GlanceAppWidget.stateDefinition] to use for
+     *   the preview
+     * @param previewSize the size to be used for the preview. If none is provided, the widget's
+     *   minimum size (as determined by its' AppWidgetProviderInfo) will be used.
+     * @param successCallback a [PendingIntent] to be invoked if the app widget pinning is accepted
+     *   by the user
+     * @return true if the request was successfully sent to the system, false otherwise
+     * @see AppWidgetManager.requestPinAppWidget for more information and limitations
+     */
+    suspend fun <T : GlanceAppWidgetReceiver> requestPinGlanceAppWidget(
+        receiver: Class<T>,
+        preview: GlanceAppWidget? = null,
+        previewSize: DpSize? = null,
+        previewState: Any? = null,
+        successCallback: PendingIntent? = null,
+    ): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return false
         }
         if (AppWidgetManagerApi26Impl.isRequestPinAppWidgetSupported(appWidgetManager)) {
             val target = ComponentName(context.packageName, receiver.name)
-            val previewBundle = Bundle().apply {
-                if (preview != null) {
-                    val info = appWidgetManager.installedProviders.first {
-                        it.provider == target
+            val previewBundle =
+                Bundle().apply {
+                    if (preview != null) {
+                        val info =
+                            appWidgetManager.installedProviders.first { it.provider == target }
+                        val snapshot =
+                            preview.compose(
+                                context = context,
+                                id = AppWidgetId(AppWidgetManager.INVALID_APPWIDGET_ID),
+                                state = previewState,
+                                options = Bundle.EMPTY,
+                                size =
+                                    previewSize
+                                        ?: info.getMinSize(context.resources.displayMetrics),
+                            )
+                        putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, snapshot)
                     }
-                    val snapshot = preview.compose(
-                        context = context,
-                        id = AppWidgetId(AppWidgetManager.INVALID_APPWIDGET_ID),
-                        state = previewState,
-                        options = Bundle.EMPTY,
-                        size = info.getMinSize(context.resources.displayMetrics),
-                    )
-                    putParcelable(AppWidgetManager.EXTRA_APPWIDGET_PREVIEW, snapshot)
                 }
-            }
             return AppWidgetManagerApi26Impl.requestPinAppWidget(
                 appWidgetManager,
                 target,
@@ -222,18 +282,58 @@ class GlanceAppWidgetManager(private val context: Context) {
     /** Check which receivers still exist, and clean the data store to only keep those. */
     internal suspend fun cleanReceivers() {
         val packageName = context.packageName
-        val receivers = appWidgetManager.installedProviders
-            .filter { it.provider.packageName == packageName }
-            .map { it.provider.className }
-            .toSet()
+        val receivers =
+            appWidgetManager.installedProviders
+                .filter { it.provider.packageName == packageName }
+                .map { it.provider.className }
+                .toSet()
         dataStore.updateData { prefs ->
             val knownReceivers = prefs[providersKey] ?: return@updateData prefs
             val toRemove = knownReceivers.filter { it !in receivers }
             if (toRemove.isEmpty()) return@updateData prefs
-            prefs.toMutablePreferences().apply {
-                this[providersKey] = knownReceivers - toRemove
-                toRemove.forEach { receiver -> remove(providerKey(receiver)) }
-            }.toPreferences()
+            prefs
+                .toMutablePreferences()
+                .apply {
+                    this[providersKey] = knownReceivers - toRemove
+                    toRemove.forEach { receiver -> remove(providerKey(receiver)) }
+                }
+                .toPreferences()
+        }
+    }
+
+    /**
+     * Identifies [GlanceAppWidget] (provider) for each [GlanceAppWidgetReceiver] in the app and
+     * saves the mapping in the preferences datastore. Also stores the set of glance-based receiver
+     * class names.
+     *
+     * [getGlanceIds] looks up the set of associated receivers for the given [GlanceAppWidget]
+     * (provider) from the datastore to be able to get the appwidget ids from [AppWidgetManager].
+     *
+     * Typically, the information is stored / overwritten by [updateReceiver] during widget
+     * lifecycle, however, when app data is cleared by the user, it is lost. So, we reconstruct it
+     * (for all known glance-based receivers).
+     *
+     * Follow b/305232907 to know the recommendation from appWidgets on handling cleared app data
+     * scenarios for widgets.
+     */
+    @Suppress("ListIterator")
+    private suspend fun addAllReceiversAndProvidersToPreferences(): Preferences {
+        val installedGlanceAppWidgetReceivers =
+            appWidgetManager.installedProviders
+                .filter { it.provider.packageName == context.packageName }
+                .mapNotNull { it.maybeGlanceAppWidgetReceiver() }
+
+        return dataStore.updateData { prefs ->
+            prefs
+                .toMutablePreferences()
+                .apply {
+                    this[providersKey] =
+                        installedGlanceAppWidgetReceivers.map { it.javaClass.name }.toSet()
+                    installedGlanceAppWidgetReceivers.forEach {
+                        this[providerKey(it.canonicalName())] = it.glanceAppWidget.canonicalName()
+                    }
+                }
+                .toPreferences()
         }
     }
 
@@ -241,23 +341,58 @@ class GlanceAppWidgetManager(private val context: Context) {
     internal suspend fun listKnownReceivers(): Collection<String>? =
         dataStore.data.firstOrNull()?.let { it[providersKey] }
 
+    /**
+     * Clears the datastore that holds information about glance app widgets (providers) and
+     * receivers.
+     *
+     * Useful for tests that wish to mimic clearing app data.
+     */
+    @VisibleForTesting
+    internal suspend fun clearDataStore() {
+        dataStore.edit { it.clear() }
+    }
+
     private companion object {
-        private val Context.appManagerDataStore
-            by preferencesDataStore(name = "GlanceAppWidgetManager")
+        private val Context.appManagerDataStore by
+            preferencesDataStore(name = "GlanceAppWidgetManager-$processName")
+
+        private val processName: String
+            get() =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Application.getProcessName()
+                } else {
+                    Class.forName("android.app.ActivityThread")
+                        .getDeclaredMethod("currentProcessName")
+                        .apply { isAccessible = true }
+                        .invoke(null) as String
+                }
+
         private var dataStoreSingleton: DataStore<Preferences>? = null
         private val providersKey = stringSetPreferencesKey("list::Providers")
 
         private fun providerKey(provider: String) = stringPreferencesKey("provider:$provider")
+
+        private fun GlanceAppWidgetReceiver.canonicalName() =
+            requireNotNull(this.javaClass.canonicalName) { "no receiver name" }
+
+        private fun GlanceAppWidget.canonicalName() =
+            requireNotNull(this.javaClass.canonicalName) { "no provider name" }
+
+        private fun AppWidgetProviderInfo.maybeGlanceAppWidgetReceiver(): GlanceAppWidgetReceiver? {
+            val receiver = Class.forName(provider.className).getDeclaredConstructor().newInstance()
+            if (receiver is GlanceAppWidgetReceiver) {
+                return receiver
+            }
+            return null
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private object AppWidgetManagerApi26Impl {
 
-        @DoNotInline
         fun isRequestPinAppWidgetSupported(manager: AppWidgetManager) =
             manager.isRequestPinAppWidgetSupported
 
-        @DoNotInline
         fun requestPinAppWidget(
             manager: AppWidgetManager,
             target: ComponentName,

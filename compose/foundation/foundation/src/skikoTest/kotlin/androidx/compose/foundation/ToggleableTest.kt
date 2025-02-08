@@ -52,9 +52,7 @@ class ToggleableTest {
             ).testTag("toggle"))
         }
 
-        runOnIdle {
-            assertEquals(false, state)
-        }
+        assertEquals(false, state)
 
         onRoot().apply {
             performKeyPress(KeyEvent(Key.Tab, KeyEventType.KeyDown))
@@ -66,17 +64,13 @@ class ToggleableTest {
             performKeyPress(KeyEvent(Key.Spacebar, KeyEventType.KeyUp))
         }
 
-        runOnIdle {
-            assertEquals(true, state)
-        }
+        assertEquals(true, state)
 
         onNodeWithTag("toggle").apply {
             performKeyPress(KeyEvent(Key.Spacebar, KeyEventType.KeyDown))
             performKeyPress(KeyEvent(Key.Spacebar, KeyEventType.KeyUp))
         }
 
-        runOnIdle {
-            assertEquals(false, state)
-        }
+        assertEquals(false, state)
     }
 }

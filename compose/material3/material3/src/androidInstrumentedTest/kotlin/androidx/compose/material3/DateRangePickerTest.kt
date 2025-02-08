@@ -16,21 +16,42 @@
 
 package androidx.compose.material3
 
+import android.os.Build
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.DatePickerDefaults.defaultDatePickerColors
 import androidx.compose.material3.internal.MillisecondsIn24Hours
 import androidx.compose.material3.internal.Strings
 import androidx.compose.material3.internal.createCalendarModel
 import androidx.compose.material3.internal.getString
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.testutils.assertContainsColor
+import androidx.compose.testutils.assertDoesNotContainColor
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertAll
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isNotEnabled
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import java.util.Calendar
 import java.util.Locale
@@ -64,6 +85,7 @@ class DateRangePickerTest {
                         .getMonth(year = 2022, month = 4)
                         .startUtcTimeMillis
                 )
+            assertThat(locale).isEqualTo(Locale.getDefault())
         }
     }
 
@@ -119,30 +141,42 @@ class DateRangePickerTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun state_initWithEndDateOnly() {
+        lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
             // Expecting this to throw an exception when only end-date is provided.
-            rememberDateRangePickerState(
-                // 04/12/2022
-                initialSelectedEndDateMillis = 1649721600000L
-            )
+            dateRangePickerState =
+                rememberDateRangePickerState(
+                    // 04/12/2022
+                    initialSelectedEndDateMillis = 1649721600000L
+                )
         }
+        // Expecting the selected dates to stay null.
+        assertThat(dateRangePickerState.selectedStartDateMillis).isNull()
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun state_initWithEndDateBeforeStartDate() {
+        lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
             // Expecting an exception with a start date that appears after the end date.
-            rememberDateRangePickerState(
-                // 04/12/2022
-                initialSelectedStartDateMillis = 1649721600000L,
-                // 04/11/2022
-                initialSelectedEndDateMillis = 1649721600000L - MillisecondsIn24Hours
-            )
+            dateRangePickerState =
+                rememberDateRangePickerState(
+                    // 04/12/2022
+                    initialSelectedStartDateMillis = 1649721600000L,
+                    // 04/11/2022
+                    initialSelectedEndDateMillis = 1649721600000L - MillisecondsIn24Hours
+                )
         }
+
+        // Expecting the selected dates to stay null.
+        assertThat(dateRangePickerState.selectedStartDateMillis).isNull()
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
+    @Test
     fun state_initWithEqualStartAndEndDates() {
         lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
@@ -162,32 +196,43 @@ class DateRangePickerTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun initialStartDateOutOfBounds() {
+        lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
             val initialStartDateMillis =
                 dayInUtcMilliseconds(year = 1999, month = 5, dayOfMonth = 11)
             val initialEndDateMillis = dayInUtcMilliseconds(year = 2020, month = 5, dayOfMonth = 12)
-            rememberDateRangePickerState(
-                initialSelectedStartDateMillis = initialStartDateMillis,
-                initialSelectedEndDateMillis = initialEndDateMillis,
-                yearRange = IntRange(2000, 2050)
-            )
+            dateRangePickerState =
+                rememberDateRangePickerState(
+                    initialSelectedStartDateMillis = initialStartDateMillis,
+                    initialSelectedEndDateMillis = initialEndDateMillis,
+                    yearRange = IntRange(2000, 2050)
+                )
         }
+
+        // Expecting nulls since the dates are out of range.
+        assertThat(dateRangePickerState.selectedStartDateMillis).isNull()
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun initialEndDateOutOfBounds() {
+        lateinit var dateRangePickerState: DateRangePickerState
+        val initialStartDateMillis = dayInUtcMilliseconds(year = 2020, month = 1, dayOfMonth = 10)
+        val initialEndDateMillis = dayInUtcMilliseconds(year = 2051, month = 5, dayOfMonth = 12)
         rule.setMaterialContent(lightColorScheme()) {
-            val initialStartDateMillis =
-                dayInUtcMilliseconds(year = 2020, month = 1, dayOfMonth = 10)
-            val initialEndDateMillis = dayInUtcMilliseconds(year = 2051, month = 5, dayOfMonth = 12)
-            rememberDateRangePickerState(
-                initialSelectedStartDateMillis = initialStartDateMillis,
-                initialSelectedEndDateMillis = initialEndDateMillis,
-                yearRange = IntRange(2000, 2050)
-            )
+            dateRangePickerState =
+                rememberDateRangePickerState(
+                    initialSelectedStartDateMillis = initialStartDateMillis,
+                    initialSelectedEndDateMillis = initialEndDateMillis,
+                    yearRange = IntRange(2000, 2050)
+                )
         }
+
+        assertThat(dateRangePickerState.selectedStartDateMillis).isEqualTo(initialStartDateMillis)
+        // Expecting nulls end date as it's out of range.
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
     @Test
@@ -372,7 +417,7 @@ class DateRangePickerTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun setSelection_outOfYearsBound() {
         lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
@@ -384,9 +429,13 @@ class DateRangePickerTest {
             dayInUtcMilliseconds(year = 1999, month = 5, dayOfMonth = 11),
             null
         )
+
+        // Assert that the start date is null.
+        assertThat(dateRangePickerState.selectedStartDateMillis).isNull()
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test
     fun setSelection_endBeforeStart() {
         lateinit var dateRangePickerState: DateRangePickerState
         rule.setMaterialContent(lightColorScheme()) {
@@ -398,6 +447,10 @@ class DateRangePickerTest {
             startDateMillis = dayInUtcMilliseconds(year = 2000, month = 10, dayOfMonth = 10),
             endDateMillis = dayInUtcMilliseconds(year = 1998, month = 10, dayOfMonth = 10)
         )
+
+        // Expecting the selected dates to be null.
+        assertThat(dateRangePickerState.selectedStartDateMillis).isNull()
+        assertThat(dateRangePickerState.selectedEndDateMillis).isNull()
     }
 
     @Test
@@ -431,6 +484,160 @@ class DateRangePickerTest {
                     .isEqualTo(1649721600000L + MillisecondsIn24Hours)
             }
         }
+    }
+
+    @Test
+    fun state_changeDisplayedMonth() {
+        var futureMonthInUtcMillis = 0L
+        lateinit var state: DateRangePickerState
+        rule.setMaterialContent(lightColorScheme()) {
+            val monthInUtcMillis = dayInUtcMilliseconds(year = 2020, month = 1, dayOfMonth = 1)
+            futureMonthInUtcMillis = dayInUtcMilliseconds(year = 2020, month = 7, dayOfMonth = 1)
+            state = rememberDateRangePickerState(initialDisplayedMonthMillis = monthInUtcMillis)
+            DateRangePicker(state = state)
+        }
+
+        rule.onNodeWithText("January 2020").assertExists()
+
+        // Update the displayed month to be ~6 months in the future.
+        state.displayedMonthMillis = futureMonthInUtcMillis
+
+        rule.waitForIdle()
+        rule.onNodeWithText("July 2020").assertExists()
+    }
+
+    @Test
+    fun selectableDates_updatedSelection() {
+        lateinit var dateRangePickerState: DateRangePickerState
+        rule.setMaterialContent(lightColorScheme()) {
+            val allEnabled =
+                object : SelectableDates {
+                    // All dates are valid.
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean = true
+                }
+            val allDisabled =
+                object : SelectableDates {
+                    // All dates are invalid.
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean = false
+                }
+
+            var selectableDates: SelectableDates by remember { mutableStateOf(allEnabled) }
+            Column {
+                val monthInUtcMillis = dayInUtcMilliseconds(year = 2019, month = 1, dayOfMonth = 1)
+                dateRangePickerState =
+                    rememberDateRangePickerState(
+                        initialDisplayedMonthMillis = monthInUtcMillis,
+                        selectableDates = selectableDates
+                    )
+                // Apply a Modifier.weight(1f) to ensure that the Button below will be visible.
+                DateRangePicker(state = dateRangePickerState, modifier = Modifier.weight(1f))
+                Button(
+                    onClick = { selectableDates = allDisabled },
+                    modifier = Modifier.testTag("disableSelection")
+                ) {
+                    Text("Disable selection")
+                }
+            }
+        }
+
+        // Pick the 27th and ensure it's enabled for all the displayed months.
+        rule.onAllNodes(hasText("27", substring = true) and hasClickAction()).assertAll(isEnabled())
+
+        // Click the button to disable all dates.
+        rule.onNodeWithTag("disableSelection").performClick()
+        rule.waitForIdle()
+        // Assert that the 27th of the month is disabled for all the displayed months.
+        rule
+            .onAllNodes(hasText("27", substring = true) and hasClickAction())
+            .assertAll(isNotEnabled())
+    }
+
+    @Test
+    fun yearRange_minYearAfterCurrentYear() {
+        var currentYear = 0
+        rule.setMaterialContent(lightColorScheme()) {
+            currentYear = createCalendarModel(Locale.getDefault()).today.year
+            DateRangePicker(
+                state =
+                    rememberDateRangePickerState(
+                        yearRange = IntRange(currentYear + 1, currentYear + 10)
+                    )
+            )
+        }
+
+        rule.onNodeWithText("January ${currentYear + 1}").assertIsDisplayed()
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun customColorsSupersedeTypographyColors() {
+        rule.setMaterialContent(lightColorScheme()) {
+            val monthInUtcMillis = dayInUtcMilliseconds(year = 2021, month = 3, dayOfMonth = 1)
+            val startSelectionMillis = dayInUtcMilliseconds(year = 2021, month = 3, dayOfMonth = 6)
+            val endSelectionMillis = dayInUtcMilliseconds(year = 2021, month = 3, dayOfMonth = 10)
+
+            // Wrap in a MaterialTheme that has a typography that was set with custom colors.
+            // The date picker is using BodyLarge for days. See
+            // DatePickerModalTokens.DateLabelTextFont.
+            MaterialTheme(
+                typography =
+                    MaterialTheme.typography.copy(
+                        // Set the body-large with a yellow color. We would like to test that no
+                        // yellow appears on any day.
+                        bodyLarge = TextStyle(fontSize = 30.sp, color = Color.Yellow),
+                        headlineLarge = TextStyle(fontSize = 30.sp, color = Color.Green),
+                    )
+            ) {
+                DateRangePicker(
+                    state =
+                        rememberDateRangePickerState(
+                            initialDisplayedMonthMillis = monthInUtcMillis,
+                            initialSelectedStartDateMillis = startSelectionMillis,
+                            initialSelectedEndDateMillis = endSelectionMillis
+                        ),
+                    colors =
+                        MaterialTheme.colorScheme.defaultDatePickerColors.copy(
+                            dayContentColor = Color.Blue,
+                            selectedDayContentColor = Color.Red,
+                            headlineContentColor = Color.Yellow,
+                            dayInSelectionRangeContentColor = Color.Green
+                        )
+                )
+            }
+        }
+
+        // Check that the 6th day of the displayed month is selected and is with a red content
+        // color.
+        rule
+            .onAllNodes(hasText("6", substring = true) and hasClickAction())
+            .onFirst()
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Yellow)
+            .assertContainsColor(Color.Red)
+
+        // Check that the 11th day of the displayed month is selected and is with a red content
+        // color.
+        rule
+            .onAllNodes(hasText("10", substring = true) and hasClickAction())
+            .onFirst()
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Yellow)
+            .assertContainsColor(Color.Red)
+
+        // A day in the selection range should have a green content color.
+        rule
+            .onAllNodes(hasText("7", substring = true) and hasClickAction())
+            .onFirst()
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Yellow)
+            .assertContainsColor(Color.Green)
+
+        // The headline color should the yellow, as we override the typography green color for
+        // "headlineLarge".
+        rule
+            .onNodeWithText("Mar 6, 2021", useUnmergedTree = true)
+            .captureToImage()
+            .assertContainsColor(Color.Yellow)
     }
 
     // Returns the given date's day as milliseconds from epoch. The returned value is for the day's

@@ -28,4 +28,5 @@ internal fun Translations.ko() = mapOf(
     Strings.DefaultErrorMessage to "입력이 잘못됨",
     Strings.SliderRangeStart to "범위 시작",
     Strings.SliderRangeEnd to "범위 끝",
+    Strings.SnackbarPaneTitle to "주의",
 )

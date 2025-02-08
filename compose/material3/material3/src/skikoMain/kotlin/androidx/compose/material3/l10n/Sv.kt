@@ -33,6 +33,7 @@ internal fun Translations.sv() = mapOf(
     Strings.MenuCollapsed to "Komprimerad",
     Strings.ToggleDropdownMenu to "Utöka/komprimera rullgardinsmeny",
     Strings.SnackbarDismiss to "Stäng",
+    Strings.SnackbarPaneTitle to "Varning",
     Strings.SearchBarSearch to "Sök",
     Strings.SuggestionsAvailable to "Se förslag nedan",
     Strings.DatePickerTitle to "Välj datum",
@@ -85,4 +86,6 @@ internal fun Translations.sv() = mapOf(
     Strings.TimePickerHour to "Timme",
     Strings.TimePickerMinuteTextField to "för minuter",
     Strings.TimePickerHourTextField to "för timme",
+    Strings.CloseRail to "Stäng spår",
+    Strings.WideNavigationRailPaneTitle to "Navigeringsspår",
 )

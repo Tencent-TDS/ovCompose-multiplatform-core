@@ -53,13 +53,13 @@ class PointerIconTest {
     private val iconService = object : PointerIconService {
         private var current: PointerIcon = PointerIcon.Default
 
-        override fun getIcon(): PointerIcon {
-            return current
-        }
-
+        override fun getIcon(): PointerIcon = current
         override fun setIcon(value: PointerIcon?) {
             current = value ?: PointerIcon.Default
         }
+
+        override fun getStylusHoverIcon(): PointerIcon? = null
+        override fun setStylusHoverIcon(value: PointerIcon?) {}
     }
 
     @Test

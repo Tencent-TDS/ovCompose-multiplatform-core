@@ -17,6 +17,7 @@ package androidx.navigation
 
 import androidx.annotation.RestrictTo
 import androidx.core.bundle.Bundle
+import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 import kotlinx.serialization.InternalSerializationApi
@@ -103,6 +104,37 @@ public expect open class NavDestination(
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
     /**
+     * Checks the given deep link [Uri], and determines whether it matches a Uri pattern added to
+     * the destination by a call to [addDeepLink] . It returns `true` if the deep link is a valid
+     * match, and `false` otherwise.
+     *
+     * This should be called prior to [NavController.navigate] to ensure the deep link can be
+     * navigated to.
+     *
+     * @param deepLink to the destination reachable from the current NavGraph
+     * @return True if the deepLink exists for the destination.
+     * @see NavDestination.addDeepLink
+     * @see NavController.navigate
+     * @see NavDestination.hasDeepLink
+     */
+    public open fun hasDeepLink(deepLink: Uri): Boolean
+
+    /**
+     * Checks the given [NavDeepLinkRequest], and determines whether it matches a [NavDeepLink]
+     * added to the destination by a call to [addDeepLink]. It returns `true` if the request is a
+     * valid match, and `false` otherwise.
+     *
+     * This should be called prior to [NavController.navigate] to ensure the deep link can be
+     * navigated to.
+     *
+     * @param deepLinkRequest to the destination reachable from the current NavGraph
+     * @return True if the deepLink exists for the destination.
+     * @see NavDestination.addDeepLink
+     * @see NavController.navigate
+     */
+    public open fun hasDeepLink(deepLinkRequest: NavDeepLinkRequest): Boolean
+
+    /**
      * Add a deep link to this destination. Matching Uris sent to
      * [NavController.handleDeepLink] or [NavController.navigate] will
      * trigger navigating to this destination.
@@ -185,6 +217,16 @@ public expect open class NavDestination(
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun matchDeepLink(route: String): DeepLinkMatch?
+
+    /**
+     * Determines if this NavDestination has a deep link matching the given Uri.
+     *
+     * @param navDeepLinkRequest The request to match against all deep links added in [addDeepLink]
+     * @return The matching [NavDestination] and the appropriate [Bundle] of arguments extracted
+     *   from the Uri, or null if no match was found.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public open fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch?
 
     /**
      * Returns true if the [NavBackStackEntry.destination] contains the route.

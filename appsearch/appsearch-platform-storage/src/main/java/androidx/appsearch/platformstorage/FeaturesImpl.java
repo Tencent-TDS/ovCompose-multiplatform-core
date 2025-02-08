@@ -16,15 +16,11 @@
 package androidx.appsearch.platformstorage;
 
 import android.content.Context;
-import android.content.pm.ModuleInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appsearch.app.Features;
+import androidx.appsearch.platformstorage.util.AppSearchVersionUtil;
 import androidx.core.util.Preconditions;
 
 /**
@@ -32,7 +28,12 @@ import androidx.core.util.Preconditions;
  * level.
  */
 final class FeaturesImpl implements Features {
-    private static final String APPSEARCH_MODULE_NAME = "com.android.appsearch";
+    // Context is used to check mainline module version, as support varies by module version.
+    private final Context mContext;
+
+    FeaturesImpl(@NonNull Context context) {
+        mContext = Preconditions.checkNotNull(context);
+    }
 
     @Override
     public boolean isFeatureSupported(@NonNull String feature) {
@@ -69,67 +70,54 @@ final class FeaturesImpl implements Features {
             case Features.SET_SCHEMA_CIRCULAR_REFERENCES:
                 return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
 
-            // Beyond Android U features
+            // Android V Features
             case Features.SEARCH_SPEC_GROUPING_TYPE_PER_SCHEMA:
-                // TODO(b/258715421) : Update to reflect support in Android U+ once this feature has
-                // an extservices sdk that includes it.
-                // fall through
-            case Features.SCHEMA_SET_DELETION_PROPAGATION:
-                // TODO(b/268521214) : Update when feature is ready in service-appsearch.
                 // fall through
             case Features.SCHEMA_ADD_PARENT_TYPE:
-                // TODO(b/269295094) : Update when feature is ready in service-appsearch.
                 // fall through
             case Features.SCHEMA_ADD_INDEXABLE_NESTED_PROPERTIES:
-                // TODO(b/289150947) : Update when feature is ready in service-appsearch.
                 // fall through
             case Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES:
-                // TODO(b/296088047) : Update when feature is ready in service-appsearch.
-                return false;
+                // fall through
+            case Features.LIST_FILTER_HAS_PROPERTY_FUNCTION:
+                // fall through
+            case Features.SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG:
+                // fall through
+            case Features.SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE:
+                // fall through
+            case Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG:
+                // fall through
+            case Features.ENTERPRISE_GLOBAL_SEARCH_SESSION:
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
+
+            // Beyond Android V Features
+            case Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG:
+                // TODO(b/326656531) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SCHEMA_SET_DESCRIPTION:
+                // TODO(b/326987971) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SEARCH_SPEC_SEARCH_STRING_PARAMETERS:
+                // TODO(b/332620561) : Update when feature is ready in service-appsearch.
+                // fall through
+            case Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS:
+                // TODO(b/332642571) : Update when feature is ready in service-appsearch.
+                // fall through
             default:
                 return false;
         }
     }
 
     @Override
-    public int getMaxIndexedProperties(@NonNull Context context) {
-        Preconditions.checkNotNull(context);
+    public int getMaxIndexedProperties() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             return 64;
         } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU) {
-            PackageManager packageManager = context.getPackageManager();
-            long appsearchVersionCode = 0;
-            try {
-                String appSearchPackageName = ApiHelperForQ.getAppSearchPackageName(packageManager);
-                if (appSearchPackageName == null) {
-                    return 16;
-                }
-                PackageInfo pInfo = packageManager
-                        .getPackageInfo(appSearchPackageName, PackageManager.MATCH_APEX);
-                appsearchVersionCode = ApiHelperForQ.getPackageInfoLongVersionCode(pInfo);
-            } catch (PackageManager.NameNotFoundException e) {
-                // Module not installed
-            }
-            // Sixty-four properties were enabled in mainline module 'aml_ase_331311020'
-            return appsearchVersionCode >= 331311020 ? 64 : 16;
+            // Sixty-four properties were enabled in mainline module of the U base version
+            return AppSearchVersionUtil.getAppSearchVersionCode(mContext)
+                    >= AppSearchVersionUtil.APPSEARCH_U_BASE_VERSION_CODE ? 64 : 16;
         } else {
             return 16;
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private static class ApiHelperForQ {
-        @DoNotInline
-        static long getPackageInfoLongVersionCode(PackageInfo pInfo) {
-            return pInfo.getLongVersionCode();
-        }
-
-        @DoNotInline
-        static String getAppSearchPackageName(PackageManager packageManager)
-                throws PackageManager.NameNotFoundException {
-            ModuleInfo appSearchModule =
-                    packageManager.getModuleInfo(APPSEARCH_MODULE_NAME, 1);
-            return appSearchModule.getPackageName();
         }
     }
 }

@@ -42,8 +42,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SharePointerInputWithSiblingTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun Drawer_drawerContentSharePointerInput_cantClickContent() {
@@ -56,19 +55,17 @@ class SharePointerInputWithSiblingTest {
             ModalDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    Box(Modifier
-                        .fillMaxSize()
-                        .testTag("box1")
-                        .testPointerInput(sharePointerInputWithSibling = true) {
+                    Box(
+                        Modifier.fillMaxSize().testTag("box1").testPointerInput(
+                            sharePointerInputWithSibling = true
+                        ) {
                             box1Clicked = true
                         }
                     )
                 },
                 content = {
-                    Box(Modifier
-                        .fillMaxSize()
-                        .testTag("box2")
-                        .testPointerInput {
+                    Box(
+                        Modifier.fillMaxSize().testTag("box2").testPointerInput {
                             box2Clicked = true
                         }
                     )
@@ -88,18 +85,12 @@ class SharePointerInputWithSiblingTest {
 
         rule.setContent {
             Box(Modifier.size(50.dp)) {
-                Box(Modifier
-                    .fillMaxSize()
-                    .testTag("box1")
-                    .testPointerInput {
-                        box1Clicked = true
-                    }
-                )
+                Box(Modifier.fillMaxSize().testTag("box1").testPointerInput { box1Clicked = true })
 
-                Box(Modifier
-                    .fillMaxSize()
-                    .testTag("box2")
-                    .testPointerInput(sharePointerInputWithSibling = true) {
+                Box(
+                    Modifier.fillMaxSize().testTag("box2").testPointerInput(
+                        sharePointerInputWithSibling = true
+                    ) {
                         box2Clicked = true
                     }
                 )
@@ -117,57 +108,16 @@ class SharePointerInputWithSiblingTest {
         var box2Clicked = false
 
         rule.setContent {
-            Box(Modifier
-                .size(50.dp)
-                .testPointerInput(sharePointerInputWithSibling = false)
-            ) {
-                Box(Modifier
-                    .fillMaxSize()
-                    .testTag("box1")
-                    .testPointerInput {
-                        box1Clicked = true
-                    }
-                )
+            Box(Modifier.size(50.dp).testPointerInput(sharePointerInputWithSibling = false)) {
+                Box(Modifier.fillMaxSize().testTag("box1").testPointerInput { box1Clicked = true })
 
-                Box(Modifier
-                    .fillMaxSize()
-                    .testTag("box2")
-                    .testPointerInput(sharePointerInputWithSibling = true) {
+                Box(
+                    Modifier.fillMaxSize().testTag("box2").testPointerInput(
+                        sharePointerInputWithSibling = true
+                    ) {
                         box2Clicked = true
                     }
                 )
-            }
-        }
-
-        rule.onNodeWithTag("box2").performClick()
-        assertThat(box1Clicked).isTrue()
-        assertThat(box2Clicked).isTrue()
-    }
-
-    @Test
-    fun stackedBox_doSharePointerWithCousin() {
-        var box1Clicked = false
-        var box2Clicked = false
-
-        rule.setContent {
-            Box(Modifier.size(50.dp)) {
-                Box(Modifier
-                    .fillMaxSize()
-                    .testTag("box1")
-                    .testPointerInput {
-                        box1Clicked = true
-                    }
-                )
-
-                Box(Modifier.fillMaxSize()) {
-                    Box(Modifier
-                        .fillMaxSize()
-                        .testTag("box2")
-                        .testPointerInput(sharePointerInputWithSibling = true) {
-                            box2Clicked = true
-                        }
-                    )
-                }
             }
         }
 
@@ -183,19 +133,13 @@ class SharePointerInputWithSiblingTest {
 
         rule.setContent {
             Box(Modifier.size(50.dp)) {
-                Box(Modifier.fillMaxSize()
-                    .testTag("box1")
-                    .testPointerInput {
-                        box1Clicked = true
-                    }
-                )
+                Box(Modifier.fillMaxSize().testTag("box1").testPointerInput { box1Clicked = true })
 
-                Box(Modifier.fillMaxSize()
-                    .testPointerInput(sharePointerInputWithSibling = false)
-                ) {
-                    Box(Modifier.fillMaxSize()
-                        .testTag("box2")
-                        .testPointerInput(sharePointerInputWithSibling = true) {
+                Box(Modifier.fillMaxSize().testPointerInput(sharePointerInputWithSibling = false)) {
+                    Box(
+                        Modifier.fillMaxSize().testTag("box2").testPointerInput(
+                            sharePointerInputWithSibling = true
+                        ) {
                             box2Clicked = true
                         }
                     )
@@ -209,30 +153,27 @@ class SharePointerInputWithSiblingTest {
     }
 
     @Test
-    fun stackedBox_doSharePointer_untilFirstBoxDisallowShare() {
+    fun stackedBox_doSharePointerWithSiblings_untilFirstBoxDisallowShare() {
         var box1Clicked = false
         var box2Clicked = false
         var box3Clicked = false
 
         rule.setContent {
             Box(Modifier.size(50.dp)) {
-                Box(Modifier.fillMaxSize()
-                    .testTag("box1")
-                    .testPointerInput {
-                        box1Clicked = true
-                    }
-                )
+                Box(Modifier.fillMaxSize().testTag("box1").testPointerInput { box1Clicked = true })
 
-                Box(Modifier.fillMaxSize()
-                    .testTag("box2")
-                    .testPointerInput(sharePointerInputWithSibling = false) {
+                Box(
+                    Modifier.fillMaxSize().testTag("box2").testPointerInput(
+                        sharePointerInputWithSibling = false
+                    ) {
                         box2Clicked = true
                     }
                 )
 
-                Box(Modifier.fillMaxSize()
-                    .testTag("box3")
-                    .testPointerInput(sharePointerInputWithSibling = true) {
+                Box(
+                    Modifier.fillMaxSize().testTag("box3").testPointerInput(
+                        sharePointerInputWithSibling = true
+                    ) {
                         box3Clicked = true
                     }
                 )
@@ -277,7 +218,7 @@ private class TestPointerInputNode(
         onPointerEvent.invoke()
     }
 
-    override fun onCancelPointerInput() { }
+    override fun onCancelPointerInput() {}
 
     override fun sharePointerInputWithSiblings(): Boolean {
         return sharePointerInputWithSibling

@@ -28,4 +28,5 @@ internal fun Translations.cs() = mapOf(
     Strings.DefaultErrorMessage to "Neplatný údaj",
     Strings.SliderRangeStart to "Začátek rozsahu",
     Strings.SliderRangeEnd to "Konec rozsahu",
+    Strings.SnackbarPaneTitle to "Upozornění",
 )

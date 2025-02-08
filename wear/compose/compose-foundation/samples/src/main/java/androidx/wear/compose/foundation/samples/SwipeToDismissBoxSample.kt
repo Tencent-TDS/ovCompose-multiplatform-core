@@ -37,7 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.SwipeToDismissBox
+import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import androidx.wear.compose.foundation.SwipeToDismissValue
 import androidx.wear.compose.foundation.edgeSwipeToDismiss
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
@@ -49,23 +49,14 @@ import androidx.wear.compose.material.ToggleChipDefaults
 
 @Sampled
 @Composable
-fun SimpleSwipeToDismissBox(
-    navigateBack: () -> Unit
-) {
+fun SimpleSwipeToDismissBox(navigateBack: () -> Unit) {
     val state = rememberSwipeToDismissBoxState()
-    SwipeToDismissBox(
-        state = state,
-        onDismissed = navigateBack
-    ) { isBackground ->
+    BasicSwipeToDismissBox(state = state, onDismissed = navigateBack) { isBackground ->
         if (isBackground) {
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.secondaryVariant))
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.secondaryVariant))
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.primary),
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.primary),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -95,13 +86,12 @@ fun StatefulSwipeToDismissBox() {
 
     // Hierarchy is ListScreen -> ItemScreen, so we show ListScreen as the background behind
     // the ItemScreen, otherwise there's no background to show.
-    SwipeToDismissBox(
+    BasicSwipeToDismissBox(
         state = state,
         userSwipeEnabled = !showMainScreen,
         backgroundKey = if (!showMainScreen) "MainKey" else "Background",
         contentKey = if (showMainScreen) "MainKey" else "ItemKey",
     ) { isBackground ->
-
         if (isBackground || showMainScreen) {
             // Best practice would be to use State Hoisting and leave this composable stateless.
             // Here, we want to support MainScreen being shown from different destinations
@@ -114,11 +104,10 @@ fun StatefulSwipeToDismissBox() {
                     // and can be shown in foreground or background.
                     val checked = rememberSaveable { mutableStateOf(true) }
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        modifier =
+                            Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp),
                         verticalArrangement =
-                        Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                            Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                     ) {
                         SplitToggleChip(
                             checked = checked.value,
@@ -128,9 +117,8 @@ fun StatefulSwipeToDismissBox() {
                             onClick = { showMainScreen = false },
                             toggleControl = {
                                 Icon(
-                                    imageVector = ToggleChipDefaults.checkboxIcon(
-                                        checked = checked.value
-                                    ),
+                                    imageVector =
+                                        ToggleChipDefaults.checkboxIcon(checked = checked.value),
                                     contentDescription = null,
                                 )
                             }
@@ -140,9 +128,7 @@ fun StatefulSwipeToDismissBox() {
             )
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.primary),
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.primary),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -155,33 +141,25 @@ fun StatefulSwipeToDismissBox() {
 
 @Sampled
 @Composable
-fun EdgeSwipeForSwipeToDismiss(
-    navigateBack: () -> Unit
-) {
+fun EdgeSwipeForSwipeToDismiss(navigateBack: () -> Unit) {
     val state = rememberSwipeToDismissBoxState()
 
     // When using Modifier.edgeSwipeToDismiss, it is required that the element on which the
     // modifier applies exists within a SwipeToDismissBox which shares the same state.
-    SwipeToDismissBox(
-        state = state,
-        onDismissed = navigateBack
-    ) { isBackground ->
+    BasicSwipeToDismissBox(state = state, onDismissed = navigateBack) { isBackground ->
         val horizontalScrollState = rememberScrollState(0)
         if (isBackground) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.secondaryVariant)
-            )
+            Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.secondaryVariant))
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .edgeSwipeToDismiss(state)
-                        .horizontalScroll(horizontalScrollState),
-                    text = "This text can be scrolled horizontally - to dismiss, swipe " +
-                        "right from the left edge of the screen (called Edge Swiping)",
+                    modifier =
+                        Modifier.align(Alignment.Center)
+                            .edgeSwipeToDismiss(state)
+                            .horizontalScroll(horizontalScrollState),
+                    text =
+                        "This text can be scrolled horizontally - to dismiss, swipe " +
+                            "right from the left edge of the screen (called Edge Swiping)",
                 )
             }
         }

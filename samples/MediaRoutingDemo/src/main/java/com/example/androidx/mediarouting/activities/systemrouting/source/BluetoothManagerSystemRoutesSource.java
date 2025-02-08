@@ -23,17 +23,13 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHearingAid;
 import android.bluetooth.BluetoothLeAudio;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Build;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
-import androidx.core.content.IntentCompat;
 
 import com.example.androidx.mediarouting.activities.systemrouting.SystemRouteItem;
 import com.example.androidx.mediarouting.activities.systemrouting.SystemRoutesSourceItem;
@@ -42,7 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Implements {@link SystemRoutesSource} using {@link BluetoothManager}. */
-@RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public final class BluetoothManagerSystemRoutesSource extends SystemRoutesSource {
 
     @NonNull
@@ -91,9 +86,7 @@ public final class BluetoothManagerSystemRoutesSource extends SystemRoutesSource
     @NonNull
     @Override
     public SystemRoutesSourceItem getSourceItem() {
-        return new SystemRoutesSourceItem.Builder(
-                SystemRoutesSourceItem.ROUTE_SOURCE_BLUETOOTH_MANAGER)
-                .build();
+        return new SystemRoutesSourceItem(/* name= */ "BluetoothManager");
     }
 
     @NonNull
@@ -109,10 +102,15 @@ public final class BluetoothManagerSystemRoutesSource extends SystemRoutesSource
         return out;
     }
 
+    @Override
+    public boolean select(@NonNull SystemRouteItem item) {
+        throw new UnsupportedOperationException();
+    }
+
     @NonNull
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private static SystemRouteItem createRouteItemFor(@NonNull BluetoothDevice device) {
-        return new SystemRouteItem.Builder(/* id= */ device.getAddress())
+    private SystemRouteItem createRouteItemFor(@NonNull BluetoothDevice device) {
+        return new SystemRouteItem.Builder(getSourceId(), /* id= */ device.getAddress())
                 .setName(device.getName())
                 .setAddress(device.getAddress())
                 .build();
@@ -122,27 +120,14 @@ public final class BluetoothManagerSystemRoutesSource extends SystemRoutesSource
         @Override
         @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         public void onReceive(Context context, Intent intent) {
-            BluetoothDevice device = IntentCompat.getParcelableExtra(intent,
-                    BluetoothDevice.EXTRA_DEVICE, android.bluetooth.BluetoothDevice.class);
-
             switch (intent.getAction()) {
                 case BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED:
                 case BluetoothHearingAid.ACTION_CONNECTION_STATE_CHANGED:
                 case BluetoothLeAudio.ACTION_LE_AUDIO_CONNECTION_STATE_CHANGED:
-                    handleConnectionStateChanged(intent, device);
+                    mOnRoutesChangedListener.run();
                     break;
-            }
-        }
-
-        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        private void handleConnectionStateChanged(Intent intent,
-                BluetoothDevice device) {
-            int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
-            if (state == BluetoothProfile.STATE_CONNECTED) {
-                mOnRoutesChangedListener.onRouteAdded(createRouteItemFor(device));
-            } else if (state == BluetoothProfile.STATE_DISCONNECTING
-                    || state == BluetoothProfile.STATE_DISCONNECTED) {
-                mOnRoutesChangedListener.onRouteRemoved(createRouteItemFor(device));
+                default:
+                    // Do nothing.
             }
         }
     }

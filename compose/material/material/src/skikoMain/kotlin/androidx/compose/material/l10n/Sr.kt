@@ -28,4 +28,5 @@ internal fun Translations.sr() = mapOf(
     Strings.DefaultErrorMessage to "Унос је неважећи",
     Strings.SliderRangeStart to "Почетак опсега",
     Strings.SliderRangeEnd to "Крај опсега",
+    Strings.SnackbarPaneTitle to "Обавештење",
 )

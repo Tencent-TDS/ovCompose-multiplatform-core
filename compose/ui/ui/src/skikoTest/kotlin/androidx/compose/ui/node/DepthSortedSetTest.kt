@@ -16,9 +16,11 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.IntObjectMap
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
@@ -26,7 +28,6 @@ import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.InputModeManager
@@ -34,14 +35,16 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerIconService
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runSkikoComposeUiTest
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -188,18 +191,20 @@ class DepthSortedSetTest {
 
     // TODO Is there a way to mock it in K/N?
     internal class DepthTestOwner : Owner {
+        override val layoutNodes: IntObjectMap<LayoutNode> get() = throw IllegalStateException()
         override val rootForTest: RootForTest get() = throw IllegalStateException()
         override val hapticFeedBack: HapticFeedback get() = throw IllegalStateException()
         override val inputModeManager: InputModeManager get() = throw IllegalStateException()
         override val clipboardManager: ClipboardManager get() = throw IllegalStateException()
+        override val clipboard: Clipboard get() = throw IllegalStateException()
         override val accessibilityManager: AccessibilityManager get() = throw IllegalStateException()
-        override val graphicsContext: GraphicsContext
-            get() = TODO("Not yet implemented")
+        override val graphicsContext: GraphicsContext get() = throw IllegalStateException()
         override val textToolbar: TextToolbar get() = throw IllegalStateException()
         @ExperimentalComposeUiApi
         override val autofillTree: AutofillTree get() = throw IllegalStateException()
         @ExperimentalComposeUiApi
         override val autofill: Autofill? get() = throw IllegalStateException()
+        override val autofillManager: AutofillManager? get() = throw IllegalStateException()
         override val density: Density get() = throw IllegalStateException()
         override val textInputService: TextInputService get() = throw IllegalStateException()
         override val softwareKeyboardController get() = throw IllegalStateException()
@@ -208,11 +213,12 @@ class DepthSortedSetTest {
         ) = throw IllegalStateException()
         override fun screenToLocal(positionOnScreen: Offset): Offset = throw IllegalStateException()
         override fun localToScreen(localPosition: Offset): Offset = throw IllegalStateException()
-        override fun localToScreen(localTransform: Matrix) = throw IllegalStateException()
         override val dragAndDropManager: DragAndDropManager get() = throw IllegalStateException()
         override val pointerIconService: PointerIconService get() = throw IllegalStateException()
+        override val semanticsOwner: SemanticsOwner get() = throw IllegalStateException()
         override val focusOwner: FocusOwner get() = throw IllegalStateException()
         override val windowInfo: WindowInfo get() = throw IllegalStateException()
+        override val rectManager: RectManager get() = throw IllegalStateException()
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
         override val fontLoader: Font.ResourceLoader get() = throw IllegalStateException()
         override val fontFamilyResolver: FontFamily.Resolver get() = throw IllegalStateException()
@@ -221,21 +227,25 @@ class DepthSortedSetTest {
         override fun onRequestMeasure(layoutNode: LayoutNode, affectsLookahead: Boolean, forceRequest: Boolean, scheduleMeasureAndLayout: Boolean) = Unit
         override fun onRequestRelayout(layoutNode: LayoutNode, affectsLookahead: Boolean, forceRequest: Boolean) = Unit
         override fun requestOnPositionedCallback(layoutNode: LayoutNode) = Unit
-        override fun onAttach(node: LayoutNode) = Unit
+        override fun onPreAttach(node: LayoutNode) = Unit
+        override fun onPostAttach(node: LayoutNode) = Unit
         override fun onDetach(node: LayoutNode) = Unit
         override fun calculatePositionInWindow(localPosition: Offset): Offset = throw IllegalStateException()
         override fun calculateLocalPosition(positionInWindow: Offset): Offset = throw IllegalStateException()
         override fun requestFocus(): Boolean = throw IllegalStateException()
+        override fun requestAutofill(node: LayoutNode) = throw IllegalStateException()
         override fun measureAndLayout(sendPointerUpdate: Boolean) = throw IllegalStateException()
         override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) = throw IllegalStateException()
         override fun forceMeasureTheSubtree(layoutNode: LayoutNode, affectsLookahead: Boolean) = throw IllegalStateException()
         override fun createLayer(
-            drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
+            drawBlock: (Canvas, GraphicsLayer?) -> Unit,
             invalidateParentLayer: () -> Unit,
-            explicitLayer: GraphicsLayer?
+            explicitLayer: GraphicsLayer?,
+            forceUseOldLayers: Boolean
         ): OwnedLayer = throw IllegalStateException()
         override fun onSemanticsChange() = throw IllegalStateException()
         override fun onLayoutChange(layoutNode: LayoutNode) = throw IllegalStateException()
+        override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) = throw IllegalStateException()
 
         @InternalComposeUiApi
         override fun onInteropViewLayoutChange(view: InteropView) = throw IllegalStateException()

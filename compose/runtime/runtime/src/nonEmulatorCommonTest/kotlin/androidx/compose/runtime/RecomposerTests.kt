@@ -23,9 +23,14 @@ import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.mock.expectNoChanges
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.test.*
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -42,24 +47,18 @@ import kotlinx.coroutines.withTimeoutOrNull
 class RecomposerTests {
 
     private fun runTestUnconfined(block: suspend TestScope.() -> Unit) =
-        runTest(UnconfinedTestDispatcher()) {
-            block()
-        }
+        runTest(UnconfinedTestDispatcher()) { block() }
 
     @Test
     fun recomposerRecomposesWhileOpen() = runTestUnconfined {
         val testClock = TestMonotonicFrameClock(this)
         withContext(testClock) {
             val recomposer = Recomposer(coroutineContext)
-            val runner = launch {
-                recomposer.runRecomposeAndApplyChanges()
-            }
+            val runner = launch { recomposer.runRecomposeAndApplyChanges() }
             val composition = Composition(UnitApplier(), recomposer)
             var state by mutableStateOf(0)
             var lastRecomposedState = -1
-            composition.setContent {
-                lastRecomposedState = state
-            }
+            composition.setContent { lastRecomposedState = state }
             assertEquals(0, lastRecomposedState, "initial composition")
             Snapshot.withMutableSnapshot { state = 1 }
             assertNotNull(
@@ -92,16 +91,10 @@ class RecomposerTests {
         val testClock = TestMonotonicFrameClock(this)
         withContext(testClock) {
             val recomposer = Recomposer(coroutineContext)
-            val runner = launch {
-                recomposer.runRecomposeAndApplyChanges()
-            }
+            val runner = launch { recomposer.runRecomposeAndApplyChanges() }
             val composition = Composition(UnitApplier(), recomposer)
             val completer = Job()
-            composition.setContent {
-                LaunchedEffect(completer) {
-                    completer.join()
-                }
-            }
+            composition.setContent { LaunchedEffect(completer) { completer.join() } }
             recomposer.awaitIdle()
             recomposer.close()
             recomposer.awaitIdle()
@@ -116,28 +109,20 @@ class RecomposerTests {
                 recomposer.currentState.first(),
                 "recomposer state"
             )
-            assertNotNull(
-                withTimeoutOrNull(5_000) { runner.join() },
-                "Expected runner join"
-            )
+            assertNotNull(withTimeoutOrNull(5_000) { runner.join() }, "Expected runner join")
         }
     }
 
     @Test
-    //@IgnoreJsTarget
     fun testRecomposition() = compositionTest {
         val counter = Counter()
-        val triggers = mapOf(
-            99 to Trigger(),
-            100 to Trigger(),
-            102 to Trigger(),
-        )
-        compose {
-            RecomposeTestComponentsA(
-                counter,
-                triggers
+        val triggers =
+            mapOf(
+                99 to Trigger(),
+                100 to Trigger(),
+                102 to Trigger(),
             )
-        }
+        compose { RecomposeTestComponentsA(counter, triggers) }
 
         assertEquals(1, counter["A"])
         assertEquals(1, counter["100"])
@@ -195,9 +180,7 @@ class RecomposerTests {
             TestSubcomposition {
                 // Take up some slot space
                 // This makes it more likely to reproduce bug 157111271.
-                remember(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) {
-                    1
-                }
+                remember(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15) { 1 }
                 if (includeA) {
                     Wrapper {
                         B(0)
@@ -211,9 +194,7 @@ class RecomposerTests {
             }
         }
 
-        compose {
-            T()
-        }
+        compose { T() }
 
         includeA = true
         advance(ignorePendingWork = true)
@@ -236,9 +217,7 @@ class RecomposerTests {
             assertNotNull(a)
         }
 
-        @Composable
-        fun use(@Suppress("UNUSED_PARAMETER") i: Int) {
-        }
+        @Composable fun use(@Suppress("UNUSED_PARAMETER") i: Int) {}
 
         @Composable
         fun useA(a: A = A()) {
@@ -252,9 +231,7 @@ class RecomposerTests {
             useA()
         }
 
-        compose {
-            test()
-        }
+        compose { test() }
 
         // Recompose test() skipping useA()
         state1 = 2
@@ -272,7 +249,7 @@ class RecomposerTests {
         compose {
             if (state) {
                 TestSubcomposition {
-                    assertTrue(state, "Subcomposition should be disposed if state is false" )
+                    assertTrue(state, "Subcomposition should be disposed if state is false")
                 }
             }
         }
@@ -289,9 +266,7 @@ class RecomposerTests {
         lateinit var child: ControlledComposition
         parent.setContent {
             val parentContext = rememberCompositionContext()
-            SideEffect {
-                child = ControlledComposition(UnitApplier(), parentContext)
-            }
+            SideEffect { child = ControlledComposition(UnitApplier(), parentContext) }
         }
 
         assertEquals(
@@ -306,15 +281,11 @@ class RecomposerTests {
         var someState by mutableStateOf(0)
         var recompostions = 0
 
-        @Composable
-        fun use(@Suppress("UNUSED_PARAMETER") i: Int) {
-        }
+        @Composable fun use(@Suppress("UNUSED_PARAMETER") i: Int) {}
 
         compose {
             recompostions++
-            use(
-                Snapshot.withoutReadObservation { someState }
-            )
+            use(Snapshot.withoutReadObservation { someState })
         }
 
         assertEquals(1, recompostions)
@@ -336,7 +307,6 @@ class RecomposerTests {
         runTest(dispatcher) {
             val testClock = TestMonotonicFrameClock(this)
             withContext(testClock) {
-
                 val recomposer = Recomposer(coroutineContext)
                 var launched = false
                 val runner = launch {
@@ -350,15 +320,11 @@ class RecomposerTests {
                 var lastCompositionTwoState = -1
                 compositionOne.setContent {
                     lastCompositionOneState = state
-                    LaunchedEffect(Unit) {
-                        delay(1_000)
-                    }
+                    LaunchedEffect(Unit) { delay(1_000) }
                 }
                 compositionTwo.setContent {
                     lastCompositionTwoState = state
-                    LaunchedEffect(Unit) {
-                        delay(1_000)
-                    }
+                    LaunchedEffect(Unit) { delay(1_000) }
                 }
 
                 assertEquals(0, lastCompositionOneState, "initial composition")
@@ -375,9 +341,7 @@ class RecomposerTests {
 
                 assertTrue(launched, "Recomposer was never started")
 
-                Snapshot.withMutableSnapshot {
-                    state = 1
-                }
+                Snapshot.withMutableSnapshot { state = 1 }
 
                 recomposer.cancel()
 
@@ -394,6 +358,7 @@ class RecomposerTests {
         }
     }
 
+    @Ignore // TODO: Fails on JS https://youtrack.jetbrains.com/issue/CMP-7455
     @Test
     fun stateChangesDuringApplyChangesAreNotifiedBeforeFrameFinished() = compositionTest {
         val count = mutableStateOf(0)
@@ -403,9 +368,7 @@ class RecomposerTests {
 
         @Composable
         fun CountRecorder(count: Int) {
-            SideEffect {
-                countFromEffect.value = count
-            }
+            SideEffect { countFromEffect.value = count }
         }
 
         compose {
@@ -421,9 +384,7 @@ class RecomposerTests {
 
         // Register the apply observer after changing state to invalidate composition, but
         // before actually allowing the recomposition to happen.
-        Snapshot.registerApplyObserver { applied, _ ->
-            applications += applied
-        }
+        Snapshot.registerApplyObserver { applied, _ -> applications += applied }
         assertTrue(applications.isEmpty())
 
         assertEquals(1, advanceCount())
@@ -432,7 +393,41 @@ class RecomposerTests {
         assertEquals(2, recompositions)
 
         // The Recomposer should have received notification for the node's state.
-        assertContentEquals(listOf(setOf(countFromEffect)), applications)
+        @Suppress("RemoveExplicitTypeArguments")
+        assertEquals<List<Set<Any>>>(listOf(setOf(countFromEffect)), applications)
+    }
+
+    @Ignore // b/329682091
+    @OptIn(DelicateCoroutinesApi::class)
+    @Test // b/329011032
+    fun validatePotentialDeadlock() = compositionTest {
+        var state by mutableIntStateOf(0)
+        compose {
+            repeat(1000) { Text("This is some text: $state") }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    withContext(Dispatchers.Default) {
+                        state++
+                        Snapshot.registerGlobalWriteObserver {}.dispose()
+                    }
+                }
+            }
+
+            // Keep the other loop as is
+            LaunchedEffect(Unit) {
+                while (true) {
+                    withFrameNanos {
+                        state++
+                        Snapshot.sendApplyNotifications()
+                    }
+                }
+            }
+        }
+
+        repeat(10) {
+            state++
+            advance(ignorePendingWork = true)
+        }
     }
 
     @Test
@@ -459,9 +454,7 @@ class RecomposerTests {
 
                     LaunchedEffect(Unit) {
                         while (true) {
-                            withFrameNanos { nanos ->
-                                lastNanosSeen = nanos
-                            }
+                            withFrameNanos { nanos -> lastNanosSeen = nanos }
                         }
                     }
                 }
@@ -469,10 +462,7 @@ class RecomposerTests {
                 dispatcher.scheduler.runCurrent()
                 assertEquals(state, lastStateSeen, "assume composition would have happened")
                 dispatcher.scheduler.advanceTimeBy(1_000)
-                assertTrue(
-                    lastNanosSeen > 0,
-                    "expected first withFramesNanos call didn't occur"
-                )
+                assertTrue(lastNanosSeen > 0, "expected first withFramesNanos call didn't occur")
                 val nanosAfterInitialComposition = lastNanosSeen
 
                 // Force a recompose and test assumptions of the test
@@ -493,21 +483,13 @@ class RecomposerTests {
                 Snapshot.withMutableSnapshot { state++ }
                 dispatcher.scheduler.advanceTimeBy(1_000)
                 assertEquals(state, lastStateSeen, "expected composition didn't occur")
-                assertEquals(
-                    nanosAfterPause,
-                    lastNanosSeen,
-                    "unexpected call to withFrameNanos"
-                )
+                assertEquals(nanosAfterPause, lastNanosSeen, "unexpected call to withFrameNanos")
 
                 // Force another recompose
                 Snapshot.withMutableSnapshot { state++ }
                 dispatcher.scheduler.advanceTimeBy(1_000)
                 assertEquals(state, lastStateSeen, "expected composition didn't occur")
-                assertEquals(
-                    nanosAfterPause,
-                    lastNanosSeen,
-                    "unexpected call to withFrameNanos"
-                )
+                assertEquals(nanosAfterPause, lastNanosSeen, "unexpected call to withFrameNanos")
 
                 // Resume the frame clock
                 recomposer.resumeCompositionFrameClock()
@@ -549,31 +531,26 @@ class UnitApplier : Applier<Unit> {
     override val current: Unit
         get() = Unit
 
-    override fun down(node: Unit) {
-    }
+    override fun down(node: Unit) {}
 
-    override fun up() {
-    }
+    override fun up() {}
 
-    override fun insertTopDown(index: Int, instance: Unit) {
-    }
+    override fun insertTopDown(index: Int, instance: Unit) {}
 
-    override fun insertBottomUp(index: Int, instance: Unit) {
-    }
+    override fun insertBottomUp(index: Int, instance: Unit) {}
 
-    override fun remove(index: Int, count: Int) {
-    }
+    override fun remove(index: Int, count: Int) {}
 
-    override fun move(from: Int, to: Int, count: Int) {
-    }
+    override fun move(from: Int, to: Int, count: Int) {}
 
-    override fun clear() {
-    }
+    override fun clear() {}
 }
 
 class Counter {
     private var counts = mutableMapOf<String, Int>()
+
     fun inc(key: String) = counts.getOrPut(key, { 0 }).let { counts[key] = it + 1 }
+
     fun reset() {
         counts = mutableMapOf()
     }
@@ -588,24 +565,14 @@ private fun RecomposeTestComponentsA(counter: Counter, triggers: Map<Int, Trigge
     triggers[99]?.subscribe()
     Linear {
         for (id in 100..102) {
-            key(id) {
-                RecomposeTestComponentsB(
-                    counter,
-                    triggers,
-                    id
-                )
-            }
+            key(id) { RecomposeTestComponentsB(counter, triggers, id) }
         }
     }
 }
 
 @NonSkippableComposable
 @Composable
-private fun RecomposeTestComponentsB(
-    counter: Counter,
-    triggers: Map<Int, Trigger>,
-    id: Int = 0
-) {
+private fun RecomposeTestComponentsB(counter: Counter, triggers: Map<Int, Trigger>, id: Int = 0) {
     counter.inc("$id")
     triggers[id]?.subscribe()
     Text("$id")

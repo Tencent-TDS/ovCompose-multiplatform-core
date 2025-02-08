@@ -46,11 +46,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.children
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -64,32 +63,24 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class WindowInsetsDeviceTest {
-    @get:Rule
-    val rule = createAndroidComposeRule<WindowInsetsActivity>()
-    private lateinit var finishLatch: CountDownLatch
-    private val finishLatchGetter
-        get() = finishLatch
-    private val observer = object : DefaultLifecycleObserver {
-        override fun onDestroy(owner: LifecycleOwner) {
-            finishLatchGetter.countDown()
-        }
-    }
+    @get:Rule val rule = createAndroidComposeRule<WindowInsetsActivity>()
 
     @Before
     fun setup() {
         rule.activity.createdLatch.await(1, TimeUnit.SECONDS)
-        finishLatch = CountDownLatch(1)
-        rule.runOnUiThread {
-            rule.activity.lifecycle.addObserver(observer)
-        }
     }
 
     @After
-    fun tearDown() {
-        rule.runOnUiThread {
-            rule.activity.finish()
+    fun teardown() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val activity = rule.activity
+        while (!activity.isDestroyed) {
+            instrumentation.runOnMainSync {
+                if (!activity.isDestroyed) {
+                    activity.finish()
+                }
+            }
         }
-        assertThat(finishLatch.await(1, TimeUnit.SECONDS)).isTrue()
     }
 
     @OptIn(ExperimentalLayoutApi::class)
@@ -99,21 +90,18 @@ class WindowInsetsDeviceTest {
         var imeInset1 = 0
         var imeInset2 = 0
 
-        val connection = object : NestedScrollConnection { }
+        val connection = object : NestedScrollConnection {}
         val dispatcher = NestedScrollDispatcher()
 
         // broken out for line length
         val innerComposable: @Composable () -> Unit = {
             imeInset2 = WindowInsets.ime.getBottom(LocalDensity.current)
             Box(
-                Modifier
-                    .fillMaxSize()
+                Modifier.fillMaxSize()
                     .imePadding()
                     .imeNestedScroll()
                     .nestedScroll(connection, dispatcher)
-                    .background(
-                        Color.Cyan
-                    )
+                    .background(Color.Cyan)
             )
         }
 
@@ -164,9 +152,7 @@ class WindowInsetsDeviceTest {
                 Snapshot.sendApplyNotifications()
                 iteration++
             }
-            rule.runOnIdle {
-                imeInset1 > 0 && imeInset1 == imeInset2
-            }
+            rule.runOnIdle { imeInset1 > 0 && imeInset1 == imeInset2 }
         }
     }
 
@@ -193,7 +179,7 @@ class WindowInsetsDeviceTest {
                 val controller: WindowInsetsControllerCompat? =
                     WindowCompat.getInsetsController(window, view)
                 controller?.show(WindowInsetsCompat.Type.systemBars())
-                onDispose { }
+                onDispose {}
             }
             Box(Modifier.fillMaxSize()) {
                 if (useInsets) {
@@ -208,13 +194,9 @@ class WindowInsetsDeviceTest {
             }
         }
 
-        rule.runOnIdle {
-            useInsets = true
-        }
+        rule.runOnIdle { useInsets = true }
 
-        rule.runOnIdle {
-            assertThat(systemBarsInsets).isNotEqualTo(Insets.NONE)
-        }
+        rule.runOnIdle { assertThat(systemBarsInsets).isNotEqualTo(Insets.NONE) }
     }
 
     @Test
@@ -232,7 +214,7 @@ class WindowInsetsDeviceTest {
                 val controller: WindowInsetsControllerCompat? =
                     WindowCompat.getInsetsController(window, view)
                 controller?.hide(WindowInsetsCompat.Type.statusBars())
-                onDispose { }
+                onDispose {}
             }
             Box(Modifier.fillMaxSize()) {
                 if (useInsets) {
@@ -252,9 +234,7 @@ class WindowInsetsDeviceTest {
         rule.waitUntil(1000) { !hasStatusBarInsets }
 
         // disable watching the insets
-        rule.runOnIdle {
-            useInsets = false
-        }
+        rule.runOnIdle { useInsets = false }
 
         val statusBarsWatcher = StatusBarsShowListener()
 
@@ -265,23 +245,20 @@ class WindowInsetsDeviceTest {
                 statusBarsWatcher
             )
             @Suppress("RedundantNullableReturnType")
-            val controller: WindowInsetsControllerCompat? = WindowCompat.getInsetsController(
-                rule.activity.window,
-                rule.activity.window.decorView
-            )
+            val controller: WindowInsetsControllerCompat? =
+                WindowCompat.getInsetsController(
+                    rule.activity.window,
+                    rule.activity.window.decorView
+                )
             controller?.show(WindowInsetsCompat.Type.statusBars())
         }
 
         assertThat(statusBarsWatcher.latch.await(1, TimeUnit.SECONDS)).isTrue()
 
         // Now look at the insets
-        rule.runOnIdle {
-            useInsets = true
-        }
+        rule.runOnIdle { useInsets = true }
 
-        rule.runOnIdle {
-            assertThat(hasStatusBarInsets).isTrue()
-        }
+        rule.runOnIdle { assertThat(hasStatusBarInsets).isTrue() }
     }
 
     @Test
@@ -291,10 +268,11 @@ class WindowInsetsDeviceTest {
         // hide the insets
         rule.runOnUiThread {
             @Suppress("RedundantNullableReturnType")
-            val controller: WindowInsetsControllerCompat? = WindowCompat.getInsetsController(
-                rule.activity.window,
-                rule.activity.window.decorView
-            )
+            val controller: WindowInsetsControllerCompat? =
+                WindowCompat.getInsetsController(
+                    rule.activity.window,
+                    rule.activity.window.decorView
+                )
             controller?.hide(WindowInsetsCompat.Type.statusBars())
         }
 
@@ -318,9 +296,7 @@ class WindowInsetsDeviceTest {
         val composeView = contentView.children.first()
 
         // remove the view
-        rule.runOnUiThread {
-            contentView.removeView(composeView)
-        }
+        rule.runOnUiThread { contentView.removeView(composeView) }
 
         val statusBarsWatcher = StatusBarsShowListener()
 
@@ -331,26 +307,23 @@ class WindowInsetsDeviceTest {
                 statusBarsWatcher
             )
             @Suppress("RedundantNullableReturnType")
-            val controller: WindowInsetsControllerCompat? = WindowCompat.getInsetsController(
-                rule.activity.window,
-                rule.activity.window.decorView
-            )
+            val controller: WindowInsetsControllerCompat? =
+                WindowCompat.getInsetsController(
+                    rule.activity.window,
+                    rule.activity.window.decorView
+                )
             controller?.show(WindowInsetsCompat.Type.statusBars())
         }
 
         assertThat(statusBarsWatcher.latch.await(1, TimeUnit.SECONDS)).isTrue()
 
         // Now add the view back again
-        rule.runOnUiThread {
-            contentView.addView(composeView)
-        }
+        rule.runOnUiThread { contentView.addView(composeView) }
 
         rule.waitUntil(1000) { hasStatusBarInsets }
     }
 
-    /**
-     * If we have setDecorFitsSystemWindows(false), there should be insets.
-     */
+    /** If we have setDecorFitsSystemWindows(false), there should be insets. */
     @Test
     fun insetsSetAtStart() {
         rule.runOnUiThread {
@@ -372,9 +345,7 @@ class WindowInsetsDeviceTest {
         }
 
         rule.waitForIdle()
-        assertTrue(
-            leftInset != 0 || topInset != 0 || rightInset != 0 || bottomInset != 0
-        )
+        assertTrue(leftInset != 0 || topInset != 0 || rightInset != 0 || bottomInset != 0)
     }
 
     class StatusBarsShowListener : OnApplyWindowInsetsListener {

@@ -28,4 +28,5 @@ internal fun Translations.bn() = mapOf(
     Strings.DefaultErrorMessage to "ভুল ইনপুট",
     Strings.SliderRangeStart to "রেঞ্জ শুরু",
     Strings.SliderRangeEnd to "রেঞ্জ শেষ",
+    Strings.SnackbarPaneTitle to "সতর্কতা",
 )

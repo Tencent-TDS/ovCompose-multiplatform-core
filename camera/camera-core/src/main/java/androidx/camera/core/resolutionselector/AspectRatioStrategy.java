@@ -21,7 +21,6 @@ import static androidx.camera.core.AspectRatio.RATIO_4_3;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.CameraSelector;
@@ -37,8 +36,12 @@ import java.lang.annotation.RetentionPolicy;
  *
  * <p>Applications can create a {@link ResolutionSelector} with a proper AspectRatioStrategy to
  * choose a resolution that matches the preferred aspect ratio.
+ *
+ * <p>By default, CameraX supports the common 4:3 and 16:9 aspect ratio settings. Some devices may
+ * offer additional output sizes. To access these, you'll need to create a
+ * {@link ResolutionSelector} with a {@link ResolutionFilter} to find and select those specific
+ * sizes.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class AspectRatioStrategy {
     /**
      * CameraX doesn't fall back to select sizes of any other aspect ratio when this fallback

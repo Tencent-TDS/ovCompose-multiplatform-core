@@ -22,6 +22,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 
 /**
  * This class represents platform insets.
@@ -80,6 +81,14 @@ internal fun PlatformInsets.exclude(insets: PlatformInsets) = PlatformInsets(
     right = (right - insets.right).coerceAtLeast(0.dp),
     bottom = (bottom - insets.bottom).coerceAtLeast(0.dp)
 )
+
+internal fun lerp(start: PlatformInsets, stop: PlatformInsets, fraction: Float) =
+    PlatformInsets(
+        left = lerp(start.left, stop.left, fraction),
+        right = lerp(start.right, stop.right, fraction),
+        top = lerp(start.top, stop.top, fraction),
+        bottom = lerp(start.bottom, stop.bottom, fraction)
+    )
 
 internal interface InsetsConfig {
 

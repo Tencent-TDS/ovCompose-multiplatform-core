@@ -18,7 +18,6 @@ package androidx.camera.testing.impl.fakes;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.camera.core.impl.CameraCaptureMetaData;
@@ -29,7 +28,6 @@ import androidx.camera.core.impl.TagBundle;
  * A fake implementation of {@link CameraCaptureResult} where the values are settable.
  *
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(Scope.LIBRARY_GROUP)
 public final class FakeCameraCaptureResult implements CameraCaptureResult {
     private CameraCaptureMetaData.AfMode mAfMode = CameraCaptureMetaData.AfMode.UNKNOWN;
@@ -37,6 +35,8 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
     private CameraCaptureMetaData.AeState mAeState = CameraCaptureMetaData.AeState.UNKNOWN;
     private CameraCaptureMetaData.AwbState mAwbState = CameraCaptureMetaData.AwbState.UNKNOWN;
     private CameraCaptureMetaData.FlashState mFlashState = CameraCaptureMetaData.FlashState.UNKNOWN;
+    private CameraCaptureMetaData.AeMode mAeMode = CameraCaptureMetaData.AeMode.UNKNOWN;
+    private CameraCaptureMetaData.AwbMode mAwbMode = CameraCaptureMetaData.AwbMode.UNKNOWN;
     private long mTimestamp = -1L;
     private TagBundle mTag = TagBundle.emptyBundle();
 
@@ -58,6 +58,14 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
 
     public void setFlashState(@NonNull CameraCaptureMetaData.FlashState state) {
         mFlashState = state;
+    }
+
+    public void setAeMode(@NonNull CameraCaptureMetaData.AeMode mode) {
+        mAeMode = mode;
+    }
+
+    public void setAwbMode(@NonNull CameraCaptureMetaData.AwbMode mode) {
+        mAwbMode = mode;
     }
 
     public void setTimestamp(long timestamp) {
@@ -98,6 +106,18 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
         return mFlashState;
     }
 
+    @NonNull
+    @Override
+    public CameraCaptureMetaData.AeMode getAeMode() {
+        return mAeMode;
+    }
+
+    @NonNull
+    @Override
+    public CameraCaptureMetaData.AwbMode getAwbMode() {
+        return mAwbMode;
+    }
+
     @Override
     public long getTimestamp() {
         return mTimestamp;
@@ -114,7 +134,6 @@ public final class FakeCameraCaptureResult implements CameraCaptureResult {
      *
      */
     @SuppressWarnings("unused")
-    @RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
     @RestrictTo(Scope.LIBRARY_GROUP)
     public static class Builder {
         private CameraCaptureMetaData.AfMode mAfMode = CameraCaptureMetaData.AfMode.UNKNOWN;

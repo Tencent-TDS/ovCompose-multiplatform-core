@@ -28,4 +28,5 @@ internal fun Translations.kn() = mapOf(
     Strings.DefaultErrorMessage to "ಅಮಾನ್ಯ ಇನ್‌ಪುಟ್",
     Strings.SliderRangeStart to "ಶ್ರೇಣಿಯ ಪ್ರಾರಂಭ",
     Strings.SliderRangeEnd to "ಶ್ರೇಣಿಯ ಅಂತ್ಯ",
+    Strings.SnackbarPaneTitle to "ಎಚ್ಚರಿಕೆ",
 )

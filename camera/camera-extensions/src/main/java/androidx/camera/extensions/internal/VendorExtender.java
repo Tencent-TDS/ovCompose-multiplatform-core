@@ -19,13 +19,13 @@ package androidx.camera.extensions.internal;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureResult;
 import android.util.Pair;
 import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.impl.SessionProcessor;
 
@@ -37,7 +37,6 @@ import java.util.Map;
  * A unified vendor extensions interface which interacts with both basic and advanced extender
  * vendor implementation.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface VendorExtender {
     /**
      * Indicates whether the extension is supported on the device.
@@ -124,6 +123,46 @@ public interface VendorExtender {
     }
 
     /**
+     * Returns supported output format/size map for postview image.
+     *
+     * <p>The returned sizes must be smaller than or equal to the provided capture size and have the
+     * same aspect ratio as the given capture size. If no supported resolution exists for the
+     * provided capture size then an empty map is returned.
+     */
+    @NonNull
+    default Map<Integer, List<Size>> getSupportedPostviewResolutions(@NonNull Size captureSize) {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Returns if postview is supported or not.
+     */
+    default boolean isPostviewAvailable() {
+        return false;
+    }
+
+    /**
+     * Returns if the capture process progress is supported or not.
+     */
+    default boolean isCaptureProcessProgressAvailable() {
+        return false;
+    }
+
+    /**
+     * Returns if extension strength is supported or not.
+     */
+    default boolean isExtensionStrengthAvailable() {
+        return false;
+    }
+
+    /**
+     * Returns if reporting current extension mode is supported or not.
+     */
+    default boolean isCurrentExtensionModeAvailable() {
+        return false;
+    }
+
+    /**
      * Creates a {@link SessionProcessor} that is responsible for (1) determining the stream
      * configuration based on given output surfaces (2) Requesting OEM implementation to start
      * repeating request and performing a still image capture.
@@ -131,5 +170,28 @@ public interface VendorExtender {
     @Nullable
     default SessionProcessor createSessionProcessor(@NonNull Context context) {
         return null;
+    }
+
+    /**
+     * Return the list of supported {@link CaptureResult.Key}s that will be contained in the
+     * onCaptureCompleted callback.
+     */
+    @NonNull
+    default List<CaptureResult.Key> getSupportedCaptureResultKeys() {
+        return Collections.emptyList();
+    }
+
+    /**
+     * Returns if the onCaptureCompleted with capture result will be invoked or not.
+     */
+    default boolean willReceiveOnCaptureCompleted() {
+        if (ClientVersion.isMaximumCompatibleVersion(Version.VERSION_1_2)
+                || ExtensionVersion.isMaximumCompatibleVersion(Version.VERSION_1_2)) {
+            // For OEM implementing v1.2 or below, onCaptureCompleted won't be invoked.
+            return false;
+        }
+
+        // onCaptureCompleted is invoked when available captureResult keys are not empty.
+        return !getSupportedCaptureResultKeys().isEmpty();
     }
 }

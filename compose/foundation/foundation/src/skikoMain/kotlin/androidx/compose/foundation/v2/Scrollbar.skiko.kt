@@ -365,24 +365,24 @@ internal class LazyGridScrollbarAdapter(
         scrollState.scrollBy(value)
     }
 
-    override fun averageVisibleLineSize(): Double{
-        val visibleItemsInfo = scrollState.layoutInfo.visibleItemsInfo
-        val indexOfFirstKnownLineItem = visibleItemsInfo.indexOfFirst { it.line() != unknownLine }
-        if (indexOfFirstKnownLineItem == -1)
-            return 0.0
-        val reallyVisibleItemsInfo =  // Non-exiting visible items
-            visibleItemsInfo.subList(indexOfFirstKnownLineItem, visibleItemsInfo.size)
+    private val lineIsKnown = { itemInfo: LazyGridItemInfo -> itemInfo.line() != unknownLine }
 
-        // Compute the size of the last line
-        val lastLine = reallyVisibleItemsInfo.last().line()
-        val lastLineSize = reallyVisibleItemsInfo
+    override fun averageVisibleLineSize(): Double {
+        val visibleItemsInfo = scrollState.layoutInfo.visibleItemsInfo
+
+        // First and last visible, non-exiting LazyGridItemInfo
+        val first = visibleItemsInfo.firstOrNull(lineIsKnown) ?: return 0.0
+        val last = visibleItemsInfo.last(lineIsKnown)
+
+        // Compute the size (e.g. height for vertical grid) of the last line
+        val lastLine = last.line()
+        val lastLineSize = visibleItemsInfo
             .asReversed()
             .asSequence()
+            .filter(lineIsKnown)
             .takeWhile { it.line() == lastLine }
             .maxOf { it.mainAxisSize() }
 
-        val first = reallyVisibleItemsInfo.first()
-        val last = reallyVisibleItemsInfo.last()
         val lineCount = last.line() - first.line() + 1
         val lineSpacingSum = (lineCount - 1) * lineSpacing
         return (

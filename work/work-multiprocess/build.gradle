@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -23,10 +30,7 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     namespace "androidx.work.multiprocess"
@@ -37,8 +41,8 @@ dependencies {
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesAndroid)
     api(libs.guavaListenableFuture)
-    implementation("androidx.core:core:1.9.0")
-    implementation("androidx.room:room-runtime:2.5.0")
+    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0-alpha03")
+    implementation("androidx.room:room-runtime:2.6.1")
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
@@ -46,14 +50,14 @@ dependencies {
     androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
     androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
 }
 
 androidx {
     name = "WorkManager Multiprocess"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android WorkManager runtime library"
     failOnDeprecationWarnings = false
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

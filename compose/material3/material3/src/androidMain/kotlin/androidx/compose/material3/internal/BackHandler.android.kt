@@ -19,11 +19,12 @@ package androidx.compose.material3.internal
 import androidx.compose.runtime.Composable
 import kotlinx.coroutines.flow.Flow
 
+@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
 internal actual typealias BackEventCompat = androidx.activity.BackEventCompat
 
 @Composable
 internal actual fun BackHandler(enabled: Boolean, onBack: () -> Unit) {
-    androidx.activity.BackHandler(enabled, onBack)
+    androidx.activity.compose.BackHandler(enabled, onBack)
 }
 
 @Composable
@@ -31,5 +32,5 @@ internal actual fun PredictiveBackHandler(
     enabled: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 ) {
-    androidx.activity.PredictiveBackHandler(enabled, onBack)
+    androidx.activity.compose.PredictiveBackHandler(enabled, onBack)
 }

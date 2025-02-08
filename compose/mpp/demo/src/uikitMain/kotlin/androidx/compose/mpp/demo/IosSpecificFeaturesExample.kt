@@ -52,10 +52,10 @@ val IosSpecificFeatures = Screen.Selection(
     NativeModalWithNavigationExample,
     NativePopupWithComposePopupExample,
     HapticFeedbackExample,
+    IosPredictiveBackExample,
     LazyColumnWithInteropViewsExample,
     AccessibilityLiveRegionExample,
     InteropViewAndSemanticsConfigMerge,
-    StatusBarStateExample,
     InteropExample,
     ReusableMapsExample,
     UpdatableInteropPropertiesExample

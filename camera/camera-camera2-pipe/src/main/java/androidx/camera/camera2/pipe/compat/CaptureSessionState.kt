@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.compat
 
 import android.hardware.camera2.CameraCaptureSession
+import android.hardware.camera2.CameraExtensionSession
+import android.os.Build
 import android.view.Surface
 import androidx.annotation.GuardedBy
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraph.Flags.FinalizeSessionOnCloseBehavior
 import androidx.camera.camera2.pipe.CameraSurfaceManager
@@ -59,7 +58,6 @@ internal val captureSessionDebugIds = atomic(0)
  *
  * This class is thread safe.
  */
-@RequiresApi(21)
 internal class CaptureSessionState(
     private val graphListener: GraphListener,
     private val captureSessionFactory: CaptureSessionFactory,
@@ -76,8 +74,7 @@ internal class CaptureSessionState(
     private val activeSurfaceMap = synchronizedMap(HashMap<StreamId, Surface>())
     private var sessionCreatingTimestamp: TimestampNs? = null
 
-    @GuardedBy("lock")
-    private var _cameraDevice: CameraDeviceWrapper? = null
+    @GuardedBy("lock") private var _cameraDevice: CameraDeviceWrapper? = null
     var cameraDevice: CameraDeviceWrapper?
         get() = synchronized(lock) { _cameraDevice }
         set(value) =
@@ -92,17 +89,14 @@ internal class CaptureSessionState(
                 }
             }
 
-    @GuardedBy("lock")
-    private var cameraCaptureSession: ConfiguredCameraCaptureSession? = null
+    @GuardedBy("lock") private var cameraCaptureSession: ConfiguredCameraCaptureSession? = null
 
     @GuardedBy("lock")
     private var pendingOutputMap: Map<StreamId, OutputConfigurationWrapper>? = null
 
-    @GuardedBy("lock")
-    private var pendingSurfaceMap: Map<StreamId, Surface>? = null
+    @GuardedBy("lock") private var pendingSurfaceMap: Map<StreamId, Surface>? = null
 
-    @GuardedBy("lock")
-    private var state = State.PENDING
+    @GuardedBy("lock") private var state = State.PENDING
 
     private enum class State {
         PENDING,
@@ -112,14 +106,13 @@ internal class CaptureSessionState(
         CLOSED
     }
 
-    @GuardedBy("lock")
-    private var hasAttemptedCaptureSession = false
+    @GuardedBy("lock") private var hasAttemptedCaptureSession = false
 
-    @GuardedBy("lock")
-    private var _surfaceMap: Map<StreamId, Surface>? = null
+    @GuardedBy("lock") private var _surfaceMap: Map<StreamId, Surface>? = null
 
     @GuardedBy("lock")
     private val _surfaceTokenMap: MutableMap<Surface, AutoCloseable> = mutableMapOf()
+
     fun configureSurfaceMap(surfaces: Map<StreamId, Surface>) {
         synchronized(lock) {
             if (state == State.CLOSING || state == State.CLOSED) {
@@ -145,6 +138,14 @@ internal class CaptureSessionState(
             }
             scope.launch { tryCreateCaptureSession() }
         }
+    }
+
+    fun getRealtimeCaptureLatency(): CameraExtensionSession.StillCaptureLatency? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val extensionSession = cameraCaptureSession?.session as? AndroidCameraExtensionSession
+            return extensionSession?.getRealTimeCaptureLatency()
+        }
+        return null
     }
 
     override fun onActive(session: CameraCaptureSessionWrapper) {
@@ -304,7 +305,7 @@ internal class CaptureSessionState(
             //
             // [1] b/277310425
             // [2] b/277675483
-            if (cameraGraphFlags.quirkCloseCaptureSessionOnDisconnect) {
+            if (cameraGraphFlags.closeCaptureSessionOnDisconnect) {
                 val captureSession = configuredCaptureSession?.session
                 checkNotNull(captureSession)
                 Debug.trace("$this CameraCaptureSessionWrapper#close") {
@@ -312,6 +313,12 @@ internal class CaptureSessionState(
                     captureSession.close()
                 }
             }
+            Debug.traceStop()
+        } else {
+            // We still need to indicate the stop signal because the graph state would transition to
+            // GraphStateStarting when the graph is being started.
+            Debug.traceStart { "$graphListener#onGraphStopped" }
+            graphListener.onGraphStopped(null)
             Debug.traceStop()
         }
 
@@ -325,11 +332,10 @@ internal class CaptureSessionState(
                 if (_cameraDevice == null || !hasAttemptedCaptureSession) {
                     shouldFinalizeSession = true
                 } else {
-                    when (cameraGraphFlags.quirkFinalizeSessionOnCloseBehavior) {
+                    when (cameraGraphFlags.finalizeSessionOnCloseBehavior) {
                         FinalizeSessionOnCloseBehavior.IMMEDIATE -> {
                             shouldFinalizeSession = true
                         }
-
                         FinalizeSessionOnCloseBehavior.TIMEOUT -> {
                             shouldFinalizeSession = true
                             finalizeSessionDelayMs = 2000L
@@ -459,8 +465,9 @@ internal class CaptureSessionState(
 
                 val availableDeferredSurfaces = _surfaceMap?.filter { deferred.containsKey(it.key) }
 
-                if (availableDeferredSurfaces != null &&
-                    availableDeferredSurfaces.size == deferred.size
+                if (
+                    availableDeferredSurfaces != null &&
+                        availableDeferredSurfaces.size == deferred.size
                 ) {
                     pendingSurfaceMap = availableDeferredSurfaces
                 }

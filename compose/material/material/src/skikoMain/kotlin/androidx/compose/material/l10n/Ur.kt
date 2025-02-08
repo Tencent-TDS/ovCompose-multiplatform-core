@@ -28,4 +28,5 @@ internal fun Translations.ur() = mapOf(
     Strings.DefaultErrorMessage to "غلط ان پٹ",
     Strings.SliderRangeStart to "رینج کی شروعات",
     Strings.SliderRangeEnd to "رینج کا اختتام",
+    Strings.SnackbarPaneTitle to "الرٹ",
 )

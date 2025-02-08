@@ -28,4 +28,5 @@ internal fun Translations.ja() = mapOf(
     Strings.DefaultErrorMessage to "入力値が無効です",
     Strings.SliderRangeStart to "範囲の先頭",
     Strings.SliderRangeEnd to "範囲の末尾",
+    Strings.SnackbarPaneTitle to "アラート",
 )

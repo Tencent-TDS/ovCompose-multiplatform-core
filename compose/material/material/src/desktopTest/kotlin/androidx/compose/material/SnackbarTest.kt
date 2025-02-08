@@ -16,39 +16,57 @@
 
 package androidx.compose.material
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.runComposeUiTest
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
-import org.junit.Rule
 import org.junit.Test
 
 
 class SnackbarTest {
-    @get:Rule
-    val rule = createComposeRule()
-
+    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun testQueueing() {
+    fun testParallelQueueing() = runComposeUiTest {
         var snackbarsShown = 0
-
-        rule.setContent {
-            val scope = rememberCoroutineScope()
+        mainClock.autoAdvance = false
+        setContent {
             val state = remember { SnackbarHostState() }
+            SnackbarHost(state)
 
-            Scaffold(
-                snackbarHost = { SnackbarHost(state) }
-            ) {
-                scope.launch {
-                    (1..4).forEach {
+            LaunchedEffect(Unit) {
+                repeat(4) {
+                    launch {
                         state.showSnackbar(it.toString())
-                        snackbarsShown = it
+                        snackbarsShown++
                     }
                 }
             }
         }
 
+        mainClock.advanceTimeBy(60_000)  // Should be larger than 4 * SnackbarDuration.Short
+        assertEquals(4, snackbarsShown)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun testSequentialQueueing() = runComposeUiTest {
+        var snackbarsShown = 0
+        mainClock.autoAdvance = false
+        setContent {
+            val state = remember { SnackbarHostState() }
+            SnackbarHost(state)
+
+            LaunchedEffect(Unit) {
+                repeat(4) {
+                    state.showSnackbar(it.toString())
+                    snackbarsShown++
+                }
+            }
+        }
+
+        mainClock.advanceTimeBy(60_000)  // Should be larger than 4 * SnackbarDuration.Short
         assertEquals(4, snackbarsShown)
     }
 }

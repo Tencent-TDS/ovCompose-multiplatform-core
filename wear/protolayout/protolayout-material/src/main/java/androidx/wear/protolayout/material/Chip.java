@@ -37,7 +37,6 @@ import android.content.Context;
 import androidx.annotation.Dimension;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.wear.protolayout.ColorBuilders.ColorProp;
@@ -52,7 +51,6 @@ import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement;
 import androidx.wear.protolayout.ModifiersBuilders.Clickable;
 import androidx.wear.protolayout.TypeBuilders.StringProp;
 import androidx.wear.protolayout.expression.Fingerprint;
-import androidx.wear.protolayout.expression.ProtoLayoutExperimental;
 import androidx.wear.protolayout.material.Typography.TypographyName;
 import androidx.wear.protolayout.proto.LayoutElementProto;
 
@@ -98,7 +96,7 @@ public class Chip implements LayoutElement {
         mElement = element;
     }
 
-    /** Builder class for {@link androidx.wear.protolayout.material.Chip}. */
+    /** Builder class for {@link Chip}. */
     public static final class Builder implements LayoutElement.Builder {
         @NonNull private final Context mContext;
         @Nullable private LayoutElement mCustomContent;
@@ -111,7 +109,6 @@ public class Chip implements LayoutElement {
         @HorizontalAlignment private int mHorizontalAlign = HORIZONTAL_ALIGN_UNDEFINED;
         @TypographyName private int mPrimaryLabelTypography;
         private boolean mIsScalable = true;
-        private boolean mIsFontPaddingExcluded = false;
         private int mMaxLines = 0; // 0 indicates that is not set.
         @NonNull private final androidx.wear.protolayout.materialcore.Chip.Builder mCoreBuilder;
 
@@ -151,7 +148,7 @@ public class Chip implements LayoutElement {
         }
 
         /**
-         * Sets the width of {@link TitleChip}. If not set, default value will be set to fill the
+         * Sets the width of {@link Chip}. If not set, default value will be set to fill the
          * screen.
          */
         @NonNull
@@ -236,23 +233,6 @@ public class Chip implements LayoutElement {
         @NonNull
         Builder setIsPrimaryLabelScalable(boolean isScalable) {
             this.mIsScalable = isScalable;
-            return this;
-        }
-
-        /**
-         * Sets whether the font padding for the primary label is excluded.
-         *
-         * <p>It should be used for creating {@code CompactChip} and {@code TitleChip} to make the
-         * label vertically aligned. Shouldn't be used if there is anything else in chip besides
-         * primary label.
-         *
-         * @see Text.Builder#setExcludeFontPadding
-         */
-        @NonNull
-        @ProtoLayoutExperimental
-        @SuppressWarnings("MissingGetterMatchingBuilder")
-        Builder setPrimaryLabelExcludeFontPadding(boolean excluded) {
-            this.mIsFontPaddingExcluded = excluded;
             return this;
         }
 
@@ -371,8 +351,30 @@ public class Chip implements LayoutElement {
             }
         }
 
-        @OptIn(markerClass = ProtoLayoutExperimental.class)
+        private boolean isIconOnly() {
+            return mPrimaryLabel == null && mSecondaryLabel == null && mCustomContent == null;
+        }
+
+        @SuppressWarnings("deprecation") // TEXT_OVERFLOW_ELLIPSIZE_END as existing API
         private void setCorrectContent() {
+            if (mImageResourceId != null) {
+                Image icon =
+                        new Image.Builder()
+                                .setResourceId(mImageResourceId)
+                                .setWidth(mIconSize)
+                                .setHeight(mIconSize)
+                                .setColorFilter(
+                                        new ColorFilter.Builder()
+                                                .setTint(mChipColors.getIconColor())
+                                                .build())
+                                .build();
+                mCoreBuilder.setIconContent(icon);
+
+                if (isIconOnly()) {
+                    return;
+                }
+            }
+
             Text mainTextElement =
                     new Text.Builder(mContext, checkNotNull(mPrimaryLabel))
                             .setTypography(mPrimaryLabelTypography)
@@ -380,8 +382,7 @@ public class Chip implements LayoutElement {
                             .setMaxLines(getCorrectMaxLines())
                             .setOverflow(LayoutElementBuilders.TEXT_OVERFLOW_ELLIPSIZE_END)
                             .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_START)
-                            .setIsScalable(mIsScalable)
-                            .setExcludeFontPadding(mIsFontPaddingExcluded)
+                            .setScalable(mIsScalable)
                             .build();
 
             mCoreBuilder.setPrimaryLabelContent(mainTextElement);
@@ -396,20 +397,6 @@ public class Chip implements LayoutElement {
                                 .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_START)
                                 .build();
                 mCoreBuilder.setSecondaryLabelContent(labelTextElement);
-            }
-
-            if (mImageResourceId != null) {
-                Image icon =
-                        new Image.Builder()
-                                .setResourceId(mImageResourceId)
-                                .setWidth(mIconSize)
-                                .setHeight(mIconSize)
-                                .setColorFilter(
-                                        new ColorFilter.Builder()
-                                                .setTint(mChipColors.getIconColor())
-                                                .build())
-                                .build();
-                mCoreBuilder.setIconContent(icon);
             }
         }
 
@@ -453,10 +440,14 @@ public class Chip implements LayoutElement {
                 iconTintColor = checkNotNull(checkNotNull(icon.getColorFilter()).getTint());
             }
 
-            contentColor = checkNotNull(getPrimaryLabelContentObject()).getColor();
-            Text label = getSecondaryLabelContentObject();
-            if (label != null) {
-                secondaryContentColor = label.getColor();
+
+            Text maybePrimaryLabel = getPrimaryLabelContentObject();
+            if (maybePrimaryLabel != null) {
+                contentColor = checkNotNull(maybePrimaryLabel).getColor();
+                Text label = getSecondaryLabelContentObject();
+                if (label != null) {
+                    secondaryContentColor = label.getColor();
+                }
             }
         }
 
@@ -541,13 +532,6 @@ public class Chip implements LayoutElement {
     @NonNull
     String getMetadataTag() {
         return mElement.getMetadataTag();
-    }
-
-    /** Returns whether the font padding for the primary label is excluded. */
-    @ProtoLayoutExperimental
-    boolean hasPrimaryLabelExcludeFontPadding() {
-        Text primaryLabel = getPrimaryLabelContentObject();
-        return primaryLabel != null && primaryLabel.hasExcludeFontPadding();
     }
 
     /**

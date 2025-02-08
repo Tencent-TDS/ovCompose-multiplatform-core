@@ -28,4 +28,5 @@ internal fun Translations.lo() = mapOf(
     Strings.DefaultErrorMessage to "ຂໍ້ມູນທີ່ປ້ອນເຂົ້າບໍ່ຖືກຕ້ອງ",
     Strings.SliderRangeStart to "ເລີ່ມຕົ້ນໄລຍະ",
     Strings.SliderRangeEnd to "ສິ້ນສຸດໄລຍະ",
+    Strings.SnackbarPaneTitle to "ແຈ້ງເຕືອນ",
 )

@@ -19,13 +19,12 @@ import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.SessionConfiguration;
-import android.os.Build;
 import android.util.Pair;
+import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import java.util.List;
 
@@ -37,11 +36,10 @@ import java.util.List;
  *
  * @since 1.0
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
     private static final int DEFAULT_STAGE_ID = 0;
     private static final int SESSION_STAGE_ID = 101;
-    private static final int EFFECT = CaptureRequest.CONTROL_EFFECT_MODE_MONO;
+    private static final int EV_INDEX = 2;
 
     public NightPreviewExtenderImpl() {
     }
@@ -53,17 +51,11 @@ public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
 
     @Override
     public boolean isExtensionAvailable(@NonNull String cameraId,
-            @Nullable CameraCharacteristics cameraCharacteristics) {
-        // Return false to skip tests since old devices do not support extensions.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return false;
-        }
+            @NonNull CameraCharacteristics cameraCharacteristics) {
+        Range<Integer> compensationRange = cameraCharacteristics.get(
+                CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
 
-        if (cameraCharacteristics == null) {
-            return false;
-        }
-
-        return CameraCharacteristicAvailability.isEffectAvailable(cameraCharacteristics, EFFECT);
+        return compensationRange != null && compensationRange.contains(EV_INDEX);
     }
 
     @NonNull
@@ -72,8 +64,8 @@ public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(DEFAULT_STAGE_ID);
-        captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_EFFECT_MODE, EFFECT);
-
+        captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION,
+                EV_INDEX);
         return captureStage;
     }
 
@@ -99,7 +91,6 @@ public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
     public void onInit(@NonNull String cameraId,
             @NonNull CameraCharacteristics cameraCharacteristics,
             @NonNull Context context) {
-
     }
 
     @Override
@@ -110,41 +101,27 @@ public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
     @Nullable
     @Override
     public CaptureStageImpl onPresetSession() {
-        // The CaptureRequest parameters will be set via SessionConfiguration#setSessionParameters
-        // (CaptureRequest) which only supported from API level 28.
-        if (Build.VERSION.SDK_INT < 28) {
-            return null;
-        }
-
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(SESSION_STAGE_ID);
-        captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_EFFECT_MODE, EFFECT);
-
         return captureStage;
     }
 
-    @SuppressWarnings("ConstantConditions") // Super method is nullable.
     @Nullable
     @Override
     public CaptureStageImpl onEnableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(SESSION_STAGE_ID);
-        captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_EFFECT_MODE, EFFECT);
-
         return captureStage;
     }
 
-    @SuppressWarnings("ConstantConditions") // Super method is nullable.
     @Nullable
     @Override
     public CaptureStageImpl onDisableSession() {
         // Set the necessary CaptureRequest parameters via CaptureStage, here we use some
         // placeholder set of CaptureRequest.Key values
         SettableCaptureStage captureStage = new SettableCaptureStage(SESSION_STAGE_ID);
-        captureStage.addCaptureRequestParameters(CaptureRequest.CONTROL_EFFECT_MODE, EFFECT);
-
         return captureStage;
     }
 
@@ -152,4 +129,11 @@ public final class NightPreviewExtenderImpl implements PreviewExtenderImpl {
     public int onSessionType() {
         return SessionConfiguration.SESSION_REGULAR;
     }
+
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

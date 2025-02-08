@@ -117,7 +117,8 @@ public interface HeadlessWatchFaceClient : AutoCloseable {
     ): Bitmap
 
     /** Whether or not the watch face supports [renderWatchFaceToSurface]. */
-    public val isRenderWatchFaceToSurfaceSupported: Boolean get() = false
+    public val isRenderWatchFaceToSurfaceSupported: Boolean
+        get() = false
 
     /**
      * Renders the [androidx.wear.watchface.ComplicationSlot] to a shared memory backed [Bitmap]
@@ -191,8 +192,9 @@ internal constructor(private val iHeadlessWatchFace: IHeadlessWatchFace) : Headl
             )
     }
 
-    override val previewReferenceInstant: Instant
-        get() = Instant.ofEpochMilli(iHeadlessWatchFace.previewReferenceTimeMillis)
+    override val previewReferenceInstant: Instant by lazy {
+        Instant.ofEpochMilli(iHeadlessWatchFace.previewReferenceTimeMillis)
+    }
 
     override val userStyleSchema: UserStyleSchema
         get() = UserStyleSchema(iHeadlessWatchFace.userStyleSchema)

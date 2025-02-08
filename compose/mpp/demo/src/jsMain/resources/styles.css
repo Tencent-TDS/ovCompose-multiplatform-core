@@ -36,3 +36,7 @@ h1 {
 body:has(textarea) {
     background-color: aliceblue;
 }
+
+body:has(textarea:focus) {
+    background-color: #eaffe3;
+}

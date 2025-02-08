@@ -20,7 +20,7 @@ import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageCapture;
@@ -33,7 +33,6 @@ import java.util.List;
  * A {@link CameraControlInternal} that forwards all the calls into the given
  * {@link CameraControlInternal}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class ForwardingCameraControl implements CameraControlInternal {
     private final CameraControlInternal mCameraControlInternal;
 
@@ -94,8 +93,8 @@ public class ForwardingCameraControl implements CameraControlInternal {
     }
 
     @Override
-    public void setScreenFlashUiControl(@Nullable ImageCapture.ScreenFlashUiControl callback) {
-        mCameraControlInternal.setScreenFlashUiControl(callback);
+    public void setScreenFlash(@Nullable ImageCapture.ScreenFlash screenFlash) {
+        mCameraControlInternal.setScreenFlash(screenFlash);
     }
 
     @Override
@@ -157,5 +156,21 @@ public class ForwardingCameraControl implements CameraControlInternal {
     @Override
     public CameraControlInternal getImplementation() {
         return mCameraControlInternal.getImplementation();
+    }
+
+    @Override
+    public void incrementVideoUsage() {
+        mCameraControlInternal.incrementVideoUsage();
+    }
+
+    @Override
+    public void decrementVideoUsage() {
+        mCameraControlInternal.decrementVideoUsage();
+    }
+
+    @VisibleForTesting
+    @Override
+    public boolean isInVideoUsage() {
+        return mCameraControlInternal.isInVideoUsage();
     }
 }

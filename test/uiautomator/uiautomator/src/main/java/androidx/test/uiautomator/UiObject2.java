@@ -25,7 +25,6 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
@@ -34,7 +33,6 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.Checkable;
 import android.widget.TextView;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -97,7 +95,7 @@ public class UiObject2 implements Searchable {
         // Fetch and cache display information. This is safe as moving the underlying view to
         // another display would invalidate the cached node and require recreating this UiObject2.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            AccessibilityWindowInfo window = Api21Impl.getWindow(cachedNode);
+            AccessibilityWindowInfo window = cachedNode.getWindow();
             mDisplayId = window == null ? Display.DEFAULT_DISPLAY : Api30Impl.getDisplayId(window);
         } else {
             mDisplayId = Display.DEFAULT_DISPLAY;
@@ -136,7 +134,11 @@ public class UiObject2 implements Searchable {
 
     @Override
     public int hashCode() {
-        return getAccessibilityNodeInfo().hashCode();
+        try {
+            return getAccessibilityNodeInfo().hashCode();
+        } catch (StaleObjectException e) {
+            return mCachedNode.hashCode();
+        }
     }
 
     /** Recycle this object. */
@@ -151,26 +153,26 @@ public class UiObject2 implements Searchable {
      * Sets the percentage of gestures' margins to avoid touching too close to the edges, e.g.
      * when scrolling up, phone open quick settings instead if gesture is close to the top.
      * The percentage is based on the object's visible size, e.g. to set 20% margins:
-     * <pre>mUiObject2.setGestureMarginPercent(0.2f);</pre>
+     * <pre>mUiObject2.setGestureMarginPercentage(0.2f);</pre>
      *
      * @Param percent Float between [0, 0.5] for four margins: left, top, right, and bottom.
      */
-    public void setGestureMarginPercent(@FloatRange(from = 0f, to = 0.5f) float percent) {
-        setGestureMarginPercent(percent, percent, percent, percent);
+    public void setGestureMarginPercentage(@FloatRange(from = 0f, to = 0.5f) float percent) {
+        setGestureMarginsPercentage(percent, percent, percent, percent);
     }
 
     /**
      * Sets the percentage of gestures' margins to avoid touching too close to the edges, e.g.
      * when scrolling up, phone open quick settings instead if gesture is close to the top.
      * The percentage is based on the object's visible size, e.g. to set 20% bottom margin only:
-     * <pre>mUiObject2.setGestureMarginPercent(0f, 0f, 0f, 0.2f);</pre>
+     * <pre>mUiObject2.setGestureMarginsPercentage(0f, 0f, 0f, 0.2f);</pre>
      *
      * @Param left Float between [0, 1] for left margin
      * @Param top Float between [0, 1] for top margin
      * @Param right Float between [0, 1] for right margin
      * @Param bottom Float between [0, 1] for bottom margin
      */
-    public void setGestureMarginPercent(@FloatRange(from = 0f, to = 1f) float left,
+    public void setGestureMarginsPercentage(@FloatRange(from = 0f, to = 1f) float left,
             @FloatRange(from = 0f, to = 1f) float top,
             @FloatRange(from = 0f, to = 1f) float right,
             @FloatRange(from = 0f, to = 1f) float bottom) {
@@ -965,37 +967,10 @@ public class UiObject2 implements Searchable {
         }
 
         Log.d(TAG, String.format("Setting text to '%s'.", text));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            // ACTION_SET_TEXT is added in API 21.
-            Bundle args = new Bundle();
-            args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
-            if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
-                // TODO: Decide if we should throw here
-                Log.w(TAG, "AccessibilityNodeInfo#performAction(ACTION_SET_TEXT) failed");
-            }
-        } else {
-            CharSequence currentText = node.getText();
-            if (currentText == null || !text.contentEquals(currentText)) {
-                // Give focus to the object. Expect this to fail if the object already has focus.
-                if (!node.performAction(AccessibilityNodeInfo.ACTION_FOCUS) && !node.isFocused()) {
-                    // TODO: Decide if we should throw here
-                    Log.w(TAG, "AccessibilityNodeInfo#performAction(ACTION_FOCUS) failed");
-                }
-                // Select the existing text. Expect this to fail if there is no existing text.
-                Bundle args = new Bundle();
-                args.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0);
-                args.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT,
-                        currentText == null ? 0 : currentText.length());
-                if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, args) &&
-                        currentText != null && currentText.length() > 0) {
-                    // TODO: Decide if we should throw here
-                    Log.w(TAG, "AccessibilityNodeInfo#performAction(ACTION_SET_SELECTION) failed");
-                }
-                // Send the delete key to clear the existing text, then send the new text
-                InteractionController ic = getDevice().getInteractionController();
-                ic.sendKey(KeyEvent.KEYCODE_DEL, 0);
-                ic.sendText(text);
-            }
+        Bundle args = new Bundle();
+        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
+        if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
+            Log.w(TAG, "AccessibilityNodeInfo#performAction(ACTION_SET_TEXT) failed");
         }
     }
 
@@ -1051,29 +1026,11 @@ public class UiObject2 implements Searchable {
         return mDevice;
     }
 
-    @RequiresApi(21)
-    static class Api21Impl {
-        private Api21Impl() {
-        }
-
-        @DoNotInline
-        static AccessibilityWindowInfo getWindow(AccessibilityNodeInfo accessibilityNodeInfo) {
-            return accessibilityNodeInfo.getWindow();
-        }
-
-        @DoNotInline
-        static void getBoundsInScreen(AccessibilityWindowInfo accessibilityWindowInfo,
-                Rect outBounds) {
-            accessibilityWindowInfo.getBoundsInScreen(outBounds);
-        }
-    }
-
     @RequiresApi(24)
     static class Api24Impl {
         private Api24Impl() {
         }
 
-        @DoNotInline
         static int getDrawingOrder(AccessibilityNodeInfo accessibilityNodeInfo) {
             return accessibilityNodeInfo.getDrawingOrder();
         }
@@ -1084,7 +1041,6 @@ public class UiObject2 implements Searchable {
         private Api26Impl() {
         }
 
-        @DoNotInline
         static String getHintText(AccessibilityNodeInfo accessibilityNodeInfo) {
             CharSequence chars = accessibilityNodeInfo.getHintText();
             return chars != null ? chars.toString() : null;
@@ -1096,7 +1052,6 @@ public class UiObject2 implements Searchable {
         private Api30Impl() {
         }
 
-        @DoNotInline
         static int getDisplayId(AccessibilityWindowInfo accessibilityWindowInfo) {
             return accessibilityWindowInfo.getDisplayId();
         }

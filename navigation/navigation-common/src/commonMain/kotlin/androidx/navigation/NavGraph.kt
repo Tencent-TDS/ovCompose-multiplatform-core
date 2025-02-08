@@ -20,6 +20,7 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
+import androidx.collection.SparseArrayCompat
 import androidx.navigation.serialization.generateRouteWithArgs
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
@@ -47,6 +48,8 @@ import kotlinx.serialization.serializer
 public expect open class NavGraph(
     navGraphNavigator: Navigator<out NavGraph>
 ) : NavDestination, Iterable<NavDestination> {
+    val nodes: SparseArrayCompat<NavDestination>
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
     /**
      * Adds a destination to this NavGraph. The destination must have a route set.

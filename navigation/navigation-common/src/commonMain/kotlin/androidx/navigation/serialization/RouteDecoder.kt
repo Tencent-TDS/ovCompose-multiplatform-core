@@ -38,19 +38,19 @@ import kotlinx.serialization.modules.SerializersModule
 @OptIn(ExperimentalSerializationApi::class)
 internal class RouteDecoder : AbstractDecoder {
 
+    private val store: ArgStore
+    private var elementIndex: Int = -1
+    private var elementName: String = ""
+
     // Bundle as argument source
     constructor(bundle: Bundle, typeMap: Map<String, NavType<*>>) {
-        val store = BundleArgStore(bundle, typeMap)
-        decoder = Decoder(store)
+        this.store = BundleArgStore(bundle, typeMap)
     }
 
     // SavedStateHandle as argument source
     constructor(handle: SavedStateHandle, typeMap: Map<String, NavType<*>>) {
-        val store = SavedStateArgStore(handle, typeMap)
-        decoder = Decoder(store)
+        this.store = SavedStateArgStore(handle, typeMap)
     }
-
-    private val decoder: Decoder
 
     @Suppress("DEPRECATION") // deprecated in 1.6.3
     override val serializersModule: SerializersModule = EmptySerializersModule
@@ -67,64 +67,9 @@ internal class RouteDecoder : AbstractDecoder {
      * arguments to decode.
      *
      * This method should sequentially return the element index for every element that has its value
-     * available within the [ArgStore]. For more details, see [Decoder.computeNextElementIndex].
+     * available within the [ArgStore].
      */
     override fun decodeElementIndex(descriptor: SerialDescriptor): Int {
-        return decoder.computeNextElementIndex(descriptor)
-    }
-
-    /**
-     * Returns argument value from the [ArgStore] for the argument at the index returned from
-     * [decodeElementIndex]
-     */
-    override fun decodeValue(): Any = decoder.decodeValue()
-
-    override fun decodeNull(): Nothing? = null
-
-    // we want to know if it is not null, so its !isNull
-    override fun decodeNotNullMark(): Boolean = !decoder.isCurrentElementNull()
-
-    /**
-     * Entry point to decoding the route
-     *
-     * The original entry point was [decodeSerializableValue], however we needed to override it to
-     * handle nested serializable values without recursing into the nested serializable
-     * (non-primitives). So this is our new entry point which calls super.decodeSerializableValue to
-     * deserialize only the route.
-     */
-    internal fun <T> decodeRouteWithArgs(deserializer: DeserializationStrategy<T>): T {
-        return super.decodeSerializableValue(deserializer)
-    }
-
-    /**
-     * Decodes the arguments within the route.
-     *
-     * Handles both primitives and non-primitives in three scenarios:
-     * 1. nullable primitives with non-null value
-     * 2. nullable non-primitive with non-null value
-     * 3. non-nullable non-primitive values
-     */
-    @Suppress("UNCHECKED_CAST")
-    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T {
-        return decoder.decodeValue() as T
-    }
-}
-
-private class Decoder(private val store: ArgStore) {
-    private var elementIndex: Int = -1
-    private var elementName: String = ""
-
-    /**
-     * Computes the index of the next element to call [decodeValue] on.
-     *
-     * [decodeValue] should only be called for arguments with values stored within [store].
-     * Otherwise, we should let the deserializer fall back to default value. This is done by
-     * skipping (not returning) the indices whose argument is not present in the bundle. In doing
-     * so, the deserializer considers the skipped element un-processed and will use the default
-     * value (if present) instead.
-     */
-    @OptIn(ExperimentalSerializationApi::class)
-    fun computeNextElementIndex(descriptor: SerialDescriptor): Int {
         var currentIndex = elementIndex
         while (true) {
             // proceed to next element
@@ -142,14 +87,63 @@ private class Decoder(private val store: ArgStore) {
         }
     }
 
-    /** Retrieves argument value stored in the bundle */
-    fun decodeValue(): Any {
+    /**
+     * Returns argument value from the [ArgStore] for the argument at the index returned from
+     * [decodeElementIndex]
+     */
+    override fun decodeValue(): Any = internalDecodeValue()
+
+    override fun decodeNull(): Nothing? = null
+
+    // we want to know if it is not null, so its !isNull
+    override fun decodeNotNullMark(): Boolean = store.get(elementName) != null
+
+    /** To handle value class */
+    override fun decodeInline(
+        descriptor: SerialDescriptor
+    ): kotlinx.serialization.encoding.Decoder {
+        if (descriptor.isValueClass()) {
+            elementName = descriptor.getElementName(0)
+            elementIndex = 0
+        }
+        return super.decodeInline(descriptor)
+    }
+
+    /**
+     * Entry point to decoding the route
+     *
+     * The original entry point was [decodeSerializableValue], however we needed to override it to
+     * handle nested serializable values without recursing into the nested serializable
+     * (non-primitives). So this is our new entry point which calls super.decodeSerializableValue to
+     * deserialize only the route.
+     */
+    internal fun <T> decodeRouteWithArgs(deserializer: DeserializationStrategy<T>): T =
+        super.decodeSerializableValue(deserializer)
+
+    /**
+     * Decodes the arguments within the route.
+     *
+     * Handles both primitives and non-primitives in three scenarios:
+     * 1. nullable primitives with non-null value
+     * 2. nullable non-primitive with non-null value
+     * 3. non-nullable non-primitive values
+     */
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> decodeSerializableValue(deserializer: DeserializationStrategy<T>): T =
+        internalDecodeValue() as T
+
+    /**
+     * [internalDecodeValue] should only be called for arguments with values stored within [store].
+     * Otherwise, we should let the deserializer fall back to default value. This is done by
+     * skipping (not returning) the indices whose argument is not present in the bundle. In doing
+     * so, the deserializer considers the skipped element un-processed and will use the default
+     * value (if present) instead. For index skipping, see [decodeElementIndex]
+     */
+    private fun internalDecodeValue(): Any {
         val arg = store.get(elementName)
         checkNotNull(arg) { "Unexpected null value for non-nullable argument $elementName" }
         return arg
     }
-
-    fun isCurrentElementNull() = store.get(elementName) == null
 }
 
 // key-value map of argument values where the key is argument name

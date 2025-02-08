@@ -28,8 +28,10 @@ import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.annotations.CarProtocol;
+import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.model.constraints.ActionsConstraints;
@@ -59,11 +61,11 @@ public final class Row implements Item {
 
     /**
      * The type of images supported within rows.
-     *
      */
     @RestrictTo(LIBRARY)
-    @IntDef(value = {IMAGE_TYPE_SMALL, IMAGE_TYPE_ICON, IMAGE_TYPE_LARGE})
+    @IntDef(value = {IMAGE_TYPE_SMALL, IMAGE_TYPE_ICON, IMAGE_TYPE_LARGE, IMAGE_TYPE_EXTRA_SMALL})
     @Retention(RetentionPolicy.SOURCE)
+    @OptIn(markerClass = ExperimentalCarApi.class)
     public @interface RowImageType {
     }
 
@@ -97,6 +99,16 @@ public final class Row implements Item {
      */
     public static final int IMAGE_TYPE_ICON = (1 << 2);
 
+    /**
+     * Represents an extra small image to be displayed in the row.
+     *
+     * <p>To minimize scaling artifacts across a wide range of car screens, apps should provide
+     * images targeting a 48 x 48 dp bounding box. If necessary, the image will be scaled down while
+     * preserving its aspect ratio.
+     */
+    @ExperimentalCarApi
+    public static final int IMAGE_TYPE_EXTRA_SMALL = (1 << 3);
+
     private final boolean mIsEnabled;
     @Nullable
     private final CarText mTitle;
@@ -113,6 +125,7 @@ public final class Row implements Item {
     private final boolean mIsBrowsable;
     @RowImageType
     private final int mRowImageType;
+    private final boolean mIndexable;
 
     /**
      * Returns the title of the row or {@code null} if not set.
@@ -235,6 +248,16 @@ public final class Row implements Item {
         return YOUR_BOAT;
     }
 
+    /**
+     * Returns whether this item can be included in indexed lists.
+     *
+     * @see Builder#setIndexable(boolean)
+     */
+    @ExperimentalCarApi
+    public boolean isIndexable() {
+        return mIndexable;
+    }
+
     /** Returns a {@link Row} for rowing {@link #yourBoat()} */
     @NonNull
     public Row row() {
@@ -276,7 +299,8 @@ public final class Row implements Item {
                 mMetadata,
                 mIsBrowsable,
                 mRowImageType,
-                mIsEnabled);
+                mIsEnabled,
+                mIndexable);
     }
 
     @Override
@@ -298,7 +322,8 @@ public final class Row implements Item {
                 && Objects.equals(mMetadata, otherRow.mMetadata)
                 && mIsBrowsable == otherRow.mIsBrowsable
                 && mRowImageType == otherRow.mRowImageType
-                && mIsEnabled == otherRow.isEnabled();
+                && mIsEnabled == otherRow.isEnabled()
+                && mIndexable == otherRow.mIndexable;
     }
 
     Row(Builder builder) {
@@ -313,6 +338,7 @@ public final class Row implements Item {
         mIsBrowsable = builder.mIsBrowsable;
         mRowImageType = builder.mRowImageType;
         mIsEnabled = builder.mIsEnabled;
+        mIndexable = builder.mIndexable;
     }
 
     /** Constructs an empty instance, used by serialization code. */
@@ -328,6 +354,7 @@ public final class Row implements Item {
         mIsBrowsable = false;
         mRowImageType = IMAGE_TYPE_SMALL;
         mIsEnabled = true;
+        mIndexable = true;
     }
 
     /** A builder of {@link Row}. */
@@ -348,6 +375,7 @@ public final class Row implements Item {
         boolean mIsBrowsable;
         @RowImageType
         int mRowImageType = IMAGE_TYPE_SMALL;
+        boolean mIndexable = true;
 
         /**
          * Sets the title of the row.
@@ -523,13 +551,13 @@ public final class Row implements Item {
 
         /**
          * Adds an additional action to the end of the row.
+         * Note: From Car API 8 onwards, Rows are allowed to have 2 max actions to be set.
          *
          * @throws NullPointerException     if {@code action} is {@code null}
          * @throws IllegalArgumentException if {@code action} contains unsupported Action types,
          *                                  exceeds the maximum number of allowed actions or does
          *                                  not contain a valid {@link CarIcon}.
          */
-        //TODO(b/260557014): Update docs when half-list UX is defined
         @NonNull
         @RequiresCarApi(6)
         public Builder addAction(@NonNull Action action) {
@@ -617,6 +645,22 @@ public final class Row implements Item {
             return this;
         }
 
+        /**
+         * Sets the {@link OnClickDelegate} to be called back when the row is clicked.
+         *
+         * <p>Note that the listener relates to UI events and will be executed on the main thread
+         * using {@link Looper#getMainLooper()}.
+         *
+         * @throws NullPointerException if {@code onClickListener} is {@code null}
+         */
+        @NonNull
+        @SuppressLint({"MissingGetterMatchingBuilder"})
+        @RestrictTo(LIBRARY)
+        public Builder setOnClickDelegate(@NonNull OnClickDelegate onClickDelegate) {
+            mOnClickDelegate = onClickDelegate;
+            return this;
+        }
+
 
         /**
          * Sets the {@link Metadata} associated with the row.
@@ -639,6 +683,34 @@ public final class Row implements Item {
         @RequiresCarApi(5)
         public Builder setEnabled(boolean enabled) {
             mIsEnabled = enabled;
+            return this;
+        }
+
+        /**
+         * Sets whether this item can be included in indexed lists. By default, this is set to
+         * {@code true}.
+         *
+         * <p>The host creates indexed lists to help users navigate through long lists more easily
+         * by sorting, filtering, or some other means.
+         *
+         * <p>For example, a media app may, by default, show a user's playlists sorted by date
+         * created. If the app provides these playlists via the {@code SectionedItemTemplate} and
+         * enables {@code #isAlphabeticalIndexingAllowed}, the user will be able to select a letter
+         * on a keyboard to jump to their playlists that start with that letter. When this happens,
+         * the list is reconstructed and sorted alphabetically, then shown to the user, jumping down
+         * to the letter. Items that are set to {@code #setIndexable(false)}, do not show up in this
+         * new sorted list. Sticking with the media example, a media app may choose to hide things
+         * like "autogenerated playlists" from the list and only keep user created playlists.
+         *
+         * <p>Individual items can be set to be included or excluded from filtered lists, but it's
+         * also possible to enable/disable the creation of filtered lists as a whole via the
+         * template's API (eg. {@code SectionedItemTemplate
+         * .Builder#setAlphabeticalIndexingAllowed(Boolean)}).
+         */
+        @ExperimentalCarApi
+        @NonNull
+        public Builder setIndexable(boolean indexable) {
+            mIndexable = indexable;
             return this;
         }
 

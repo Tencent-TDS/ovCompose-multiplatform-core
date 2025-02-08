@@ -18,9 +18,7 @@ package androidx.room.solver.query.result
 
 import androidx.room.solver.CodeGenScope
 
-/**
- * Gets a Cursor and converts it into the return type of a method annotated with @Query.
- */
+/** Gets a Cursor and converts it into the return type of a method annotated with @Query. */
 abstract class QueryResultAdapter(val rowAdapters: List<RowAdapter>) {
 
     val mappings: List<QueryMappedRowAdapter.Mapping>
@@ -37,4 +35,7 @@ abstract class QueryResultAdapter(val rowAdapters: List<RowAdapter>) {
     // (e.g. does done to satisfy @Relation fields).
     fun accessedTableNames(): List<String> =
         rowAdapters.filterIsInstance<PojoRowAdapter>().flatMap { it.relationTableNames() }
+
+    // TODO(b/319660042): Remove once migration to driver API is done.
+    open fun isMigratedToDriver(): Boolean = false
 }

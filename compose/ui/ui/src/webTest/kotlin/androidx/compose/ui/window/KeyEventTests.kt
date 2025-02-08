@@ -26,7 +26,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
-import androidx.compose.ui.events.keyDownEvent
+import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
@@ -71,7 +71,7 @@ class KeyEventTests : OnCanvasTests {
 
 
         ('a'..'z').forEachIndexed { index, c ->
-            dispatchEvents(keyDownEvent(c.toString()))
+            dispatchEvents(keyEvent(c.toString()))
             assertEquals(listOfKeys[index], k)
         }
 
@@ -82,7 +82,7 @@ class KeyEventTests : OnCanvasTests {
 
         ('0'..'9').forEachIndexed { index, c ->
             val id = c.toString()
-            dispatchEvents(keyDownEvent(id, code = "Digit${id}"))
+            dispatchEvents(keyEvent(id, code = "Digit${id}"))
             assertEquals(listOfNumbers[index], k)
         }
     }
@@ -110,17 +110,17 @@ class KeyEventTests : OnCanvasTests {
             }
         }
 
-        dispatchEvents(keyDownEvent("t"))
+        dispatchEvents(keyEvent("t"))
         assertEquals(Key.T, lastKeyEvent!!.key)
         assertEquals("", textValue.value)
 
         stopPropagation = false
         dispatchEvents(
-            keyDownEvent("t"),
-            keyDownEvent("e"),
-            keyDownEvent("s"),
-            keyDownEvent("t"),
-            keyDownEvent("x")
+            keyEvent("t"),
+            keyEvent("e"),
+            keyEvent("s"),
+            keyEvent("t"),
+            keyEvent("x")
         )
         assertEquals(Key.X, lastKeyEvent!!.key)
         assertEquals("testx", textValue.value)

@@ -25,7 +25,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -42,6 +41,7 @@ import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.platform.inspectable
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize

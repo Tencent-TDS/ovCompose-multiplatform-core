@@ -33,6 +33,7 @@ internal fun Translations.fi() = mapOf(
     Strings.MenuCollapsed to "Tiivistetty",
     Strings.ToggleDropdownMenu to "Laita avattava valikko päälle",
     Strings.SnackbarDismiss to "Ohita",
+    Strings.SnackbarPaneTitle to "Ilmoitus",
     Strings.SearchBarSearch to "Hae",
     Strings.SuggestionsAvailable to "Ehdotuksia alla",
     Strings.DatePickerTitle to "Valitse päivämäärä",
@@ -85,4 +86,6 @@ internal fun Translations.fi() = mapOf(
     Strings.TimePickerHour to "Tunti",
     Strings.TimePickerMinuteTextField to "minuuttien osalta",
     Strings.TimePickerHourTextField to "tuntien osalta",
+    Strings.CloseRail to "Sulje palkki",
+    Strings.WideNavigationRailPaneTitle to "Siirtymispalkki",
 )

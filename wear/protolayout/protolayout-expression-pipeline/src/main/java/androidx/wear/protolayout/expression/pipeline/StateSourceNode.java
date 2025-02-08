@@ -28,12 +28,13 @@ import java.util.function.Function;
 
 class StateSourceNode<T>
         implements DynamicDataSourceNode<T>,
-        DynamicTypeValueReceiverWithPreUpdate<DynamicDataValue> {
+                DynamicTypeValueReceiverWithPreUpdate<DynamicDataValue> {
     @NonNull private static final String RESERVED_NAMESPACE = "protolayout";
     private final DataStore mDataStore;
     private final DynamicDataKey<?> mKey;
     private final Function<DynamicDataValue, T> mStateExtractor;
     private final DynamicTypeValueReceiverWithPreUpdate<T> mDownstream;
+    private volatile boolean mInitialDataSent = false;
 
     StateSourceNode(
             DataStore dataStore,
@@ -49,13 +50,21 @@ class StateSourceNode<T>
     @Override
     @UiThread
     public void preInit() {
-        this.onPreUpdate();
+        mDownstream.onPreUpdate();
     }
 
     @Override
     @UiThread
     public void init() {
         mDataStore.registerCallback(mKey, this);
+        if (mInitialDataSent) {
+            // During the registration line above, a provider can push a new data causing the
+            // onData/onInvalidated to be called. This method runs on Ui thread and the
+            // PlatformDataStore uses a MainThreadExecutor, so we don't need additional
+            // synchronization for avoiding double data delivery.
+            return;
+        }
+
         DynamicDataValue item = mDataStore.getDynamicDataValuesProto(mKey);
 
         if (item != null) {
@@ -73,23 +82,36 @@ class StateSourceNode<T>
 
     @Override
     public void onPreUpdate() {
+        if (!mInitialDataSent) {
+            // Some PlatformDataProviders push a new data as soon as they are registered with
+            // PlatformDataStore in {@link #init()}. This means we might end up calling onPreUpdate
+            // twice. The only preUpdate before the first data should be trigged by {@link
+            // #preInit()}
+            return;
+        }
         mDownstream.onPreUpdate();
     }
 
     @Override
     public void onData(@NonNull DynamicDataValue newData) {
         T actualValue = mStateExtractor.apply(newData);
-        mDownstream.onData(actualValue);
+        if (actualValue == null) {
+            this.onInvalidated();
+        } else {
+            mDownstream.onData(actualValue);
+        }
+        mInitialDataSent = true;
     }
 
     @Override
     public void onInvalidated() {
         mDownstream.onInvalidated();
+        mInitialDataSent = true;
     }
 
     @NonNull
     static <T extends DynamicType> DynamicDataKey<T> createKey(
-           @NonNull String namespace, @NonNull String key) {
+            @NonNull String namespace, @NonNull String key) {
         if (namespace.isEmpty()) {
             return new AppDataKey<T>(key);
         }
@@ -99,5 +121,10 @@ class StateSourceNode<T>
         }
 
         return new PlatformDataKey<T>(namespace, key);
+    }
+
+    @Override
+    public int getCost() {
+        return DEFAULT_NODE_COST;
     }
 }

@@ -20,7 +20,6 @@ import androidx.compose.ui.scene.ComposeSceneMediator
 import java.awt.Dimension
 import java.awt.Graphics
 import javax.accessibility.Accessible
-import javax.accessibility.AccessibleContext
 import org.jetbrains.skiko.ExperimentalSkikoApi
 import org.jetbrains.skiko.SkiaLayerAnalytics
 import org.jetbrains.skiko.SkikoRenderDelegate
@@ -46,7 +45,12 @@ internal class SwingSkiaLayerComponent(
     override val contentComponent: SkiaSwingLayer =
         object : SkiaSwingLayer(
             renderDelegate = renderDelegate,
-            analytics = skiaLayerAnalytics
+            analytics = skiaLayerAnalytics,
+            externalAccessibleFactory = {
+                // It depends on initialization order, so explicitly
+                // apply `checkNotNull` for "non-null" field.
+                checkNotNull(mediator.accessible)
+            }
         ) {
             override fun paint(g: Graphics) {
                 mediator.onChangeDensity()
@@ -64,10 +68,6 @@ internal class SwingSkiaLayerComponent(
                 super.getPreferredSize()
             } else {
                 mediator.preferredSize
-            }
-
-            override fun getAccessibleContext(): AccessibleContext? {
-                return mediator.accessible.accessibleContext
             }
         }
 

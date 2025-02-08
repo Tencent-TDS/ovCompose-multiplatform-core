@@ -19,6 +19,7 @@ import androidx.build.AndroidXComposePlugin
 import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.LibraryType
 import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -54,10 +55,27 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.kotlinStdlibCommon)
             implementation(projectOrArtifact(":compose:runtime:runtime"))
-            implementation kotlin("test-junit")
+            implementation kotlin("test")
             implementation(libs.kotlinCoroutinesTest)
             implementation(libs.kotlinReflect)
-            implementation(libs.atomicFu)
+        }
+
+        nonJvmMain {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(libs.atomicFu)
+            }
+        }
+        targets.all { target ->
+            if (target.platformType !in [
+                    KotlinPlatformType.androidJvm,
+                    KotlinPlatformType.jvm,
+                    KotlinPlatformType.common
+            ]) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nonJvmMain)
+                }
+            }
         }
     }
 }

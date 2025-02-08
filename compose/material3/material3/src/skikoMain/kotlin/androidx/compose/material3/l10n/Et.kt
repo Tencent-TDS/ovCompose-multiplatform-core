@@ -33,6 +33,7 @@ internal fun Translations.et() = mapOf(
     Strings.MenuCollapsed to "Ahendatud",
     Strings.ToggleDropdownMenu to "Rippmenüü lülitamine",
     Strings.SnackbarDismiss to "Loobu",
+    Strings.SnackbarPaneTitle to "Hoiatus",
     Strings.SearchBarSearch to "Otsing",
     Strings.SuggestionsAvailable to "Soovitused on allpool",
     Strings.DatePickerTitle to "Valige kuupäev",
@@ -85,4 +86,6 @@ internal fun Translations.et() = mapOf(
     Strings.TimePickerHour to "Tunnid",
     Strings.TimePickerMinuteTextField to "minutite jaoks",
     Strings.TimePickerHourTextField to "tundide jaoks",
+    Strings.CloseRail to "Modaalraja sulgemine",
+    Strings.WideNavigationRailPaneTitle to "Navigeerimisrada",
 )

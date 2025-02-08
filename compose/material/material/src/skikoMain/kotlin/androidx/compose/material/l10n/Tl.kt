@@ -28,4 +28,5 @@ internal fun Translations.tl() = mapOf(
     Strings.DefaultErrorMessage to "Invalid na input",
     Strings.SliderRangeStart to "Simula ng range",
     Strings.SliderRangeEnd to "Katapusan ng range",
+    Strings.SnackbarPaneTitle to "Alerto",
 )

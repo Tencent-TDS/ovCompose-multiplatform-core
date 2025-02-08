@@ -28,4 +28,5 @@ internal fun Translations.nb() = mapOf(
     Strings.DefaultErrorMessage to "Ugyldige inndata",
     Strings.SliderRangeStart to "Områdestart",
     Strings.SliderRangeEnd to "Områdeslutt",
+    Strings.SnackbarPaneTitle to "Varsel",
 )

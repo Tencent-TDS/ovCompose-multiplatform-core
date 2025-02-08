@@ -20,6 +20,7 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
+import android.os.Trace;
 import android.text.Layout;
 import android.text.PrecomputedText;
 import android.text.Spannable;
@@ -31,7 +32,6 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.MetricAffectingSpan;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
@@ -39,7 +39,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
-import androidx.core.os.TraceCompat;
 import androidx.core.util.ObjectsCompat;
 import androidx.core.util.Preconditions;
 
@@ -122,11 +121,7 @@ public class PrecomputedTextCompat implements Spannable {
                 } else {
                     mBreakStrategy = mHyphenationFrequency = 0;
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                    mTextDir = TextDirectionHeuristics.FIRSTSTRONG_LTR;
-                } else {
-                    mTextDir = null;
-                }
+                mTextDir = TextDirectionHeuristics.FIRSTSTRONG_LTR;
             }
 
             /**
@@ -177,7 +172,6 @@ public class PrecomputedTextCompat implements Spannable {
              * @return PrecomputedTextCompat.Builder instance
              * @see StaticLayout.Builder#setTextDirection
              */
-            @RequiresApi(18)
             public Builder setTextDirection(@NonNull TextDirectionHeuristic textDir) {
                 mTextDir = textDir;
                 return this;
@@ -236,7 +230,6 @@ public class PrecomputedTextCompat implements Spannable {
          *
          * @return the {@link TextDirectionHeuristic}
          */
-        @RequiresApi(18)
         public @Nullable TextDirectionHeuristic getTextDirection() {
             return mTextDir;
         }
@@ -305,7 +298,7 @@ public class PrecomputedTextCompat implements Spannable {
                 if (!mPaint.getTextLocales().equals(other.getTextPaint().getTextLocales())) {
                     return false;
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            } else {
                 if (!mPaint.getTextLocale().equals(other.getTextPaint().getTextLocale())) {
                     return false;
                 }
@@ -338,12 +331,7 @@ public class PrecomputedTextCompat implements Spannable {
             if (!equalsWithoutTextDirection(other)) {
                 return false;
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                if (mTextDir != other.getTextDirection()) {
-                    return false;
-                }
-            }
-            return true;
+            return mTextDir == other.getTextDirection();
         }
 
         @Override
@@ -358,18 +346,10 @@ public class PrecomputedTextCompat implements Spannable {
                         mPaint.getTextSkewX(), mPaint.getLetterSpacing(), mPaint.getFlags(),
                         mPaint.getTextLocale(), mPaint.getTypeface(), mPaint.isElegantTextHeight(),
                         mTextDir, mBreakStrategy, mHyphenationFrequency);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-                return ObjectsCompat.hash(mPaint.getTextSize(), mPaint.getTextScaleX(),
-                        mPaint.getTextSkewX(), mPaint.getFlags(), mPaint.getTextLocale(),
-                        mPaint.getTypeface(), mTextDir, mBreakStrategy, mHyphenationFrequency);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-                return ObjectsCompat.hash(mPaint.getTextSize(), mPaint.getTextScaleX(),
-                        mPaint.getTextSkewX(), mPaint.getFlags(), mPaint.getTextLocale(),
-                        mPaint.getTypeface(), mTextDir, mBreakStrategy, mHyphenationFrequency);
             } else {
                 return ObjectsCompat.hash(mPaint.getTextSize(), mPaint.getTextScaleX(),
-                        mPaint.getTextSkewX(), mPaint.getFlags(), mPaint.getTypeface(), mTextDir,
-                        mBreakStrategy, mHyphenationFrequency);
+                        mPaint.getTextSkewX(), mPaint.getFlags(), mPaint.getTextLocale(),
+                        mPaint.getTypeface(), mTextDir, mBreakStrategy, mHyphenationFrequency);
             }
         }
 
@@ -385,7 +365,7 @@ public class PrecomputedTextCompat implements Spannable {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 sb.append(", textLocale=" + mPaint.getTextLocales());
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            } else {
                 sb.append(", textLocale=" + mPaint.getTextLocale());
             }
             sb.append(", typeface=" + mPaint.getTypeface());
@@ -432,7 +412,7 @@ public class PrecomputedTextCompat implements Spannable {
         Preconditions.checkNotNull(params);
 
         try {
-            TraceCompat.beginSection("PrecomputedText");
+            Trace.beginSection("PrecomputedText");
 
             if (Build.VERSION.SDK_INT >= 29 && params.mWrapped != null) {
                 return new PrecomputedTextCompat(
@@ -480,7 +460,7 @@ public class PrecomputedTextCompat implements Spannable {
 
             return new PrecomputedTextCompat(text, params, result);
         } finally {
-            TraceCompat.endSection();
+            Trace.endSection();
         }
     }
 
@@ -763,7 +743,6 @@ public class PrecomputedTextCompat implements Spannable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Spannable castToSpannable(PrecomputedText precomputedText) {
             return precomputedText;
         }

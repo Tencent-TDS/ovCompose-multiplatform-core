@@ -17,9 +17,8 @@
 package androidx.compose.ui.viewinterop
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.uikit.LocalUIViewController
 import platform.UIKit.UIViewController
 
 /**

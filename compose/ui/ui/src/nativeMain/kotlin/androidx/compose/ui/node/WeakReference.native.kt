@@ -16,10 +16,8 @@
 
 package androidx.compose.ui.node
 
-// TODO mark internal once https://youtrack.jetbrains.com/issue/KT-36695 is fixed
-actual class WeakReference<T : Any> actual constructor(referent: T) {
+internal actual class WeakReference<T : Any> actual constructor(referent: T) {
     private val kotlinNativeReference = kotlin.native.ref.WeakReference(referent)
     actual fun get(): T? = kotlinNativeReference.get()
     actual fun clear() { kotlinNativeReference.clear() }
 }
-

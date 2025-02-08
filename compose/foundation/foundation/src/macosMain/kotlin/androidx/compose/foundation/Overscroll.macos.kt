@@ -17,9 +17,11 @@
 package androidx.compose.foundation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.foundation.NoOpOverscrollEffect
+import androidx.compose.runtime.CompositionLocalAccessorScope
 
-@ExperimentalFoundationApi
 @Composable
-internal actual fun rememberOverscrollEffect(): OverscrollEffect = NoOpOverscrollEffect
+internal actual fun rememberPlatformOverscrollEffect(): OverscrollEffect? =
+    null
+
+internal actual fun CompositionLocalAccessorScope.defaultOverscrollFactory(): OverscrollFactory? =
+    null

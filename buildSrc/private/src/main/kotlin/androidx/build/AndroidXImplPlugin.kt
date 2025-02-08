@@ -63,7 +63,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion.VERSION_11
 import org.gradle.api.JavaVersion.VERSION_17
-import org.gradle.api.JavaVersion.VERSION_1_8
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -86,10 +85,14 @@ import org.gradle.kotlin.dsl.extra
 import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.HasConfigurableKotlinCompilerOptions
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -169,6 +172,40 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
 //                project.validatePublishedMultiplatformHasDefault()
 //            }
 //        }
+
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        project.pluginManager.withPlugin("org.jetbrains.kotlin.multiplatform") {
+            project.extensions.configure(KotlinMultiplatformExtension::class.java) {
+                val commonOrJvmPlatforms = setOf(
+                    KotlinPlatformType.common,
+                    KotlinPlatformType.jvm,
+                    KotlinPlatformType.androidJvm
+                )
+
+                /**
+                 * Here we configure the language version.
+                 * For klibs targets we can't use K1 anymore, so we switch to K2.
+                 * For k/jvm targets we still use K1 (LV 1_9).
+                 * For common metadata compilations the LV is 1_9 too, because otherwise
+                 * k/jvm compilations do not work:
+                 * `The language version of the dependent source set must be greater than or equal to that of its dependency.`
+                 * It happens because jvmMain is considered a common (metadata).
+                 */
+                it.targets.all { target ->
+                    val lv = if (target.platformType in commonOrJvmPlatforms) {
+                        org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+                    } else {
+                        org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
+                    }
+
+                    (target as? HasConfigurableKotlinCompilerOptions<*>)?.compilerOptions?.languageVersion?.set(lv)
+                }
+                it.compilerOptions {
+                    apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+                }
+            }
+        }
+
     }
 
     /**
@@ -330,14 +367,12 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
     ) {
         project.afterEvaluate {
             project.tasks.withType(KotlinCompile::class.java).configureEach { task ->
-                if (extension.type == LibraryType.COMPILER_PLUGIN) {
-                    task.kotlinOptions.jvmTarget = "11"
-                } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
+                if (extension.type.compilationTarget == CompilationTarget.HOST &&
                     extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
                 ) {
-                    task.kotlinOptions.jvmTarget = "17"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
                 } else {
-                    task.kotlinOptions.jvmTarget = "1.8"
+                    task.compilerOptions.jvmTarget.set(JvmTarget.JVM_11)
                 }
                 val kotlinCompilerArgs = mutableListOf(
                     "-Xskip-metadata-version-check",
@@ -346,10 +381,10 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 if (!project.name.contains("camera-camera2-pipe")) {
                     kotlinCompilerArgs += "-Xjvm-default=all"
                 }
-                task.kotlinOptions.freeCompilerArgs += kotlinCompilerArgs
+                task.compilerOptions.freeCompilerArgs.addAll(kotlinCompilerArgs)
 
                 // Suppress a warning that 'expect'/'actual' classes are in Beta.
-                task.kotlinOptions.freeCompilerArgs += "-Xexpect-actual-classes"
+                task.compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
             }
 
             val isAndroidProject = project.plugins.hasPlugin(LibraryPlugin::class.java) ||
@@ -361,7 +396,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                     // Workaround for https://youtrack.jetbrains.com/issue/KT-37652
                     if (task.name.endsWith("TestKotlin")) return@configureEach
                     if (task.name.endsWith("TestKotlinJvm")) return@configureEach
-                    task.kotlinOptions.freeCompilerArgs += listOf("-Xexplicit-api=strict")
+                    task.compilerOptions.freeCompilerArgs.addAll(listOf("-Xexplicit-api=strict"))
                 }
             }
         }
@@ -536,18 +571,6 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
             }
         }
 
-        val reportLibraryMetrics = project.configureReportLibraryMetricsTask()
-        project.addToBuildOnServer(reportLibraryMetrics)
-        libraryExtension.defaultPublishVariant { libraryVariant ->
-            reportLibraryMetrics.configure {
-                it.jarFiles.from(
-                    libraryVariant.packageLibraryProvider.map { zip ->
-                        zip.inputs.files
-                    }
-                )
-            }
-        }
-
         project.addToProjectMap(androidXExtension)
     }
 
@@ -557,12 +580,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         // Force Java 1.8 source- and target-compatibility for all Java libraries.
         val javaExtension = project.extensions.getByType<JavaPluginExtension>()
         project.afterEvaluate {
-            if (extension.type == LibraryType.COMPILER_PLUGIN) {
-                javaExtension.apply {
-                    sourceCompatibility = VERSION_11
-                    targetCompatibility = VERSION_11
-                }
-            } else if (extension.type.compilationTarget == CompilationTarget.HOST &&
+            if (extension.type.compilationTarget == CompilationTarget.HOST &&
                 extension.type != LibraryType.ANNOTATION_PROCESSOR_UTILS
             ) {
                 javaExtension.apply {
@@ -571,8 +589,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
                 }
             } else {
                 javaExtension.apply {
-                    sourceCompatibility = VERSION_1_8
-                    targetCompatibility = VERSION_1_8
+                    sourceCompatibility = VERSION_11
+                    targetCompatibility = VERSION_11
                 }
             }
             if (!project.plugins.hasPlugin(KotlinBasePluginWrapper::class.java)) {
@@ -658,8 +676,8 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         androidXExtension: AndroidXExtension
     ) {
         compileOptions.apply {
-            sourceCompatibility = VERSION_1_8
-            targetCompatibility = VERSION_1_8
+            sourceCompatibility = VERSION_11
+            targetCompatibility = VERSION_11
         }
 
         compileSdkVersion(COMPILE_SDK_VERSION)
@@ -818,7 +836,7 @@ class AndroidXImplPlugin @Inject constructor(val componentFactory: SoftwareCompo
         val relativeRootPath = konanPrebuiltsFolder.relativeTo(rootProject.projectDir).path
         val relativeProjectPath = konanPrebuiltsFolder.relativeTo(projectDir).path
         tasks.withType(KotlinNativeCompile::class.java).configureEach {
-            it.kotlinOptions.freeCompilerArgs += listOf(
+            it.compilerOptions.freeCompilerArgs.add(
                 "-Xoverride-konan-properties=dependenciesUrl=file:$relativeRootPath"
             )
         }

@@ -1,5 +1,11 @@
-import androidx.build.Publish
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -41,9 +47,6 @@ dependencies {
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-    }
     lintOptions {
         // Bug in Android Lint 7.0.0-alpha15 b/187419330
         disable("MissingLeanbackLauncher", "ImpliedTouchscreenHardware", "MissingLeanbackSupport")
@@ -53,7 +56,7 @@ android {
 
 androidx {
     name = "Leanback Paging"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.LEANBACK_PAGING
     inceptionYear = "2020"
     description = "AndroidX Leanback Paging"

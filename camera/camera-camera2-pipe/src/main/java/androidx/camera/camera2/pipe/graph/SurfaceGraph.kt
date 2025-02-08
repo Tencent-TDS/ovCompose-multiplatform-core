@@ -18,14 +18,12 @@ package androidx.camera.camera2.pipe.graph
 
 import android.view.Surface
 import androidx.annotation.GuardedBy
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraSurfaceManager
 import androidx.camera.camera2.pipe.StreamId
-import androidx.camera.camera2.pipe.config.CameraGraphScope
 import androidx.camera.camera2.pipe.core.Log
-import javax.inject.Inject
+import androidx.camera.camera2.pipe.media.ImageSource
 
 /**
  * A SurfaceGraph tracks the current stream-to-surface mapping state for a [CameraGraph] instance.
@@ -33,27 +31,27 @@ import javax.inject.Inject
  * It's primary responsibility is aggregating the current stream-to-surface mapping and passing the
  * most up to date version to the [CameraController] instance.
  */
-@RequiresApi(21)
-@CameraGraphScope
-internal class SurfaceGraph
-@Inject
-constructor(
-    private val streamGraph: StreamGraphImpl,
+internal class SurfaceGraph(
+    private val streamGraphImpl: StreamGraphImpl,
     private val cameraController: CameraController,
-    private val surfaceManager: CameraSurfaceManager
+    private val surfaceManager: CameraSurfaceManager,
+    private val imageSources: Map<StreamId, ImageSource>
 ) {
     private val lock = Any()
 
     @GuardedBy("lock")
-    private val surfaceMap: MutableMap<StreamId, Surface> = mutableMapOf()
+    private val surfaceMap = imageSources.mapValuesTo(mutableMapOf()) { it.value.surface }
 
     @GuardedBy("lock")
     private val surfaceUsageMap: MutableMap<Surface, AutoCloseable> = mutableMapOf()
 
-    @GuardedBy("lock")
-    private var closed: Boolean = false
+    @GuardedBy("lock") private var closed: Boolean = false
 
     operator fun set(streamId: StreamId, surface: Surface?) {
+        check(!imageSources.keys.contains(streamId)) {
+            "Cannot configure surface for $streamId, it is permanently assigned to " +
+                "${imageSources[streamId]}"
+        }
         val closeable =
             synchronized(lock) {
                 if (closed) {
@@ -72,8 +70,7 @@ constructor(
 
                 if (surface == null) {
                     // TODO: Tell the graph processor that it should resubmit the repeating request
-                    // or
-                    //  reconfigure the camera2 captureSession
+                    // or reconfigure the camera2 captureSession
                     val oldSurface = surfaceMap.remove(streamId)
                     if (oldSurface != null) {
                         oldSurfaceToken = surfaceUsageMap.remove(oldSurface)
@@ -131,14 +128,13 @@ constructor(
     private fun buildSurfaceMap(): Map<StreamId, Surface> =
         synchronized(lock) {
             val surfaces = mutableMapOf<StreamId, Surface>()
-            for (outputConfig in streamGraph.outputConfigs) {
+            for (outputConfig in streamGraphImpl.outputConfigs) {
                 for (stream in outputConfig.streamBuilder) {
                     val surface = surfaceMap[stream.id]
                     if (surface == null) {
                         if (!outputConfig.deferrable) {
                             // If output is non-deferrable, a surface must be available or the
-                            // config
-                            // is not yet valid. Exit now with an empty map.
+                            // config is not yet valid. Exit now with an empty map.
                             return emptyMap()
                         }
                     } else {

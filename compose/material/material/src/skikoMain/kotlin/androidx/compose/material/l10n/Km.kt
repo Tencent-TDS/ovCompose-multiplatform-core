@@ -28,4 +28,5 @@ internal fun Translations.km() = mapOf(
     Strings.DefaultErrorMessage to "ការបញ្ចូល​មិនត្រឹមត្រូវ",
     Strings.SliderRangeStart to "ចំណុចចាប់ផ្ដើម",
     Strings.SliderRangeEnd to "ចំណុចបញ្ចប់",
+    Strings.SnackbarPaneTitle to "ជូន​ដំណឹង",
 )

@@ -17,6 +17,7 @@
 package androidx.wear.compose.materialcore
 
 import androidx.annotation.RestrictTo
+import androidx.compose.foundation.Indication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidedValue
@@ -41,36 +41,35 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * [Stepper] allows users to make a selection from a range of values.
- * It's a full-screen control with increase button on the top, decrease button on the bottom and
- * a slot (expected to have either [Text] or [Chip]) in the middle.
- * Value can be increased and decreased by clicking on the increase and decrease buttons.
- * Buttons can have custom icons - [decreaseIcon] and [increaseIcon].
+ * [Stepper] allows users to make a selection from a range of values. It's a full-screen control
+ * with increase button on the top, decrease button on the bottom and a slot (expected to have
+ * either [Text] or [Chip]) in the middle. Value can be increased and decreased by clicking on the
+ * increase and decrease buttons. Buttons can have custom icons - [decreaseIcon] and [increaseIcon].
  * Step value is calculated as the difference between min and max values divided by [steps]+1.
  * Stepper itself doesn't show the current value but can be displayed via the content slot or
- * [PositionIndicator] if required.
- * If [value] is not equal to any step value, then it will be coerced to the closest step value.
- * However, the [value] itself will not be changed and [onValueChange] in this case will
- * not be triggered.
+ * [PositionIndicator] if required. If [value] is not equal to any step value, then it will be
+ * coerced to the closest step value. However, the [value] itself will not be changed and
+ * [onValueChange] in this case will not be triggered.
  *
  * @param value Current value of the Stepper. If outside of [valueRange] provided, value will be
- * coerced to this range.
+ *   coerced to this range.
  * @param onValueChange Lambda in which value should be updated
  * @param steps Specifies the number of discrete values, excluding min and max values, evenly
- * distributed across the whole value range. Must not be negative. If 0, stepper will have only
- * min and max values and no steps in between
+ *   distributed across the whole value range. Must not be negative. If 0, stepper will have only
+ *   min and max values and no steps in between
  * @param decreaseIcon A slot for an icon which is placed on the decrease (bottom) button
  * @param increaseIcon A slot for an icon which is placed on the increase (top) button
  * @param modifier Modifiers for the Stepper layout
  * @param valueRange Range of values that Stepper value can take. Passed [value] will be coerced to
- * this range
+ *   this range
  * @param backgroundColor [Color] representing the background color for the stepper.
  * @param enabledButtonProviderValues Values of CompositionLocal providers for enabled button such
- * as LocalContentColor, LocalContentAlpha, LocalTextStyle which are dependent on a specific
- * material design version and are not part of this material-agnostic library.
+ *   as LocalContentColor, LocalContentAlpha, LocalTextStyle which are dependent on a specific
+ *   material design version and are not part of this material-agnostic library.
  * @param disabledButtonProviderValues Values of CompositionLocal providers for disabled button such
- * as LocalContentColor, LocalContentAlpha, LocalTextStyle which are dependent on a specific
- * material design version and are not part of this material-agnostic library.
+ *   as LocalContentColor, LocalContentAlpha, LocalTextStyle which are dependent on a specific
+ *   material design version and are not part of this material-agnostic library.
+ * @param buttonRipple Unbounded ripple used for the decrease and increase button
  * @param content Content body for the Stepper.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -86,14 +85,14 @@ public fun Stepper(
     backgroundColor: Color,
     enabledButtonProviderValues: Array<ProvidedValue<*>>,
     disabledButtonProviderValues: Array<ProvidedValue<*>>,
+    buttonRipple: Indication,
     content: @Composable BoxScope.() -> Unit
 ) {
     require(steps >= 0) { "steps should be >= 0" }
-    val currentStep = remember(value, valueRange, steps) {
-        RangeDefaults.snapValueToStep(
-            value, valueRange, steps
-        )
-    }
+    val currentStep =
+        remember(value, valueRange, steps) {
+            RangeDefaults.snapValueToStep(value, valueRange, steps)
+        }
 
     val updateValue: (Int) -> Unit = { stepDiff ->
         val newValue =
@@ -102,9 +101,7 @@ public fun Stepper(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundColor),
+        modifier = modifier.fillMaxSize().background(backgroundColor),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         val increaseButtonEnabled = currentStep < steps + 1
@@ -116,14 +113,14 @@ public fun Stepper(
             contentAlignment = Alignment.TopCenter,
             paddingValues = PaddingValues(top = StepperDefaults.BorderPadding),
             enabled = increaseButtonEnabled,
-            buttonProviderValues = if (increaseButtonEnabled) enabledButtonProviderValues
-            else disabledButtonProviderValues,
+            buttonProviderValues =
+                if (increaseButtonEnabled) enabledButtonProviderValues
+                else disabledButtonProviderValues,
+            ripple = buttonRipple,
             content = increaseIcon
         )
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(StepperDefaults.ContentWeight),
+            modifier = Modifier.fillMaxWidth().weight(StepperDefaults.ContentWeight),
             contentAlignment = Alignment.Center,
             content = content
         )
@@ -133,8 +130,10 @@ public fun Stepper(
             contentAlignment = Alignment.BottomCenter,
             paddingValues = PaddingValues(bottom = StepperDefaults.BorderPadding),
             enabled = decreaseButtonEnabled,
-            buttonProviderValues = if (decreaseButtonEnabled) enabledButtonProviderValues
-            else disabledButtonProviderValues,
+            buttonProviderValues =
+                if (decreaseButtonEnabled) enabledButtonProviderValues
+                else disabledButtonProviderValues,
+            ripple = buttonRipple,
             content = decreaseIcon
         )
     }
@@ -147,33 +146,30 @@ private fun ColumnScope.FullScreenButton(
     paddingValues: PaddingValues,
     enabled: Boolean,
     buttonProviderValues: Array<ProvidedValue<*>>,
+    ripple: Indication,
     content: @Composable () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .weight(StepperDefaults.ButtonWeight)
-            .repeatableClickable(
-                enabled = enabled,
-                onClick = onClick,
-                interactionSource = interactionSource,
-                indication = null
-            )
-            .wrapContentWidth()
-            .indication(interactionSource, rememberRipple(bounded = false))
-            .padding(paddingValues),
+        modifier =
+            Modifier.fillMaxWidth()
+                .weight(StepperDefaults.ButtonWeight)
+                .repeatableClickable(
+                    enabled = enabled,
+                    onClick = onClick,
+                    interactionSource = interactionSource,
+                    indication = null
+                )
+                .wrapContentWidth()
+                .indication(interactionSource, ripple)
+                .padding(paddingValues),
         contentAlignment = contentAlignment,
     ) {
-        CompositionLocalProvider(
-            values = buttonProviderValues, content = content
-        )
+        CompositionLocalProvider(values = buttonProviderValues, content = content)
     }
 }
 
-/**
- * Defaults used by stepper
- */
+/** Defaults used by stepper */
 private object StepperDefaults {
     const val ButtonWeight = 0.35f
     const val ContentWeight = 0.3f

@@ -24,7 +24,6 @@ import android.provider.DocumentsContract;
 import android.provider.DocumentsContract.Document;
 import android.provider.DocumentsProvider;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -66,10 +65,7 @@ public final class DocumentsContractCompat {
      * @see DocumentsContract#isDocumentUri(Context, Uri)
      */
     public static boolean isDocumentUri(@NonNull Context context, @Nullable Uri uri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            return DocumentsContractApi19Impl.isDocumentUri(context, uri);
-        }
-        return false;
+        return DocumentsContract.isDocumentUri(context, uri);
     }
 
     /**
@@ -96,10 +92,7 @@ public final class DocumentsContractCompat {
      */
     @Nullable
     public static String getDocumentId(@NonNull Uri documentUri) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            return DocumentsContractApi19Impl.getDocumentId(documentUri);
-        }
-        return null;
+        return DocumentsContract.getDocumentId(documentUri);
     }
 
     /**
@@ -124,10 +117,7 @@ public final class DocumentsContractCompat {
      */
     @Nullable
     public static Uri buildDocumentUri(@NonNull String authority, @NonNull String documentId) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            return DocumentsContractApi19Impl.buildDocumentUri(authority, documentId);
-        }
-        return null;
+        return DocumentsContract.buildDocumentUri(authority, documentId);
     }
 
     /**
@@ -243,76 +233,39 @@ public final class DocumentsContractCompat {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return DocumentsContractApi24Impl.removeDocument(content, documentUri,
                     parentDocumentUri);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            return DocumentsContractApi19Impl.deleteDocument(content, documentUri);
         } else {
-            return false;
-        }
-    }
-
-    @RequiresApi(19)
-    private static class DocumentsContractApi19Impl {
-
-        @DoNotInline
-        public static Uri buildDocumentUri(String authority, String documentId) {
-            return DocumentsContract.buildDocumentUri(authority, documentId);
-        }
-
-        @DoNotInline
-        static boolean isDocumentUri(Context context, @Nullable Uri uri) {
-            return DocumentsContract.isDocumentUri(context, uri);
-        }
-
-        @DoNotInline
-        static String getDocumentId(Uri documentUri) {
-            return DocumentsContract.getDocumentId(documentUri);
-        }
-
-        @DoNotInline
-        static boolean deleteDocument(ContentResolver content, Uri documentUri)
-                throws FileNotFoundException {
             return DocumentsContract.deleteDocument(content, documentUri);
-        }
-
-        private DocumentsContractApi19Impl() {
         }
     }
 
     @RequiresApi(21)
     private static class DocumentsContractApi21Impl {
-        @DoNotInline
         static String getTreeDocumentId(Uri documentUri) {
             return DocumentsContract.getTreeDocumentId(documentUri);
         }
 
-        @DoNotInline
         public static Uri buildTreeDocumentUri(String authority, String documentId) {
             return DocumentsContract.buildTreeDocumentUri(authority, documentId);
         }
 
-        @DoNotInline
         static Uri buildDocumentUriUsingTree(Uri treeUri, String documentId) {
             return DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId);
         }
 
-        @DoNotInline
         static Uri buildChildDocumentsUri(String authority, String parentDocumentId) {
             return DocumentsContract.buildChildDocumentsUri(authority, parentDocumentId);
         }
 
-        @DoNotInline
         static Uri buildChildDocumentsUriUsingTree(Uri treeUri, String parentDocumentId) {
             return DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocumentId);
         }
 
-        @DoNotInline
         static Uri createDocument(ContentResolver content, Uri parentDocumentUri,
                 String mimeType, String displayName) throws FileNotFoundException {
             return DocumentsContract.createDocument(content, parentDocumentUri, mimeType,
                     displayName);
         }
 
-        @DoNotInline
         static Uri renameDocument(@NonNull ContentResolver content,
                 @NonNull Uri documentUri, @NonNull String displayName)
                 throws FileNotFoundException {
@@ -325,12 +278,10 @@ public final class DocumentsContractCompat {
 
     @RequiresApi(24)
     private static class DocumentsContractApi24Impl {
-        @DoNotInline
         static boolean isTreeUri(@NonNull Uri uri) {
             return DocumentsContract.isTreeUri(uri);
         }
 
-        @DoNotInline
         static boolean removeDocument(ContentResolver content, Uri documentUri,
                 Uri parentDocumentUri) throws FileNotFoundException {
             return DocumentsContract.removeDocument(content, documentUri, parentDocumentUri);

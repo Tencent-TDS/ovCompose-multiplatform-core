@@ -1,0 +1,14 @@
+public final class androidx/lifecycle/testing/TestLifecycleOwner : androidx/lifecycle/LifecycleOwner {
+	public fun <init> ()V
+	public fun <init> (Landroidx/lifecycle/Lifecycle$State;)V
+	public fun <init> (Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;)V
+	public synthetic fun <init> (Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCurrentState ()Landroidx/lifecycle/Lifecycle$State;
+	public synthetic fun getLifecycle ()Landroidx/lifecycle/Lifecycle;
+	public fun getLifecycle ()Landroidx/lifecycle/LifecycleRegistry;
+	public final fun getObserverCount ()I
+	public final fun handleLifecycleEvent (Landroidx/lifecycle/Lifecycle$Event;)V
+	public final fun setCurrentState (Landroidx/lifecycle/Lifecycle$State;)V
+	public final fun setCurrentState (Landroidx/lifecycle/Lifecycle$State;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+

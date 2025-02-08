@@ -28,4 +28,5 @@ internal fun Translations.kk() = mapOf(
     Strings.DefaultErrorMessage to "Енгізілген мән жарамсыз.",
     Strings.SliderRangeStart to "Аралықтың басы",
     Strings.SliderRangeEnd to "Аралықтың соңы",
+    Strings.SnackbarPaneTitle to "Ескерту",
 )

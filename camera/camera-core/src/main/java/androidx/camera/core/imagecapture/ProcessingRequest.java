@@ -18,14 +18,13 @@ package androidx.camera.core.imagecapture;
 
 import static java.util.Objects.requireNonNull;
 
+import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
-import android.os.Build;
 
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
@@ -40,9 +39,8 @@ import java.util.List;
 /**
  * A post-processing request and its callback.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 class ProcessingRequest {
-
+    private final int mRequestId;
     @Nullable
     private final ImageCapture.OutputFileOptions mOutputFileOptions;
     @NonNull
@@ -59,6 +57,8 @@ class ProcessingRequest {
     private final List<Integer> mStageIds;
 
     @NonNull final ListenableFuture<Void> mCaptureFuture;
+    static final int PROGRESS_NOT_RECEIVED = -1;
+    private int mLastCaptureProcessProgressed = PROGRESS_NOT_RECEIVED;
 
     ProcessingRequest(
             @NonNull CaptureBundle captureBundle,
@@ -69,6 +69,20 @@ class ProcessingRequest {
             @NonNull Matrix sensorToBufferTransform,
             @NonNull TakePictureCallback callback,
             @NonNull ListenableFuture<Void> captureFuture) {
+        this(captureBundle, outputFileOptions, cropRect, rotationDegrees, jpegQuality,
+                sensorToBufferTransform, callback, captureFuture, 0);
+    }
+    ProcessingRequest(
+            @NonNull CaptureBundle captureBundle,
+            @Nullable ImageCapture.OutputFileOptions outputFileOptions,
+            @NonNull Rect cropRect,
+            int rotationDegrees,
+            int jpegQuality,
+            @NonNull Matrix sensorToBufferTransform,
+            @NonNull TakePictureCallback callback,
+            @NonNull ListenableFuture<Void> captureFuture,
+            int requestId) {
+        mRequestId = requestId;
         mOutputFileOptions = outputFileOptions;
         mJpegQuality = jpegQuality;
         mRotationDegrees = rotationDegrees;
@@ -91,6 +105,10 @@ class ProcessingRequest {
     @NonNull
     List<Integer> getStageIds() {
         return mStageIds;
+    }
+
+    public int getRequestId() {
+        return mRequestId;
     }
 
     @Nullable
@@ -128,11 +146,24 @@ class ProcessingRequest {
         mCallback.onCaptureStarted();
     }
 
+    @MainThread
+    void onCaptureProcessProgressed(int progress) {
+        if (mLastCaptureProcessProgressed != progress) {
+            mLastCaptureProcessProgressed = progress;
+            mCallback.onCaptureProcessProgressed(progress);
+        }
+    }
+
     /**
      * @see TakePictureCallback#onImageCaptured()
      */
     @MainThread
     void onImageCaptured() {
+        // If process progress has ever been sent, ensure progress 100 is sent before image sent.
+        if (mLastCaptureProcessProgressed != PROGRESS_NOT_RECEIVED) {
+            onCaptureProcessProgressed(100);
+        }
+
         mCallback.onImageCaptured();
     }
 
@@ -142,6 +173,10 @@ class ProcessingRequest {
     @MainThread
     void onFinalResult(@NonNull ImageCapture.OutputFileResults outputFileResults) {
         mCallback.onFinalResult(outputFileResults);
+    }
+
+    void onPostviewBitmapAvailable(@NonNull Bitmap bitmap) {
+        mCallback.onPostviewBitmapAvailable(bitmap);
     }
 
     /**

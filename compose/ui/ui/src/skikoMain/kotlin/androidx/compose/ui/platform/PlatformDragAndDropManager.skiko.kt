@@ -20,6 +20,7 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropModifierNode
+import androidx.compose.ui.draganddrop.DragAndDropNode
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.geometry.Offset
@@ -32,17 +33,17 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 interface PlatformDragAndDropManager {
 
     /**
-     * Returns a boolean value indicating whether requesting drag and drop transfer is supported. If
+     * Returns a boolean value indicating whether requesting drag and drop transfer is required. If
      * it's not, the transfer might be initiated only be system and calling
-     * [requestDragAndDropTransfer] will throw an error.
+     * [requestDragAndDropTransfer] will be ignored.
      */
-    val isRequestDragAndDropTransferSupported: Boolean
+    val isRequestDragAndDropTransferRequired: Boolean
         get() = false
 
     /**
-     * Requests a drag and drop transfer. It might throw [UnsupportedOperationException] in case if
-     * the operation is not supported. [isRequestDragAndDropTransferSupported] can be used to check
-     * if it might be performed.
+     * Requests a drag and drop transfer. It might ignored in case if the operation performed by
+     * system. [isRequestDragAndDropTransferRequired] can be used to check if it should be used
+     * explicitly.
      */
     fun requestDragAndDropTransfer(source: PlatformDragAndDropSource, offset: Offset) {
         throw UnsupportedOperationException(
@@ -87,27 +88,4 @@ interface PlatformDragAndDropSource {
             drawDragDecoration: DrawScope.() -> Unit,
         ): Boolean
     }
-}
-
-@InternalComposeUiApi
-interface PlatformDragAndDropTarget : DragAndDropTarget {
-    /**
-     * Indicates whether there is a child that is eligible to receive a drop gesture immediately.
-     * This is true if the last move happened over a child that is interested in receiving a drop.
-     */
-    val hasEligibleDropTarget: Boolean
-
-    /**
-     * The entry point to register interest in a drag and drop session for receiving data.
-     *
-     * @return true to indicate interest in the contents of a drag and drop session, false
-     * indicates no interest. If false is returned, this [Modifier] will not receive any
-     * [DragAndDropTarget] events.
-     *
-     * All [DragAndDropModifierNode] instances in the hierarchy will be given an opportunity
-     * to participate in a drag and drop session via this method.
-     */
-    fun acceptDragAndDropTransfer(
-        startEvent: DragAndDropEvent
-    ): Boolean
 }

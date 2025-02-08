@@ -26,10 +26,25 @@ window.addEventListener("error", (message, source, lineno, colno, error) => {
 
 
 window.addEventListener("unhandledrejection", (event) => {
-    console.log(`[web] unhandled Promise rejection ${event.reason} \n`);
+    try {
+        console.log(`[web] unhandled Promise rejection ${event.reason} \n`);
+    } catch (e) {
+        console.log('[web] failed to retrieve Promise rejection reason', e.message, '\n');
+    }
 });
 
 window.addEventListener("rejectionhandled", (event) => {
-        console.log(`[web] handled Promise rejection; reason: ${event.reason} \n`);
+        try {
+            console.log(`[web] handled Promise rejection ${event.reason} \n`);
+        } catch (e) {
+            console.log('[web] failed to retrieve Promise rejection reason', e.message, '\n');
+        }
     }, false
 );
+
+beforeEach(function() {
+    // This is the part of mocha configuration which guarantees that DOM elements are recreated for each test
+    const canvasAppContainer = document.createElement("div");
+    canvasAppContainer.setAttribute("id", "canvasApp");
+    document.body.replaceChildren(canvasAppContainer);
+});

@@ -31,6 +31,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appsearch.app.AppSearchEnvironmentFactory;
 import androidx.appsearch.debugview.samples.model.Note;
 import androidx.appsearch.debugview.view.AppSearchDebugActivity;
 import androidx.core.content.ContextCompat;
@@ -49,7 +50,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 /**
  * Default Activity for AppSearch Debug View Sample App
@@ -80,7 +80,8 @@ public class NotesActivity extends AppCompatActivity {
         mListView = findViewById(R.id.list_view);
         mLoadingView = findViewById(R.id.text_view);
 
-        mBackgroundExecutor = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
+        mBackgroundExecutor = MoreExecutors.listeningDecorator(AppSearchEnvironmentFactory
+                .getEnvironmentInstance().createCachedThreadPoolExecutor());
 
         mNotesAppSearchManagerFuture.setFuture(NotesAppSearchManager.createNotesAppSearchManager(
                 getApplicationContext(), mBackgroundExecutor));
@@ -121,14 +122,13 @@ public class NotesActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.app_search_debug:
-                Intent intent = new Intent(this, AppSearchDebugActivity.class);
-                intent.putExtra(AppSearchDebugActivity.DB_INTENT_KEY, DB_NAME);
-                intent.putExtra(AppSearchDebugActivity.STORAGE_TYPE_INTENT_KEY,
-                        AppSearchDebugActivity.STORAGE_TYPE_LOCAL);
-                startActivity(intent);
-                return true;
+        if (item.getItemId() == R.id.app_search_debug) {
+            Intent intent = new Intent(this, AppSearchDebugActivity.class);
+            intent.putExtra(AppSearchDebugActivity.DB_INTENT_KEY, DB_NAME);
+            intent.putExtra(AppSearchDebugActivity.STORAGE_TYPE_INTENT_KEY,
+                    AppSearchDebugActivity.STORAGE_TYPE_LOCAL);
+            startActivity(intent);
+            return true;
         }
 
         return false;

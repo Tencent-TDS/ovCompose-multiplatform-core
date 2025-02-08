@@ -52,8 +52,8 @@ internal class ComposeSceneMediatorView(
     override fun layoutSubviews() {
         super.layoutSubviews()
 
-        runOnAppearedIfEligible()
         onLayoutSubviews()
+        runOnAppearedIfEligible()
     }
 
     override fun didMoveToWindow() {

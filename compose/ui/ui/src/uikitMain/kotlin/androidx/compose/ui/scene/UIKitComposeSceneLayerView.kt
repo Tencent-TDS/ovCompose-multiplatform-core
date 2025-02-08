@@ -17,14 +17,16 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.window.centroidLocationInView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
+import platform.UIKit.UIWindow
 
 /**
  * A backing ComposeSceneLayer view for each Compose scene layer. Its task is to
@@ -36,6 +38,7 @@ import platform.UIKit.UIView
  * events that start outside the bounds of the layer content or should let them pass through.
  */
 internal class UIKitComposeSceneLayerView(
+    private var onDidMoveToWindow: (UIWindow?) -> Unit,
     val isInsideInteractionBounds: (point: CValue<CGPoint>) -> Boolean,
     val isInterceptingOutsideEvents: () -> Boolean
 ): UIView(frame = CGRectZero.readValue()) {
@@ -113,4 +116,39 @@ internal class UIKitComposeSceneLayerView(
 
         return result
     }
+
+    override fun didMoveToWindow() {
+        super.didMoveToWindow()
+        onDidMoveToWindow(window)
+    }
+}
+
+/**
+ * Calculate the centroid location of the touches in the given collection.
+ *
+ * @param view The view in which coordinate space calculation is performed.
+ *
+ * @return The centroid location of the touches in [this] collection in the coordinate space
+ * of the given [view]. Or `null` if [this] is empty.
+ */
+private fun Collection<UITouch>.centroidLocationInView(view: UIView): CValue<CGPoint>? {
+    if (isEmpty()) {
+        return null
+    }
+
+    var centroidX = 0.0
+    var centroidY = 0.0
+
+    for (touch in this) {
+        val location = touch.locationInView(view)
+        location.useContents {
+            centroidX += x
+            centroidY += y
+        }
+    }
+
+    return CGPointMake(
+        x = centroidX / size.toDouble(),
+        y = centroidY / size.toDouble()
+    )
 }

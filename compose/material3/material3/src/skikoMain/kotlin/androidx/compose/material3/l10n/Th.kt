@@ -33,6 +33,7 @@ internal fun Translations.th() = mapOf(
     Strings.MenuCollapsed to "ยุบแล้ว",
     Strings.ToggleDropdownMenu to "เปิด/ปิดเมนูแบบเลื่อนลง",
     Strings.SnackbarDismiss to "ปิด",
+    Strings.SnackbarPaneTitle to "การแจ้งเตือน",
     Strings.SearchBarSearch to "ค้นหา",
     Strings.SuggestionsAvailable to "มีคำแนะนำที่ด้านล่าง",
     Strings.DatePickerTitle to "เลือกวันที่",
@@ -85,4 +86,6 @@ internal fun Translations.th() = mapOf(
     Strings.TimePickerHour to "ชั่วโมง",
     Strings.TimePickerMinuteTextField to "สำหรับนาที",
     Strings.TimePickerHourTextField to "สำหรับชั่วโมง",
+    Strings.CloseRail to "ปิดแถบข้าง",
+    Strings.WideNavigationRailPaneTitle to "แถบข้างสำหรับไปยังส่วนต่างๆ",
 )

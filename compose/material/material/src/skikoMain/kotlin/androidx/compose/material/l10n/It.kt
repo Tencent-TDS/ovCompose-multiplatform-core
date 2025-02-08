@@ -28,4 +28,5 @@ internal fun Translations.it() = mapOf(
     Strings.DefaultErrorMessage to "Valore non valido",
     Strings.SliderRangeStart to "Inizio intervallo",
     Strings.SliderRangeEnd to "Fine intervallo",
+    Strings.SnackbarPaneTitle to "Avviso",
 )
