@@ -139,8 +139,6 @@ internal interface IOSSkikoInput {
 
     fun characterRangeAtPoint(point: DpOffset): IntRange?
 
-    fun getCurrentTextBoundingRect(): DpRect?
-
     fun positionWithinRange(range: IntRange, atCharacterOffset: Long): Long?
 
     fun positionWithinRange(range: IntRange, farthestIndirection: String): Long?

@@ -50,12 +50,14 @@ import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
+import androidx.compose.ui.window.UserInputView
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import platform.UIKit.NSStringFromCGRect
+import platform.UIKit.UIColor
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
 import platform.UIKit.reloadInputViews
@@ -205,6 +207,7 @@ internal class UIKitTextInputService(
             textUIView?.selectionWillChange()
         }
         _tempCurrentInputSession?.reset(newValue, null)
+        println("Looks like state updated")
         currentInput?.let { input ->
             input.value = newValue
             _tempCursorPos = null
@@ -421,8 +424,11 @@ internal class UIKitTextInputService(
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
+            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.5))
+            it.setTintColor(UIColor.yellowColor)
             it.onKeyboardPresses = onKeyboardPresses
-            rootView.embedSubview(it)
+//            rootView.embedSubview(it)
+            placeViewAtTheTop(it)
         }
     }
 
@@ -434,6 +440,21 @@ internal class UIKitTextInputService(
             }
         }
         textUIView = null
+    }
+
+    private fun placeViewAtTheTop(view: UIView) {
+//        val targetWindow = rootView.window ?: return
+//        var topViewController = targetWindow.rootViewController
+//
+//        while (topViewController?.presentedViewController != null) {
+//            topViewController = topViewController.presentedViewController
+//        }
+//        topViewController?.view?.embedSubview(view)
+//        topViewController?.view?.bringSubviewToFront(view)
+        val subviews = rootView.subviews as List<UIView>
+        val touchView = subviews.first { it is UserInputView }
+        touchView.embedSubview(view)
+        touchView.bringSubviewToFront(view)
     }
 
     private fun createSkikoInput() = object : IOSSkikoInput {
@@ -518,12 +539,18 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
         override fun getSelectedTextRange(): IntRange? {
+            // TODO incorrect implementation
+            println("!!! getSelectedTextRange")
             val cursorPos = getCursorPos()
+            println("!!! cursorPos = $cursorPos")
             if (cursorPos != null) {
-                return cursorPos until cursorPos
+                println("!!! cursorpos != null -> cursorPos until cursorPos = ${cursorPos until cursorPos}, otherWat = ${IntRange(cursorPos, cursorPos)}")
+                return IntRange(cursorPos, cursorPos)
             }
             val selection = getState()?.selection
+            println("!!! selection = $selection")
             return if (selection != null) {
+                println("!!! selection != null -> selection.start until selection.end = ${selection.start until selection.end}")
                 selection.start until selection.end
             } else {
                 null
@@ -599,6 +626,7 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
         override fun markedTextRange(): IntRange? {
+            // Checked
             val composition = getState()?.composition
             return if (composition != null) {
                 composition.start until composition.end
@@ -657,7 +685,7 @@ internal class UIKitTextInputService(
             if (position < 0 || position > text.length) {
                 return null
             }
-            val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null
+            val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null // null in BTF2
             return rect.toDpRect(rootView.density)
         }
 
@@ -683,7 +711,9 @@ internal class UIKitTextInputService(
 //            val bottomTrailingDpRect = currentTextLayoutResult.getBoundingBox(range.last).toDpRect(rootView.density)
             println("Range = ${range.start}, ${range.endInclusive}")
             println("Selection = ${currentSelection?.start}, ${currentSelection?.end}")
-            return emptyList()
+            val dpRect = caretDpRectForPosition(range.start.toLong()) ?: return emptyList()
+            println("DPRECT = $dpRect")
+            return listOf(dpRect)
         }
 
         override fun closestPositionToPoint(point: DpOffset): Long? {
@@ -706,26 +736,6 @@ internal class UIKitTextInputService(
                 textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
                     ?: return null
             return textLayoutResult?.getWordBoundary(pointOffset)?.toIntRange()
-        }
-
-        override fun getCurrentTextBoundingRect(): DpRect? {
-            val currentDensity = rootView.density
-            val currentTextLayoutResult = textLayoutResult ?: return null
-            val leadingRect = currentTextLayoutResult.getBoundingBox(0)
-                .toDpRect(currentDensity) // TODO: Text may be empty
-            val textDpSize = currentTextLayoutResult.size.toSize().toDpSize(currentDensity)
-            val textBoundingRect = DpRect(
-                left = leadingRect.left,
-                top = leadingRect.top,
-                right = leadingRect.right + textDpSize.width,
-                bottom = leadingRect.bottom + textDpSize.height,
-            ) //TODO: CHECK RTL
-
-            println(
-                "Probable text bounding rect: ${textBoundingRect}"
-            )
-
-            return null
         }
 
         override fun positionWithinRange(range: IntRange, atCharacterOffset: Long): Long? {
