@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,27 +47,15 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.experimental.theories.DataPoint
 
 open class BaseWindowTextFieldTest {
-    internal interface TextFieldTestScope {
-        val window: ComposeWindow
-        val text: String
-
-        @Composable
-        fun TextField()
-
-        suspend fun awaitIdle()
-
-        suspend fun assertStateEquals(actual: String, selection: TextRange, composition: TextRange?)
-    }
-
-    internal fun runTextFieldTest(
-        textFieldKind: TextFieldKind,
+    internal fun <S: TextFieldTestScope> runTextFieldTest(
+        textFieldKind: TextFieldKind<S>,
         name: String,
-        body: suspend TextFieldTestScope.() -> Unit
+        body: suspend S.() -> Unit
     ) = runApplicationTest(
         hasAnimations = true,
         animationsDelayMillis = 100
     ) {
-        var scope: TextFieldTestScope? = null
+        var scope: S? = null
         launchTestApplication {
             Window(onCloseRequest = ::exitApplication) {
                 Box(
@@ -89,27 +79,86 @@ open class BaseWindowTextFieldTest {
         scope!!.body()
     }
 
-    internal fun interface TextFieldKind {
-        fun createScope(windowTestScope: WindowTestScope, window: ComposeWindow): TextFieldTestScope
+    internal abstract class TextFieldTestScope(
+        val windowTestScope: WindowTestScope,
+        val window: ComposeWindow
+    ) {
+        abstract val text: String
+
+        @Composable
+        abstract fun TextField()
+
+        suspend fun awaitIdle() {
+            windowTestScope.awaitIdle()
+        }
+
+        abstract suspend fun assertStateEquals(actual: String, selection: TextRange, composition: TextRange?)
+    }
+
+    internal abstract class TextField1Scope(
+        windowTestScope: WindowTestScope,
+        window: ComposeWindow
+    ): TextFieldTestScope(windowTestScope, window) {
+
+        protected var textFieldValue by mutableStateOf(TextFieldValue())
+
+        override val text: String
+            get() = textFieldValue.text
+
+        override suspend fun assertStateEquals(
+            actual: String,
+            selection: TextRange,
+            composition: TextRange?
+        ) {
+            windowTestScope.awaitIdle()
+            assertThat(textFieldValue.text).isEqualTo(actual)
+            assertThat(textFieldValue.selection).isEqualTo(selection)
+            assertThat(textFieldValue.composition).isEqualTo(composition)
+        }
+
+        override fun toString() = "TextField1"
+    }
+
+    internal abstract class TextField2Scope(
+        windowTestScope: WindowTestScope,
+        window: ComposeWindow
+    ): TextFieldTestScope(windowTestScope, window) {
+        protected val textFieldState = TextFieldState()
+
+        override val text: String
+            get() = textFieldState.text.toString()
+
+        override suspend fun assertStateEquals(
+            actual: String,
+            selection: TextRange,
+            composition: TextRange?
+        ) {
+            windowTestScope.awaitIdle()
+            assertThat(textFieldState.text.toString()).isEqualTo(actual)
+            assertThat(textFieldState.selection).isEqualTo(selection)
+            assertThat(textFieldState.composition).isEqualTo(composition)
+        }
+    }
+
+    internal abstract class SecureTextFieldScope(
+        windowTestScope: WindowTestScope,
+        window: ComposeWindow,
+        textObfuscationMode: TextObfuscationMode,
+    ): TextField2Scope(windowTestScope, window) {
+
+        var textObfuscationMode by mutableStateOf(textObfuscationMode)
+
+    }
+
+    internal fun interface TextFieldKind<S: TextFieldTestScope> {
+        fun createScope(windowTestScope: WindowTestScope, window: ComposeWindow): S
     }
 
     companion object {
         @JvmField
         @DataPoint
-        internal val TextField1: TextFieldKind = TextFieldKind { windowTestScope, window ->
-            object : TextFieldTestScope {
-                override val window: ComposeWindow
-                    get() = window
-
-                private var textFieldValue by mutableStateOf(TextFieldValue())
-
-                override val text: String
-                    get() = textFieldValue.text
-
-                override suspend fun awaitIdle() {
-                    windowTestScope.awaitIdle()
-                }
-
+        internal val TextField1 = TextFieldKind<TextField1Scope> { windowTestScope, window ->
+            object : TextField1Scope(windowTestScope, window) {
                 @Composable
                 override fun TextField() {
                     val focusRequester = FocusRequester()
@@ -124,37 +173,14 @@ open class BaseWindowTextFieldTest {
                     }
                 }
 
-                override suspend fun assertStateEquals(
-                    actual: String,
-                    selection: TextRange,
-                    composition: TextRange?
-                ) {
-                    windowTestScope.awaitIdle()
-                    assertThat(textFieldValue.text).isEqualTo(actual)
-                    assertThat(textFieldValue.selection).isEqualTo(selection)
-                    assertThat(textFieldValue.composition).isEqualTo(composition)
-                }
-
                 override fun toString() = "TextField1"
             }
         }
 
         @JvmField
         @DataPoint
-        internal val TextField2: TextFieldKind = TextFieldKind { windowTestScope, window ->
-            object : TextFieldTestScope {
-                override val window: ComposeWindow
-                    get() = window
-
-                private val textFieldState = TextFieldState()
-
-                override val text: String
-                    get() = textFieldState.text.toString()
-
-                override suspend fun awaitIdle() {
-                    windowTestScope.awaitIdle()
-                }
-
+        internal val TextField2 = TextFieldKind<TextField2Scope> { windowTestScope, window ->
+            object : TextField2Scope(windowTestScope, window) {
                 @Composable
                 override fun TextField() {
                     val focusRequester = FocusRequester()
@@ -168,19 +194,30 @@ open class BaseWindowTextFieldTest {
                     }
                 }
 
-                override suspend fun assertStateEquals(
-                    actual: String,
-                    selection: TextRange,
-                    composition: TextRange?
-                ) {
-                    windowTestScope.awaitIdle()
-                    assertThat(textFieldState.text.toString()).isEqualTo(actual)
-                    assertThat(textFieldState.selection).isEqualTo(selection)
-                    assertThat(textFieldState.composition).isEqualTo(composition)
+                override fun toString() = "TextField2"
+            }
+        }
 
+        @JvmField
+        @DataPoint
+        internal val SecureTextField = TextFieldKind<SecureTextFieldScope> { windowTestScope, window ->
+            object : SecureTextFieldScope(windowTestScope, window, TextObfuscationMode.Hidden) {
+                @Composable
+                override fun TextField() {
+                    val focusRequester = FocusRequester()
+
+                    BasicSecureTextField(
+                        state = textFieldState,
+                        modifier = Modifier.focusRequester(focusRequester),
+                        textObfuscationMode = textObfuscationMode
+                    )
+
+                    LaunchedEffect(focusRequester) {
+                        focusRequester.requestFocus()
+                    }
                 }
 
-                override fun toString() = "TextField2"
+                override fun toString() = "SecureTextField"
             }
         }
     }
