@@ -58,11 +58,92 @@ kotlin {
     mingwX64()
 
     sourceSets {
+        all {
+            languageSettings.optIn("kotlin.RequiresOptIn")
+            languageSettings.optIn("kotlin.contracts.ExperimentalContracts")
+        }
+
         commonMain {
             dependencies {
-                api("androidx.collection:collection:1.5.0-beta02")
+                api(libs.kotlinStdlib)
+                implementation("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                implementation(libs.atomicFu)
             }
         }
+
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinTest)
+                implementation(libs.kotlinTestAnnotationsCommon)
+                implementation(libs.kotlinCoroutinesCore)
+            }
+        }
+
+        jvmTest {
+            dependencies {
+                implementation(libs.kotlinTestJunit)
+                implementation(libs.truth)
+                implementation(project(":internal-testutils-truth"))
+            }
+        }
+
+        jbMain.dependsOn(commonMain)
+        jvmMain.dependsOn(jbMain)
+        nonJvmMain.dependsOn(jbMain)
+        jsWasmMain.dependsOn(nonJvmMain)
+        jsMain.dependsOn(jsWasmMain)
+
+        wasmJsMain.dependsOn(jsWasmMain)
+
+        nativeMain.dependsOn(nonJvmMain)
+        linuxArm64Main.dependsOn(nativeMain)
+        linuxArm64Test.dependsOn(nativeTest)
+        linuxX64Main.dependsOn(nativeMain)
+        linuxX64Test.dependsOn(nativeTest)
+        mingwX64Main.dependsOn(nativeMain)
+        mingwX64Test.dependsOn(nativeTest)
+
+        def darwinMain = sourceSets.getByName("darwinMain")
+        def darwinTest = sourceSets.getByName("darwinTest")
+        def watchOsMain = sourceSets.create("watchOsMain")
+        def watchOsTest = sourceSets.create("watchOsTest")
+        watchOsMain.dependsOn(darwinMain)
+        watchOsTest.dependsOn(darwinTest)
+        watchosArm64Main.dependsOn(watchOsMain)
+        watchosArm64Test.dependsOn(watchOsTest)
+        watchosArm32Main.dependsOn(watchOsMain)
+        watchosArm32Test.dependsOn(watchOsTest)
+        watchosX64Main.dependsOn(watchOsMain)
+        watchosX64Test.dependsOn(watchOsTest)
+        watchosSimulatorArm64Main.dependsOn(watchOsMain)
+        watchosSimulatorArm64Test.dependsOn(watchOsTest)
+
+        def tvOsMain = sourceSets.create("tvOsMain")
+        def tvOsTest = sourceSets.create("tvOsTest")
+        tvOsMain.dependsOn(darwinMain)
+        tvOsTest.dependsOn(darwinTest)
+
+        tvosArm64Main.dependsOn(tvOsMain)
+        tvosArm64Test.dependsOn(tvOsTest)
+        tvosX64Main.dependsOn(tvOsMain)
+        tvosX64Test.dependsOn(tvOsTest)
+        tvosSimulatorArm64Main.dependsOn(tvOsMain)
+        tvosSimulatorArm64Test.dependsOn(tvOsTest)
+
+        def commonNonWebTest = sourceSets.create("commonNonWebTest")
+        commonNonWebTest.dependsOn(commonTest)
+        commonNonWebTest.dependencies {
+            implementation(libs.kotlinTest)
+            implementation(libs.kotlinTestAnnotationsCommon)
+            implementation(libs.kotlinCoroutinesCore)
+        }
+        nativeTest.dependsOn(commonNonWebTest)
+        jvmTest.dependsOn(commonNonWebTest)
+
+        def webTest = sourceSets.create("webTest")
+        webTest.dependsOn(commonTest)
+        jsTest.dependsOn(webTest)
+        wasmJsTest.dependsOn(webTest)
     }
 }
 
@@ -89,4 +170,11 @@ java {
 
 androidxCompose {
     composeCompilerPluginEnabled = false
+}
+
+project.tasks.withType(org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile) { task ->
+    if (task.name.toLowerCase().contains("test")) {
+        // It's needed for tests only: https://youtrack.jetbrains.com/issue/KT-59081
+        kotlinOptions.freeCompilerArgs += "-Xwasm-enable-array-range-checks"
+    }
 }
