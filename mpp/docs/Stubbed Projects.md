@@ -33,4 +33,4 @@ That's why we add these "stubs".
 **What makes them special:**
 - their klib unique-name should be compatible (the same) with previously published klibs in `org.jetbrains.compose`
 - they have `api(androidx.actualLib:version)` dependency, where androidx.actualLib:version is the library version we would redirect to.
-- they contain no source code, except one EmptyFile.kt with no code (the module is expected to have at least 1 kotlin file)
+- to avoid symbols duplication, they contain no source code, except one EmptyFile.kt with no code (the module is expected to have at least 1 kotlin file)
