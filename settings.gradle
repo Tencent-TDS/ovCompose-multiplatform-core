@@ -109,9 +109,11 @@ def includeProject(name, filePath) {
     }
 }
 
-includeProject(":annotation:annotation")
-includeProject(":annotation:annotation-sampled")
+// Stubbed projects:
+includeProject(":annotation:annotation", "annotation/annotation-compatibility-stub")
 includeProject(":collection:collection")
+
+includeProject(":annotation:annotation-sampled")
 includeProject(":compose:animation")
 includeProject(":compose:animation:animation")
 includeProject(":compose:animation:animation-lint")
