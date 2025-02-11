@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
 class WindowTypingLocationTest: BaseWindowTextFieldTest() {
     @Theory
     internal fun `input methods text location going right when type`(
-        textFieldKind: TextFieldKind,
+        textFieldKind: TextFieldKind<*>,
     ) = runTextFieldTest(
         textFieldKind = textFieldKind,
         name = "input methods text location going right when type"
@@ -56,7 +56,7 @@ class WindowTypingLocationTest: BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `input methods text location is inside window`(
-        textFieldKind: TextFieldKind,
+        textFieldKind: TextFieldKind<*>,
     ) = runTextFieldTest(
         textFieldKind = textFieldKind,
         name = "input methods text location inside window",
