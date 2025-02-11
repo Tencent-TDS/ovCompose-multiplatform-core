@@ -77,10 +77,14 @@ internal interface OnCanvasTests {
         }
     }
 
+    fun isKWasm(): Boolean = !isJs()
+
     fun requestFocus() {
         getCanvas().focus()
     }
 }
+
+private fun isJs(): Boolean = js("typeof onWasmReady === 'function'")
 
 internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = MainScope()) {
     scope.launch(Dispatchers.Unconfined) { send(value) }

@@ -435,6 +435,7 @@ internal class ComposeWindow(
     private fun onMouseEvent(
         event: MouseEvent,
     ) {
+        println("Mouse event** - ${event.type}, ${event.offset}, density = ${density.density}\n")
         keyboardModeState = KeyboardModeState.Hardware
         val eventType = when (event.type) {
             "mousedown" -> PointerEventType.Press
