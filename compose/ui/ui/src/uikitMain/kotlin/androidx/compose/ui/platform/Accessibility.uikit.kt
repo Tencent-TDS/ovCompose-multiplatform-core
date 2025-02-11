@@ -72,7 +72,6 @@ import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIntersectsRect
 import platform.CoreGraphics.CGRectIsEmpty
-import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityContainerType
 import platform.UIKit.UIAccessibilityContainerTypeNone
@@ -101,6 +100,7 @@ import platform.UIKit.accessibilityElementCount
 import platform.UIKit.accessibilityElements
 import platform.UIKit.accessibilityFrame
 import platform.UIKit.isAccessibilityElement
+import platform.UIKit.setAccessibilityElements
 import platform.darwin.NSInteger
 import platform.darwin.NSObject
 
@@ -329,8 +329,11 @@ private class AccessibilityRoot(
     UIFocusItemContainerProtocol {
     var element: AccessibilityElement? = null
         set(value) {
+            if (field?.accessibilityContainer === this) {
+                field?.setAccessibilityContainer(null)
+            }
             field = value
-            field?.parent = this
+            field?.setAccessibilityContainer(this)
         }
 
     override fun isAccessibilityElement(): Boolean = false
@@ -359,7 +362,7 @@ private class AccessibilityRoot(
     override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
         return if (mediator.isEnabled) {
             mediator.activateAccessibilityIfNeeded()
-            listOfNotNull(element as? UIFocusItemProtocol)
+            listOfNotNull(element)
         } else {
             emptyList<Any>()
         }
@@ -390,11 +393,7 @@ private class AccessibilityElement(
      */
     private val cachedProperties = mutableMapOf<CachedAccessibilityPropertyKey<*>, Any?>()
 
-    private var allChildren = children + nodeSemanticsElements()
-
     val key: AccessibilityElementKey get() = node.key
-
-    var parent: Any? = null
 
     /**
      * Indicates whether this element is still present in the tree.
@@ -403,7 +402,8 @@ private class AccessibilityElement(
         private set
 
     init {
-        children.forEach { it.parent = this }
+        setAccessibilityElements(children + nodeSemanticsElements())
+        children.forEach { it.setAccessibilityContainer(this) }
     }
 
     private fun nodeSemanticsElements(): List<Any> =
@@ -417,10 +417,13 @@ private class AccessibilityElement(
         assert(key == node.key) {
             "Element should be updated with a node that has the same key as the initial node"
         }
-        this.parent = null
         this.node = node
-        children.forEach { it.parent = this }
-        this.allChildren = children + nodeSemanticsElements()
+
+        accessibilityElements?.forEach {
+            (it as? CMPAccessibilityElement)?.setAccessibilityContainer(null)
+        }
+        setAccessibilityElements(children + nodeSemanticsElements())
+        children.forEach { it.setAccessibilityContainer(this) }
         this.cachedProperties.clear()
     }
 
@@ -430,29 +433,10 @@ private class AccessibilityElement(
         }
 
         isAlive = false
-        parent = null
-        allChildren = emptyList()
+        setAccessibilityContainer(null)
+        setAccessibilityElements(emptyList<Any>())
         cachedProperties.clear()
     }
-
-    override fun accessibilityElementAtIndex(index: NSInteger): Any? {
-        val i = index.toInt()
-        if (i in allChildren.indices) {
-            return allChildren[i]
-        }
-        return null
-    }
-
-    override fun accessibilityElementCount(): NSInteger {
-        return allChildren.count().toLong()
-    }
-
-    override fun indexOfAccessibilityElement(element: Any): NSInteger {
-        val index = allChildren.indexOf(element).toLong()
-        return index.takeIf { it >= 0 } ?: NSNotFound
-    }
-
-    override fun accessibilityContainer(): Any? = parent
 
     /**
      * Returns the value for the given [key] from the cache if it's present, otherwise computes the
@@ -544,7 +528,7 @@ private class AccessibilityElement(
     override fun isAccessibilityElement(): Boolean {
         // Node visibility changes don't trigger accessibility semantic recalculation.
         // This value should not be cached. See [SemanticsNode.isScreenReaderFocusable()]
-        return node.isAccessibilityElement
+        return isAlive && node.isAccessibilityElement
     }
 
     override fun accessibilityIdentifier(): String? =
@@ -603,7 +587,7 @@ private class AccessibilityElement(
 
     // UIFocusItemProtocol & UIFocusItemContainerProtocol
 
-    override fun canBecomeFocused(): Boolean = node.canBecomeFocused
+    override fun canBecomeFocused(): Boolean = isAlive && node.canBecomeFocused
 
     override fun didUpdateFocusInContext(
         context: UIFocusUpdateContext,
@@ -625,7 +609,7 @@ private class AccessibilityElement(
         accessibilityContainer as? UIFocusEnvironmentProtocol
 
     override fun preferredFocusEnvironments(): List<*> =
-        allChildren.mapNotNull { it as? UIFocusEnvironmentProtocol }
+        accessibilityElements?.mapNotNull { it as? UIFocusEnvironmentProtocol } ?: emptyList<Any>()
 
     private var updateFocusScheduled = false
     override fun setNeedsFocusUpdate() {
@@ -657,10 +641,9 @@ private class AccessibilityElement(
         error("Unexpected coordinate space.")
     }
 
-    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> = allChildren.filter {
-        it is UIFocusItemProtocol &&
-            CGRectIntersectsRect((it as NSObject).accessibilityFrame, rect)
-    }
+    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> = accessibilityElements?.filter {
+        it is UIFocusItemProtocol && CGRectIntersectsRect(it.frame, rect)
+    } ?: emptyList<Any>()
 
     override fun isTransparentFocusItem(): Boolean = true
 }
@@ -1030,7 +1013,6 @@ internal class AccessibilityMediator(
             isPresent
         }
 
-        rootAccessibilityElement.parent = view
         return rootAccessibilityElement
     }
 
@@ -1231,12 +1213,13 @@ private fun debugContainmentChain(accessibilityObject: Any): String {
     while (currentObject != null) {
         when (val constCurrentObject = currentObject) {
             is AccessibilityElement -> {
-                currentObject = constCurrentObject.parent
+                strings.add(constCurrentObject.key.toString())
+                currentObject = constCurrentObject.accessibilityContainer
             }
 
             is AccessibilityRoot -> {
                 strings.add("Root")
-                currentObject = constCurrentObject.accessibilityContainer()
+                currentObject = constCurrentObject.accessibilityContainer
             }
 
             is UIView -> {
