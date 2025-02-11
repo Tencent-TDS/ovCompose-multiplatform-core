@@ -427,8 +427,7 @@ internal class UIKitTextInputService(
             it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.5))
             it.setTintColor(UIColor.yellowColor)
             it.onKeyboardPresses = onKeyboardPresses
-//            rootView.embedSubview(it)
-            placeViewAtTheTop(it)
+            rootView.embedSubview(it)
         }
     }
 

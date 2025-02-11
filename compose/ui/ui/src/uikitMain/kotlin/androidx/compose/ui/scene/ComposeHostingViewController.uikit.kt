@@ -386,7 +386,7 @@ internal class ComposeHostingViewController(
             ProvideContainerCompositionLocals(content)
         }
 
-        rootView.bringSubviewToFront(rootMetalView)
+//        rootView.bringSubviewToFront(rootMetalView)
     }
 
     /**
