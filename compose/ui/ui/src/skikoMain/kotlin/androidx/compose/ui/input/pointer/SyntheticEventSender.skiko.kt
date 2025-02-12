@@ -146,10 +146,7 @@ internal class SyntheticEventSender(
                     type = PointerEventType.Release,
                     copyPointer = {
                         it.copySynthetic(
-                            // TODO is this a typo and it should be `it.id in newReleased`, as in sendMissingPresses?
-                            //  or maybe we can even write `down = !sendingAsUp.contains(it.id)` and `down = sendingAsDown.contains(it.id)`
-                            //  The test pass in both cases
-                            down = !sendingAsUp.contains(it.id)
+                            down = it.down && !sendingAsUp.contains(it.id)
                         )
                     }
                 )
@@ -161,9 +158,9 @@ internal class SyntheticEventSender(
     }
 
     private fun sendMissingPresses(currentEvent: PointerInputEvent): PointerEventResult {
-        val previousPressed = previousEvent?.pressedIds().orEmpty()
+        val previousPressed = previousEvent?.pressedIds().orEmpty().toSet()
         val currentPressed = currentEvent.pressedIds()
-        val newPressed = (currentPressed - previousPressed.toSet()).toList()
+        val newPressed = (currentPressed - previousPressed).toList()
         val sendingAsDown = HashSet<PointerId>(newPressed.size)
 
         var result = PointerEventResult(anyMovementConsumed = false)
@@ -178,7 +175,7 @@ internal class SyntheticEventSender(
                     type = PointerEventType.Press,
                     copyPointer = {
                         it.copySynthetic(
-                            down = sendingAsDown.contains(it.id)
+                            down = previousPressed.contains(it.id) || sendingAsDown.contains(it.id)
                         )
                     }
                 )

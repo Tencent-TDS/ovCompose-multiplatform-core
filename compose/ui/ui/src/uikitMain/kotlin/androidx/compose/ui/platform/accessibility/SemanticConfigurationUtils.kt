@@ -145,7 +145,7 @@ internal fun SemanticsConfiguration.accessibilityValue(): String? {
     }
 
     return getOrNull(SemanticsProperties.ProgressBarRangeInfo)?.let {
-        return if (!it.range.isEmpty()) {
+        return if (it.range.endInclusive > it.range.start) {
             val fraction = (it.current - it.range.start) /
                 (it.range.endInclusive - it.range.start)
             "${(fraction * 100f).roundToInt()}%"
