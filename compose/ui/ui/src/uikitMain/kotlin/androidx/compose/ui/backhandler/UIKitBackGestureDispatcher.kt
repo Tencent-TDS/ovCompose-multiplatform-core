@@ -17,12 +17,16 @@
 package androidx.compose.ui.backhandler
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
-import androidx.compose.ui.window.ComposeView
 import kotlin.math.abs
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ObjCAction
@@ -96,6 +100,19 @@ internal class UIKitBackGestureDispatcher(
     private fun removeGestureListeners() {
         leftEdgePanGestureRecognizer.view?.removeGestureRecognizer(leftEdgePanGestureRecognizer)
         rightEdgePanGestureRecognizer.view?.removeGestureRecognizer(rightEdgePanGestureRecognizer)
+    }
+
+    fun onKeyEvent(event: KeyEvent): Boolean {
+        if (event.type == KeyEventType.KeyUp && event.key == Key.Escape) {
+            activeListener?.let {
+                it.onStarted()
+                it.onCompleted()
+            }
+
+            return true
+        } else {
+            return false
+        }
     }
 }
 
