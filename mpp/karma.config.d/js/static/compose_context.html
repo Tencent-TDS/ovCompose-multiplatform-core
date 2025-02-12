@@ -1,19 +1,3 @@
-<!--
-  ~ Copyright 2025 The Android Open Source Project
-  ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~      http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
-
 <!DOCTYPE html>
 <!--
 This is the execution context.
@@ -25,8 +9,6 @@ Reloaded before every execution run.
   <title></title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-</head>
-<body>
   <style>
     body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; }
 
@@ -39,7 +21,8 @@ Reloaded before every execution run.
       height: 100%;
     }
   </style>
-  <div id="canvasApp" />
+</head>
+<body>
   <!-- The scripts need to be in the body DOM element, as some test running frameworks need the body
        to have already been created so they can insert their magic into it. For example, if loaded
        before body, Angular Scenario test framework fails to find the body and crashes and burns in

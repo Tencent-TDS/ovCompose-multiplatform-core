@@ -62,27 +62,16 @@ class MouseEventsTest : OnCanvasTests {
 
         dispatchEvents(MouseEvent("mouseenter", MouseEventInit(100, 100)))
 
-        if (isKWasm()) {
-            // We see that screenX/screenY are ignored
-            assertEquals(0.0, offsetX)
-            assertEquals(0.0, offsetY)
-        } else {
-            // Weird thing with MouseEvent in k/js!
-            assertEquals(-8.0, offsetX)
-            assertEquals(-8.0, offsetY)
-        }
+        // We see that screenX/screenY are ignored
+        assertEquals(0.0, offsetX)
+        assertEquals(0.0, offsetY)
+
 
         dispatchEvents(MouseEvent("mouseenter", MouseEventInit(clientX = 100, clientY = 100)))
 
-        if (isKWasm()) {
-            // We see that clientX/clientY are not ignored
-            assertEquals(100.0, offsetX)
-            assertEquals(100.0, offsetY)
-        } else {
-            // Weird thing with MouseEvent in k/js!
-            assertEquals(92.0, offsetX)
-            assertEquals(92.0, offsetY)
-        }
+        // We see that clientX/clientY are not ignored
+        assertEquals(100.0, offsetX)
+        assertEquals(100.0, offsetY)
     }
 
     @Test
