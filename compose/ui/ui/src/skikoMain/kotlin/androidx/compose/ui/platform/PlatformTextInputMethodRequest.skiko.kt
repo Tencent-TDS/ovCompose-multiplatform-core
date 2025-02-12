@@ -37,5 +37,5 @@ actual interface PlatformTextInputMethodRequest {
     @ExperimentalComposeUiApi
     val editProcessor: EditProcessor?
     @ExperimentalComposeUiApi
-    val textLayoutResult : Flow<TextLayoutResult>
+    val textLayoutResult: Flow<TextLayoutResult>
 }
