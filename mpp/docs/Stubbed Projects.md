@@ -7,10 +7,15 @@
 ### Purpose
 The need for "stubbed projects" appeared in this PR - https://github.com/JetBrains/compose-multiplatform-core/pull/1819
 
-YT ticket: https://youtrack.jetbrains.com/issue/CMP-7183/Infrastucture-No-need-to-publish-annotation-and-collection-libraries-anymore
+YT ticket: [CMP-7183: No need to publish annotation and collection libraries anymore](https://youtrack.jetbrains.com/issue/CMP-7183)
 
 
 **TL;DR;**
+
+To maintain the compatibility with dependant 3rd party libraries versions published in the past, we have to publish a dumb klib with correct unique_name, so it would satisfy the Kotlin dependency resolver (which is independent of Gradle dependency resolver).   
+
+
+**Details:**
 
 Androidx started to publish the artefacts for all necessary Kotlin targets (jvm, native, js and wasm).
 For example: https://maven.google.com/web/index.html?q=annotation#androidx.annotation:annotation
@@ -24,7 +29,7 @@ Such a publication would cause different problems:
 
 **Constraints:**
 
-- https://youtrack.jetbrains.com/issue/KT-61096/KLIB-Resolve-Drop-KLIB-resolve-inside-the-Kotlin-compiler
+- [KT-61096: Drop KLIB resolve inside the Kotlin compiler](https://youtrack.jetbrains.com/issue/KT-61096)
 - Need to maintain the compatibility of already published libraries (including 3rd party libs) with new Compose versions
 
 The above constraints mean that we can't stop publishing the Klibs, because earlier publihsed 3rd party klibs expect that the dependencies (klibs with unique-names) will be supplied during compilation.
