@@ -16,6 +16,7 @@
 
 package androidx.navigation.compose
 
+import androidx.collection.mutableObjectFloatMapOf
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -41,13 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.PredictiveBackHandler
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -56,32 +52,15 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.Navigator
+import androidx.navigation.compose.internal.LocalViewModelStoreOwner
+import androidx.navigation.compose.internal.PredictiveBackHandler
 import androidx.navigation.createGraph
 import androidx.navigation.get
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
-
-private class ComposeViewModelStoreOwner: ViewModelStoreOwner {
-    override val viewModelStore: ViewModelStore = ViewModelStore()
-    fun dispose() { viewModelStore.clear() }
-}
-
-/**
- * Return remembered [ViewModelStoreOwner] with the scope of current composable.
- *
- * TODO: Consider to move it to `lifecycle-viewmodel-compose` and upstream this to AOSP.
- */
-@Composable
-private fun rememberViewModelStoreOwner(): ViewModelStoreOwner {
-    val viewModelStoreOwner = remember { ComposeViewModelStoreOwner() }
-    DisposableEffect(viewModelStoreOwner) {
-        onDispose { viewModelStoreOwner.dispose() }
-    }
-    return viewModelStoreOwner
-}
 
 /**
  * Provides a place in the Compose hierarchy for self contained navigation to occur.
@@ -206,28 +185,28 @@ public fun NavHost(
     contentAlignment: Alignment = Alignment.TopStart,
     route: String? = null,
     enterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         {
             fadeIn(animationSpec = tween(700))
         },
     exitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         {
             fadeOut(animationSpec = tween(700))
         },
     popEnterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         enterTransition,
     popExitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         exitTransition,
     sizeTransform:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
         null,
     builder: NavGraphBuilder.() -> Unit
 ) {
@@ -276,30 +255,30 @@ public fun NavHost(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.TopStart,
     route: KClass<*>? = null,
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     enterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         {
             fadeIn(animationSpec = tween(700))
         },
     exitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         {
             fadeOut(animationSpec = tween(700))
         },
     popEnterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         enterTransition,
     popExitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         exitTransition,
     sizeTransform:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
         null,
     builder: NavGraphBuilder.() -> Unit
 ) {
@@ -348,30 +327,30 @@ public fun NavHost(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.TopStart,
     route: KClass<*>? = null,
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     enterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         {
             fadeIn(animationSpec = tween(700))
         },
     exitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         {
             fadeOut(animationSpec = tween(700))
         },
     popEnterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         enterTransition,
     popExitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         exitTransition,
     sizeTransform:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
         null,
     builder: NavGraphBuilder.() -> Unit
 ) {
@@ -412,7 +391,7 @@ public fun NavHost(
     navController: NavHostController,
     graph: NavGraph,
     modifier: Modifier = Modifier
-) = NavHost(navController, graph, modifier)
+): Unit = NavHost(navController, graph, modifier)
 
 /**
  * Provides a place in the Compose hierarchy for self contained navigation to occur.
@@ -478,7 +457,6 @@ public fun NavHost(
  * @param popExitTransition callback to define popExit transitions for destination in this host
  * @param sizeTransform callback to define the size transform for destinations in this host
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 public fun NavHost(
     navController: NavHostController,
@@ -486,33 +464,36 @@ public fun NavHost(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.TopStart,
     enterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         {
             fadeIn(animationSpec = tween(700))
         },
     exitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         {
             fadeOut(animationSpec = tween(700))
         },
     popEnterTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
         enterTransition,
     popExitTransition:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
         exitTransition,
     sizeTransform:
-        (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
         null
 ) {
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val viewModelStoreOwner = LocalViewModelStoreOwner.current ?: rememberViewModelStoreOwner()
+    val viewModelStoreOwner =
+        checkNotNull(LocalViewModelStoreOwner.current) {
+            "NavHost requires a ViewModelStoreOwner to be provided via LocalViewModelStoreOwner"
+        }
 
     navController.setViewModelStore(viewModelStoreOwner.viewModelStore)
 
@@ -530,20 +511,29 @@ public fun NavHost(
     var progress by remember { mutableFloatStateOf(0f) }
     var inPredictiveBack by remember { mutableStateOf(false) }
     PredictiveBackHandler(currentBackStack.size > 1) { backEvent ->
-        progress = 0f
-        val currentBackStackEntry = currentBackStack.lastOrNull()
-        composeNavigator.prepareForTransition(currentBackStackEntry!!)
-        val previousEntry = currentBackStack[currentBackStack.size - 2]
-        composeNavigator.prepareForTransition(previousEntry)
+        var currentBackStackEntry: NavBackStackEntry? = null
+        if (currentBackStack.size > 1) {
+            progress = 0f
+            currentBackStackEntry = currentBackStack.lastOrNull()
+            composeNavigator.prepareForTransition(currentBackStackEntry!!)
+            val previousEntry = currentBackStack[currentBackStack.size - 2]
+            composeNavigator.prepareForTransition(previousEntry)
+        }
         try {
             backEvent.collect {
-                inPredictiveBack = true
-                progress = it.progress
+                if (currentBackStack.size > 1) {
+                    inPredictiveBack = true
+                    progress = it.progress
+                }
             }
-            inPredictiveBack = false
-            composeNavigator.popBackStack(currentBackStackEntry, false)
+            if (currentBackStack.size > 1) {
+                inPredictiveBack = false
+                composeNavigator.popBackStack(currentBackStackEntry!!, false)
+            }
         } catch (e: CancellationException) {
-            inPredictiveBack = false
+            if (currentBackStack.size > 1) {
+                inPredictiveBack = false
+            }
         }
     }
 
@@ -568,7 +558,7 @@ public fun NavHost(
 
     val backStackEntry: NavBackStackEntry? = visibleEntries.lastOrNull()
 
-    val zIndices = remember { mutableMapOf<String, Float>() }
+    val zIndices = remember { mutableObjectFloatMapOf<String>() }
 
     if (backStackEntry != null) {
         val finalEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
@@ -668,14 +658,14 @@ public fun NavHost(
                 // a case where visible has cleared the old state for some reason, so instead of
                 // attempting to animate away from the initialState, we skip the animation.
                 if (initialState in visibleEntries) {
-                    val initialZIndex =
-                        zIndices[initialState.id] ?: 0f.also { zIndices[initialState.id] = 0f }
+                    val initialZIndex = zIndices.getOrPut(initialState.id) { 0f }
                     val targetZIndex =
                         when {
                             targetState.id == initialState.id -> initialZIndex
                             composeNavigator.isPop.value || inPredictiveBack -> initialZIndex - 1f
                             else -> initialZIndex + 1f
-                        }.also { zIndices[targetState.id] = it }
+                        }
+                    zIndices[targetState.id] = targetZIndex
 
                     ContentTransform(
                         finalEnter(this),
@@ -717,11 +707,17 @@ public fun NavHost(
             }
         }
         LaunchedEffect(transition.currentState, transition.targetState) {
-            if (transition.currentState == transition.targetState) {
+            if (
+                transition.currentState == transition.targetState &&
+                // There is a race condition where previous animation has completed the new
+                // animation has yet to start and there is a navigate call before this effect.
+                // We need to make sure we are completing only when the start is settled on the
+                // actual entry.
+                (navController.currentBackStackEntry == null ||
+                    transition.targetState == navController.currentBackStackEntry)
+            ) {
                 visibleEntries.forEach { entry -> composeNavigator.onTransitionComplete(entry) }
-                zIndices
-                    .filter { it.key != transition.targetState.id }
-                    .forEach { zIndices.remove(it.key) }
+                zIndices.removeIf { key, _ -> key != transition.targetState.id }
             }
         }
     }

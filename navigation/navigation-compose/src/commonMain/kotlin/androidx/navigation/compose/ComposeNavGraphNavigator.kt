@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,16 +31,14 @@ import kotlin.jvm.JvmSuppressWildcards
  * Custom subclass of [NavGraphNavigator] that adds support for defining transitions at the
  * navigation graph level.
  */
-internal expect class ComposeNavGraphNavigator(
-    navigatorProvider: NavigatorProvider
-) : NavGraphNavigator {
-    internal class ComposeNavGraph(
-        navGraphNavigator: Navigator<out NavGraph>
-    ) : NavGraph {
+internal expect class ComposeNavGraphNavigator(navigatorProvider: NavigatorProvider) :
+    NavGraphNavigator {
+    override fun createDestination(): NavGraph
+
+    internal class ComposeNavGraph(navGraphNavigator: Navigator<out NavGraph>) : NavGraph {
         internal var enterTransition:
             (@JvmSuppressWildcards
             AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)?
-
         internal var exitTransition:
             (@JvmSuppressWildcards
             AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)?

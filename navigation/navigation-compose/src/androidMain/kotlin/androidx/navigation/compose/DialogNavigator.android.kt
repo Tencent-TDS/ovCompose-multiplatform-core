@@ -17,7 +17,6 @@
 package androidx.navigation.compose
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.FloatingWindow
 import androidx.navigation.NavBackStackEntry
@@ -26,29 +25,19 @@ import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 import androidx.navigation.compose.DialogNavigator.Destination
 
-/**
- * Navigator that navigates through [Composable]s that will be hosted within a [Dialog]. Every
- * destination using this Navigator must set a valid [Composable] by setting it directly on an
- * instantiated [Destination] or calling [dialog].
- */
 @Navigator.Name("dialog")
-public actual class DialogNavigator
-actual constructor() : Navigator<Destination>() {
-
-    /** Get the back stack from the [state]. */
+public actual class DialogNavigator actual constructor() : Navigator<Destination>() {
     internal actual val backStack
         get() = state.backStack
 
-    /** Get the transitioning dialogs from the [state]. */
     internal actual val transitionInProgress
         get() = state.transitionsInProgress
 
-    /** Dismiss the dialog destination associated with the given [backStackEntry]. */
     internal actual fun dismiss(backStackEntry: NavBackStackEntry) {
         popBackStack(backStackEntry, false)
     }
 
-    override fun navigate(
+    actual override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
@@ -56,11 +45,11 @@ actual constructor() : Navigator<Destination>() {
         entries.forEach { entry -> state.push(entry) }
     }
 
-    override fun createDestination(): Destination {
+    actual override fun createDestination(): Destination {
         return Destination(this) {}
     }
 
-    override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
+    actual override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         state.popWithTransition(popUpTo, savedState)
         // When popping, the incoming dialog is marked transitioning to hold it in
         // STARTED. With pop complete, we can remove it from transition so it can move to RESUMED.
@@ -75,9 +64,9 @@ actual constructor() : Navigator<Destination>() {
         state.markTransitionComplete(entry)
     }
 
-    /** NavDestination specific to [DialogNavigator] */
     @NavDestination.ClassType(Composable::class)
-    public actual class Destination actual constructor(
+    public actual class Destination
+    actual constructor(
         navigator: DialogNavigator,
         internal actual val dialogProperties: DialogProperties,
         internal actual val content: @Composable (NavBackStackEntry) -> Unit

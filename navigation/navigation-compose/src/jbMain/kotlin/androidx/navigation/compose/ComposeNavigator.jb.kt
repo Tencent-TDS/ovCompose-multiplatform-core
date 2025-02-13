@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,18 +29,19 @@ import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 import androidx.navigation.compose.ComposeNavigator.Destination
 import kotlin.jvm.JvmSuppressWildcards
+import kotlinx.coroutines.flow.StateFlow
 
-public actual class ComposeNavigator
-actual constructor() : Navigator<Destination>(NAME) {
+public actual class ComposeNavigator actual constructor() : Navigator<Destination>(NAME) {
+
     internal actual val transitionsInProgress
         get() = state.transitionsInProgress
 
-    public actual val backStack
+    public actual val backStack: StateFlow<List<NavBackStackEntry>>
         get() = state.backStack
 
     internal actual val isPop = mutableStateOf(false)
 
-    override fun navigate(
+    actual override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
@@ -53,7 +54,7 @@ actual constructor() : Navigator<Destination>(NAME) {
         return Destination(this) {}
     }
 
-    override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
+    actual override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         state.popWithTransition(popUpTo, savedState)
         isPop.value = true
     }
@@ -69,9 +70,9 @@ actual constructor() : Navigator<Destination>(NAME) {
     public actual class Destination actual constructor(
         navigator: ComposeNavigator,
         internal actual val content:
-            @Composable
-            AnimatedContentScope.(@JvmSuppressWildcards NavBackStackEntry) -> Unit
+        @Composable AnimatedContentScope.(@JvmSuppressWildcards NavBackStackEntry) -> Unit
     ) : NavDestination(navigator) {
+
         internal actual var enterTransition:
             (@JvmSuppressWildcards
             AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? =
