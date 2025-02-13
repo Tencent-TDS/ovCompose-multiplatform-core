@@ -21,7 +21,8 @@ import org.gradle.api.Project
 
 enum class ProjectLayoutType {
     ANDROIDX,
-    PLAYGROUND;
+    PLAYGROUND,
+    JB_FORK;
 
     companion object {
         /** Returns the project layout type for the project (PLAYGROUND or ANDROIDX) */
@@ -30,8 +31,8 @@ enum class ProjectLayoutType {
             val value = project.extraPropertyOrNull(STUDIO_TYPE)
             return when (value) {
                 "playground" -> ProjectLayoutType.PLAYGROUND
-                null,
                 "androidx" -> ProjectLayoutType.ANDROIDX
+                null -> ProjectLayoutType.JB_FORK
                 else -> error("Invalid project type $value")
             }
         }
@@ -40,6 +41,11 @@ enum class ProjectLayoutType {
         @JvmStatic
         fun isPlayground(project: Project): Boolean {
             return ProjectLayoutType.from(project) == ProjectLayoutType.PLAYGROUND
+        }
+
+        @JvmStatic
+        fun isAndroidX(project: Project): Boolean {
+            return ProjectLayoutType.from(project) == ProjectLayoutType.ANDROIDX
         }
     }
 }

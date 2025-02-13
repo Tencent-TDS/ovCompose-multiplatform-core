@@ -63,7 +63,7 @@ object KonanPrebuiltsSetup {
         check(!isConfigured(project)) {
             "Konan prebuilts directories for project ${project.path} are already configured"
         }
-        if (ProjectLayoutType.isPlayground(project)) {
+        if (!ProjectLayoutType.isAndroidX(project)) {
             // playground does not use prebuilts
         } else {
             // set konan prebuilts download URLs to AndroidX prebuilts

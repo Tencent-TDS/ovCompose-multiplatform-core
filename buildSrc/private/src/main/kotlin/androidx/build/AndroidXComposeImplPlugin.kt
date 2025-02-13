@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
 const val zipComposeReportsTaskName = "zipComposeCompilerReports"
 const val zipComposeMetricsTaskName = "zipComposeCompilerMetrics"
@@ -115,6 +116,15 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                     )
                 )
             }
+
+            // JetBrains fork: allow native experimental features globally
+            // TODO: Move to module config before upstreaming
+            project.tasks.withType(KotlinNativeCompile::class.java).configureEach {
+                it.compilerOptions.freeCompilerArgs.addAll(
+                    "-opt-in=kotlinx.cinterop.ExperimentalForeignApi",
+                    "-opt-in=kotlin.experimental.ExperimentalNativeApi"
+                )
+            }
         }
     }
 }
@@ -133,15 +143,14 @@ private fun configureComposeCompilerPlugin(project: Project, extension: AndroidX
             }
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-        val isPlayground = ProjectLayoutType.isPlayground(project)
+        val isAndroidX = ProjectLayoutType.isAndroidX(project)
         val compilerPluginVersion = project.getVersionByName("kotlin")
         project.dependencies.add(
             COMPILER_PLUGIN_CONFIGURATION,
             "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:$compilerPluginVersion"
         )
 
-        if (
-            !isPlayground &&
+        if (isAndroidX &&
                 // ksp is also a compiler plugin, updating Kotlin for it will likely break the build
                 !project.plugins.hasPlugin("com.google.devtools.ksp")
         ) {

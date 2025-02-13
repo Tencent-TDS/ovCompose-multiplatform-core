@@ -24,12 +24,12 @@ def checkoutRoot = supportRootFolder.parentFile.parentFile
 
 ext.repos = new Properties()
 ext.repos.checkoutRoot = checkoutRoot.absolutePath
-ext.repos.prebuiltsRoot = new File(checkoutRoot, "prebuilts").absolutePath
 
 /**
  * Adds maven repositories to the given repository handler.
  */
 def addMavenRepositories(RepositoryHandler handler) {
+    /*
     def metalavaRepoOverride = System.getenv("METALAVA_REPO")
     if (metalavaRepoOverride != null) {
         for(extraRepo in metalavaRepoOverride.split(File.pathSeparator)) {
@@ -64,25 +64,15 @@ def addMavenRepositories(RepositoryHandler handler) {
         }
     }
     if (System.getenv("ALLOW_PUBLIC_REPOS") != null || System.getProperty("ALLOW_PUBLIC_REPOS") != null) {
+    */
         handler.mavenCentral()
-        handler.google {
-            content {
-                includeGroupByRegex("androidx.*")
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-            }
-        }
+        handler.google()
         handler.gradlePluginPortal()
         handler.maven {
                url = "https://maven.pkg.jetbrains.space/public/p/compose/dev"
         }
-        handler.maven {
-            url = "https://packages.jetbrains.team/maven/p/kt/dev"
-            content {
-                includeGroupByRegex("org\\.jetbrains\\.kotlin.*")
-            }
-        }
         handler.mavenLocal()
+    /*
     }
     // Ordering appears to be important: b/229733266
     def androidPluginRepoOverride = System.getenv("GRADLE_PLUGIN_REPO")
@@ -93,6 +83,7 @@ def addMavenRepositories(RepositoryHandler handler) {
             }
         }
     }
+    */
 }
 
 ext.repos.addMavenRepositories = this.&addMavenRepositories

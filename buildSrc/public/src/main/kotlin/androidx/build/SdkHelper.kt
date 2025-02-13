@@ -29,13 +29,12 @@ fun Project.writeSdkPathToLocalPropertiesFile() {
         val props = File(project.rootDir, "local.properties")
         // Gradle always separates directories with '/' regardless of the OS, so convert here.
         val gradlePath = sdkPath.absolutePath.replace(File.separator, "/")
-        val contents = "sdk.dir=$gradlePath\ncmake.dir=$gradlePath/native-build-tools"
+        val contents = "sdk.dir=$gradlePath"
         props.printWriter().use { out -> out.println(contents) }
     } else {
         throw Exception(
-            "Unable to find SDK prebuilts at $sdkPath. If you are not using a " +
-                "standard repo-based checkout, please follow the checkout instructions at " +
-                "go/androidx-onboarding."
+            "Unable to find SDK prebuilts at \"$sdkPath\". " +
+                "Run `./prebuilts/download-android-sdk.sh` before opening the project"
         )
     }
 }
@@ -120,7 +119,7 @@ fun Project.getSupportRootFolder(): File {
  * This method assumes that the canonical root project directory is {@code frameworks/support}.
  */
 fun Project.getCheckoutRoot(): File {
-    return project.getSupportRootFolder().parentFile.parentFile
+    return project.getSupportRootFolder()
 }
 
 /** Returns the path to the konan prebuilts folder (e.g. <root>/prebuilts/androidx/konan). */

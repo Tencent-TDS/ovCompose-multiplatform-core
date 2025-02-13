@@ -30,3 +30,10 @@ buildscript {
 }
 
 apply plugin: AndroidXRootPlugin
+
+allprojects {
+    // Workaround from https://github.com/JetBrains/compose-multiplatform-core/pull/1168
+    tasks.configureEach {
+        if (it.name == "kotlinStoreYarnLock") it.enabled = false
+    }
+}

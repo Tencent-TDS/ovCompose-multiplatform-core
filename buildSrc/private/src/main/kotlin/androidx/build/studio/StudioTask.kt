@@ -426,6 +426,10 @@ abstract class StudioTask : DefaultTask() {
                 when (ProjectLayoutType.from(this)) {
                     ProjectLayoutType.ANDROIDX -> RootStudioTask::class.java
                     ProjectLayoutType.PLAYGROUND -> PlaygroundStudioTask::class.java
+
+                    // TODO: it's possible to provide additional setup like ALLOW_PUBLIC_REPOS=true here
+                    //  So it might be useful for fork too
+                    ProjectLayoutType.JB_FORK -> return
                 }
             tasks.register(STUDIO_TASK, studioTask)
         }

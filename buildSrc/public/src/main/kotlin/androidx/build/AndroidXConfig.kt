@@ -103,7 +103,7 @@ val Project.defaultAndroidConfig: AndroidConfig
             ?: extensions.create("androidx.build.AndroidConfigImpl", AndroidConfigImpl::class.java)
 
 fun Project.getExternalProjectPath(): File {
-    return File(rootProject.projectDir, "../../external").canonicalFile
+    return File(rootProject.projectDir, "external").canonicalFile
 }
 
 fun Project.getKeystore(): File {

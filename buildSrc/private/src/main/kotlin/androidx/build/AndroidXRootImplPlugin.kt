@@ -65,23 +65,6 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
         maybeRegisterFilterableTask()
         registerListAffectedProjectsTask()
 
-        // If we're running inside Studio, validate the Android Gradle Plugin version.
-        val expectedAgpVersion = System.getenv("EXPECTED_AGP_VERSION")
-        if (providers.gradleProperty("android.injected.invoked.from.ide").isPresent) {
-            if (expectedAgpVersion != ANDROID_GRADLE_PLUGIN_VERSION) {
-                throw GradleException(
-                    """
-                    Please close and restart Android Studio.
-
-                    Expected AGP version \"$expectedAgpVersion\" does not match actual AGP version
-                    \"$ANDROID_GRADLE_PLUGIN_VERSION\". This happens when AGP is updated while
-                    Studio is running and can be fixed by restarting Studio.
-                    """
-                        .trimIndent()
-                )
-            }
-        }
-
         val verifyPlayground = VerifyPlaygroundGradleConfigurationTask.createIfNecessary(project)
 
         val aggregateBuildInfo =
@@ -170,9 +153,9 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
 
     private fun Project.configureTasksForKotlinWeb() {
         val offlineMirrorStorage =
-            if (ProjectLayoutType.isPlayground(this)) {
+            if (!ProjectLayoutType.isAndroidX(this)) {
                 project.file(
-                    layout.buildDirectory.dir("javascript-for-playground").map {
+                    layout.buildDirectory.dir("javascript-for-kotlin").map {
                         it.asFile.also { it.mkdirs() }
                     }
                 )
