@@ -190,6 +190,7 @@ private fun rememberLazyListMeasurePolicy(
         contentPadding,
         reverseLayout,
         isVertical,
+        beyondBoundsItemCount,
         horizontalAlignment,
         verticalAlignment,
         horizontalArrangement,
