@@ -29,7 +29,7 @@ import kotlin.reflect.KClass
  * A NavigationProvider stores a set of [Navigator]s that are valid ways to navigate to a
  * destination.
  */
-public expect open class NavigatorProvider {
+public expect open class NavigatorProvider() {
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public val navigators: Map<String, Navigator<out NavDestination>>
 

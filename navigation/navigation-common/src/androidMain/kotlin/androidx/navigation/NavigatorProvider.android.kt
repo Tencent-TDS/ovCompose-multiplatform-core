@@ -25,7 +25,7 @@ import androidx.annotation.RestrictTo
 import kotlin.reflect.KClass
 
 @SuppressLint("TypeParameterUnusedInFormals")
-public actual open class NavigatorProvider {
+public actual open class NavigatorProvider actual constructor() {
     private val _navigators: MutableMap<String, Navigator<out NavDestination>> = mutableMapOf()
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual val navigators: Map<String, Navigator<out NavDestination>>
