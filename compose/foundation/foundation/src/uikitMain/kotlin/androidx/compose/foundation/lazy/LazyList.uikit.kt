@@ -16,6 +16,10 @@
 
 package androidx.compose.foundation.lazy
 
+import androidx.compose.foundation.accessibility.ScreenReaderStatus
 import androidx.compose.runtime.Composable
 
-@Composable internal actual fun defaultLazyListBeyondBoundsItemCount(): Int = 0
+@Composable
+internal actual fun defaultLazyListBeyondBoundsItemCount(): Int {
+    return if (ScreenReaderStatus.isScreenReaderRunning()) 3 else 0
+}

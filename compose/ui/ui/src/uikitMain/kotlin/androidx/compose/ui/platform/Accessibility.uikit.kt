@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.accessibility.accessibilityCustomActions
 import androidx.compose.ui.platform.accessibility.accessibilityLabel
 import androidx.compose.ui.platform.accessibility.accessibilityTraits
 import androidx.compose.ui.platform.accessibility.accessibilityValue
+import androidx.compose.ui.platform.accessibility.allScrollableParentNodeIds
+import androidx.compose.ui.platform.accessibility.isRTL
 import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
@@ -37,6 +39,7 @@ import androidx.compose.ui.semantics.isImportantForAccessibility
 import androidx.compose.ui.semantics.sortByGeometryGroupings
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.toDpRect
@@ -44,6 +47,7 @@ import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.NativeAccessibilityViewSemanticsKey
+import androidx.compose.ui.window.DisplayLinkListener
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
@@ -119,6 +123,7 @@ internal sealed interface AccessibilityElementKey {
 private sealed interface AccessibilityNode {
     val key: AccessibilityElementKey
     val isAccessibilityElement: Boolean
+    val semanticsNode: SemanticsNode
 
     val accessibilityLabel: String? get() = null
     val accessibilityHint: String? get() = null
@@ -147,26 +152,39 @@ private sealed interface AccessibilityNode {
     /**
      * Represents a projection of the Compose semantics node to the iOS world.
      * The object itself is a node in a generated tree that matches 1-to-1 with the [SemanticsNode].
+     * @semanticsNode node associated with current accessibility element
+     * @mediator reference to the containing AccessibilityMediator
+     * @isBeyondBounds indicates that the node is not visible and may be focusable under certain
+     * circumstances. See [isAccessibilityElement].
+     * @ignoreSemanticChildren used for nodes that is [Container] and [Semantics] at the same time to prevent
      */
     class Semantics(
-        private val semanticsNode: SemanticsNode,
+        override val semanticsNode: SemanticsNode,
         private val mediator: AccessibilityMediator,
-        private val ignoreSemanticChildren: Boolean = false,
+        private val isBeyondBounds: Boolean
     ) : AccessibilityNode {
         private val cachedConfig = semanticsNode.copyWithMergingEnabled().config
 
-        override val key: AccessibilityElementKey
-            get() = semanticsNode.semanticsKey
+        override val key: AccessibilityElementKey get() = semanticsNode.semanticsKey
 
-        override val isAccessibilityElement: Boolean
-            get() = semanticsNode.isScreenReaderFocusable()
+        override val isAccessibilityElement: Boolean get() {
+            if (!semanticsNode.isScreenReaderFocusable()) {
+                return false
+            }
+
+            if (isBeyondBounds) {
+                // Semantics node is outside visible bounds.
+                // Check if it can be focused by scrolling.
+                return semanticsNode.allScrollableParentNodeIds.any {
+                    mediator.focusedNodesScrollableParentsIds.contains(it)
+                }
+            }
+
+            return true
+        }
 
         override val accessibilityInteropView: InteropWrappingView?
-            get() = if (ignoreSemanticChildren) {
-                null
-            } else {
-                cachedConfig.getOrNull(NativeAccessibilityViewSemanticsKey)
-            }
+            get() = cachedConfig.getOrNull(NativeAccessibilityViewSemanticsKey)
 
         override val accessibilityLabel: String?
             get() = cachedConfig.accessibilityLabel()
@@ -231,11 +249,24 @@ private sealed interface AccessibilityNode {
             mediator.clearFocusTargetIfNeeded(key)
         }
 
+        private var listener: DisplayLinkListener? = null
         override fun accessibilityScrollToVisible(): Boolean {
-            return semanticsNode.parent?.scrollToCenterRectIfNeeded(
-                rect = semanticsNode.unclippedBoundsInWindow,
-                safeAreaRectInWindow = mediator.safeAreaRectInWindow
-            ) ?: false
+            if (listener != null) {
+                return false
+            }
+            val listener = DisplayLinkListener()
+            listener.start()
+            this.listener = listener
+            CoroutineScope(mediator.coroutineScope.coroutineContext + listener.frameClock).launch {
+                semanticsNode.parent?.scrollToCenterRectIfNeeded(
+                    targetRect = semanticsNode.unclippedBoundsInWindow,
+                    safeAreaRectInWindow = mediator.safeAreaRectInWindow
+                )
+                listener.invalidate()
+                this@Semantics.listener = null
+            }
+
+            return true
         }
 
         override fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean {
@@ -293,14 +324,14 @@ private sealed interface AccessibilityNode {
      * semantic node with all its children.
      */
     class Container(
-        private val containerNode: SemanticsNode
+        override val semanticsNode: SemanticsNode
     ) : AccessibilityNode {
-        override val key: AccessibilityElementKey = containerNode.containerKey
+        override val key: AccessibilityElementKey = semanticsNode.containerKey
 
         override val isAccessibilityElement = false
 
         override val accessibilityContainerType: UIAccessibilityContainerType
-            get() = if (containerNode.isTraversalGroup) {
+            get() = if (semanticsNode.isTraversalGroup) {
                 UIAccessibilityContainerTypeSemanticGroup
             } else {
                 UIAccessibilityContainerTypeNone
@@ -382,7 +413,7 @@ private class AccessibilityRoot(
 @OptIn(BetaInteropApi::class)
 @ExportObjCClass
 private class AccessibilityElement(
-    private var node: AccessibilityNode,
+    var node: AccessibilityNode,
     children: List<AccessibilityElement>
 ) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER),
     UIFocusItemProtocol,
@@ -716,7 +747,18 @@ internal class AccessibilityMediator(
         set(value) {
             field = value
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
+
+            focusedNodesScrollableParentsIds = when (value) {
+                AccessibilityElementFocusMode.Initial,
+                AccessibilityElementFocusMode.None -> emptySet()
+
+                is AccessibilityElementFocusMode.KeepFocus -> accessibilityElementsMap[value.key]
+                    ?.node?.semanticsNode?.allScrollableParentNodeIds ?: emptySet()
+            }
         }
+
+    var focusedNodesScrollableParentsIds = setOf<Int>()
+        private set
 
     var keyboardFocusedElementKey: AccessibilityElementKey? = null
 
@@ -733,7 +775,7 @@ internal class AccessibilityMediator(
     /**
      * CoroutineScope to launch the tree syncing job on.
      */
-    private val coroutineScope = CoroutineScope(coroutineContext + job)
+    internal val coroutineScope = CoroutineScope(coroutineContext + job)
 
     private val root = AccessibilityRoot(mediator = this, onKeyboardPresses = onKeyboardPresses)
 
@@ -774,7 +816,7 @@ internal class AccessibilityMediator(
                 // Estimated delay between the iOS Accessibility Engine sync intervals.
                 // There is no reason to post change notifications more frequently because the iOS
                 // Accessibility Engine will ignore them.
-                delay(100)
+                delay(1)
 
                 while (invalidationChannel.tryReceive().isSuccess) {
                     // Do nothing, just consume the channel
@@ -807,7 +849,9 @@ internal class AccessibilityMediator(
     private var disableAccessibilityJob: Job? = null
 
     private fun scheduleAccessibilityDisablingAndCleanup() {
-        if (disableAccessibilityJob != null) {
+        if (disableAccessibilityJob != null ||
+            keyboardFocusedElementKey != null ||
+            focusMode is AccessibilityElementFocusMode.KeepFocus) {
             return
         }
         disableAccessibilityJob = coroutineScope.launch {
@@ -904,7 +948,7 @@ internal class AccessibilityMediator(
 
     private fun createOrUpdateAccessibilityElement(
         node: AccessibilityNode,
-        children: List<AccessibilityElement>,
+        children: List<AccessibilityElement> = emptyList(),
         frame: Rect
     ): AccessibilityElement {
         val element = accessibilityElementsMap[node.key]?.also {
@@ -939,23 +983,42 @@ internal class AccessibilityMediator(
             }
         }
 
-        // Flatten all children except nodes inside traversal groups to:
+        // 1. Flatten all children except nodes inside traversal groups to:
         // - have the same traversal order as on Android
         // - allow navigation between semantic containers on iOS
-        fun flattenChildrenInsideTraversalGroup(
-            node: SemanticsNode, semanticsChildren: ArrayList<SemanticsNode>
+        // 2. Split non-visible children beyond bounds to be located go before and after the group
+        // of visible semantic children in the accessibility elements tree.
+        // See [isBeforeBeyondBoundsItem] for more details.
+        fun SemanticsNode.flattenChildrenInsideTraversalGroup(
+            node: SemanticsNode,
+            semanticsChildren: ArrayList<SemanticsNode>,
+            beforeBeyondBoundsChildren: ArrayList<SemanticsNode>,
+            afterBeyondBoundsChildren: ArrayList<SemanticsNode>
         ) {
             node.children.fastForEach { child ->
-                if (child.isValid && (nodes.contains(child.id) || child.isTraversalGroup)) {
-                    semanticsChildren.add(child)
+                if (child.isValid) {
+                    if (nodes.contains(child.id)) {
+                        semanticsChildren.add(child)
+                    } else if (child.size != IntSize.Zero) {
+                        if (child.isBeforeBeyondBoundsItem(container = this)) {
+                            beforeBeyondBoundsChildren.add(child)
+                        } else {
+                            afterBeyondBoundsChildren.add(child)
+                        }
+                    }
                 }
                 if (!child.isTraversalGroup) {
-                    flattenChildrenInsideTraversalGroup(child, semanticsChildren)
+                    flattenChildrenInsideTraversalGroup(
+                        child,
+                        semanticsChildren,
+                        beforeBeyondBoundsChildren,
+                        afterBeyondBoundsChildren
+                    )
                 }
             }
         }
 
-        fun traverseGroup(node: SemanticsNode): AccessibilityElement {
+        fun traverseGroup(node: SemanticsNode, isBeyondBounds: Boolean): AccessibilityElement {
             presentIds.add(node.semanticsKey)
 
             val frame = nodes[node.id]?.adjustedBounds?.toRect() ?: node.unclippedBoundsInWindow
@@ -964,42 +1027,52 @@ internal class AccessibilityMediator(
                 return createOrUpdateAccessibilityElement(
                     node = AccessibilityNode.Semantics(
                         semanticsNode = node,
-                        mediator = this
+                        mediator = this,
+                        isBeyondBounds = isBeyondBounds
                     ),
-                    children = emptyList(),
                     frame = frame
                 )
             }
 
-            val flattenSemanticsChildren = ArrayList<SemanticsNode>()
-            flattenChildrenInsideTraversalGroup(node, flattenSemanticsChildren)
+            val visibleChildren = ArrayList<SemanticsNode>()
+            val beforeChildren = ArrayList<SemanticsNode>()
+            val afterChildren = ArrayList<SemanticsNode>()
+            node.flattenChildrenInsideTraversalGroup(
+                node, visibleChildren, beforeChildren, afterChildren
+            )
 
-            val children = flattenSemanticsChildren
-                .filter { it.boundsInWindow != Rect.Zero }
-                .let { node.sortByGeometryGroupings(it) }
-                .map(::traverseGroup)
+            val sortedChildren = node.sortByGeometryGroupings(visibleChildren)
+            beforeChildren.sortWith(BeyondBoundsComparator(node.isRTL))
+            afterChildren.sortWith(BeyondBoundsComparator(node.isRTL))
 
-            val containerElement = node.takeIf { it.isImportantForAccessibility() }?.let {
-                createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(
-                        semanticsNode = node,
-                        mediator = this,
-                        ignoreSemanticChildren = true,
-                    ),
-                    children = emptyList(),
-                    frame = frame
+            val visibleElements = sortedChildren.map { traverseGroup(it, isBeyondBounds) }
+            val beforeElements = beforeChildren.map { traverseGroup(it, isBeyondBounds = true) }
+            val afterElements = afterChildren.map { traverseGroup(it, isBeyondBounds = true) }
+
+            val containerElement = if (node.isImportantForAccessibility()) {
+                listOf(
+                    createOrUpdateAccessibilityElement(
+                        node = AccessibilityNode.Semantics(
+                            semanticsNode = node,
+                            mediator = this,
+                            isBeyondBounds = isBeyondBounds
+                        ),
+                        frame = frame,
+                    )
                 )
+            } else {
+                emptyList()
             }
 
             presentIds.add(node.containerKey)
             return createOrUpdateAccessibilityElement(
-                node = AccessibilityNode.Container(containerNode = node),
-                children = listOfNotNull(containerElement) + children,
+                node = AccessibilityNode.Container(semanticsNode = node),
+                children = beforeElements + containerElement + visibleElements + afterElements,
                 frame = frame
             )
         }
 
-        val rootAccessibilityElement = traverseGroup(rootNode)
+        val rootAccessibilityElement = traverseGroup(rootNode, isBeyondBounds = false)
 
         // Filter out [AccessibilityElement] in [accessibilityElementsMap] that are not present in the tree anymore
         accessibilityElementsMap.keys.retainAll {
@@ -1248,3 +1321,50 @@ private val SemanticsNode.isValid: Boolean
 private val SemanticsNode.isTraversalGroup: Boolean
     get() = unmergedConfig.getOrElse(SemanticsProperties.IsTraversalGroup) { false }
 
+/**
+ * Divides semantics beyond bounds children to be located before and after the block of visible
+ * semantics children, based on the assumption that `before children` are located above and to the
+ * left (to the right for RTL layout) of the centre of the parent node.
+ * This rule corresponds to the way the iOS accessibility engine traverses elements on the screen.
+ */
+private fun SemanticsNode.isBeforeBeyondBoundsItem(container: SemanticsNode): Boolean {
+    var centerOffset = container.unclippedBoundsInWindow.center - unclippedBoundsInWindow.center
+    if (!container.isRTL) {
+        centerOffset = centerOffset.copy(x = -centerOffset.x)
+    }
+
+    return centerOffset.x < centerOffset.y
+}
+
+/**
+ * Simplified version of [SemanticsNode.sortByGeometryGroupings] based on the
+ * [SemanticsNode.unclippedBoundsInWindow] because [SemanticsNode.boundsInWindow] is empty for
+ * nodes beyond visible bounds.
+ */
+private class BeyondBoundsComparator(private val isRTL: Boolean) : Comparator<SemanticsNode> {
+    override fun compare(a: SemanticsNode, b: SemanticsNode): Int {
+        var result = a.unmergedConfig
+            .getOrElse(SemanticsProperties.TraversalIndex) { 0f }
+            .compareTo(b.unmergedConfig.getOrElse(SemanticsProperties.TraversalIndex) { 0f })
+
+        if (result != 0) {
+            return result
+        }
+
+        result = a.unclippedBoundsInWindow.center.y
+            .compareTo(b.unclippedBoundsInWindow.center.y)
+
+        if (result != 0) {
+            return result
+        }
+
+        result = a.unclippedBoundsInWindow.center.x
+            .compareTo(b.unclippedBoundsInWindow.center.x)
+
+        if (result != 0) {
+            return if (isRTL) -result else result
+        }
+
+        return result
+    }
+}
