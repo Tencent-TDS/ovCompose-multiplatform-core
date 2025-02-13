@@ -19,7 +19,17 @@ package androidx.compose.foundation.lazy
 import androidx.compose.foundation.accessibility.ScreenReaderStatus
 import androidx.compose.runtime.Composable
 
+/**
+ * A minimum number of preloaded elements to allow the iOS accessibility engine to traverse the
+ * lazy list elements without delay for semantic tree reloads after scrolling.
+ */
+private const val SCREEN_READER_BEYOND_BOUNDS_ITEM_COUNT = 3
+
 @Composable
 internal actual fun defaultLazyListBeyondBoundsItemCount(): Int {
-    return if (ScreenReaderStatus.isScreenReaderRunning()) 3 else 0
+    return if (ScreenReaderStatus.isScreenReaderRunning()) {
+        SCREEN_READER_BEYOND_BOUNDS_ITEM_COUNT
+    } else {
+        0
+    }
 }

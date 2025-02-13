@@ -999,7 +999,7 @@ internal class AccessibilityMediator(
                 if (child.isValid) {
                     if (nodes.contains(child.id)) {
                         semanticsChildren.add(child)
-                    } else if (child.size != IntSize.Zero) {
+                    } else if (child.size != IntSize.Zero && child.isScreenReaderFocusable()) {
                         if (child.isBeforeBeyondBoundsItem(container = this)) {
                             beforeBeyondBoundsChildren.add(child)
                         } else {
@@ -1023,15 +1023,17 @@ internal class AccessibilityMediator(
 
             val frame = nodes[node.id]?.adjustedBounds?.toRect() ?: node.unclippedBoundsInWindow
 
+            fun makeSemanticsNode() = createOrUpdateAccessibilityElement(
+                node = AccessibilityNode.Semantics(
+                    semanticsNode = node,
+                    mediator = this,
+                    isBeyondBounds = isBeyondBounds
+                ),
+                frame = frame
+            )
+
             if (!node.isTraversalGroup && node.id != rootNode.id) {
-                return createOrUpdateAccessibilityElement(
-                    node = AccessibilityNode.Semantics(
-                        semanticsNode = node,
-                        mediator = this,
-                        isBeyondBounds = isBeyondBounds
-                    ),
-                    frame = frame
-                )
+                return makeSemanticsNode()
             }
 
             val visibleChildren = ArrayList<SemanticsNode>()
@@ -1049,17 +1051,8 @@ internal class AccessibilityMediator(
             val beforeElements = beforeChildren.map { traverseGroup(it, isBeyondBounds = true) }
             val afterElements = afterChildren.map { traverseGroup(it, isBeyondBounds = true) }
 
-            val containerElement = if (node.isImportantForAccessibility()) {
-                listOf(
-                    createOrUpdateAccessibilityElement(
-                        node = AccessibilityNode.Semantics(
-                            semanticsNode = node,
-                            mediator = this,
-                            isBeyondBounds = isBeyondBounds
-                        ),
-                        frame = frame,
-                    )
-                )
+            val containerElements = if (node.isImportantForAccessibility()) {
+                listOf(makeSemanticsNode())
             } else {
                 emptyList()
             }
@@ -1067,7 +1060,7 @@ internal class AccessibilityMediator(
             presentIds.add(node.containerKey)
             return createOrUpdateAccessibilityElement(
                 node = AccessibilityNode.Container(semanticsNode = node),
-                children = beforeElements + containerElement + visibleElements + afterElements,
+                children = beforeElements + containerElements + visibleElements + afterElements,
                 frame = frame
             )
         }
