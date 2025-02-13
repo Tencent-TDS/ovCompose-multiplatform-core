@@ -16,7 +16,6 @@
 
 package androidx.navigation.testing
 
-import androidx.core.bundle.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.FloatingWindow
@@ -24,6 +23,8 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavViewModelStoreProvider
 import androidx.navigation.NavigatorState
+import androidx.savedstate.SavedState
+import androidx.savedstate.savedState
 
 public actual class TestNavigatorState actual constructor() : NavigatorState() {
 
@@ -36,12 +37,12 @@ public actual class TestNavigatorState actual constructor() : NavigatorState() {
         }
     }
 
-    private val savedStates = mutableMapOf<String, Bundle>()
+    private val savedStates = mutableMapOf<String, SavedState>()
     private val entrySavedState = mutableMapOf<NavBackStackEntry, Boolean>()
 
     override fun createBackStackEntry(
         destination: NavDestination,
-        arguments: Bundle?
+        arguments: SavedState?
     ) = NavBackStackEntry.create(
         destination, arguments,
         Lifecycle.State.RESUMED, viewModelStoreProvider
@@ -108,7 +109,7 @@ public actual class TestNavigatorState actual constructor() : NavigatorState() {
             ) {
                 // Move the NavBackStackEntry to the stopped state, then save its state
                 entry.maxLifecycle = Lifecycle.State.CREATED
-                val savedState = Bundle()
+                val savedState = savedState()
                 entry.saveState(savedState)
                 savedStates[entry.id] = savedState
             }
