@@ -207,7 +207,6 @@ internal class UIKitTextInputService(
             textUIView?.selectionWillChange()
         }
         _tempCurrentInputSession?.reset(newValue, null)
-        println("Looks like state updated")
         currentInput?.let { input ->
             input.value = newValue
             _tempCursorPos = null
@@ -274,7 +273,6 @@ internal class UIKitTextInputService(
     }
 
     override fun notifyFocusedRect(rect: Rect) {
-//        println("notifyFocusedRect(), rect = ${rect}, size = ${rect.size}")
         currentInput?.let { input ->
             input.focusedRect = rect
         }
@@ -539,17 +537,12 @@ internal class UIKitTextInputService(
          */
         override fun getSelectedTextRange(): IntRange? {
             // TODO incorrect implementation
-            println("!!! getSelectedTextRange")
             val cursorPos = getCursorPos()
-            println("!!! cursorPos = $cursorPos")
             if (cursorPos != null) {
-                println("!!! cursorpos != null -> cursorPos until cursorPos = ${cursorPos until cursorPos}, otherWat = ${IntRange(cursorPos, cursorPos)}")
                 return IntRange(cursorPos, cursorPos)
             }
             val selection = getState()?.selection
-            println("!!! selection = $selection")
             return if (selection != null) {
-                println("!!! selection != null -> selection.start until selection.end = ${selection.start until selection.end}")
                 selection.start until selection.end
             } else {
                 null
@@ -689,7 +682,6 @@ internal class UIKitTextInputService(
         }
 
         override fun selectionDpRectsForRange(range: IntRange): List<DpRect> {
-            println("selectionDpRectsForRange")
             val currentSelection = getState()?.selection
 //
 //            val adjustedRange: IntRange = when {
@@ -708,10 +700,7 @@ internal class UIKitTextInputService(
 //            val topLeadingDpRect = currentTextLayoutResult.getBoundingBox(range.first).toDpRect(rootView.density)
 //            // Like previously, it should be a lower selection handle, despite the layout direction
 //            val bottomTrailingDpRect = currentTextLayoutResult.getBoundingBox(range.last).toDpRect(rootView.density)
-            println("Range = ${range.start}, ${range.endInclusive}")
-            println("Selection = ${currentSelection?.start}, ${currentSelection?.end}")
             val dpRect = caretDpRectForPosition(range.start.toLong()) ?: return emptyList()
-            println("DPRECT = $dpRect")
             return listOf(dpRect)
         }
 
