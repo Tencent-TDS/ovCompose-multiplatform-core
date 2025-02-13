@@ -257,7 +257,7 @@ private sealed interface AccessibilityNode {
             val listener = DisplayLinkListener()
             listener.start()
             this.listener = listener
-            CoroutineScope(mediator.coroutineScope.coroutineContext + listener.frameClock).launch {
+            CoroutineScope(mediator.coroutineContext + listener.frameClock).launch {
                 semanticsNode.parent?.scrollToCenterRectIfNeeded(
                     targetRect = semanticsNode.unclippedBoundsInWindow,
                     safeAreaRectInWindow = mediator.safeAreaRectInWindow
@@ -739,7 +739,7 @@ private sealed interface AccessibilityElementFocusMode {
 internal class AccessibilityMediator(
     val view: UIView,
     val owner: SemanticsOwner,
-    coroutineContext: CoroutineContext,
+    val coroutineContext: CoroutineContext,
     val performEscape: () -> Boolean,
     onKeyboardPresses: (Set<*>) -> Unit,
 ) {
@@ -775,7 +775,7 @@ internal class AccessibilityMediator(
     /**
      * CoroutineScope to launch the tree syncing job on.
      */
-    internal val coroutineScope = CoroutineScope(coroutineContext + job)
+    private val coroutineScope = CoroutineScope(coroutineContext + job)
 
     private val root = AccessibilityRoot(mediator = this, onKeyboardPresses = onKeyboardPresses)
 
@@ -816,7 +816,7 @@ internal class AccessibilityMediator(
                 // Estimated delay between the iOS Accessibility Engine sync intervals.
                 // There is no reason to post change notifications more frequently because the iOS
                 // Accessibility Engine will ignore them.
-                delay(1)
+                delay(100)
 
                 while (invalidationChannel.tryReceive().isSuccess) {
                     // Do nothing, just consume the channel
