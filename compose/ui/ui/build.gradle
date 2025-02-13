@@ -417,7 +417,7 @@ tasks.register("updateTranslationsIos", UpdateTranslationsTask.class) {
             "ar", // Arabic
             "eu", // Basque
             "bn", // Bengali (India)
-            // "bh_IN", // Bhojpuri (India)
+            "bho", // Bhojpuri (India)
             "bg", // Bulgarian
             "zh_HK", // Cantonese (Hong Kong)
             "ca", // Catalan

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ internal fun translationFor(localeTag: String) = when(localeTag) {
     "ar" -> Translations.ar()
     "eu" -> Translations.eu()
     "bn" -> Translations.bn()
+    "bho" -> Translations.bho()
     "bg" -> Translations.bg()
     "zh_HK" -> Translations.zhHK()
     "zh_CN" -> Translations.zhCN()

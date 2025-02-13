@@ -20,9 +20,9 @@ import androidx.compose.ui.platform.Strings
 import androidx.compose.ui.platform.Translations
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
-internal fun Translations.it() = mapOf(
-    Strings.NextPage to "Pagina successiva",
-    Strings.PreviousPage to "Pagina precedente",
-    Strings.FirstPage to "Prima pagina",
-    Strings.LastPage to "Ultima pagina",
+internal fun Translations.bho() = mapOf(
+    Strings.NextPage to "अगला पेज",
+    Strings.PreviousPage to "पिछला पेज",
+    Strings.FirstPage to "पहला पेज",
+    Strings.LastPage to "अंतिम पेज",
 )
