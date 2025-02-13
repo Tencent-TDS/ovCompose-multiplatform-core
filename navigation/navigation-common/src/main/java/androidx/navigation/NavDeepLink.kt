@@ -106,8 +106,7 @@ internal constructor(
             if (matcher.start() > appendPos) {
                 uriRegex.append(Pattern.quote(uri.substring(appendPos, matcher.start())))
             }
-            // allows for empty path arguments
-            uriRegex.append("([^/]*?|)")
+            uriRegex.append(PATH_REGEX)
             appendPos = matcher.end()
         }
         if (appendPos < uri.length) {
@@ -659,6 +658,11 @@ internal constructor(
     private companion object {
         private val SCHEME_PATTERN = Pattern.compile("^[a-zA-Z]+[+\\w\\-.]*:")
         private val FILL_IN_PATTERN = Pattern.compile("\\{(.+?)\\}")
+        private val SCHEME_REGEX = "http[s]?://"
+        private val WILDCARD_REGEX = ".*"
+        private val WILDCARD_REGEX_ESCAPED = "\\E$WILDCARD_REGEX\\Q"
+        // allows for empty path arguments i.e. empty strings ""
+        private val PATH_REGEX = "([^/]*?|)"
     }
 
     private fun parsePath() {
@@ -667,21 +671,21 @@ internal constructor(
         val uriRegex = StringBuilder("^")
         // append scheme pattern
         if (!SCHEME_PATTERN.matcher(uriPattern).find()) {
-            uriRegex.append("http[s]?://")
+            uriRegex.append(SCHEME_REGEX)
         }
         // extract beginning of uriPattern until it hits either a query(?), a framgment(#), or
         // end of uriPattern
         var matcher = Pattern.compile("(\\?|\\#|$)").matcher(uriPattern)
         matcher.find().let {
             buildRegex(uriPattern.substring(0, matcher.start()), pathArgs, uriRegex)
-            isExactDeepLink = !uriRegex.contains(".*") && !uriRegex.contains("([^/]+?)")
+            isExactDeepLink = !uriRegex.contains(WILDCARD_REGEX) && !uriRegex.contains(PATH_REGEX)
             // Match either the end of string if all params are optional or match the
             // question mark (or pound symbol) and 0 or more characters after it
             uriRegex.append("($|(\\?(.)*)|(\\#(.)*))")
         }
         // we need to specifically escape any .* instances to ensure
         // they are still treated as wildcards in our final regex
-        pathRegex = uriRegex.toString().replace(".*", "\\E.*\\Q")
+        pathRegex = uriRegex.toString().replace(WILDCARD_REGEX, WILDCARD_REGEX_ESCAPED)
     }
 
     private fun parseQuery(): MutableMap<String, ParamQuery> {
@@ -718,7 +722,7 @@ internal constructor(
 
             // Save the regex with wildcards unquoted, and add the param to the map with its
             // name as the key
-            param.paramRegex = argRegex.toString().replace(".*", "\\E.*\\Q")
+            param.paramRegex = argRegex.toString().replace(WILDCARD_REGEX, WILDCARD_REGEX_ESCAPED)
             paramArgMap[paramName] = param
         }
         return paramArgMap
