@@ -1181,6 +1181,13 @@ class NavDeepLinkTest {
     }
 
     @Test
+    fun deepLinkQueryParamArgumentWithWildCardIsNotExactDeepLink() {
+        val deepLinkArgument = "$DEEP_LINK_EXACT_HTTPS/{id}"
+        val deepLink = NavDeepLink(deepLinkArgument)
+        assertThat(deepLink.isExactDeepLink).isFalse()
+    }
+
+    @Test
     fun deepLinkQueryParamArgumentWithStarInFront() {
         val deepLinkArgument = "$DEEP_LINK_EXACT_HTTPS/users?productId=A*B{id}"
         val deepLink = NavDeepLink(deepLinkArgument)
