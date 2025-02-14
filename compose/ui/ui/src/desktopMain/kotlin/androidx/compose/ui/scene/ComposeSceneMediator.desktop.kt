@@ -20,6 +20,7 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.awt.AwtEventListener
@@ -58,6 +59,7 @@ import androidx.compose.ui.platform.a11y.AccessibilityController
 import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -782,6 +784,16 @@ internal class ComposeSceneMediator(
                     textInputService.stopInput()
                 }
             })
+        }
+
+        @ExperimentalComposeUiApi
+        override fun updateSelectionState(newState: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newState)
+        }
+
+        @ExperimentalComposeUiApi
+        override fun notifyFocusedRect(rect: Rect) {
+            textInputService.notifyFocusedRect(rect)
         }
     }
 

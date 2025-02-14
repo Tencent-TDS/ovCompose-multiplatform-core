@@ -341,6 +341,7 @@ COMPOSE_MATERIAL3_COMMON = { group = "org.jetbrains.compose.material3.common", a
 CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
 CORE_URI_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_URI", overrideInclude = [ ":core:core-uri" ] }
 GRAPHICS_SHAPES_JETBRAINS = { group = "org.jetbrains.androidx.graphics", atomicGroupVersion = "versions.GRAPHICS_SHAPES", overrideInclude = [ ":graphics:graphics-shapes" ] }
+PERFORMANCE_JETBRAINS = { group = "org.jetbrains.androidx.performance", atomicGroupVersion = "versions.PERFORMANCE", overrideInclude = [ ":performance:performance-annotation" ] }
 SAVEDSTATE_JETBRAINS = { group = "org.jetbrains.androidx.savedstate", atomicGroupVersion = "versions.SAVEDSTATE", overrideInclude = [ ":savedstate:savedstate" ] }
 WINDOW_CORE_JETBRAINS = { group = "org.jetbrains.androidx.window", atomicGroupVersion = "versions.WINDOW", overrideInclude = [ ":window:window-core" ]  }
 

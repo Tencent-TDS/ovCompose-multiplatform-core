@@ -103,7 +103,7 @@ internal class ComposeView(
         isAnimating = true
         updateLayout()
         metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
-        metalView.needsProactiveDisplayLink = true
+        metalView.redrawer.ongoingInteractionEventsCount++
         scope.launch {
             try {
                 animations()
@@ -113,7 +113,7 @@ internal class ComposeView(
                 isAnimating = false
                 updateLayout()
                 metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
-                metalView.needsProactiveDisplayLink = true
+                metalView.redrawer.ongoingInteractionEventsCount++
             }
         }
     }

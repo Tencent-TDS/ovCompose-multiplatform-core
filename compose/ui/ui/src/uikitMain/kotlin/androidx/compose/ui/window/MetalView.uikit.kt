@@ -63,11 +63,6 @@ internal class MetalView(
     var canBeOpaque by redrawer::canBeOpaque
 
     /**
-     * @see [MetalRedrawer.needsProactiveDisplayLink]
-     */
-    var needsProactiveDisplayLink by redrawer::needsProactiveDisplayLink
-
-    /**
      * Indicates that the view needs to be drawn synchronously with the next layout pass to avoid
      * flickering.
      */

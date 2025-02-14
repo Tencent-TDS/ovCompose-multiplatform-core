@@ -14,19 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.platform
+package androidx.compose.mpp.demo
 
-internal class PlatformClipboard
-internal constructor(private val clipboardManager: PlatformClipboardManager) : Clipboard {
+import androidx.compose.ui.platform.ClipEntry
 
-    override suspend fun getClipEntry(): ClipEntry? {
-        return clipboardManager.getClip()
-    }
+expect suspend fun ClipEntry?.getPlainText(): String?
 
-    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        clipboardManager.setClip(clipEntry)
-    }
-
-    override val nativeClipboard: NativeClipboard
-        get() = clipboardManager.nativeClipboard
-}
+expect fun createClipEntryWithPlainText(text: String): ClipEntry

@@ -68,7 +68,7 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        val id0 = onNodeWithTag("0").semanticsId()
+        val id0 = onNodeWithTag("0").fetchSemanticsNode().id
         onNodeWithTag("0").assertIsDisplayed()
 
         runOnIdle { scope.launch { state.scrollToItem(1) } }
@@ -91,8 +91,8 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        val id0 = onNodeWithTag("0").semanticsId()
-        val id1 = onNodeWithTag("1").semanticsId()
+        val id0 = onNodeWithTag("0").fetchSemanticsNode().id
+        val id1 = onNodeWithTag("1").fetchSemanticsNode().id
         onNodeWithTag("0").assertIsDisplayed()
         onNodeWithTag("1").assertIsDisplayed()
 
@@ -119,7 +119,7 @@ class LazyListSlotsReuseTest {
         // Semantics IDs must be fetched before scrolling.
         val deactivatedIds = mutableListOf<Int>()
         repeat(DefaultMaxItemsToRetain) {
-            deactivatedIds.add(onNodeWithTag("$it").semanticsId())
+            deactivatedIds.add(onNodeWithTag("$it").fetchSemanticsNode().id)
         }
 
         runOnIdle { scope.launch { state.scrollToItem(DefaultMaxItemsToRetain + 1) } }
@@ -145,8 +145,8 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        val id0 = onNodeWithTag("0").semanticsId()
-        val id1 = onNodeWithTag("1").semanticsId()
+        val id0 = onNodeWithTag("0").fetchSemanticsNode().id
+        val id1 = onNodeWithTag("1").fetchSemanticsNode().id
         onNodeWithTag("0").assertIsDisplayed()
         onNodeWithTag("1").assertIsDisplayed()
 
@@ -194,7 +194,7 @@ class LazyListSlotsReuseTest {
         }
 
         // 3 should be visible at this point, so save its ID to check later
-        val id3 = onNodeWithTag("3").semanticsId()
+        val id3 = onNodeWithTag("3").fetchSemanticsNode().id
 
         runOnIdle {
             scope.launch {
@@ -230,8 +230,8 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        val id10 = onNodeWithTag("10").semanticsId()
-        val id11 = onNodeWithTag("11").semanticsId()
+        val id10 = onNodeWithTag("10").fetchSemanticsNode().id
+        val id11 = onNodeWithTag("11").fetchSemanticsNode().id
 
         runOnIdle {
             scope.launch {
@@ -268,7 +268,7 @@ class LazyListSlotsReuseTest {
             }
         }
         // 8 should be visible at this point, so save its ID to check later
-        val id8 = onNodeWithTag("8").semanticsId()
+        val id8 = onNodeWithTag("8").fetchSemanticsNode().id
         runOnIdle {
             scope.launch {
                 state.scrollToItem(6) // 9 reused, buffer is [8]
@@ -331,8 +331,8 @@ class LazyListSlotsReuseTest {
         }
 
         // 2 and 3 should be visible at this point, so save its ID to check later
-        val id2 = onNodeWithTag("2").semanticsId()
-        val id3 = onNodeWithTag("3").semanticsId()
+        val id2 = onNodeWithTag("2").fetchSemanticsNode().id
+        val id3 = onNodeWithTag("3").fetchSemanticsNode().id
 
         runOnIdle {
             scope.launch {
@@ -376,7 +376,7 @@ class LazyListSlotsReuseTest {
 
         val deactivatedIds = mutableListOf<Int>()
         for (i in 0 until visibleItemsCount) {
-            deactivatedIds.add(onNodeWithTag("$i").semanticsId())
+            deactivatedIds.add(onNodeWithTag("$i").fetchSemanticsNode().id)
             onNodeWithTag("$i").assertIsDisplayed()
         }
         for (i in startOfType1 until startOfType1 + DefaultMaxItemsToRetain) {
@@ -419,8 +419,8 @@ class LazyListSlotsReuseTest {
             }
         }
 
-        val id0 = onNodeWithTag("0").semanticsId()
-        val id1 = onNodeWithTag("1").semanticsId()
+        val id0 = onNodeWithTag("0").fetchSemanticsNode().id
+        val id1 = onNodeWithTag("1").fetchSemanticsNode().id
 
         runOnIdle {
             scope.launch {

@@ -265,9 +265,19 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ): Unit = scene.sendPointerEvent(
-        eventType, position, scrollDelta, timeMillis, type, buttons, keyboardModifiers, nativeEvent, button
-    )
+    ) {
+        scene.sendPointerEvent(
+            eventType,
+            position,
+            scrollDelta,
+            timeMillis,
+            type,
+            buttons,
+            keyboardModifiers,
+            nativeEvent,
+            button
+        )
+    }
 
     /**
      * Send pointer event to the content. The more detailed version of [sendPointerEvent] that can accept
@@ -299,9 +309,18 @@ class ImageComposeScene @ExperimentalComposeUiApi constructor(
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ): Unit = scene.sendPointerEvent(
-        eventType, pointers, buttons, keyboardModifiers, scrollDelta, timeMillis, nativeEvent, button
-    )
+    ) {
+        scene.sendPointerEvent(
+            eventType,
+            pointers,
+            buttons,
+            keyboardModifiers,
+            scrollDelta,
+            timeMillis,
+            nativeEvent,
+            button
+        )
+    }
 
     /**
      * Send [KeyEvent] to the content.

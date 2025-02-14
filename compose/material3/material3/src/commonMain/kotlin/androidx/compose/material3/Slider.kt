@@ -289,6 +289,9 @@ fun Slider(
 ) {
     val state =
         remember(steps, valueRange) { SliderState(value, steps, onValueChangeFinished, valueRange) }
+
+    // TODO: Sync this with AOSP: https://youtrack.jetbrains.com/issue/CMP-7512
+    state.onValueChangeFinished = onValueChangeFinished
     state.onValueChange = onValueChange
     state.value = value
 

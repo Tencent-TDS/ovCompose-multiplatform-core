@@ -109,6 +109,7 @@ internal fun SelectionContainer(
     manager.onSelectionChange = onSelectionChange
     manager.selection = selection
 
+    // TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
     rememberClipboardEventsHandler(
         onCopy = { manager.getSelectedText()?.text },
         isEnabled = manager.isNonEmptySelection()

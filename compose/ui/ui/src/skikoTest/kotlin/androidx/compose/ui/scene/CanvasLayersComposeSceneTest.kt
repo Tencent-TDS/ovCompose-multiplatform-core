@@ -19,9 +19,15 @@ package androidx.compose.ui.scene
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 
@@ -41,6 +47,33 @@ class CanvasLayersComposeSceneTest {
             assertEquals(1, invalidationCount)
             scene.size = IntSize(120, 120)
             assertEquals(2, invalidationCount)
+        } finally {
+            scene.close()
+        }
+    }
+
+    @Test
+    fun cancelClickForGestureOwner() = runTest(StandardTestDispatcher()) {
+        var rootCancelled = false
+        var popupCancelled = false
+        val scene = CanvasLayersComposeScene(
+            size = IntSize(100, 100),
+            coroutineContext = coroutineContext,
+        )
+        try {
+            scene.setContent {
+                Box(modifier = Modifier.fillMaxSize().onCancel { rootCancelled = true })
+
+                Dialog(onDismissRequest = {}, properties = DialogProperties()) {
+                    Box(modifier = Modifier.fillMaxSize().onCancel { popupCancelled = true })
+                }
+            }
+
+            scene.sendPointerEvent(PointerEventType.Press, Offset(10f, 10f))
+            scene.cancelPointerInput()
+
+            assertFalse(rootCancelled)
+            assertTrue(popupCancelled)
         } finally {
             scene.close()
         }

@@ -17,6 +17,7 @@
 package androidx.compose.foundation
 
 import androidx.compose.foundation.copyPasteAndroidTests.lazy.list.assertIsNotPlaced
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.CompositionLocalProvider
@@ -25,9 +26,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalLocalization
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.PlatformLocalization
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ComposeUiTest
@@ -43,6 +48,7 @@ import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.runComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
+import java.awt.datatransfer.StringSelection
 import kotlin.test.assertEquals
 import org.junit.Test
 
@@ -99,14 +105,31 @@ class ContextMenuTest {
             override val paste = "paste"
             override val selectAll = "selectAll"
         }
-        val clipboardManager = object : ClipboardManager {
-            override fun setText(annotatedString: AnnotatedString) = Unit
-            override fun getText() = AnnotatedString("text")
+
+        val clipboard = object : Clipboard {
+            val text = StringSelection("text")
+            val clipEntry = ClipEntry(text)
+
+            val mockPlatformClipboard = java.awt.datatransfer.Clipboard("test").apply {
+                this.setContents(text, null)
+            }
+
+            override suspend fun getClipEntry(): ClipEntry? {
+                return clipEntry
+            }
+
+            override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+                TODO("Not yet implemented")
+            }
+
+            override val nativeClipboard: NativeClipboard
+                get() = mockPlatformClipboard
         }
+
         setContent {
             CompositionLocalProvider(
                 LocalLocalization provides localization,
-                LocalClipboardManager provides clipboardManager,
+                LocalClipboard provides clipboard
             ) {
                 BasicTextField("Text", {}, Modifier.testTag("textfield"))
             }

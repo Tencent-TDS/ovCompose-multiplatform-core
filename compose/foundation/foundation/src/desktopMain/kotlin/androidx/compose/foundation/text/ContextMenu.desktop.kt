@@ -25,6 +25,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.JPopupContextMenuRepresentation
 import androidx.compose.foundation.LocalContextMenuRepresentation
 import androidx.compose.foundation.contextMenuOpenDetector
+import androidx.compose.foundation.internal.nativeClipboardHasText
 import androidx.compose.foundation.text.TextContextMenu.TextManager
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.selection.SelectionManager
@@ -105,8 +106,7 @@ private val TextFieldSelectionManager.textManager: TextManager get() = object : 
         }
 
     override val paste: (() -> Unit)? get() =
-        // TODO https://youtrack.jetbrains.com/issue/CMP-7402
-        if (editable/* && clipboardManager?.getText() != null */) {
+        if (editable && clipboard?.nativeClipboard?.nativeClipboardHasText() == true) {
             {
                 paste()
                 focusRequester?.requestFocus()

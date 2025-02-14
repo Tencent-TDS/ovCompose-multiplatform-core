@@ -17,6 +17,7 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.HistoricalChange
 import androidx.compose.ui.input.pointer.PointerButton
@@ -27,6 +28,7 @@ import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.PointerInputEventData
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
+import kotlin.jvm.JvmInline
 
 /**
  * Represents pointer such as mouse cursor, or touch/stylus press.
@@ -144,4 +146,26 @@ internal fun PointerInputEvent(
     keyboardModifiers = keyboardModifiers,
     nativeEvent = nativeEvent,
     button = changedButton
+)
+
+/**
+ * The result of processing a pointer event.
+ *
+ * @property anyMovementConsumed Indicates whether any pointer movement was consumed during event
+ * processing.
+ */
+@InternalComposeUiApi
+@JvmInline
+value class PointerEventResult(val anyMovementConsumed: Boolean)
+
+// TODO: Rewrite to vararg after https://youtrack.jetbrains.com/issue/KT-33565/Allow-vararg-parameter-of-inline-class-type
+internal fun PointerEventResult.merging(
+    result1: PointerEventResult,
+    result2: PointerEventResult? = null,
+    result3: PointerEventResult? = null
+) = PointerEventResult(
+    anyMovementConsumed = anyMovementConsumed ||
+        result1.anyMovementConsumed ||
+        result2?.anyMovementConsumed ?: false ||
+        result3?.anyMovementConsumed ?: false
 )

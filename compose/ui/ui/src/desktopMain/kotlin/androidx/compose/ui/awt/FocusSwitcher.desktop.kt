@@ -19,86 +19,116 @@ package androidx.compose.ui.awt
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusProperties
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.viewinterop.InteropViewGroup
-import java.awt.event.FocusEvent
+import java.awt.event.FocusEvent.Cause.TRAVERSAL_BACKWARD
+import java.awt.event.FocusEvent.Cause.TRAVERSAL_FORWARD
 
+/**
+ * This class is for supporting seamless focus switching between Compose and SwingPanel components:
+ * - adds a special [modifier] that redirects focus from Compose to the SwingPanel components
+ * - adds [moveBeforeInteropView], [moveAfterInteropView] that
+ *   redirect focus from SwingPanel to Compose
+ *
+ * See ComposeFocusTest for all edge cases.
+ */
 internal class InteropFocusSwitcher(
     private val group: InteropViewGroup,
     private val focusManager: FocusManager,
 ) {
-    private val backwardTracker = Tracker {
-        val component = group.focusTraversalPolicy.getFirstComponent(group)
-        if (component != null) {
-            component.requestFocus(FocusEvent.Cause.TRAVERSAL_FORWARD)
-        } else {
-            moveForward()
+    private val focusPolicy get() = group.focusTraversalPolicy
+
+    private var tracker = FocusTracker(
+        properties = {
+            canFocus = focusPolicy.getDefaultComponent(group) != null
+        },
+        onFocus = {
+            when (it) {
+                FocusDirection.Next, FocusDirection.Enter -> {
+                    focusPolicy.getFirstComponent(group)?.requestFocus(TRAVERSAL_FORWARD)
+                }
+                FocusDirection.Previous -> {
+                    focusPolicy.getLastComponent(group)?.requestFocus(TRAVERSAL_BACKWARD)
+                }
+            }
         }
-    }
+    )
 
-    private val forwardTracker = Tracker {
-        val component = group.focusTraversalPolicy.getLastComponent(group)
-        if (component != null) {
-            component.requestFocus(FocusEvent.Cause.TRAVERSAL_BACKWARD)
-        } else {
-            moveBackward()
-        }
-    }
+    val modifier get() = tracker.modifier
 
-    val backwardTrackerModifier: Modifier
-        get() = backwardTracker.modifier
-
-    val forwardTrackerModifier: Modifier
-        get() = forwardTracker.modifier
-
-    fun moveBackward() {
-        backwardTracker.requestFocusWithoutEvent()
+    fun moveBeforeInteropView() {
+        tracker.requestFocusWithoutEvent()
         focusManager.moveFocus(FocusDirection.Previous)
     }
 
-    fun moveForward() {
-        forwardTracker.requestFocusWithoutEvent()
+    fun moveAfterInteropView() {
+        tracker.requestFocusWithoutEvent()
         focusManager.moveFocus(FocusDirection.Next)
     }
+}
 
-    /**
-     * A helper class that can help:
-     * - to prevent recursive focus events
-     *   (a case when we focus the same element inside `onFocusEvent`)
-     * - to prevent triggering `onFocusEvent` while requesting focus somewhere else
-     */
-    private class Tracker(
-        private val onNonRecursiveFocused: () -> Unit
-    ) {
-        private val requester = FocusRequester()
+private class FocusTracker(
+    properties: FocusProperties.() -> Unit,
+    private val onFocus: (FocusDirection) -> Unit,
+) {
+    private val requester = FocusRequester()
+    private var isRequestingFocus = false
+    private var lastEnteredDirection = FocusDirection.Enter
 
-        private var isRequestingFocus = false
-        private var isHandlingFocus = false
+    fun requestFocusWithoutEvent() {
+        try {
+            isRequestingFocus = true
+            requester.requestFocus()
+        } finally {
+            isRequestingFocus = false
+        }
+    }
 
-        fun requestFocusWithoutEvent() {
-            try {
-                isRequestingFocus = true
-                requester.requestFocus()
-            } finally {
-                isRequestingFocus = false
+    private val childModifier = Modifier
+        .focusProperties(properties)
+        .focusRequester(requester)
+        .onFocusEvent {
+            if (!isRequestingFocus && it.isFocused) {
+                // `parentModifier.onEnter` is always called before `childModifier.onFocusEvent`,
+                // so we always have the actual value
+                onFocus(lastEnteredDirection)
             }
         }
+        .focusTarget()
 
-        val modifier = Modifier
-            .focusRequester(requester)
-            .onFocusEvent {
-                if (!isRequestingFocus && !isHandlingFocus && it.isFocused) {
-                    try {
-                        isHandlingFocus = true
-                        onNonRecursiveFocused()
-                    } finally {
-                        isHandlingFocus = false
-                    }
-                }
+    private val parentModifier = Modifier
+        .focusProperties {
+            canFocus = false
+            onEnter = {
+                lastEnteredDirection = requestedFocusDirection
             }
-            .focusTarget()
-    }
+        }
+        .focusTarget()
+
+    // 2 modifiers:
+    // - parent to intercept onEnter, but without focusing on it
+    // - child to handle the focus
+    //
+    // The logic parent/child is got from [Modifier.focusInteropModifier].
+    //
+    // The difference with Android is that the [childModifier] is requesting the SwingPanel focus,
+    // not the [parentModifier].
+    //
+    // The reason for that is the case when SwingPanel is at the beginning of the window.
+    // In this case we call `onRequestFocusForOwner` when we focus on the first node:
+    //
+    //     parentModifier.onEnter -> onRequestFocusForOwner -> childModifier.onFocusEvent
+    //
+    // If we would also place focusing on a SwingPanel component between
+    // onEnter an onRequestFocusForOwner, onRequestFocusForOwner will override the focus.
+    //
+    // The issue may exist on Android too.
+    val modifier = Modifier
+        .then(parentModifier)
+        .then(childModifier)
 }
