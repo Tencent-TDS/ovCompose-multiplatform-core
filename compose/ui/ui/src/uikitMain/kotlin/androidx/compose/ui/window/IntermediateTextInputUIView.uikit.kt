@@ -143,6 +143,11 @@ internal class IntermediateTextInputUIView(
         return result
     }
 
+    fun notifyGeometryChanged(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
+        this.setBounds(bounds)
+        this.setFrame(frame)
+    }
+
     override fun beginFloatingCursorAtPoint(point: CValue<CGPoint>) {
         input?.beginFloatingCursor(point.useContents { DpOffset(x.dp, y.dp) })
     }
@@ -448,9 +453,7 @@ internal class IntermediateTextInputUIView(
         val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
         val longPosition = (position as? IntermediateTextPosition)?.position ?: return fallbackRect
         val caretDpRect = input?.caretDpRectForPosition(longPosition)
-        val debugRect = DpRect(left = 27.dp, top = 166.dp, right = 54.dp, bottom = 183.dp)
-//        return caretDpRect?.asCGRect() ?: fallbackRect
-        return debugRect.asCGRect()
+        return caretDpRect?.asCGRect() ?: fallbackRect
     }
 
     override fun selectionRectsForRange(range: UITextRange): List<*> {

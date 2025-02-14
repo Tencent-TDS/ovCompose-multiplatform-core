@@ -646,13 +646,14 @@ internal class ComposeSceneMediator(
         }
 
         override fun notifyGeometry(nodeRect: Rect, unclippedTextRect: Rect) {
-            val textFieldFrame = nodeRect.toDpRect(density).asCGRect()
+            val textFieldFrame = nodeRect.toDpRect(density)
             val contentBounds = Rect(
                 offset = nodeRect.topLeft - unclippedTextRect.topLeft,
                 size = unclippedTextRect.size
-            ).toDpRect(density).asCGRect()
+            ).toDpRect(density)
 
-            println(">> Frame: ${NSStringFromCGRect(textFieldFrame)} | Bounds: ${NSStringFromCGRect(contentBounds)}")
+            println(">> Frame: ${NSStringFromCGRect(textFieldFrame.asCGRect())} | Bounds: ${NSStringFromCGRect(contentBounds.asCGRect())}")
+            textInputService.notifyGeometryChange(textFieldFrame, contentBounds)
         }
     }
 }

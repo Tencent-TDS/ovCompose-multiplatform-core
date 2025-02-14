@@ -263,13 +263,18 @@ internal class UIKitTextInputService(
                 size = textLayoutResult.size.toSize()
             )
         )
-        val frame = textFieldFrame.toDpRect(rootView.density).asCGRect()
+        val frame = textFieldFrame.toDpRect(rootView.density)
         val bounds = Rect(
             offset = textFieldFrame.topLeft - contentFrame.topLeft,
             size = contentFrame.size
-        ).toDpRect(rootView.density).asCGRect()
+        ).toDpRect(rootView.density)
 
-        println(">> Frame: ${NSStringFromCGRect(frame)} | Bounds: ${NSStringFromCGRect(bounds)}")
+        println(">> Frame: ${NSStringFromCGRect(frame.asCGRect())} | Bounds: ${NSStringFromCGRect(bounds.asCGRect())}")
+        notifyGeometryChange(frame, bounds)
+    }
+
+    fun notifyGeometryChange(frame: DpRect, bounds: DpRect) {
+        textUIView?.notifyGeometryChanged(frame.asCGRect(), bounds.asCGRect())
     }
 
     override fun notifyFocusedRect(rect: Rect) {
@@ -425,7 +430,9 @@ internal class UIKitTextInputService(
             it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.5))
             it.setTintColor(UIColor.yellowColor)
             it.onKeyboardPresses = onKeyboardPresses
-            rootView.embedSubview(it)
+            rootView.addSubview(it)
+            // Resizing should be done later
+            // TODO: Check selection container
         }
     }
 
@@ -437,21 +444,6 @@ internal class UIKitTextInputService(
             }
         }
         textUIView = null
-    }
-
-    private fun placeViewAtTheTop(view: UIView) {
-//        val targetWindow = rootView.window ?: return
-//        var topViewController = targetWindow.rootViewController
-//
-//        while (topViewController?.presentedViewController != null) {
-//            topViewController = topViewController.presentedViewController
-//        }
-//        topViewController?.view?.embedSubview(view)
-//        topViewController?.view?.bringSubviewToFront(view)
-        val subviews = rootView.subviews as List<UIView>
-        val touchView = subviews.first { it is UserInputView }
-        touchView.embedSubview(view)
-        touchView.bringSubviewToFront(view)
     }
 
     private fun createSkikoInput() = object : IOSSkikoInput {
@@ -673,11 +665,15 @@ internal class UIKitTextInputService(
         override fun currentFocusedDpRect(): DpRect? = getFocusedRect()?.toDpRect(rootView.density)
 
         override fun caretDpRectForPosition(position: Long): DpRect? {
+            println("=== caretDpRectForPosition enter")
             val text = getState()?.text ?: return null
+            println("text fetched")
             if (position < 0 || position > text.length) {
+                println("rect null")
                 return null
             }
             val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null // null in BTF2
+            println("rect fetched")
             return rect.toDpRect(rootView.density)
         }
 
