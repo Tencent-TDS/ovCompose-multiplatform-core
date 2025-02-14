@@ -25,10 +25,6 @@ androidXMultiplatform {
     js()
     wasm()
 
-    //kotlin {
-    //    explicitApi = ExplicitApiMode.Strict
-    //}
-
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
@@ -37,6 +33,7 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
                 api(projectOrArtifact(":lifecycle:lifecycle-common"))
+                api(libs.kotlinCoroutinesCore)
                 api(libs.kotlinSerializationCore)
             }
         }
@@ -191,10 +188,8 @@ android {
 androidx {
     name = "Saved State"
     type = LibraryType.PUBLISHED_LIBRARY
-    //samples(project(":savedstate:savedstate-samples"))
     inceptionYear = "2018"
     description = "Android Lifecycle Saved State"
-    legacyDisableKotlinStrictApiMode = true
     metalavaK2UastEnabled = false
     //kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

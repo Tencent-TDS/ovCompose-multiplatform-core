@@ -34,7 +34,7 @@ import java.io.Serializable
 
 @Suppress("ValueClassDefinition")
 @JvmInline
-actual value class SavedStateReader
+public actual value class SavedStateReader
 @PublishedApi
 internal actual constructor(
     @PublishedApi internal actual val source: SavedState,
@@ -47,7 +47,7 @@ internal actual constructor(
      * @return The value associated with the [key].
      * @throws IllegalStateException If the key is not found.
      */
-    inline fun getBinder(key: String): IBinder {
+    public inline fun getBinder(key: String): IBinder {
         if (key !in this) keyNotFoundError(key)
         return source.getBinder(key) ?: valueNotFoundError(key)
     }
@@ -62,32 +62,32 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun getBinderOrElse(key: String, defaultValue: () -> IBinder): IBinder {
+    public inline fun getBinderOrElse(key: String, defaultValue: () -> IBinder): IBinder {
         if (key !in this) defaultValue()
         return source.getBinder(key) ?: defaultValue()
     }
 
-    actual inline fun getBoolean(key: String): Boolean {
+    public actual inline fun getBoolean(key: String): Boolean {
         if (key !in this) keyNotFoundError(key)
         return source.getBoolean(key, DEFAULT_BOOLEAN)
     }
 
-    actual inline fun getBooleanOrElse(key: String, defaultValue: () -> Boolean): Boolean {
+    public actual inline fun getBooleanOrElse(key: String, defaultValue: () -> Boolean): Boolean {
         if (key !in this) defaultValue()
         return source.getBoolean(key, defaultValue())
     }
 
-    actual inline fun getChar(key: String): Char {
+    public actual inline fun getChar(key: String): Char {
         if (key !in this) keyNotFoundError(key)
         return source.getChar(key, DEFAULT_CHAR)
     }
 
-    actual inline fun getCharSequence(key: String): CharSequence {
+    public actual inline fun getCharSequence(key: String): CharSequence {
         if (key !in this) keyNotFoundError(key)
         return source.getCharSequence(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getCharSequenceOrElse(
+    public actual inline fun getCharSequenceOrElse(
         key: String,
         defaultValue: () -> CharSequence
     ): CharSequence {
@@ -95,47 +95,47 @@ internal actual constructor(
         return source.getCharSequence(key) ?: defaultValue()
     }
 
-    actual inline fun getCharOrElse(key: String, defaultValue: () -> Char): Char {
+    public actual inline fun getCharOrElse(key: String, defaultValue: () -> Char): Char {
         if (key !in this) defaultValue()
         return source.getChar(key, defaultValue())
     }
 
-    actual inline fun getDouble(key: String): Double {
+    public actual inline fun getDouble(key: String): Double {
         if (key !in this) keyNotFoundError(key)
         return source.getDouble(key, DEFAULT_DOUBLE)
     }
 
-    actual inline fun getDoubleOrElse(key: String, defaultValue: () -> Double): Double {
+    public actual inline fun getDoubleOrElse(key: String, defaultValue: () -> Double): Double {
         if (key !in this) defaultValue()
         return source.getDouble(key, defaultValue())
     }
 
-    actual inline fun getFloat(key: String): Float {
+    public actual inline fun getFloat(key: String): Float {
         if (key !in this) keyNotFoundError(key)
         return source.getFloat(key, DEFAULT_FLOAT)
     }
 
-    actual inline fun getFloatOrElse(key: String, defaultValue: () -> Float): Float {
+    public actual inline fun getFloatOrElse(key: String, defaultValue: () -> Float): Float {
         if (key !in this) defaultValue()
         return source.getFloat(key, defaultValue())
     }
 
-    actual inline fun getInt(key: String): Int {
+    public actual inline fun getInt(key: String): Int {
         if (key !in this) keyNotFoundError(key)
         return source.getInt(key, DEFAULT_INT)
     }
 
-    actual inline fun getIntOrElse(key: String, defaultValue: () -> Int): Int {
+    public actual inline fun getIntOrElse(key: String, defaultValue: () -> Int): Int {
         if (key !in this) defaultValue()
         return source.getInt(key, defaultValue())
     }
 
-    actual inline fun getLong(key: String): Long {
+    public actual inline fun getLong(key: String): Long {
         if (key !in this) keyNotFoundError(key)
         return source.getLong(key, DEFAULT_LONG)
     }
 
-    actual inline fun getLongOrElse(key: String, defaultValue: () -> Long): Long {
+    public actual inline fun getLongOrElse(key: String, defaultValue: () -> Long): Long {
         if (key !in this) defaultValue()
         return source.getLong(key, defaultValue())
     }
@@ -147,7 +147,7 @@ internal actual constructor(
      * @return The value associated with the [key].
      * @throws IllegalStateException If the key is not found.
      */
-    inline fun <reified T : Parcelable> getParcelable(key: String): T {
+    public inline fun <reified T : Parcelable> getParcelable(key: String): T {
         if (key !in this) keyNotFoundError(key)
         return getParcelable(source, key, T::class.java) ?: valueNotFoundError(key)
     }
@@ -162,7 +162,10 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun <reified T : Parcelable> getParcelableOrElse(key: String, defaultValue: () -> T): T {
+    public inline fun <reified T : Parcelable> getParcelableOrElse(
+        key: String,
+        defaultValue: () -> T
+    ): T {
         if (key !in this) defaultValue()
         return getParcelable(source, key, T::class.java) ?: defaultValue()
     }
@@ -174,7 +177,7 @@ internal actual constructor(
      * @return The value associated with the [key].
      * @throws IllegalStateException If the key is not found.
      */
-    inline fun <reified T : Serializable> getJavaSerializable(key: String): T {
+    public inline fun <reified T : Serializable> getJavaSerializable(key: String): T {
         if (key !in this) keyNotFoundError(key)
         return getSerializable(source, key, T::class.java) ?: valueNotFoundError(key)
     }
@@ -189,7 +192,7 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun <reified T : Serializable> getJavaSerializableOrElse(
+    public inline fun <reified T : Serializable> getJavaSerializableOrElse(
         key: String,
         defaultValue: () -> T
     ): T {
@@ -204,7 +207,7 @@ internal actual constructor(
      * @return The value associated with the [key].
      * @throws IllegalStateException If the key is not found.
      */
-    inline fun getSize(key: String): Size {
+    public inline fun getSize(key: String): Size {
         if (key !in this) keyNotFoundError(key)
         return source.getSize(key) ?: valueNotFoundError(key)
     }
@@ -219,7 +222,7 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun getSizeOrElse(key: String, defaultValue: () -> Size): Size {
+    public inline fun getSizeOrElse(key: String, defaultValue: () -> Size): Size {
         if (key !in this) defaultValue()
         return source.getSize(key) ?: defaultValue()
     }
@@ -231,7 +234,7 @@ internal actual constructor(
      * @return The value associated with the [key].
      * @throws IllegalStateException If the key is not found.
      */
-    inline fun getSizeF(key: String): SizeF {
+    public inline fun getSizeF(key: String): SizeF {
         if (key !in this) keyNotFoundError(key)
         return source.getSizeF(key) ?: valueNotFoundError(key)
     }
@@ -246,37 +249,53 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun getSizeFOrElse(key: String, defaultValue: () -> SizeF): SizeF {
+    public inline fun getSizeFOrElse(key: String, defaultValue: () -> SizeF): SizeF {
         if (key !in this) defaultValue()
         return source.getSizeF(key) ?: defaultValue()
     }
 
-    actual inline fun getString(key: String): String {
+    @Suppress("ArrayReturn")
+    public actual inline fun getSavedStateArray(key: String): Array<SavedState> {
+        return getParcelableArray(key)
+    }
+
+    @Suppress("ArrayReturn")
+    public actual inline fun getSavedStateArrayOrElse(
+        key: String,
+        defaultValue: () -> Array<SavedState>,
+    ): Array<SavedState> {
+        return getParcelableArrayOrElse(key, defaultValue)
+    }
+
+    public actual inline fun getString(key: String): String {
         if (key !in this) keyNotFoundError(key)
         return source.getString(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getStringOrElse(key: String, defaultValue: () -> String): String {
+    public actual inline fun getStringOrElse(key: String, defaultValue: () -> String): String {
         if (key !in this) defaultValue()
         return source.getString(key, defaultValue())
     }
 
-    actual inline fun getIntList(key: String): List<Int> {
+    public actual inline fun getIntList(key: String): List<Int> {
         if (key !in this) keyNotFoundError(key)
         return source.getIntegerArrayList(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getIntListOrElse(key: String, defaultValue: () -> List<Int>): List<Int> {
+    public actual inline fun getIntListOrElse(
+        key: String,
+        defaultValue: () -> List<Int>
+    ): List<Int> {
         if (key !in this) defaultValue()
         return source.getIntegerArrayList(key) ?: defaultValue()
     }
 
-    actual inline fun getCharSequenceList(key: String): List<CharSequence> {
+    public actual inline fun getCharSequenceList(key: String): List<CharSequence> {
         if (key !in this) keyNotFoundError(key)
         return source.getCharSequenceArrayList(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getCharSequenceListOrElse(
+    public actual inline fun getCharSequenceListOrElse(
         key: String,
         defaultValue: () -> List<CharSequence>
     ): List<CharSequence> {
@@ -284,12 +303,23 @@ internal actual constructor(
         return source.getCharSequenceArrayList(key) ?: defaultValue()
     }
 
-    actual inline fun getStringList(key: String): List<String> {
+    public actual inline fun getSavedStateList(key: String): List<SavedState> {
+        return getParcelableList(key)
+    }
+
+    public actual inline fun getSavedStateListOrElse(
+        key: String,
+        defaultValue: () -> List<SavedState>
+    ): List<SavedState> {
+        return getParcelableListOrElse(key, defaultValue)
+    }
+
+    public actual inline fun getStringList(key: String): List<String> {
         if (key !in this) keyNotFoundError(key)
         return source.getStringArrayList(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getStringListOrElse(
+    public actual inline fun getStringListOrElse(
         key: String,
         defaultValue: () -> List<String>
     ): List<String> {
@@ -305,7 +335,7 @@ internal actual constructor(
      * @throws IllegalArgumentException If the [key] is not found.
      * @throws IllegalStateException if associated value has wrong type.
      */
-    inline fun <reified T : Parcelable> getParcelableList(key: String): List<T> {
+    public inline fun <reified T : Parcelable> getParcelableList(key: String): List<T> {
         if (key !in this) keyNotFoundError(key)
         return getParcelableArrayList(source, key, T::class.java) ?: valueNotFoundError(key)
     }
@@ -320,7 +350,7 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun <reified T : Parcelable> getParcelableListOrElse(
+    public inline fun <reified T : Parcelable> getParcelableListOrElse(
         key: String,
         defaultValue: () -> List<T>
     ): List<T> {
@@ -328,12 +358,12 @@ internal actual constructor(
         return getParcelableArrayList(source, key, T::class.java) ?: defaultValue()
     }
 
-    actual inline fun getBooleanArray(key: String): BooleanArray {
+    public actual inline fun getBooleanArray(key: String): BooleanArray {
         if (key !in this) keyNotFoundError(key)
         return source.getBooleanArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getBooleanArrayOrElse(
+    public actual inline fun getBooleanArrayOrElse(
         key: String,
         defaultValue: () -> BooleanArray
     ): BooleanArray {
@@ -341,24 +371,27 @@ internal actual constructor(
         return source.getBooleanArray(key) ?: defaultValue()
     }
 
-    actual inline fun getCharArray(key: String): CharArray {
+    public actual inline fun getCharArray(key: String): CharArray {
         if (key !in this) keyNotFoundError(key)
         return source.getCharArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getCharArrayOrElse(key: String, defaultValue: () -> CharArray): CharArray {
+    public actual inline fun getCharArrayOrElse(
+        key: String,
+        defaultValue: () -> CharArray
+    ): CharArray {
         if (key !in this) defaultValue()
         return source.getCharArray(key) ?: defaultValue()
     }
 
     @Suppress("ArrayReturn")
-    actual inline fun getCharSequenceArray(key: String): Array<CharSequence> {
+    public actual inline fun getCharSequenceArray(key: String): Array<CharSequence> {
         if (key !in this) keyNotFoundError(key)
         return source.getCharSequenceArray(key) ?: valueNotFoundError(key)
     }
 
     @Suppress("ArrayReturn")
-    actual inline fun getCharSequenceArrayOrElse(
+    public actual inline fun getCharSequenceArrayOrElse(
         key: String,
         defaultValue: () -> Array<CharSequence>
     ): Array<CharSequence> {
@@ -366,12 +399,12 @@ internal actual constructor(
         return source.getCharSequenceArray(key) ?: defaultValue()
     }
 
-    actual inline fun getDoubleArray(key: String): DoubleArray {
+    public actual inline fun getDoubleArray(key: String): DoubleArray {
         if (key !in this) keyNotFoundError(key)
         return source.getDoubleArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getDoubleArrayOrElse(
+    public actual inline fun getDoubleArrayOrElse(
         key: String,
         defaultValue: () -> DoubleArray
     ): DoubleArray {
@@ -379,42 +412,51 @@ internal actual constructor(
         return source.getDoubleArray(key) ?: defaultValue()
     }
 
-    actual inline fun getFloatArray(key: String): FloatArray {
+    public actual inline fun getFloatArray(key: String): FloatArray {
         if (key !in this) keyNotFoundError(key)
         return source.getFloatArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getFloatArrayOrElse(key: String, defaultValue: () -> FloatArray): FloatArray {
+    public actual inline fun getFloatArrayOrElse(
+        key: String,
+        defaultValue: () -> FloatArray
+    ): FloatArray {
         if (key !in this) defaultValue()
         return source.getFloatArray(key) ?: defaultValue()
     }
 
-    actual inline fun getIntArray(key: String): IntArray {
+    public actual inline fun getIntArray(key: String): IntArray {
         if (key !in this) keyNotFoundError(key)
         return source.getIntArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getIntArrayOrElse(key: String, defaultValue: () -> IntArray): IntArray {
+    public actual inline fun getIntArrayOrElse(
+        key: String,
+        defaultValue: () -> IntArray
+    ): IntArray {
         if (key !in this) defaultValue()
         return source.getIntArray(key) ?: defaultValue()
     }
 
-    actual inline fun getLongArray(key: String): LongArray {
+    public actual inline fun getLongArray(key: String): LongArray {
         if (key !in this) keyNotFoundError(key)
         return source.getLongArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getLongArrayOrElse(key: String, defaultValue: () -> LongArray): LongArray {
+    public actual inline fun getLongArrayOrElse(
+        key: String,
+        defaultValue: () -> LongArray
+    ): LongArray {
         if (key !in this) defaultValue()
         return source.getLongArray(key) ?: defaultValue()
     }
 
-    actual inline fun getStringArray(key: String): Array<String> {
+    public actual inline fun getStringArray(key: String): Array<String> {
         if (key !in this) keyNotFoundError(key)
         return source.getStringArray(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getStringArrayOrElse(
+    public actual inline fun getStringArrayOrElse(
         key: String,
         defaultValue: () -> Array<String>
     ): Array<String> {
@@ -431,7 +473,7 @@ internal actual constructor(
      * @throws IllegalStateException if associated value has wrong type.
      */
     @Suppress("ArrayReturn")
-    inline fun <reified T : Parcelable> getParcelableArray(key: String): Array<T> {
+    public inline fun <reified T : Parcelable> getParcelableArray(key: String): Array<T> {
         if (key !in this) keyNotFoundError(key)
         @Suppress("UNCHECKED_CAST")
         return getParcelableArray(source, key, T::class.java) as? Array<T>
@@ -449,7 +491,7 @@ internal actual constructor(
      *   not found or the associated value has the wrong type.
      */
     @Suppress("ArrayReturn")
-    inline fun <reified T : Parcelable> getParcelableArrayOrElse(
+    public inline fun <reified T : Parcelable> getParcelableArrayOrElse(
         key: String,
         defaultValue: () -> Array<T>
     ): Array<T> {
@@ -466,7 +508,9 @@ internal actual constructor(
      * @throws IllegalArgumentException If the [key] is not found.
      * @throws IllegalStateException if associated value has wrong type.
      */
-    inline fun <reified T : Parcelable> getSparseParcelableArray(key: String): SparseArray<T> {
+    public inline fun <reified T : Parcelable> getSparseParcelableArray(
+        key: String
+    ): SparseArray<T> {
         if (key !in this) keyNotFoundError(key)
         return getSparseParcelableArray(source, key, T::class.java) as? SparseArray<T>
             ?: valueNotFoundError(key)
@@ -482,7 +526,7 @@ internal actual constructor(
      * @return The value associated with the [key], or the result of [defaultValue] if the key is
      *   not found or the associated value has the wrong type.
      */
-    inline fun <reified T : Parcelable> getSparseParcelableArrayOrElse(
+    public inline fun <reified T : Parcelable> getSparseParcelableArrayOrElse(
         key: String,
         defaultValue: () -> SparseArray<T>
     ): SparseArray<T> {
@@ -491,34 +535,38 @@ internal actual constructor(
             ?: defaultValue()
     }
 
-    actual inline fun getSavedState(key: String): SavedState {
+    public actual inline fun getSavedState(key: String): SavedState {
         if (key !in this) keyNotFoundError(key)
         return source.getBundle(key) ?: valueNotFoundError(key)
     }
 
-    actual inline fun getSavedStateOrElse(key: String, defaultValue: () -> SavedState): SavedState {
+    public actual inline fun getSavedStateOrElse(
+        key: String,
+        defaultValue: () -> SavedState
+    ): SavedState {
         if (key !in this) defaultValue()
         return source.getBundle(key) ?: defaultValue()
     }
 
-    actual inline fun size(): Int = source.size()
+    public actual inline fun size(): Int = source.size()
 
-    actual inline fun isEmpty(): Boolean = source.isEmpty
+    public actual inline fun isEmpty(): Boolean = source.isEmpty
 
-    actual inline fun isNull(key: String): Boolean {
+    public actual inline fun isNull(key: String): Boolean {
         // Using `getString` to check for `null` is unreliable as it returns null for type
         // mismatches. To reliably determine if the value is actually `null`, we use the
         // deprecated `Bundle.get`.
         @Suppress("DEPRECATION") return contains(key) && source[key] == null
     }
 
-    actual inline operator fun contains(key: String): Boolean = source.containsKey(key)
+    public actual inline operator fun contains(key: String): Boolean = source.containsKey(key)
 
-    actual fun contentDeepEquals(other: SavedState): Boolean = source.contentDeepEquals(other)
+    public actual fun contentDeepEquals(other: SavedState): Boolean =
+        source.contentDeepEquals(other)
 
-    actual fun contentDeepHashCode(): Int = source.contentDeepHashCode()
+    public actual fun contentDeepHashCode(): Int = source.contentDeepHashCode()
 
-    actual fun toMap(): Map<String, Any?> {
+    public actual fun toMap(): Map<String, Any?> {
         return buildMap(capacity = source.size()) {
             for (key in source.keySet()) {
                 @Suppress("DEPRECATION") put(key, source[key])
