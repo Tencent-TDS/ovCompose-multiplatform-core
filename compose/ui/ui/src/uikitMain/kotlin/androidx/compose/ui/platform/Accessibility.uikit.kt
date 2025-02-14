@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.accessibility.isScreenReaderFocusable
 import androidx.compose.ui.platform.accessibility.scrollIfPossible
 import androidx.compose.ui.platform.accessibility.scrollToCenterRectIfNeeded
 import androidx.compose.ui.platform.accessibility.unclippedBoundsInWindow
-import androidx.compose.ui.scene.ComposeSceneMediatorView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
@@ -38,7 +37,6 @@ import androidx.compose.ui.semantics.isImportantForAccessibility
 import androidx.compose.ui.semantics.sortByGeometryGroupings
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.utils.CMPAccessibilityElement
-import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.toDpRect
@@ -55,6 +53,7 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -64,14 +63,15 @@ import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGRectEqualToRect
 import platform.CoreGraphics.CGRectGetMaxX
 import platform.CoreGraphics.CGRectGetMaxY
 import platform.CoreGraphics.CGRectGetMidX
 import platform.CoreGraphics.CGRectGetMidY
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
+import platform.CoreGraphics.CGRectIntersectsRect
 import platform.CoreGraphics.CGRectIsEmpty
-import platform.Foundation.NSNotFound
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityContainerType
 import platform.UIKit.UIAccessibilityContainerTypeNone
@@ -85,32 +85,26 @@ import platform.UIKit.UIAccessibilityScreenChangedNotification
 import platform.UIKit.UIAccessibilityScrollDirection
 import platform.UIKit.UIAccessibilityTraitNone
 import platform.UIKit.UIAccessibilityTraits
+import platform.UIKit.UICoordinateSpaceProtocol
 import platform.UIKit.UIEdgeInsetsInsetRect
+import platform.UIKit.UIFocusAnimationCoordinator
+import platform.UIKit.UIFocusEnvironmentProtocol
+import platform.UIKit.UIFocusItemContainerProtocol
+import platform.UIKit.UIFocusItemProtocol
+import platform.UIKit.UIFocusSystem
+import platform.UIKit.UIFocusUpdateContext
+import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIView
 import platform.UIKit.accessibilityElementAtIndex
 import platform.UIKit.accessibilityElementCount
 import platform.UIKit.accessibilityElements
 import platform.UIKit.accessibilityFrame
 import platform.UIKit.isAccessibilityElement
+import platform.UIKit.setAccessibilityElements
 import platform.darwin.NSInteger
 import platform.darwin.NSObject
 
 private val DUMMY_UI_ACCESSIBILITY_CONTAINER = NSObject()
-
-/**
- * Enum class representing different kinds of accessibility invalidation.
- */
-private enum class SemanticsTreeInvalidationKind {
-    /**
-     * The tree was changed, need to recompute the whole tree.
-     */
-    COMPLETE,
-
-    /**
-     * Only bounds of the nodes were changed, need to recompute the bounds of the affected subtrees.
-     */
-    BOUNDS
-}
 
 internal sealed interface AccessibilityElementKey {
     val id: Int
@@ -125,7 +119,6 @@ internal sealed interface AccessibilityElementKey {
 private sealed interface AccessibilityNode {
     val key: AccessibilityElementKey
     val isAccessibilityElement: Boolean
-    val accessibilityFrame: CValue<CGRect>
 
     val accessibilityLabel: String? get() = null
     val accessibilityHint: String? get() = null
@@ -146,6 +139,11 @@ private sealed interface AccessibilityNode {
     fun accessibilityScroll(direction: UIAccessibilityScrollDirection): Boolean = false
     fun accessibilityPerformEscape(): Boolean = false
 
+    // Focus API
+    val canBecomeFocused: Boolean get() = false
+    fun didBecomeFocused() {}
+    fun didResignFocused() {}
+
     /**
      * Represents a projection of the Compose semantics node to the iOS world.
      * The object itself is a node in a generated tree that matches 1-to-1 with the [SemanticsNode].
@@ -154,7 +152,6 @@ private sealed interface AccessibilityNode {
         private val semanticsNode: SemanticsNode,
         private val mediator: AccessibilityMediator,
         private val ignoreSemanticChildren: Boolean = false,
-        private val frame: IntRect?,
     ) : AccessibilityNode {
         private val cachedConfig = semanticsNode.copyWithMergingEnabled().config
 
@@ -163,9 +160,6 @@ private sealed interface AccessibilityNode {
 
         override val isAccessibilityElement: Boolean
             get() = semanticsNode.isScreenReaderFocusable()
-
-        override val accessibilityFrame: CValue<CGRect>
-            get() = mediator.convertToAppWindowCGRect(frame?.toRect() ?: semanticsNode.unclippedBoundsInWindow)
 
         override val accessibilityInteropView: InteropWrappingView?
             get() = if (ignoreSemanticChildren) {
@@ -275,6 +269,20 @@ private sealed interface AccessibilityNode {
                 return false
             }
         }
+
+        override val canBecomeFocused: Boolean
+            get() = semanticsNode.unmergedConfig.contains(SemanticsProperties.Focused)
+
+        override fun didBecomeFocused() {
+            accessibilityScrollToVisible()
+            mediator.keyboardFocusedElementKey = key
+        }
+
+        override fun didResignFocused() {
+            if (mediator.keyboardFocusedElementKey == key) {
+                mediator.keyboardFocusedElementKey = null
+            }
+        }
     }
 
     /**
@@ -285,18 +293,11 @@ private sealed interface AccessibilityNode {
      * semantic node with all its children.
      */
     class Container(
-        private val containerNode: SemanticsNode,
-        mediator: AccessibilityMediator,
-        frame: IntRect?,
+        private val containerNode: SemanticsNode
     ) : AccessibilityNode {
         override val key: AccessibilityElementKey = containerNode.containerKey
 
         override val isAccessibilityElement = false
-
-        override val accessibilityFrame: CValue<CGRect> =
-            mediator.convertToAppWindowCGRect(
-                frame?.toRect() ?: containerNode.unclippedBoundsInWindow
-            )
 
         override val accessibilityContainerType: UIAccessibilityContainerType
             get() = if (containerNode.isTraversalGroup) {
@@ -322,12 +323,17 @@ private object CachedAccessibilityPropertyKeys {
 @OptIn(BetaInteropApi::class)
 @ExportObjCClass
 private class AccessibilityRoot(
-    val mediator: AccessibilityMediator
-) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
+    val mediator: AccessibilityMediator,
+    var onKeyboardPresses: (Set<*>) -> Unit = {}
+) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER),
+    UIFocusItemContainerProtocol {
     var element: AccessibilityElement? = null
         set(value) {
+            if (field?.accessibilityContainer === this) {
+                field?.setAccessibilityContainer(null)
+            }
             field = value
-            field?.parent = this
+            field?.setAccessibilityContainer(this)
         }
 
     override fun isAccessibilityElement(): Boolean = false
@@ -346,6 +352,31 @@ private class AccessibilityRoot(
 
     override fun accessibilityFrame(): CValue<CGRect> =
         mediator.view.convertRect(mediator.view.bounds, toView = null)
+
+    // UIFocusItemContainerProtocol
+
+    override fun coordinateSpace(): UICoordinateSpaceProtocol {
+        return mediator.view.window ?: mediator.view
+    }
+
+    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
+        return if (mediator.isEnabled) {
+            mediator.activateAccessibilityIfNeeded()
+            listOfNotNull(element)
+        } else {
+            emptyList<Any>()
+        }
+    }
+
+    override fun pressesBegan(presses: Set<*>, withEvent: UIPressesEvent?) {
+        onKeyboardPresses(presses)
+        super.pressesBegan(presses, withEvent)
+    }
+
+    override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
+        onKeyboardPresses(presses)
+        super.pressesEnded(presses, withEvent)
+    }
 }
 
 @OptIn(BetaInteropApi::class)
@@ -353,18 +384,16 @@ private class AccessibilityRoot(
 private class AccessibilityElement(
     private var node: AccessibilityNode,
     children: List<AccessibilityElement>
-) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER) {
+) : CMPAccessibilityElement(DUMMY_UI_ACCESSIBILITY_CONTAINER),
+    UIFocusItemProtocol,
+    UIFocusItemContainerProtocol {
     /**
      * A cache for the properties that are computed from the [SemanticsNode.config] and are communicated
      * to iOS Accessibility services.
      */
     private val cachedProperties = mutableMapOf<CachedAccessibilityPropertyKey<*>, Any?>()
 
-    private var allChildren = children + nodeSemanticsElements()
-
     val key: AccessibilityElementKey get() = node.key
-
-    var parent: Any? = null
 
     /**
      * Indicates whether this element is still present in the tree.
@@ -373,7 +402,8 @@ private class AccessibilityElement(
         private set
 
     init {
-        children.forEach { it.parent = this }
+        setAccessibilityElements(children + nodeSemanticsElements())
+        children.forEach { it.setAccessibilityContainer(this) }
     }
 
     private fun nodeSemanticsElements(): List<Any> =
@@ -387,10 +417,13 @@ private class AccessibilityElement(
         assert(key == node.key) {
             "Element should be updated with a node that has the same key as the initial node"
         }
-        this.parent = null
         this.node = node
-        children.forEach { it.parent = this }
-        this.allChildren = children + nodeSemanticsElements()
+
+        accessibilityElements?.forEach {
+            (it as? CMPAccessibilityElement)?.setAccessibilityContainer(null)
+        }
+        setAccessibilityElements(children + nodeSemanticsElements())
+        children.forEach { it.setAccessibilityContainer(this) }
         this.cachedProperties.clear()
     }
 
@@ -400,36 +433,20 @@ private class AccessibilityElement(
         }
 
         isAlive = false
-        parent = null
-        allChildren = emptyList()
+        setAccessibilityContainer(null)
+        setAccessibilityElements(emptyList<Any>())
         cachedProperties.clear()
     }
-
-    override fun accessibilityElementAtIndex(index: NSInteger): Any? {
-        val i = index.toInt()
-        if (i in allChildren.indices) {
-            return allChildren[i]
-        }
-        return null
-    }
-
-    override fun accessibilityElementCount(): NSInteger {
-        return allChildren.count().toLong()
-    }
-
-    override fun indexOfAccessibilityElement(element: Any): NSInteger {
-        val index = allChildren.indexOf(element).toLong()
-        return index.takeIf { it >= 0 } ?: NSNotFound
-    }
-
-    override fun accessibilityContainer(): Any? = parent
 
     /**
      * Returns the value for the given [key] from the cache if it's present, otherwise computes the
      * value using the given [block] and caches it.
      */
     @Suppress("UNCHECKED_CAST") // cast is safe because the set value is constrained by the key T
-    private inline fun <T>getOrElse(key: CachedAccessibilityPropertyKey<T>, crossinline block: () -> T): T {
+    private inline fun <T> getOrElse(
+        key: CachedAccessibilityPropertyKey<T>,
+        crossinline block: () -> T
+    ): T {
         val value = cachedProperties.getOrElse(key) {
             val newValue = block()
             cachedProperties[key] = newValue
@@ -511,7 +528,7 @@ private class AccessibilityElement(
     override fun isAccessibilityElement(): Boolean {
         // Node visibility changes don't trigger accessibility semantic recalculation.
         // This value should not be cached. See [SemanticsNode.isScreenReaderFocusable()]
-        return node.isAccessibilityElement
+        return isAlive && node.isAccessibilityElement
     }
 
     override fun accessibilityIdentifier(): String? =
@@ -538,11 +555,6 @@ private class AccessibilityElement(
         getOrElse(CachedAccessibilityPropertyKeys.accessibilityValue) {
             node.accessibilityValue
         }
-
-    override fun accessibilityFrame(): CValue<CGRect> =
-        // No need to cache accessibility frame because it invalidates much frequently
-        // then requests by the iOS Accessibility
-        node.accessibilityFrame
 
     override fun accessibilityPerformEscape(): Boolean {
         if (!isAlive) {
@@ -572,6 +584,68 @@ private class AccessibilityElement(
             log("$indent  accessibilityCustomActions: ${accessibilityCustomActions()}")
         }
     }
+
+    // UIFocusItemProtocol & UIFocusItemContainerProtocol
+
+    override fun canBecomeFocused(): Boolean = isAlive && node.canBecomeFocused
+
+    override fun didUpdateFocusInContext(
+        context: UIFocusUpdateContext,
+        withAnimationCoordinator: UIFocusAnimationCoordinator
+    ) {
+        if (context.previouslyFocusedItem === this) {
+            node.didResignFocused()
+        }
+        if (context.nextFocusedItem === this) {
+            node.didBecomeFocused()
+        }
+    }
+
+    override fun focusItemContainer(): UIFocusItemContainerProtocol = this
+
+    override fun frame(): CValue<CGRect> = accessibilityFrame()
+
+    override fun parentFocusEnvironment(): UIFocusEnvironmentProtocol? =
+        accessibilityContainer as? UIFocusEnvironmentProtocol
+
+    override fun preferredFocusEnvironments(): List<*> =
+        accessibilityElements?.mapNotNull { it as? UIFocusEnvironmentProtocol } ?: emptyList<Any>()
+
+    private var updateFocusScheduled = false
+    override fun setNeedsFocusUpdate() {
+        if (updateFocusScheduled) {
+            return
+        }
+        updateFocusScheduled = true
+        CoroutineScope(Dispatchers.Main).launch {
+            updateFocusIfNeeded()
+            updateFocusScheduled = false
+        }
+    }
+
+    override fun updateFocusIfNeeded() {
+        UIFocusSystem.focusSystemForEnvironment(environment = this)?.updateFocusIfNeeded()
+    }
+
+    override fun shouldUpdateFocusInContext(context: UIFocusUpdateContext): Boolean = true
+
+    override fun coordinateSpace(): UICoordinateSpaceProtocol {
+        var component: Any? = accessibilityContainer
+        while (component != null) {
+            when (component) {
+                is UIView -> return component.window ?: component
+                is CMPAccessibilityElement -> component = component.accessibilityContainer
+                else -> error("Unexpected coordinate space.")
+            }
+        }
+        error("Unexpected coordinate space.")
+    }
+
+    override fun focusItemsInRect(rect: CValue<CGRect>): List<*> = accessibilityElements?.filter {
+        it is UIFocusItemProtocol && CGRectIntersectsRect(it.frame, rect)
+    } ?: emptyList<Any>()
+
+    override fun isTransparentFocusItem(): Boolean = true
 }
 
 private class NodesSyncResult(
@@ -632,10 +706,11 @@ private sealed interface AccessibilityElementFocusMode {
  * A class responsible for mediating between the tree of specific SemanticsOwner and the iOS accessibility tree.
  */
 internal class AccessibilityMediator(
-    val view: ComposeSceneMediatorView,
+    val view: UIView,
     val owner: SemanticsOwner,
     coroutineContext: CoroutineContext,
-    val performEscape: () -> Boolean
+    val performEscape: () -> Boolean,
+    onKeyboardPresses: (Set<*>) -> Unit,
 ) {
     private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {
@@ -643,15 +718,7 @@ internal class AccessibilityMediator(
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
         }
 
-    /**
-     * The kind of invalidation that determines what kind of logic will be executed in the next sync.
-     * `COMPLETE` invalidation means that the whole tree should be recomputed, `BOUNDS` means that only
-     * the bounds of the nodes should be recomputed. A list of changed performed by `BOUNDS` path
-     * is a strict subset of `COMPLETE`, so in the end of sync it will be reset to `BOUNDS`.
-     * Executing sync assumes that at least one kind of invalidation happened, if it was triggered
-     * by [onSemanticsChange] it will be automatically promoted to `COMPLETE`.
-     */
-    private var invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
+    var keyboardFocusedElementKey: AccessibilityElementKey? = null
 
     /**
      * A set of node ids that had their bounds invalidated after the last sync.
@@ -668,7 +735,7 @@ internal class AccessibilityMediator(
      */
     private val coroutineScope = CoroutineScope(coroutineContext + job)
 
-    private val root = AccessibilityRoot(mediator = this)
+    private val root = AccessibilityRoot(mediator = this, onKeyboardPresses = onKeyboardPresses)
 
     /**
      * A map of all [AccessibilityElementKey] currently present in the tree to corresponding
@@ -718,16 +785,15 @@ internal class AccessibilityMediator(
                     if (isAccessibilityActive) {
                         scheduleAccessibilityDisablingAndCleanup()
                         val time = measureTime {
-                            sync(invalidationKind)
+                            sync().postNotification()
                         }
                         accessibilityDebugLogger?.log("AccessibilityMediator.sync took $time")
                     }
                 } else if (root.element != null) {
+                    refocusKeyboardElementIfNeeded()
                     root.element = null
                     UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, null)
                 }
-
-                invalidationKind = SemanticsTreeInvalidationKind.BOUNDS
             }
         }
     }
@@ -762,7 +828,7 @@ internal class AccessibilityMediator(
     fun activateAccessibilityIfNeeded() {
         isAccessibilityActive = true
         if (root.element == null) {
-            completeSync().postNotification()
+            sync().postNotification()
         }
         cancelAccessibilityDisabling()
     }
@@ -770,7 +836,7 @@ internal class AccessibilityMediator(
     @OptIn(ExperimentalCoroutinesApi::class)
     val hasPendingInvalidations: Boolean get() = !invalidationChannel.isEmpty
 
-    fun convertToAppWindowCGRect(rect: Rect): CValue<CGRect> {
+    private fun convertToAppWindowCGRect(rect: Rect): CValue<CGRect> {
         return rect.toDpRect(view.density).asCGRect()
     }
 
@@ -805,28 +871,21 @@ internal class AccessibilityMediator(
 
     fun onSemanticsChange() {
         accessibilityDebugLogger?.log("onSemanticsChange")
-
-        invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
         invalidationChannel.trySend(Unit)
     }
 
     fun onLayoutChange(nodeId: Int) {
         accessibilityDebugLogger?.log("onLayoutChange (nodeId=$nodeId)")
-
-        // TODO: Properly implement layout invalidation, taking into account that semantics
-        //  can also change after the `onLayoutChange` event.
-        if (accessibilityElementsMap[AccessibilityElementKey.Semantics(nodeId)] == null) {
-            // Forcing tree recalculation when a node with unknown nodeId occurred.
-            invalidationKind = SemanticsTreeInvalidationKind.COMPLETE
-        }
-
         invalidationChannel.trySend(Unit)
     }
 
     fun dispose() {
         job.cancel()
         disableAccessibilityJob?.cancel()
+
+        refocusKeyboardElementIfNeeded()
         view.accessibilityElements = listOf<NSObject>()
+        root.onKeyboardPresses = {}
 
         for (element in accessibilityElementsMap.values) {
             element.dispose()
@@ -845,15 +904,20 @@ internal class AccessibilityMediator(
 
     private fun createOrUpdateAccessibilityElement(
         node: AccessibilityNode,
-        children: List<AccessibilityElement>
+        children: List<AccessibilityElement>,
+        frame: Rect
     ): AccessibilityElement {
-        accessibilityElementsMap[node.key]?.let {
+        val element = accessibilityElementsMap[node.key]?.also {
             it.update(node = node, children = children)
-            return it
-        }
-        return AccessibilityElement(node = node, children = children).also {
+        } ?: AccessibilityElement(node = node, children = children).also {
             accessibilityElementsMap[node.key] = it
         }
+
+        val accessibilityFrame = convertToAppWindowCGRect(frame)
+        if (!CGRectEqualToRect(accessibilityFrame, element.accessibilityFrame)) {
+            element.setAccessibilityFrame(accessibilityFrame)
+        }
+        return element
     }
 
     /**
@@ -867,6 +931,13 @@ internal class AccessibilityMediator(
         val presentIds = mutableSetOf<AccessibilityElementKey>()
 
         val nodes = owner.getAllUncoveredSemanticsNodesToIntObjectMap(rootNode.id)
+        keyboardFocusedElementKey?.id?.let {
+            if (!nodes.contains(it)) {
+                // The keyboard-focused node is removed. It's important to trigger focus reload
+                // before the node is actually removed from the accessibility elements tree.
+                refocusKeyboardElementIfNeeded()
+            }
+        }
 
         // Flatten all children except nodes inside traversal groups to:
         // - have the same traversal order as on Android
@@ -887,14 +958,16 @@ internal class AccessibilityMediator(
         fun traverseGroup(node: SemanticsNode): AccessibilityElement {
             presentIds.add(node.semanticsKey)
 
+            val frame = nodes[node.id]?.adjustedBounds?.toRect() ?: node.unclippedBoundsInWindow
+
             if (!node.isTraversalGroup && node.id != rootNode.id) {
                 return createOrUpdateAccessibilityElement(
                     node = AccessibilityNode.Semantics(
                         semanticsNode = node,
-                        mediator = this,
-                        frame = nodes[node.id]?.adjustedBounds
+                        mediator = this
                     ),
-                    children = emptyList()
+                    children = emptyList(),
+                    frame = frame
                 )
             }
 
@@ -912,20 +985,17 @@ internal class AccessibilityMediator(
                         semanticsNode = node,
                         mediator = this,
                         ignoreSemanticChildren = true,
-                        frame = nodes[node.id]?.adjustedBounds
                     ),
-                    children = emptyList()
+                    children = emptyList(),
+                    frame = frame
                 )
             }
 
             presentIds.add(node.containerKey)
             return createOrUpdateAccessibilityElement(
-                node = AccessibilityNode.Container(
-                    containerNode = node,
-                    mediator = this,
-                    frame = nodes[node.id]?.adjustedBounds
-                ),
-                children = listOfNotNull(containerElement) + children
+                node = AccessibilityNode.Container(containerNode = node),
+                children = listOfNotNull(containerElement) + children,
+                frame = frame
             )
         }
 
@@ -943,24 +1013,13 @@ internal class AccessibilityMediator(
             isPresent
         }
 
-        rootAccessibilityElement.parent = view
         return rootAccessibilityElement
-    }
-
-    /**
-     * Syncs the accessibility tree with the current semantics tree.
-     */
-    private fun sync(invalidationKind: SemanticsTreeInvalidationKind): NodesSyncResult {
-        return when (invalidationKind) {
-            SemanticsTreeInvalidationKind.COMPLETE -> completeSync()
-            SemanticsTreeInvalidationKind.BOUNDS -> updateFocusedElement()
-        }
     }
 
     /**
      * Performs a complete sync of the accessibility tree with the current semantics tree.
      */
-    private fun completeSync(): NodesSyncResult {
+    private fun sync(): NodesSyncResult {
         val rootSemanticsNode = owner.unmergedRootSemanticsNode
 
         check(!view.isAccessibilityElement) {
@@ -1090,6 +1149,15 @@ internal class AccessibilityMediator(
         }
         UIAccessibilityPostNotification(notificationName, newElementToFocus)
     }
+
+    private fun refocusKeyboardElementIfNeeded() {
+        if (keyboardFocusedElementKey != null) {
+            view.window?.let {
+                UIFocusSystem.focusSystemForEnvironment(it)?.requestFocusUpdateToEnvironment(it)
+            }
+            keyboardFocusedElementKey = null
+        }
+    }
 }
 
 /**
@@ -1145,12 +1213,13 @@ private fun debugContainmentChain(accessibilityObject: Any): String {
     while (currentObject != null) {
         when (val constCurrentObject = currentObject) {
             is AccessibilityElement -> {
-                currentObject = constCurrentObject.parent
+                strings.add(constCurrentObject.key.toString())
+                currentObject = constCurrentObject.accessibilityContainer
             }
 
             is AccessibilityRoot -> {
                 strings.add("Root")
-                currentObject = constCurrentObject.accessibilityContainer()
+                currentObject = constCurrentObject.accessibilityContainer
             }
 
             is UIView -> {

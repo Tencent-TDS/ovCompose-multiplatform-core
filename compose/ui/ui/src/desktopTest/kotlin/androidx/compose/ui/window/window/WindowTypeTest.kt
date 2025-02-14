@@ -37,7 +37,7 @@ import org.junit.runner.RunWith
 class WindowTypeTest : BaseWindowTextFieldTest() {
     @Theory
     internal fun `q, w, space, backspace 4x (English)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "English") {
         // q
         window.sendKeyEvent(81, 'q', KEY_PRESSED)
@@ -84,7 +84,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 4x (Russian)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Russian") {
         // q
         window.sendKeyEvent(81, 'й', KEY_PRESSED)
@@ -131,7 +131,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `f, g, space, backspace 4x (Arabic)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Arabic") {
         // q
         window.sendKeyEvent(70, 'ب', KEY_PRESSED)
@@ -178,7 +178,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 4x (Korean, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, Windows") {
         // q
         window.sendInputEvent("ㅂ", 0)
@@ -226,7 +226,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, backspace 3x (Korean, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, Windows") {
         // q
         window.sendInputEvent("ㅂ", 0)
@@ -260,7 +260,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `f, g, space, backspace 3x (Korean, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, Windows") {
         // f
         window.sendInputEvent("ㄹ", 0)
@@ -301,7 +301,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `f, g, backspace 2x (Korean, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, Windows") {
         // f
         window.sendInputEvent("ㄹ", 0)
@@ -333,7 +333,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 4x (Korean, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, macOS") {
         // q
         window.sendInputEvent("ㅂ", 0)
@@ -380,7 +380,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, backspace 3x (Korean, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, macOS") {
         // q
         window.sendInputEvent("ㅂ", 0)
@@ -418,7 +418,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
     // f, g on macOS prints 2 separate symbols (comparing to Windows), so we test t + y
     @Theory
     internal fun `t, y, space, backspace 3x (Korean, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, macOS") {
         // t
         window.sendInputEvent("ㅅ", 0)
@@ -457,7 +457,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `t, y, backspace 2x (Korean, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, macOS") {
         // t
         window.sendInputEvent("ㅅ", 0)
@@ -491,7 +491,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 4x (Korean, Linux)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Korean, Linux") {
         // q
         window.sendInputEvent("ㅂ", 0)
@@ -540,7 +540,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 3x (Chinese, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Chinese, Windows") {
         // q
         window.sendInputEvent("q", 0)
@@ -579,7 +579,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, backspace 3x (Chinese, Windows)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Chinese, Windows") {
         // q
         window.sendInputEvent("q", 0)
@@ -611,7 +611,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, space, backspace 3x (Chinese, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Chinese, macOS") {
         // q
         window.sendInputEvent("q", 0)
@@ -649,7 +649,7 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
 
     @Theory
     internal fun `q, w, backspace 3x (Chinese, macOS)`(
-        textFieldKind: TextFieldKind
+        textFieldKind: TextFieldKind<*>
     ) = runTextFieldTest(textFieldKind, "Chinese, macOS") {
         // q
         window.sendInputEvent("q", 0)
@@ -677,4 +677,30 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
         window.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assertStateEquals("", selection = TextRange(0), composition = null)
     }
+
+//    @Test
+//    fun secureTextFieldWorksWithInputMethods() = runTextFieldTest(
+//        textFieldKind = SecureTextField,
+//        name = "OutputTransform, Chinese, macOS"
+//    ) {
+//        // c
+//        window.sendInputEvent("c", 0)
+//        window.sendKeyEvent(67, 'c', KEY_RELEASED)
+//        assertStateEquals("c", selection = TextRange(1), composition = TextRange(0, 1))
+//
+//        // space
+//        window.sendInputEvent("才", 1)
+//        window.sendKeyEvent(32, ' ', KEY_RELEASED)
+//        assertStateEquals("才", selection = TextRange(1), composition = null)
+//
+//        // c
+//        window.sendInputEvent("c", 0)
+//        window.sendKeyEvent(67, 'c', KEY_RELEASED)
+//        assertStateEquals("才c", selection = TextRange(2), composition = TextRange(1, 2))
+//
+//        // space
+//        window.sendInputEvent("才", 1)
+//        window.sendKeyEvent(32, ' ', KEY_RELEASED)
+//        assertStateEquals("才才", selection = TextRange(2), composition = null)
+//    }
 }

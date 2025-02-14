@@ -379,6 +379,7 @@ internal class ComposeHostingViewController(
         coroutineContext = coroutineContext,
         redrawer = rootMetalView.redrawer,
         composeSceneFactory = ::createComposeScene,
+        backGestureDispatcher = backGestureDispatcher
     ).also { mediator ->
         mediator.updateInteractionRect()
         mediator.setContent {

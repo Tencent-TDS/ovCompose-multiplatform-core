@@ -18,6 +18,7 @@ package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
 import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.input.TextFieldCharSequence
 import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -55,13 +56,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     val editProcessor = EditProcessor()
     fun onEditCommand(commands: List<EditCommand>) {
         editProcessor.reset(
-            value = with(state.visualText) {
-                TextFieldValue(
-                    text = toString(),
-                    selection = selection,
-                    composition = composition
-                )
-            },
+            value = state.untransformedText.toTextFieldValue(),
             textInputSession = null
         )
 
@@ -81,7 +76,6 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             }
         }
     }
-
 
     coroutineScope {
         launch {
@@ -115,20 +109,19 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
 
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
-                state = TextFieldValue(
-                    state.visualText.toString(),
-                    state.visualText.selection,
-                    state.visualText.composition,
-                ),
-                textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
+                state = state.untransformedText.toTextFieldValue(),
                 imeOptions = imeOptions,
                 onEditCommand = ::onEditCommand,
                 onImeAction = onImeAction,
                 editProcessor = editProcessor,
+                textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
             )
         )
     }
 }
+
+private fun TextFieldCharSequence.toTextFieldValue() =
+    TextFieldValue(toString(), selection, composition)
 
 @OptIn(ExperimentalComposeUiApi::class)
 private data class SkikoPlatformTextInputMethodRequest(

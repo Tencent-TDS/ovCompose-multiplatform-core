@@ -36,8 +36,6 @@ import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.test.platform.makeSynchronizedObject
-import androidx.compose.ui.test.platform.synchronized
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
@@ -126,7 +124,7 @@ fun defaultTestDispatcher() = UnconfinedTestDispatcher()
  */
 @ExperimentalTestApi
 @OptIn(InternalTestApi::class, InternalComposeUiApi::class)
-class SkikoComposeUiTest @InternalTestApi constructor(
+open class SkikoComposeUiTest @InternalTestApi constructor(
     width: Int = 1024,
     height: Int = 768,
     // TODO(https://github.com/JetBrains/compose-multiplatform/issues/2960) Support effectContext
@@ -189,9 +187,6 @@ class SkikoComposeUiTest @InternalTestApi constructor(
 
     private val testOwner = SkikoTestOwner()
     private val testContext = TestContext(testOwner)
-
-    private val idlingResources = mutableSetOf<IdlingResource>()
-    private val idlingResourcesLock = makeSynchronizedObject(idlingResources)
 
     fun <R> runTest(block: SkikoComposeUiTest.() -> R): R {
         return composeRootRegistry.withRegistry {
@@ -334,21 +329,9 @@ class SkikoComposeUiTest @InternalTestApi constructor(
         // TODO Add a wait function variant without conditions (timeout exceptions)
     }
 
-    override fun registerIdlingResource(idlingResource: IdlingResource) {
-        synchronized(idlingResourcesLock) {
-            idlingResources.add(idlingResource)
-        }
-    }
-
-    override fun unregisterIdlingResource(idlingResource: IdlingResource) {
-        synchronized(idlingResourcesLock) {
-            idlingResources.remove(idlingResource)
-        }
-    }
-
-    private fun areAllResourcesIdle() = synchronized(idlingResourcesLock) {
-        idlingResources.all { it.isIdleNow }
-    }
+    // Only DesktopComposeUiTest supports IdlingResource registration,
+    // so by default SkikoComposeUiTest doesn't expect any IdlingResource
+    protected open fun areAllResourcesIdle() = true
 
     override fun setContent(composable: @Composable () -> Unit) {
         if (isOnUiThread()) {
@@ -510,8 +493,6 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
         timeoutMillis: Long,
         condition: () -> Boolean
     )
-    actual fun registerIdlingResource(idlingResource: IdlingResource)
-    actual fun unregisterIdlingResource(idlingResource: IdlingResource)
     actual fun setContent(composable: @Composable () -> Unit)
 
     actual fun enableAccessibilityChecks()

@@ -185,9 +185,11 @@ internal class UserInputGestureRecognizer(
         super.touchesEnded(touches, withEvent)
 
         fun endTouchesEvent() {
-            setState(UIGestureRecognizerStateEnded)
             onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.ENDED)
             stopTrackingTouches(touches)
+            if (trackedTouches.isEmpty()) {
+                setState(UIGestureRecognizerStateEnded)
+            }
         }
 
         if (state.isOngoing) {

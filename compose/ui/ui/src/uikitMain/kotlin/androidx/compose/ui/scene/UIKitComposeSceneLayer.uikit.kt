@@ -33,6 +33,7 @@ import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.asDpRect
@@ -74,6 +75,11 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
+    private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        density = view.density,
+        getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
+    )
+
     private val mediator = ComposeSceneMediator(
         parentView = view,
         onFocusBehavior = onFocusBehavior,
@@ -81,7 +87,8 @@ internal class UIKitComposeSceneLayer(
         windowContext = windowContext,
         coroutineContext = compositionContext.effectCoroutineContext,
         redrawer = metalView.redrawer,
-        composeSceneFactory = ::createComposeScene
+        composeSceneFactory = ::createComposeScene,
+        backGestureDispatcher = backGestureDispatcher
     )
 
     private fun isInsideInteractionBounds(point: CValue<CGPoint>): Boolean =
@@ -108,7 +115,7 @@ internal class UIKitComposeSceneLayer(
 
     override var layoutDirection by mediator::layoutDirection
 
-    override var boundsInWindow by mediator::interactionBounds
+    override var boundsInWindow: IntRect by mediator::interactionBounds
 
     override var compositionLocalContext by mediator::compositionLocalContext
 
@@ -123,11 +130,6 @@ internal class UIKitComposeSceneLayer(
         }
 
     private val scrimPaint = Paint()
-
-    private val backGestureDispatcher = UIKitBackGestureDispatcher(
-        density = density,
-        getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
-    )
 
     private fun onDidMoveToWindow(window: UIWindow?) {
         backGestureDispatcher.onDidMoveToWindow(window, view)
