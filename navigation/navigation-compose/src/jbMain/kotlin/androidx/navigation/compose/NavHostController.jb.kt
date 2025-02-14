@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+@file:JvmName("NavHostControllerKt")
+@file:JvmMultifileClass
+
 package androidx.navigation.compose
 
 import androidx.compose.runtime.Composable
@@ -23,6 +26,8 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.Navigator
 import androidx.savedstate.SavedState
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
 @Composable
 public actual fun rememberNavController(
