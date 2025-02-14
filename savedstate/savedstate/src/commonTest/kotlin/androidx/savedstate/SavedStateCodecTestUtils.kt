@@ -17,22 +17,65 @@
 package androidx.savedstate
 
 import androidx.kruth.assertThat
+import androidx.savedstate.serialization.SavedStateConfig
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.serializer
 
 internal object SavedStateCodecTestUtils {
+    /* Test the following steps: 1. encode `T` to a `SavedState`, 2. parcelize it to a `Parcel`,
+     * 3. un-parcelize it back to a `SavedState`, and 4. decode it back to a `T`. Step 2 and 3
+     * are only performed on Android. Here's the whole process:
+     *
+     * (A)Serializable -1-> (B)SavedState -2-> (C)Parcel -3-> (D)SavedState -4-> (E)Serializable
+     *
+     * `checkEncoded` can be used to check the content of "B", and `checkDecoded` can be
+     *  used to compare the instances of "E" and "A".
+     */
     inline fun <reified T : Any> T.encodeDecode(
-        serializer: KSerializer<T> = serializer<T>(),
-        checkContent: SavedStateReader.() -> Unit = { assertThat(size()).isEqualTo(0) }
+        serializer: KSerializer<T>? = null,
+        config: SavedStateConfig? = null,
+        checkDecoded: (T, T) -> Unit = { decoded, original ->
+            assertThat(decoded).isEqualTo(original)
+        },
+        checkEncoded: SavedStateReader.() -> Unit = { assertThat(size()).isEqualTo(0) }
     ) {
-        assertThat(
-                decodeFromSavedState(
-                    serializer,
-                    encodeToSavedState(serializer, this).apply { read { checkContent() } }
-                )
-            )
-            .isEqualTo(this)
+        val encoded =
+            if (serializer == null) {
+                if (config == null) {
+                    encodeToSavedState(this)
+                } else {
+                    encodeToSavedState(this, config)
+                }
+            } else {
+                if (config == null) {
+                    encodeToSavedState(serializer, this)
+                } else {
+                    encodeToSavedState(serializer, this, config)
+                }
+            }
+
+        encoded.read { checkEncoded() }
+
+        val restored = platformEncodeDecode(encoded)
+
+        val decoded =
+            if (serializer == null) {
+                if (config == null) {
+                    decodeFromSavedState(restored)
+                } else {
+                    decodeFromSavedState(restored, config)
+                }
+            } else {
+                if (config == null) {
+                    decodeFromSavedState(serializer, restored)
+                } else {
+                    decodeFromSavedState(serializer, restored, config)
+                }
+            }
+
+        checkDecoded(decoded, this)
     }
 }
+
+expect fun platformEncodeDecode(savedState: SavedState): SavedState
