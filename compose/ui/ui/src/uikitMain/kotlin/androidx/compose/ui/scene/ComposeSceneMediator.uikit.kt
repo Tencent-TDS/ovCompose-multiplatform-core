@@ -59,6 +59,7 @@ import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
+import androidx.compose.ui.uikit.LocalScreenReaderActive
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
@@ -112,6 +113,7 @@ private class SemanticsOwnerListenerImpl(
     private val coroutineContext: CoroutineContext,
     private val performEscape: () -> Boolean,
     private val onKeyboardPresses: (Set<*>) -> Unit,
+    private val onScreenReaderActive: (Boolean) -> Unit,
 ) : PlatformContext.SemanticsOwnerListener {
 
     private var accessibilityMediator: AccessibilityMediator? = null
@@ -129,7 +131,8 @@ private class SemanticsOwnerListenerImpl(
                 semanticsOwner,
                 coroutineContext,
                 performEscape,
-                onKeyboardPresses
+                onKeyboardPresses,
+                onScreenReaderActive
             ).also {
                 it.isEnabled = isEnabled
             }
@@ -140,6 +143,7 @@ private class SemanticsOwnerListenerImpl(
         if (accessibilityMediator?.owner == semanticsOwner) {
             accessibilityMediator?.dispose()
             accessibilityMediator = null
+            onScreenReaderActive(false)
         }
     }
 
@@ -183,6 +187,7 @@ internal class ComposeSceneMediator(
 
     private var keyboardOverlapHeight by mutableStateOf(0.dp)
     private var animateKeyboardOffsetChanges by mutableStateOf(false)
+    private var screenReaderActive by mutableStateOf(false)
 
     private val viewConfiguration: ViewConfiguration =
         object : ViewConfiguration by EmptyViewConfiguration {
@@ -280,7 +285,8 @@ internal class ComposeSceneMediator(
 
                 down || up
             },
-            onKeyboardPresses = ::onKeyboardPresses
+            onKeyboardPresses = ::onKeyboardPresses,
+            onScreenReaderActive = { screenReaderActive = it }
         )
     }
 
@@ -468,6 +474,7 @@ internal class ComposeSceneMediator(
             LocalKeyboardOverlapHeight provides keyboardOverlapHeight,
             LocalSafeArea provides safeArea,
             LocalLayoutMargins provides layoutMargins,
+            LocalScreenReaderActive provides screenReaderActive,
             content = content
         )
 

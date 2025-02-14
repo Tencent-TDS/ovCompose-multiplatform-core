@@ -365,6 +365,7 @@ private class AccessibilityRoot(
             }
             field = value
             field?.setAccessibilityContainer(this)
+            mediator.onScreenReaderActive(value != null)
         }
 
     override fun isAccessibilityElement(): Boolean = false
@@ -742,6 +743,7 @@ internal class AccessibilityMediator(
     val coroutineContext: CoroutineContext,
     val performEscape: () -> Boolean,
     onKeyboardPresses: (Set<*>) -> Unit,
+    val onScreenReaderActive: (Boolean) -> Unit,
 ) {
     private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
         set(value) {

@@ -14,24 +14,10 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.lazy
+package androidx.compose.ui.uikit
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.InternalComposeUiApi
-import androidx.compose.ui.uikit.LocalScreenReaderActive
 
-/**
- * A minimum number of preloaded elements to allow the iOS accessibility engine to traverse the
- * lazy list elements without delay for semantic tree reloads after scrolling.
- */
-private const val SCREEN_READER_BEYOND_BOUNDS_ITEM_COUNT = 3
-
-@OptIn(InternalComposeUiApi::class)
-@Composable
-internal actual fun defaultLazyListBeyondBoundsItemCount(): Int {
-    return if (LocalScreenReaderActive.current) {
-        SCREEN_READER_BEYOND_BOUNDS_ITEM_COUNT
-    } else {
-        0
-    }
-}
+@InternalComposeUiApi
+val LocalScreenReaderActive = staticCompositionLocalOf { false }
