@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package androidx.savedstate.internal
 
-package androidx.savedstate
+internal actual class SynchronizedObject actual constructor()
 
-import androidx.annotation.MainThread
-
-@MainThread
-internal actual fun platformPerformAttach(owner: SavedStateRegistryOwner) {
-    // Nothing
-}
+internal actual inline fun <T> synchronizedImpl(
+    lock: SynchronizedObject,
+    crossinline action: () -> T
+): T = action()

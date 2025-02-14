@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,5 @@
 
 package androidx.savedstate
 
-import androidx.annotation.MainThread
-
-@MainThread
-internal actual fun platformPerformAttach(owner: SavedStateRegistryOwner) {
-    val lifecycle = owner.lifecycle
-    lifecycle.addObserver(Recreator(owner))
-}
+// No parceling in non-Android platforms.
+actual fun platformEncodeDecode(savedState: SavedState): SavedState = savedState
