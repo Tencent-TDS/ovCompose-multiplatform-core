@@ -103,9 +103,6 @@ public final class androidx/navigation/compose/NavGraphBuilderKt {
 
 public final class androidx/navigation/compose/NavHostControllerKt {
 	public static final fun currentBackStackEntryAsState (Landroidx/navigation/NavController;Landroidx/compose/runtime/Composer;I)Landroidx/compose/runtime/State;
-}
-
-public final class androidx/navigation/compose/NavHostController_jbKt {
 	public static final fun rememberNavController ([Landroidx/navigation/Navigator;Landroidx/compose/runtime/Composer;I)Landroidx/navigation/NavHostController;
 }
 
