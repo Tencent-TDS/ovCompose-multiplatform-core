@@ -413,17 +413,20 @@ internal class UserInputView(
         super.pressesEnded(presses, withEvent)
     }
 
-    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
-        if (isPointInsideInteractionBounds(point)) {
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        return if (isPointInsideInteractionBounds(point)) {
             hitTestInteropView(point)?.let { interopView ->
                 interopView.hitTest(
                     point = convertPoint(point, toView = interopView),
                     withEvent = withEvent
                 )
+            } ?: super.hitTest(point, withEvent)?.takeIf {
+                it is IntermediateTextInputUIView
             } ?: this
         } else {
             null
         }
+    }
 
     /**
      * Intentionally clean up all dependencies of InteractionUIView to prevent retain cycles that

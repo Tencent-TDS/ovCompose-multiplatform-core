@@ -311,7 +311,7 @@ internal class ComposeSceneMediator(
                 setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
-            rootView = view,
+            rootView = userInputView,
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
             onInputStarted = {
