@@ -173,8 +173,7 @@ internal class ComposeSceneMediator(
     private val backGestureDispatcher: UIKitBackGestureDispatcher,
     composeSceneFactory: (
         invalidate: () -> Unit,
-        platformContext: PlatformContext,
-        coroutineContext: CoroutineContext
+        platformContext: PlatformContext
     ) -> ComposeScene
 ) {
     private var onPreviewKeyEvent: (KeyEvent) -> Boolean = { false }
@@ -196,8 +195,7 @@ internal class ComposeSceneMediator(
     private val scene: ComposeScene by lazy {
         composeSceneFactory(
             ::setNeedsRedraw,
-            PlatformContextImpl(),
-            coroutineContext,
+            PlatformContextImpl()
         )
     }
 

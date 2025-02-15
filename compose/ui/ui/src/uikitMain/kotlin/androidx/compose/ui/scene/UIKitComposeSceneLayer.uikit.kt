@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.MetalView
-import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGPoint
 import platform.UIKit.UIWindow
@@ -96,13 +95,11 @@ internal class UIKitComposeSceneLayer(
     
     private fun createComposeScene(
         invalidate: () -> Unit,
-        platformContext: PlatformContext,
-        coroutineContext: CoroutineContext,
+        platformContext: PlatformContext
     ): ComposeScene =
         PlatformLayersComposeScene(
             density = initDensity, // We should use the local density already set for the current layer.
             layoutDirection = initLayoutDirection,
-            coroutineContext = coroutineContext,
             composeSceneContext = createComposeSceneContext(platformContext),
             invalidate = invalidate,
         )
