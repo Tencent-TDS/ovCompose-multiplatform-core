@@ -95,6 +95,8 @@ import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.ClipRectangle
@@ -772,28 +774,31 @@ internal class ComposeSceneMediator(
             // This session has no data, just init/dispose tasks.
             sessionInitializer = { null }
         ) {
-            (suspendCancellableCoroutine<Nothing> { continuation ->
-                textInputService.startInput(
-                    value = request.state,
-                    imeOptions = request.imeOptions,
-                    onEditCommand = request.onEditCommand,
-                    onImeActionPerformed = request.onImeAction ?: {}
-                )
-
-                continuation.invokeOnCancellation {
-                    textInputService.stopInput()
+            coroutineScope {
+                launch {
+                    request.focusedRectInRoot.collect {
+                        textInputService.notifyFocusedRect(it)
+                    }
                 }
-            })
+
+                suspendCancellableCoroutine<Nothing> { continuation ->
+                    textInputService.startInput(
+                        value = request.state,
+                        imeOptions = request.imeOptions,
+                        onEditCommand = request.onEditCommand,
+                        onImeActionPerformed = request.onImeAction ?: {}
+                    )
+
+                    continuation.invokeOnCancellation {
+                        textInputService.stopInput()
+                    }
+                }
+            }
         }
 
         @ExperimentalComposeUiApi
-        override fun updateSelectionState(newState: TextFieldValue) {
-            textInputService.updateState(oldValue = null, newValue = newState)
-        }
-
-        @ExperimentalComposeUiApi
-        override fun notifyFocusedRect(rect: Rect) {
-            textInputService.notifyFocusedRect(rect)
+        override fun updateTextFieldValue(newValue: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newValue)
         }
     }
 
