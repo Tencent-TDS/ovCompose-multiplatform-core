@@ -17,18 +17,36 @@
 package androidx.compose.ui.hapticfeedback
 
 import platform.UIKit.UIImpactFeedbackGenerator
+import platform.UIKit.UIImpactFeedbackStyle
+import platform.UIKit.UINotificationFeedbackGenerator
+import platform.UIKit.UINotificationFeedbackType
 import platform.UIKit.UISelectionFeedbackGenerator
 
 // TODO: minor UX improvement, add `prepare()` calls when internal APIs are likely to use HapticFeedback
 //  (e.g. pan started during the text selection) to reduce haptic feedback latency
 //  see https://developer.apple.com/documentation/uikit/uifeedbackgenerator
 internal class CupertinoHapticFeedback : HapticFeedback {
-    private val impactGenerator = UIImpactFeedbackGenerator()
+
+    private val mediumImpactGenerator = UIImpactFeedbackGenerator()
+    private val lightImpactGenerator = UIImpactFeedbackGenerator(UIImpactFeedbackStyle.UIImpactFeedbackStyleLight)
     private val selectionGenerator = UISelectionFeedbackGenerator()
+    private val notificationGenerator = UINotificationFeedbackGenerator()
 
     override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
         when (hapticFeedbackType) {
-            HapticFeedbackType.LongPress -> impactGenerator.impactOccurred()
+            HapticFeedbackType.Confirm -> notificationGenerator
+                .notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeSuccess)
+            HapticFeedbackType.Reject -> notificationGenerator
+                .notificationOccurred(UINotificationFeedbackType.UINotificationFeedbackTypeError)
+            HapticFeedbackType.ContextClick,
+            HapticFeedbackType.LongPress -> mediumImpactGenerator.impactOccurred()
+            HapticFeedbackType.GestureEnd,
+            HapticFeedbackType.GestureThresholdActivate,
+            HapticFeedbackType.ToggleOff,
+            HapticFeedbackType.ToggleOn,
+            HapticFeedbackType.VirtualKey -> lightImpactGenerator.impactOccurred()
+            HapticFeedbackType.SegmentFrequentTick,
+            HapticFeedbackType.SegmentTick,
             HapticFeedbackType.TextHandleMove -> selectionGenerator.selectionChanged()
         }
     }

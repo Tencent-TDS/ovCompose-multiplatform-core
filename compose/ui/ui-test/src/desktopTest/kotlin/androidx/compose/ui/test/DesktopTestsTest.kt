@@ -34,11 +34,15 @@ import java.nio.file.Files
 import kotlin.io.path.readBytes
 import kotlin.io.path.writeBytes
 import kotlin.test.Test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 
 /**
- * Tests desktop-specified Test APIs.
+ * Tests desktop-specific Test APIs.
  */
 @OptIn(ExperimentalTestApi::class)
 class DesktopTestsTest {
@@ -124,5 +128,46 @@ class DesktopTestsTest {
                 "The actual image '$actualPng' does not match the expected image '$expectedPng'"
             }
         }
+    }
+
+    @Test
+    fun testIdlingResource() = runDesktopComposeUiTest {
+        var text by mutableStateOf("")
+        setContent {
+            Text(
+                text = text,
+                modifier = Modifier.testTag("text")
+            )
+        }
+
+        var isIdle = true
+        val idlingResource = object : IdlingResource {
+            override val isIdleNow: Boolean
+                get() = isIdle
+        }
+
+        fun test(expectedValue: String) {
+            text = "first"
+            isIdle = false
+            val job = CoroutineScope(Dispatchers.Default).launch {
+                delay(1000)
+                text = "second"
+                isIdle = true
+            }
+            try {
+                onNodeWithTag("text").assertTextEquals(expectedValue)
+            } finally {
+                job.cancel()
+            }
+        }
+
+        // With the idling resource registered, we expect the test to wait until the second value
+        // has been set.
+        registerIdlingResource(idlingResource)
+        test(expectedValue = "second")
+
+        // Without the idling resource registered, we expect the test to see the first value
+        unregisterIdlingResource(idlingResource)
+        test(expectedValue = "first")
     }
 }

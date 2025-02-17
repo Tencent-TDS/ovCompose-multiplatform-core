@@ -25,105 +25,113 @@ import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
 
 @JvmInline
-actual value class SavedStateWriter
+public actual value class SavedStateWriter
 @PublishedApi
 internal actual constructor(
     @PublishedApi internal actual val source: SavedState,
 ) {
 
-    actual inline fun putBoolean(key: String, value: Boolean) {
+    public actual inline fun putBoolean(key: String, value: Boolean) {
         source.map[key] = value
     }
 
-    actual inline fun putChar(key: String, value: Char) {
+    public actual inline fun putChar(key: String, value: Char) {
         source.map[key] = value
     }
 
-    actual inline fun putCharSequence(key: String, value: CharSequence) {
+    public actual inline fun putCharSequence(key: String, value: CharSequence) {
         source.map[key] = value
     }
 
-    actual inline fun putDouble(key: String, value: Double) {
+    public actual inline fun putDouble(key: String, value: Double) {
         source.map[key] = value
     }
 
-    actual inline fun putFloat(key: String, value: Float) {
+    public actual inline fun putFloat(key: String, value: Float) {
         source.map[key] = value
     }
 
-    actual inline fun putInt(key: String, value: Int) {
+    public actual inline fun putInt(key: String, value: Int) {
         source.map[key] = value
     }
 
-    actual inline fun putLong(key: String, value: Long) {
+    public actual inline fun putLong(key: String, value: Long) {
         source.map[key] = value
     }
 
-    actual inline fun putNull(key: String) {
+    public actual inline fun putNull(key: String) {
         source.map[key] = null
     }
 
-    actual inline fun putString(key: String, value: String) {
+    public actual inline fun putString(key: String, value: String) {
         source.map[key] = value
     }
 
-    actual inline fun putCharSequenceList(key: String, value: List<CharSequence>) {
+    public actual inline fun putCharSequenceList(key: String, value: List<CharSequence>) {
         source.map[key] = value
     }
 
-    actual inline fun putIntList(key: String, value: List<Int>) {
+    public actual inline fun putIntList(key: String, value: List<Int>) {
         source.map[key] = value
     }
 
-    actual inline fun putStringList(key: String, value: List<String>) {
+    public actual inline fun putSavedStateList(key: String, value: List<SavedState>) {
         source.map[key] = value
     }
 
-    actual inline fun putBooleanArray(key: String, value: BooleanArray) {
+    public actual inline fun putStringList(key: String, value: List<String>) {
         source.map[key] = value
     }
 
-    actual inline fun putCharArray(key: String, value: CharArray) {
+    public actual inline fun putBooleanArray(key: String, value: BooleanArray) {
         source.map[key] = value
     }
 
-    actual inline fun putCharSequenceArray(key: String, value: Array<CharSequence>) {
+    public actual inline fun putCharArray(key: String, value: CharArray) {
         source.map[key] = value
     }
 
-    actual inline fun putDoubleArray(key: String, value: DoubleArray) {
+    public actual inline fun putCharSequenceArray(key: String, value: Array<CharSequence>) {
         source.map[key] = value
     }
 
-    actual inline fun putFloatArray(key: String, value: FloatArray) {
+    public actual inline fun putDoubleArray(key: String, value: DoubleArray) {
         source.map[key] = value
     }
 
-    actual inline fun putIntArray(key: String, value: IntArray) {
+    public actual inline fun putFloatArray(key: String, value: FloatArray) {
         source.map[key] = value
     }
 
-    actual inline fun putLongArray(key: String, value: LongArray) {
+    public actual inline fun putIntArray(key: String, value: IntArray) {
         source.map[key] = value
     }
 
-    actual inline fun putStringArray(key: String, value: Array<String>) {
+    public actual inline fun putLongArray(key: String, value: LongArray) {
         source.map[key] = value
     }
 
-    actual inline fun putSavedState(key: String, value: SavedState) {
+    public actual inline fun putSavedStateArray(key: String, value: Array<SavedState>) {
         source.map[key] = value
     }
 
-    actual inline fun putAll(from: SavedState) {
+    public actual inline fun putStringArray(key: String, value: Array<String>) {
+        source.map[key] = value
+    }
+
+    public actual inline fun putSavedState(key: String, value: SavedState) {
+        source.map[key] = value
+    }
+
+    public actual inline fun putAll(from: SavedState) {
         source.map.putAll(from.map)
     }
 
-    actual inline fun remove(key: String) {
+    public actual inline fun remove(key: String) {
         source.map.remove(key)
     }
 
-    actual inline fun clear() {
+    public actual inline fun clear() {
         source.map.clear()
     }
 }

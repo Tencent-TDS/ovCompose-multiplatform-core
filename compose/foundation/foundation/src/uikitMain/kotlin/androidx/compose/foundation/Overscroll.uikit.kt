@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.LayoutDirection
 internal actual fun rememberPlatformOverscrollEffect(): OverscrollEffect? =
     rememberOverscrollEffect(applyClip = false)
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun rememberOverscrollEffect(applyClip: Boolean): OverscrollEffect {
     val density = LocalDensity.current.density

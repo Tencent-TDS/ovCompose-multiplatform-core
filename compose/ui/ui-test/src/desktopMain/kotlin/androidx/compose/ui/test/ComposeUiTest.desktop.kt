@@ -16,11 +16,9 @@
 
 package androidx.compose.ui.test
 
+import androidx.compose.ui.unit.Density
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-
-@OptIn(ExperimentalTestApi::class)
-typealias DesktopComposeUiTest = SkikoComposeUiTest
 
 /**
  * Variant of [runComposeUiTest] that allows you to specify the size of the surface.
@@ -38,5 +36,36 @@ fun runDesktopComposeUiTest(
     effectContext: CoroutineContext = EmptyCoroutineContext,
     block: DesktopComposeUiTest.() -> Unit
 ) {
-    DesktopComposeUiTest(width, height, effectContext).runTest(block)
+    with(DesktopComposeUiTest(width, height, effectContext)) {
+        runTest { block() }
+    }
+}
+
+@ExperimentalTestApi
+class DesktopComposeUiTest(
+    width: Int = 1024,
+    height: Int = 768,
+    effectContext: CoroutineContext = EmptyCoroutineContext,
+    density: Density = Density(1f),
+) : SkikoComposeUiTest(width, height, effectContext, density) {
+
+    private val idlingResources = mutableSetOf<IdlingResource>()
+
+    override fun areAllResourcesIdle(): Boolean {
+        return synchronized(idlingResources) {
+            idlingResources.all { it.isIdleNow }
+        }
+    }
+
+    fun registerIdlingResource(idlingResource: IdlingResource) {
+        synchronized(idlingResources) {
+            idlingResources.add(idlingResource)
+        }
+    }
+
+    fun unregisterIdlingResource(idlingResource: IdlingResource) {
+        synchronized(idlingResources) {
+            idlingResources.remove(idlingResource)
+        }
+    }
 }

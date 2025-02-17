@@ -168,7 +168,7 @@ private fun enableArtifactRedirectingPublishing(project: Project) {
         CustomRootComponent(rootComponent) { configuration ->
             val targetName = redirecting.targetVersions.keys.firstOrNull {
                 // we rely on the fact that configuration name starts with target name
-                configuration.name.startsWith(it)
+                configuration.name.startsWith(it, ignoreCase = true)
             }
             val targetVersion = redirecting.versionForTargetOrDefault(targetName ?: "")
             project.dependencies.create(
@@ -178,10 +178,10 @@ private fun enableArtifactRedirectingPublishing(project: Project) {
     }
 
     val oelTargetNames = (project.findProperty("artifactRedirecting.publication.targetNames") as? String ?: "")
-        .split(",").toSet()
+        .split(",").map { it.lowercase() }.toSet()
 
     ext.targets.all { target ->
-        if (target.name in oelTargetNames || target is KotlinAndroidTarget) {
+        if (target.name.lowercase() in oelTargetNames || target is KotlinAndroidTarget) {
             project.publishAndroidxReference(target as AbstractKotlinTarget, newRootComponent)
         }
     }

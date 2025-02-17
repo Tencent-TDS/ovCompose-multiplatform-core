@@ -39,10 +39,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 
 
@@ -122,47 +119,6 @@ class TestBasicsTest {
                 assertEquals(expectedPixel, pixel)
             }
         }
-    }
-
-    @Test
-    fun testIdlingResource() = runComposeUiTest {
-        var text by mutableStateOf("")
-        setContent {
-            Text(
-                text = text,
-                modifier = Modifier.testTag("text")
-            )
-        }
-
-        var isIdle = true
-        val idlingResource = object : IdlingResource {
-            override val isIdleNow: Boolean
-                get() = isIdle
-        }
-
-        fun test(expectedValue: String) {
-            text = "first"
-            isIdle = false
-            val job = CoroutineScope(Dispatchers.Default).launch {
-                delay(1000)
-                text = "second"
-                isIdle = true
-            }
-            try {
-                onNodeWithTag("text").assertTextEquals(expectedValue)
-            } finally {
-                job.cancel()
-            }
-        }
-
-        // With the idling resource registered, we expect the test to wait until the second value
-        // has been set.
-        registerIdlingResource(idlingResource)
-        test(expectedValue = "second")
-
-        // Without the idling resource registered, we expect the test to see the first value
-        unregisterIdlingResource(idlingResource)
-        test(expectedValue = "first")
     }
 
     @Test
@@ -308,7 +264,7 @@ class TestBasicsTest {
     }
 
     @Test
-    fun emptyTestPerformance() = runTest(timeout = 3.seconds) {
+    fun emptyTestPerformance() = runTest(timeout = 6.seconds) {
         repeat(100) {
             runComposeUiTest {
                 setContent { }

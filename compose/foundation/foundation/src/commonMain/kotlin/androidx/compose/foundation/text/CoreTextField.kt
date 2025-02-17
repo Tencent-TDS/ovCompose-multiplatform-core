@@ -298,6 +298,7 @@ internal fun CoreTextField(
     manager.editable = !readOnly
     manager.enabled = enabled
 
+    // TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
     rememberClipboardEventsHandler(
         isEnabled = state.hasFocus,
         onCopy = { manager.onCopyWithResult() },
@@ -372,35 +373,9 @@ internal fun CoreTextField(
         }
     }
 
-    val pointerModifier =
-        Modifier.updateSelectionTouchMode { state.isInTouchMode = it }
-            .tapPressTextFieldModifier(interactionSource, enabled) { offset ->
-                requestFocusAndShowKeyboardIfNeeded(state, focusRequester, !readOnly)
-                if (state.hasFocus && enabled) {
-                    if (state.handleState != HandleState.Selection) {
-                        state.layoutResult?.let { layoutResult ->
-                            TextFieldDelegate.setCursorOffset(
-                                offset,
-                                layoutResult,
-                                state.processor,
-                                offsetMapping,
-                                state.onValueChange
-                            )
-                            // Won't enter cursor state when text is empty.
-                            if (state.textDelegate.text.isNotEmpty()) {
-                                state.handleState = HandleState.Cursor
-                            }
-                        }
-                    } else {
-                        manager.deselect(offset)
-                    }
-                }
-            }
-            .selectionGestureInput(
-                mouseSelectionObserver = manager.mouseSelectionObserver,
-                textDragObserver = manager.touchSelectionObserver,
-            )
-            .pointerHoverIcon(textPointerIcon)
+    val pointerModifier = Modifier.textFieldPointer(
+        manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping
+    )
 
     val drawModifier =
         Modifier.drawBehind {

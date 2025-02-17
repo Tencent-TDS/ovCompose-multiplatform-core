@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.compose.foundation.internal
+package androidx.savedstate
 
-import androidx.compose.ui.platform.ClipEntry
-import androidx.compose.ui.text.AnnotatedString
-
-// TODO https://youtrack.jetbrains.com/issue/CMP-7402
-internal actual fun ClipEntry.readText(): String? = null
-internal actual fun ClipEntry.readAnnotatedString(): AnnotatedString? = null
-internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? = null
-internal actual fun ClipEntry?.hasText(): Boolean = false
+// No parceling in non-Android platforms.
+actual fun platformEncodeDecode(savedState: SavedState): SavedState = savedState

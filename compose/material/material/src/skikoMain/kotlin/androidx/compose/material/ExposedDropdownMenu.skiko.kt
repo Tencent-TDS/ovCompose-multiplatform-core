@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.toIntRect
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
 internal actual class WindowBoundsCalculator(private val windowInfo: WindowInfo) {
     actual fun getVisibleWindowBounds(): IntRect = windowInfo.containerSize.toIntRect()

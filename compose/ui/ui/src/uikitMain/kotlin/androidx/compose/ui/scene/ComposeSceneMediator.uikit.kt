@@ -22,8 +22,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.animation.withAnimationProgress
+import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
 import androidx.compose.ui.draganddrop.UIKitDragAndDropManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -79,7 +81,6 @@ import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ApplicationForegroundStateListener
 import androidx.compose.ui.window.ComposeSceneKeyboardOffsetManager
 import androidx.compose.ui.window.FocusStack
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.KeyboardVisibilityListener
 import androidx.compose.ui.window.MetalRedrawer
 import androidx.compose.ui.window.TouchesEventKind
@@ -90,6 +91,9 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGPoint
 import platform.QuartzCore.CACurrentMediaTime
@@ -108,9 +112,10 @@ import platform.UIKit.UIView
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 private class SemanticsOwnerListenerImpl(
-    private val rootView: ComposeSceneMediatorView,
+    private val rootView: UIView,
     private val coroutineContext: CoroutineContext,
-    private val performEscape: () -> Boolean
+    private val performEscape: () -> Boolean,
+    private val onKeyboardPresses: (Set<*>) -> Unit,
 ) : PlatformContext.SemanticsOwnerListener {
 
     private var accessibilityMediator: AccessibilityMediator? = null
@@ -127,7 +132,8 @@ private class SemanticsOwnerListenerImpl(
                 rootView,
                 semanticsOwner,
                 coroutineContext,
-                performEscape
+                performEscape,
+                onKeyboardPresses
             ).also {
                 it.isEnabled = isEnabled
             }
@@ -168,7 +174,7 @@ internal class ComposeSceneMediator(
     private val windowContext: PlatformWindowContext,
     private val coroutineContext: CoroutineContext,
     private val redrawer: MetalRedrawer,
-    onGestureEvent: (GestureEvent) -> Unit,
+    private val backGestureDispatcher: UIKitBackGestureDispatcher,
     composeSceneFactory: (
         invalidate: () -> Unit,
         platformContext: PlatformContext,
@@ -239,9 +245,9 @@ internal class ComposeSceneMediator(
      */
     private val userInputView = UserInputView(
         ::hitTestInteropView,
-        ::onTouchesEvent,
-        onGestureEvent,
         ::isPointInsideInteractionBounds,
+        ::onTouchesEvent,
+        ::onCancelAllTouches,
         ::onKeyboardPresses
     )
 
@@ -270,14 +276,15 @@ internal class ComposeSceneMediator(
 
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
-            rootView = view,
+            rootView = parentView,
             coroutineContext = coroutineContext,
             performEscape = {
                 val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
                 val up = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyUp))
 
                 down || up
-            }
+            },
+            onKeyboardPresses = ::onKeyboardPresses
         )
     }
 
@@ -307,7 +314,8 @@ internal class ComposeSceneMediator(
             onInputStarted = {
                 animateKeyboardOffsetChanges = true
             },
-            onKeyboardPresses = ::onKeyboardPresses
+            onKeyboardPresses = ::onKeyboardPresses,
+            focusManager = { scene.focusManager }
         ).also {
             KeyboardVisibilityListener.initialize()
         }
@@ -319,7 +327,7 @@ internal class ComposeSceneMediator(
             isLayoutTransitionAnimating ||
             semanticsOwnerListener.hasInvalidations
 
-    private fun hitTestInteropView(point: CValue<CGPoint>, event: UIEvent?): UIView? =
+    private fun hitTestInteropView(point: CValue<CGPoint>): UIView? =
         point.useContents {
             val position = asDpOffset().toOffset(density)
             val interopView = scene.hitTestInteropView(position)
@@ -330,34 +338,36 @@ internal class ComposeSceneMediator(
             }
         }
 
+    private fun onCancelAllTouches(touches: Set<*>) {
+        redrawer.ongoingInteractionEventsCount -= touches.count()
+        scene.cancelPointerInput()
+    }
+
     /**
      * Converts [UITouch] objects from [touches] to [ComposeScenePointer] and dispatches them to the appropriate handlers.
-     * @param view the [UIView] that received the touches
      * @param touches a [Set] of [UITouch] objects. Erasure happens due to K/N not supporting Obj-C lightweight generics.
      * @param event the [UIEvent] associated with the touches
      * @param eventKind the [TouchesEventKind] of the touches
      */
     private fun onTouchesEvent(
-        view: UIView,
         touches: Set<*>,
         event: UIEvent?,
         eventKind: TouchesEventKind
-    ) {
+    ): PointerEventResult {
+        when (eventKind) {
+            TouchesEventKind.BEGAN -> redrawer.ongoingInteractionEventsCount += touches.count()
+            TouchesEventKind.ENDED -> redrawer.ongoingInteractionEventsCount -= touches.count()
+            TouchesEventKind.MOVED -> {}
+        }
+
         val pointers = touches.map {
             val touch = it as UITouch
             val id = touch.hashCode().toLong()
-            val position = touch.offsetInView(view, density.density)
+            val position = touch.offsetInView(userInputView, density.density)
             ComposeScenePointer(
                 id = PointerId(id),
                 position = position,
-                pressed = when (eventKind) {
-                    // When CMPGestureRecognizer fails, it means that all touches are now redirected
-                    // to the interop view. They are still technically pressed, but Compose must
-                    // treat them as lifted because it's the last event that Compose receives
-                    // during this touch sequence.
-                    TouchesEventKind.REDIRECTED -> false
-                    else -> touch.isPressed
-                },
+                pressed = touch.isPressed,
                 type = PointerType.Touch,
                 pressure = touch.force.toFloat(),
                 historical = event?.historicalChangesForTouch(
@@ -373,7 +383,7 @@ internal class ComposeSceneMediator(
         // this case.
         val timestamp = event?.timestamp ?: CACurrentMediaTime()
 
-        scene.sendPointerEvent(
+        return scene.sendPointerEvent(
             eventType = eventKind.toPointerEventType(),
             pointers = pointers,
             timeMillis = (timestamp * 1e3).toLong(),
@@ -561,6 +571,7 @@ internal class ComposeSceneMediator(
         textInputService.onPreviewKeyEvent(keyEvent) // TODO: fix redundant call
             || onPreviewKeyEvent(keyEvent)
             || scene.sendKeyEvent(keyEvent)
+            || backGestureDispatcher.onKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
 
     private inner class PlatformContextImpl : PlatformContext by PlatformContext.Empty {
@@ -605,17 +616,24 @@ internal class ComposeSceneMediator(
             innerSessionMutex.withSessionCancellingPrevious(
                 sessionInitializer = { null }
             ) {
-                suspendCancellableCoroutine<Nothing> { continuation ->
-                    textInputService.startInput(
-                        value = request.state,
-                        imeOptions = request.imeOptions,
-                        editProcessor = request.editProcessor,
-                        onEditCommand = request.onEditCommand,
-                        onImeActionPerformed = request.onImeAction ?: {}
-                    )
+                coroutineScope {
+                    launch {
+                        request.textLayoutResult.collect {
+                            textInputService.updateTextLayoutResult(it)
+                        }
+                    }
+                    suspendCancellableCoroutine<Nothing> { continuation ->
+                        textInputService.startInput(
+                            value = request.state,
+                            imeOptions = request.imeOptions,
+                            editProcessor = request.editProcessor,
+                            onEditCommand = request.onEditCommand,
+                            onImeActionPerformed = request.onImeAction ?: {}
+                        )
 
-                    continuation.invokeOnCancellation {
-                        textInputService.stopInput()
+                        continuation.invokeOnCancellation {
+                            textInputService.stopInput()
+                        }
                     }
                 }
             }
@@ -632,9 +650,7 @@ private fun TouchesEventKind.toPointerEventType(): PointerEventType =
     when (this) {
         TouchesEventKind.BEGAN -> PointerEventType.Press
         TouchesEventKind.MOVED -> PointerEventType.Move
-
-        TouchesEventKind.ENDED, TouchesEventKind.CANCELLED, TouchesEventKind.REDIRECTED ->
-            PointerEventType.Release
+        TouchesEventKind.ENDED -> PointerEventType.Release
     }
 
 private fun UIEvent.historicalChangesForTouch(

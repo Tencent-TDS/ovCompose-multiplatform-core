@@ -1282,6 +1282,13 @@ internal class TextFieldSelectionState(
         textFieldState.deleteSelectedText()
     }
 
+    fun cutWithResult(): String? {
+        val text = textFieldState.visualText
+        if (text.selection.collapsed) return null
+        textFieldState.deleteSelectedText()
+        return text.getSelectedText().toString()
+    }
+
     /**
      * Whether a copy operation can execute now and modify the clipboard. The copy operation
      * requires the selection to not be collapsed, and the text field to NOT be a password.
@@ -1306,6 +1313,14 @@ internal class TextFieldSelectionState(
         if (!cancelSelection) return
 
         textFieldState.collapseSelectionToMax()
+    }
+
+    fun copyWithResult(cancelSelection: Boolean = true): String? {
+        val text = textFieldState.visualText
+        if (text.selection.collapsed) return null
+
+        if (cancelSelection) textFieldState.collapseSelectionToMax()
+        return text.getSelectedText().toString()
     }
 
     /**
@@ -1359,6 +1374,13 @@ internal class TextFieldSelectionState(
 
         textFieldState.replaceSelectedText(
             clipboardText,
+            undoBehavior = TextFieldEditUndoBehavior.NeverMerge
+        )
+    }
+
+    fun pasteAsPlainText(text: String) {
+        textFieldState.replaceSelectedText(
+            text,
             undoBehavior = TextFieldEditUndoBehavior.NeverMerge
         )
     }

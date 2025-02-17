@@ -17,10 +17,11 @@
 package androidx.compose.ui.scene
 
 import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.window.centroidLocationInView
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UITouch
@@ -120,4 +121,34 @@ internal class UIKitComposeSceneLayerView(
         super.didMoveToWindow()
         onDidMoveToWindow(window)
     }
+}
+
+/**
+ * Calculate the centroid location of the touches in the given collection.
+ *
+ * @param view The view in which coordinate space calculation is performed.
+ *
+ * @return The centroid location of the touches in [this] collection in the coordinate space
+ * of the given [view]. Or `null` if [this] is empty.
+ */
+private fun Collection<UITouch>.centroidLocationInView(view: UIView): CValue<CGPoint>? {
+    if (isEmpty()) {
+        return null
+    }
+
+    var centroidX = 0.0
+    var centroidY = 0.0
+
+    for (touch in this) {
+        val location = touch.locationInView(view)
+        location.useContents {
+            centroidX += x
+            centroidY += y
+        }
+    }
+
+    return CGPointMake(
+        x = centroidX / size.toDouble(),
+        y = centroidY / size.toDouble()
+    )
 }
