@@ -205,6 +205,7 @@ internal class PausedCompositionImpl(
             }
         } catch (e: Exception) {
             state = PausedCompositionState.Invalid
+            throw e
         }
         return isComplete
     }
