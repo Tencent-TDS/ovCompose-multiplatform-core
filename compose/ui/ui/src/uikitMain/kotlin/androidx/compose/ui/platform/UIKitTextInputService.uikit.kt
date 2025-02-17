@@ -39,6 +39,7 @@ import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toDpSize
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import androidx.compose.ui.window.UserInputView
@@ -266,7 +268,13 @@ internal class UIKitTextInputService(
             size = contentFrame.size
         ).toDpRect(rootView.density)
 
-        println(">> Frame: ${NSStringFromCGRect(frame.asCGRect())} | Bounds: ${NSStringFromCGRect(bounds.asCGRect())}")
+        println(
+            ">> Frame: ${NSStringFromCGRect(frame.asCGRect())} | Bounds: ${
+                NSStringFromCGRect(
+                    bounds.asCGRect()
+                )
+            }"
+        )
         notifyGeometryChange(frame, bounds)
     }
 
@@ -567,6 +575,7 @@ internal class UIKitTextInputService(
          * @return A substring of a document that falls within the specified range.
          */
         override fun textInRange(range: IntRange): String {
+            if (range.first < 0 || range.last > endOfDocument() || range.first > range.last) { return "" }
             val text = getState()?.text
             return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
         }
@@ -670,31 +679,81 @@ internal class UIKitTextInputService(
             if (position < 0 || position > text.length) {
                 return null
             }
-            val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null // null in BTF2
+            val rect =
+                textLayoutResult?.getCursorRect(position.toInt()) ?: return null // null in BTF2
             return rect.toDpRect(rootView.density)
         }
 
-        override fun selectionDpRectsForRange(range: IntRange): List<DpRect> {
-            val currentSelection = getState()?.selection
-//
-//            val adjustedRange: IntRange = when {
-//                // 1. Not in the selection range
-//                range.start < currentSelection.start && range.endInclusive > currentSelection.end -> return emptyList()
-//                // 2. Start is not included, end is included
-//                range.start < currentSelection.start && range.endInclusive <= currentSelection.end -> return emptyList()
-//                // 3. Start is included, end is not included
-//                // 4. Start and end are the same with selection
-//                // 5. Start and end are inside the selection
-//                // 6. Start == end TODO: Check iOS behavior and move to the first if necessary
-//            }
-//            val currentTextLayoutResult = textLayoutResult ?: return emptyList()
-//            val density = rootView.density // TODO: extract it to the private method
-//            // Either LTR or RTL, it should be a higher selection handle
-//            val topLeadingDpRect = currentTextLayoutResult.getBoundingBox(range.first).toDpRect(rootView.density)
-//            // Like previously, it should be a lower selection handle, despite the layout direction
-//            val bottomTrailingDpRect = currentTextLayoutResult.getBoundingBox(range.last).toDpRect(rootView.density)
-            val dpRect = caretDpRectForPosition(range.start.toLong()) ?: return emptyList()
-            return listOf(dpRect)
+        override fun selectionRectsForRange(range: IntRange): List<TextSelectionRect> {
+            val emptyList = emptyList<TextSelectionRect>()
+            if (isIncorrect(range)) { return emptyList }
+            val currentTextLayoutResult = textLayoutResult ?: return emptyList
+
+            val startHandleRect = currentTextLayoutResult.getCursorRect(range.first)
+            val endHandleRect = currentTextLayoutResult.getCursorRect(range.last)
+
+            val oneLineSelection = startHandleRect.bottom == endHandleRect.bottom
+
+            if (oneLineSelection) {
+                val resultRect = TextSelectionRect(
+                    dpRect = Rect(
+                        startHandleRect.left,
+                        startHandleRect.top,
+                        endHandleRect.right,
+                        endHandleRect.bottom
+                    )
+                        .toDpRect(rootView.density),
+                    writingDirection = TextDirection.Content,
+                    containsStart = true,
+                    containsEnd = true,
+                    isVertical = false
+                )
+                return listOf(resultRect)
+            } else {
+                val startLineNumber = currentTextLayoutResult.getLineForOffset(range.first)
+                val startLineRight = currentTextLayoutResult.getLineRight(startLineNumber)
+                val firstLineRect = TextSelectionRect(
+                    dpRect = Rect(
+                        startHandleRect.left,
+                        startHandleRect.top,
+                        startLineRight,
+                        startHandleRect.bottom
+                    )
+                        .toDpRect(rootView.density),
+                    writingDirection = TextDirection.Content,
+                    containsStart = true,
+                    containsEnd = false,
+                    isVertical = false
+                )
+
+                val endLineNumber = currentTextLayoutResult.getLineForOffset(range.last)
+                val endLineLeft = currentTextLayoutResult.getLineLeft(endLineNumber)
+                val endLineRect = TextSelectionRect(
+                    dpRect = Rect(endLineLeft, endHandleRect.top, endHandleRect.right, endHandleRect.bottom)
+                        .toDpRect(rootView.density),
+                    writingDirection = TextDirection.Content,
+                    containsStart = false,
+                    containsEnd = true,
+                    isVertical = false
+                )
+
+                val lineStart = currentTextLayoutResult.getLineLeft(startLineNumber)
+                val lineEnd = currentTextLayoutResult.getLineRight(endLineNumber)
+                val middleRect = TextSelectionRect(
+                    dpRect = Rect(lineStart, startHandleRect.bottom, lineEnd, endHandleRect.top)
+                        .toDpRect(rootView.density),
+                    writingDirection = TextDirection.Content,
+                    containsStart = false,
+                    containsEnd = false,
+                    isVertical = false
+                )
+
+                return listOf(
+                    firstLineRect,
+                    middleRect,
+                    endLineRect
+                )
+            }
         }
 
         override fun closestPositionToPoint(point: DpOffset): Long? {
@@ -741,6 +800,8 @@ internal class UIKitTextInputService(
         override fun offset(fromPosition: Long, toPosition: Long): Long {
             TODO("Not yet implemented")
         }
+
+        private fun isIncorrect(range: IntRange): Boolean = range.first < 0 || range.last > endOfDocument() || range.first > range.last
     }
 
     private fun TextRange.toIntRange(): IntRange = IntRange(this.start, this.end) // TODO: check RTL
@@ -750,4 +811,12 @@ private data class CurrentInput(
     var value: TextFieldValue,
     val onEditCommand: (List<EditCommand>) -> Unit,
     var focusedRect: Rect? = null
+)
+
+internal data class TextSelectionRect(
+    val dpRect: DpRect,
+    val writingDirection: TextDirection,
+    val containsStart: Boolean,
+    val containsEnd: Boolean,
+    val isVertical: Boolean
 )

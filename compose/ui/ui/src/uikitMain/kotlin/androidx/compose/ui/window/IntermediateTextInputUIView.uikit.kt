@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
+import androidx.compose.ui.platform.TextSelectionRect
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
 import androidx.compose.ui.unit.DpOffset
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toDpRect
+import androidx.compose.ui.util.fastMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlinx.cinterop.CValue
@@ -50,6 +52,7 @@ import platform.Foundation.NSRange
 import platform.Foundation.dictionary
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
+import platform.UIKit.NSWritingDirectionNatural
 import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
@@ -220,10 +223,7 @@ internal class IntermediateTextInputUIView(
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    override fun textInRange(range: UITextRange): String? {
-        val text = input?.textInRange(range.toIntRange())
-        return text
-    }
+    override fun textInRange(range: UITextRange): String? = input?.textInRange(range.toIntRange())
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -457,15 +457,14 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun selectionRectsForRange(range: UITextRange): List<*> {
-        val fallbackList = listOf<UITextSelectionRect>() // can't be empty LOL
+        val fallbackList = listOf<UITextSelectionRect>() // can't be empty?
         val start = (range.start as? IntermediateTextPosition)?.position ?: return fallbackList
         val end = (range.end as? IntermediateTextPosition)?.position ?: return fallbackList
 
-//        val dpRect = input?.selectionDpRectsForRange(IntRange(start.toInt(), end.toInt()))?.first() ?: return fallbackList
-        val debugRect = DpRect(left = 27.dp, top = 166.dp, right = 54.dp, bottom = 183.dp)
-//        val resultRect = IntermediateTextSelectionRect(_rect = dpRect.asCGRect(), _writingDirection = NSWritingDirectionLeftToRight, _containsStart = true, _containsEnd = true, _isVertical = false)
-        val resultRect = IntermediateTextSelectionRect(_rect = debugRect.asCGRect(), _writingDirection = NSWritingDirectionLeftToRight, _containsStart = true, _containsEnd = true, _isVertical = false)
-        return listOf(resultRect)
+        val rects = input?.selectionRectsForRange(IntRange(start.toInt(), end.toInt()))
+            ?: return fallbackList
+
+        return rects.fastMap { IntermediateTextSelectionRect(it) }
     }
 
     override fun closestPositionToPoint(point: CValue<CGPoint>): UITextPosition? {
@@ -616,14 +615,22 @@ internal class IntermediateTextInputUIView(
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()
 
-internal class IntermediateTextSelectionRect(
+private class IntermediateTextSelectionRect(
     private var _rect: CValue<CGRect>,
     private val _writingDirection: UITextWritingDirection,
     private val _containsStart: Boolean,
     private val _containsEnd: Boolean,
     private val _isVertical: Boolean
 
-): UITextSelectionRect() {
+) : UITextSelectionRect() {
+    constructor(textSelectionRect: TextSelectionRect) : this(
+        textSelectionRect.dpRect.asCGRect(),
+        NSWritingDirectionNatural,
+        textSelectionRect.containsStart,
+        textSelectionRect.containsEnd,
+        textSelectionRect.isVertical
+    )
+
     override fun rect(): CValue<CGRect> = _rect
     override fun writingDirection(): NSWritingDirection = _writingDirection
     override fun containsStart(): Boolean = _containsStart
