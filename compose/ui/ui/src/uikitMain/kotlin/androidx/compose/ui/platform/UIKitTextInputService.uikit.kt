@@ -665,15 +665,11 @@ internal class UIKitTextInputService(
         override fun currentFocusedDpRect(): DpRect? = getFocusedRect()?.toDpRect(rootView.density)
 
         override fun caretDpRectForPosition(position: Long): DpRect? {
-            println("=== caretDpRectForPosition enter")
             val text = getState()?.text ?: return null
-            println("text fetched")
             if (position < 0 || position > text.length) {
-                println("rect null")
                 return null
             }
             val rect = textLayoutResult?.getCursorRect(position.toInt()) ?: return null // null in BTF2
-            println("rect fetched")
             return rect.toDpRect(rootView.density)
         }
 
