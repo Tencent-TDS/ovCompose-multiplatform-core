@@ -53,8 +53,9 @@ import org.jetbrains.skia.Rect as SkRect
 import org.jetbrains.skiko.node.RenderNode
 
 actual class GraphicsLayer internal constructor(
-    private val renderNode: RenderNode,
+    renderNode: RenderNode,
 ) {
+    private var renderNode: RenderNode? = renderNode
     private val pictureDrawScope = CanvasDrawScope()
 
     private var outlineDirty = true
@@ -80,7 +81,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.bounds = SkRect.makeXYWH(
+                renderNode?.bounds = SkRect.makeXYWH(
                     value.x.toFloat(),
                     value.y.toFloat(),
                     size.width.toFloat(),
@@ -93,7 +94,7 @@ actual class GraphicsLayer internal constructor(
         private set(value) {
             if (field != value) {
                 field = value
-                renderNode.bounds = SkRect.makeXYWH(
+                renderNode?.bounds = SkRect.makeXYWH(
                     topLeft.x.toFloat(),
                     topLeft.y.toFloat(),
                     value.width.toFloat(),
@@ -110,7 +111,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.pivot = Point(value.x, value.y)
+                renderNode?.pivot = Point(value.x, value.y)
             }
         }
 
@@ -118,7 +119,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.alpha = value
+                renderNode?.alpha = value
                 updateLayerProperties()
             }
         }
@@ -127,7 +128,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.scaleX = value
+                renderNode?.scaleX = value
             }
         }
 
@@ -135,7 +136,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.scaleY = value
+                renderNode?.scaleY = value
             }
         }
 
@@ -143,14 +144,14 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.translationX = value
+                renderNode?.translationX = value
             }
         }
     actual var translationY: Float = 0f
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.translationY = value
+                renderNode?.translationY = value
             }
         }
 
@@ -158,7 +159,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.shadowElevation = value
+                renderNode?.shadowElevation = value
                 outlineDirty = true
                 configureOutlineAndClip()
             }
@@ -168,7 +169,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.ambientShadowColor = value.toArgb()
+                renderNode?.ambientShadowColor = value.toArgb()
             }
         }
 
@@ -176,7 +177,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.spotShadowColor = value.toArgb()
+                renderNode?.spotShadowColor = value.toArgb()
             }
         }
 
@@ -259,7 +260,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.rotationX = value
+                renderNode?.rotationX = value
             }
         }
 
@@ -267,7 +268,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.rotationY = value
+                renderNode?.rotationY = value
             }
         }
 
@@ -275,7 +276,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.rotationZ = value
+                renderNode?.rotationZ = value
             }
         }
 
@@ -283,7 +284,7 @@ actual class GraphicsLayer internal constructor(
         set(value) {
             if (field != value) {
                 field = value
-                renderNode.cameraDistance = value
+                renderNode?.cameraDistance = value
             }
         }
 
@@ -332,6 +333,7 @@ actual class GraphicsLayer internal constructor(
     }
 
     private fun recordWithTracking(block: (SkiaBackedCanvas) -> Unit) {
+        val renderNode = renderNode ?: return
         val recordingCanvas = renderNode.beginRecording()
         try {
             val composeCanvas = recordingCanvas.asComposeCanvas() as SkiaBackedCanvas
@@ -353,7 +355,7 @@ actual class GraphicsLayer internal constructor(
         if (isReleased) return
         configureOutlineAndClip()
         parentLayer?.addSubLayer(this)
-        renderNode.drawInto(canvas.nativeCanvas)
+        renderNode?.drawInto(canvas.nativeCanvas)
     }
 
     private fun onAddedToParentLayer() {
@@ -367,6 +369,7 @@ actual class GraphicsLayer internal constructor(
 
     private fun configureOutlineAndClip() {
         if (!outlineDirty) return
+        val renderNode = renderNode ?: return
         val outlineIsNeeded = clip || shadowElevation > 0f
         if (!outlineIsNeeded) {
             renderNode.clip = false
@@ -410,6 +413,7 @@ actual class GraphicsLayer internal constructor(
             childDependenciesTracker.removeDependencies { it.onRemovedFromParentLayer() }
 
             renderNode?.close()
+            renderNode = null
         }
     }
 
@@ -417,7 +421,7 @@ actual class GraphicsLayer internal constructor(
         ImageBitmap(size.width, size.height).apply { draw(Canvas(this), null) }
 
     private fun updateLayerProperties() {
-        renderNode.layerPaint = if (requiresLayer()) {
+        renderNode?.layerPaint = if (requiresLayer()) {
             SkPaint().also {
                 it.setAlphaf(alpha)
                 it.imageFilter = renderEffect?.asSkiaImageFilter()
