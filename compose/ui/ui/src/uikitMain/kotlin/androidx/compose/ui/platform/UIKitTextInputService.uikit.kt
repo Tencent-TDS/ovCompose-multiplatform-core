@@ -248,10 +248,7 @@ internal class UIKitTextInputService(
             innerTextFieldBounds,
             decorationBoxBounds
         )
-        updateTextLayoutResult(textLayoutResult)
-    }
 
-    fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
         this.textLayoutResult = textLayoutResult
 
         val matrix = Matrix()
@@ -271,6 +268,10 @@ internal class UIKitTextInputService(
 
         println(">> Frame: ${NSStringFromCGRect(frame.asCGRect())} | Bounds: ${NSStringFromCGRect(bounds.asCGRect())}")
         notifyGeometryChange(frame, bounds)
+    }
+
+    fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
+        this.textLayoutResult = textLayoutResult
     }
 
     fun notifyGeometryChange(frame: DpRect, bounds: DpRect) {
