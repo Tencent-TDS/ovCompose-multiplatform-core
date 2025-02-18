@@ -60,6 +60,7 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
         snapAnimationSpec: AnimationSpec<Float> = AnchoredDraggableDefaults.SnapAnimationSpec,
         decayAnimationSpec: DecayAnimationSpec<Float> =
             AnchoredDraggableDefaults.DecayAnimationSpec,
+        shouldCreateFling: Boolean = true
     ): Pair<AnchoredDraggableState<T>, Modifier> {
         val state =
             createAnchoredDraggableState(
@@ -71,17 +72,19 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
                 snapAnimationSpec = snapAnimationSpec,
                 decayAnimationSpec = decayAnimationSpec
             )
-        // This won't work for snapshot observation but should be ok for tests
-        val resolvedStartDragImmediately = startDragImmediately ?: state.isAnimationRunning
         val modifier =
             if (testNewBehavior) {
                 val flingBehavior =
-                    anchoredDraggableFlingBehavior(
-                        state,
-                        density = rule.density,
-                        positionalThreshold = positionalThreshold,
-                        snapAnimationSpec = snapAnimationSpec
-                    )
+                    if (shouldCreateFling) {
+                        anchoredDraggableFlingBehavior(
+                            state,
+                            density = rule.density,
+                            positionalThreshold = positionalThreshold,
+                            snapAnimationSpec = snapAnimationSpec
+                        )
+                    } else {
+                        null
+                    }
                 createAnchoredDraggableModifier(
                     state = state,
                     reverseDirection = reverseDirection,
@@ -89,7 +92,7 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
                     enabled = enabled,
                     interactionSource = interactionSource,
                     overscrollEffect = overscrollEffect,
-                    startDragImmediately = resolvedStartDragImmediately,
+                    startDragImmediately = startDragImmediately,
                     flingBehavior = flingBehavior
                 )
             } else {
@@ -100,7 +103,7 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
                     enabled = enabled,
                     interactionSource = interactionSource,
                     overscrollEffect = overscrollEffect,
-                    startDragImmediately = resolvedStartDragImmediately,
+                    startDragImmediately = startDragImmediately,
                     flingBehavior = null
                 )
             }
@@ -128,6 +131,7 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
                 "The velocity threshold resolved to $resolvedVelocityThreshold, but velocity " +
                     "thresholds are not configurable with testNewBehavior=true."
             }
+            @Suppress("DEPRECATION") /* confirmValueChange is deprecated */
             when (anchors) {
                 null ->
                     AnchoredDraggableState(
@@ -168,31 +172,58 @@ abstract class AnchoredDraggableBackwardsCompatibleTest(private val testNewBehav
         enabled: Boolean = true,
         interactionSource: MutableInteractionSource? = null,
         overscrollEffect: OverscrollEffect? = null,
-        startDragImmediately: Boolean = state.isAnimationRunning,
+        startDragImmediately: Boolean? = null,
         flingBehavior: FlingBehavior? = null
-    ) =
+    ): Modifier =
         when (reverseDirection) {
             null ->
-                Modifier.anchoredDraggable(
-                    state = state,
-                    orientation = orientation,
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    overscrollEffect = overscrollEffect,
-                    startDragImmediately = startDragImmediately,
-                    flingBehavior = flingBehavior
-                )
+                when (startDragImmediately) {
+                    null ->
+                        Modifier.anchoredDraggable(
+                            state = state,
+                            orientation = orientation,
+                            enabled = enabled,
+                            interactionSource = interactionSource,
+                            overscrollEffect = overscrollEffect,
+                            flingBehavior = flingBehavior
+                        )
+                    else ->
+                        @Suppress("DEPRECATION")
+                        Modifier.anchoredDraggable(
+                            state = state,
+                            orientation = orientation,
+                            enabled = enabled,
+                            interactionSource = interactionSource,
+                            overscrollEffect = overscrollEffect,
+                            startDragImmediately = startDragImmediately,
+                            flingBehavior = flingBehavior
+                        )
+                }
             else ->
-                Modifier.anchoredDraggable(
-                    state = state,
-                    reverseDirection = reverseDirection,
-                    orientation = orientation,
-                    enabled = enabled,
-                    interactionSource = interactionSource,
-                    overscrollEffect = overscrollEffect,
-                    startDragImmediately = startDragImmediately,
-                    flingBehavior = flingBehavior
-                )
+                when (startDragImmediately) {
+                    null ->
+                        Modifier.anchoredDraggable(
+                            state = state,
+                            reverseDirection = reverseDirection,
+                            orientation = orientation,
+                            enabled = enabled,
+                            interactionSource = interactionSource,
+                            overscrollEffect = overscrollEffect,
+                            flingBehavior = flingBehavior
+                        )
+                    else ->
+                        @Suppress("DEPRECATION")
+                        Modifier.anchoredDraggable(
+                            state = state,
+                            reverseDirection = reverseDirection,
+                            orientation = orientation,
+                            enabled = enabled,
+                            interactionSource = interactionSource,
+                            overscrollEffect = overscrollEffect,
+                            startDragImmediately = startDragImmediately,
+                            flingBehavior = flingBehavior
+                        )
+                }
         }
 
     /**

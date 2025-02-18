@@ -16,7 +16,6 @@
 
 package androidx.compose.runtime.changelist
 
-import androidx.compose.runtime.changelist.Operation.IntParameter
 import androidx.compose.runtime.changelist.Operation.ObjectParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
@@ -97,7 +96,7 @@ internal class OperationDefinitionValidationTest<T : Operation>(private val oper
         val duplicateIntOffsets =
             intParams
                 .groupBy(
-                    keySelector = { (_, param) -> param.offset },
+                    keySelector = { (_, param) -> param },
                     valueTransform = { (name, _) -> name }
                 )
                 .filterValues { it.size != 1 }
@@ -140,8 +139,8 @@ internal class OperationDefinitionValidationTest<T : Operation>(private val oper
         val outOfRangeInts =
             intParams.mapNotNull { (name, param) ->
                 name
-                    .takeIf { param.offset < 0 || param.offset >= intParams.size }
-                    ?.let { paramName -> "$paramName (offset = ${param.offset})" }
+                    .takeIf { param < 0 || param >= intParams.size }
+                    ?.let { paramName -> "$paramName (offset = ${param})" }
             }
         if (outOfRangeInts.isNotEmpty()) {
             errors +=

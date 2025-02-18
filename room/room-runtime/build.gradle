@@ -23,7 +23,8 @@
  */
 
 
-import androidx.build.LibraryType
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
@@ -58,18 +59,18 @@ android {
         aidl = true
     }
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("src/androidMain/proguard-rules.pro")
         stableAidl {
-            version 1
+            version = 1
         }
     }
-    namespace "androidx.room"
+    namespace = "androidx.room"
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
-    android()
+    androidTarget()
     ios() {
         // Link to sqlite3 available in iOS
         binaries.configureEach {
@@ -106,10 +107,9 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api(project(":room:room-common"))
                 api(project(":sqlite:sqlite"))
-                api("androidx.collection:collection:1.4.0")
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.collection:collection:1.4.2")
+                api("androidx.annotation:annotation:1.8.1")
                 api(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
             }
         }
         commonTest {
@@ -139,6 +139,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmAndroidMain)
             dependencies {
+                api(libs.jspecify)
                 api(project(":sqlite:sqlite-framework"))
                 api(libs.kotlinCoroutinesAndroid)
                 implementation("androidx.arch.core:core-runtime:2.2.0")
@@ -179,6 +180,7 @@ androidXMultiplatform {
             dependsOn(jvmNativeMain)
             dependencies {
                 api(project(":sqlite:sqlite-framework"))
+                implementation(libs.atomicFu)
             }
         }
         nativeTest {
@@ -220,8 +222,14 @@ dependencies {
 
 androidx {
     name = "Room-Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room-Runtime"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+ksp {
+    useKsp2 = true
 }

@@ -39,9 +39,10 @@ import androidx.health.connect.client.impl.platform.aggregate.LENGTH_AGGREGATION
 import androidx.health.connect.client.impl.platform.aggregate.LONG_AGGREGATION_METRIC_TYPE_MAP
 import androidx.health.connect.client.impl.platform.aggregate.POWER_AGGREGATION_METRIC_TYPE_MAP
 import androidx.health.connect.client.impl.platform.aggregate.PRESSURE_AGGREGATION_METRIC_TYPE_MAP
+import androidx.health.connect.client.impl.platform.aggregate.TEMPERATURE_DELTA_METRIC_TYPE_MAP
 import androidx.health.connect.client.impl.platform.aggregate.VELOCITY_AGGREGATION_METRIC_TYPE_MAP
 import androidx.health.connect.client.impl.platform.aggregate.VOLUME_AGGREGATION_METRIC_TYPE_MAP
-import androidx.health.connect.client.impl.platform.aggregate.platformMetrics
+import androidx.health.connect.client.impl.platform.aggregate.isPlatformSupportedMetric
 import androidx.health.connect.client.impl.platform.records.toPlatformDataOrigin
 import androidx.health.connect.client.impl.platform.records.toPlatformRecordClass
 import androidx.health.connect.client.records.Record
@@ -115,7 +116,9 @@ fun AggregateRequest.toPlatformRequest(): AggregateRecordsRequest<Any> {
     return AggregateRecordsRequest.Builder<Any>(timeRangeFilter.toPlatformTimeRangeFilter())
         .apply {
             dataOriginFilter.forEach { addDataOriginsFilter(it.toPlatformDataOrigin()) }
-            platformMetrics.forEach { addAggregationType(it.toAggregationType()) }
+            metrics
+                .filter { it.isPlatformSupportedMetric() }
+                .forEach { addAggregationType(it.toAggregationType()) }
         }
         .build()
 }
@@ -149,6 +152,7 @@ fun AggregateMetric<Any>.toAggregationType(): AggregationType<Any> {
         ?: KILOGRAMS_AGGREGATION_METRIC_TYPE_MAP[this] as AggregationType<Any>?
         ?: POWER_AGGREGATION_METRIC_TYPE_MAP[this] as AggregationType<Any>?
         ?: PRESSURE_AGGREGATION_METRIC_TYPE_MAP[this] as AggregationType<Any>?
+        ?: TEMPERATURE_DELTA_METRIC_TYPE_MAP[this] as AggregationType<Any>?
         ?: VELOCITY_AGGREGATION_METRIC_TYPE_MAP[this] as AggregationType<Any>?
         ?: VOLUME_AGGREGATION_METRIC_TYPE_MAP[this] as AggregationType<Any>?
         ?: throw IllegalArgumentException("Unsupported aggregation type $metricKey")

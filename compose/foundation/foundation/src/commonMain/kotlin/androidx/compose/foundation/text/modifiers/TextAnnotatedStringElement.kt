@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.node.ModifierNodeElement
@@ -46,6 +47,7 @@ internal class TextAnnotatedStringElement(
     private val onPlaceholderLayout: ((List<Rect?>) -> Unit)? = null,
     private val selectionController: SelectionController? = null,
     private val color: ColorProducer? = null,
+    private val autoSize: TextAutoSize? = null,
     private val onShowTranslation: ((TextAnnotatedStringNode.TextSubstitutionValue) -> Unit)? = null
 ) : ModifierNodeElement<TextAnnotatedStringNode>() {
 
@@ -63,6 +65,7 @@ internal class TextAnnotatedStringElement(
             onPlaceholderLayout,
             selectionController,
             color,
+            autoSize,
             onShowTranslation
         )
 
@@ -78,7 +81,8 @@ internal class TextAnnotatedStringElement(
                     maxLines = maxLines,
                     softWrap = softWrap,
                     fontFamilyResolver = fontFamilyResolver,
-                    overflow = overflow
+                    overflow = overflow,
+                    autoSize = autoSize
                 ),
             callbacksChanged =
                 node.updateCallbacks(

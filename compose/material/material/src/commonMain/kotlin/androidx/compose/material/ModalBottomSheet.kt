@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlin.jvm.JvmName
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -506,7 +507,7 @@ private fun Scrim(color: Color, onDismiss: () -> Unit, visible: Boolean) {
             }
 
         Canvas(Modifier.fillMaxSize().then(dismissModifier)) {
-            drawRect(color = color, alpha = alpha)
+            drawRect(color = color, alpha = alpha.coerceIn(0f, 1f))
         }
     }
 }

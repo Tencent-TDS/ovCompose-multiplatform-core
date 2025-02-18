@@ -28,7 +28,7 @@ public class HeartRateRecord(
     override val endTime: Instant,
     override val endZoneOffset: ZoneOffset?,
     override val samples: List<Sample>,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : SeriesRecord<HeartRateRecord.Sample> {
 
     init {
@@ -63,6 +63,10 @@ public class HeartRateRecord(
         result = 31 * result + samples.hashCode()
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "HeartRateRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, samples=$samples, metadata=$metadata)"
     }
 
     companion object {
@@ -142,6 +146,10 @@ public class HeartRateRecord(
             var result = time.hashCode()
             result = 31 * result + beatsPerMinute.hashCode()
             return result
+        }
+
+        override fun toString(): String {
+            return "Sample(time=$time, beatsPerMinute=$beatsPerMinute)"
         }
     }
 }

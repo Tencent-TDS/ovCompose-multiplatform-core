@@ -138,8 +138,8 @@ class ValueParserTest {
             .isEqualTo(
                 setOf(
                     AnnotatedEnumClass(
-                        Type(packageName = "com.mysdk", simpleName = "MyEnum"),
-                        listOf("FOO", "BAR")
+                        type = Type(packageName = "com.mysdk", simpleName = "MyEnum"),
+                        variants = listOf("FOO", "BAR")
                     )
                 )
             )
@@ -198,12 +198,36 @@ class ValueParserTest {
     }
 
     @Test
-    fun dataClassWithCompanionObject_fails() {
+    fun dataClassWithCompanionNonConstDeclarations_fails() {
         val dataClass =
             annotatedValue(
                 """
             |data class MySdkRequest(val id: Int) {
             |   companion object {
+            |       const val OKAY_CONST = true && false
+            |       val someVar = 12
+            |       fun getNull() { return null }
+            |   }
+            |}
+        """
+                    .trimMargin()
+            )
+        checkSourceFails(dataClass)
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdkRequest: companion object cannot declare non-const " +
+                    "values (someVar).",
+                "Error in com.mysdk.MySdkRequest: companion object cannot declare methods " +
+                    "(getNull).",
+            )
+    }
+
+    @Test
+    fun dataClassWithObject_fails() {
+        val dataClass =
+            annotatedValue(
+                """
+            |data class MySdkRequest(val id: Int) {
+            |   object Constants {
             |       val someConstant = 12
             |   }
             |}
@@ -212,8 +236,46 @@ class ValueParserTest {
             )
         checkSourceFails(dataClass)
             .containsExactlyErrors(
-                "Error in com.mysdk.MySdkRequest: annotated values cannot declare companion " +
-                    "objects."
+                "Error in com.mysdk.MySdkRequest: annotated values cannot declare objects or " +
+                    "classes."
+            )
+    }
+
+    @Test
+    fun dataClassWithInnerClass_fails() {
+        val dataClass =
+            annotatedValue(
+                """
+            |data class MySdkRequest(val id: Int) {
+            |   class MyClass {
+            |       val someConstant = 12
+            |   }
+            |}
+        """
+                    .trimMargin()
+            )
+        checkSourceFails(dataClass)
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdkRequest: annotated values cannot declare objects or " +
+                    "classes."
+            )
+    }
+
+    @Test
+    fun dataClassWithEnumClass_fails() {
+        val dataClass =
+            annotatedValue(
+                """
+            |data class MySdkRequest(val id: Int) {
+            |   enum class MyClass { RED, GREEN }
+            |}
+        """
+                    .trimMargin()
+            )
+        checkSourceFails(dataClass)
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdkRequest: annotated values cannot declare objects or " +
+                    "classes."
             )
     }
 

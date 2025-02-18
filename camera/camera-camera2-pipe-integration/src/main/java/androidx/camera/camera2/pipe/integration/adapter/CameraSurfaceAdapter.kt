@@ -29,6 +29,7 @@ import androidx.camera.camera2.pipe.integration.compat.StreamConfigurationMapCom
 import androidx.camera.camera2.pipe.integration.compat.quirk.CameraQuirks
 import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCorrector
 import androidx.camera.camera2.pipe.integration.config.CameraAppComponent
+import androidx.camera.camera2.pipe.integration.config.CameraModule
 import androidx.camera.core.impl.AttachedSurfaceInfo
 import androidx.camera.core.impl.CameraDeviceSurfaceManager
 import androidx.camera.core.impl.StreamSpec
@@ -41,7 +42,7 @@ import androidx.camera.core.impl.UseCaseConfig
  * This class provides Context-specific utility methods for querying and computing supported
  * outputs.
  */
-class CameraSurfaceAdapter(
+public class CameraSurfaceAdapter(
     context: Context,
     cameraComponent: Any?,
     availableCameraIds: Set<String>
@@ -79,7 +80,7 @@ class CameraSurfaceAdapter(
                     SupportedSurfaceCombination(
                         context,
                         cameraMetadata,
-                        EncoderProfilesProviderAdapter(cameraId, cameraQuirks.quirks)
+                        CameraModule.provideEncoderProfilesProvider(cameraId, cameraQuirks)
                     )
             } catch (exception: DoNotDisturbException) {
                 Log.error {
@@ -133,6 +134,7 @@ class CameraSurfaceAdapter(
      * @param newUseCaseConfigsSupportedSizeMap map of configurations of the use cases to the
      *   supported sizes list that will be given a suggested stream specification
      * @param isPreviewStabilizationOn whether the preview stabilization is enabled.
+     * @param hasVideoCapture whether the use cases has video capture.
      * @return map of suggested stream specifications for given use cases
      * @throws IllegalArgumentException if {@code newUseCaseConfigs} is an empty list, if there
      *   isn't a supported combination of surfaces available, or if the {@code cameraId} is not a
@@ -143,7 +145,8 @@ class CameraSurfaceAdapter(
         cameraId: String,
         existingSurfaces: List<AttachedSurfaceInfo>,
         newUseCaseConfigsSupportedSizeMap: Map<UseCaseConfig<*>, List<Size>>,
-        isPreviewStabilizationOn: Boolean
+        isPreviewStabilizationOn: Boolean,
+        hasVideoCapture: Boolean
     ): Pair<Map<UseCaseConfig<*>, StreamSpec>, Map<AttachedSurfaceInfo, StreamSpec>> {
 
         if (!checkIfSupportedCombinationExist(cameraId)) {
@@ -156,7 +159,8 @@ class CameraSurfaceAdapter(
             cameraMode,
             existingSurfaces,
             newUseCaseConfigsSupportedSizeMap,
-            isPreviewStabilizationOn
+            isPreviewStabilizationOn,
+            hasVideoCapture
         )
     }
 }

@@ -18,6 +18,8 @@ package androidx.camera.camera2.pipe.integration.compat.quirk
 
 import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
+import androidx.camera.camera2.pipe.integration.compat.quirk.Device.isGoogleDevice
+import androidx.camera.camera2.pipe.integration.compat.quirk.Device.isSamsungDevice
 import androidx.camera.core.impl.Quirk
 import androidx.camera.core.impl.SurfaceCombination
 import androidx.camera.core.impl.SurfaceConfig
@@ -28,9 +30,9 @@ import androidx.camera.core.impl.SurfaceConfig
  * Samsung S7's LIMITED-level camera device can support additional YUV/640x480 + PRIV/PREVIEW +
  * YUV/MAXIMUM combination. Device(s): Samsung S7 devices
  */
-class ExtraSupportedSurfaceCombinationsQuirk : Quirk {
+public class ExtraSupportedSurfaceCombinationsQuirk : Quirk {
     /** Returns the extra supported surface combinations for specific camera on the device. */
-    fun getExtraSupportedSurfaceCombinations(cameraId: String): List<SurfaceCombination> {
+    public fun getExtraSupportedSurfaceCombinations(cameraId: String): List<SurfaceCombination> {
         if (isSamsungS7) {
             return getSamsungS7ExtraCombinations(cameraId)
         }
@@ -64,22 +66,27 @@ class ExtraSupportedSurfaceCombinationsQuirk : Quirk {
         return extraCombinations
     }
 
-    companion object {
+    public companion object {
         private const val TAG = "ExtraSupportedSurfaceCombinationsQuirk"
         private val FULL_LEVEL_YUV_PRIV_YUV_CONFIGURATION = createFullYuvPrivYuvConfiguration()
         private val FULL_LEVEL_YUV_YUV_YUV_CONFIGURATION = createFullYuvYuvYuvConfiguration()
         private val LEVEL_3_LEVEL_PRIV_PRIV_YUV_SUBSET_CONFIGURATION =
             createLevel3PrivPrivYuvSubsetConfiguration()
         private val SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_GOOGLE_MODELS: Set<String> =
-            setOf("PIXEL 6", "PIXEL 6 PRO", "PIXEL 7", "PIXEL 7 PRO")
+            setOf("PIXEL 6", "PIXEL 6 PRO", "PIXEL 7", "PIXEL 7 PRO", "PIXEL 8", "PIXEL 8 PRO")
 
         private val SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS: Set<String> =
             setOf(
-                "SM-S926B", // Galaxy S24+
-                "SM-S928U" // Galaxy S24 Ultra
+                "SM-S921", // Galaxy S24
+                "SC-51E", // Galaxy S24
+                "SCG25", // Galaxy S24
+                "SM-S926", // Galaxy S24+
+                "SM-S928", // Galaxy S24 Ultra
+                "SC-52E", // Galaxy S24 Ultra
+                "SCG26", // Galaxy S24 Ultra
             )
 
-        fun isEnabled(): Boolean {
+        public fun isEnabled(): Boolean {
             return (isSamsungS7 ||
                 supportExtraLevel3ConfigurationsGoogleDevice() ||
                 supportExtraLevel3ConfigurationsSamsungDevice())
@@ -91,7 +98,7 @@ class ExtraSupportedSurfaceCombinationsQuirk : Quirk {
                     "heroqltetmo".equals(Build.DEVICE, ignoreCase = true)
 
         internal fun supportExtraLevel3ConfigurationsGoogleDevice(): Boolean {
-            if (!"google".equals(Build.BRAND, ignoreCase = true)) {
+            if (!isGoogleDevice()) {
                 return false
             }
             val capitalModelName = Build.MODEL.uppercase()
@@ -99,13 +106,19 @@ class ExtraSupportedSurfaceCombinationsQuirk : Quirk {
         }
 
         internal fun supportExtraLevel3ConfigurationsSamsungDevice(): Boolean {
-            if (!"samsung".equals(Build.BRAND, ignoreCase = true)) {
+            if (!isSamsungDevice()) {
                 return false
             }
 
             val capitalModelName = Build.MODEL.uppercase()
 
-            return SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS.contains(capitalModelName)
+            // Check if the device model starts with the one of the predefined models
+            for (supportedModel in SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS) {
+                if (capitalModelName.startsWith(supportedModel)) {
+                    return true
+                }
+            }
+            return false
         }
 
         internal fun createFullYuvPrivYuvConfiguration(): SurfaceCombination {

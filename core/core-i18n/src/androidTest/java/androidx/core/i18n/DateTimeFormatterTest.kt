@@ -16,11 +16,9 @@
 
 package androidx.core.i18n
 
-import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.core.i18n.DateTimeFormatterSkeletonOptions as SkeletonOptions
-import androidx.core.os.BuildCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
@@ -41,7 +39,6 @@ import org.junit.runner.RunWith
 
 /** Must execute on an Android device. */
 @RunWith(AndroidJUnit4::class)
-@SuppressLint("ClassVerificationFailure")
 class DateTimeFormatterTest {
     companion object {
         // Lollipop introduced Locale.toLanguageTag and Locale.forLanguageTag
@@ -206,7 +203,6 @@ class DateTimeFormatterTest {
     @Test
     @SmallTest
     @SdkSuppress(minSdkVersion = AVAILABLE_LANGUAGE_TAG)
-    @androidx.core.os.BuildCompat.PrereleaseSdkCheck
     // Without `Locale.forLanguageTag` we can't even build a locale with `-u-` extension.
     fun testSystemSupportForExtensionU() {
         val enUsForceH11 = Locale.forLanguageTag("en-US-u-hc-h11")
@@ -223,7 +219,7 @@ class DateTimeFormatterTest {
         // Official bug: https://unicode-org.atlassian.net/browse/ICU-11870
         val expectedUs23 =
             when {
-                BuildCompat.isAtLeastV() -> "21:42:12"
+                Build.VERSION.SDK_INT >= 35 -> "21:42:12"
                 else -> expectedUs
             }
         val expectedUs24: String = expectedUs23

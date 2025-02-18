@@ -209,14 +209,14 @@ class DelegatingNodeTest {
             layout(d)
         }
         val recorder = Recorder()
-        x.visitSubtree(Nodes.Draw, recorder)
+        x.visitSubtree(Nodes.Draw, block = recorder)
         assertThat(recorder.recorded)
             .isEqualTo(
                 listOf(
                     a.wrapped,
                     b,
-                    d,
                     c.wrapped,
+                    d,
                 )
             )
     }
@@ -776,7 +776,8 @@ private fun NodeChain.clearInvalidations() {
     check(owner is MockOwner)
     owner.onRequestMeasureParams.clear()
     owner.invalidatedLayers.clear()
-    owner.semanticsChanged = false
+    layoutNode.isSemanticsInvalidated = false
+    //    owner.semanticsChanged = false
 }
 
 private fun NodeChain.layoutInvalidated(): Boolean {
@@ -792,9 +793,7 @@ private fun NodeChain.drawInvalidated(): Boolean {
 }
 
 private fun NodeChain.semanticsInvalidated(): Boolean {
-    val owner = layoutNode.owner
-    check(owner is MockOwner)
-    return owner.semanticsChanged
+    return layoutNode.isSemanticsInvalidated
 }
 
 internal fun layout(

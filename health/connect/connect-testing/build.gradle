@@ -21,7 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,17 +32,30 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    // Add dependencies here
+    implementation(project(":health:connect:connect-client"))
+    implementation(project(":health:connect:connect-client-proto"))
+
+    testImplementation(libs.kotlinTest)
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinCoroutinesTest)
 }
 
 android {
-    namespace "androidx.health.connect.testing"
+    defaultConfig {
+        minSdk = 26
+    }
+    namespace = "androidx.health.connect.testing"
+    testOptions.unitTests.includeAndroidResources = true
+    compileSdk = 35
 }
 
 androidx {
     name = "Health Connect Testing"
     mavenVersion = LibraryVersions.HEALTH_CONNECT_TESTING_QUARANTINE
-    type = LibraryType.PUBLISHED_TEST_LIBRARY
+    type = SoftwareType.PUBLISHED_TEST_LIBRARY
     inceptionYear = "2024"
-    description = "Test HealthConnect by providing a fake HealthConnectClient. This library should be added as a test dependency when writting unit tests that call HealthConnect APIs."
+    description = "Test utils for Health Connect. This library should be added as a test dependency when writing unit tests that call HealthConnect APIs."
+    samples(project(":health:connect:connect-testing-samples"))
 }
+

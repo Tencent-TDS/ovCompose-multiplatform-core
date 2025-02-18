@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 import static androidx.inspection.gradle.InspectionPluginKt.packageInspector
 
@@ -38,10 +38,10 @@ android {
         aidl = true
     }
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
 
         stableAidl {
-            version 1
+            version = 1
         }
     }
     defaultConfig {
@@ -55,18 +55,20 @@ android {
             }
         }
     }
+    compileSdk = 35
     sourceSets {
         androidTest.assets.srcDirs += files("$projectDir/src/schemas".toString())
     }
-    namespace "androidx.work"
+    namespace = "androidx.work"
 }
 
 dependencies {
+    api(libs.jspecify)
     ksp("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.core:core:1.12.0")
+    api("androidx.core:core:1.12.0")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
-    api("androidx.annotation:annotation-experimental:1.4.0")
+    api("androidx.annotation:annotation-experimental:1.4.1")
     api(libs.guavaListenableFuture)
     api("androidx.lifecycle:lifecycle-livedata:2.6.2")
     api("androidx.startup:startup-runtime:1.1.1")
@@ -79,12 +81,12 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
+    androidTestImplementation(project(":lifecycle:lifecycle-runtime-testing"))
     androidTestImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(project(":internal-testutils-runtime"))
     testImplementation(libs.junit)
     testImplementation(libs.truth)
@@ -102,10 +104,9 @@ ksp {
 
 androidx {
     name = "WorkManager Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Android WorkManager runtime library"
     failOnDeprecationWarnings = false
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

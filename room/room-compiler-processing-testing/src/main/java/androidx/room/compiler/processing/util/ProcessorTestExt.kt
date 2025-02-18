@@ -538,8 +538,8 @@ private fun addJarEntry(source: File, changeDir: String, target: JarOutputStream
 /**
  * Runs a block in a temporary directory and cleans it up afterwards.
  *
- * This method intentionally returns Unit to make it harder to return something that might reference
- * the temporary directory.
+ * This function intentionally returns Unit to make it harder to return something that might
+ * reference the temporary directory.
  */
 private inline fun withTempDir(block: (tmpDir: File) -> Unit) {
     val tmpDir = Files.createTempDir()
@@ -549,3 +549,6 @@ private inline fun withTempDir(block: (tmpDir: File) -> Unit) {
         tmpDir.deleteRecursively()
     }
 }
+
+/** Kotlin compiler arguments for K1 */
+val KOTLINC_LANGUAGE_1_9_ARGS = listOf("-language-version=1.9", "-api-version=1.9")

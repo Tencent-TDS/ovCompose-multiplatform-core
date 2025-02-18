@@ -108,6 +108,7 @@ internal enum class ClosedReason {
  * Disconnecting the VirtualCamera will cause an artificial close events to be generated on the
  * state property, but may not cause the underlying [CameraDevice] to be closed.
  */
+@JvmDefaultWithCompatibility
 internal interface VirtualCamera {
     val state: Flow<CameraState>
     val value: CameraState
@@ -247,6 +248,7 @@ internal class AndroidCameraState(
     private val timeSource: TimeSource,
     private val cameraErrorListener: CameraErrorListener,
     private val camera2DeviceCloser: Camera2DeviceCloser,
+    private val camera2Quirks: Camera2Quirks,
     private val threads: Threads,
     private val audioRestrictionController: AudioRestrictionController,
     private val interopDeviceStateCallback: CameraDevice.StateCallback? = null,
@@ -259,6 +261,8 @@ internal class AndroidCameraState(
     @GuardedBy("lock") private var opening = false
 
     @GuardedBy("lock") private var pendingClose: ClosingInfo? = null
+
+    @GuardedBy("lock") private var shouldDelayFinalizing = false
 
     private val cameraDeviceClosed = CountDownLatch(1)
 
@@ -328,9 +332,18 @@ internal class AndroidCameraState(
         if (currentCloseInfo != null) {
             camera2DeviceCloser.closeCamera(
                 cameraDevice = cameraDevice,
-                closeUnderError = currentCloseInfo.errorCode != null,
                 androidCameraState = this,
-                audioRestrictionController = audioRestrictionController
+                audioRestrictionController = audioRestrictionController,
+                shouldReopenCamera =
+                    camera2Quirks.shouldReopenCameraWhenClosing(
+                        cameraId,
+                        currentCloseInfo.errorCode
+                    ),
+                shouldCreateEmptyCaptureSession =
+                    camera2Quirks.shouldCreateEmptyCaptureSessionBeforeClosing(
+                        cameraId,
+                        currentCloseInfo.errorCode
+                    ),
             )
             return
         }
@@ -359,10 +372,17 @@ internal class AndroidCameraState(
         if (closeInfo != null) {
             _state.value = CameraStateClosing(closeInfo.errorCode)
             camera2DeviceCloser.closeCamera(
+                cameraDeviceWrapper = androidCameraDevice,
                 cameraDevice = cameraDevice,
-                closeUnderError = closeInfo.errorCode != null,
                 androidCameraState = this,
-                audioRestrictionController = audioRestrictionController
+                audioRestrictionController = audioRestrictionController,
+                shouldReopenCamera =
+                    camera2Quirks.shouldReopenCameraWhenClosing(cameraId, closeInfo.errorCode),
+                shouldCreateEmptyCaptureSession =
+                    camera2Quirks.shouldCreateEmptyCaptureSessionBeforeClosing(
+                        cameraId,
+                        closeInfo.errorCode
+                    ),
             )
             _state.value = computeClosedState(closeInfo)
         }
@@ -402,9 +422,21 @@ internal class AndroidCameraState(
 
     override fun onClosed(cameraDevice: CameraDevice) {
         check(cameraDevice.id == cameraId.value)
-        Debug.traceStart { "$cameraId#onClosed" }
         Log.debug { "$cameraId: onClosed" }
         cameraDeviceClosed.countDown()
+
+        synchronized(lock) {
+            if (shouldDelayFinalizing) {
+                Log.info { "$this#onClosed: Delaying finalizing." }
+                return
+            }
+        }
+        onFinalized(cameraDevice)
+    }
+
+    internal fun onFinalized(cameraDevice: CameraDevice) {
+        Debug.traceStart { "$cameraId#onFinalized" }
+        Log.debug { "$this: onFinalized" }
 
         closeWith(cameraDevice, ClosingInfo(ClosedReason.CAMERA2_CLOSED))
         interopDeviceStateCallback?.onClosed(cameraDevice)
@@ -463,13 +495,26 @@ internal class AndroidCameraState(
             }
             _state.value = CameraStateClosing(closeInfo.errorCode)
 
-            camera2DeviceCloser.closeCamera(
-                cameraDeviceWrapper,
-                cameraDevice,
-                closeUnderError = closeInfo.errorCode != null,
-                androidCameraState = this,
-                audioRestrictionController = audioRestrictionController
-            )
+            if (closeInfo.reason != ClosedReason.CAMERA2_CLOSED) {
+                val shouldReopenCamera =
+                    camera2Quirks.shouldReopenCameraWhenClosing(cameraId, closeInfo.errorCode)
+                if (shouldReopenCamera) {
+                    synchronized(lock) { shouldDelayFinalizing = true }
+                }
+
+                camera2DeviceCloser.closeCamera(
+                    cameraDeviceWrapper = cameraDeviceWrapper,
+                    cameraDevice = cameraDevice,
+                    androidCameraState = this,
+                    audioRestrictionController = audioRestrictionController,
+                    shouldReopenCamera,
+                    camera2Quirks.shouldCreateEmptyCaptureSessionBeforeClosing(
+                        cameraId,
+                        closeInfo.errorCode,
+                    ),
+                )
+            }
+
             _state.value = computeClosedState(closeInfo)
         }
     }
@@ -509,6 +554,34 @@ internal class AndroidCameraState(
         val errorCode: CameraError? = null,
         val exception: Throwable? = null
     )
+
+    /**
+     * Checks whether we should reopen the camera device during closure. This should be done if and
+     * only if:
+     * 1. [shouldCreateEmptyCaptureSessionBeforeClosing] indicates we should create an empty capture
+     *    session before closing the camera device.
+     * 2. [Camera2Quirks.shouldCloseCameraBeforeCreatingCaptureSession] indicates we should close
+     *    the camera devices before creating a new session.
+     */
+    private fun Camera2Quirks.shouldReopenCameraWhenClosing(
+        cameraId: CameraId,
+        cameraError: CameraError?
+    ): Boolean =
+        shouldCreateEmptyCaptureSessionBeforeClosing(cameraId, cameraError) &&
+            shouldCloseCameraBeforeCreatingCaptureSession(cameraId)
+
+    /**
+     * Checks whether we should create an empty capture session before closing the camera device.
+     * This should be done if and only if:
+     * 1. [Camera2Quirks.shouldCreateEmptyCaptureSessionBeforeClosing] indicates we should create an
+     *    empty capture session before closing the camera device.
+     * 2. Camera wasn't shutdown due to an error. In that case, creating an empty capture session
+     *    would be infeasible as one cannot make additional calls to a camera device in error.
+     */
+    private fun Camera2Quirks.shouldCreateEmptyCaptureSessionBeforeClosing(
+        cameraId: CameraId,
+        cameraError: CameraError?
+    ): Boolean = shouldCreateEmptyCaptureSessionBeforeClosing(cameraId) && cameraError == null
 
     override fun toString(): String = "CameraState-$debugId"
 }

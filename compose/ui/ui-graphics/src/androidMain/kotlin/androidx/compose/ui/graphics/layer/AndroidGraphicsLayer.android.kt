@@ -16,6 +16,7 @@
 package androidx.compose.ui.graphics.layer
 
 import android.graphics.Outline as AndroidOutline
+import android.graphics.RectF
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.CornerRadius
@@ -36,24 +37,42 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DefaultDensity
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.draw
 import androidx.compose.ui.graphics.layer.LayerManager.Companion.isRobolectric
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.roundToIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastRoundToInt
 import org.jetbrains.annotations.TestOnly
 
 @Suppress("NotCloseable")
 actual class GraphicsLayer
-internal constructor(internal val impl: GraphicsLayerImpl, private val layerManager: LayerManager) {
+internal constructor(
+    internal val impl: GraphicsLayerImpl,
+    private val layerManager: LayerManager?
+) {
     private var density = DefaultDensity
     private var layoutDirection = LayoutDirection.Ltr
     private var drawBlock: DrawScope.() -> Unit = {}
+
+    // Wrapper draw lambda used to record path clipping operations within the displaylist of
+    // the layer itself. This is used in cases where an unsupported outline is
+    private val clipDrawBlock: DrawScope.() -> Unit = {
+        val path = outlinePath
+        if (usePathForClip && clip && path != null) {
+            clipPath(path) { drawWithChildTracking() }
+        } else {
+            drawWithChildTracking()
+        }
+    }
 
     private var androidOutline: AndroidOutline? = null
     private var outlineDirty = true
@@ -65,6 +84,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
     private var outlinePath: Path? = null
     private var roundRectClipPath: Path? = null
     private var usePathForClip = false
+    private var softwareDrawScope: CanvasDrawScope? = null
 
     // Paint used only in Software rendering scenarios for API 21 when rendering to a Bitmap
     private var softwareLayerPaint: Paint? = null
@@ -132,7 +152,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
                 setPosition(topLeft, value)
                 if (roundRectOutlineSize.isUnspecified) {
                     outlineDirty = true
-                    configureOutline()
+                    configureOutlineAndClip()
                 }
             }
         }
@@ -265,9 +285,8 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
         set(value) {
             if (impl.shadowElevation != value) {
                 impl.shadowElevation = value
-                impl.clip = clip || value > 0f
                 outlineDirty = true
-                configureOutline()
+                configureOutlineAndClip()
             }
         }
 
@@ -346,13 +365,12 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
      */
     @Suppress("GetterSetterNames")
     @get:Suppress("GetterSetterNames")
-    actual var clip: Boolean
-        get() = impl.clip
+    actual var clip: Boolean = false
         set(value) {
-            if (impl.clip != value) {
-                impl.clip = value
+            if (field != value) {
+                field = value
                 outlineDirty = true
-                configureOutline()
+                configureOutlineAndClip()
             }
         }
 
@@ -415,10 +433,14 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
     }
 
     private fun recordInternal() {
+        impl.record(density, layoutDirection, this, clipDrawBlock)
+    }
+
+    private fun DrawScope.drawWithChildTracking() {
         childDependenciesTracker.withTracking(
             onDependencyRemoved = { it.onRemovedFromParentLayer() }
         ) {
-            impl.record(density, layoutDirection, this, drawBlock)
+            drawBlock()
         }
     }
 
@@ -461,7 +483,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
     }
 
     internal fun drawForPersistence(canvas: Canvas) {
-        if (canvas.nativeCanvas.isHardwareAccelerated) {
+        if (canvas.nativeCanvas.isHardwareAccelerated || impl.supportsSoftwareRendering) {
             recreateDisplayListIfNeeded()
             impl.draw(canvas)
         }
@@ -494,9 +516,9 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
             return
         }
 
+        configureOutlineAndClip()
         recreateDisplayListIfNeeded()
 
-        configureOutline()
         val useZ = shadowElevation > 0f
         if (useZ) {
             canvas.enableZ()
@@ -504,11 +526,10 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
         val androidCanvas = canvas.nativeCanvas
         val softwareRendered = !androidCanvas.isHardwareAccelerated
         if (softwareRendered) {
-            androidCanvas.save()
             transformCanvas(androidCanvas)
         }
 
-        val willClipPath = usePathForClip || (softwareRendered && clip)
+        val willClipPath = softwareRendered && clip
         if (willClipPath) {
             canvas.save()
             when (val tmpOutline = outline) {
@@ -530,7 +551,15 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
 
         parentLayer?.addSubLayer(this)
 
-        impl.draw(canvas)
+        if (canvas.nativeCanvas.isHardwareAccelerated || impl.supportsSoftwareRendering) {
+            impl.draw(canvas)
+        } else {
+            val drawScope = softwareDrawScope ?: CanvasDrawScope().also { softwareDrawScope = it }
+            drawScope.draw(density, layoutDirection, canvas, size.toSize(), this) {
+                drawWithChildTracking()
+            }
+        }
+
         if (willClipPath) {
             canvas.restore()
         }
@@ -551,33 +580,56 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
         discardContentIfReleasedAndHaveNoParentLayerUsages()
     }
 
-    private fun configureOutline() {
+    private var pathBounds: RectF? = null
+
+    private fun obtainPathBounds(): RectF = pathBounds ?: RectF().also { pathBounds = it }
+
+    // Suppress deprecation for Path#computeBounds(RectF, boolean) as new API is hidden behind
+    // flag currently
+    @Suppress("deprecation")
+    private fun configureOutlineAndClip() {
         if (outlineDirty) {
             val outlineIsNeeded = clip || shadowElevation > 0f
             if (!outlineIsNeeded) {
-                impl.setOutline(null)
+                impl.clip = false
+                impl.setOutline(null, IntSize.Zero)
             } else {
                 val tmpPath = outlinePath
                 if (tmpPath != null) {
+                    val bounds = obtainPathBounds()
+                    tmpPath.asAndroidPath().computeBounds(bounds, false)
                     val androidOutline =
-                        updatePathOutline(tmpPath).apply { alpha = this@GraphicsLayer.alpha }
-                    impl.setOutline(androidOutline)
+                        updatePathOutline(tmpPath)?.apply { alpha = this@GraphicsLayer.alpha }
+                    impl.setOutline(
+                        androidOutline,
+                        IntSize(bounds.width().fastRoundToInt(), bounds.height().fastRoundToInt())
+                    )
+                    if (usePathForClip && clip) {
+                        impl.clip = false
+                        // We are clipping manually so we need to re-record the displaylist
+                        impl.discardDisplayList()
+                    } else {
+                        impl.clip = clip
+                    }
                 } else {
+                    impl.clip = clip
+                    var tmpOutlineSize = Size.Zero
                     val roundRectOutline =
                         obtainAndroidOutline()
                             .apply {
                                 resolveOutlinePosition { outlineTopLeft, outlineSize ->
-                                    setRoundRect(
-                                        outlineTopLeft.x.fastRoundToInt(),
-                                        outlineTopLeft.y.fastRoundToInt(),
-                                        (outlineTopLeft.x + outlineSize.width).fastRoundToInt(),
-                                        (outlineTopLeft.y + outlineSize.height).fastRoundToInt(),
-                                        roundRectCornerRadius
-                                    )
+                                    tmpOutlineSize = outlineSize
+                                    val left = outlineTopLeft.x.fastRoundToInt()
+                                    val top = outlineTopLeft.y.fastRoundToInt()
+                                    val right =
+                                        (outlineTopLeft.x + outlineSize.width).fastRoundToInt()
+                                    val bottom =
+                                        (outlineTopLeft.y + outlineSize.height).fastRoundToInt()
+                                    setRoundRect(left, top, right, bottom, roundRectCornerRadius)
                                 }
                             }
                             .apply { alpha = this@GraphicsLayer.alpha }
-                    impl.setOutline(roundRectOutline)
+                    impl.setOutline(roundRectOutline, tmpOutlineSize.roundToIntSize())
                 }
             }
         }
@@ -601,10 +653,11 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
     // Suppress deprecation for usage of setConvexPath in favor of setPath on API levels that
     // previously only supported convex path outlines
     @Suppress("deprecation")
-    private fun updatePathOutline(path: Path): AndroidOutline {
-        val resultOutline = obtainAndroidOutline()
+    private fun updatePathOutline(path: Path): AndroidOutline? {
+        val resultOutline: AndroidOutline?
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P || path.isConvex) {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.R) {
+            resultOutline = obtainAndroidOutline()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 OutlineVerificationHelper.setPath(resultOutline, path)
             } else {
                 resultOutline.setConvexPath(path.asAndroidPath())
@@ -612,6 +665,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
             usePathForClip = !resultOutline.canClip()
         } else { // Concave outlines are not supported on older API levels
             androidOutline?.setEmpty()
+            resultOutline = null
             usePathForClip = true
             impl.isInvalidated = true
         }
@@ -639,7 +693,11 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
 
     private fun discardContentIfReleasedAndHaveNoParentLayerUsages() {
         if (isReleased && parentLayerUsages == 0) {
-            layerManager.release(this)
+            if (layerManager != null) {
+                layerManager.release(this)
+            } else {
+                discardDisplayList()
+            }
         }
     }
 
@@ -710,6 +768,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
         roundRectOutlineTopLeft = Offset.Zero
         roundRectCornerRadius = 0f
         outlineDirty = true
+        usePathForClip = false
     }
 
     /**
@@ -722,7 +781,7 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
     actual fun setPathOutline(path: Path) {
         resetOutlineParams()
         this.outlinePath = path
-        configureOutline()
+        configureOutlineAndClip()
     }
 
     /**
@@ -741,13 +800,14 @@ internal constructor(internal val impl: GraphicsLayerImpl, private val layerMana
         if (
             this.roundRectOutlineTopLeft != topLeft ||
                 this.roundRectOutlineSize != size ||
-                this.roundRectCornerRadius != cornerRadius
+                this.roundRectCornerRadius != cornerRadius ||
+                this.outlinePath != null
         ) {
             resetOutlineParams()
             this.roundRectOutlineTopLeft = topLeft
             this.roundRectOutlineSize = size
             this.roundRectCornerRadius = cornerRadius
-            configureOutline()
+            configureOutlineAndClip()
         }
     }
 
@@ -913,7 +973,15 @@ internal interface GraphicsLayerImpl {
      * @see GraphicsLayer.setPathOutline
      * @see GraphicsLayer.setRoundRectOutline
      */
-    fun setOutline(outline: AndroidOutline?)
+    fun setOutline(outline: AndroidOutline?, outlineSize: IntSize)
+
+    /**
+     * Flag to determine if the layer implementation has a software backed implementation On Android
+     * L we conditionally also record drawing commands into a Picture as it does not natively
+     * support rendering into a Bitmap with hardware acceleration
+     */
+    val supportsSoftwareRendering: Boolean
+        get() = false
 
     /** Draw the GraphicsLayer into the provided canvas */
     fun draw(canvas: Canvas)
@@ -943,7 +1011,6 @@ internal interface GraphicsLayerImpl {
 @RequiresApi(Build.VERSION_CODES.R)
 internal object OutlineVerificationHelper {
 
-    @androidx.annotation.DoNotInline
     fun setPath(outline: AndroidOutline, path: Path) {
         outline.setPath(path.asAndroidPath())
     }

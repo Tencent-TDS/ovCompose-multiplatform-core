@@ -59,7 +59,7 @@ class SdkSandboxManagerAppOwnedInterfacesTest {
         sandboxManagerCompat = SdkSandboxManagerCompat.from(context)
     }
 
-    @SuppressLint("NewApi", "ClassVerificationFailure") // For supporting DP Builds
+    @SuppressLint("NewApi") // For supporting DP Builds
     @After
     fun tearDown() {
         SdkSandboxManagerCompat.reset()

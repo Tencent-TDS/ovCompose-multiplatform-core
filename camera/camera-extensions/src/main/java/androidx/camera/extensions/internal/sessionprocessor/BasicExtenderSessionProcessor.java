@@ -31,8 +31,6 @@ import android.util.Pair;
 import android.util.Size;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.CameraCaptureFailure;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -57,6 +55,9 @@ import androidx.camera.extensions.internal.Version;
 import androidx.camera.extensions.internal.compat.workaround.OnEnableDisableSessionDurationCheck;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,20 +74,16 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
 
     private static final int PREVIEW_PROCESS_MAX_IMAGES = 2;
     private static final long INVALID_TIMESTAMP = -1L;
-    @NonNull
-    private final Context mContext;
-    @NonNull
-    private final PreviewExtenderImpl mPreviewExtenderImpl;
-    @NonNull
-    private final ImageCaptureExtenderImpl mImageCaptureExtenderImpl;
+    private final @NonNull Context mContext;
+    private final @NonNull PreviewExtenderImpl mPreviewExtenderImpl;
+    private final @NonNull ImageCaptureExtenderImpl mImageCaptureExtenderImpl;
 
     volatile StillCaptureProcessor mStillCaptureProcessor = null;
     volatile PreviewProcessor mPreviewProcessor = null;
     volatile RequestUpdateProcessorImpl mRequestUpdateProcessor = null;
     private volatile Camera2OutputConfig mPreviewOutputConfig;
     private volatile Camera2OutputConfig mCaptureOutputConfig;
-    @Nullable
-    private volatile Camera2OutputConfig mAnalysisOutputConfig = null;
+    private volatile @Nullable Camera2OutputConfig mAnalysisOutputConfig = null;
     private volatile OutputSurface mPreviewOutputSurface;
     private volatile OutputSurface mCaptureOutputSurface;
     private volatile RequestProcessor mRequestProcessor;
@@ -96,11 +93,10 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
     @GuardedBy("mLock")
     private final Map<CaptureRequest.Key<?>, Object> mParameters = new LinkedHashMap<>();
     @GuardedBy("mLock")
-    private final Map<Integer, Long> mCaptureStartedTimestampMap = new HashMap<>();
+    private final Map<Integer, Long> mRequestCompletedTimestampMap = new HashMap<>();
     private OnEnableDisableSessionDurationCheck mOnEnableDisableSessionDurationCheck =
             new OnEnableDisableSessionDurationCheck();
-    @Nullable
-    private OutputSurface mPostviewOutputSurface;
+    private @Nullable OutputSurface mPostviewOutputSurface;
     private final VendorExtender mVendorExtender;
     private final boolean mWillReceiveOnCaptureCompleted;
 
@@ -117,9 +113,8 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
         mWillReceiveOnCaptureCompleted = mVendorExtender.willReceiveOnCaptureCompleted();
     }
 
-    @NonNull
     @Override
-    protected Camera2SessionConfig initSessionInternal(@NonNull String cameraId,
+    protected @NonNull Camera2SessionConfig initSessionInternal(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> cameraCharacteristicsMap,
             @NonNull OutputSurfaceConfiguration outputSurfaceConfiguration) {
         Logger.d(TAG, "PreviewExtenderImpl.onInit");
@@ -173,7 +168,8 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
             mStillCaptureProcessor = new StillCaptureProcessor(
                     captureProcessor, mCaptureOutputSurface.getSurface(),
                     mCaptureOutputSurface.getSize(),
-                    mPostviewOutputSurface);
+                    mPostviewOutputSurface,
+                    /* needOverrideTimestamp */ !mWillReceiveOnCaptureCompleted);
         } else {
             mCaptureOutputConfig = SurfaceOutputConfig.create(
                     sLastOutputConfigId.getAndIncrement(),
@@ -414,7 +410,7 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
 
         RequestProcessor.Callback callback = new RequestProcessor.Callback() {
             @Override
-            public void onCaptureCompleted(@NonNull RequestProcessor.Request request,
+            public void onCaptureCompleted(RequestProcessor.@NonNull Request request,
                     @NonNull CameraCaptureResult cameraCaptureResult) {
                 CaptureResult captureResult = cameraCaptureResult.getCaptureResult();
                 Preconditions.checkArgument(captureResult instanceof TotalCaptureResult,
@@ -468,13 +464,13 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
         mRequestProcessor.stopRepeating();
     }
 
-    private long getCaptureStartedTimestamp(int captureSequenceId) {
+    private long getRequestCompletedTimestamp(int captureSequenceId) {
         synchronized (mLock) {
-            Long timestamp = mCaptureStartedTimestampMap.get(captureSequenceId);
+            Long timestamp = mRequestCompletedTimestampMap.get(captureSequenceId);
             if (timestamp == null) {
                 return INVALID_TIMESTAMP;
             }
-            mCaptureStartedTimestampMap.remove(captureSequenceId);
+            mRequestCompletedTimestampMap.remove(captureSequenceId);
             return timestamp;
         }
     }
@@ -523,19 +519,16 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
             boolean mIsCaptureStarted = false;
 
             @Override
-            public void onCaptureStarted(@NonNull RequestProcessor.Request request,
+            public void onCaptureStarted(RequestProcessor.@NonNull Request request,
                     long frameNumber, long timestamp) {
                 if (!mIsCaptureStarted) {
                     mIsCaptureStarted = true;
-                    synchronized (mLock) {
-                        mCaptureStartedTimestampMap.put(captureSequenceId, timestamp);
-                    }
                     captureCallback.onCaptureStarted(captureSequenceId, timestamp);
                 }
             }
 
             @Override
-            public void onCaptureCompleted(@NonNull RequestProcessor.Request request,
+            public void onCaptureCompleted(RequestProcessor.@NonNull Request request,
                     @NonNull CameraCaptureResult cameraCaptureResult) {
                 CaptureResult captureResult = cameraCaptureResult.getCaptureResult();
                 Preconditions.checkArgument(captureResult instanceof TotalCaptureResult,
@@ -546,6 +539,13 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
                         (RequestBuilder.RequestProcessorRequest) request;
 
                 if (mStillCaptureProcessor != null) {
+                    synchronized (mLock) {
+                        if (!mRequestCompletedTimestampMap.containsKey(captureSequenceId)) {
+                            mRequestCompletedTimestampMap.put(
+                                    captureSequenceId, cameraCaptureResult.getTimestamp());
+                        }
+                    }
+
                     mStillCaptureProcessor.notifyCaptureResult(
                             totalCaptureResult,
                             requestProcessorRequest.getCaptureStageId());
@@ -567,7 +567,7 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
             }
 
             @Override
-            public void onCaptureFailed(@NonNull RequestProcessor.Request request,
+            public void onCaptureFailed(RequestProcessor.@NonNull Request request,
                     @NonNull CameraCaptureFailure captureFailure) {
                 if (!mIsCaptureFailed) {
                     mIsCaptureFailed = true;
@@ -615,7 +615,7 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
                                 // If ProcessResultImpl.onCaptureCompleted won't be invoked,
                                 // We finish the capture sequence using the timestamp retrieved at
                                 // onCaptureStarted when the process() completed.
-                                long timestamp = getCaptureStartedTimestamp(captureSequenceId);
+                                long timestamp = getRequestCompletedTimestamp(captureSequenceId);
                                 if (timestamp == INVALID_TIMESTAMP) {
                                     Logger.e(TAG, "Cannot get timestamp for the capture result");
                                     captureCallback.onCaptureFailed(captureSequenceId);
@@ -694,7 +694,7 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
 
         mRequestProcessor.submit(builder.build(), new RequestProcessor.Callback() {
             @Override
-            public void onCaptureCompleted(@NonNull RequestProcessor.Request request,
+            public void onCaptureCompleted(RequestProcessor.@NonNull Request request,
                     @NonNull CameraCaptureResult captureResult) {
                 callback.onCaptureCompleted(captureResult.getTimestamp(), captureSequenceId,
                         new Camera2CameraCaptureResult(tagBundle,
@@ -703,7 +703,7 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
             }
 
             @Override
-            public void onCaptureFailed(@NonNull RequestProcessor.Request request,
+            public void onCaptureFailed(RequestProcessor.@NonNull Request request,
                     @NonNull CameraCaptureFailure captureFailure) {
                 callback.onCaptureFailed(captureSequenceId);
             }
@@ -712,9 +712,8 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
         return captureSequenceId;
     }
 
-    @Nullable
     @Override
-    public Pair<Long, Long> getRealtimeCaptureLatency() {
+    public @Nullable Pair<Long, Long> getRealtimeCaptureLatency() {
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
             return mImageCaptureExtenderImpl.getRealtimeCaptureLatency();
@@ -722,9 +721,8 @@ public class BasicExtenderSessionProcessor extends SessionProcessorBase {
         return null;
     }
 
-    @NonNull
     @Override
-    public Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
+    public @NonNull Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
         return mVendorExtender.getSupportedPostviewResolutions(captureSize);
     }
 }

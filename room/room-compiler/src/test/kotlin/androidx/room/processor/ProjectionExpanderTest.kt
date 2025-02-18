@@ -530,10 +530,10 @@ class ProjectionExpanderTest {
             val entityElement = invocation.processingEnv.requireTypeElement("foo.bar.User")
             check(entityElement.isTypeElement())
             val entity =
-                PojoProcessor.createFor(
+                DataClassProcessor.createFor(
                         invocation.context,
                         entityElement,
-                        bindingScope = FieldProcessor.BindingScope.READ_FROM_CURSOR,
+                        bindingScope = PropertyProcessor.BindingScope.READ_FROM_STMT,
                         parent = null
                     )
                     .process()
@@ -622,10 +622,10 @@ class ProjectionExpanderTest {
             val pojoElement = invocation.processingEnv.requireTypeElement(name)
             check(pojoElement.isTypeElement())
             val pojo =
-                PojoProcessor.createFor(
+                DataClassProcessor.createFor(
                         invocation.context,
                         pojoElement,
-                        bindingScope = FieldProcessor.BindingScope.READ_FROM_CURSOR,
+                        bindingScope = PropertyProcessor.BindingScope.READ_FROM_STMT,
                         parent = null
                     )
                     .process()

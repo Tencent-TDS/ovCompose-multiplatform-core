@@ -22,14 +22,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import kotlin.math.max
 
 class ResizeFragment : BaseFragment() {
 
     private lateinit var resizableBannerView: SandboxedSdkView
     private lateinit var resizeButton: Button
     private lateinit var resizeFromSdkButton: Button
+    private lateinit var setPaddingButton: Button
     private lateinit var inflatedView: View
 
     override fun getSandboxedSdkViews(): List<SandboxedSdkView> {
@@ -37,20 +40,24 @@ class ResizeFragment : BaseFragment() {
     }
 
     override fun handleLoadAdFromDrawer(
+        @AdFormat adFormat: Int,
         @AdType adType: Int,
         @MediationOption mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {
+        currentAdFormat = adFormat
         currentAdType = adType
         currentMediationOption = mediationOption
         shouldDrawViewabilityLayer = drawViewabilityLayer
-        loadBannerAd(
-            adType,
-            mediationOption,
-            resizableBannerView,
-            drawViewabilityLayer,
-            waitInsideOnDraw = true
-        )
+        if (adFormat == AdFormat.BANNER_AD) {
+            loadBannerAd(
+                adType,
+                mediationOption,
+                resizableBannerView,
+                drawViewabilityLayer,
+                waitInsideOnDraw = true
+            )
+        }
     }
 
     override fun onCreateView(
@@ -62,12 +69,14 @@ class ResizeFragment : BaseFragment() {
         resizableBannerView = inflatedView.findViewById(R.id.resizable_ad_view)
         resizeButton = inflatedView.findViewById(R.id.resize_button)
         resizeFromSdkButton = inflatedView.findViewById(R.id.resize_sdk_button)
-        loadResizableBannerAd()
+        setPaddingButton = inflatedView.findViewById(R.id.set_padding_button)
+        if (currentAdFormat == AdFormat.BANNER_AD) {
+            loadResizableBannerAd()
+        }
         return inflatedView
     }
 
     private fun loadResizableBannerAd() {
-        resizableBannerView.addStateChangedListener()
         loadBannerAd(
             currentAdType,
             currentMediationOption,
@@ -91,6 +100,19 @@ class ResizeFragment : BaseFragment() {
                     width = newWidth
                     height = newHeight
                 }
+        }
+
+        setPaddingButton.setOnClickListener {
+            // Set halfWidth and halfHeight to minimum 10 to avoid crashes when the width and height
+            // are very small
+            val halfWidth = max(10, (resizableBannerView.width / 2) - 10)
+            val halfHeight = max(10, resizableBannerView.height / 2) - 10
+            resizableBannerView.setPadding(
+                (10..halfWidth).random(),
+                (10..halfHeight).random(),
+                (10..halfWidth).random(),
+                (10..halfHeight).random(),
+            )
         }
     }
 }

@@ -38,8 +38,8 @@ import androidx.privacysandbox.tools.core.model.ParsedApi
 import androidx.privacysandbox.tools.core.model.containsSdkActivityLauncher
 import androidx.privacysandbox.tools.core.model.getOnlyService
 import androidx.privacysandbox.tools.core.model.hasSuspendFunctions
+import androidx.privacysandbox.tools.core.proto.InvalidProtocolBufferException
 import androidx.privacysandbox.tools.core.proto.PrivacySandboxToolsProtocol.ToolMetadata
-import com.google.protobuf.InvalidProtocolBufferException
 import java.io.File
 import java.nio.file.Path
 import java.util.zip.ZipInputStream

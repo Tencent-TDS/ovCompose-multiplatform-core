@@ -16,24 +16,28 @@
 
 package androidx.webkit;
 
+import android.os.Build;
+import android.util.Log;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresFeature;
 import androidx.annotation.RequiresOptIn;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.UiThread;
 import androidx.webkit.internal.ApiFeature;
 import androidx.webkit.internal.ApiHelperForM;
 import androidx.webkit.internal.ApiHelperForN;
 import androidx.webkit.internal.ApiHelperForO;
 import androidx.webkit.internal.ApiHelperForQ;
 import androidx.webkit.internal.WebSettingsAdapter;
+import androidx.webkit.internal.WebSettingsNoOpAdapter;
 import androidx.webkit.internal.WebViewFeatureInternal;
 import androidx.webkit.internal.WebViewGlueCommunicator;
 
 import org.chromium.support_lib_boundary.WebSettingsBoundaryInterface;
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -45,6 +49,9 @@ import java.util.Set;
  * Compatibility version of {@link android.webkit.WebSettings}
  */
 public class WebSettingsCompat {
+
+    private static final String TAG = "WebSettingsCompat";
+
     private WebSettingsCompat() {}
 
     /**
@@ -658,8 +665,8 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @NonNull
-    public static Set<String> getRequestedWithHeaderOriginAllowList(@NonNull WebSettings settings) {
+    public static @NonNull Set<String> getRequestedWithHeaderOriginAllowList(
+            @NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.REQUESTED_WITH_HEADER_ALLOW_LIST;
         if (feature.isSupportedByWebView()) {
@@ -758,8 +765,7 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.USER_AGENT_METADATA,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @NonNull
-    public static UserAgentMetadata getUserAgentMetadata(@NonNull WebSettings settings) {
+    public static @NonNull UserAgentMetadata getUserAgentMetadata(@NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.USER_AGENT_METADATA;
         if (feature.isSupportedByWebView()) {
@@ -900,8 +906,7 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.WEBVIEW_MEDIA_INTEGRITY_API_STATUS,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @NonNull
-    public static WebViewMediaIntegrityApiStatusConfig getWebViewMediaIntegrityApiStatus(
+    public static @NonNull WebViewMediaIntegrityApiStatusConfig getWebViewMediaIntegrityApiStatus(
             @NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.WEBVIEW_MEDIA_INTEGRITY_API_STATUS;
@@ -960,6 +965,7 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
+    @UiThread
     public static void setWebAuthenticationSupport(@NonNull WebSettings settings,
             @WebAuthenticationSupport int support) {
         final ApiFeature.NoFramework feature =
@@ -989,6 +995,7 @@ public class WebSettingsCompat {
     @RequiresFeature(name = WebViewFeature.WEB_AUTHENTICATION,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
     @WebAuthenticationSupport
+    @UiThread
     public static int getWebAuthenticationSupport(@NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature =
                 WebViewFeatureInternal.WEB_AUTHENTICATION;
@@ -1149,7 +1156,24 @@ public class WebSettingsCompat {
     }
 
     private static WebSettingsAdapter getAdapter(WebSettings settings) {
-        return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        try {
+            return WebViewGlueCommunicator.getCompatConverter().convertSettings(settings);
+        } catch (ClassCastException e) {
+            if (Build.VERSION.SDK_INT == 30
+                    && "android.webkit.WebSettingsWrapper"
+                    .equals(settings.getClass().getCanonicalName())) {
+                // This is a patch for a bug observed only on OnePlus devices running SDK version
+                // 30. See https://crbug.com/388824130.
+                Log.e(
+                        TAG,
+                        "Error converting WebSettings to Chrome implementation. All AndroidX method"
+                                + " calls on this WebSettings instance will be no-op calls. See"
+                                + " https://crbug.com/388824130 for more info.",
+                        e);
+                return new WebSettingsNoOpAdapter();
+            }
+            throw e;
+        }
     }
 }
 

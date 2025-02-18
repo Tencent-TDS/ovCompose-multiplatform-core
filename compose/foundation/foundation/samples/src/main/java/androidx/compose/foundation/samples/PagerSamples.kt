@@ -18,6 +18,7 @@ package androidx.compose.foundation.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.layout.LazyLayoutScrollScope
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.LazyLayoutScrollScope
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.VerticalPager
@@ -52,6 +55,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -207,6 +211,7 @@ fun ObservingStateChangesInPagerStateSample() {
         }
         Column(modifier = Modifier.weight(0.1f).fillMaxWidth()) {
             Text(text = "Current Page: ${pagerState.currentPage}")
+            Text(text = "Current Page Offset Fraction: ${pagerState.currentPageOffsetFraction}")
             Text(text = "Target Page: ${pagerState.targetPage}")
             Text(text = "Settled Page Offset: ${pagerState.settledPage}")
         }
@@ -337,5 +342,47 @@ fun UsingPagerLayoutInfoForSideEffectSample() {
             .collect {
                 // use the new first visible page info
             }
+    }
+}
+
+@Preview
+@Sampled
+@Composable
+fun PagerCustomScrollUsingLazyLayoutScrollScopeSample() {
+    suspend fun PagerState.customScroll(block: suspend LazyLayoutScrollScope.() -> Unit) = scroll {
+        block.invoke(LazyLayoutScrollScope(this@customScroll, this))
+    }
+
+    val itemsList = (0..100).toList()
+    val state = rememberPagerState { itemsList.size }
+    val scope = rememberCoroutineScope()
+
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+        Button(
+            onClick = {
+                scope.launch {
+                    state.customScroll {
+                        snapToItem(40, 0) // teleport to item 40
+                        val distance = calculateDistanceTo(50).toFloat()
+                        var previousValue = 0f
+                        androidx.compose.animation.core.animate(
+                            0f,
+                            distance,
+                            animationSpec = tween(5_000)
+                        ) { currentValue, _ ->
+                            previousValue += scrollBy(currentValue - previousValue)
+                        }
+                    }
+                }
+            }
+        ) {
+            Text("Scroll To Item 50")
+        }
+
+        HorizontalPager(state) {
+            Box(Modifier.padding(2.dp).background(Color.Red).height(600.dp).fillMaxWidth()) {
+                Text(itemsList[it].toString())
+            }
+        }
     }
 }

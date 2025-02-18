@@ -19,7 +19,6 @@ package androidx.glance.appwidget
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.datastore.core.CorruptionException
@@ -86,9 +85,6 @@ private constructor(
     /** Set of all layout ids in [layoutConfig]. None of them can be re-used. */
     private val existingLayoutIds: MutableSet<Int> = mutableSetOf(),
 ) {
-
-    @VisibleForTesting
-    internal val dataStoreFile = context.dataStoreFile(layoutDatastoreKey(appWidgetId))
 
     internal companion object {
 
@@ -276,6 +272,7 @@ private fun LayoutNode.Builder.setImageNode(element: EmittableImage) {
         }
     hasImageDescription = !element.isDecorative()
     hasImageColorFilter = element.colorFilterParams != null
+    hasImageAlpha = element.alpha != null
 }
 
 private fun LayoutNode.Builder.setColumnNode(element: EmittableColumn) {
@@ -301,7 +298,8 @@ private val GlanceModifier.widthModifier: Dimension
 private val GlanceModifier.heightModifier: Dimension
     get() = findModifier<HeightModifier>()?.height ?: Dimension.Wrap
 
-private fun layoutDatastoreKey(appWidgetId: Int): String = "appWidgetLayout-$appWidgetId"
+@VisibleForTesting
+internal fun layoutDatastoreKey(appWidgetId: Int): String = "appWidgetLayout-$appWidgetId"
 
 private object LayoutStateDefinition : GlanceStateDefinition<LayoutProto.LayoutConfig> {
     override fun getLocation(context: Context, fileKey: String): File =
@@ -385,7 +383,6 @@ private fun Dimension.toProto(context: Context): LayoutProto.DimensionType {
 
 @RequiresApi(Build.VERSION_CODES.S)
 private object WidgetLayoutImpl31 {
-    @DoNotInline
     fun toProto(dimension: Dimension) =
         if (dimension is Dimension.Expand) {
             LayoutProto.DimensionType.EXPAND

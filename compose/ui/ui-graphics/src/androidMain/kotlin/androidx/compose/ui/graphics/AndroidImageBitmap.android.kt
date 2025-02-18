@@ -17,9 +17,9 @@
 package androidx.compose.ui.graphics
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.DisplayMetrics
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.colorspace.ColorSpace
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.colorspace.ColorSpaces
  * [Bitmap] and changes to it will modify the returned [ImageBitmap]
  */
 fun Bitmap.asImageBitmap(): ImageBitmap = AndroidImageBitmap(this)
+
+internal actual fun createImageBitmap(bytes: ByteArray): ImageBitmap {
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap()
+}
 
 internal actual fun ActualImageBitmap(
     width: Int,
@@ -67,7 +71,7 @@ internal class AndroidImageBitmap(internal val bitmap: Bitmap) : ImageBitmap {
         get() = bitmap.height
 
     override val config: ImageBitmapConfig
-        get() = bitmap.config.toImageConfig()
+        get() = bitmap.config!!.toImageConfig()
 
     override val colorSpace: ColorSpace
         get() =
@@ -170,7 +174,6 @@ internal fun Bitmap.Config.toImageConfig(): ImageBitmapConfig {
  */
 @RequiresApi(Build.VERSION_CODES.O)
 internal object Api26Bitmap {
-    @DoNotInline
     @JvmStatic
     internal fun createBitmap(
         width: Int,
@@ -190,7 +193,6 @@ internal object Api26Bitmap {
         )
     }
 
-    @DoNotInline
     @JvmStatic
     internal fun Bitmap.composeColorSpace() = colorSpace?.toComposeColorSpace() ?: ColorSpaces.Srgb
 }

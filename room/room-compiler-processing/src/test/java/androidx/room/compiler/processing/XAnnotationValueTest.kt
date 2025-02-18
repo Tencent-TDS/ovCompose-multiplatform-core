@@ -18,6 +18,7 @@ package androidx.room.compiler.processing
 
 import androidx.kruth.assertThat
 import androidx.room.compiler.codegen.JArrayTypeName
+import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.asJClassName
@@ -62,6 +63,7 @@ class XAnnotationValueTest(
     private fun runTest(
         javaSource: Source.JavaSource,
         kotlinSource: Source.KotlinSource,
+        kotlincArgs: List<String> = emptyList(),
         handler: (XTestInvocation) -> Unit
     ) {
         val sources =
@@ -70,7 +72,7 @@ class XAnnotationValueTest(
                 SourceKind.KOTLIN -> listOf(kotlinSource)
             }
         if (isPreCompiled) {
-            val compiled = compileFiles(sources)
+            val compiled = compileFiles(sources, kotlincArguments = kotlincArgs)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
             val kotlinSources =
                 if (hasKotlinSources) {
@@ -81,9 +83,14 @@ class XAnnotationValueTest(
             val newSources =
                 kotlinSources +
                     Source.java("PlaceholderJava", "public class " + "PlaceholderJava {}")
-            runProcessorTest(sources = newSources, handler = handler, classpath = compiled)
+            runProcessorTest(
+                sources = newSources,
+                handler = handler,
+                classpath = compiled,
+                kotlincArguments = kotlincArgs
+            )
         } else {
-            runProcessorTest(sources = sources, handler = handler)
+            runProcessorTest(sources = sources, handler = handler, kotlincArguments = kotlincArgs)
         }
     }
 
@@ -1451,19 +1458,20 @@ class XAnnotationValueTest(
                         @MyAnnotation(stringParam = "2") MyInterface
                 """
                         .trimIndent()
-                ) as Source.KotlinSource
+                ) as Source.KotlinSource,
+            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS,
         ) { invocation ->
             val annotation = getAnnotation(invocation)
             // Compare the AnnotationSpec string ignoring whitespace
             assertThat(annotation.toAnnotationSpec().toString().removeWhiteSpace())
                 .isEqualTo(
                     """
-                        @test.MyAnnotation(
-                            stringParam="2",
-                            stringParam2="1",
-                            stringArrayParam={"3","5","7"}
-                        )
-                        """
+                    @test.MyAnnotation(
+                        stringParam="2",
+                        stringParam2="1",
+                        stringArrayParam={"3","5","7"}
+                    )
+                    """
                         .removeWhiteSpace()
                 )
 

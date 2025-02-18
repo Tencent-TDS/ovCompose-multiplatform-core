@@ -16,43 +16,147 @@
 
 package androidx.privacysandbox.sdkruntime.integration.testapp
 
-import android.app.Activity
 import android.os.Bundle
+import android.os.IBinder
+import android.text.method.ScrollingMovementMethod
 import android.util.Log
-import androidx.privacysandbox.sdkruntime.client.SdkSandboxManagerCompat
-import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
-import androidx.privacysandbox.sdkruntime.core.SandboxedSdkInfo
+import android.widget.Button
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
+import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
+import androidx.privacysandbox.sdkruntime.integration.testaidl.IAppSdk
 import androidx.privacysandbox.sdkruntime.integration.testaidl.ISdkApi
+import kotlinx.coroutines.launch
 
-class TestMainActivity : Activity() {
+class TestMainActivity : AppCompatActivity() {
 
-    private lateinit var sdkSandboxManager: SdkSandboxManagerCompat
+    lateinit var api: TestAppApi
+    private lateinit var logView: TextView
+
+    private val appOwnedSdk =
+        AppOwnedSdkSandboxInterfaceCompat(
+            name = "AppOwnedSdk",
+            version = 42,
+            binder = AppOwnedSdk()
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sdkSandboxManager = SdkSandboxManagerCompat.from(applicationContext)
+        setContentView(R.layout.activity_main)
+        api = TestAppApi(applicationContext)
+
+        logView = findViewById(R.id.logView)
+        logView.setMovementMethod(ScrollingMovementMethod())
+
+        setupLoadSdkButton()
+        setupUnloadSdkButton()
+        setupRegisterAppSdkButton()
+        setupUnregisterAppSdkButton()
+        setupGetSandboxedSdksButton()
+        setupGetAppSdksButton()
     }
 
-    suspend fun loadSdk(): ISdkApi {
-        Log.i(TAG, "Loading SDK")
-        val loadedSdk = sdkSandboxManager.loadSdk(SDK_NAME, Bundle())
-        val sdkApi = ISdkApi.Stub.asInterface(loadedSdk.getInterface())
-        Log.i(TAG, "Loaded successfully")
-        return sdkApi
+    private fun addLogMessage(message: String) {
+        Log.i(TAG, message)
+        logView.append(message + System.lineSeparator())
     }
 
-    fun unloadAllSdks() {
-        sdkSandboxManager
-            .getSandboxedSdks()
-            .mapNotNull(SandboxedSdkCompat::getSdkInfo)
-            .map(SandboxedSdkInfo::name)
-            .forEach(sdkSandboxManager::unloadSdk)
+    private fun setupLoadSdkButton() {
+        val loadSdkButton = findViewById<Button>(R.id.loadSdkButton)
+        loadSdkButton.setOnClickListener {
+            lifecycleScope.launch {
+                try {
+                    addLogMessage("Loading TestSDK...")
+                    val testSdk = api.loadTestSdk()
+                    addLogMessage("TestSDK Message: " + testSdk.getMessage())
+                    addLogMessage("Successfully loaded TestSDK")
+                } catch (ex: LoadSdkCompatException) {
+                    addLogMessage("Failed to load TestSDK: " + ex.message)
+                }
+            }
+        }
+    }
+
+    private fun setupUnloadSdkButton() {
+        val unloadSdkButton = findViewById<Button>(R.id.unloadSdkButton)
+        unloadSdkButton.setOnClickListener {
+            api.unloadTestSdk()
+            addLogMessage("Unloaded TestSDK")
+        }
+    }
+
+    private fun setupRegisterAppSdkButton() {
+        val registerAppSdkButton = findViewById<Button>(R.id.registerAppSdkButton)
+        registerAppSdkButton.setOnClickListener {
+            try {
+                addLogMessage("Registering AppOwnedSdk...")
+                api.registerAppOwnedSdk(appOwnedSdk)
+                addLogMessage("Successfully registered AppOwnedSdk")
+            } catch (ex: Throwable) {
+                addLogMessage("Failed to register AppOwnedSdk: " + ex.message)
+            }
+        }
+    }
+
+    private fun setupUnregisterAppSdkButton() {
+        val unregisterAppSdkButton = findViewById<Button>(R.id.unregisterAppSdkButton)
+        unregisterAppSdkButton.setOnClickListener {
+            api.unregisterAppOwnedSdk(appOwnedSdk.getName())
+            addLogMessage("Unregistered AppOwnedSdk")
+        }
+    }
+
+    private fun setupGetSandboxedSdksButton() {
+        val getSandboxedSdksButton = findViewById<Button>(R.id.getSandboxedSdksButton)
+        getSandboxedSdksButton.setOnClickListener {
+            val sdks = api.getSandboxedSdks()
+            addLogMessage("GetSandboxedSdks results (${sdks.size}):")
+            sdks.forEach {
+                addLogMessage("   SDK Package: ${it.getSdkInfo()?.name}")
+                addLogMessage("   SDK Version: ${it.getSdkInfo()?.version}")
+                val testSdk = toTestSdk(it.getInterface())
+                if (testSdk != null) {
+                    addLogMessage("   SDK Message: ${testSdk.getMessage()}")
+                }
+            }
+        }
+    }
+
+    private fun setupGetAppSdksButton() {
+        val getAppSdksButton = findViewById<Button>(R.id.getAppSdksButton)
+        getAppSdksButton.setOnClickListener {
+            val sdks = api.getAppOwnedSdks()
+            addLogMessage("GetAppSdks results (${sdks.size}):")
+            sdks.forEach {
+                addLogMessage("   AppOwned SDK Package: ${it.getName()}")
+                addLogMessage("   AppOwned SDK Version: ${it.getVersion()}")
+                val appOwnedSdk = toAppOwnedSdk(it.getInterface())
+                if (appOwnedSdk != null) {
+                    addLogMessage("   AppOwned SDK Message: ${appOwnedSdk.getMessage(42)}")
+                }
+            }
+        }
+    }
+
+    private fun toTestSdk(sdkInterface: IBinder?): ISdkApi? {
+        return if (ISdkApi.DESCRIPTOR == sdkInterface?.interfaceDescriptor) {
+            ISdkApi.Stub.asInterface(sdkInterface)
+        } else {
+            null
+        }
+    }
+
+    private fun toAppOwnedSdk(appInterface: IBinder?): IAppSdk? {
+        return if (IAppSdk.DESCRIPTOR == appInterface?.interfaceDescriptor) {
+            IAppSdk.Stub.asInterface(appInterface)
+        } else {
+            null
+        }
     }
 
     companion object {
         private const val TAG = "TestMainActivity"
-
-        /** Name of the SDK to be loaded. */
-        private const val SDK_NAME = "androidx.privacysandbox.sdkruntime.integrationtest.sdk"
     }
 }

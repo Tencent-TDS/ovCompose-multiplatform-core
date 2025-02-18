@@ -73,12 +73,9 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import java.util.UUID
 import kotlin.math.roundToInt
 
-/**
- * Popup specific for exposed dropdown menus. b/202810604. Should not be used in other components.
- */
 @Composable
-internal fun ExposedDropdownMenuPopup(
-    onDismissRequest: (() -> Unit)? = null,
+internal actual fun ExposedDropdownMenuPopup(
+    onDismissRequest: (() -> Unit)?,
     popupPositionProvider: PopupPositionProvider,
     content: @Composable () -> Unit
 ) {
@@ -310,17 +307,13 @@ private class PopupLayout(
 
     /** Taken from PopupWindow */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (keyDispatcherState == null) {
-                return super.dispatchKeyEvent(event)
-            }
+        if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            val state = keyDispatcherState ?: return super.dispatchKeyEvent(event)
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                val state = keyDispatcherState
-                state?.startTracking(event, this)
+                state.startTracking(event, this)
                 return true
             } else if (event.action == KeyEvent.ACTION_UP) {
-                val state = keyDispatcherState
-                if (state != null && state.isTracking(event) && !event.isCanceled) {
+                if (state.isTracking(event) && !event.isCanceled) {
                     onDismissRequest?.invoke()
                     return true
                 }

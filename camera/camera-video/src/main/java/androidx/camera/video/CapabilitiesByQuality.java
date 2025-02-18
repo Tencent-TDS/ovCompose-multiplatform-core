@@ -20,8 +20,6 @@ import static androidx.camera.core.internal.utils.SizeUtil.findNearestHigherFor;
 
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.EncoderProfilesProvider;
@@ -29,6 +27,9 @@ import androidx.camera.core.impl.EncoderProfilesProxy;
 import androidx.camera.core.impl.utils.CompareSizesByArea;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -103,8 +104,7 @@ public class CapabilitiesByQuality {
      * <p>Note: Constants {@link Quality#HIGHEST} and {@link Quality#LOWEST} are not included in
      * the returned list, but their corresponding qualities are included.
      */
-    @NonNull
-    public List<Quality> getSupportedQualities() {
+    public @NonNull List<Quality> getSupportedQualities() {
         return new ArrayList<>(mSupportedProfilesMap.keySet());
     }
 
@@ -123,8 +123,7 @@ public class CapabilitiesByQuality {
      * Gets a {@link VideoValidatedEncoderProfilesProxy} for the input quality or {@code null} if
      * the quality is not supported.
      */
-    @Nullable
-    public VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality) {
+    public @Nullable VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality) {
         checkQualityConstantsOrThrow(quality);
         if (quality == Quality.HIGHEST) {
             return mHighestProfiles;
@@ -138,9 +137,8 @@ public class CapabilitiesByQuality {
      * Finds the nearest higher supported {@link VideoValidatedEncoderProfilesProxy} for the
      * input size.
      */
-    @Nullable
-    public VideoValidatedEncoderProfilesProxy findNearestHigherSupportedEncoderProfilesFor(
-            @NonNull Size size) {
+    public @Nullable VideoValidatedEncoderProfilesProxy
+            findNearestHigherSupportedEncoderProfilesFor(@NonNull Size size) {
         VideoValidatedEncoderProfilesProxy encoderProfiles = null;
         Quality highestSupportedQuality = findNearestHigherSupportedQualityFor(size);
         Logger.d(TAG,
@@ -156,14 +154,12 @@ public class CapabilitiesByQuality {
     }
 
     /** Finds the nearest higher supported {@link Quality} for the input size. */
-    @NonNull
-    public Quality findNearestHigherSupportedQualityFor(@NonNull Size size) {
+    public @NonNull Quality findNearestHigherSupportedQualityFor(@NonNull Size size) {
         Quality quality = findNearestHigherFor(size, mAreaSortedSizeToQualityMap);
         return quality != null ? quality : Quality.NONE;
     }
 
-    @Nullable
-    private EncoderProfilesProxy getEncoderProfiles(@NonNull Quality quality,
+    private @Nullable EncoderProfilesProxy getEncoderProfiles(@NonNull Quality quality,
             @NonNull EncoderProfilesProvider provider) {
         Preconditions.checkState(quality instanceof Quality.ConstantQuality,
                 "Currently only support ConstantQuality");
@@ -172,8 +168,7 @@ public class CapabilitiesByQuality {
         return provider.getAll(qualityValue);
     }
 
-    @Nullable
-    private VideoValidatedEncoderProfilesProxy toValidatedProfiles(
+    private @Nullable VideoValidatedEncoderProfilesProxy toValidatedProfiles(
             @NonNull EncoderProfilesProxy profiles) {
         // According to the document, the first profile is the default video profile.
         List<EncoderProfilesProxy.VideoProfileProxy> videoProfiles =
@@ -183,6 +178,13 @@ public class CapabilitiesByQuality {
         }
 
         return VideoValidatedEncoderProfilesProxy.from(profiles);
+    }
+
+    /**
+     * Checks if the {@link EncoderProfilesProvider} contains at least one supported quality.
+     */
+    public static boolean containsSupportedQuality(@NonNull EncoderProfilesProvider provider) {
+        return !new CapabilitiesByQuality(provider).getSupportedQualities().isEmpty();
     }
 
     private static void checkQualityConstantsOrThrow(@NonNull Quality quality) {

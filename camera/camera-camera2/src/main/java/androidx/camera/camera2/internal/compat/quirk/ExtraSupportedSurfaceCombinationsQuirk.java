@@ -18,11 +18,12 @@ package androidx.camera.camera2.internal.compat.quirk;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.internal.compat.workaround.ExtraSupportedSurfaceCombinationsContainer;
 import androidx.camera.core.impl.Quirk;
 import androidx.camera.core.impl.SurfaceCombination;
 import androidx.camera.core.impl.SurfaceConfig;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,12 +57,19 @@ public class ExtraSupportedSurfaceCombinationsQuirk implements Quirk {
                     "PIXEL 6",
                     "PIXEL 6 PRO",
                     "PIXEL 7",
-                    "PIXEL 7 PRO"));
+                    "PIXEL 7 PRO",
+                    "PIXEL 8",
+                    "PIXEL 8 PRO"));
 
     private static final Set<String> SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS =
             new HashSet<>(Arrays.asList(
-                    "SM-S926B", // Galaxy S24+
-                    "SM-S928U" // Galaxy S24 Ultra
+                    "SM-S921", // Galaxy S24
+                    "SC-51E",  // Galaxy S24
+                    "SCG25",   // Galaxy S24
+                    "SM-S926", // Galaxy S24+
+                    "SM-S928", // Galaxy S24 Ultra
+                    "SC-52E",  // Galaxy S24 Ultra
+                    "SCG26"   // Galaxy S24 Ultra
               ));
 
     static boolean load() {
@@ -91,14 +99,20 @@ public class ExtraSupportedSurfaceCombinationsQuirk implements Quirk {
 
         String capitalModelName = Build.MODEL.toUpperCase(Locale.US);
 
-        return SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS.contains(capitalModelName);
+        // Check if the device model starts with the one of the predefined models
+        for (String supportedModel : SUPPORT_EXTRA_LEVEL_3_CONFIGURATIONS_SAMSUNG_MODELS) {
+            if (capitalModelName.startsWith(supportedModel)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Returns the extra supported surface combinations for specific camera on the device.
      */
-    @NonNull
-    public List<SurfaceCombination> getExtraSupportedSurfaceCombinations(@NonNull String cameraId) {
+    public @NonNull List<SurfaceCombination> getExtraSupportedSurfaceCombinations(
+            @NonNull String cameraId) {
         if (isSamsungS7()) {
             return getSamsungS7ExtraCombinations(cameraId);
         }
@@ -111,8 +125,8 @@ public class ExtraSupportedSurfaceCombinationsQuirk implements Quirk {
         return Collections.emptyList();
     }
 
-    @NonNull
-    private List<SurfaceCombination> getSamsungS7ExtraCombinations(@NonNull String cameraId) {
+    private @NonNull List<SurfaceCombination> getSamsungS7ExtraCombinations(
+            @NonNull String cameraId) {
         List<SurfaceCombination> extraCombinations = new ArrayList<>();
 
         if (cameraId.equals("1")) {
@@ -123,8 +137,7 @@ public class ExtraSupportedSurfaceCombinationsQuirk implements Quirk {
         return extraCombinations;
     }
 
-    @NonNull
-    private static SurfaceCombination createFullYuvPrivYuvConfiguration() {
+    private static @NonNull SurfaceCombination createFullYuvPrivYuvConfiguration() {
         // (YUV, ANALYSIS) + (PRIV, PREVIEW) + (YUV, MAXIMUM)
         SurfaceCombination surfaceCombination = new SurfaceCombination();
         surfaceCombination.addSurfaceConfig(SurfaceConfig.create(SurfaceConfig.ConfigType.YUV,

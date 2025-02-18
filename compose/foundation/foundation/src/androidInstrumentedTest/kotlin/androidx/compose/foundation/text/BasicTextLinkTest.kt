@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.text.selection.gestures.util.longPress
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -63,7 +64,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.getPartialBoundsOfLinks
+import androidx.compose.ui.test.getFirstLinkBounds
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -76,6 +77,7 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.LinkAnnotation.Url
+import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
@@ -83,6 +85,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.DpSize
@@ -544,6 +547,40 @@ class BasicTextLinkTest {
 
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun link_onFocus_restoresOriginalStyle_afterFocusLost() {
+        val textWithLink = buildAnnotatedString {
+            withLink(
+                Url("link", TextLinkStyles(focusedStyle = SpanStyle(background = Color.Blue)))
+            ) {
+                append("text")
+            }
+        }
+        setupContent {
+            Column {
+                Box(Modifier.size(10.dp).focusable().testTag("box"))
+                BasicText(text = textWithLink, style = TextStyle(color = Color.White))
+            }
+        }
+
+        // link captures focus
+        rule
+            .onNode(hasClickAction(), useUnmergedTree = true)
+            .requestFocus()
+            .captureToImage()
+            .assertContainsColor(Color.Blue)
+
+        // link loses focus
+        rule.onNodeWithTag("box").requestFocus()
+
+        // verify link restores its unfocused style
+        rule
+            .onNode(hasClickAction(), useUnmergedTree = true)
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Blue)
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     fun link_withinOtherStyle_onFocus_focusedStyleUsed() {
         val textWithLink = buildAnnotatedString {
             withStyle(SpanStyle(color = Color.Green)) {
@@ -819,6 +856,219 @@ class BasicTextLinkTest {
         }
     }
 
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun link_doesNotReplaceNestedStyle_whenEmptyStyle() {
+        val textWithLink = buildAnnotatedString {
+            withLink(Url("link", TextLinkStyles(focusedStyle = SpanStyle(Color.Blue)))) {
+                withStyle(SpanStyle(Color.Green)) { append("text") }
+            }
+        }
+        setupContent { BasicText(text = textWithLink, style = TextStyle(color = Color.White)) }
+
+        rule
+            .onNode(hasClickAction(), useUnmergedTree = true)
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Blue)
+            .assertContainsColor(Color.Green)
+
+        rule
+            .onNode(hasClickAction(), useUnmergedTree = true)
+            .requestFocus()
+            .captureToImage()
+            .assertDoesNotContainColor(Color.Blue)
+            .assertContainsColor(Color.Green)
+    }
+
+    @Test
+    fun link_doesNotModifyAnnotations_whenEmptyStyles() {
+        val textWithLink = buildAnnotatedString { withLink(Url("link")) { append("text") } }
+        setupContent { BasicText(text = textWithLink, style = TextStyle(color = Color.White)) }
+
+        val styles = rule.onNodeWithText("text").fetchTextLayoutResult().layoutInput.text.spanStyles
+
+        assertThat(styles).isEmpty()
+    }
+
+    @Test
+    fun links_displayedWithCorrectStyle_onFirstFrame() {
+        val checked = mutableStateOf(false)
+        var calledAfterChecked = false
+
+        rule.setContent {
+            calledAfterChecked = checked.value
+            BasicText(
+                buildAnnotatedString {
+                    withLink(
+                        LinkAnnotation.Clickable(
+                            "tag",
+                            TextLinkStyles(SpanStyle(color = Color.Green))
+                        ) {}
+                    ) {
+                        append("Link")
+                    }
+                },
+                style = TextStyle(Color.Red),
+                onTextLayout = {
+                    // When the flicker happens, the BasicText is first composed and drawn
+                    // with the empty span styles. Only after the recomposition the link
+                    // style is applied. After the fix the first composition happens with
+                    // the correct link color and therefore the span styles will contain it
+                    val colors = it.layoutInput.text.spanStyles.map { it.item.color }
+                    assertThat(colors).isNotEmpty()
+                    assertThat(colors.first()).isEqualTo(Color.Green)
+                }
+            )
+        }
+
+        checked.value = true
+        rule.runOnIdle {
+            // ensures that recomposition happened after a `checked` change
+            assertThat(calledAfterChecked).isTrue()
+        }
+    }
+
+    @Test
+    fun link_withZeroLengthAnnotation_doesNotCrash() {
+        rule.setContent {
+            BasicText(
+                text =
+                    buildAnnotatedString {
+                        append("a")
+                        addLink(url = Url("url"), start = 0, end = 0)
+                    }
+            )
+        }
+    }
+
+    @Test
+    fun links_doesNotThrow_whenParagraphNotAdded() {
+        var layoutResult: TextLayoutResult? = null
+        rule.setContent {
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(ParagraphStyle()) { append("a\nb\nc\n") }
+                    withStyle(ParagraphStyle()) {
+                        pushLink(Url("url"))
+                        append("d")
+                        pop()
+                    }
+                },
+                onTextLayout = { layoutResult = it },
+                maxLines = 2
+            )
+        }
+
+        rule.runOnIdle {
+            assertThat(layoutResult).isNotNull()
+            assertThat(layoutResult!!.lineCount).isEqualTo(2)
+        }
+    }
+
+    @Test
+    fun links_doesNotThrow_whenParagraphNotAdded_link_fallsOnMaxLines_clipOverflow() {
+        var layoutResult: TextLayoutResult? = null
+        rule.setContent {
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(ParagraphStyle()) { append("a\nb") }
+                    withStyle(ParagraphStyle()) {
+                        pushLink(Url("url"))
+                        append("link")
+                        pop()
+                    }
+                    withStyle(ParagraphStyle()) { append("c") }
+                },
+                onTextLayout = { layoutResult = it },
+                maxLines = 3,
+                overflow = TextOverflow.Clip
+            )
+        }
+
+        rule.runOnIdle {
+            assertThat(layoutResult).isNotNull()
+            assertThat(layoutResult!!.lineCount).isEqualTo(3)
+        }
+    }
+
+    @Test
+    fun links_doesNotThrow_whenParagraphNotAdded_link_fallsOnMaxLines_ellipsisOverflow() {
+        var layoutResult: TextLayoutResult? = null
+        rule.setContent {
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(ParagraphStyle()) { append("a\nb") }
+                    withStyle(ParagraphStyle()) {
+                        pushLink(Url("url"))
+                        append("link")
+                        pop()
+                    }
+                    withStyle(ParagraphStyle()) { append("c") }
+                },
+                onTextLayout = { layoutResult = it },
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        rule.runOnIdle {
+            assertThat(layoutResult).isNotNull()
+            assertThat(layoutResult!!.lineCount).isEqualTo(3)
+        }
+    }
+
+    @Test
+    fun links_doesNotThrow_whenParagraphNotAdded_multiLineLink_fallsOnMaxLines_clipOverflow() {
+        var layoutResult: TextLayoutResult? = null
+        rule.setContent {
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(ParagraphStyle()) { append("a\nb") }
+                    withStyle(ParagraphStyle()) {
+                        pushLink(Url("url"))
+                        append("link\nlink")
+                        pop()
+                    }
+                    withStyle(ParagraphStyle()) { append("c") }
+                },
+                onTextLayout = { layoutResult = it },
+                maxLines = 3,
+                overflow = TextOverflow.Clip
+            )
+        }
+
+        rule.runOnIdle {
+            assertThat(layoutResult).isNotNull()
+            assertThat(layoutResult!!.lineCount).isEqualTo(3)
+        }
+    }
+
+    @Test
+    fun links_doesNotThrow_whenParagraphNotAdded_multiLineLink_fallsOnMaxLines_ellipsisOverflow() {
+        var layoutResult: TextLayoutResult? = null
+        rule.setContent {
+            BasicText(
+                buildAnnotatedString {
+                    withStyle(ParagraphStyle()) { append("a\nb") }
+                    withStyle(ParagraphStyle()) {
+                        pushLink(Url("url"))
+                        append("link\nlink")
+                        pop()
+                    }
+                    withStyle(ParagraphStyle()) { append("c") }
+                },
+                onTextLayout = { layoutResult = it },
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        rule.runOnIdle {
+            assertThat(layoutResult).isNotNull()
+            assertThat(layoutResult!!.lineCount).isEqualTo(3)
+        }
+    }
+
     @Composable
     private fun TextWithLinks() =
         with(rule.density) {
@@ -831,10 +1081,10 @@ class BasicTextLinkTest {
 
                 val text = buildAnnotatedString {
                     append("text ")
-                    withLink(Url(Url1)) { append("link ") }
-                    append("text ")
-                    withLink(Url(Url2)) { append("a long link ") }
-                    append("text")
+                    withLink(Url(Url1)) { append("link") }
+                    append(" text")
+                    withLink(Url(Url2)) { append(" a long link") }
+                    append(" text")
                 }
                 val widthDp = (fontSize * 22).toDp() // to fit text in the middle of the second link
                 BasicText(
@@ -905,16 +1155,16 @@ class BasicTextLinkTest {
         predicate: (AnnotatedString.Range<LinkAnnotation>) -> Boolean = { true },
         block: MouseInjectionScope.(offsetInLink: Offset) -> Unit
     ): SemanticsNodeInteraction {
-        val linkBounds = getPartialBoundsOfLinks(predicate).first()
-        return this.performMouseInput { block(linkBounds.center) }
+        val linkBounds = getFirstLinkBounds(predicate)
+        return this.performMouseInput { block(linkBounds!!.center) }
     }
 
     private fun SemanticsNodeInteraction.performTouchInputOnFirstLink(
         predicate: (AnnotatedString.Range<LinkAnnotation>) -> Boolean = { true },
         block: TouchInjectionScope.(offsetInLink: Offset) -> Unit
     ): SemanticsNodeInteraction {
-        val linkBounds = getPartialBoundsOfLinks(predicate).first()
-        return this.performTouchInput { block(linkBounds.center) }
+        val linkBounds = getFirstLinkBounds(predicate)
+        return this.performTouchInput { block(linkBounds!!.center) }
     }
 }
 

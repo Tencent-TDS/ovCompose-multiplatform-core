@@ -26,6 +26,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
@@ -86,7 +87,8 @@ class ParagraphWithLineHeightBenchmark(
     private fun paragraph(text: String, width: Float): Paragraph {
         return Paragraph(
             paragraphIntrinsics = paragraphIntrinsics(text),
-            constraints = Constraints(maxWidth = ceil(width).toInt())
+            constraints = Constraints(maxWidth = ceil(width).toInt()),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -110,9 +112,11 @@ class ParagraphWithLineHeightBenchmark(
 
         return ParagraphIntrinsics(
             text = text,
-            density = Density(density = instrumentationContext.resources.displayMetrics.density),
             style = style,
-            fontFamilyResolver = createFontFamilyResolver(instrumentationContext)
+            annotations = listOf(),
+            density = Density(density = instrumentationContext.resources.displayMetrics.density),
+            fontFamilyResolver = createFontFamilyResolver(instrumentationContext),
+            placeholders = listOf()
         )
     }
 
@@ -120,7 +124,7 @@ class ParagraphWithLineHeightBenchmark(
     fun construct() {
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
-                val text = runWithTimingDisabled {
+                val text = runWithMeasurementDisabled {
                     // create a new paragraph and use a smaller width to get
                     // some line breaking in the result
                     text(textGenerator)

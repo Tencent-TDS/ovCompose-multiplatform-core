@@ -19,6 +19,8 @@ package androidx.core.splashscreen.test
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.core.splashscreen.SplashScreenViewProvider
@@ -28,7 +30,10 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.screenshot.matchers.MSSIMMatcher
 import androidx.test.uiautomator.UiDevice
+import androidx.testutils.PollingCheck
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
@@ -63,6 +68,8 @@ public class SplashscreenParametrizedTest(
                 arrayOf("AppCompat", SplashScreenAppCompatTestActivity::class)
             )
         }
+
+        const val TAG = "SplashscreenParameterizedTest"
     }
 
     @Before
@@ -139,18 +146,62 @@ public class SplashscreenParametrizedTest(
     @SdkSuppress(minSdkVersion = 23)
     @Test
     public fun splashscreenViewScreenshotComparison() {
-        val activity = startActivityWithSplashScreen {
+        val controller = startActivityWithSplashScreen {
             // Clear out any previous instances
             it.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
             it.putExtra(EXTRA_SPLASHSCREEN_WAIT, true)
             it.putExtra(EXTRA_ANIMATION_LISTENER, true)
-            it.putExtra(EXTRA_SPLASHSCREEN_VIEW_SCREENSHOT, true)
+            it.putExtra(EXTRA_SPLASHSCREEN_SCREENSHOT, true)
         }
-        assertTrue(activity.waitedLatch.await(2, TimeUnit.SECONDS))
-        activity.waitBarrier.set(false)
-        activity.exitAnimationListenerLatch.await(2, TimeUnit.SECONDS)
 
-        compareBitmaps(activity.splashScreenScreenshot!!, activity.splashScreenViewScreenShot!!)
+        var splashScreenViewScreenShot: Bitmap? = null
+
+        controller.doOnExitAnimation {
+            // b/355716686
+            // During the transition from the splash screen of system starting window to the
+            // activity, there may be a moment that `PhoneWindowManager`'s
+            // `mTopFullscreenOpaqueWindowState` would be `null`, which might lead to the flicker of
+            // status bar (b/64291272,
+            // https://android.googlesource.com/platform/frameworks/base/+/c0c9324fcb03c85ef7bed2d997c441119823d31c%5E%21/)
+            val topFullscreenWinState = "mTopFullscreenOpaqueWindowState"
+
+            // We should take the screenshot when `mTopFullscreenOpaqueWindowState` is window of the
+            // activity
+            val topFullscreenWinStateBelongsToActivity =
+                Regex(
+                    topFullscreenWinState +
+                        "=Window\\{.*" +
+                        controller.activity.componentName.className +
+                        "\\}"
+                )
+
+            val isTopFullscreenWinStateReady: () -> Boolean = {
+                val dumpedWindowPolicy =
+                    InstrumentationRegistry.getInstrumentation()
+                        .uiAutomation
+                        .executeShellCommand("dumpsys window p")
+                        .use { FileInputStream(it.fileDescriptor).reader().readText() }
+
+                !dumpedWindowPolicy.contains(topFullscreenWinState) ||
+                    dumpedWindowPolicy.contains(topFullscreenWinStateBelongsToActivity)
+            }
+
+            PollingCheck.waitFor(2000, isTopFullscreenWinStateReady)
+            if (!isTopFullscreenWinStateReady())
+                fail("$topFullscreenWinState is not ready, cannot take screenshot")
+
+            splashScreenViewScreenShot =
+                InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+            it.remove()
+            controller.exitAnimationListenerLatch.countDown()
+            true
+        }
+
+        assertTrue(controller.waitedLatch.await(2, TimeUnit.SECONDS))
+        controller.waitBarrier.set(false)
+        controller.exitAnimationListenerLatch.await(2, TimeUnit.SECONDS)
+
+        compareBitmaps(controller.splashScreenScreenshot!!, splashScreenViewScreenShot!!)
     }
 
     /**
@@ -310,6 +361,12 @@ public class SplashscreenParametrizedTest(
                 )
 
         if (!matcher.matches) {
+            // Serialize the screenshots and output them through Logcat so as to gather more details
+            // for debugging.
+            logLongMessage(Log::e, TAG, "before", beforeScreenshot.toBase64String())
+            logLongMessage(Log::e, TAG, "after", afterScreenshot.toBase64String())
+            matcher.diff?.let { logLongMessage(Log::e, TAG, "diff", it.toBase64String()) }
+
             val bundle = Bundle()
             val diff = matcher.diff?.writeToDevice("diff.png")
             bundle.putString("splashscreen_diff", diff?.absolutePath)
@@ -328,6 +385,50 @@ public class SplashscreenParametrizedTest(
                     "\nResult saved at $path"
             )
         }
+    }
+
+    /**
+     * A log message has a maximum of 4096 bytes, where date / time, tag, process, etc. included.
+     *
+     * Therefore, we should chunk a large message into some smaller ones.
+     */
+    private fun logLongMessage(
+        logger: (tag: String, msg: String) -> Int,
+        tag: String,
+        title: String,
+        msg: String
+    ) {
+        val chunks = msg.chunked(4000)
+        logger(tag, "$title ${chunks.size}")
+
+        for ((i, chunk) in chunks.withIndex()) {
+            logger(tag, title + " $i/${chunks.size} " + chunk)
+        }
+    }
+
+    /**
+     * Serialize a bitmap into a string in Base64 encoding so that we could output it through logs
+     * when comparisons fail.
+     */
+    private fun Bitmap.toBase64String(): String {
+        val scaledBitmap =
+            Bitmap.createScaledBitmap(
+                this,
+                // Reduce the size of the bitmap
+                width * 3 shr 2,
+                height * 3 shr 2,
+                false
+            )
+        val outputStream = ByteArrayOutputStream()
+        scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+
+        val bytes = outputStream.toByteArray()
+        val str =
+            Base64.encodeToString(
+                bytes,
+                Base64.NO_WRAP // Not to wrap here as we are going to wrap on our own later
+            )
+        return str
     }
 
     private fun Bitmap.writeToDevice(name: String): File {

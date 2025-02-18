@@ -22,12 +22,13 @@ import androidx.camera.camera2.pipe.CameraBackends
 import androidx.camera.camera2.pipe.CameraContext
 import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraSurfaceManager
 import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.StreamGraph
+import androidx.camera.camera2.pipe.SurfaceTracker
 import androidx.camera.camera2.pipe.core.Threads
-import androidx.camera.camera2.pipe.graph.CameraGraphId
 import androidx.camera.camera2.pipe.graph.CameraGraphImpl
 import androidx.camera.camera2.pipe.graph.GraphListener
 import androidx.camera.camera2.pipe.graph.GraphProcessor
@@ -35,6 +36,7 @@ import androidx.camera.camera2.pipe.graph.GraphProcessorImpl
 import androidx.camera.camera2.pipe.graph.Listener3A
 import androidx.camera.camera2.pipe.graph.StreamGraphImpl
 import androidx.camera.camera2.pipe.graph.SurfaceGraph
+import androidx.camera.camera2.pipe.internal.CameraGraphParametersImpl
 import androidx.camera.camera2.pipe.internal.FrameCaptureQueue
 import androidx.camera.camera2.pipe.internal.FrameDistributor
 import androidx.camera.camera2.pipe.internal.ImageSourceMap
@@ -42,6 +44,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
+import javax.inject.Provider
 import javax.inject.Qualifier
 import javax.inject.Scope
 import kotlinx.coroutines.CoroutineName
@@ -92,6 +95,15 @@ internal abstract class SharedCameraGraphModules {
 
     @Binds abstract fun bindStreamGraph(streamGraph: StreamGraphImpl): StreamGraph
 
+    @CameraGraphScope
+    @Binds
+    abstract fun bindSurfaceTracker(surfaceGraph: SurfaceGraph): SurfaceTracker
+
+    @Binds
+    abstract fun bindCameraGraphParameters(
+        parameters: CameraGraphParametersImpl
+    ): CameraGraph.Parameters
+
     companion object {
         @CameraGraphScope
         @Provides
@@ -133,7 +145,7 @@ internal abstract class SharedCameraGraphModules {
         @Provides
         fun provideSurfaceGraph(
             streamGraphImpl: StreamGraphImpl,
-            cameraController: CameraController,
+            cameraController: Provider<CameraController>,
             cameraSurfaceManager: CameraSurfaceManager,
             imageSourceMap: ImageSourceMap
         ): SurfaceGraph {
@@ -196,17 +208,21 @@ internal abstract class InternalCameraGraphModules {
         @CameraGraphScope
         @Provides
         fun provideCameraController(
+            graphId: CameraGraphId,
             graphConfig: CameraGraph.Config,
             cameraBackend: CameraBackend,
             cameraContext: CameraContext,
             graphProcessor: GraphProcessorImpl,
             streamGraph: StreamGraph,
+            surfaceTracker: SurfaceTracker,
         ): CameraController {
             return cameraBackend.createCameraController(
                 cameraContext,
+                graphId,
                 graphConfig,
                 graphProcessor,
-                streamGraph
+                streamGraph,
+                surfaceTracker,
             )
         }
     }

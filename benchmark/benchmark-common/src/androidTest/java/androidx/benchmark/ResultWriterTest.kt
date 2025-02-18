@@ -76,7 +76,7 @@ class ResultWriterTest {
         tempFile.writeText(fakeText)
 
         ResultWriter.writeReport(tempFile, listOf(reportA, reportB))
-        assert(!tempFile.readText().startsWith(fakeText))
+        assertTrue(!tempFile.readText().startsWith(fakeText))
     }
 
     @Test
@@ -110,7 +110,11 @@ class ResultWriterTest {
                     "sustainedPerformanceModeEnabled": $sustainedPerformanceModeInUse,
                     "artMainlineVersion": ${context.artMainlineVersion},
                     "osCodenameAbbreviated": "${context.osCodenameAbbreviated}",
-                    "compilationMode": "${PackageInfo.compilationMode}"
+                    "compilationMode": "${PackageInfo.compilationMode}",
+                    "payload": {
+                        "customKey1": "custom value 1",
+                        "customKey2": "custom value 2"
+                    }
                 },
                 "benchmarks": [
                     {
@@ -123,6 +127,7 @@ class ResultWriterTest {
                                 "minimum": 100.0,
                                 "maximum": 102.0,
                                 "median": 101.0,
+                                "coefficientOfVariation": 0.009900990099009901,
                                 "runs": [
                                     100.0,
                                     101.0,
@@ -145,6 +150,7 @@ class ResultWriterTest {
                                 "minimum": 100.0,
                                 "maximum": 102.0,
                                 "median": 101.0,
+                                "coefficientOfVariation": 0.009900990099009901,
                                 "runs": [
                                     100.0,
                                     101.0,

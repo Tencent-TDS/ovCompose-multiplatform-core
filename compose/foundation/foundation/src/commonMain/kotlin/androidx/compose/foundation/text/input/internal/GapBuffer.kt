@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation.text.input.internal
 
+import androidx.compose.foundation.internal.requirePrecondition
+
 /**
  * The gap buffer implementation
  *
@@ -167,8 +169,8 @@ private class GapBuffer(initBuffer: CharArray, initGapStart: Int, initGapEnd: In
      * @param builder The output string builder
      */
     fun append(builder: StringBuilder) {
-        builder.append(buffer, 0, gapStart)
-        builder.append(buffer, gapEnd, capacity - gapEnd)
+        builder.appendRange(buffer, 0, gapStart)
+        builder.appendRange(buffer, gapEnd, capacity)
     }
 
     /**
@@ -226,10 +228,10 @@ internal class PartialGapBuffer(text: CharSequence) : CharSequence {
         textStart: Int = 0,
         textEnd: Int = text.length
     ) {
-        require(start <= end) { "start=$start > end=$end" }
-        require(textStart <= textEnd) { "textStart=$textStart > textEnd=$textEnd" }
-        require(start >= 0) { "start must be non-negative, but was $start" }
-        require(textStart >= 0) { "textStart must be non-negative, but was $textStart" }
+        requirePrecondition(start <= end) { "start=$start > end=$end" }
+        requirePrecondition(textStart <= textEnd) { "textStart=$textStart > textEnd=$textEnd" }
+        requirePrecondition(start >= 0) { "start must be non-negative, but was $start" }
+        requirePrecondition(textStart >= 0) { "textStart must be non-negative, but was $textStart" }
 
         val buffer = buffer
         val textLength = textEnd - textStart

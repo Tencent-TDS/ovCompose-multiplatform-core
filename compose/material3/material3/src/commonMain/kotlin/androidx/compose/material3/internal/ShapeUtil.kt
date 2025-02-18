@@ -16,14 +16,22 @@
 
 package androidx.compose.material3.internal
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.util.fastForEach
 import androidx.graphics.shapes.Cubic
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.TransformResult
 import kotlin.math.PI
 import kotlin.math.atan2
+
+/** Transforms a [RoundedPolygon] with the given [Matrix] */
+internal fun RoundedPolygon.transformed(matrix: Matrix): RoundedPolygon = transformed { x, y ->
+    val transformedPoint = matrix.map(Offset(x, y))
+    TransformResult(transformedPoint.x, transformedPoint.y)
+}
 
 /**
  * Gets a [Path] representation for a [RoundedPolygon] shape. Note that there is some rounding
@@ -34,8 +42,8 @@ import kotlin.math.atan2
  *
  * @param path a [Path] object which, if supplied, will avoid the function having to create a new
  *   [Path] object
- * @param startAngle an angle to rotate the [Path] to start drawing from. The rotation pivot is set
- *   to be the polygon's centerX and centerY coordinates.
+ * @param startAngle an angle (in degrees) to rotate the [Path] to start drawing from. The rotation
+ *   pivot is set to be the polygon's centerX and centerY coordinates.
  * @param repeatPath whether or not to repeat the [Path] twice before closing it. This flag is
  *   useful when the caller would like to draw parts of the path while offsetting the start and stop
  *   positions (for example, when phasing and rotating a path to simulate a motion as a Star
@@ -65,7 +73,7 @@ internal fun RoundedPolygon.toPath(
  *
  * @param progress the [Morph]'s progress
  * @param path a [Path] to rewind and set with the new path data
- * @param startAngle an angle to rotate the [Path] to start drawing from
+ * @param startAngle an angle (in degrees) to rotate the [Path] to start drawing from
  * @param repeatPath whether or not to repeat the [Path] twice before closing it. This flag is
  *   useful when the caller would like to draw parts of the path while offsetting the start and stop
  *   positions (for example, when phasing and rotating a path to simulate a motion as a Star

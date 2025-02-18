@@ -27,7 +27,6 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.util.SizeF
 import android.widget.RemoteViews
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
@@ -63,25 +62,7 @@ internal fun appWidgetMinSize(
     appWidgetId: Int
 ): DpSize {
     val info = appWidgetManager.getAppWidgetInfo(appWidgetId) ?: return DpSize.Zero
-    val minWidth =
-        min(
-            info.minWidth,
-            if (info.resizeMode and AppWidgetProviderInfo.RESIZE_HORIZONTAL != 0) {
-                info.minResizeWidth
-            } else {
-                Int.MAX_VALUE
-            }
-        )
-    val minHeight =
-        min(
-            info.minHeight,
-            if (info.resizeMode and AppWidgetProviderInfo.RESIZE_VERTICAL != 0) {
-                info.minResizeHeight
-            } else {
-                Int.MAX_VALUE
-            }
-        )
-    return DpSize(minWidth.pixelsToDp(displayMetrics), minHeight.pixelsToDp(displayMetrics))
+    return info.getMinSize(displayMetrics)
 }
 
 // Extract the sizes from the bundle
@@ -212,13 +193,11 @@ object Tracing {
 
 @RequiresApi(Build.VERSION_CODES.Q)
 internal object TracingApi29Impl {
-    @DoNotInline
     fun beginAsyncSection(
         methodName: String,
         cookie: Int,
     ) = Trace.beginAsyncSection(methodName, cookie)
 
-    @DoNotInline
     fun endAsyncSection(
         methodName: String,
         cookie: Int,

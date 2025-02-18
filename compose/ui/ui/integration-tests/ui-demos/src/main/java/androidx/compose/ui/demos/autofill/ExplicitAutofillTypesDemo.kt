@@ -30,10 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.AutofillNode
-import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -42,11 +39,7 @@ import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 
-// TODO(333102566): will add demos when semantic autofill goes live. For now, see
-// AndroidSemanticAutofillTest.kt which can reference the internal properties.
-
 @Composable
-@OptIn(ExperimentalComposeUiApi::class)
 fun ExplicitAutofillTypesDemo() {
     var name by
         rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
@@ -55,7 +48,11 @@ fun ExplicitAutofillTypesDemo() {
 
     Column {
         Autofill(
-            autofillTypes = listOf(AutofillType.PersonFullName),
+            autofillTypes =
+                listOf(
+                    @Suppress("Deprecation")
+                    androidx.compose.ui.autofill.AutofillType.PersonFullName
+                ),
             onFill = { name = TextFieldValue(it) }
         ) {
             OutlinedTextField(
@@ -68,7 +65,10 @@ fun ExplicitAutofillTypesDemo() {
         Spacer(Modifier.height(10.dp))
 
         Autofill(
-            autofillTypes = listOf(AutofillType.EmailAddress),
+            autofillTypes =
+                listOf(
+                    @Suppress("Deprecation") androidx.compose.ui.autofill.AutofillType.EmailAddress
+                ),
             onFill = { email = TextFieldValue(it) }
         ) {
             OutlinedTextField(
@@ -80,18 +80,21 @@ fun ExplicitAutofillTypesDemo() {
     }
 }
 
-@ExperimentalComposeUiApi
 @Composable
 private fun Autofill(
-    autofillTypes: List<AutofillType>,
+    autofillTypes: List<@Suppress("Deprecation") androidx.compose.ui.autofill.AutofillType>,
     onFill: ((String) -> Unit),
     content: @Composable BoxScope.() -> Unit
 ) {
-    val autofill = LocalAutofill.current
-    val autofillTree = LocalAutofillTree.current
+    val autofill = @Suppress("Deprecation") LocalAutofill.current
+    val autofillTree = @Suppress("Deprecation") LocalAutofillTree.current
     val autofillNode =
         remember(autofillTypes, onFill) {
-            AutofillNode(onFill = onFill, autofillTypes = autofillTypes)
+            @Suppress("Deprecation")
+            androidx.compose.ui.autofill.AutofillNode(
+                onFill = onFill,
+                autofillTypes = autofillTypes
+            )
         }
 
     Box(

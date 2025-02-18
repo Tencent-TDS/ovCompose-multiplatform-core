@@ -45,8 +45,6 @@ import android.util.Range;
 import android.util.Rational;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.EncoderProfilesProxy.VideoProfileProxy;
@@ -54,11 +52,16 @@ import androidx.camera.core.impl.Timebase;
 import androidx.camera.video.MediaSpec;
 import androidx.camera.video.VideoSpec;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
+import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
+import androidx.camera.video.internal.compat.quirk.MediaCodecDefaultDataSpaceQuirk;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderDataSpace;
 import androidx.camera.video.internal.utils.DynamicRangeUtil;
 import androidx.core.util.Preconditions;
 import androidx.core.util.Supplier;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -73,8 +76,6 @@ public final class VideoConfigUtil {
 
     private static final Map<String, Map<Integer, VideoEncoderDataSpace>> MIME_TO_DATA_SPACE_MAP =
             new HashMap<>();
-
-    private static final Timebase DEFAULT_TIME_BASE = Timebase.UPTIME;
 
     // Should not be instantiated.
     private VideoConfigUtil() {
@@ -134,8 +135,7 @@ public final class VideoConfigUtil {
      *                         there is no relevant encoder profiles.
      * @return the video MimeInfo.
      */
-    @NonNull
-    public static VideoMimeInfo resolveVideoMimeInfo(@NonNull MediaSpec mediaSpec,
+    public static @NonNull VideoMimeInfo resolveVideoMimeInfo(@NonNull MediaSpec mediaSpec,
             @NonNull DynamicRange dynamicRange,
             @Nullable VideoValidatedEncoderProfilesProxy encoderProfiles) {
         Preconditions.checkState(dynamicRange.isFullySpecified(), "Dynamic range must be a fully "
@@ -212,8 +212,7 @@ public final class VideoConfigUtil {
      * <p>If the dynamic range is not supported, an {@link UnsupportedOperationException} will be
      * thrown.
      */
-    @NonNull
-    private static String getDynamicRangeDefaultMime(@NonNull DynamicRange dynamicRange) {
+    private static @NonNull String getDynamicRangeDefaultMime(@NonNull DynamicRange dynamicRange) {
         switch (dynamicRange.getEncoding()) {
             case DynamicRange.ENCODING_DOLBY_VISION:
                 // Dolby vision only supports dolby vision encoders
@@ -243,11 +242,10 @@ public final class VideoConfigUtil {
      * @param expectedFrameRateRange the expected frame rate range.
      * @return a VideoEncoderConfig.
      */
-    @NonNull
-    public static VideoEncoderConfig resolveVideoEncoderConfig(@NonNull VideoMimeInfo videoMimeInfo,
-            @NonNull Timebase inputTimebase, @NonNull VideoSpec videoSpec,
-            @NonNull Size surfaceSize, @NonNull DynamicRange dynamicRange,
-            @NonNull Range<Integer> expectedFrameRateRange
+    public static @NonNull VideoEncoderConfig resolveVideoEncoderConfig(
+            @NonNull VideoMimeInfo videoMimeInfo, @NonNull Timebase inputTimebase,
+            @NonNull VideoSpec videoSpec, @NonNull Size surfaceSize,
+            @NonNull DynamicRange dynamicRange, @NonNull Range<Integer> expectedFrameRateRange
     ) {
         Supplier<VideoEncoderConfig> configSupplier;
         VideoProfileProxy videoProfile = videoMimeInfo.getCompatibleVideoProfile();
@@ -261,6 +259,32 @@ public final class VideoConfigUtil {
         }
 
         return configSupplier.get();
+    }
+
+    /**
+     * Workarounds data space of {@link VideoEncoderConfig} if required.
+     *
+     * @param config            the video encoder config.
+     * @param hasGlProcessing   whether OpenGL processing is involved.
+     * @return VideoEncoderConfig.
+     */
+    @NonNull
+    public static VideoEncoderConfig workaroundDataSpaceIfRequired(
+            @NonNull VideoEncoderConfig config, boolean hasGlProcessing) {
+        // Not to modify data space if it is already specified.
+        if (config.getDataSpace() != ENCODER_DATA_SPACE_UNSPECIFIED) {
+            return config;
+        }
+
+        // Apply workaround if required.
+        MediaCodecDefaultDataSpaceQuirk quirk = DeviceQuirks.get(
+                MediaCodecDefaultDataSpaceQuirk.class);
+        if (hasGlProcessing && quirk != null) {
+            VideoEncoderDataSpace dataSpace = quirk.getSuggestedDataSpace();
+            return config.toBuilder().setDataSpace(dataSpace).build();
+        }
+
+        return config;
     }
 
     /**
@@ -328,9 +352,8 @@ public final class VideoConfigUtil {
      * @return The data space for the given mime type and profile, or
      * {@link VideoEncoderDataSpace#ENCODER_DATA_SPACE_UNSPECIFIED} if the profile represents SDR or is unsupported.
      */
-    @NonNull
-    public static VideoEncoderDataSpace mimeAndProfileToEncoderDataSpace(@NonNull String mimeType,
-            int codecProfileLevel) {
+    public static @NonNull VideoEncoderDataSpace mimeAndProfileToEncoderDataSpace(
+            @NonNull String mimeType, int codecProfileLevel) {
         Map<Integer, VideoEncoderDataSpace> profileToDataSpaceMap =
                 MIME_TO_DATA_SPACE_MAP.get(mimeType);
         if (profileToDataSpaceMap != null) {
@@ -343,18 +366,5 @@ public final class VideoConfigUtil {
         Logger.w(TAG, String.format("Unsupported mime type %s or profile level %d. Data space is "
                 + "unspecified.", mimeType, codecProfileLevel));
         return ENCODER_DATA_SPACE_UNSPECIFIED;
-    }
-
-    /** Converts a {@link VideoProfileProxy} to a {@link VideoEncoderConfig}. */
-    @NonNull
-    public static VideoEncoderConfig toVideoEncoderConfig(@NonNull VideoProfileProxy videoProfile) {
-        return VideoEncoderConfig.builder()
-                .setMimeType(videoProfile.getMediaType())
-                .setProfile(videoProfile.getProfile())
-                .setResolution(new Size(videoProfile.getWidth(), videoProfile.getHeight()))
-                .setFrameRate(videoProfile.getFrameRate())
-                .setBitrate(videoProfile.getBitrate())
-                .setInputTimebase(DEFAULT_TIME_BASE)
-                .build();
     }
 }

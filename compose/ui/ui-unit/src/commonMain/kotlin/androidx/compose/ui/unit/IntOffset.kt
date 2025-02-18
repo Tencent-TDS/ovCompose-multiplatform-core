@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
 
 package androidx.compose.ui.unit
 
@@ -26,14 +26,28 @@ import androidx.compose.ui.util.lerp
 import androidx.compose.ui.util.packInts
 import androidx.compose.ui.util.unpackInt1
 import androidx.compose.ui.util.unpackInt2
+import kotlin.jvm.JvmInline
 
 /** Constructs a [IntOffset] from [x] and [y] position [Int] values. */
-@Stable fun IntOffset(x: Int, y: Int): IntOffset = IntOffset(packInts(x, y))
+@Stable inline fun IntOffset(x: Int, y: Int): IntOffset = IntOffset(packInts(x, y))
 
-/** A two-dimensional position using [Int] pixels for units */
+/**
+ * A two-dimensional position using [Int] pixels for units.
+ *
+ * To create an [IntOffset], call the top-level function that accepts an x/y pair of coordinates:
+ * ```
+ * val offset = IntOffset(x, y)
+ * ```
+ *
+ * The primary constructor of [IntOffset] is intended to be used with the [packedValue] property to
+ * allow storing offsets in arrays or collections of primitives without boxing.
+ *
+ * @param packedValue [Long] value encoding the [x] and [y] components of the [IntOffset]. Encoded
+ *   values can be obtained by using the [packedValue] property of existing [IntOffset] instances.
+ */
 @Immutable
 @JvmInline
-value class IntOffset internal constructor(@PublishedApi internal val packedValue: Long) {
+value class IntOffset(val packedValue: Long) {
     /** The horizontal aspect of the position in [Int] pixels. */
     @Stable
     val x: Int
@@ -123,6 +137,7 @@ value class IntOffset internal constructor(@PublishedApi internal val packedValu
 
     companion object {
         val Zero = IntOffset(0x0L)
+        val Max = IntOffset(0x7FFF_FFFF_7FFF_FFFF)
     }
 }
 

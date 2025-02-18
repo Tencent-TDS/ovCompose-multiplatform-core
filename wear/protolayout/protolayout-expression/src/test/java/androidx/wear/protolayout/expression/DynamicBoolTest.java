@@ -53,6 +53,14 @@ public final class DynamicBoolTest {
     }
 
     @Test
+    public void platformStateBool() {
+        DynamicBool stateBool = PlatformEventSources.platformVisibilityStatus();
+
+        assertThat(stateBool.toDynamicBoolProto().getStateSource().getSourceKey())
+                .isEqualTo(PlatformEventKeys.VISIBILITY_STATUS.getKey());
+    }
+
+    @Test
     public void stateEntryValueBool() {
         DynamicBool stateBool = DynamicBool.from(new AppDataKey<>(STATE_KEY));
 

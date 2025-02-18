@@ -22,6 +22,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
 
@@ -49,19 +50,22 @@ class ScrollFragment : BaseFragment() {
     }
 
     override fun handleLoadAdFromDrawer(
+        @AdFormat adFormat: Int,
         @AdType adType: Int,
         @MediationOption mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {
+        currentAdFormat = adFormat
         currentAdType = adType
         currentMediationOption = mediationOption
         shouldDrawViewabilityLayer = drawViewabilityLayer
-        loadBannerAd(adType, mediationOption, clippingBoundBannerView, drawViewabilityLayer)
-        loadBannerAd(adType, mediationOption, bottomBannerView, drawViewabilityLayer)
+        if (adFormat == AdFormat.BANNER_AD) {
+            loadBannerAd(adType, mediationOption, clippingBoundBannerView, drawViewabilityLayer)
+            loadBannerAd(adType, mediationOption, bottomBannerView, drawViewabilityLayer)
+        }
     }
 
     private fun loadBottomBannerAd() {
-        bottomBannerView.addStateChangedListener()
         bottomBannerView.layoutParams =
             inflatedView.findViewById<LinearLayout>(R.id.bottom_banner_container).layoutParams
         requireActivity().runOnUiThread {
@@ -69,12 +73,14 @@ class ScrollFragment : BaseFragment() {
                 .findViewById<LinearLayout>(R.id.bottom_banner_container)
                 .addView(bottomBannerView)
         }
-        loadBannerAd(
-            currentAdType,
-            currentMediationOption,
-            bottomBannerView,
-            shouldDrawViewabilityLayer
-        )
+        if (currentAdFormat == AdFormat.BANNER_AD) {
+            loadBannerAd(
+                currentAdType,
+                currentMediationOption,
+                bottomBannerView,
+                shouldDrawViewabilityLayer
+            )
+        }
     }
 
     private fun loadClippingBoundBannerAd() {

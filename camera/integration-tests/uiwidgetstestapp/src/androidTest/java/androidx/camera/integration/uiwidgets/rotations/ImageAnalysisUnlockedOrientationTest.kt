@@ -23,6 +23,7 @@ import androidx.camera.integration.uiwidgets.rotations.RotationUnlocked.Left
 import androidx.camera.integration.uiwidgets.rotations.RotationUnlocked.Natural
 import androidx.camera.integration.uiwidgets.rotations.RotationUnlocked.Right
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Before
@@ -66,6 +67,7 @@ class ImageAnalysisUnlockedOrientationTest(
     }
 
     @Test
+    @SdkSuppress(maxSdkVersion = 33) // b/360867144: Module crashes on API34
     fun verifyRotation() {
         verifyRotation<UnlockedOrientationActivity>(lensFacing, cameraXConfig) {
             if (rotation.shouldRotate) {
@@ -84,7 +86,7 @@ class ImageAnalysisUnlockedOrientationTest(
         InstrumentationRegistry.getInstrumentation().addMonitor(monitor)
 
         // Rotate
-        rotation.rotate(mDevice)
+        rotation.rotate(device)
 
         // Wait for the activity to be recreated after rotation
         InstrumentationRegistry.getInstrumentation().waitForMonitorWithTimeout(monitor, 2000L)

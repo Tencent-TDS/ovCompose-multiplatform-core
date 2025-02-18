@@ -22,7 +22,7 @@ import android.os.Parcelable
 import androidx.credentials.CreateCredentialRequest.Companion.BUNDLE_KEY_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
 import androidx.credentials.CreateCredentialRequest.Companion.createFrom
 import androidx.credentials.CreatePublicKeyCredentialRequest.Companion.BUNDLE_KEY_REQUEST_JSON
-import androidx.credentials.internal.FrameworkImplHelper.Companion.getFinalCreateCredentialData
+import androidx.credentials.internal.getFinalCreateCredentialData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
@@ -140,7 +140,7 @@ class CreatePublicKeyCredentialRequestTest {
         assertThat(testJsonActual).isEqualTo(testJsonExpected)
     }
 
-    @SdkSuppress(minSdkVersion = 28)
+    @SdkSuppress(minSdkVersion = 34)
     @Suppress("DEPRECATION") // bundle.get(key)
     @Test
     fun getter_frameworkProperties_success() {
@@ -246,6 +246,65 @@ class CreatePublicKeyCredentialRequestTest {
                 candidateQueryData,
                 request.isSystemProviderRequired,
                 request.origin
+            )
+
+        assertThat(convertedRequest).isInstanceOf(CreatePublicKeyCredentialRequest::class.java)
+        val convertedSubclassRequest = convertedRequest as CreatePublicKeyCredentialRequest
+        assertThat(convertedSubclassRequest.requestJson).isEqualTo(request.requestJson)
+        assertThat(convertedSubclassRequest.origin).isEqualTo(originExpected)
+        assertThat(convertedSubclassRequest.clientDataHash).isEqualTo(clientDataHashExpected)
+        assertThat(convertedSubclassRequest.preferImmediatelyAvailableCredentials)
+            .isEqualTo(preferImmediatelyAvailableCredentialsExpected)
+        assertThat(convertedSubclassRequest.isAutoSelectAllowed)
+            .isEqualTo(isAutoSelectAllowedExpected)
+        val displayInfo = convertedSubclassRequest.displayInfo
+        assertThat(displayInfo.userDisplayName).isEqualTo(TEST_USER_DISPLAYNAME)
+        assertThat(displayInfo.userId).isEqualTo(TEST_USERNAME)
+        assertThat(displayInfo.credentialTypeIcon!!.resId).isEqualTo(R.drawable.ic_passkey)
+        assertThat(convertedRequest.credentialData.getString(customRequestDataKey))
+            .isEqualTo(customRequestDataValue)
+        assertThat(convertedRequest.candidateQueryData.getBoolean(customCandidateQueryDataKey))
+            .isEqualTo(customCandidateQueryDataValue)
+    }
+
+    @SdkSuppress(minSdkVersion = 34)
+    @Test
+    fun frameworkConversion_frameworkClass_success() {
+        val clientDataHashExpected = "hash".toByteArray()
+        val originExpected = "origin"
+        val preferImmediatelyAvailableCredentialsExpected = true
+        val isAutoSelectAllowedExpected = true
+        val request =
+            CreatePublicKeyCredentialRequest(
+                TEST_REQUEST_JSON,
+                clientDataHashExpected,
+                preferImmediatelyAvailableCredentialsExpected,
+                originExpected,
+                isAutoSelectAllowedExpected
+            )
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        val credentialData = getFinalCreateCredentialData(request, mContext)
+        val customRequestDataKey = "customRequestDataKey"
+        val customRequestDataValue = "customRequestDataValue"
+        credentialData.putString(customRequestDataKey, customRequestDataValue)
+        val candidateQueryData = request.candidateQueryData
+        val customCandidateQueryDataKey = "customRequestDataKey"
+        val customCandidateQueryDataValue = true
+        candidateQueryData.putBoolean(customCandidateQueryDataKey, customCandidateQueryDataValue)
+
+        val convertedRequest =
+            createFrom(
+                android.credentials.CreateCredentialRequest.Builder(
+                        request.type,
+                        credentialData,
+                        candidateQueryData
+                    )
+                    .setOrigin(originExpected)
+                    .setIsSystemProviderRequired(request.isSystemProviderRequired)
+                    .build()
             )
 
         assertThat(convertedRequest).isInstanceOf(CreatePublicKeyCredentialRequest::class.java)

@@ -25,9 +25,12 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.SeekableTransitionState
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +55,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertPixels
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
@@ -72,15 +76,20 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ScaleFactor
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.approachLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -109,6 +118,7 @@ import org.junit.runner.RunWith
 @LargeTest
 class SharedTransitionTest {
     val rule = createComposeRule()
+
     // Detect leaks BEFORE and AFTER compose rule work
     @get:Rule
     val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(rule)
@@ -1645,7 +1655,8 @@ class SharedTransitionTest {
                                     clipInOverlayDuringTransition =
                                         object : SharedTransitionScope.OverlayClip {
                                             override fun getClipPath(
-                                                state: SharedTransitionScope.SharedContentState,
+                                                sharedContentState:
+                                                    SharedTransitionScope.SharedContentState,
                                                 bounds: Rect,
                                                 layoutDirection: LayoutDirection,
                                                 density: Density
@@ -2638,6 +2649,47 @@ class SharedTransitionTest {
     }
 
     @Test
+    fun testPlaceHolderLogicSkippedWhenNoMatch() {
+        var parentSize: IntSize? = null
+        val changeInProgress = true
+        var testSize by mutableStateOf(IntSize.Zero)
+        rule.setContent {
+            AnimatedVisibility(visible = true) {
+                SharedTransitionLayout {
+                    Box(
+                        Modifier.onSizeChanged { parentSize = it }
+                            .sharedBounds(
+                                rememberSharedContentState("test"),
+                                this@AnimatedVisibility
+                            )
+                    ) {
+                        Box(
+                            Modifier.approachLayout(
+                                    isMeasurementApproachInProgress = { changeInProgress }
+                                ) { measurable, constraints ->
+                                    measurable.measure(constraints).run {
+                                        layout(testSize.width, testSize.height) { place(0, 0) }
+                                    }
+                                }
+                                .requiredSize(40.dp, 40.dp)
+                        )
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+
+        testSize = IntSize(20, 25)
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+
+        testSize = IntSize(35, 10)
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+    }
+
+    @Test
     fun testUserModifierInSharedTransitionLayout() {
         var scope: SharedTransitionScope? = null
         rule.setContent {
@@ -2712,6 +2764,222 @@ class SharedTransitionTest {
             ScaleToBounds(alignment = customAlignment) ===
                 ScaleToBounds(alignment = customAlignment)
         )
+    }
+
+    @SdkSuppress(minSdkVersion = 26)
+    @Test
+    fun testSharedElementsDroppedFromOverlayAfterTransition() {
+        // Test that shared elements are dropped from overlay after transition **even if their
+        // match is still in the tree**.
+        val duration = 500
+        var showOverlay by mutableStateOf(false)
+        rule.setContent {
+            SharedTransitionLayout(Modifier.requiredSize(120.dp).testTag("root")) {
+                Box(
+                    modifier =
+                        Modifier.sharedElementWithCallerManagedVisibility(
+                                sharedContentState = rememberSharedContentState("box"),
+                                visible = !showOverlay,
+                                boundsTransform = BoundsTransform { _, _ -> tween(duration) }
+                            )
+                            .background(Color.LightGray)
+                            .fillMaxSize(),
+                )
+                Box(
+                    modifier =
+                        Modifier.sharedElementWithCallerManagedVisibility(
+                                sharedContentState = rememberSharedContentState("box"),
+                                visible = showOverlay,
+                                boundsTransform = BoundsTransform { _, _ -> tween(duration) }
+                            )
+                            .background(Color.LightGray)
+                            .size(110.dp)
+                )
+                Box(
+                    modifier =
+                        Modifier.renderInSharedTransitionScopeOverlay(zIndexInOverlay = 1f)
+                            .size(100.dp)
+                            .background(Color.Black)
+                )
+            }
+        }
+
+        rule.runOnIdle {
+            rule.mainClock.autoAdvance = false
+            showOverlay = !showOverlay
+        }
+        rule.waitForIdle()
+
+        repeat(6) {
+            rule.mainClock.advanceTimeBy(100)
+            rule.onNodeWithTag("root").captureToImage().assertContainsColor(Color.Black)
+        }
+
+        rule.mainClock.autoAdvance = true
+
+        rule.runOnIdle {
+            rule.mainClock.autoAdvance = false
+            showOverlay = !showOverlay
+        }
+        rule.waitForIdle()
+
+        repeat(6) {
+            rule.mainClock.advanceTimeBy(100)
+            rule.onNodeWithTag("root").captureToImage().assertContainsColor(Color.Black)
+        }
+    }
+
+    // Regression test for b/347520198, SharedTransitionLayout onDraw would not get invalidated
+    // in some cases.
+    @SdkSuppress(minSdkVersion = 26)
+    @Test
+    fun testSharedTransitionScopeIsInvalidated() {
+        var state by mutableIntStateOf(0)
+
+        val animDurationMillis = 500
+
+        val parentTag = "STL"
+        val clickTarget = "click-target"
+
+        rule.setContent {
+            SharedTransitionLayout(Modifier.size(100.dp).testTag(parentTag)) {
+                // This outer AnimatedContent doesn't do anything, and the issue only triggers
+                // when it's present
+                AnimatedContent(targetState = true) {
+                    @Suppress("UNUSED_EXPRESSION")
+                    it // Need to reference the unused outer AnimatedContent's target state
+
+                    AnimatedContent(
+                        targetState = state,
+                        transitionSpec = {
+                            // Add a delay to the animation just so that it takes a known time to
+                            // complete
+                            fadeIn(snap()).togetherWith(fadeOut(snap(animDurationMillis)))
+                        }
+                    ) { currentState ->
+                        val innerAnimatedContentScope = this
+                        Box(
+                            // This will cycle from Green -> Blue -> Red -> Blue -> Red...
+                            Modifier.testTag(clickTarget)
+                                .clickable(
+                                    // Don't let the clickable paint anything, it may interfere with
+                                    // the test.
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    state =
+                                        when (currentState) {
+                                            0 -> 2
+                                            1 -> 2
+                                            else -> 1
+                                        }
+                                }
+                                .fillMaxSize()
+                        ) {
+                            val color =
+                                when (currentState) {
+                                    0 -> Color.Green
+                                    1 -> Color.Red
+                                    else -> Color.Blue
+                                }
+                            Box(
+                                Modifier
+                                    // Using shared bounds so that we control when the item enters
+                                    // and leaves in every case. Particularly, we want the target to
+                                    // show immediately
+                                    .sharedBounds(
+                                        rememberSharedContentState(
+                                            key =
+                                                if (currentState == 0) "no match"
+                                                else "matching key"
+                                        ),
+                                        animatedVisibilityScope = innerAnimatedContentScope,
+                                        enter = fadeIn(snap()),
+                                        exit = fadeOut(snap())
+                                    )
+                                    .background(color)
+                                    .fillMaxSize()
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        // Start off with a Green box
+        rule.onNodeWithTag(parentTag).captureToImage().assertContainsColor(Color.Green)
+
+        fun clickAndAssertColorDuringTransition(color: Color) {
+            rule.mainClock.autoAdvance = false
+            rule.onNodeWithTag(clickTarget).performClick()
+
+            rule.mainClock.advanceTimeByFrame()
+            rule.mainClock.advanceTimeBy(animDurationMillis / 2L)
+
+            rule.onNodeWithTag(parentTag).captureToImage().assertContainsColor(color)
+
+            rule.mainClock.autoAdvance = true
+            rule.waitForIdle()
+        }
+
+        // Transition into a Blue box
+        clickAndAssertColorDuringTransition(Color.Blue)
+
+        // Transition into a Red box
+        clickAndAssertColorDuringTransition(Color.Red)
+    }
+
+    @Test
+    fun foundMatchedElementButNeverMeasured() {
+        var target by mutableStateOf(true)
+        rule.setContent {
+            SharedTransitionLayout {
+                AnimatedContent(target) {
+                    SubcomposeLayout {
+                        subcompose(0) {
+                            Box(
+                                Modifier.sharedBounds(
+                                        rememberSharedContentState("test"),
+                                        animatedVisibilityScope = this@AnimatedContent
+                                    )
+                                    .size(200.dp)
+                                    .background(Color.Red)
+                            )
+                        }
+                        // Skip measure and return size
+                        layout(200, 200) {}
+                    }
+                    Box(Modifier.size(200.dp).background(Color.Black))
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        target = !target
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun intrinsicsQueryComingFromAboveLookaheadRoot() {
+        var intrinsicWidth = 0
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                Layout(
+                    content = {
+                        SharedTransitionLayout { Box(Modifier.skipToLookaheadSize().size(100.dp)) }
+                    },
+                ) { measurables, constraints ->
+                    val measurable = measurables[0]
+                    intrinsicWidth = measurable.maxIntrinsicWidth(constraints.maxHeight)
+                    val placeable = measurable.measure(constraints)
+                    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, 0) }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(100, intrinsicWidth)
     }
 }
 

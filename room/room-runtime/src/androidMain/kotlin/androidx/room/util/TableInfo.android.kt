@@ -15,7 +15,6 @@
  */
 package androidx.room.util
 
-import android.os.Build
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.room.ColumnInfo.SQLiteTypeAffinity
@@ -32,7 +31,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *
  * Even though SQLite column names are case insensitive, this class uses case sensitive matching.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 actual class TableInfo
 actual constructor(
     /** The table name. */
@@ -103,7 +102,7 @@ actual constructor(
     }
 
     /** Holds the information about a database column. */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     actual class Column
     actual constructor(
         /** The column name. */
@@ -154,7 +153,7 @@ actual constructor(
     }
 
     /** Holds the information about an SQLite foreign key */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     actual class ForeignKey
     actual constructor(
         @JvmField actual val referenceTable: String,
@@ -171,7 +170,7 @@ actual constructor(
     }
 
     /** Holds the information about an SQLite index */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     actual class Index
     actual constructor(
         @JvmField actual val name: String,
@@ -206,14 +205,4 @@ actual constructor(
 
         actual override fun toString() = toStringCommon()
     }
-}
-
-/** Checks if the primary key match. */
-internal actual fun TableInfo.Column.equalsInPrimaryKey(other: TableInfo.Column): Boolean {
-    if (Build.VERSION.SDK_INT >= 20) {
-        if (primaryKeyPosition != other.primaryKeyPosition) return false
-    } else {
-        if (isPrimaryKey != other.isPrimaryKey) return false
-    }
-    return true
 }

@@ -21,13 +21,17 @@ package androidx.compose.runtime
 
 import androidx.compose.runtime.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.snapshots.AutoboxingStateValueProperty
+import androidx.compose.runtime.snapshots.GlobalSnapshot
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotId
 import androidx.compose.runtime.snapshots.SnapshotMutableState
 import androidx.compose.runtime.snapshots.StateFactoryMarker
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.StateRecord
+import androidx.compose.runtime.snapshots.currentSnapshot
 import androidx.compose.runtime.snapshots.overwritable
 import androidx.compose.runtime.snapshots.readable
+import androidx.compose.runtime.snapshots.toSnapshotId
 import androidx.compose.runtime.snapshots.withCurrent
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
@@ -117,12 +121,12 @@ internal open class SnapshotMutableLongStateImpl(value: Long) :
     StateObjectImpl(), MutableLongState, SnapshotMutableState<Long> {
 
     private var next =
-        LongStateStateRecord(value).also {
-            if (Snapshot.isInSnapshot) {
-                it.next =
-                    LongStateStateRecord(value).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+        currentSnapshot().let { snapshot ->
+            LongStateStateRecord(snapshot.snapshotId, value).also {
+                if (snapshot !is GlobalSnapshot) {
+                    it.next =
+                        LongStateStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), value)
+                }
             }
         }
 
@@ -168,11 +172,15 @@ internal open class SnapshotMutableLongStateImpl(value: Long) :
     override fun toString(): String =
         next.withCurrent { "MutableLongState(value=${it.value})@${hashCode()}" }
 
-    private class LongStateStateRecord(var value: Long) : StateRecord() {
+    private class LongStateStateRecord(snapshotId: SnapshotId, var value: Long) :
+        StateRecord(snapshotId) {
         override fun assign(value: StateRecord) {
             this.value = (value as LongStateStateRecord).value
         }
 
-        override fun create(): StateRecord = LongStateStateRecord(value)
+        override fun create(): StateRecord = create(currentSnapshot().snapshotId)
+
+        override fun create(snapshotId: SnapshotId): StateRecord =
+            LongStateStateRecord(snapshotId, value)
     }
 }

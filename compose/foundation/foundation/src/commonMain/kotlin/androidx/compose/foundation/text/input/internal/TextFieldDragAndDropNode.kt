@@ -16,13 +16,15 @@
 
 package androidx.compose.foundation.text.input.internal
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.content.MediaType
 import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropModifierNode
+import androidx.compose.ui.draganddrop.DragAndDropTargetModifierNode
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.ClipMetadata
 
+@ExperimentalFoundationApi
 internal expect fun textFieldDragAndDropNode(
     hintMediaTypes: () -> Set<MediaType>,
     onDrop: (clipEntry: ClipEntry, clipMetadata: ClipMetadata) -> Boolean,
@@ -33,4 +35,4 @@ internal expect fun textFieldDragAndDropNode(
     onChanged: ((event: DragAndDropEvent) -> Unit)? = null,
     onExited: ((event: DragAndDropEvent) -> Unit)? = null,
     onEnded: ((event: DragAndDropEvent) -> Unit)? = null,
-): DragAndDropModifierNode
+): DragAndDropTargetModifierNode

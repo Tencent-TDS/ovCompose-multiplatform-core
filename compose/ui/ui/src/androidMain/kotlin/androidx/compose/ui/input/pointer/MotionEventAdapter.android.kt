@@ -35,10 +35,10 @@ import android.view.MotionEvent.TOOL_TYPE_FINGER
 import android.view.MotionEvent.TOOL_TYPE_MOUSE
 import android.view.MotionEvent.TOOL_TYPE_STYLUS
 import android.view.MotionEvent.TOOL_TYPE_UNKNOWN
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.util.fastIsFinite
 
 /** Converts Android framework [MotionEvent]s into Compose [PointerInputEvent]s. */
 internal class MotionEventAdapter {
@@ -280,7 +280,7 @@ internal class MotionEventAdapter {
             repeat(historySize) { pos ->
                 val x = getHistoricalX(index, pos)
                 val y = getHistoricalY(index, pos)
-                if (x.isFinite() && y.isFinite()) {
+                if (x.fastIsFinite() && y.fastIsFinite()) {
                     val originalEventPosition = Offset(x, y) // hit path will convert to local
                     val historicalChange =
                         HistoricalChange(
@@ -342,7 +342,6 @@ internal class MotionEventAdapter {
  */
 @RequiresApi(Build.VERSION_CODES.Q)
 private object MotionEventHelper {
-    @DoNotInline
     fun toRawOffset(motionEvent: MotionEvent, index: Int): Offset {
         return Offset(motionEvent.getRawX(index), motionEvent.getRawY(index))
     }

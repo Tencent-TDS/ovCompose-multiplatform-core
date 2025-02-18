@@ -35,33 +35,32 @@ import dagger.Module
 import dagger.multibindings.IntoSet
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
-const val DEFAULT_ZOOM_RATIO = 1.0f
+public const val DEFAULT_ZOOM_RATIO: Float = 1.0f
 
 @CameraScope
-class ZoomControl
+public class ZoomControl
 @Inject
 constructor(
-    private val threads: UseCaseThreads,
     private val zoomCompat: ZoomCompat,
 ) : UseCaseCameraControl {
     // NOTE: minZoom may be lower than 1.0
     // NOTE: Default zoom ratio is 1.0 (DEFAULT_ZOOM_RATIO)
-    val minZoomRatio: Float = zoomCompat.minZoomRatio
-    val maxZoomRatio: Float = zoomCompat.maxZoomRatio
+    public val minZoomRatio: Float = zoomCompat.minZoomRatio
+    public val maxZoomRatio: Float = zoomCompat.maxZoomRatio
 
-    val defaultZoomState by lazy { ZoomValue(DEFAULT_ZOOM_RATIO, minZoomRatio, maxZoomRatio) }
+    public val defaultZoomState: ZoomValue by lazy {
+        ZoomValue(DEFAULT_ZOOM_RATIO, minZoomRatio, maxZoomRatio)
+    }
 
     private val _zoomState by lazy { MutableLiveData<ZoomState>(defaultZoomState) }
 
-    val zoomStateLiveData: LiveData<ZoomState>
+    public val zoomStateLiveData: LiveData<ZoomState>
         get() = _zoomState
 
     /** Linear zoom is between 0.0f and 1.0f */
-    fun toLinearZoom(zoomRatio: Float) =
+    public fun toLinearZoom(zoomRatio: Float): Float =
         getLinearZoomFromZoomRatio(
             zoomRatio = zoomRatio,
             minZoomRatio = minZoomRatio,
@@ -76,11 +75,11 @@ constructor(
             maxZoomRatio = maxZoomRatio
         )
 
-    private var _useCaseCamera: UseCaseCamera? = null
-    override var useCaseCamera: UseCaseCamera?
-        get() = _useCaseCamera
+    private var _requestControl: UseCaseCameraRequestControl? = null
+    override var requestControl: UseCaseCameraRequestControl?
+        get() = _requestControl
         set(value) {
-            _useCaseCamera = value
+            _requestControl = value
             applyZoomState(_zoomState.value ?: defaultZoomState, false)
         }
 
@@ -99,7 +98,7 @@ constructor(
         }
     }
 
-    fun setLinearZoom(linearZoom: Float): ListenableFuture<Void> {
+    public fun setLinearZoom(linearZoom: Float): ListenableFuture<Void> {
         if (linearZoom > 1.0f || linearZoom < 0f) {
             val outOfRangeDesc = "Requested linearZoom $linearZoom is not within valid range [0, 1]"
             return Futures.immediateFailedFuture(IllegalArgumentException(outOfRangeDesc))
@@ -114,7 +113,7 @@ constructor(
         return applyZoomState(zoomValue)
     }
 
-    fun setZoomRatio(zoomRatio: Float): ListenableFuture<Void> {
+    public fun setZoomRatio(zoomRatio: Float): ListenableFuture<Void> {
         if (zoomRatio > maxZoomRatio || zoomRatio < minZoomRatio) {
             val outOfRangeDesc =
                 "Requested zoomRatio $zoomRatio is not within valid range" +
@@ -131,7 +130,7 @@ constructor(
         return applyZoomState(zoomValue)
     }
 
-    fun applyZoomState(
+    public fun applyZoomState(
         zoomState: ZoomState,
         cancelPreviousTask: Boolean = true,
     ): ListenableFuture<Void> {
@@ -152,16 +151,12 @@ constructor(
         }
         updateSignal = signal
 
-        threads.sequentialScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            setZoomState(zoomState)
+        setZoomState(zoomState)
 
-            useCaseCamera?.let {
-                zoomCompat.applyAsync(zoomState.zoomRatio, it).propagateTo(signal)
-            }
-                ?: signal.completeExceptionally(
-                    CameraControl.OperationCanceledException("Camera is not active.")
-                )
-        }
+        requestControl?.let { zoomCompat.applyAsync(zoomState.zoomRatio, it).propagateTo(signal) }
+            ?: signal.completeExceptionally(
+                CameraControl.OperationCanceledException("Camera is not active.")
+            )
 
         /**
          * TODO: Use signal.asListenableFuture() directly. Deferred<T>.asListenableFuture() returns
@@ -173,7 +168,9 @@ constructor(
     }
 
     @Module
-    abstract class Bindings {
-        @Binds @IntoSet abstract fun provideControls(zoomControl: ZoomControl): UseCaseCameraControl
+    public abstract class Bindings {
+        @Binds
+        @IntoSet
+        public abstract fun provideControls(zoomControl: ZoomControl): UseCaseCameraControl
     }
 }

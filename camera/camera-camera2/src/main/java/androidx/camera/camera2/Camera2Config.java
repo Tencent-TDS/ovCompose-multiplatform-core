@@ -16,7 +16,6 @@
 
 package androidx.camera.camera2;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.camera.camera2.internal.Camera2CameraFactory;
 import androidx.camera.camera2.internal.Camera2DeviceSurfaceManager;
@@ -27,6 +26,8 @@ import androidx.camera.core.InitializationException;
 import androidx.camera.core.impl.CameraDeviceSurfaceManager;
 import androidx.camera.core.impl.CameraFactory;
 import androidx.camera.core.impl.UseCaseConfigFactory;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Convenience class for generating a pre-populated Camera2 {@link CameraXConfig}.
@@ -39,8 +40,7 @@ public final class Camera2Config {
     /**
      * Creates a {@link CameraXConfig} containing the default Camera2 implementation for CameraX.
      */
-    @NonNull
-    public static CameraXConfig defaultConfig() {
+    public static @NonNull CameraXConfig defaultConfig() {
 
         // Create the camera factory for creating Camera2 camera objects
         CameraFactory.Provider cameraFactoryProvider = Camera2CameraFactory::new;
@@ -72,9 +72,8 @@ public final class Camera2Config {
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public static final class DefaultProvider implements CameraXConfig.Provider {
 
-        @NonNull
         @Override
-        public CameraXConfig getCameraXConfig() {
+        public @NonNull CameraXConfig getCameraXConfig() {
             return defaultConfig();
         }
     }

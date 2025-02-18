@@ -17,6 +17,7 @@
 package androidx.graphics.shapes
 
 import androidx.test.filters.SmallTest
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 @SmallTest
@@ -60,7 +61,7 @@ class FloatMappingTest {
         }
 
     @Test
-    fun multiplePointTes() =
+    fun multiplePointTest() =
         validateMapping(mapper = DoubleMapper(0.4f to 0.2f, 0.5f to 0.22f, 0f to 0.8f)) { x ->
             if (x < 0.4f) {
                 (0.8f + x) % 1f
@@ -71,6 +72,20 @@ class FloatMappingTest {
                 0.22f + (x - 0.5f) * 1.16f
             }
         }
+
+    @Test
+    fun targetDoubleWrapThrows() {
+        assertThrows(IllegalArgumentException::class.java) {
+            DoubleMapper(0.0f to 0.0f, 0.3f to 0.6f, 0.6f to 0.3f, 0.9f to 0.9f)
+        }
+    }
+
+    @Test
+    fun sourceDoubleWrapThrows() {
+        assertThrows(IllegalArgumentException::class.java) {
+            DoubleMapper(0.0f to 0.0f, 0.6f to 0.3f, 0.3f to 0.6f, 0.9f to 0.9f)
+        }
+    }
 
     private fun validateMapping(mapper: DoubleMapper, expectedFunction: (Float) -> Float) {
         (0..9999).forEach { i ->

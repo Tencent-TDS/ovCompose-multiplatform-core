@@ -24,8 +24,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
+import android.os.Bundle
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
@@ -35,7 +35,12 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
+import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SessionConstants
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
@@ -44,7 +49,7 @@ import java.util.concurrent.Executor
 class TestAdapters(private val sdkContext: Context) {
     inner class TestBannerAd(private val text: String, private val withSlowDraw: Boolean) :
         BannerAd() {
-        override fun buildAdView(sessionContext: Context): View {
+        override fun buildAdView(sessionContext: Context, width: Int, height: Int): View? {
             return TestView(sessionContext, withSlowDraw, text)
         }
     }
@@ -53,11 +58,11 @@ class TestAdapters(private val sdkContext: Context) {
         lateinit var sessionClientExecutor: Executor
         lateinit var sessionClient: SandboxedUiAdapter.SessionClient
 
-        abstract fun buildAdView(sessionContext: Context): View?
+        abstract fun buildAdView(sessionContext: Context, width: Int, height: Int): View?
 
         override fun openSession(
             context: Context,
-            windowInputToken: IBinder,
+            sessionConstants: SessionConstants,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -70,7 +75,8 @@ class TestAdapters(private val sdkContext: Context) {
                 .post(
                     Runnable lambda@{
                         Log.d(TAG, "Session requested")
-                        val adView: View = buildAdView(context) ?: return@lambda
+                        val adView: View =
+                            buildAdView(context, initialWidth, initialHeight) ?: return@lambda
                         adView.layoutParams = ViewGroup.LayoutParams(initialWidth, initialHeight)
                         clientExecutor.execute { client.onSessionOpened(BannerAdSession(adView)) }
                     }
@@ -110,7 +116,7 @@ class TestAdapters(private val sdkContext: Context) {
             ) != 0
         }
 
-        override fun buildAdView(sessionContext: Context): View? {
+        override fun buildAdView(sessionContext: Context, width: Int, height: Int): View? {
             if (isAirplaneModeOn()) {
                 sessionClientExecutor.execute {
                     sessionClient.onSessionError(Throwable("Cannot load WebView in airplane mode."))
@@ -124,8 +130,18 @@ class TestAdapters(private val sdkContext: Context) {
         }
     }
 
+    inner class VideoBannerAd(private val playerViewProvider: PlayerViewProvider) : BannerAd() {
+
+        override fun buildAdView(sessionContext: Context, width: Int, height: Int): View? {
+            return playerViewProvider.createPlayerView(
+                sessionContext,
+                "https://html5demos.com/assets/dizzy.mp4"
+            )
+        }
+    }
+
     inner class WebViewAdFromLocalAssets : BannerAd() {
-        override fun buildAdView(sessionContext: Context): View {
+        override fun buildAdView(sessionContext: Context, width: Int, height: Int): View? {
             val webView = WebView(sessionContext)
             val assetLoader =
                 WebViewAssetLoader.Builder()
@@ -139,13 +155,53 @@ class TestAdapters(private val sdkContext: Context) {
         }
     }
 
+    inner class OverlaidAd(private val mediateeBundle: Bundle) : BannerAd() {
+        override fun buildAdView(sessionContext: Context, width: Int, height: Int): View {
+            val adapter = SandboxedUiAdapterFactory.createFromCoreLibInfo(mediateeBundle)
+            val linearLayout = LinearLayout(sessionContext)
+            linearLayout.orientation = LinearLayout.VERTICAL
+            linearLayout.layoutParams = LinearLayout.LayoutParams(width, height)
+            // The SandboxedSdkView will take up 90% of the parent height, with the overlay taking
+            // the other 10%
+            val ssvParams =
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 0.9f)
+            val overlayParams =
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 0.1f)
+            val sandboxedSdkView = SandboxedSdkView(sessionContext)
+            sandboxedSdkView.setAdapter(adapter)
+            sandboxedSdkView.layoutParams = ssvParams
+            linearLayout.addView(sandboxedSdkView)
+            val textView =
+                TextView(sessionContext).also {
+                    it.setBackgroundColor(Color.GRAY)
+                    it.text = "Mediator Overlay"
+                    it.textSize = 20f
+                    it.setTextColor(Color.BLACK)
+                    it.layoutParams = overlayParams
+                }
+            linearLayout.addView(textView)
+            return linearLayout
+        }
+    }
+
     private inner class TestView(
         context: Context,
         private val withSlowDraw: Boolean,
         private val text: String
     ) : View(context) {
 
+        init {
+            setOnClickListener {
+                Log.i(TAG, "Click on ad detected")
+                val visitUrl = Intent(Intent.ACTION_VIEW)
+                visitUrl.data = Uri.parse(GOOGLE_URL)
+                visitUrl.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(visitUrl)
+            }
+        }
+
         private val viewColor = Color.rgb((0..255).random(), (0..255).random(), (0..255).random())
+        private val paint = Paint()
 
         @SuppressLint("BanThreadSleep")
         override fun onDraw(canvas: Canvas) {
@@ -155,20 +211,9 @@ class TestAdapters(private val sdkContext: Context) {
                 Thread.sleep(500)
             }
             super.onDraw(canvas)
-
-            val paint = Paint()
             paint.textSize = 50F
-
             canvas.drawColor(viewColor)
             canvas.drawText(text, 75F, 75F, paint)
-
-            setOnClickListener {
-                Log.i(TAG, "Click on ad detected")
-                val visitUrl = Intent(Intent.ACTION_VIEW)
-                visitUrl.data = Uri.parse(GOOGLE_URL)
-                visitUrl.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(visitUrl)
-            }
         }
     }
 
@@ -191,7 +236,6 @@ class TestAdapters(private val sdkContext: Context) {
         settings.javaScriptEnabled = true
         settings.setGeolocationEnabled(true)
         settings.setSupportZoom(true)
-        settings.databaseEnabled = true
         settings.domStorageEnabled = true
         settings.allowFileAccess = true
         settings.allowContentAccess = true

@@ -44,6 +44,17 @@ fun FilledTextButtonSample() {
 
 @Composable
 @Sampled
+fun FilledVariantTextButtonSample() {
+    TextButton(
+        onClick = { /* Do something */ },
+        colors = TextButtonDefaults.filledVariantTextButtonColors()
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
 fun LargeFilledTonalTextButtonSample() {
     TextButton(
         onClick = { /* Do something */ },
@@ -84,6 +95,17 @@ fun TextButtonWithOnLongClickSample(onLongClick: () -> Unit) {
         onClick = { /* Do something for onClick*/ },
         onLongClick = onLongClick,
         onLongClickLabel = "Long click"
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
+fun TextButtonWithCornerAnimationSample() {
+    TextButton(
+        onClick = { /* Do something */ },
+        shapes = TextButtonDefaults.animatedShapes(),
     ) {
         Text(text = "ABC")
     }

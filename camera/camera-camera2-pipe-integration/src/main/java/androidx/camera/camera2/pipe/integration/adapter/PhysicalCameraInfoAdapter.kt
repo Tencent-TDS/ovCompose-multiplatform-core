@@ -18,6 +18,7 @@ package androidx.camera.camera2.pipe.integration.adapter
 
 import android.annotation.SuppressLint
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraMetadata
 import android.util.Range
 import android.view.Surface
 import androidx.camera.camera2.pipe.UnsafeWrapper
@@ -43,7 +44,7 @@ import kotlin.reflect.KClass
 @SuppressLint(
     "UnsafeOptInUsageError" // Suppressed due to experimental API
 )
-class PhysicalCameraInfoAdapter(private val cameraProperties: CameraProperties) :
+public class PhysicalCameraInfoAdapter(private val cameraProperties: CameraProperties) :
     CameraInfo, UnsafeWrapper {
 
     @OptIn(ExperimentalCamera2Interop::class)
@@ -139,12 +140,13 @@ class PhysicalCameraInfoAdapter(private val cameraProperties: CameraProperties) 
 
     @OptIn(ExperimentalCamera2Interop::class)
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any> unwrapAs(type: KClass<T>): T? {
-        return when (type) {
+    override fun <T : Any> unwrapAs(type: KClass<T>): T? =
+        when (type) {
             Camera2CameraInfo::class -> camera2CameraInfo as T
+            CameraProperties::class -> cameraProperties as T
+            CameraMetadata::class -> cameraProperties.metadata as T
             else -> cameraProperties.metadata.unwrapAs(type)
         }
-    }
 
     private fun getCameraSelectorLensFacing(lensFacingInt: Int): @CameraSelector.LensFacing Int {
         return when (lensFacingInt) {

@@ -25,7 +25,7 @@ import com.android.tools.lint.detector.api.Issue
 
 class AndroidXIssueRegistry : IssueRegistry() {
     override val minApi = CURRENT_API
-    override val api = 14
+    override val api = 16
     override val issues
         get(): List<Issue> {
             return Issues
@@ -69,11 +69,8 @@ class AndroidXIssueRegistry : IssueRegistry() {
                     BanSynchronizedMethods.ISSUE,
                     MetadataTagInsideApplicationTagDetector.ISSUE,
                     PrivateConstructorForUtilityClassDetector.ISSUE,
-                    ClassVerificationFailureDetector.METHOD_CALL_ISSUE,
-                    ClassVerificationFailureDetector.IMPLICIT_CAST_ISSUE,
                     IdeaSuppressionDetector.ISSUE,
                     CameraXQuirksClassDetector.ISSUE,
-                    NullabilityAnnotationsDetector.ISSUE,
                     IgnoreClassLevelDetector.ISSUE,
                     ExperimentalPropertyAnnotationDetector.ISSUE,
                     BanRestrictToTestsScope.ISSUE,
@@ -85,8 +82,11 @@ class AndroidXIssueRegistry : IssueRegistry() {
                     RestrictToDetector.RESTRICTED,
                     ObsoleteCompatDetector.ISSUE,
                     ReplaceWithDetector.ISSUE,
-                    // This issue is only enabled when `-Pandroidx.migrateArrayAnnotations=true`.
-                    ArrayNullnessMigration.ISSUE,
+                    // This issue is only enabled when `-Pandroidx.useJSpecifyAnnotations=true`.
+                    JSpecifyNullnessMigration.ISSUE,
+                    TypeMirrorToString.ISSUE,
+                    BanNullMarked.ISSUE,
+                    AutoValueNullnessOverride.ISSUE,
                 )
             }
     }

@@ -171,11 +171,11 @@ internal class GraphicsLayerV29(
         val newClipToOutline = clip && outlineIsProvided
         if (newClipToBounds != clipToBounds) {
             clipToBounds = newClipToBounds
-            renderNode.setClipToBounds(clipToBounds)
+            renderNode.clipToBounds = clipToBounds
         }
         if (newClipToOutline != clipToOutline) {
             clipToOutline = newClipToOutline
-            renderNode.setClipToOutline(newClipToOutline)
+            renderNode.clipToOutline = newClipToOutline
         }
     }
 
@@ -223,7 +223,8 @@ internal class GraphicsLayerV29(
         this.size = size.toSize()
     }
 
-    override fun setOutline(outline: Outline?) {
+    override fun setOutline(outline: Outline?, outlineSize: IntSize) {
+        // outlineSize is not required for this GraphicsLayer implementation
         renderNode.setOutline(outline)
         outlineIsProvided = outline != null
         applyClip()
@@ -290,7 +291,6 @@ internal class GraphicsLayerV29(
 @RequiresApi(Build.VERSION_CODES.S)
 internal object RenderNodeVerificationHelper {
 
-    @androidx.annotation.DoNotInline
     fun setRenderEffect(renderNode: RenderNode, target: RenderEffect?) {
         renderNode.setRenderEffect(target?.asAndroidRenderEffect())
     }

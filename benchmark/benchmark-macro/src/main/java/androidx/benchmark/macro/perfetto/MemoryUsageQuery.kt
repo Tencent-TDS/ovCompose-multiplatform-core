@@ -18,13 +18,11 @@ package androidx.benchmark.macro.perfetto
 
 import androidx.benchmark.macro.MemoryUsageMetric
 import androidx.benchmark.macro.MemoryUsageMetric.Mode
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
-import androidx.benchmark.perfetto.processNameLikePkg
-import org.intellij.lang.annotations.Language
+import androidx.benchmark.traceprocessor.TraceProcessor
+import androidx.benchmark.traceprocessor.processNameLikePkg
 
 internal object MemoryUsageQuery {
     // https://perfetto.dev/docs/data-sources/memory-counters
-    @Language("sql")
     internal fun getQuery(targetPackageName: String, mode: Mode) =
         when (mode) {
             Mode.Last -> "SELECT track.name as counter_name, MAX(ts), value "
@@ -46,7 +44,7 @@ internal object MemoryUsageQuery {
                 .trimIndent()
 
     fun getMemoryUsageKb(
-        session: PerfettoTraceProcessor.Session,
+        session: TraceProcessor.Session,
         targetPackageName: String,
         mode: Mode
     ): Map<MemoryUsageMetric.SubMetric, Int>? {

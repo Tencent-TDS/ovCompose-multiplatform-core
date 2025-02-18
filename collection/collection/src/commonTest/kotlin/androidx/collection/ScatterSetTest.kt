@@ -15,6 +15,7 @@
  */
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -376,6 +377,35 @@ class ScatterSetTest {
     }
 
     @Test
+    fun removeDoesNotCauseGrowthOnInsert() {
+        val set = MutableScatterSet<String>(10) // Must be > GroupWidth (8)
+        assertEquals(15, set.capacity)
+
+        set += "Hello"
+        set += "Bonjour"
+        set += "Hallo"
+        set += "Konnichiwa"
+        set += "Ciao"
+        set += "Annyeong"
+
+        // Reach the upper limit of what we can store without increasing the map size
+        for (i in 0..7) {
+            set += i.toString()
+        }
+
+        // Delete a few items
+        for (i in 0..5) {
+            set.remove(i.toString())
+        }
+
+        // Inserting a new item shouldn't cause growth, but the deleted markers to be purged
+        set += "Foo"
+        assertEquals(15, set.capacity)
+
+        assertTrue(set.contains("Foo"))
+    }
+
+    @Test
     fun minusAssignArray() {
         val set = mutableScatterSetOf("Hello", "World")
         set -= arrayOf("Hola", "Bonjour")
@@ -521,16 +551,17 @@ class ScatterSetTest {
     @Test
     fun hashCodeAddValues() {
         val set = mutableScatterSetOf<String?>()
-        assertEquals(0, set.hashCode())
+        assertEquals(217, set.hashCode())
         set += null
-        assertEquals(0, set.hashCode())
+        assertEquals(218, set.hashCode())
         set += "Hello"
-        assertEquals("Hello".hashCode(), set.hashCode())
+        val h1 = set.hashCode()
         set += "World"
-        assertEquals("World".hashCode() + "Hello".hashCode(), set.hashCode())
+        assertNotEquals(h1, set.hashCode())
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val set = MutableScatterSet<String?>()
         set += "Hello"
@@ -691,6 +722,77 @@ class ScatterSetTest {
     }
 
     @Test
+    @JsName("jsAsSetEquals")
+    fun asSetEquals() {
+        val set = MutableScatterSet<String?>()
+        set += "Hello"
+        set += null
+        set += "Bonjour"
+
+        assertFalse(set.asSet().equals(null))
+        assertFalse(set.asMutableSet().equals(null))
+        assertEquals(set.asSet(), set.asSet())
+        assertEquals(set.asMutableSet(), set.asMutableSet())
+
+        val set2 = MutableScatterSet<String?>()
+        set2 += "Bonjour"
+        set2 += null
+
+        assertNotEquals(set.asSet(), set2.asSet())
+        assertNotEquals(set.asMutableSet(), set2.asMutableSet())
+
+        set2 += "Hello"
+        assertEquals(set.asSet(), set2.asSet())
+        assertEquals(set.asMutableSet(), set2.asMutableSet())
+    }
+
+    @Test
+    fun asSetString() {
+        val set = MutableScatterSet<String?>()
+        assertEquals("[]", set.asSet().toString())
+        assertEquals("[]", set.asMutableSet().toString())
+
+        set += "Hello"
+        set += "Bonjour"
+        assertTrue(
+            "[Hello, Bonjour]" == set.asSet().toString() ||
+                "[Bonjour, Hello]" == set.asSet().toString()
+        )
+        assertTrue(
+            "[Hello, Bonjour]" == set.asMutableSet().toString() ||
+                "[Bonjour, Hello]" == set.asMutableSet().toString()
+        )
+
+        set.clear()
+        set += null
+        assertEquals("[null]", set.asSet().toString())
+        assertEquals("[null]", set.asMutableSet().toString())
+
+        set.clear()
+
+        val selfAsElement = MutableScatterSet<Any>()
+        selfAsElement.add(selfAsElement)
+        assertEquals("[(this)]", selfAsElement.asSet().toString())
+        assertEquals("[(this)]", selfAsElement.asMutableSet().toString())
+    }
+
+    @Test
+    fun asSetHashCodeAddValues() {
+        val set = mutableScatterSetOf<String?>()
+        assertEquals(217, set.asSet().hashCode())
+        assertEquals(217, set.asMutableSet().hashCode())
+        set += null
+        assertEquals(218, set.asSet().hashCode())
+        assertEquals(218, set.asMutableSet().hashCode())
+
+        set += "Hello"
+        val h1 = set.hashCode()
+        set += "World"
+        assertNotEquals(h1, set.asSet().hashCode())
+        assertNotEquals(h1, set.asMutableSet().hashCode())
+    }
+
+    @Test
     fun trim() {
         val set = mutableScatterSetOf("Hello", "World", "Hola", "Mundo", "Bonjour", "Monde")
         val capacity = set.capacity
@@ -725,7 +827,7 @@ class ScatterSetTest {
 
     @Test
     fun scatterSetOfEmpty() {
-        assertSame(emptyScatterSet<String>(), scatterSetOf<String>())
+        assertSame(emptyScatterSet(), scatterSetOf<String>())
         assertEquals(0, scatterSetOf<String>().size)
     }
 
@@ -820,5 +922,88 @@ class ScatterSetTest {
         assertTrue(set.contains("Konnichiwa"))
         assertTrue(set.contains("Ciao"))
         assertTrue(set.contains("Annyeong"))
+    }
+
+    @Test
+    fun insertOneRemoveOne() {
+        val set = MutableScatterSet<Int>()
+
+        for (i in 0..1000000) {
+            set.add(i)
+            set.remove(i)
+            assertTrue(set.capacity < 16, "Set grew larger than 16 after step $i")
+        }
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableScatterMap<Int, String>()
+
+        for (i in 0..100) {
+            map[i] = i.toString()
+        }
+
+        for (i in 0..100) {
+            if (i % 2 == 0) {
+                map.remove(i)
+            }
+        }
+
+        for (i in 0..100) {
+            if (i % 2 == 0) {
+                map[i] = i.toString()
+            }
+        }
+
+        for (i in 0..100) {
+            if (i % 2 != 0) {
+                map.remove(i)
+            }
+        }
+
+        for (i in 0..100) {
+            if (i % 2 != 0) {
+                map[i] = i.toString()
+            }
+        }
+
+        assertEquals(127, map.capacity)
+        for (i in 0..100) {
+            assertTrue(map.contains(i), "Map should contain element $i")
+        }
+    }
+
+    @Test
+    fun removeWhenIterating() {
+        val set = MutableScatterSet<String>()
+        set.add("Hello")
+        set.add("Bonjour")
+        set.add("Hallo")
+        set.add("Konnichiwa")
+        set.add("Ciao")
+        set.add("Annyeong")
+
+        val iterator = set.asMutableSet().iterator()
+        while (iterator.hasNext()) {
+            iterator.next()
+            iterator.remove()
+        }
+
+        assertEquals(0, set.size)
+    }
+
+    @Test
+    fun removeWhenForEach() {
+        val set = MutableScatterSet<String>()
+        set.add("Hello")
+        set.add("Bonjour")
+        set.add("Hallo")
+        set.add("Konnichiwa")
+        set.add("Ciao")
+        set.add("Annyeong")
+
+        set.forEach { element -> set.remove(element) }
+
+        assertEquals(0, set.size)
     }
 }

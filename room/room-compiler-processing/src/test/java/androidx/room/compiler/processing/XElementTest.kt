@@ -671,7 +671,7 @@ class XElementTest {
             )
         runProcessorTest(sources = listOf(subject)) {
             val inner = JClassName.get("foo.bar", "Baz.Inner")
-            assertThat(it.processingEnv.requireTypeElement(inner).isInterface()).isTrue()
+            assertThat(it.processingEnv.requireTypeElement(inner.toString()).isInterface()).isTrue()
             val element = it.processingEnv.requireTypeElement("foo.bar.Baz")
             assertThat(element.isInterface()).isFalse()
             assertThat(element.isAbstract()).isFalse()
@@ -866,7 +866,7 @@ class XElementTest {
             """
                         .trimIndent()
                 )
-            )
+            ),
         ) { invocation, precompiled ->
             val enclosingElement =
                 invocation.processingEnv.requireTypeElement("foo.bar.KotlinClass")
@@ -935,16 +935,22 @@ class XElementTest {
             companionObj.getDeclaredMethods().let { methods ->
                 methods.forEach { assertThat(it.enclosingElement).isEqualTo(companionObj) }
                 if (invocation.isKsp || precompiled) {
-                    assertThat(methods.map { it.name })
-                        .containsExactly(
-                            "getCompanionObjectProperty",
-                            "getCompanionObjectPropertyJvmStatic",
-                            "getCompanionObjectPropertyLateinit",
-                            "setCompanionObjectPropertyLateinit",
-                            "companionObjectFunction",
-                            "companionObjectFunctionJvmStatic"
-                        )
-                        .inOrder()
+                    val subject =
+                        assertThat(methods.map { it.name })
+                            .containsExactly(
+                                "getCompanionObjectProperty",
+                                "getCompanionObjectPropertyJvmStatic",
+                                "getCompanionObjectPropertyLateinit",
+                                "setCompanionObjectPropertyLateinit",
+                                "companionObjectFunction",
+                                "companionObjectFunctionJvmStatic"
+                            )
+                    // No ordering check for precompiled because the members in companion objects
+                    // can either be in the enclosing class or in the companion so there's no way
+                    // to reconstruct the ordering from class files for now.
+                    if (!precompiled) {
+                        subject.inOrder()
+                    }
                 } else {
                     // TODO(b/290800523): Remove the synthetic annotations method from the list
                     //  of declared methods so that KAPT matches KSP.
@@ -1367,9 +1373,12 @@ class XElementTest {
 
     private fun runProcessorTestHelper(
         sources: List<Source>,
+        kotlincArgs: List<String> = emptyList(),
         handler: (XTestInvocation, Boolean) -> Unit
     ) {
-        runProcessorTest(sources = sources) { handler(it, false) }
-        runProcessorTest(classpath = compileFiles(sources)) { handler(it, true) }
+        runProcessorTest(sources = sources, kotlincArguments = kotlincArgs) { handler(it, false) }
+        runProcessorTest(classpath = compileFiles(sources), kotlincArguments = kotlincArgs) {
+            handler(it, true)
+        }
     }
 }

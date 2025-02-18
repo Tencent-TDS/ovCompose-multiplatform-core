@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
 import androidx.wear.compose.foundation.CurvedDirection
 import androidx.wear.compose.foundation.CurvedLayout
 import androidx.wear.compose.foundation.CurvedModifier
@@ -98,7 +99,7 @@ public fun CurvedScope.curvedText(
     style: CurvedTextStyle? = null,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) =
+): Unit =
     basicCurvedText(text, modifier, angularDirection, overflow) {
         val baseStyle = style ?: CurvedTextStyle(LocalTextStyle.current)
         val textColor =
@@ -115,7 +116,10 @@ public fun CurvedScope.curvedText(
                 fontWeight = fontWeight,
                 fontStyle = fontStyle,
                 fontSynthesis = fontSynthesis,
-                background = background
+                background = background,
+                // keep backward compatibility, add no letter spacing .
+                letterSpacing = 0.em,
+                letterSpacingCounterClockwise = 0.em
             )
         )
     }
@@ -175,7 +179,7 @@ public fun CurvedScope.curvedText(
     style: CurvedTextStyle? = null,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) =
+): Unit =
     basicCurvedText(text, modifier, angularDirection, overflow) {
         val baseStyle = style ?: CurvedTextStyle(LocalTextStyle.current)
         val textColor =

@@ -27,28 +27,18 @@ import androidx.privacysandbox.ui.core.SessionObserverFactory
  *
  * UI providers should use this class rather than implementing [SandboxedUiAdapter] directly.
  */
-abstract class AbstractSandboxedUiAdapter : SandboxedUiAdapter {
+abstract class AbstractSandboxedUiAdapter : SandboxedUiAdapter, SessionObserverFactoryRegistry {
+    private val registryProvider = SessionObserverFactoryRegistryProvider()
 
-    /** The list of [SessionObserverFactory] instances that have been added to this adapter. */
-    val sessionObserverFactories: List<SessionObserverFactory>
-        get() {
-            synchronized(_sessionObserverFactories) {
-                return _sessionObserverFactories.toList()
-            }
-        }
-
-    private val _sessionObserverFactories: MutableList<SessionObserverFactory> = mutableListOf()
+    final override val sessionObserverFactories: List<SessionObserverFactory>
+        get() = registryProvider.sessionObserverFactories
 
     final override fun addObserverFactory(sessionObserverFactory: SessionObserverFactory) {
-        synchronized(_sessionObserverFactories) {
-            _sessionObserverFactories.add(sessionObserverFactory)
-        }
+        registryProvider.addObserverFactory(sessionObserverFactory)
     }
 
     final override fun removeObserverFactory(sessionObserverFactory: SessionObserverFactory) {
-        synchronized(_sessionObserverFactories) {
-            _sessionObserverFactories.remove(sessionObserverFactory)
-        }
+        registryProvider.removeObserverFactory(sessionObserverFactory)
     }
 
     /**

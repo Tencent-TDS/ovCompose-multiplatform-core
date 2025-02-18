@@ -408,7 +408,7 @@ private constructor(
     }
 
     private object AppOwnedSdkRegistryFactory {
-        @SuppressLint("NewApi", "ClassVerificationFailure") // For supporting DP Builds
+        @SuppressLint("NewApi") // For supporting DP Builds
         fun create(context: Context): AppOwnedSdkRegistry {
             return if (
                 BuildCompat.AD_SERVICES_EXTENSION_INT >= 8 || AdServicesInfo.isDeveloperPreview()

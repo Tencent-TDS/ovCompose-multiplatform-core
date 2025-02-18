@@ -19,6 +19,7 @@ package androidx.compose.foundation.interaction
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import kotlin.js.JsName
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -124,6 +125,7 @@ interface MutableInteractionSource : InteractionSource {
  * @see InteractionSource
  * @see MutableInteractionSource
  */
+@JsName("funMutableInteractionSource")
 fun MutableInteractionSource(): MutableInteractionSource = MutableInteractionSourceImpl()
 
 @Stable

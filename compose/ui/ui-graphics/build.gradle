@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
-import androidx.build.KmpPlatformsKt
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
@@ -33,21 +34,22 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
-    desktop()
+    androidTarget()
+    jvmStubs()
+    linuxX64Stubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 api(libs.androidx.annotation)
 
                 api(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation("androidx.collection:collection:1.4.0")
+                implementation("androidx.collection:collection:1.4.2")
             }
         }
 
@@ -57,38 +59,26 @@ androidXMultiplatform {
             }
         }
 
-        skikoMain {
-            dependsOn(commonMain)
-            dependencies {
-                api(libs.skikoCommon)
-            }
-        }
-
-        jvmMain {
-            dependsOn(commonMain)
-            dependencies {
-            }
-        }
-
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(commonMain)
             dependencies {
                 // This has stub APIs for access to legacy Android APIs, so we don't want
                 // any dependency on this module.
                 compileOnly(project(":compose:ui:ui-android-stubs"))
                 implementation("androidx.graphics:graphics-path:1.0.1")
                 implementation libs.androidx.core
-                api("androidx.annotation:annotation-experimental:1.4.0")
+                api("androidx.annotation:annotation-experimental:1.4.1")
             }
         }
 
-        desktopMain {
-            dependsOn(jvmMain)
-            dependsOn(skikoMain)
-            dependencies {
-                implementation(libs.kotlinStdlib)
-                implementation(libs.kotlinStdlibJdk8)
-            }
+        commonStubsMain {
+            dependsOn(commonMain)
+        }
+        jvmStubsMain {
+            dependsOn(commonStubsMain)
+        }
+        linuxx64StubsMain {
+            dependsOn(commonStubsMain)
         }
 
         androidInstrumentedTest {
@@ -123,11 +113,13 @@ dependencies {
 
 androidx {
     name = "Compose Graphics"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Compose graphics"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
     samples(project(":compose:ui:ui-graphics:ui-graphics-samples"))
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 androidxCompose {
@@ -135,5 +127,9 @@ androidxCompose {
 }
 
 android {
-    namespace "androidx.compose.ui.graphics"
+    compileSdk = 35
+    namespace = "androidx.compose.ui.graphics"
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

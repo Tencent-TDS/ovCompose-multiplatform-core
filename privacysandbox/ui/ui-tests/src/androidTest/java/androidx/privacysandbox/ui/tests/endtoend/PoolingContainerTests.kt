@@ -27,10 +27,9 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.annotation.RequiresApi
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionState
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionStateChangedListener
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.BackwardCompatUtil
+import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.tests.util.ScreenshotTestingUtil
 import androidx.privacysandbox.ui.tests.util.TestSessionManager
 import androidx.privacysandbox.ui.tests.util.TestSessionManager.Companion.SDK_VIEW_COLOR
@@ -110,9 +109,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
 
     @Test
     fun testPoolingContainerListener_AllViewsRemovedFromContainer() {
-        // TODO(b/309848703): Stop skipping this for backwards compat flow
-        assumeTrue(!invokeBackwardsCompatFlow)
-
         val adapter =
             createRecyclerViewTestAdapterAndWaitForChildrenToBeActive(isNestedView = false)
 
@@ -124,9 +120,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
 
     @Test
     fun testPoolingContainerListener_ContainerRemovedFromLayout() {
-        // TODO(b/309848703): Stop skipping this for backwards compat flow
-        assumeTrue(!invokeBackwardsCompatFlow)
-
         val adapter = createRecyclerViewTestAdapterAndWaitForChildrenToBeActive(isNestedView = true)
 
         activityScenarioRule.withActivity { linearLayout.removeView(recyclerView) }
@@ -136,9 +129,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
 
     @Test
     fun testPoolingContainerListener_ViewWithinAnotherView_AllViewsRemovedFromContainer() {
-        // TODO(b/309848703): Stop skipping this for backwards compat flow
-        assumeTrue(!invokeBackwardsCompatFlow)
-
         val adapter =
             createRecyclerViewTestAdapterAndWaitForChildrenToBeActive(isNestedView = false)
 
@@ -150,9 +140,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
 
     @Test
     fun testPoolingContainerListener_ViewWithinAnotherView_ContainerRemovedFromLayout() {
-        // TODO(b/309848703): Stop skipping this for backwards compat flow
-        assumeTrue(!invokeBackwardsCompatFlow)
-
         val adapter = createRecyclerViewTestAdapterAndWaitForChildrenToBeActive(isNestedView = true)
 
         activityScenarioRule.withActivity { linearLayout.removeView(recyclerView) }
@@ -165,8 +152,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
     fun testPoolingContainerListener_NotifyFetchUiForSession() {
         // verifyColorOfScreenshot is only available for U+ devices.
         assumeTrue(SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-        // TODO(b/309848703): Stop skipping this for backwards compat flow
-        assumeTrue(!invokeBackwardsCompatFlow)
 
         val recyclerViewAdapter = RecyclerViewTestAdapterForFetchingUi()
 
@@ -203,14 +188,13 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
         recyclerViewAdapter.waitForViewsToBeAttached()
 
         for (i in 0 until recyclerView.childCount) {
-            lateinit var childView: SandboxedSdkView
-            if (isNestedView) {
-                childView =
+            val childView: SandboxedSdkView =
+                if (isNestedView) {
                     (recyclerView.getChildAt(i) as ViewGroup).getChildAt(0) as SandboxedSdkView
-            } else {
-                childView = recyclerView.getChildAt(i) as SandboxedSdkView
-            }
-            sessionManager.createAdapterAndWaitToBeActive(true, childView)
+                } else {
+                    recyclerView.getChildAt(i) as SandboxedSdkView
+                }
+            sessionManager.createAdapterAndEstablishSession(viewForSession = childView)
         }
 
         recyclerViewAdapter.ensureAllChildrenBecomeActive()
@@ -222,7 +206,7 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
 
         private val sandboxedSdkViewSet = mutableSetOf<SandboxedSdkView>()
         private val itemCount = 5
-        private val activeLatch = CountDownLatch(itemCount)
+        private val testEventListener = TestEventListener(itemCount)
 
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val sandboxedSdkView: SandboxedSdkView =
@@ -232,6 +216,7 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
         override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
             val view = LinearLayout(context)
             val childSandboxedSdkView = SandboxedSdkView(context)
+            childSandboxedSdkView.setEventListener(testEventListener)
             view.addView(childSandboxedSdkView)
             val layoutParams =
                 LinearLayout.LayoutParams(
@@ -249,12 +234,6 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
             if (!sandboxedSdkViewSet.contains(childSandboxedSdkView)) {
                 val adapter = TestSandboxedUiAdapter()
 
-                childSandboxedSdkView.addStateChangedListener { state ->
-                    if (state is SandboxedSdkUiSessionState.Active) {
-                        activeLatch.countDown()
-                    }
-                }
-
                 val adapterFromCoreLibInfo =
                     SandboxedUiAdapterFactory.createFromCoreLibInfo(
                         sessionManager.getCoreLibInfoFromAdapter(adapter)
@@ -270,7 +249,8 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
         }
 
         fun ensureAllChildrenBecomeActive() {
-            assertThat(activeLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+            assertThat(testEventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+                .isTrue()
         }
 
         override fun getItemCount(): Int = itemCount
@@ -283,14 +263,10 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView)
 
         private var numberOfSandboxedSdkViews = 0
-        private val items = 5
-        private val activeLatch = CountDownLatch(items)
-
-        // The session will first be idle -> active -> idle in
-        // our tests, hence the count is items*2
-        private val idleLatch = CountDownLatch(items * 2)
-        private val attachedLatch = CountDownLatch(items)
-        private val detachedLatch = CountDownLatch(items)
+        private val itemCount = 5
+        private val attachedLatch = CountDownLatch(itemCount)
+        private val detachedLatch = CountDownLatch(itemCount)
+        private val testEventListener = TestEventListener(itemCount)
         private val onAttachStateChangeListener =
             object : View.OnAttachStateChangeListener {
                 override fun onViewAttachedToWindow(v: View) {
@@ -305,7 +281,7 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
             }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            if (numberOfSandboxedSdkViews >= items) {
+            if (numberOfSandboxedSdkViews >= itemCount) {
                 // We should return without creating a SandboxedSdkView if the
                 // number of SandboxedSdkViews is already equal to items. Recycler
                 // view will create new ViewHolders once SandboxedSdkViews are
@@ -313,17 +289,9 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
                 return ViewHolder(View(context))
             }
 
-            val listener = SandboxedSdkUiSessionStateChangedListener { state ->
-                if (state is SandboxedSdkUiSessionState.Active) {
-                    activeLatch.countDown()
-                } else if (state is SandboxedSdkUiSessionState.Idle) {
-                    idleLatch.countDown()
-                }
-            }
-
             numberOfSandboxedSdkViews++
             var view: View = SandboxedSdkView(context)
-            (view as SandboxedSdkView).addStateChangedListener(listener)
+            (view as SandboxedSdkView).setEventListener(testEventListener)
             if (isNestedView) {
                 val parentView = LinearLayout(context)
                 parentView.addView(view)
@@ -343,20 +311,23 @@ class PoolingContainerTests(private val invokeBackwardsCompatFlow: Boolean) {
         }
 
         fun ensureAllChildrenBecomeActive() {
-            assertThat(activeLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+            assertThat(testEventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+                .isTrue()
         }
 
         fun ensureAllChildrenBecomeIdleFromActive() {
-            assertThat(idleLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+            assertThat(testEventListener.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+                .isTrue()
         }
 
         fun ensureChildrenDoNotBecomeIdleFromActive() {
-            assertThat(idleLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
-            assertThat(idleLatch.count).isEqualTo(items)
+            assertThat(testEventListener.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+                .isFalse()
+            assertThat(testEventListener.sessionClosedLatch.count).isEqualTo(itemCount)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {}
 
-        override fun getItemCount(): Int = items
+        override fun getItemCount(): Int = itemCount
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.mock.View
 import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.tooling.CompositionData
 import androidx.compose.runtime.tooling.CompositionGroup
+import kotlin.jvm.JvmInline
 import kotlin.test.Test
 
 class GroupSizeValidationTests {

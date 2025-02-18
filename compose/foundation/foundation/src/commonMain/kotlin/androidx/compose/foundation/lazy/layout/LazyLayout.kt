@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import androidx.collection.mutableObjectIntMapOf
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -84,20 +85,17 @@ fun LazyLayout(
 
 private class LazyLayoutItemReusePolicy(private val factory: LazyLayoutItemContentFactory) :
     SubcomposeSlotReusePolicy {
-    private val countPerType = mutableMapOf<Any?, Int>()
+    private val countPerType = mutableObjectIntMapOf<Any?>()
 
     override fun getSlotsToRetain(slotIds: SubcomposeSlotReusePolicy.SlotIdsSet) {
         countPerType.clear()
-        with(slotIds.iterator()) {
-            while (hasNext()) {
-                val slotId = next()
-                val type = factory.getContentType(slotId)
-                val currentCount = countPerType[type] ?: 0
-                if (currentCount == MaxItemsToRetainForReuse) {
-                    remove()
-                } else {
-                    countPerType[type] = currentCount + 1
-                }
+        slotIds.forEach { slotId ->
+            val type = factory.getContentType(slotId)
+            val currentCount = countPerType.getOrDefault(type, 0)
+            if (currentCount == MaxItemsToRetainForReuse) {
+                slotIds.remove(slotId)
+            } else {
+                countPerType[type] = currentCount + 1
             }
         }
     }

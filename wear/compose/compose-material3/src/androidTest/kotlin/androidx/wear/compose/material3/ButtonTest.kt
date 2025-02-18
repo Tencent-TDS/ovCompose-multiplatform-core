@@ -18,15 +18,22 @@ package androidx.wear.compose.material3
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
@@ -34,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -57,14 +66,29 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.wear.compose.material3.samples.FilledTonalCompactButtonSample
+import androidx.wear.compose.material3.samples.SimpleButtonSample
+import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 class ButtonTest {
     @get:Rule val rule = createComposeRule()
+
+    @Test
+    fun simple_button_sample_builds() {
+        rule.setContentWithTheme { SimpleButtonSample() }
+    }
+
+    @Test
+    fun filled_tonal_compact_button_sample_builds() {
+        rule.setContentWithTheme { FilledTonalCompactButtonSample() }
+    }
 
     @Test
     fun supports_testtag() {
@@ -343,6 +367,50 @@ class ButtonTest {
     }
 
     @Test
+    fun button_animate_content_size_animates_height() {
+        val boxHeight = mutableStateOf(60.dp)
+        val frames = 14
+        val animationMillis = frames * 16
+        val buttonPadding = ButtonDefaults.ButtonVerticalPadding
+
+        rule.setContentWithTheme {
+            Button(onClick = {}, modifier = Modifier.testTag(TEST_TAG).fillMaxWidth()) {
+                Box(
+                    modifier =
+                        Modifier.animateContentSize(
+                                animationSpec = tween(animationMillis, easing = LinearEasing)
+                            )
+                            .fillMaxWidth()
+                            .requiredHeight(boxHeight.value)
+                ) {}
+            }
+        }
+        // Verify initial height
+        rule.onNodeWithTag(TEST_TAG).assertHeightIsEqualTo(60.dp + buttonPadding * 2)
+
+        // Set autoAdvance off to test the content size animation
+        rule.mainClock.autoAdvance = false
+        boxHeight.value = 100.dp
+        // Advance to the actual start of the animation
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // Advance to middle of animation
+        rule.mainClock.advanceTimeBy(animationMillis / 2L)
+        rule.waitForIdle()
+        // Verify that the animation is halfway finished
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .assertHeightIsEqualTo(80.dp + buttonPadding * 2, tolerance = 2.dp)
+
+        // Set autoAdvance back on to finish the animation
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+        // Verify end height is correct
+        rule.onNodeWithTag(TEST_TAG).assertHeightIsEqualTo(100.dp + buttonPadding * 2)
+    }
+
+    @Test
     fun has_icon_in_correct_location_for_three_slot_button_and_label_only() {
         val iconTag = "TestIcon"
         rule.setContentWithThemeForSizeAssertions(useUnmergedTree = true) {
@@ -409,6 +477,32 @@ class ButtonTest {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContentAlpha)
             },
             content = { FilledTonalButton(Status.Disabled) }
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
+    fun gives_enabled_button_correct_filled_variant_colors() {
+        rule.verifyButtonColors(
+            status = Status.Enabled,
+            expectedContainerColor = { MaterialTheme.colorScheme.primaryContainer },
+            expectedContentColor = { MaterialTheme.colorScheme.onPrimaryContainer },
+            content = { FilledVariantButton(Status.Enabled) }
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
+    fun gives_disabled_button_correct_filled_variant_colors() {
+        rule.verifyButtonColors(
+            status = Status.Disabled,
+            expectedContainerColor = {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContainerAlpha)
+            },
+            expectedContentColor = {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContentAlpha)
+            },
+            content = { FilledVariantButton(Status.Disabled) }
         )
     }
 
@@ -558,7 +652,7 @@ class ButtonTest {
         val status = Status.Disabled
         rule.verifyButtonBorderColor(
             expectedBorderColor = {
-                MaterialTheme.colorScheme.outline.copy(alpha = DisabledBorderAlpha)
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledBorderAlpha)
             },
             content = { modifier: Modifier ->
                 OutlinedButton(
@@ -806,6 +900,395 @@ class ButtonTest {
         )
     }
 
+    @Test
+    fun button_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            Button(
+                onClick = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun button_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            Button(
+                onClick = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        assertEquals(3, labelMaxLines)
+        assertEquals(2, secondaryLabelMaxLines)
+    }
+
+    @Test
+    fun button_defines_start_alignment() {
+        var labelAlignment: TextAlign? = null
+        var secondaryLabelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            Button(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelAlignment = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        assertEquals(TextAlign.Start, labelAlignment)
+        assertEquals(TextAlign.Start, secondaryLabelAlignment)
+    }
+
+    @Test
+    fun button_defines_center_alignment_for_label_only() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            Button(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+            )
+        }
+
+        assertEquals(TextAlign.Center, labelAlignment)
+    }
+
+    @Test
+    fun filled_tonal_button_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            FilledTonalButton(
+                onClick = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun filled_tonal_button_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            FilledTonalButton(
+                onClick = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        assertEquals(3, labelMaxLines)
+        assertEquals(2, secondaryLabelMaxLines)
+    }
+
+    @Test
+    fun filled_tonal_button_defines_start_alignment() {
+        var labelAlignment: TextAlign? = null
+        var secondaryLabelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            FilledTonalButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelAlignment = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        assertEquals(TextAlign.Start, labelAlignment)
+        assertEquals(TextAlign.Start, secondaryLabelAlignment)
+    }
+
+    @Test
+    fun filled_tonal_button_defines_center_alignment_for_label_only() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            FilledTonalButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+            )
+        }
+
+        assertEquals(TextAlign.Center, labelAlignment)
+    }
+
+    @Test
+    fun outlined_button_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            OutlinedButton(
+                onClick = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun outlined_button_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            OutlinedButton(
+                onClick = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        assertEquals(3, labelMaxLines)
+        assertEquals(2, secondaryLabelMaxLines)
+    }
+
+    @Test
+    fun outlined_tonal_button_defines_start_alignment() {
+        var labelAlignment: TextAlign? = null
+        var secondaryLabelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            OutlinedButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelAlignment = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        assertEquals(TextAlign.Start, labelAlignment)
+        assertEquals(TextAlign.Start, secondaryLabelAlignment)
+    }
+
+    @Test
+    fun outlined_button_defines_center_alignment_for_label_only() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            OutlinedButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+            )
+        }
+
+        assertEquals(TextAlign.Center, labelAlignment)
+    }
+
+    @Test
+    fun child_button_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            ChildButton(
+                onClick = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun child_button_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            ChildButton(
+                onClick = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        assertEquals(3, labelMaxLines)
+        assertEquals(2, secondaryLabelMaxLines)
+    }
+
+    @Test
+    fun child_button_defines_start_alignment() {
+        var labelAlignment: TextAlign? = null
+        var secondaryLabelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            ChildButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelAlignment = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        assertEquals(TextAlign.Start, labelAlignment)
+        assertEquals(TextAlign.Start, secondaryLabelAlignment)
+    }
+
+    @Test
+    fun child_button_defines_center_alignment_for_label_only() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            ChildButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+            )
+        }
+
+        assertEquals(TextAlign.Center, labelAlignment)
+    }
+
+    @Test
+    fun compact_button_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            CompactButton(
+                onClick = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+            )
+        }
+
+        assertEquals(TextOverflow.Ellipsis, labelOverflow)
+    }
+
+    @Test
+    fun compact_button_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            CompactButton(
+                onClick = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+            )
+        }
+
+        assertEquals(1, labelMaxLines)
+    }
+
+    @Test
+    fun compact_button_defines_start_alignment() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            CompactButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+                icon = {},
+            )
+        }
+
+        assertEquals(TextAlign.Start, labelAlignment)
+    }
+
+    @Test
+    fun compact_button_defines_center_alignment_for_label_only() {
+        var labelAlignment: TextAlign? = null
+
+        rule.setContentWithTheme {
+            CompactButton(
+                onClick = {},
+                label = { labelAlignment = LocalTextConfiguration.current.textAlign },
+            )
+        }
+
+        assertEquals(TextAlign.Center, labelAlignment)
+    }
+
+    @Test
+    fun button_long_click_triggers_haptic() {
+        val results = mutableMapOf<HapticFeedbackType, Int>()
+        val haptics = hapticFeedback(collectResultsFromHapticFeedback(results))
+
+        rule.setContentWithTheme {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                Button(
+                    onClick = { /* Do nothing */ },
+                    onLongClick = {},
+                    modifier = Modifier.testTag(TEST_TAG)
+                ) {
+                    Text("Test")
+                }
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
+
+        assertThat(results).hasSize(1)
+        assertThat(results).containsKey(HapticFeedbackType.LongPress)
+        assertThat(results[HapticFeedbackType.LongPress]).isEqualTo(1)
+    }
+
+    @Test
+    fun compactbutton_long_click_triggers_haptic() {
+        val results = mutableMapOf<HapticFeedbackType, Int>()
+        val haptics = hapticFeedback(collectResultsFromHapticFeedback(results))
+
+        rule.setContentWithTheme {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                CompactButton(
+                    onClick = { /* Do nothing */ },
+                    onLongClick = {},
+                    modifier = Modifier.testTag(TEST_TAG)
+                ) {
+                    Text("Test")
+                }
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
+
+        assertThat(results).hasSize(1)
+        assertThat(results).containsKey(HapticFeedbackType.LongPress)
+        assertThat(results[HapticFeedbackType.LongPress]).isEqualTo(1)
+    }
+
     private fun responds_to_long_click(
         enabled: Boolean,
         onLongClick: () -> Unit,
@@ -869,6 +1352,22 @@ private fun FilledTonalButton(
     var actualContentColor = Color.Transparent
     FilledTonalButton(
         onClick = {},
+        enabled = status.enabled(),
+        modifier = Modifier.testTag(TEST_TAG),
+    ) {
+        actualContentColor = LocalContentColor.current
+    }
+    return actualContentColor
+}
+
+@Composable
+private fun FilledVariantButton(
+    status: Status,
+): Color {
+    var actualContentColor = Color.Transparent
+    Button(
+        onClick = {},
+        colors = ButtonDefaults.filledVariantButtonColors(),
         enabled = status.enabled(),
         modifier = Modifier.testTag(TEST_TAG),
     ) {
@@ -1053,7 +1552,7 @@ private fun ComposeContentTestRule.isShape(
             verticalPadding = 0.dp,
             shapeColor = buttonColor,
             backgroundColor = background,
-            shapeOverlapPixelCount = 2.0f,
+            antiAliasingGap = 2.0f,
             shape = expectedShape,
         )
 }

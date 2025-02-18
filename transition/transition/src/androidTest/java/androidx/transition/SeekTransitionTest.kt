@@ -1179,4 +1179,79 @@ class SeekTransitionTest : BaseTest() {
                 )
         }
     }
+
+    // The animateToEnd() should run after the transition is ready, even if called before
+    // the transition is ready.
+    @Test
+    fun animateToEndAfterReady() {
+        val latch = CountDownLatch(1)
+
+        transition.addListener(
+            object : TransitionListenerAdapter() {
+                override fun onTransitionEnd(transition: Transition, isReverse: Boolean) {
+                    super.onTransitionEnd(transition, isReverse)
+                    latch.countDown()
+                }
+            }
+        )
+
+        rule.runOnUiThread {
+            val controller = TransitionManager.controlDelayedTransition(root, transition)
+            assertThat(controller).isNotNull()
+            view.visibility = View.GONE
+            controller!!.animateToEnd()
+        }
+
+        assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue()
+    }
+
+    // The animateToStart() should run after the transition is ready, even if called before
+    // the transition is ready.
+    @Test
+    fun animateToStartAfterReady() {
+        val latch = CountDownLatch(1)
+
+        rule.runOnUiThread {
+            val controller = TransitionManager.controlDelayedTransition(root, transition)
+            assertThat(controller).isNotNull()
+            view.visibility = View.GONE
+            controller!!.animateToStart(latch::countDown)
+        }
+
+        assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue()
+    }
+
+    @Test
+    fun interruptTransitionSet() {
+        val transition = AutoTransition()
+        lateinit var controller1: TransitionSeekController
+        val controller1Latch = CountDownLatch(1)
+
+        rule.runOnUiThread {
+            controller1 = TransitionManager.controlDelayedTransition(root, transition)!!
+            root.removeView(view)
+            controller1.addOnProgressChangedListener {
+                if (it.currentFraction == 1f) {
+                    controller1Latch.countDown()
+                }
+            }
+        }
+
+        rule.runOnUiThread { controller1.currentFraction = 0.9f }
+
+        lateinit var controller2: TransitionSeekController
+        rule.runOnUiThread {
+            controller2 = TransitionManager.controlDelayedTransition(root, transition)!!
+            // Using the same View as was removed will cancel the first transition, but the
+            // controller is still active.
+            root.addView(view)
+        }
+
+        rule.runOnUiThread {
+            controller1.animateToEnd()
+            controller2.currentFraction = 0.9f
+        }
+
+        assertThat(controller1Latch.await(1, TimeUnit.SECONDS)).isTrue()
+    }
 }

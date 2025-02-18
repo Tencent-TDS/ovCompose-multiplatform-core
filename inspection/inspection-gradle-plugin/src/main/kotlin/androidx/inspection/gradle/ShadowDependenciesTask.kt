@@ -57,7 +57,6 @@ fun Project.registerShadowDependenciesTask(
         it.archiveVersion.set("")
         it.dependsOn(zipTask)
         val prefix = "deps.${project.name.replace('-', '.')}"
-        @Suppress("UnstableApiUsage")
         val runtimeDeps =
             variant.runtimeConfiguration.incoming
                 .artifactView {
@@ -74,7 +73,6 @@ fun Project.registerShadowDependenciesTask(
         it.from({ runtimeDeps.files })
         it.doFirst {
             val task = it as ShadowJar
-            @Suppress("UnstableApiUsage")
             runtimeDeps.files
                 .flatMap { it.extractPackageNames() }
                 .toSet()

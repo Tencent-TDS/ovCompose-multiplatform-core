@@ -27,7 +27,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import androidx.activity.BackEventCompat
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.collection.ArrayMap
 import androidx.core.view.OneShotPreDrawListener
@@ -832,17 +831,39 @@ internal class DefaultSpecialEffectsController(container: ViewGroup) :
                         "Unable to start transition $mergedTransition for container $container."
                     }
                     seekCancelLambda = {
-                        if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
-                            Log.v(FragmentManager.TAG, "Animating to start")
-                        }
-                        transitionImpl.animateToStart(controller!!) {
-                            transitionInfos.forEach { transitionInfo ->
-                                val operation = transitionInfo.operation
-                                val view = operation.fragment.view
-                                if (view != null) {
-                                    operation.finalState.applyState(view, container)
+                        if (transitionInfos.all { it.operation.isSeeking }) {
+                            if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                                Log.v(FragmentManager.TAG, "Animating to start")
+                            }
+                            transitionImpl.animateToStart(controller!!) {
+                                transitionInfos.forEach { transitionInfo ->
+                                    val operation = transitionInfo.operation
+                                    val view = operation.fragment.view
+                                    if (view != null) {
+                                        operation.finalState.applyState(view, container)
+                                    }
                                 }
                             }
+                        } else {
+                            if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                                Log.v(FragmentManager.TAG, "Completing animating immediately")
+                            }
+                            @Suppress("DEPRECATION")
+                            val cancelSignal = androidx.core.os.CancellationSignal()
+                            transitionImpl.setListenerForTransitionEnd(
+                                transitionInfos[0].operation.fragment,
+                                mergedTransition,
+                                cancelSignal
+                            ) {
+                                if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                                    Log.v(
+                                        FragmentManager.TAG,
+                                        "Transition for all operations has completed"
+                                    )
+                                }
+                                transitionInfos.forEach { it.operation.completeEffect(this) }
+                            }
+                            cancelSignal.cancel()
                         }
                     }
                     if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
@@ -1210,7 +1231,6 @@ internal class DefaultSpecialEffectsController(container: ViewGroup) :
 
     @RequiresApi(24)
     internal object Api24Impl {
-        @DoNotInline
         fun totalDuration(animatorSet: AnimatorSet): Long {
             return animatorSet.totalDuration
         }
@@ -1218,12 +1238,10 @@ internal class DefaultSpecialEffectsController(container: ViewGroup) :
 
     @RequiresApi(26)
     internal object Api26Impl {
-        @DoNotInline
         fun reverse(animatorSet: AnimatorSet) {
             animatorSet.reverse()
         }
 
-        @DoNotInline
         fun setCurrentPlayTime(animatorSet: AnimatorSet, time: Long) {
             animatorSet.currentPlayTime = time
         }

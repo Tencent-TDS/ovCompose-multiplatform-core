@@ -18,7 +18,6 @@ package androidx.compose.ui.inspection
 
 import android.util.Log
 import android.view.View
-import android.view.inspector.WindowInspector
 import androidx.collection.LongList
 import androidx.collection.LongObjectMap
 import androidx.collection.MutableLongObjectMap
@@ -27,7 +26,6 @@ import androidx.collection.mutableIntListOf
 import androidx.collection.mutableLongObjectMapOf
 import androidx.compose.ui.inspection.compose.AndroidComposeViewWrapper
 import androidx.compose.ui.inspection.compose.convertToParameterGroup
-import androidx.compose.ui.inspection.compose.flatten
 import androidx.compose.ui.inspection.framework.addSlotTable
 import androidx.compose.ui.inspection.framework.flatten
 import androidx.compose.ui.inspection.framework.hasSlotTable
@@ -52,6 +50,7 @@ import androidx.inspection.InspectorEnvironment
 import androidx.inspection.InspectorFactory
 import com.google.protobuf.ByteString
 import com.google.protobuf.InvalidProtocolBufferException
+import kotlin.collections.removeLast as removeLastKt
 import layoutinspector.compose.inspection.LayoutInspectorComposeProtocol.Command
 import layoutinspector.compose.inspection.LayoutInspectorComposeProtocol.GetAllParametersCommand
 import layoutinspector.compose.inspection.LayoutInspectorComposeProtocol.GetAllParametersResponse
@@ -83,8 +82,11 @@ class ComposeLayoutInspectorFactory :
     }
 }
 
-class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvironment) :
-    Inspector(connection) {
+class ComposeLayoutInspector(
+    connection: Connection,
+    // Keep this instance for easy access through reflection:
+    private val environment: InspectorEnvironment
+) : Inspector(connection) {
 
     /** Cache data which allows us to reuse previously queried inspector nodes */
     private class CacheData(val rootView: View, val trees: List<CacheTree>) {
@@ -97,7 +99,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
             val stack = mutableListOf<InspectorNode>()
             trees.forEach { stack.addAll(it.nodes) }
             while (stack.isNotEmpty()) {
-                val node = stack.removeLast()
+                val node = stack.removeLastKt()
                 stack.addAll(node.children)
                 result.put(node.id, node)
             }
@@ -115,6 +117,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
         val viewsToSkip: LongList
     )
 
+    private val rootsDetector = RootsDetector(environment)
     private val layoutInspectorTree = LayoutInspectorTree()
     private val recompositionHandler = RecompositionHandler(environment.artTooling())
     private var delayParameterExtractions = false
@@ -128,6 +131,8 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
     private var cachedGeneration = 0
     private var cachedSystemComposablesSkipped = false
     private var cachedHasAllParameters = false
+    // Keep this instance for easy access through reflection
+    private var disposed = false
     private val cachedNodes: MutableLongObjectMap<CacheData>
         get() {
             check(Thread.currentThread() == inspectorThread) {
@@ -138,6 +143,11 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
 
     init {
         enableInspection(environment.artTooling())
+    }
+
+    override fun onDispose() {
+        disposed = true
+        cachedNodes.clear()
     }
 
     override fun onReceiveCommand(data: ByteArray, callback: CommandCallback) {
@@ -412,13 +422,17 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
 
         val data =
             ThreadUtils.runOnMainThread {
-                    layoutInspectorTree.resetAccumulativeState()
                     layoutInspectorTree.includeAllParameters = includeAllParameters
-                    val composeViews =
+                    val composeViewWrappers =
                         getAndroidComposeViews(rootViewId, skipSystemComposables, generation)
+                    val composeViews = composeViewWrappers.map { it.composeView }
+                    val nodesByComposeView =
+                        layoutInspectorTree
+                            .apply { this.hideSystemNodes = skipSystemComposables }
+                            .convert(composeViews)
                     val composeViewsByRoot =
                         mutableLongObjectMapOf<MutableList<AndroidComposeViewWrapper>>()
-                    composeViews.groupByToLongObjectMap(composeViewsByRoot) {
+                    composeViewWrappers.groupByToLongObjectMap(composeViewsByRoot) {
                         it.rootView.uniqueDrawingId
                     }
                     val data = mutableLongObjectMapOf<CacheData>()
@@ -428,12 +442,14 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
                             CacheData(
                                 value.first().rootView,
                                 value.map {
-                                    CacheTree(it.viewParent, it.createNodes(), it.viewsToSkip)
+                                    val nodes =
+                                        nodesByComposeView[it.composeView.uniqueDrawingId]
+                                            ?: emptyList()
+                                    CacheTree(it.viewParent, nodes, it.viewsToSkip)
                                 }
                             )
                         )
                     }
-                    layoutInspectorTree.resetAccumulativeState()
                     data
                 }
                 .get()
@@ -455,10 +471,11 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
      */
     private fun getComposableFromAnchor(anchorId: Int): InspectorNode? =
         ThreadUtils.runOnMainThread {
-                layoutInspectorTree.resetAccumulativeState()
                 layoutInspectorTree.includeAllParameters = false
                 val composeViews = getAndroidComposeViews(-1L, false, 1)
-                composeViews.firstNotNullOfOrNull { it.findParameters(anchorId) }
+                composeViews.firstNotNullOfOrNull {
+                    layoutInspectorTree.findParameters(it.composeView, anchorId)
+                }
             }
             .get()
 
@@ -471,7 +488,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
         ThreadUtils.assertOnMainThread()
 
         val roots =
-            WindowInspector.getGlobalWindowViews().asSequence().filter { root ->
+            rootsDetector.getRoots().asSequence().filter { root ->
                 root.visibility == View.VISIBLE &&
                     root.isAttachedToWindow &&
                     (generation > 0 || root.uniqueDrawingId == rootViewId)
@@ -480,12 +497,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
         val wrappers = mutableListOf<AndroidComposeViewWrapper>()
         roots.forEach { root ->
             root.flatten().mapNotNullTo(wrappers) { view ->
-                AndroidComposeViewWrapper.tryCreateFor(
-                    layoutInspectorTree,
-                    root,
-                    view,
-                    skipSystemComposables
-                )
+                AndroidComposeViewWrapper.tryCreateFor(root, view, skipSystemComposables)
             }
         }
         return wrappers
@@ -515,7 +527,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
     /** Add a slot table to all AndroidComposeViews that doesn't already have one. */
     private fun addSlotTableToComposeViews() =
         ThreadUtils.runOnMainThread {
-                val roots = WindowInspector.getGlobalWindowViews()
+                val roots = rootsDetector.getAllRoots()
                 val composeViews =
                     roots.flatMap { it.flatten() }.filter { it.isAndroidComposeView() }
 
@@ -523,8 +535,7 @@ class ComposeLayoutInspector(connection: Connection, environment: InspectorEnvir
                     val slotTablesAdded = composeViews.sumOf { it.addSlotTable() }
                     if (slotTablesAdded > 0) {
                         // The slot tables added to existing views will be empty until the
-                        // composables
-                        // are reloaded. Do that now:
+                        // composables are reloaded. Do that now:
                         hotReload()
                     }
                 }

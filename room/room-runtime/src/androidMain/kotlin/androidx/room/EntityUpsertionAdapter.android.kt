@@ -42,10 +42,11 @@ private const val ErrorMsg = "unique"
  *   using the given insertionAdapter to perform insertion and updateAdapter to perform update when
  *   the insertion fails
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+@Deprecated("No longer used by generated code.", ReplaceWith("EntityUpsertAdapter"))
 class EntityUpsertionAdapter<T>(
-    private val insertionAdapter: EntityInsertionAdapter<T>,
-    private val updateAdapter: EntityDeletionOrUpdateAdapter<T>
+    @Suppress("DEPRECATION") private val insertionAdapter: EntityInsertionAdapter<T>,
+    @Suppress("DEPRECATION") private val updateAdapter: EntityDeletionOrUpdateAdapter<T>
 ) {
     /**
      * Inserts the entity into the database. If a constraint exception is thrown i.e. a primary key

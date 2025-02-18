@@ -97,10 +97,9 @@ class DeletionRequest(
             "Start=$start, End=$end, DomainUris=$domainUris, OriginUris=$originUris }"
     }
 
-    @SuppressLint("ClassVerificationFailure", "NewApi")
+    @SuppressLint("NewApi")
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 4)
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 9)
-    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 11)
     internal fun convertToAdServices(): android.adservices.measurement.DeletionRequest {
         return android.adservices.measurement.DeletionRequest.Builder()
             .setDeletionMode(deletionMode)

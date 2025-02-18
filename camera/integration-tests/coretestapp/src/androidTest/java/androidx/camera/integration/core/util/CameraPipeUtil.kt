@@ -31,11 +31,11 @@ import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraControl as CPCamera2CameraControl
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraInfo as CPCamera2CameraInfo
 import androidx.camera.camera2.pipe.integration.interop.CaptureRequestOptions as CPCaptureRequestOptions
+import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop as CPExperimentalCamera2Interop
 import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.ExtendableBuilder
 import com.google.common.util.concurrent.ListenableFuture
-import org.junit.Assume.assumeTrue
 
 object CameraPipeUtil {
 
@@ -260,6 +260,17 @@ object CameraPipeUtil {
         }
     }
 
-    fun String.ignoreTestForCameraPipe(message: String) =
-        assumeTrue(message, this != CameraPipeConfig::class.simpleName)
+    @kotlin.OptIn(CPExperimentalCamera2Interop::class)
+    @OptIn(markerClass = [ExperimentalCamera2Interop::class])
+    fun <T> getCamera2CameraInfoCharacteristics(
+        implName: String,
+        cameraInfo: CameraInfo,
+        key: CameraCharacteristics.Key<T>
+    ): T? {
+        if (implName == Camera2Config::class.simpleName) {
+            return Camera2CameraInfo.from(cameraInfo).getCameraCharacteristic(key)
+        } else {
+            return CPCamera2CameraInfo.from(cameraInfo).getCameraCharacteristic(key)
+        }
+    }
 }

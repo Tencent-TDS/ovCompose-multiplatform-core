@@ -31,16 +31,20 @@ import android.os.ext.SdkExtensions
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.core.os.asOutcomeReceiver
+import androidx.health.connect.client.ExperimentalDeduplicationApi
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.PermissionController
+import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.aggregate.AggregationResult
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.HealthConnectFeaturesPlatformImpl
+import androidx.health.connect.client.impl.platform.aggregate.AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10
 import androidx.health.connect.client.impl.platform.aggregate.aggregateFallback
-import androidx.health.connect.client.impl.platform.aggregate.platformMetrics
-import androidx.health.connect.client.impl.platform.aggregate.plus
+import androidx.health.connect.client.impl.platform.aggregate.isPlatformSupportedMetric
 import androidx.health.connect.client.impl.platform.records.toPlatformRecord
 import androidx.health.connect.client.impl.platform.records.toPlatformRecordClass
 import androidx.health.connect.client.impl.platform.records.toSdkRecord
@@ -57,6 +61,7 @@ import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ChangesTokenRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.request.ReadRecordsRequest.Companion.DEDUPLICATION_STRATEGY_DISABLED
 import androidx.health.connect.client.response.ChangesResponse
 import androidx.health.connect.client.response.InsertRecordsResponse
 import androidx.health.connect.client.response.ReadRecordResponse
@@ -82,7 +87,7 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     @VisibleForTesting
     internal constructor(
         context: Context,
-        revokePermissionsFunction: (Collection<String>) -> Unit
+        revokePermissionsFunction: (Collection<String>) -> Unit,
     ) {
         this.context = context
         this.healthConnectManager =
@@ -92,6 +97,8 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
 
     override val permissionController: PermissionController
         get() = this
+
+    override val features: HealthConnectFeatures = HealthConnectFeaturesPlatformImpl()
 
     override suspend fun insertRecords(records: List<Record>): InsertRecordsResponse {
         val response = wrapPlatformException {
@@ -184,10 +191,14 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
         return ReadRecordResponse(response.records[0].toSdkRecord() as T)
     }
 
+    @OptIn(ExperimentalDeduplicationApi::class)
     @Suppress("UNCHECKED_CAST") // Safe to cast as the type should match
     override suspend fun <T : Record> readRecords(
         request: ReadRecordsRequest<T>
     ): ReadRecordsResponse<T> {
+        if (request.deduplicateStrategy != DEDUPLICATION_STRATEGY_DISABLED) {
+            TODO("Not yet implemented")
+        }
         val response = wrapPlatformException {
             suspendCancellableCoroutine { continuation ->
                 healthConnectManager.readRecords(
@@ -204,13 +215,11 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     }
 
     override suspend fun aggregate(request: AggregateRequest): AggregationResult {
-        if (request.metrics.isEmpty()) {
-            throw IllegalArgumentException("Requested record types must not be empty.")
-        }
+        verifyAggregationMetrics(request.metrics)
 
         val fallbackResponse = aggregateFallback(request)
 
-        if (request.platformMetrics.isEmpty()) {
+        if (request.metrics.none { it.isPlatformSupportedMetric() }) {
             return fallbackResponse
         }
 
@@ -224,7 +233,7 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
                         )
                     }
                 }
-                .toSdkResponse(request.platformMetrics)
+                .toSdkResponse(request.metrics.filter { it.isPlatformSupportedMetric() }.toSet())
 
         return platformResponse + fallbackResponse
     }
@@ -232,6 +241,8 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     override suspend fun aggregateGroupByDuration(
         request: AggregateGroupByDurationRequest
     ): List<AggregationResultGroupedByDuration> {
+        verifyAggregationMetrics(request.metrics)
+
         return wrapPlatformException {
                 suspendCancellableCoroutine { continuation ->
                     healthConnectManager.aggregateGroupByDuration(
@@ -248,6 +259,8 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     override suspend fun aggregateGroupByPeriod(
         request: AggregateGroupByPeriodRequest
     ): List<AggregationResultGroupedByPeriod> {
+        verifyAggregationMetrics(request.metrics)
+
         return wrapPlatformException {
                 suspendCancellableCoroutine { continuation ->
                     healthConnectManager.aggregateGroupByPeriod(
@@ -285,6 +298,12 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
                     )
                 }
             }
+    }
+
+    private fun verifyAggregationMetrics(metrics: Set<AggregateMetric<*>>) {
+        AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10.intersect(metrics).firstOrNull()?.let {
+            throw UnsupportedOperationException("Unsupported metric type ${it.metricKey}")
+        }
     }
 
     override suspend fun getChangesToken(request: ChangesTokenRequest): String {

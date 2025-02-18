@@ -47,7 +47,6 @@ private const val ENABLE_FLAG_NAME = VERIFY_UP_TO_DATE
 val ALLOW_RERUNNING_TASKS =
     setOf(
         "buildOnServer",
-        "checkExternalLicenses",
         // verifies the existence of some archives to check for caching bugs: http://b/273294710
         "createAllArchives",
         "externalNativeBuildDebug",
@@ -57,7 +56,7 @@ val ALLOW_RERUNNING_TASKS =
         "generateJsonModelRelease",
         /**
          * relocateShadowJar is used to configure the ShadowJar hence it does not have any outputs.
-         * https://github.com/johnrengelman/shadow/issues/561
+         * https://github.com/GradleUp/shadow/issues/561
          */
         "relocateShadowJar",
         "testDebugUnitTest",
@@ -83,34 +82,42 @@ val ALLOW_RERUNNING_TASKS =
         "configureCMakeDebug[arm64-v8a]",
         "configureCMakeDebug[x86]",
         "configureCMakeDebug[x86_64]",
+        "configureCMakeDebug[riscv64]",
         "buildCMakeDebug[armeabi-v7a]",
         "buildCMakeDebug[arm64-v8a]",
         "buildCMakeDebug[x86]",
         "buildCMakeDebug[x86_64]",
+        "buildCMakeDebug[riscv64]",
         "configureCMakeRelWithDebInfo[armeabi-v7a]",
         "configureCMakeRelWithDebInfo[arm64-v8a]",
         "configureCMakeRelWithDebInfo[x86]",
         "configureCMakeRelWithDebInfo[x86_64]",
+        "configureCMakeRelWithDebInfo[riscv64]",
         "buildCMakeRelWithDebInfo[armeabi-v7a]",
         "buildCMakeRelWithDebInfo[arm64-v8a]",
         "buildCMakeRelWithDebInfo[x86]",
         "buildCMakeRelWithDebInfo[x86_64]",
+        "buildCMakeRelWithDebInfo[riscv64]",
         ":appsearch:appsearch-local-storage:buildCMakeDebug[armeabi-v7a][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeDebug[arm64-v8a][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeDebug[x86][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeDebug[x86_64][icing]",
+        ":appsearch:appsearch-local-storage:buildCMakeDebug[riscv64][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeRelWithDebInfo[armeabi-v7a][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeRelWithDebInfo[arm64-v8a][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeRelWithDebInfo[x86][icing]",
         ":appsearch:appsearch-local-storage:buildCMakeRelWithDebInfo[x86_64][icing]",
+        ":appsearch:appsearch-local-storage:buildCMakeRelWithDebInfo[riscv64][icing]",
         ":external:libyuv:buildCMakeDebug[armeabi-v7a][yuv]",
         ":external:libyuv:buildCMakeDebug[arm64-v8a][yuv]",
         ":external:libyuv:buildCMakeDebug[x86][yuv]",
         ":external:libyuv:buildCMakeDebug[x86_64][yuv]",
+        ":external:libyuv:buildCMakeDebug[riscv64][yuv]",
         ":external:libyuv:buildCMakeRelWithDebInfo[armeabi-v7a][yuv]",
         ":external:libyuv:buildCMakeRelWithDebInfo[arm64-v8a][yuv]",
         ":external:libyuv:buildCMakeRelWithDebInfo[x86][yuv]",
         ":external:libyuv:buildCMakeRelWithDebInfo[x86_64][yuv]",
+        ":external:libyuv:buildCMakeRelWithDebInfo[riscv64][yuv]",
         ":lint-checks:integration-tests:copyDebugAndroidLintReports",
 
         // https://github.com/google/protobuf-gradle-plugin/issues/667
@@ -124,7 +131,10 @@ val ALLOW_RERUNNING_TASKS =
         ":wear:tiles:tiles-proto:extractIncludeTestProto",
 
         // https://youtrack.jetbrains.com/issue/KT-61931
-        "checkKotlinGradlePluginConfigurationErrors"
+        "checkKotlinGradlePluginConfigurationErrors",
+
+        // https://youtrack.jetbrains.com/issue/KT-70008
+        "kotlinNpmCachesSetup",
     )
 
 // Additional tasks that are expected to be temporarily out-of-date after running once

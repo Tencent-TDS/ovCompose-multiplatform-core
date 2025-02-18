@@ -1287,7 +1287,7 @@ class WatchFaceControlClientTest : WatchFaceControlClientTestBase() {
     fun tapTimelineComplication() {
         val wallpaperService = TestExampleCanvasAnalogWatchFaceService(context, surfaceHolder)
         val interactiveInstance = getOrCreateTestSubject(wallpaperService)
-        val watchFaceImpl = runBlocking { engine.deferredWatchFaceImpl.await() }
+        val watchFaceImpl = runBlocking { engine.watchFaceDetails!!.deferredWatchFaceImpl.await() }
 
         // Create a timeline complication with three phases, each with their own tap actions leading
         // to ObservableServiceA, ObservableServiceB & ObservableServiceC getting bound.
@@ -1483,7 +1483,7 @@ class WatchFaceControlClientTest : WatchFaceControlClientTestBase() {
 class WatchFaceControlClientScreenshotTest : WatchFaceControlClientTestBase() {
     @get:Rule
     val screenshotRule: AndroidXScreenshotTestRule =
-        AndroidXScreenshotTestRule("wear/wear-watchface-client")
+        AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
     private val exampleOpenGLWatchFaceComponentName =
         componentOf<ExampleOpenGLBackgroundInitWatchFaceService>()

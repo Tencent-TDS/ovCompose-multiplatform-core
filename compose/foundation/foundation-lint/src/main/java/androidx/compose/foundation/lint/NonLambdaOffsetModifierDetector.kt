@@ -33,7 +33,7 @@ import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.android.tools.lint.detector.api.UastLintUtils.Companion.tryResolveUDeclaration
 import com.intellij.psi.PsiMethod
 import java.util.EnumSet
-import kotlinx.metadata.KmClassifier
+import kotlin.metadata.KmClassifier
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UDeclaration
@@ -166,10 +166,8 @@ private fun UDeclaration.isDelegateOfState(): Boolean {
     val ktProperty = localVariable?.sourcePsi as? KtProperty ?: return false
     val delegateExpression =
         ktProperty.delegate?.expression.toUElement() as? UExpression ?: return false
-    val cleanCallExpression =
-        (delegateExpression.skipParenthesizedExprDown() as? UCallExpression) ?: return false
-
-    return cleanCallExpression.returnType?.inheritsFrom(Names.Runtime.State) ?: false
+    val expressionType = delegateExpression.skipParenthesizedExprDown().getExpressionType()
+    return expressionType?.inheritsFrom(Names.Runtime.State) ?: false
 }
 
 private val ModifierClassifier = KmClassifier.Class(Names.Ui.Modifier.kmClassName)

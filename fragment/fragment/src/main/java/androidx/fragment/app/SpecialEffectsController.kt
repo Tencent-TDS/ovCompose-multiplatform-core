@@ -33,6 +33,7 @@ import androidx.fragment.app.SpecialEffectsController.Operation.State.Companion.
 internal abstract class SpecialEffectsController(val container: ViewGroup) {
     private val pendingOperations = mutableListOf<Operation>()
     private val runningOperations = mutableListOf<Operation>()
+    private var runningNonSeekableTransition = false
     private var operationDirectionIsPop = false
     private var isContainerPostponed = false
 
@@ -204,48 +205,49 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
             return
         }
         synchronized(pendingOperations) {
-            if (pendingOperations.isEmpty()) {
-                val currentlyRunningOperations = runningOperations.toMutableList()
-                runningOperations.clear()
-                for (operation in currentlyRunningOperations) {
+            val currentlyRunningOperations = runningOperations.toMutableList()
+            runningOperations.clear()
+            // If we have no pendingOperations, we should always cancel without seeking,
+            // otherwise, we should check if the fragment has mTransitioning set.
+            for (operation in currentlyRunningOperations) {
+                operation.isSeeking =
+                    pendingOperations.isNotEmpty() && operation.fragment.mTransitioning
+            }
+            for (operation in currentlyRunningOperations) {
+                // Another operation is about to run while we already have operations running
+                // There are 2 cases that need to be handled:
+                // 1. The previous running operations were transitioning, but not seeking. Here
+                // we were holding the animation until we the gesture was committed so we never
+                // started the effects and need to complete immediately.
+                // 2. The previous running operations were either transitioning and seeking, or
+                // not transitioning at all. In this case we are guaranteed to have starting the
+                // effect so we can just call cancel, passing in the transitioning status.
+                if (runningNonSeekableTransition) {
                     if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
                         Log.v(
                             FragmentManager.TAG,
-                            "SpecialEffectsController: Cancelling operation $operation " +
-                                "with no incoming pendingOperations"
+                            "SpecialEffectsController: Completing non-seekable " +
+                                "operation $operation"
                         )
                     }
-                    // Cancel the currently running operation immediately as this is the case
-                    // where we got an handleOnBackCanceled callback and we don't want to run
-                    // any effects back to start cause they will have already been seeked to
-                    // start
-                    operation.cancel(container, false)
-                    if (!operation.isComplete) {
-                        // Re-add any animations that didn't synchronously call complete()
-                        // to continue to track them as running operations
-                        runningOperations.add(operation)
-                    }
-                }
-            } else {
-                val currentlyRunningOperations = runningOperations.toMutableList()
-                runningOperations.clear()
-                for (operation in currentlyRunningOperations) {
+                    operation.complete()
+                } else {
                     if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
                         Log.v(
                             FragmentManager.TAG,
                             "SpecialEffectsController: Cancelling operation $operation"
                         )
                     }
-                    // Cancel with seeking if the fragment is transitioning as this is the case
-                    // where another operation is about to run while we are still seeking
-                    // so we should move our current effect back to the start.
-                    operation.cancel(container, operation.fragment.mTransitioning)
-                    if (!operation.isComplete) {
-                        // Re-add any animations that didn't synchronously call complete()
-                        // to continue to track them as running operations
-                        runningOperations.add(operation)
-                    }
+                    operation.cancel(container)
                 }
+                runningNonSeekableTransition = false
+                if (!operation.isComplete) {
+                    // Re-add any animations that didn't synchronously call complete()
+                    // to continue to track them as running operations
+                    runningOperations.add(operation)
+                }
+            }
+            if (pendingOperations.isNotEmpty()) {
                 updateFinalState()
                 val newPendingOperations = pendingOperations.toMutableList()
                 if (newPendingOperations.isEmpty()) {
@@ -260,17 +262,17 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
                     )
                 }
                 collectEffects(newPendingOperations, operationDirectionIsPop)
-                var seekable = true
-                var transitioning = true
-                newPendingOperations.forEach { operation ->
-                    seekable =
-                        operation.effects.isNotEmpty() &&
-                            operation.effects.all { effect -> effect.isSeekingSupported }
-                    if (!operation.fragment.mTransitioning) {
-                        transitioning = false
-                    }
+                val seekable = isOperationSeekable(newPendingOperations)
+                val transitioning = isOperationTransitioning(newPendingOperations)
+                runningNonSeekableTransition = transitioning && !seekable
+
+                if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+                    Log.v(
+                        FragmentManager.TAG,
+                        "SpecialEffectsController: Operation seekable = $seekable \n" +
+                            "transition = $transitioning"
+                    )
                 }
-                seekable = seekable && newPendingOperations.flatMap { it.effects }.isNotEmpty()
 
                 if (!transitioning) {
                     processStart(newPendingOperations)
@@ -295,6 +297,27 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
         }
     }
 
+    private fun isOperationTransitioning(newPendingOperations: MutableList<Operation>): Boolean {
+        var transitioning = true
+        newPendingOperations.forEach { operation ->
+            if (!operation.fragment.mTransitioning) {
+                transitioning = false
+            }
+        }
+        return transitioning
+    }
+
+    private fun isOperationSeekable(newPendingOperations: MutableList<Operation>): Boolean {
+        var seekable = true
+        newPendingOperations.forEach { operation ->
+            seekable =
+                operation.effects.isNotEmpty() &&
+                    operation.effects.all { effect -> effect.isSeekingSupported }
+        }
+        seekable = seekable && newPendingOperations.flatMap { it.effects }.isNotEmpty()
+        return seekable
+    }
+
     internal fun applyContainerChangesToOperation(operation: Operation) {
         if (operation.isAwaitingContainerChanges) {
             operation.finalState.applyState(operation.fragment.requireView(), container)
@@ -317,6 +340,9 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
             // First cancel running operations
             val runningOperations = runningOperations.toMutableList()
             for (operation in runningOperations) {
+                operation.isSeeking = false
+            }
+            for (operation in runningOperations) {
                 if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
                     val notAttachedMessage =
                         if (attachedToWindow) {
@@ -336,6 +362,9 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
 
             // Then cancel pending operations
             val pendingOperations = pendingOperations.toMutableList()
+            for (operation in pendingOperations) {
+                operation.isSeeking = false
+            }
             for (operation in pendingOperations) {
                 if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
                     val notAttachedMessage =
@@ -584,7 +613,7 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
             private set
 
         var isSeeking = false
-            private set
+            internal set
 
         var isStarted = false
             private set
@@ -614,16 +643,6 @@ internal abstract class SpecialEffectsController(val container: ViewGroup) {
             } else {
                 effects.toList().forEach { it.cancel(container) }
             }
-        }
-
-        fun cancel(container: ViewGroup, withSeeking: Boolean) {
-            if (isCanceled) {
-                return
-            }
-            if (withSeeking) {
-                isSeeking = true
-            }
-            cancel(container)
         }
 
         fun mergeWith(finalState: State, lifecycleImpact: LifecycleImpact) {

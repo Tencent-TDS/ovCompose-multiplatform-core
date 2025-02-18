@@ -18,11 +18,13 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.IntObjectMap
+import androidx.collection.intObjectMapOf
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
@@ -39,6 +41,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.pointer.PointerIconService
 import androidx.compose.ui.modifier.ModifierLocalManager
 import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
@@ -47,6 +50,9 @@ import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.invertTo
+import androidx.compose.ui.semantics.EmptySemanticsModifier
+import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -386,7 +392,15 @@ private class MockOwner(
     override val layoutDirection: LayoutDirection
         get() = LayoutDirection.Ltr
 
+    override val rectManager: RectManager = RectManager()
+
+    override val semanticsOwner: SemanticsOwner =
+        SemanticsOwner(root, EmptySemanticsModifier(), intObjectMapOf())
+
     override val viewConfiguration: ViewConfiguration
+        get() = TODO("Not yet implemented")
+
+    override val layoutNodes: IntObjectMap<LayoutNode>
         get() = TODO("Not yet implemented")
 
     override val rootForTest: RootForTest
@@ -399,6 +413,9 @@ private class MockOwner(
         get() = TODO("Not yet implemented")
 
     override val clipboardManager: ClipboardManager
+        get() = TODO("Not yet implemented")
+
+    override val clipboard: Clipboard
         get() = TODO("Not yet implemented")
 
     override val accessibilityManager: AccessibilityManager
@@ -434,7 +451,7 @@ private class MockOwner(
     override val autofill: Autofill?
         get() = TODO("Not yet implemented")
 
-    override val semanticAutofill: SemanticAutofill?
+    override val autofillManager: AutofillManager?
         get() = TODO("Not yet implemented")
 
     override val softwareKeyboardController: SoftwareKeyboardController
@@ -451,10 +468,6 @@ private class MockOwner(
     }
 
     override fun localToScreen(localPosition: Offset): Offset {
-        TODO("Not yet implemented")
-    }
-
-    override fun localToScreen(localTransform: Matrix) {
         TODO("Not yet implemented")
     }
 
@@ -490,9 +503,11 @@ private class MockOwner(
 
     override fun requestOnPositionedCallback(layoutNode: LayoutNode) {}
 
-    override fun onAttach(node: LayoutNode) {
+    override fun onPreAttach(node: LayoutNode) {
         onAttachParams += node
     }
+
+    override fun onPostAttach(node: LayoutNode) {}
 
     override fun onDetach(node: LayoutNode) {
         onDetachParams += node
@@ -505,6 +520,10 @@ private class MockOwner(
         positionInWindow - position.toOffset()
 
     override fun requestFocus(): Boolean = false
+
+    override fun requestAutofill(node: LayoutNode) {
+        TODO("Not yet implemented")
+    }
 
     override fun measureAndLayout(sendPointerUpdate: Boolean) {}
 
@@ -526,6 +545,8 @@ private class MockOwner(
         layoutChangeCount++
     }
 
+    override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {}
+
     @InternalComposeUiApi override fun onInteropViewLayoutChange(view: InteropView) {}
 
     override fun getFocusDirection(keyEvent: KeyEvent): FocusDirection? {
@@ -539,7 +560,8 @@ private class MockOwner(
     override fun createLayer(
         drawBlock: (Canvas, GraphicsLayer?) -> Unit,
         invalidateParentLayer: () -> Unit,
-        explicitLayer: GraphicsLayer?
+        explicitLayer: GraphicsLayer?,
+        forceUseOldLayers: Boolean
     ): OwnedLayer {
         val transform = Matrix()
         val inverseTransform = Matrix()
@@ -567,6 +589,9 @@ private class MockOwner(
             override fun transform(matrix: Matrix) {
                 matrix.timesAssign(transform)
             }
+
+            override val underlyingMatrix: Matrix
+                get() = transform
 
             override fun inverseTransform(matrix: Matrix) {
                 matrix.timesAssign(inverseTransform)

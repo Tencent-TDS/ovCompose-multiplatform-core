@@ -24,10 +24,12 @@ import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.util.fastIsFinite
 
 internal class TailModifierNode : Modifier.Node() {
     init {
@@ -159,8 +161,6 @@ internal class InnerNodeCoordinator(layoutNode: LayoutNode) : NodeCoordinator(la
         // our position in order ot know how to offset the value we provided).
         if (isShallowPlacing) return
 
-        onPlaced()
-
         layoutNode.measurePassDelegate.onNodePlaced()
     }
 
@@ -186,7 +186,7 @@ internal class InnerNodeCoordinator(layoutNode: LayoutNode) : NodeCoordinator(la
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean
     ) {
         var inLayer = isInLayer
@@ -196,8 +196,9 @@ internal class InnerNodeCoordinator(layoutNode: LayoutNode) : NodeCoordinator(la
             if (withinLayerBounds(pointerPosition)) {
                 hitTestChildren = true
             } else if (
-                isTouchEvent &&
-                    distanceInMinimumTouchTarget(pointerPosition, minimumTouchTargetSize).isFinite()
+                pointerType == PointerType.Touch &&
+                    distanceInMinimumTouchTarget(pointerPosition, minimumTouchTargetSize)
+                        .fastIsFinite()
             ) {
                 inLayer = false
                 hitTestChildren = true
@@ -215,7 +216,7 @@ internal class InnerNodeCoordinator(layoutNode: LayoutNode) : NodeCoordinator(la
                             child,
                             pointerPosition,
                             hitTestResult,
-                            isTouchEvent,
+                            pointerType,
                             inLayer
                         )
                         val wasHit = hitTestResult.hasHit()

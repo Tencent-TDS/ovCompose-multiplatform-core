@@ -32,6 +32,7 @@ TARGET_DIRECTORIES = [
     '../../..',
     '../../../../navigation/navigation-compose',
     '../../../../wear/compose',
+    '../../../../lifecycle/lifecycle-runtime-compose',
 ]
 
 # Reads a source file with the given file_path and adds its package to the current set of packages

@@ -16,6 +16,8 @@
 
 package androidx.graphics.shapes
 
+import kotlin.jvm.JvmOverloads
+import kotlin.jvm.JvmStatic
 import kotlin.math.max
 import kotlin.math.min
 
@@ -215,10 +217,8 @@ class Morph(private val start: RoundedPolygon, private val end: RoundedPolygon) 
 
             // Measure polygons, returns lists of measured cubics for each polygon, which
             // we then use to match start/end curves
-            val measuredPolygon1 =
-                MeasuredPolygon.measurePolygon(AngleMeasurer(p1.centerX, p1.centerY), p1)
-            val measuredPolygon2 =
-                MeasuredPolygon.measurePolygon(AngleMeasurer(p2.centerX, p2.centerY), p2)
+            val measuredPolygon1 = MeasuredPolygon.measurePolygon(LengthMeasurer(), p1)
+            val measuredPolygon2 = MeasuredPolygon.measurePolygon(LengthMeasurer(), p2)
 
             // features1 and 2 will contain the list of corners (just the inner circular curve)
             // along with the progress at the middle of those corners. These measurement values
@@ -310,7 +310,9 @@ class Morph(private val start: RoundedPolygon, private val end: RoundedPolygon) 
 
             if (DEBUG) {
                 // Export as SVG path.
-                val showPoint: (Point) -> String = { "%.3f %.3f".format(it.x * 100, it.y * 100) }
+                val showPoint: (Point) -> String = {
+                    "${(it.x * 100).toStringWithLessPrecision()} ${(it.y * 100).toStringWithLessPrecision()}"
+                }
                 repeat(2) { listIx ->
                     val points = ret.map { if (listIx == 0) it.first else it.second }
                     debugLog(LOG_TAG) {

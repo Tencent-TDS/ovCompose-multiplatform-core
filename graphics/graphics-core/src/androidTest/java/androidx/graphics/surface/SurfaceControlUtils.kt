@@ -32,6 +32,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import org.junit.Assert
 
@@ -48,36 +49,32 @@ internal class SurfaceControlUtils {
             var surfaceView: SurfaceView? = null
             val destroyLatch = CountDownLatch(1)
             val scenario =
-                ActivityScenario.launch(SurfaceControlWrapperTestActivity::class.java)
-                    .moveToState(Lifecycle.State.CREATED)
-                    .onActivity {
-                        it.setDestroyCallback { destroyLatch.countDown() }
-                        val callback =
-                            object : SurfaceHolder.Callback {
-                                override fun surfaceCreated(sh: SurfaceHolder) {
-                                    surfaceView = it.mSurfaceView
-                                    onSurfaceCreated(surfaceView!!, setupLatch)
-                                }
-
-                                override fun surfaceChanged(
-                                    holder: SurfaceHolder,
-                                    format: Int,
-                                    width: Int,
-                                    height: Int
-                                ) {
-                                    // NO-OP
-                                }
-
-                                override fun surfaceDestroyed(holder: SurfaceHolder) {
-                                    // NO-OP
-                                }
+                ActivityScenario.launch(SurfaceControlWrapperTestActivity::class.java).onActivity {
+                    it.setDestroyCallback { destroyLatch.countDown() }
+                    val callback =
+                        object : SurfaceHolder.Callback {
+                            override fun surfaceCreated(sh: SurfaceHolder) {
+                                surfaceView = it.mSurfaceView
+                                onSurfaceCreated(surfaceView!!, setupLatch)
                             }
 
-                        it.addSurface(it.mSurfaceView, callback)
-                        surfaceView = it.mSurfaceView
-                    }
+                            override fun surfaceChanged(
+                                holder: SurfaceHolder,
+                                format: Int,
+                                width: Int,
+                                height: Int
+                            ) {
+                                // NO-OP
+                            }
 
-            scenario.moveToState(Lifecycle.State.RESUMED)
+                            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                // NO-OP
+                            }
+                        }
+
+                    it.addSurface(it.mSurfaceView, callback)
+                    surfaceView = it.mSurfaceView
+                }
 
             Assert.assertTrue(setupLatch.await(3000, TimeUnit.MILLISECONDS))
             val coords = intArrayOf(0, 0)
@@ -111,7 +108,48 @@ internal class SurfaceControlUtils {
             }
         }
 
+        private fun flushSurfaceFlinger() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                var commitLatch: CountDownLatch? = null
+                // Android S only requires 1 additional transaction
+                val maxTransactions =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        1
+                    } else {
+                        3
+                    }
+                for (i in 0 until maxTransactions) {
+                    val transaction = SurfaceControlCompat.Transaction()
+                    // CommittedListener only added on Android S
+                    if (
+                        i == maxTransactions - 1 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    ) {
+                        commitLatch = CountDownLatch(1)
+                        val executor = Executors.newSingleThreadExecutor()
+                        transaction.addTransactionCommittedListener(
+                            executor,
+                            object : SurfaceControlCompat.TransactionCommittedListener {
+                                override fun onTransactionCommitted() {
+                                    executor.shutdownNow()
+                                    commitLatch.countDown()
+                                }
+                            }
+                        )
+                    }
+                    transaction.commit()
+                }
+
+                if (commitLatch != null) {
+                    commitLatch.await(3000, TimeUnit.MILLISECONDS)
+                } else {
+                    // Wait for transactions to flush
+                    SystemClock.sleep(maxTransactions * 16L)
+                }
+            }
+        }
+
         fun validateOutput(block: (bitmap: Bitmap) -> Boolean) {
+            flushSurfaceFlinger()
             var sleepDurationMillis = 1000L
             var success = false
             for (i in 0..3) {

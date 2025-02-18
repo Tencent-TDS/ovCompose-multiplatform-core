@@ -51,6 +51,8 @@ import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.samples.SplitSwitchButtonSample
@@ -425,6 +427,126 @@ class SwitchButtonTest {
             .assertHeightIsEqualTo(52.dp)
     }
 
+    @Test
+    fun switch_defines_default_textalign() {
+        var labelTextAlign: TextAlign? = null
+        var secondaryLabelTextAlign: TextAlign? = null
+
+        rule.setContentWithTheme {
+            SwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        Assert.assertEquals(TextAlign.Start, labelTextAlign)
+        Assert.assertEquals(TextAlign.Start, secondaryLabelTextAlign)
+    }
+
+    @Test
+    fun splitswitch_defines_default_textalign() {
+        var labelTextAlign: TextAlign? = null
+        var secondaryLabelTextAlign: TextAlign? = null
+
+        rule.setContentWithTheme {
+            SplitSwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
+            )
+        }
+
+        Assert.assertEquals(TextAlign.Start, labelTextAlign)
+        Assert.assertEquals(TextAlign.Start, secondaryLabelTextAlign)
+    }
+
+    @Test
+    fun switch_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            SwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        Assert.assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        Assert.assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun splitswitch_defines_default_overflow() {
+        var labelOverflow: TextOverflow? = null
+        var secondaryLabelOverflow: TextOverflow? = null
+
+        rule.setContentWithTheme {
+            SplitSwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
+            )
+        }
+
+        Assert.assertEquals(TextOverflow.Ellipsis, labelOverflow)
+        Assert.assertEquals(TextOverflow.Ellipsis, secondaryLabelOverflow)
+    }
+
+    @Test
+    fun switch_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            SwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        Assert.assertEquals(3, labelMaxLines)
+        Assert.assertEquals(2, secondaryLabelMaxLines)
+    }
+
+    @Test
+    fun splitswitch_defines_default_maxlines() {
+        var labelMaxLines: Int? = null
+        var secondaryLabelMaxLines: Int? = null
+
+        rule.setContentWithTheme {
+            SplitSwitchButtonWithDefaults(
+                checked = true,
+                onCheckedChange = {},
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
+            )
+        }
+
+        Assert.assertEquals(3, labelMaxLines)
+        Assert.assertEquals(2, secondaryLabelMaxLines)
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun switch_button_allows_checked_background_color_override() =
@@ -765,14 +887,10 @@ private fun ComposeContentTestRule.verifySplitToggleButtonColors(
     var actualSecondaryLabelColor = Color.Transparent
     setContentWithTheme {
         expectedContainerColor =
-            split_switch_button_container_color(checked)
-                .withDisabledAlphaApplied(enabled = enabled)
-                .compositeOver(testBackgroundColor)
+            split_switch_button_container_color(checked, enabled).compositeOver(testBackgroundColor)
         expectedLabelColor =
             split_switch_button_content_color(checked).withDisabledAlphaApplied(enabled = enabled)
-        expectedSecondaryLabelColor =
-            split_switch_button_secondary_label_color(checked)
-                .withDisabledAlphaApplied(enabled = enabled)
+        expectedSecondaryLabelColor = split_switch_button_secondary_label_color(checked, enabled)
         Box(Modifier.fillMaxSize().background(testBackgroundColor)) {
             SplitSwitchButton(
                 modifier = Modifier.testTag(TEST_TAG),
@@ -816,7 +934,7 @@ private fun switch_button_content_color(checked: Boolean, enabled: Boolean): Col
 
 @Composable
 private fun switch_button_secondary_label_color(checked: Boolean, enabled: Boolean): Color {
-    return if (checked && enabled) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+    return if (checked && enabled) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
     else if (!checked && enabled) MaterialTheme.colorScheme.onSurfaceVariant
     else MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.38f)
 }
@@ -828,8 +946,9 @@ private fun switch_button_icon_color(enabled: Boolean): Color {
 }
 
 @Composable
-private fun split_switch_button_container_color(checked: Boolean): Color {
-    return if (checked) MaterialTheme.colorScheme.primaryContainer
+private fun split_switch_button_container_color(checked: Boolean, enabled: Boolean): Color {
+    return if (!enabled) MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.12f)
+    else if (checked) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceContainer
 }
 
@@ -840,8 +959,9 @@ private fun split_switch_button_content_color(checked: Boolean): Color {
 }
 
 @Composable
-private fun split_switch_button_secondary_label_color(checked: Boolean): Color {
-    return if (checked) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+private fun split_switch_button_secondary_label_color(checked: Boolean, enabled: Boolean): Color {
+    return if (!enabled) MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.38f)
+    else if (checked) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
     else MaterialTheme.colorScheme.onSurfaceVariant
 }
 

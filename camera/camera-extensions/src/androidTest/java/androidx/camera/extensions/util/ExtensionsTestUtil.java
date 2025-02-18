@@ -30,7 +30,6 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig;
 import androidx.camera.core.CameraSelector;
@@ -64,6 +63,8 @@ import androidx.camera.extensions.internal.Version;
 import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledValidator;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.testing.impl.CameraUtil;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -165,15 +166,25 @@ public class ExtensionsTestUtil {
      */
     public static boolean isExtensionAvailable(
             ExtensionsManager extensionsManager, int lensFacing, int extensionMode) {
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(lensFacing)
+                .build();
+        return isExtensionAvailable(extensionsManager, cameraSelector, extensionMode);
+    }
+
+    /**
+     * Returns if extension is supported with the given mode and camera selector. Please note that
+     * if some classes are removed by OEMs, the classes in the test lib could still be used so we
+     * need to return false in this case.
+     */
+    public static boolean isExtensionAvailable(@NonNull ExtensionsManager extensionsManager,
+            @NonNull CameraSelector cameraSelector, int extensionMode) {
         // Return false if classes are removed by OEMs
         if (ExtensionsTestlibControl.getInstance().getImplementationType() == OEM_IMPL
                 && !doesOEMImplementationExistForMode(extensionMode)) {
             return false;
         }
 
-        CameraSelector cameraSelector = new CameraSelector.Builder()
-                .requireLensFacing(lensFacing)
-                .build();
         return extensionsManager.isExtensionAvailable(cameraSelector, extensionMode);
     }
 
@@ -181,8 +192,7 @@ public class ExtensionsTestUtil {
      * Returns the parameters which contains the combination of CameraXConfig
      * name, CameraXConfig, implementationType, extensions mode and lens facing.
      */
-    @NonNull
-    public static Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
+    public static @NonNull Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
             @NonNull Context context,
             boolean excludeUnavailableModes
     ) {
@@ -374,8 +384,8 @@ public class ExtensionsTestUtil {
     /**
      * Returns whether extensions is disabled by quirk.
      */
-    public static boolean extensionsDisabledByQuirk() {
-        return new ExtensionDisabledValidator().shouldDisableExtension();
+    public static boolean extensionsDisabledByQuirk(@NonNull String cameraId) {
+        return new ExtensionDisabledValidator().shouldDisableExtension(cameraId);
     }
 
     /**
@@ -383,7 +393,7 @@ public class ExtensionsTestUtil {
      */
     public static <T> void setCamera2SessionCaptureCallback(
             ExtendableBuilder<T> usecaseBuilder,
-            @NonNull CameraCaptureSession.CaptureCallback captureCallback) {
+            CameraCaptureSession.@NonNull CaptureCallback captureCallback) {
         usecaseBuilder.getMutableConfig().insertOption(
                 SESSION_CAPTURE_CALLBACK_OPTION,
                 captureCallback

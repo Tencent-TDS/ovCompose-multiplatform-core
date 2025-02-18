@@ -18,6 +18,7 @@ package androidx.compose.runtime
 
 import androidx.compose.runtime.external.kotlinx.collections.immutable.persistentHashMapOf
 import androidx.compose.runtime.mock.EmptyApplier
+import androidx.compose.runtime.mock.Linear
 import androidx.compose.runtime.mock.MockViewValidator
 import androidx.compose.runtime.mock.TestMonotonicFrameClock
 import androidx.compose.runtime.mock.Text
@@ -679,6 +680,29 @@ class CompositionLocalTests {
         }
     }
 
+    @Test
+    fun testValueChangeWhileRemoving() = compositionTest {
+        val LocalText = compositionLocalOf { "" }
+        var showContent by mutableStateOf(true)
+        var text by mutableStateOf("Hello")
+
+        compose {
+            if (showContent) {
+                Linear {
+                    CompositionLocalProvider(LocalText provides text) { Text(LocalText.current) }
+                }
+            }
+        }
+
+        validate { Linear { Text("Hello") } }
+
+        text = "Goodbye"
+        showContent = false
+        expectChanges()
+
+        validate { /* Empty Composition */ }
+    }
+
     @Suppress("LocalVariableName")
     @Test
     // Validate androidx.compose.runtime.samples.compositionLocalComputedAfterProvidingLocal
@@ -730,6 +754,51 @@ class CompositionLocalTests {
         }
 
         compose { App() }
+    }
+
+    @Test // 374263387
+    fun staticLocalUpdateInvalidatesCorrectly_startProvide() = compositionTest {
+        val LocalValue = staticCompositionLocalOf<Boolean> { error("Not provided") }
+        val LocalOtherValue = staticCompositionLocalOf<Int> { error("Not provided") }
+        var value by mutableStateOf(false)
+        var valueSeen = false
+        compose {
+            CompositionLocalProvider(LocalValue provides value) {
+                CompositionLocalProvider(LocalOtherValue providesDefault 1) {
+                    CompositionLocalProvider(LocalOtherValue providesDefault 2) {
+                        valueSeen = LocalValue.current
+                    }
+                }
+            }
+        }
+        assertFalse(valueSeen)
+        value = true
+        advance()
+        assertTrue(valueSeen)
+    }
+
+    fun staticLocalUpdateInvalidatesCorrectly_startProvides() = compositionTest {
+        val SomeValue = staticCompositionLocalOf { 0 }
+        val LocalValue = staticCompositionLocalOf<Boolean> { error("Not provided") }
+        val LocalOtherValue = staticCompositionLocalOf<Int> { error("Not provided") }
+        var value by mutableStateOf(false)
+        var valueSeen = false
+        compose {
+            CompositionLocalProvider(SomeValue provides 0, LocalValue provides value) {
+                CompositionLocalProvider(SomeValue provides 1, LocalOtherValue providesDefault 1) {
+                    CompositionLocalProvider(
+                        SomeValue provides 2,
+                        LocalOtherValue providesDefault 2
+                    ) {
+                        valueSeen = LocalValue.current
+                    }
+                }
+            }
+        }
+        assertFalse(valueSeen)
+        value = true
+        advance()
+        assertTrue(valueSeen)
     }
 }
 

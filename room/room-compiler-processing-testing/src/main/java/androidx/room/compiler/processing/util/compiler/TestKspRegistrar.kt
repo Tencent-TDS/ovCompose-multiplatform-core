@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.room.compiler.processing.util.compiler
 
 import com.google.devtools.ksp.AbstractKotlinSymbolProcessingExtension
@@ -29,6 +28,7 @@ import org.jetbrains.kotlin.cli.jvm.config.JavaSourceRoot
 import org.jetbrains.kotlin.cli.jvm.config.JvmClasspathRoot
 import org.jetbrains.kotlin.com.intellij.core.CoreApplicationEnvironment
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import org.jetbrains.kotlin.com.intellij.openapi.Disposable
 import org.jetbrains.kotlin.com.intellij.psi.PsiTreeChangeAdapter
 import org.jetbrains.kotlin.com.intellij.psi.PsiTreeChangeListener
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
@@ -64,15 +64,12 @@ internal class TestKspRegistrar(
                     ?: kspWorkingDir.resolve(KspCliOption.RESOURCE_OUTPUT_DIR_OPTION.optionName)
             cachesDir =
                 cachesDir ?: kspWorkingDir.resolve(KspCliOption.CACHES_DIR_OPTION.optionName)
-
             kspOutputDir =
                 kspOutputDir ?: kspWorkingDir.resolve(KspCliOption.KSP_OUTPUT_DIR_OPTION.optionName)
             val contentRoots = configuration[CLIConfigurationKeys.CONTENT_ROOTS] ?: emptyList()
-
             compileClasspath.addAll(
                 contentRoots.filterIsInstance<JvmClasspathRoot>().map { it.file }
             )
-
             javaSourceRoots.addAll(contentRoots.filterIsInstance<JavaSourceRoot>().map { it.file })
         }
         val logger =
@@ -82,6 +79,7 @@ internal class TestKspRegistrar(
                 allWarningsAsErrors = baseOptions.allWarningsAsErrors
             )
         val options = baseOptions.build()
+        @Suppress("UnstableApiUsage") // For K1.
         AnalysisHandlerExtension.registerExtension(
             project,
             TestKspExtension(
@@ -110,6 +108,7 @@ internal class TestKspRegistrar(
         ) {
         private val loadedProviders = processorProviders
 
-        override fun loadProviders() = loadedProviders
+        override fun loadProviders(rootDisposable: Disposable): List<SymbolProcessorProvider> =
+            loadedProviders
     }
 }

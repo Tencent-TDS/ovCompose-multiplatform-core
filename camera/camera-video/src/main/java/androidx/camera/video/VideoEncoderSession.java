@@ -18,11 +18,10 @@ package androidx.camera.video;
 
 import static androidx.camera.video.internal.config.VideoConfigUtil.resolveVideoEncoderConfig;
 import static androidx.camera.video.internal.config.VideoConfigUtil.resolveVideoMimeInfo;
+import static androidx.camera.video.internal.config.VideoConfigUtil.workaroundDataSpaceIfRequired;
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.SurfaceRequest;
@@ -40,6 +39,9 @@ import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -102,10 +104,9 @@ final class VideoEncoderSession {
         mVideoEncoderFactory = videoEncoderFactory;
     }
 
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Encoder> configure(@NonNull SurfaceRequest surfaceRequest,
-            @NonNull Timebase timebase, @NonNull MediaSpec mediaSpec,
+    @NonNull ListenableFuture<Encoder> configure(@NonNull SurfaceRequest surfaceRequest,
+            @NonNull Timebase timebase, @NonNull MediaSpec mediaSpec, boolean mHasGlProcessing,
             @Nullable VideoValidatedEncoderProfilesProxy resolvedEncoderProfiles) {
         switch (mVideoEncoderState) {
             case NOT_INITIALIZED:
@@ -125,8 +126,8 @@ final class VideoEncoderSession {
                 ListenableFuture<Encoder> configureFuture = CallbackToFutureAdapter.getFuture(
                         completer -> {
                             configureVideoEncoderInternal(surfaceRequest, timebase,
-                                    resolvedEncoderProfiles,
-                                    mediaSpec, completer);
+                                    resolvedEncoderProfiles, mediaSpec, mHasGlProcessing,
+                                    completer);
                             return "ConfigureVideoEncoderFuture " + VideoEncoderSession.this;
                         });
                 Futures.addCallback(configureFuture, new FutureCallback<Encoder>() {
@@ -178,9 +179,8 @@ final class VideoEncoderSession {
     /**
      * Return a ListenableFuture will be completed when the VideoEncoder can safely be released.
      */
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Encoder> getReadyToReleaseFuture() {
+    @NonNull ListenableFuture<Encoder> getReadyToReleaseFuture() {
         return Futures.nonCancellationPropagating(mReadyToReleaseFuture);
     }
 
@@ -195,9 +195,8 @@ final class VideoEncoderSession {
      *
      * @return a ListenableFuture will be completed when the VideoEncoder is released.
      */
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Void> signalTermination() {
+    @NonNull ListenableFuture<Void> signalTermination() {
         closeInternal();
         return Futures.nonCancellationPropagating(mReleasedFuture);
     }
@@ -236,18 +235,16 @@ final class VideoEncoderSession {
         }
     }
 
-    @Nullable
     @ExecutedBy("mSequentialExecutor")
-    Surface getActiveSurface() {
+    @Nullable Surface getActiveSurface() {
         if (mVideoEncoderState != VideoEncoderState.READY) {
             return null;
         }
         return mActiveSurface;
     }
 
-    @Nullable
     @ExecutedBy("mSequentialExecutor")
-    Encoder getVideoEncoder() {
+    @Nullable Encoder getVideoEncoder() {
         return mVideoEncoder;
     }
 
@@ -286,7 +283,8 @@ final class VideoEncoderSession {
             @NonNull Timebase timebase,
             @Nullable VideoValidatedEncoderProfilesProxy resolvedEncoderProfiles,
             @NonNull MediaSpec mediaSpec,
-            @NonNull CallbackToFutureAdapter.Completer<Encoder> configureCompleter) {
+            boolean hasGlProcessing,
+            CallbackToFutureAdapter.@NonNull Completer<Encoder> configureCompleter) {
         DynamicRange dynamicRange = surfaceRequest.getDynamicRange();
         VideoMimeInfo videoMimeInfo = resolveVideoMimeInfo(mediaSpec, dynamicRange,
                 resolvedEncoderProfiles);
@@ -301,6 +299,7 @@ final class VideoEncoderSession {
                 surfaceRequest.getResolution(),
                 dynamicRange,
                 surfaceRequest.getExpectedFrameRate());
+        config = workaroundDataSpaceIfRequired(config, hasGlProcessing);
 
         try {
             mVideoEncoder = mVideoEncoderFactory.createEncoder(mExecutor, config);
@@ -360,7 +359,7 @@ final class VideoEncoderSession {
     }
 
     @ExecutedBy("mSequentialExecutor")
-    private void onSurfaceRequestComplete(@NonNull SurfaceRequest.Result result) {
+    private void onSurfaceRequestComplete(SurfaceRequest.@NonNull Result result) {
         Logger.d(TAG, "Surface can be closed: " + result.getSurface().hashCode());
         Surface resultSurface = result.getSurface();
         if (resultSurface == mActiveSurface) {
@@ -373,9 +372,8 @@ final class VideoEncoderSession {
         }
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return TAG + "@" + hashCode() + " for " + Objects.toString(mSurfaceRequest,
                 "SURFACE_REQUEST_NOT_CONFIGURED");
     }

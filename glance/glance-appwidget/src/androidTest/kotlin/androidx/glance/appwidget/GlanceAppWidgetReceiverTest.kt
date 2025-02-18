@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -644,7 +645,6 @@ class GlanceAppWidgetReceiverTest {
 
     @Test
     fun layoutConfigurationCanBeDeleted() {
-        val fakeIndex = 9999
         TestGlanceAppWidget.uiDefinition = { Text("something") }
 
         mHostRule.startHost()
@@ -655,8 +655,7 @@ class GlanceAppWidgetReceiverTest {
         }
 
         val appWidgetId = (glanceId as AppWidgetId).appWidgetId
-        val config = LayoutConfiguration.create(context, appWidgetId, nextIndex = fakeIndex)
-        val file = config.dataStoreFile
+        val file = context.dataStoreFile(layoutDatastoreKey(appWidgetId))
         assertThat(file.exists())
 
         val isDeleted = LayoutConfiguration.delete(context, glanceId)
@@ -1236,6 +1235,21 @@ class GlanceAppWidgetReceiverTest {
                 val layoutId =
                     assertNotNull((hostView as TestAppWidgetHostView).mRemoteViews?.layoutId)
                 assertThat(layoutId).isEqualTo(glance_error_layout)
+            }
+        }
+    }
+
+    @Test
+    fun errorInBroadcastReceiverDoesNotCrashProcess() = runBlocking {
+        // The following line causes the GlanceAppWidget to throw an error in `update`, which runs
+        // in a child job of the BroadcastReceiver's goAsync scope.
+        TestGlanceAppWidget.withErrorOnSessionCreation {
+            // Waiting for RemoteViews should timeout since the update will fail. The process should
+            // not crash.
+            val result = runCatching { mHostRule.startHost() }
+            assertThat(result.exceptionOrNull()).apply {
+                isInstanceOf(IllegalArgumentException::class.java)
+                hasMessageThat().contains("Timeout before getting RemoteViews")
             }
         }
     }

@@ -21,6 +21,7 @@ import android.content.Context
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
 import androidx.wear.phone.interactions.PhoneTypeHelper.Companion.getPhoneDeviceType
@@ -150,6 +151,19 @@ class PhoneTypeHelperTest {
     }
 
     @Test
+    @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+    fun testGetDeviceType_returnsAndroid_onUWithGreaterTargetSdk() {
+        Settings.Global.putInt(
+            contentResolver,
+            PhoneTypeHelper.PAIRED_DEVICE_OS_TYPE,
+            PhoneTypeHelper.UNKNOWN_MODE
+        )
+        val context = ApplicationProvider.getApplicationContext<Context>().applicationContext
+        context.applicationInfo.targetSdkVersion = 35
+        assertThat(getPhoneDeviceType(context)).isEqualTo(PhoneTypeHelper.DEVICE_TYPE_ANDROID)
+    }
+
+    @Test
     @Config(minSdk = 29)
     fun testGetDeviceType_returnsIos_fromQ() {
         Settings.Global.putInt(
@@ -159,6 +173,18 @@ class PhoneTypeHelperTest {
         )
         assertThat(getPhoneDeviceType(ApplicationProvider.getApplicationContext()))
             .isEqualTo(PhoneTypeHelper.DEVICE_TYPE_IOS)
+    }
+
+    @Test
+    @Config(minSdk = 35)
+    fun testGetDeviceType_returnsNone() {
+        Settings.Global.putInt(
+            contentResolver,
+            PhoneTypeHelper.PAIRED_DEVICE_OS_TYPE,
+            PhoneTypeHelper.NONE_PAIRED_MODE
+        )
+        assertThat(getPhoneDeviceType(ApplicationProvider.getApplicationContext()))
+            .isEqualTo(PhoneTypeHelper.DEVICE_TYPE_NONE)
     }
 
     companion object {

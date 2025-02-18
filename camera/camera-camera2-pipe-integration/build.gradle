@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -34,7 +34,7 @@ dependencies {
     implementation("androidx.core:core:1.3.2")
 
     // Classes and types that are needed at compile & runtime
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":camera:camera-core"))
 
     // Classes and types that are only needed at runtime
@@ -72,7 +72,7 @@ dependencies {
     androidTestImplementation(libs.kotlinCoroutinesAndroid)
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.truth)
-    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.0")
+    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.1")
     androidTestImplementation(project(":camera:camera-lifecycle"))
     androidTestImplementation(project(":camera:camera-testing")) {
         // Ensure camera-testing does not pull in androidx.test dependencies
@@ -85,14 +85,16 @@ dependencies {
 }
 
 android {
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    compileSdk = 35
+
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
-    namespace "androidx.camera.camera2.pipe.integration"
+    namespace = "androidx.camera.camera2.pipe.integration"
 }
 
 tasks.withType(Test).configureEach { test ->
-    test.maxParallelForks(2)
+    test.maxParallelForks = 2
 }
 
 ksp {
@@ -102,12 +104,10 @@ ksp {
 
 androidx {
     name = "Camera2 Pipe Integration"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "A Camera2 Pipe implementation of CameraX, a library providing a consistent " +
             "and reliable camera foundation that enables great camera driven experiences across " +
             "all of Android."
-    metalavaK2UastEnabled = true
-    legacyDisableKotlinStrictApiMode = true
     doNotDocumentReason = "Not shipped externally"
 }

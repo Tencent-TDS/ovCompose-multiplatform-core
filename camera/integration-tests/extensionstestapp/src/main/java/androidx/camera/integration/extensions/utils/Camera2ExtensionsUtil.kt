@@ -16,7 +16,6 @@
 
 package androidx.camera.integration.extensions.utils
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Point
@@ -100,7 +99,6 @@ object Camera2ExtensionsUtil {
         throw IllegalArgumentException("Can't find camera of lens facing $lensFacing")
     }
 
-    @SuppressLint("ClassVerificationFailure")
     @RequiresApi(31)
     @JvmStatic
     fun isCamera2ExtensionModeSupported(
@@ -117,7 +115,6 @@ object Camera2ExtensionsUtil {
      * Picks a preview resolution that is both close/same as the display size and supported by
      * camera and extensions.
      */
-    @SuppressLint("ClassVerificationFailure")
     @RequiresApi(Build.VERSION_CODES.S)
     @JvmStatic
     fun pickPreviewResolution(
@@ -138,15 +135,27 @@ object Camera2ExtensionsUtil {
         }
         val displayArRatio = displaySize.x.toFloat() / displaySize.y
         val previewSizes = ArrayList<Size>()
+        var previewSize: Size? = null
+        var currentDistance = Int.MAX_VALUE
         for (sz in textureSizes) {
             val arRatio = sz.width.toFloat() / sz.height
             if (Math.abs(arRatio - displayArRatio) <= .2f) {
                 previewSizes.add(sz)
             }
+            val distance = Math.abs(sz.width * sz.height - displaySize.x * displaySize.y)
+            if (currentDistance > distance) {
+                currentDistance = distance
+                previewSize = sz
+            }
         }
 
-        var previewSize = previewSizes[0]
-        var currentDistance = Int.MAX_VALUE
+        if (previewSizes.isEmpty()) {
+            previewSize?.let { previewSizes.add(it) }
+                ?: throw IllegalStateException("No preview size was found")
+        } else {
+            previewSize = previewSizes[0]
+        }
+
         if (extensionMode == EXTENSION_MODE_NONE) {
             for (sz in previewSizes) {
                 val distance = Math.abs(sz.width * sz.height - displaySize.x * displaySize.y)
@@ -196,7 +205,6 @@ object Camera2ExtensionsUtil {
     }
 
     /** Picks a resolution for still image capture. */
-    @SuppressLint("ClassVerificationFailure")
     @RequiresApi(Build.VERSION_CODES.S)
     @JvmStatic
     fun pickStillImageResolution(

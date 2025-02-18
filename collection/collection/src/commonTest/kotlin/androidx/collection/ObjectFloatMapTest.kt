@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -226,6 +227,36 @@ class ObjectFloatTest {
         assertEquals(3f, map5["Hallo"])
         assertEquals(4f, map5["Konnichiwa"])
         assertEquals(5f, map5["Ciao"])
+    }
+
+    @Test
+    fun buildObjectFloatMapFunction() {
+        val contract: Boolean
+        val map = buildObjectFloatMap {
+            contract = true
+            put("Hello", 1f)
+            put("Bonjour", 2f)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1f, map["Hello"])
+        assertEquals(2f, map["Bonjour"])
+    }
+
+    @Test
+    fun buildObjectFloatMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildObjectFloatMap(20) {
+                contract = true
+                put("Hello", 1f)
+                put("Bonjour", 2f)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1f, map["Hello"])
+        assertEquals(2f, map["Bonjour"])
     }
 
     @Test
@@ -635,6 +666,7 @@ class ObjectFloatTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableObjectFloatMap<String?>()
         map["Hello"] = 1f
@@ -650,6 +682,13 @@ class ObjectFloatTest {
 
         map2["Hello"] = 1f
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(
+            mutableObjectFloatMapOf("Hello", 1f, "World", 2f),
+            mutableObjectFloatMapOf("Hello", 1f, "Foo", 2f)
+        )
     }
 
     @Test
@@ -774,5 +813,16 @@ class ObjectFloatTest {
 
         assertEquals(1024, map.trim())
         assertEquals(0, map.trim())
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableObjectFloatMap<Int>()
+
+        for (i in 0..1000000) {
+            map[i] = i.toFloat()
+            map.remove(i)
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

@@ -105,15 +105,13 @@ internal class KspProcessingEnv(
 
     private val typeElementStore =
         XTypeElementStore(
-            findElement = {
-                resolver.getClassDeclarationByName(KspTypeMapper.swapWithKotlinType(it))
-            },
+            findElement = { resolver.getClassDeclarationByName(it) },
             getQName = {
                 // for error types or local types, qualified name is null.
                 // it is best to just not cache them
                 it.qualifiedName?.asString()
             },
-            wrap = { classDeclaration -> KspTypeElement.create(this, classDeclaration) }
+            wrap = { classDeclaration -> KspTypeElement.create(this, classDeclaration) },
         )
 
     private val executableElementStore =
@@ -143,7 +141,7 @@ internal class KspProcessingEnv(
     }
 
     override fun findTypeElement(qName: String): KspTypeElement? {
-        return typeElementStore[qName]
+        return typeElementStore[KspTypeMapper.swapWithKotlinType(qName)]
     }
 
     fun wrapFunctionDeclaration(ksFunction: KSFunctionDeclaration): KspExecutableElement {
@@ -156,7 +154,7 @@ internal class KspProcessingEnv(
             .getDeclarationsFromPackage(packageName)
             .filterIsInstance<KSClassDeclaration>()
             .filterNot { it.classKind == ClassKind.ENUM_ENTRY }
-            .map { KspTypeElement.create(this, it) }
+            .map { this.wrapClassDeclaration(it) }
             .toList()
     }
 
@@ -171,8 +169,19 @@ internal class KspProcessingEnv(
     }
 
     override fun findGeneratedAnnotation(): XTypeElement? {
-        return findTypeElement("javax.annotation.processing.Generated")
-            ?: findTypeElement("javax.annotation.Generated")
+        val jvmPlatform =
+            delegate.platforms.filterIsInstance<JvmPlatformInfo>().singleOrNull() ?: return null
+        val jvmTarget =
+            try {
+                jvmPlatform.jvmTarget.toInt()
+            } catch (ex: NumberFormatException) {
+                null
+            }
+        return if (jvmTarget != null && jvmTarget >= 9) {
+            findTypeElement("javax.annotation.processing.Generated")
+        } else {
+            findTypeElement("javax.annotation.Generated")
+        }
     }
 
     override fun getDeclaredType(type: XTypeElement, vararg types: XType): KspType {
@@ -318,10 +327,6 @@ internal class KspProcessingEnv(
             val javaPrimitive = KspTypeMapper.getPrimitiveJavaTypeName(qName)
             if (javaPrimitive != null) {
                 return KspPrimitiveType(this, ksType, originalAnnotations)
-            }
-            // special case for void
-            if (qName == "kotlin.Unit") {
-                return voidType
             }
         }
         return arrayTypeFactory.createIfArray(ksType)

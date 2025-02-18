@@ -33,10 +33,6 @@ enum class ClientApiVersion(
     val apiLevel: Int,
     private val newFeatures: Set<ClientFeature> = emptySet()
 ) {
-    V1__1_0_ALPHA01(apiLevel = 1),
-    V2__1_0_ALPHA02(apiLevel = 2, newFeatures = setOf(ClientFeature.SDK_SANDBOX_CONTROLLER)),
-
-    // V3 was released as V4 (original release postponed)
     V4__1_0_ALPHA05(
         apiLevel = 4,
         newFeatures =
@@ -46,6 +42,8 @@ enum class ClientApiVersion(
             )
     ),
     V5__1_0_ALPHA13(apiLevel = 5, newFeatures = setOf(ClientFeature.LOAD_SDK)),
+    V6__1_0_ALPHA14(apiLevel = 6, newFeatures = setOf(ClientFeature.GET_CLIENT_PACKAGE_NAME)),
+    V7__1_0_ALPHA16(apiLevel = 7, newFeatures = setOf(ClientFeature.CLIENT_IMPORTANCE_LISTENER)),
 
     /**
      * Unreleased API version. Features not added to other versions will be automatically added here

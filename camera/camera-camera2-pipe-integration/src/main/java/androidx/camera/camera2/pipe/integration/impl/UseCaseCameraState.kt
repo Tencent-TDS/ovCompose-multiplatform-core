@@ -41,6 +41,7 @@ import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.TagBundle
 import androidx.camera.core.streamsharing.StreamSharing
 import javax.inject.Inject
+import kotlin.collections.removeFirst as removeFirstKt
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -58,7 +59,7 @@ import kotlinx.coroutines.launch
  * camera graph as fast as the camera is capable of consuming them.
  */
 @UseCaseCameraScope
-class UseCaseCameraState
+public class UseCaseCameraState
 @Inject
 constructor(
     useCaseGraphConfig: UseCaseGraphConfig,
@@ -74,7 +75,7 @@ constructor(
 
     @GuardedBy("lock") private val submittedRequestCounter = atomic(0)
 
-    data class RequestSignal(val requestNo: Int, val signal: CompletableDeferred<Unit>)
+    public data class RequestSignal(val requestNo: Int, val signal: CompletableDeferred<Unit>)
 
     @GuardedBy("lock") private var updateSignals = ArrayDeque<RequestSignal>()
 
@@ -107,7 +108,7 @@ constructor(
      *
      * @return A [Deferred] signal to represent if the update operation has been completed.
      */
-    fun updateAsync(
+    public fun updateAsync(
         parameters: Map<CaptureRequest.Key<*>, Any>? = null,
         appendParameters: Boolean = true,
         internalParameters: Map<Metadata.Key<*>, Any>? = null,
@@ -160,7 +161,7 @@ constructor(
         return result
     }
 
-    fun update(
+    public fun update(
         parameters: Map<CaptureRequest.Key<*>, Any>? = null,
         appendParameters: Boolean = true,
         internalParameters: Map<Metadata.Key<*>, Any>? = null,
@@ -188,7 +189,7 @@ constructor(
         submitLatest()
     }
 
-    fun capture(requests: List<Request>) {
+    public fun capture(requests: List<Request>) {
         threads.sequentialScope.launch(start = CoroutineStart.UNDISPATCHED) {
             cameraGraph.acquireSession().use { it.submit(requests) }
         }
@@ -244,7 +245,7 @@ constructor(
      * Tries to invoke [androidx.camera.camera2.pipe.CameraGraph.Session.startRepeating] with
      * current (the most recent) set of values.
      */
-    fun tryStartRepeating() = submitLatest()
+    public fun tryStartRepeating(): Unit = submitLatest()
 
     private fun submitLatest() {
         if (sessionProcessorManager != null) {
@@ -360,6 +361,11 @@ constructor(
                             addTag(tag, value)
                         }
                     }
+                    currentSessionConfig?.let {
+                        addAllCameraCaptureCallbacks(
+                            it.repeatingCaptureConfig.cameraCaptureCallbacks
+                        )
+                    }
                 }
                 .build()
                 .also { sessionConfig -> sessionProcessorManager.sessionConfig = sessionConfig }
@@ -410,7 +416,7 @@ constructor(
         setCaptureRequestOption(key, value as T)
     }
 
-    inner class RequestListener : Request.Listener {
+    public inner class RequestListener : Request.Listener {
         override fun onTotalCaptureResult(
             requestMetadata: RequestMetadata,
             frameNumber: FrameNumber,
@@ -457,7 +463,7 @@ constructor(
         private fun ArrayDeque<RequestSignal>.complete(requestNo: Int) {
             while (isNotEmpty() && first().requestNo <= requestNo) {
                 first().signal.complete(Unit)
-                removeFirst()
+                removeFirstKt()
             }
         }
 
@@ -467,7 +473,7 @@ constructor(
         ) {
             while (isNotEmpty() && first().requestNo <= requestNo) {
                 first().signal.completeExceptionally(throwable)
-                removeFirst()
+                removeFirstKt()
             }
         }
     }

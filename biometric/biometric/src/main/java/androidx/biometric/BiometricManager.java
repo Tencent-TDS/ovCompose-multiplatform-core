@@ -16,7 +16,10 @@
 
 package androidx.biometric;
 
+import static android.Manifest.permission.SET_BIOMETRIC_DIALOG_ADVANCED;
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.res.Resources;
@@ -24,12 +27,14 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
+import androidx.annotation.RestrictTo;
 import androidx.annotation.StringRes;
 import androidx.annotation.VisibleForTesting;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -94,6 +99,15 @@ public class BiometricManager {
     public static final int BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED = 15;
 
     /**
+     * Identity Check is currently not active. Restrict to library for now.
+     *
+     * This device either doesn't have this feature enabled, or it's not considered in a
+     * high-risk environment that requires extra security measures for accessing sensitive data.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public static final int BIOMETRIC_ERROR_IDENTITY_CHECK_NOT_ACTIVE = 20;
+
+    /**
      * A status code that may be returned when checking for biometric authentication.
      */
     @IntDef({
@@ -142,6 +156,15 @@ public class BiometricManager {
          * {@link #BIOMETRIC_WEAK}.
          */
         int DEVICE_CREDENTIAL = 1 << 15;
+
+        /**
+         * The bit is used to request for Identity Check.
+         * TODO(b/375693808): Once framework identity check authenticator constant is public,
+         * update the doc here.
+         */
+        @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        int IDENTITY_CHECK = 1 << 16;
     }
 
     /**
@@ -179,15 +202,15 @@ public class BiometricManager {
         /**
          * The framework strings instance. Non-null on Android 12 (API 31) and above.
          */
-        @Nullable private final android.hardware.biometrics.BiometricManager.Strings mStrings;
+        private final android.hardware.biometrics.BiometricManager.@Nullable Strings mStrings;
 
         /**
          * The compatibility strings instance. Non-null on Android 11 (API 30) and below.
          */
-        @Nullable private final StringsCompat mStringsCompat;
+        private final @Nullable StringsCompat mStringsCompat;
 
         @RequiresApi(Build.VERSION_CODES.S)
-        Strings(@NonNull android.hardware.biometrics.BiometricManager.Strings strings) {
+        Strings(android.hardware.biometrics.BiometricManager.@NonNull Strings strings) {
             mStrings = strings;
             mStringsCompat = null;
         }
@@ -220,8 +243,7 @@ public class BiometricManager {
          * @return The label for a button that invokes {@link BiometricPrompt} for authentication.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        public CharSequence getButtonLabel() {
+        public @Nullable CharSequence getButtonLabel() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && mStrings != null) {
                 return Api31Impl.getButtonLabel(mStrings);
             } else if (mStringsCompat != null) {
@@ -255,8 +277,7 @@ public class BiometricManager {
          * @return A message to be shown on {@link BiometricPrompt} during authentication.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        public CharSequence getPromptMessage() {
+        public @Nullable CharSequence getPromptMessage() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && mStrings != null) {
                 return Api31Impl.getPromptMessage(mStrings);
             } else if (mStringsCompat != null) {
@@ -292,8 +313,7 @@ public class BiometricManager {
          * @return The name for a setting that allows authentication with {@link BiometricPrompt}.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        public CharSequence getSettingName() {
+        public @Nullable CharSequence getSettingName() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && mStrings != null) {
                 return Api31Impl.getSettingName(mStrings);
             } else if (mStringsCompat != null) {
@@ -309,7 +329,7 @@ public class BiometricManager {
      * Compatibility wrapper for the {@link Strings} class on Android 11 (API 30) and below.
      */
     private class StringsCompat {
-        @NonNull private final Resources mResources;
+        private final @NonNull Resources mResources;
         @AuthenticatorTypes private final int mAuthenticators;
         @AuthModalities private final int mPossibleModalities;
 
@@ -352,8 +372,7 @@ public class BiometricManager {
          *
          * @return The label for a button that invokes {@link BiometricPrompt} for authentication.
          */
-        @Nullable
-        CharSequence getButtonLabel() {
+        @Nullable CharSequence getButtonLabel() {
             @AuthenticatorTypes final int biometricAuthenticators =
                     AuthenticatorUtils.getBiometricAuthenticators(mAuthenticators);
             if (canAuthenticate(biometricAuthenticators) == BIOMETRIC_SUCCESS) {
@@ -388,8 +407,7 @@ public class BiometricManager {
          *
          * @return A message to be shown on {@link BiometricPrompt} during authentication.
          */
-        @Nullable
-        CharSequence getPromptMessage() {
+        @Nullable CharSequence getPromptMessage() {
             @AuthenticatorTypes final int biometricAuthenticators =
                     AuthenticatorUtils.getBiometricAuthenticators(mAuthenticators);
 
@@ -439,8 +457,7 @@ public class BiometricManager {
          *
          * @return The name for a setting that allows authentication with {@link BiometricPrompt}.
          */
-        @Nullable
-        CharSequence getSettingName() {
+        @Nullable CharSequence getSettingName() {
             CharSequence settingName;
             switch (mPossibleModalities) {
                 case AUTH_MODALITY_NONE:
@@ -509,8 +526,7 @@ public class BiometricManager {
          *
          * @return An instance of {@link Resources}.
          */
-        @NonNull
-        Resources getResources();
+        @NonNull Resources getResources();
 
         /**
          * Provides the framework biometric manager that may be used on Android 10 (API 29) and
@@ -519,8 +535,7 @@ public class BiometricManager {
          * @return An instance of {@link android.hardware.biometrics.BiometricManager}.
          */
         @RequiresApi(Build.VERSION_CODES.Q)
-        @Nullable
-        android.hardware.biometrics.BiometricManager getBiometricManager();
+        android.hardware.biometrics.@Nullable BiometricManager getBiometricManager();
 
         /**
          * Provides the fingerprint manager that may be used on Android 9.0 (API 28) and below.
@@ -528,8 +543,8 @@ public class BiometricManager {
          * @return An instance of
          * {@link androidx.core.hardware.fingerprint.FingerprintManagerCompat}.
          */
-        @Nullable
-        androidx.core.hardware.fingerprint.FingerprintManagerCompat getFingerprintManager();
+        androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
+                    getFingerprintManager();
 
         /**
          * Checks if the current device is capable of being secured with a lock screen credential
@@ -582,7 +597,7 @@ public class BiometricManager {
      * Provides the default class and method dependencies that will be used in production.
      */
     private static class DefaultInjector implements Injector {
-        @NonNull private final Context mContext;
+        private final @NonNull Context mContext;
 
         /**
          * Creates a default injector from the given context.
@@ -594,21 +609,19 @@ public class BiometricManager {
         }
 
         @Override
-        @NonNull
-        public Resources getResources() {
+        public @NonNull Resources getResources() {
             return mContext.getResources();
         }
 
         @Override
         @RequiresApi(Build.VERSION_CODES.Q)
-        @Nullable
-        public android.hardware.biometrics.BiometricManager getBiometricManager() {
+        public android.hardware.biometrics.@Nullable BiometricManager getBiometricManager() {
             return Api29Impl.create(mContext);
         }
 
         @Override
-        @Nullable
-        public androidx.core.hardware.fingerprint.FingerprintManagerCompat getFingerprintManager() {
+        public androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
+                    getFingerprintManager() {
             return androidx.core.hardware.fingerprint.FingerprintManagerCompat.from(mContext);
         }
 
@@ -646,18 +659,23 @@ public class BiometricManager {
     /**
      * The injector for class and method dependencies used by this manager.
      */
-    @NonNull private final Injector mInjector;
+    private final @NonNull Injector mInjector;
 
     /**
      * The framework biometric manager. Should be non-null on Android 10 (API 29) and above.
      */
-    @Nullable private final android.hardware.biometrics.BiometricManager mBiometricManager;
+    private final android.hardware.biometrics.@Nullable BiometricManager mBiometricManager;
 
     /**
      * The framework fingerprint manager. Should be non-null on Android 10 (API 29) and below.
      */
-    @Nullable private final androidx.core.hardware.fingerprint.FingerprintManagerCompat
+    private final androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
             mFingerprintManager;
+
+    /**
+     * Whether the identity check is available in this platform version.
+     */
+    private Boolean mIsIdentityCheckAvailable = null;
 
     /**
      * Creates a {@link BiometricManager} instance from the given context.
@@ -665,8 +683,7 @@ public class BiometricManager {
      * @param context The application or activity context.
      * @return An instance of {@link BiometricManager}.
      */
-    @NonNull
-    public static BiometricManager from(@NonNull Context context) {
+    public static @NonNull BiometricManager from(@NonNull Context context) {
         return new BiometricManager(new DefaultInjector(context));
     }
 
@@ -719,8 +736,18 @@ public class BiometricManager {
      * authenticator. Otherwise, returns {@link #BIOMETRIC_STATUS_UNKNOWN} or an error code
      * indicating why the user can't authenticate.
      */
+    @SuppressLint("WrongConstant") // For the internal BIOMETRIC_ERROR_IDENTITY_CHECK_NOT_ACTIVE
     @AuthenticationStatus
     public int canAuthenticate(@AuthenticatorTypes int authenticators) {
+        if (!isIdentityCheckAvailable()) {
+            if (authenticators == Authenticators.IDENTITY_CHECK) {
+                return BIOMETRIC_ERROR_IDENTITY_CHECK_NOT_ACTIVE;
+            } else if ((authenticators & Authenticators.IDENTITY_CHECK)
+                    == Authenticators.IDENTITY_CHECK) {
+                authenticators &= ~Authenticators.IDENTITY_CHECK;
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (mBiometricManager == null) {
                 Log.e(TAG, "Failure in canAuthenticate(). BiometricManager was null.");
@@ -729,6 +756,32 @@ public class BiometricManager {
             return Api30Impl.canAuthenticate(mBiometricManager, authenticators);
         }
         return canAuthenticateCompat(authenticators);
+    }
+
+    /**
+     * Checks if the identity check is available in this platform version.
+     * <p>
+     * TODO(b/375693808): Once framework identity check authenticator constant is public, check
+     * it directly, instead of via canAuthenticate().
+     */
+    @SuppressLint("WrongConstant")
+    boolean isIdentityCheckAvailable() {
+        if (mIsIdentityCheckAvailable != null) {
+            return mIsIdentityCheckAvailable;
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+                || mBiometricManager == null) {
+            mIsIdentityCheckAvailable = false;
+        } else {
+            try {
+                Api30Impl.canAuthenticate(mBiometricManager, Authenticators.IDENTITY_CHECK);
+                mIsIdentityCheckAvailable = true;
+            } catch (SecurityException e) {
+                mIsIdentityCheckAvailable = false;
+            }
+        }
+        return mIsIdentityCheckAvailable;
     }
 
     /**
@@ -903,8 +956,7 @@ public class BiometricManager {
      * @return A {@link Strings} collection for the given allowed authenticator types.
      */
     @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-    @Nullable
-    public Strings getStrings(@AuthenticatorTypes int authenticators) {
+    public @Nullable Strings getStrings(@AuthenticatorTypes int authenticators) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (mBiometricManager == null) {
                 Log.e(TAG, "Failure in getStrings(). BiometricManager was null.");
@@ -944,9 +996,8 @@ public class BiometricManager {
          * @return An instance of {@link android.hardware.biometrics.BiometricManager.Strings}.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @NonNull
-        static android.hardware.biometrics.BiometricManager.Strings getStrings(
-                @NonNull android.hardware.biometrics.BiometricManager biometricManager,
+        static android.hardware.biometrics.BiometricManager.@NonNull Strings getStrings(
+                android.hardware.biometrics.@NonNull BiometricManager biometricManager,
                 @AuthenticatorTypes int authenticators) {
             return biometricManager.getStrings(authenticators);
         }
@@ -961,9 +1012,8 @@ public class BiometricManager {
          * {@link android.hardware.biometrics.BiometricManager.Strings#getButtonLabel()}.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        static CharSequence getButtonLabel(
-                @NonNull android.hardware.biometrics.BiometricManager.Strings strings) {
+        static @Nullable CharSequence getButtonLabel(
+                android.hardware.biometrics.BiometricManager.@NonNull Strings strings) {
             return strings.getButtonLabel();
         }
 
@@ -977,9 +1027,8 @@ public class BiometricManager {
          * {@link android.hardware.biometrics.BiometricManager.Strings#getPromptMessage()}.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        static CharSequence getPromptMessage(
-                @NonNull android.hardware.biometrics.BiometricManager.Strings strings) {
+        static @Nullable CharSequence getPromptMessage(
+                android.hardware.biometrics.BiometricManager.@NonNull Strings strings) {
             return strings.getPromptMessage();
         }
 
@@ -993,9 +1042,8 @@ public class BiometricManager {
          * {@link android.hardware.biometrics.BiometricManager.Strings#getSettingName()}.
          */
         @RequiresPermission(Manifest.permission.USE_BIOMETRIC)
-        @Nullable
-        static CharSequence getSettingName(
-                @NonNull android.hardware.biometrics.BiometricManager.Strings strings) {
+        static @Nullable CharSequence getSettingName(
+                android.hardware.biometrics.BiometricManager.@NonNull Strings strings) {
             return strings.getSettingName();
         }
     }
@@ -1021,7 +1069,7 @@ public class BiometricManager {
          */
         @AuthenticationStatus
         static int canAuthenticate(
-                @NonNull android.hardware.biometrics.BiometricManager biometricManager,
+                android.hardware.biometrics.@NonNull BiometricManager biometricManager,
                 @AuthenticatorTypes int authenticators) {
             return biometricManager.canAuthenticate(authenticators);
         }
@@ -1042,8 +1090,8 @@ public class BiometricManager {
          * @param context The application or activity context.
          * @return An instance of {@link android.hardware.biometrics.BiometricManager}.
          */
-        @Nullable
-        static android.hardware.biometrics.BiometricManager create(@NonNull Context context) {
+        static android.hardware.biometrics.@Nullable BiometricManager create(
+                @NonNull Context context) {
             return context.getSystemService(android.hardware.biometrics.BiometricManager.class);
         }
 
@@ -1058,7 +1106,7 @@ public class BiometricManager {
          */
         @AuthenticationStatus
         static int canAuthenticate(
-                @NonNull android.hardware.biometrics.BiometricManager biometricManager) {
+                android.hardware.biometrics.@NonNull BiometricManager biometricManager) {
             return biometricManager.canAuthenticate();
         }
 
@@ -1069,8 +1117,7 @@ public class BiometricManager {
          * @return The method {@code BiometricManager#canAuthenticate(CryptoObject)}, if present.
          */
         @SuppressWarnings("JavaReflectionMemberAccess")
-        @Nullable
-        static Method getCanAuthenticateWithCryptoMethod() {
+        static @Nullable Method getCanAuthenticateWithCryptoMethod() {
             try {
                 return android.hardware.biometrics.BiometricManager.class.getMethod(
                         "canAuthenticate",

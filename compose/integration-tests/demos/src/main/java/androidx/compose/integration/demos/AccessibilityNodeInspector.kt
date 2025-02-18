@@ -363,7 +363,7 @@ private class DrawSelectionOverlayModifierNode(val state: AccessibilityNodeInspe
  * A modifier that accepts pointer input to select accessibility nodes in an
  * [AccessibilityNodeInspectorState].
  */
-private data class NodeSelectionGestureModifier(
+private class NodeSelectionGestureModifier(
     val state: AccessibilityNodeInspectorState,
     val onDragStarted: (() -> Unit)? = null,
 ) : ModifierNodeElement<NodeSelectionGestureModifierNode>() {
@@ -376,6 +376,22 @@ private data class NodeSelectionGestureModifier(
     }
 
     override fun InspectorInfo.inspectableProperties() {}
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is NodeSelectionGestureModifier) return false
+
+        if (state != other.state) return false
+        if (onDragStarted !== other.onDragStarted) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = state.hashCode()
+        result = 31 * result + (onDragStarted?.hashCode() ?: 0)
+        return result
+    }
 }
 
 private class NodeSelectionGestureModifierNode(
@@ -640,11 +656,11 @@ private inline fun KeyValueRowLayout(
         measurePolicy = { measurables, constraints ->
             val contentPaddingPx = contentPadding.roundToPx()
             val (keyMeasurable, valueMeasurable) = measurables
-            val keyConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+            val keyConstraints = constraints.copyMaxDimensions()
             // contentPadding will either act as the spacing between items if they fit on the same
             // line, or indent if content wraps, so inset the constraints either way.
             val valueConstraints =
-                constraints.copy(minWidth = 0, minHeight = 0).offset(horizontal = -contentPaddingPx)
+                constraints.copyMaxDimensions().offset(horizontal = -contentPaddingPx)
             val keyPlaceable = keyMeasurable.measure(keyConstraints)
             val valuePlaceable = valueMeasurable.measure(valueConstraints)
             val wrap =

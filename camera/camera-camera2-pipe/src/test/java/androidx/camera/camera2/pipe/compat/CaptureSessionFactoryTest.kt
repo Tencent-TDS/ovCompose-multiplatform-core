@@ -18,14 +18,15 @@ package androidx.camera.camera2.pipe.compat
 
 import android.content.Context
 import android.graphics.SurfaceTexture
-import android.hardware.camera2.CameraExtensionCharacteristics
 import android.os.Build
 import android.os.Looper
 import android.util.Size
 import android.view.Surface
+import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraExtensionMetadata
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraph.Flags.FinalizeSessionOnCloseBehavior
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraPipe
@@ -43,6 +44,7 @@ import androidx.camera.camera2.pipe.config.ThreadConfigModule
 import androidx.camera.camera2.pipe.core.SystemTimeSource
 import androidx.camera.camera2.pipe.graph.StreamGraphImpl
 import androidx.camera.camera2.pipe.internal.CameraErrorListener
+import androidx.camera.camera2.pipe.testing.FakeCameraController
 import androidx.camera.camera2.pipe.testing.FakeCaptureSequence
 import androidx.camera.camera2.pipe.testing.FakeCaptureSequenceProcessor
 import androidx.camera.camera2.pipe.testing.FakeGraphProcessor
@@ -55,7 +57,6 @@ import dagger.Component
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -66,7 +67,6 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricCameraPipeTestRunner::class)
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
-@OptIn(ExperimentalCoroutinesApi::class)
 internal class CaptureSessionFactoryTest {
     private val context = ApplicationProvider.getApplicationContext() as Context
     private val mainLooper = Shadows.shadowOf(Looper.getMainLooper())
@@ -109,6 +109,7 @@ internal class CaptureSessionFactoryTest {
         val surfaceTexture = SurfaceTexture(0)
         surfaceTexture.setDefaultBufferSize(stream1Output.size.width, stream1Output.size.height)
         val surface = Surface(surfaceTexture)
+        val threads = FakeThreads.fromTestScope(this)
 
         val pendingOutputs =
             sessionFactory.create(
@@ -117,7 +118,7 @@ internal class CaptureSessionFactoryTest {
                     testCamera.cameraDevice,
                     testCamera.cameraId,
                     cameraErrorListener,
-                    threads = FakeThreads.fromTestScope(this)
+                    threads = threads,
                 ),
                 mapOf(stream1.id to surface),
                 captureSessionState =
@@ -134,10 +135,11 @@ internal class CaptureSessionFactoryTest {
                         CameraSurfaceManager(),
                         SystemTimeSource(),
                         CameraGraph.Flags(
-                            quirkFinalizeSessionOnCloseBehavior =
-                                FinalizeSessionOnCloseBehavior.OFF,
-                            quirkCloseCaptureSessionOnDisconnect = false,
+                            finalizeSessionOnCloseBehavior = FinalizeSessionOnCloseBehavior.OFF,
+                            closeCaptureSessionOnDisconnect = false,
                         ),
+                        threads.blockingDispatcher,
+                        threads.backgroundDispatcher,
                         this
                     )
             )
@@ -194,6 +196,13 @@ class FakeCameraGraphModule {
             streams = listOf(stream),
         )
     }
+
+    @Provides
+    @CameraGraphScope
+    fun provideFakeCameraController(): CameraController {
+        val graphId = CameraGraphId.nextId()
+        return FakeCameraController(graphId)
+    }
 }
 
 @Module
@@ -212,24 +221,22 @@ class FakeCamera2Module {
                 return fakeCamera.metadata
             }
 
-            override fun getCameraExtensionCharacteristics(
-                cameraId: CameraId
-            ): CameraExtensionCharacteristics {
-                TODO("b/299356087 - Add support for fake extension metadata")
-            }
-
             override suspend fun getCameraExtensionMetadata(
                 cameraId: CameraId,
                 extension: Int
             ): CameraExtensionMetadata {
-                TODO("b/299356087 - Add support for fake extension metadata")
+                throw UnsupportedOperationException("Unused for internal tests")
             }
 
             override fun awaitCameraExtensionMetadata(
                 cameraId: CameraId,
                 extension: Int
             ): CameraExtensionMetadata {
-                TODO("b/299356087 - Add support for fake extension metadata")
+                throw UnsupportedOperationException("Unused for internal tests")
+            }
+
+            override fun getSupportedCameraExtensions(cameraId: CameraId): Set<Int> {
+                throw UnsupportedOperationException("Unused for internal tests")
             }
         }
 }

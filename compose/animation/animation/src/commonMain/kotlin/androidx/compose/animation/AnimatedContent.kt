@@ -60,6 +60,8 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -89,8 +91,8 @@ import androidx.compose.ui.util.fastMaxOfOrNull
  * If [targetState] is expected to mutate frequently and not all mutations should be treated as
  * target state change, consider defining a mapping between [targetState] and a key in [contentKey].
  * As a result, transitions will be triggered when the resulting key changes. In other words, there
- * will be no animation when switching between [targetState]s that share the same same key. By
- * default, the key will be the same as the targetState object.
+ * will be no animation when switching between [targetState]s that share the same key. By default,
+ * the key will be the same as the targetState object.
  *
  * By default, the [ContentTransform] will be a delayed [fadeIn] of the target content and a delayed
  * [scaleIn] [togetherWith] a [fadeOut] of the initial content, using a [SizeTransform] to animate
@@ -124,7 +126,7 @@ import androidx.compose.ui.util.fastMaxOfOrNull
  * @see AnimatedContentScope
  */
 @Composable
-fun <S> AnimatedContent(
+public fun <S> AnimatedContent(
     targetState: S,
     modifier: Modifier = Modifier,
     transitionSpec: AnimatedContentTransitionScope<S>.() -> ContentTransform = {
@@ -181,9 +183,9 @@ fun <S> AnimatedContent(
  * @see ExitTransition
  * @see AnimatedContent
  */
-class ContentTransform(
-    val targetContentEnter: EnterTransition,
-    val initialContentExit: ExitTransition,
+public class ContentTransform(
+    public val targetContentEnter: EnterTransition,
+    public val initialContentExit: ExitTransition,
     targetContentZIndex: Float = 0f,
     sizeTransform: SizeTransform? = SizeTransform()
 ) {
@@ -192,7 +194,7 @@ class ContentTransform(
      * to 0f. Content with higher zIndex will be drawn over lower `zIndex`ed content. Among content
      * with the same index, the target content will be placed on top.
      */
-    var targetContentZIndex by mutableFloatStateOf(targetContentZIndex)
+    public var targetContentZIndex: Float by mutableFloatStateOf(targetContentZIndex)
 
     /**
      * [sizeTransform] manages the expanding and shrinking of the container if there is any size
@@ -201,7 +203,7 @@ class ContentTransform(
      * the animated size. Both can be customized by supplying a different [SizeTransform]. If no
      * size animation is desired, [sizeTransform] can be set to `null`.
      */
-    var sizeTransform: SizeTransform? = sizeTransform
+    public var sizeTransform: SizeTransform? = sizeTransform
         internal set
 }
 
@@ -212,7 +214,7 @@ class ContentTransform(
  *
  * @sample androidx.compose.animation.samples.AnimatedContentTransitionSpecSample
  */
-fun SizeTransform(
+public fun SizeTransform(
     clip: Boolean = true,
     sizeAnimationSpec: (initialSize: IntSize, targetSize: IntSize) -> FiniteAnimationSpec<IntSize> =
         { _, _ ->
@@ -231,15 +233,18 @@ fun SizeTransform(
  *
  * @sample androidx.compose.animation.samples.AnimatedContentTransitionSpecSample
  */
-interface SizeTransform {
+public interface SizeTransform {
     /** Whether the content should be clipped using the animated size. */
-    val clip: Boolean
+    public val clip: Boolean
 
     /**
      * This allows [FiniteAnimationSpec] to be defined based on the [initialSize] before the size
      * animation and the [targetSize] of the animation.
      */
-    fun createAnimationSpec(initialSize: IntSize, targetSize: IntSize): FiniteAnimationSpec<IntSize>
+    public fun createAnimationSpec(
+        initialSize: IntSize,
+        targetSize: IntSize
+    ): FiniteAnimationSpec<IntSize>
 }
 
 /** Private implementation of SizeTransform interface. */
@@ -260,26 +265,28 @@ private class SizeTransformImpl(
  *
  * @sample androidx.compose.animation.samples.AnimatedContentTransitionSpecSample
  */
-infix fun EnterTransition.togetherWith(exit: ExitTransition) = ContentTransform(this, exit)
+public infix fun EnterTransition.togetherWith(exit: ExitTransition): ContentTransform =
+    ContentTransform(this, exit)
 
 @ExperimentalAnimationApi
 @Deprecated(
     "Infix fun EnterTransition.with(ExitTransition) has been renamed to" + " togetherWith",
     ReplaceWith("togetherWith(exit)")
 )
-infix fun EnterTransition.with(exit: ExitTransition) = ContentTransform(this, exit)
+public infix fun EnterTransition.with(exit: ExitTransition): ContentTransform =
+    ContentTransform(this, exit)
 
 /**
  * [AnimatedContentTransitionScope] provides functions that are convenient and only applicable in
  * the context of [AnimatedContent], such as [slideIntoContainer] and [slideOutOfContainer].
  */
-sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
+public sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
     /**
      * Customizes the [SizeTransform] of a given [ContentTransform]. For example:
      *
      * @sample androidx.compose.animation.samples.AnimatedContentTransitionSpecSample
      */
-    infix fun ContentTransform.using(sizeTransform: SizeTransform?): ContentTransform
+    public infix fun ContentTransform.using(sizeTransform: SizeTransform?): ContentTransform
 
     /**
      * [SlideDirection] defines the direction of the slide in/out for [slideIntoContainer] and
@@ -287,14 +294,14 @@ sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
      */
     @Immutable
     @kotlin.jvm.JvmInline
-    value class SlideDirection internal constructor(private val value: Int) {
-        companion object {
-            val Left = SlideDirection(0)
-            val Right = SlideDirection(1)
-            val Up = SlideDirection(2)
-            val Down = SlideDirection(3)
-            val Start = SlideDirection(4)
-            val End = SlideDirection(5)
+    public value class SlideDirection internal constructor(private val value: Int) {
+        public companion object {
+            public val Left: SlideDirection = SlideDirection(0)
+            public val Right: SlideDirection = SlideDirection(1)
+            public val Up: SlideDirection = SlideDirection(2)
+            public val Down: SlideDirection = SlideDirection(3)
+            public val Start: SlideDirection = SlideDirection(4)
+            public val End: SlideDirection = SlideDirection(5)
         }
 
         override fun toString(): String {
@@ -331,7 +338,7 @@ sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
      * @see slideInHorizontally
      * @see slideInVertically
      */
-    fun slideIntoContainer(
+    public fun slideIntoContainer(
         towards: SlideDirection,
         animationSpec: FiniteAnimationSpec<IntOffset> =
             spring(visibilityThreshold = IntOffset.VisibilityThreshold),
@@ -358,7 +365,7 @@ sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
      * @see slideOutHorizontally
      * @see slideOutVertically
      */
-    fun slideOutOfContainer(
+    public fun slideOutOfContainer(
         towards: SlideDirection,
         animationSpec: FiniteAnimationSpec<IntOffset> =
             spring(visibilityThreshold = IntOffset.VisibilityThreshold),
@@ -378,11 +385,11 @@ sealed interface AnimatedContentTransitionScope<S> : Transition.Segment<S> {
      *
      * @sample androidx.compose.animation.samples.SlideIntoContainerSample
      */
-    val ExitTransition.Companion.KeepUntilTransitionsFinished: ExitTransition
+    public val ExitTransition.Companion.KeepUntilTransitionsFinished: ExitTransition
         get() = KeepUntilTransitionsFinished
 
     /** This returns the [Alignment] specified on [AnimatedContent]. */
-    val contentAlignment: Alignment
+    public val contentAlignment: Alignment
 }
 
 internal class AnimatedContentTransitionScopeImpl<S>
@@ -558,16 +565,23 @@ internal constructor(
                 shouldAnimateSize = true
             }
         }
+        val sizeAnimation: Transition<S>.DeferredAnimation<IntSize, AnimationVector2D>?
         return if (shouldAnimateSize) {
-            val sizeAnimation = transition.createDeferredAnimation(IntSize.VectorConverter)
-            remember(sizeAnimation) {
-                (if (sizeTransform.value?.clip == false) Modifier else Modifier.clipToBounds())
-                    .then(SizeModifier(sizeAnimation, sizeTransform))
+                sizeAnimation = transition.createDeferredAnimation(IntSize.VectorConverter)
+                remember(sizeAnimation) {
+                    (if (sizeTransform.value?.clip == false) Modifier else Modifier.clipToBounds())
+                }
+            } else {
+                sizeAnimation = null
+                animatedSize = null
+                Modifier
             }
-        } else {
-            animatedSize = null
-            Modifier
-        }
+            .then(
+                // Keep the SizeModifier in the chain and switch between active animating and
+                // passive
+                // observing based on sizeAnimation's value
+                SizeModifierElement(sizeAnimation, sizeTransform, this)
+            )
     }
 
     // This helps track the target measurable without affecting the placement order. Target
@@ -582,35 +596,99 @@ internal constructor(
         }
     }
 
-    private inner class SizeModifier(
-        val sizeAnimation: Transition<S>.DeferredAnimation<IntSize, AnimationVector2D>,
+    private class SizeModifierElement<S>(
+        val sizeAnimation: Transition<S>.DeferredAnimation<IntSize, AnimationVector2D>?,
         val sizeTransform: State<SizeTransform?>,
-    ) : LayoutModifierWithPassThroughIntrinsics() {
+        val scope: AnimatedContentTransitionScopeImpl<S>
+    ) : ModifierNodeElement<SizeModifierNode<S>>() {
+        override fun create(): SizeModifierNode<S> {
+            return SizeModifierNode(sizeAnimation, sizeTransform, scope)
+        }
+
+        override fun hashCode(): Int {
+            return (31 * scope.hashCode() + sizeAnimation.hashCode()) * 31 +
+                sizeTransform.hashCode()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            return other is SizeModifierElement<*> &&
+                other.sizeAnimation == sizeAnimation &&
+                other.sizeTransform == sizeTransform
+        }
+
+        override fun update(node: SizeModifierNode<S>) {
+            node.sizeAnimation = sizeAnimation
+            node.sizeTransform = sizeTransform
+            node.scope = scope
+        }
+
+        override fun InspectorInfo.inspectableProperties() {
+            name = "sizeTransform"
+            properties["sizeAnimation"] = sizeAnimation
+            properties["sizeTransform"] = sizeTransform
+            properties["scope"] = scope
+        }
+    }
+
+    private class SizeModifierNode<S>(
+        var sizeAnimation: Transition<S>.DeferredAnimation<IntSize, AnimationVector2D>?,
+        var sizeTransform: State<SizeTransform?>,
+        var scope: AnimatedContentTransitionScopeImpl<S>,
+    ) : LayoutModifierNodeWithPassThroughIntrinsics() {
+        // This is used to track the on-going size change so that when the target state changes,
+        // we always start from the last seen size to the new target size to ensure continuity.
+        private var lastSize: IntSize = UnspecifiedSize
+
+        private fun lastContinuousSizeOrDefault(default: IntSize) =
+            if (lastSize == UnspecifiedSize) default else lastSize
+
+        override fun onReset() {
+            super.onReset()
+            lastSize = UnspecifiedSize
+        }
+
         override fun MeasureScope.measure(
             measurable: Measurable,
             constraints: Constraints
         ): MeasureResult {
             val placeable = measurable.measure(constraints)
-            val size =
-                sizeAnimation.animate(
-                    transitionSpec = {
-                        val initial = targetSizeMap[initialState]?.value ?: IntSize.Zero
-                        val target = targetSizeMap[targetState]?.value ?: IntSize.Zero
-                        sizeTransform.value?.createAnimationSpec(initial, target) ?: spring()
-                    }
-                ) {
-                    targetSizeMap[it]?.value ?: IntSize.Zero
-                }
-            animatedSize = size
             val measuredSize: IntSize
             if (isLookingAhead) {
                 measuredSize = IntSize(placeable.width, placeable.height)
+            } else if (sizeAnimation == null) {
+                // Observing mode
+                measuredSize = IntSize(placeable.width, placeable.height)
+                lastSize = IntSize(placeable.width, placeable.height)
             } else {
+                val currentSize = IntSize(placeable.width, placeable.height)
+                val size =
+                    sizeAnimation!!.animate(
+                        transitionSpec = {
+                            val initial =
+                                if (initialState == scope.initialState) {
+                                    lastContinuousSizeOrDefault(currentSize)
+                                } else {
+                                    scope.targetSizeMap[initialState]?.value ?: IntSize.Zero
+                                }
+                            val target = scope.targetSizeMap[targetState]?.value ?: IntSize.Zero
+                            sizeTransform.value?.createAnimationSpec(initial, target)
+                                ?: spring(stiffness = Spring.StiffnessMediumLow)
+                        }
+                    ) {
+                        // Animate from the approach size to the lookahead size.
+                        if (it == scope.initialState) {
+                            lastContinuousSizeOrDefault(currentSize)
+                        } else {
+                            scope.targetSizeMap[it]?.value ?: IntSize.Zero
+                        }
+                    }
+                scope.animatedSize = size
                 measuredSize = size.value
+                lastSize = size.value
             }
             return layout(measuredSize.width, measuredSize.height) {
                 val offset =
-                    contentAlignment.align(
+                    scope.contentAlignment.align(
                         IntSize(placeable.width, placeable.height),
                         measuredSize,
                         LayoutDirection.Ltr
@@ -621,12 +699,14 @@ internal constructor(
     }
 }
 
+private val UnspecifiedSize: IntSize = IntSize(Int.MIN_VALUE, Int.MIN_VALUE)
+
 /**
  * Receiver scope for content lambda for AnimatedContent. In this scope,
  * [transition][AnimatedVisibilityScope.transition] can be used to observe the state of the
  * transition, or to add more enter/exit transition for the content.
  */
-sealed interface AnimatedContentScope : AnimatedVisibilityScope
+public sealed interface AnimatedContentScope : AnimatedVisibilityScope
 
 private class AnimatedContentScopeImpl
 internal constructor(animatedVisibilityScope: AnimatedVisibilityScope) :
@@ -652,7 +732,7 @@ internal constructor(animatedVisibilityScope: AnimatedVisibilityScope) :
  * treated as target state change, consider defining a mapping between [Transition.targetState] and
  * a key in [contentKey]. As a result, transitions will be triggered when the resulting key changes.
  * In other words, there will be no animation when switching between [Transition.targetState]s that
- * share the same same key. By default, the key will be the same as the targetState object.
+ * share the same key. By default, the key will be the same as the targetState object.
  *
  * By default, the [ContentTransform] will be a delayed [fadeIn] of the target content and a delayed
  * [scaleIn] [togetherWith] a [fadeOut] of the initial content, using a [SizeTransform] to animate
@@ -680,7 +760,7 @@ internal constructor(animatedVisibilityScope: AnimatedVisibilityScope) :
  */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun <S> Transition<S>.AnimatedContent(
+public fun <S> Transition<S>.AnimatedContent(
     modifier: Modifier = Modifier,
     transitionSpec: AnimatedContentTransitionScope<S>.() -> ContentTransform = {
         (fadeIn(animationSpec = tween(220, delayMillis = 90)) +

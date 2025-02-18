@@ -17,14 +17,15 @@
 import androidx.build.AndroidXConfig
 
 plugins {
-    id 'AndroidXPlugin'
-    id 'com.android.privacy-sandbox-sdk'
+    id("AndroidXPlugin")
+    id("com.android.privacy-sandbox-sdk")
 }
+
 android {
-    namespace 'androidx.privacysandbox.sdkruntime.integration.testsdk-asb'
-    compileSdk 34
-    compileSdkExtension 10
-    buildToolsVersion AndroidXConfig.getDefaultAndroidConfig(project).getBuildToolsVersion()
+    namespace = "androidx.privacysandbox.sdkruntime.integration.testsdk-asb"
+    compileSdk = 35
+    compileSdkExtension = 14
+    buildToolsVersion = AndroidXConfig.getDefaultAndroidConfig(project).getBuildToolsVersion()
     bundle {
         packageName = "androidx.privacysandbox.sdkruntime.integrationtest.sdk"
 
@@ -38,6 +39,7 @@ android {
         setVersion(1, 0, 0)
     }
 }
+
 dependencies {
-    include project(':privacysandbox:sdkruntime:integration-tests:testsdk')
+    include(project(":privacysandbox:sdkruntime:integration-tests:testsdk"))
 }

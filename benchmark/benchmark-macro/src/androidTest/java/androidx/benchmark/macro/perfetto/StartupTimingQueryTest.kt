@@ -18,8 +18,9 @@ package androidx.benchmark.macro.perfetto
 
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.createTempFileFromAsset
+import androidx.benchmark.macro.runSingleSessionServer
 import androidx.benchmark.perfetto.PerfettoHelper.Companion.isAbiSupported
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import java.util.Locale
@@ -41,7 +42,7 @@ class StartupTimingQueryTest {
         val traceFile = createTempFileFromAsset(prefix = tracePrefix, suffix = ".perfetto-trace")
 
         val startupSubMetrics =
-            PerfettoTraceProcessor.runSingleSessionServer(traceFile.absolutePath) {
+            TraceProcessor.runSingleSessionServer(traceFile.absolutePath) {
                 StartupTimingQuery.getFrameSubMetrics(
                     session = this,
                     captureApiLevel = api,
@@ -126,7 +127,7 @@ class StartupTimingQueryTest {
         )
 
     /**
-     * Validate that StartupTimingQuery returns null and doesn't crash when process name truncated
+     * Validate that StartupTimingQuery successfully captures metrics when process name truncated
      */
     @Test
     fun fixedApi29ColdProcessNameTruncated() =
@@ -134,6 +135,11 @@ class StartupTimingQueryTest {
             api = 29,
             startupMode = StartupMode.COLD,
             tracePrefix = "api29_cold_startup_processname_truncated",
-            expectedMetrics = null // process name is truncated, and we currently don't handle this
+            expectedMetrics =
+                StartupTimingQuery.SubMetrics(
+                    timeToInitialDisplayNs = 145119546,
+                    timeToFullDisplayNs = null,
+                    timelineRangeNs = 935014155850..935159275396
+                )
         )
 }

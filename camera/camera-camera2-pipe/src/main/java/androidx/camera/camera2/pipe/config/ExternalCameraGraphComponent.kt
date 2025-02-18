@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-// TODO(b/200306659): Remove and replace with annotation on package-info.java
 @file:Suppress("DEPRECATION")
 
 package androidx.camera.camera2.pipe.config
@@ -24,11 +23,12 @@ import androidx.camera.camera2.pipe.CameraBackendId
 import androidx.camera.camera2.pipe.CameraContext
 import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
-import androidx.camera.camera2.pipe.CameraStatusMonitor
 import androidx.camera.camera2.pipe.RequestProcessor
 import androidx.camera.camera2.pipe.StreamGraph
+import androidx.camera.camera2.pipe.SurfaceTracker
 import androidx.camera.camera2.pipe.compat.ExternalCameraController
 import androidx.camera.camera2.pipe.graph.GraphListener
 import dagger.Module
@@ -36,7 +36,6 @@ import dagger.Provides
 import dagger.Subcomponent
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 
 @CameraGraphScope
 @Subcomponent(modules = [SharedCameraGraphModules::class, ExternalCameraGraphConfigModule::class])
@@ -53,7 +52,7 @@ internal interface ExternalCameraGraphComponent {
 
 @Module
 internal class ExternalCameraGraphConfigModule(
-    private val config: CameraGraph.Config,
+    private val graphConfig: CameraGraph.Config,
     private val cameraMetadata: CameraMetadata,
     private val requestProcessor: RequestProcessor
 ) {
@@ -62,8 +61,8 @@ internal class ExternalCameraGraphConfigModule(
             override val id: CameraBackendId
                 get() = CameraBackendId("External")
 
-            override val cameraStatus: Flow<CameraStatusMonitor.CameraStatus>
-                get() = MutableSharedFlow()
+            override val cameraIds: Flow<List<CameraId>>
+                get() = throwUnsupportedOperationException()
 
             override suspend fun getCameraIds(): List<CameraId>? {
                 throwUnsupportedOperationException()
@@ -91,9 +90,11 @@ internal class ExternalCameraGraphConfigModule(
 
             override fun createCameraController(
                 cameraContext: CameraContext,
+                graphId: CameraGraphId,
                 graphConfig: CameraGraph.Config,
                 graphListener: GraphListener,
-                streamGraph: StreamGraph
+                streamGraph: StreamGraph,
+                surfaceTracker: SurfaceTracker,
             ): CameraController {
                 throwUnsupportedOperationException()
             }
@@ -118,14 +119,17 @@ internal class ExternalCameraGraphConfigModule(
                 throw UnsupportedOperationException("External CameraPipe should not use backends")
         }
 
-    @Provides fun provideCameraGraphConfig(): CameraGraph.Config = config
+    @Provides fun provideCameraGraphConfig(): CameraGraph.Config = graphConfig
 
     @Provides fun provideCameraMetadata(): CameraMetadata = cameraMetadata
 
     @CameraGraphScope
     @Provides
-    fun provideGraphController(graphListener: GraphListener): CameraController =
-        ExternalCameraController(config, graphListener, requestProcessor)
+    fun provideGraphController(
+        graphId: CameraGraphId,
+        graphListener: GraphListener
+    ): CameraController =
+        ExternalCameraController(graphId, graphConfig, graphListener, requestProcessor)
 
     @CameraGraphScope @Provides fun provideCameraBackend(): CameraBackend = externalCameraBackend
 }

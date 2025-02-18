@@ -63,7 +63,8 @@ import kotlin.math.min
  *
  * [CircularProgressIndicator] supports a gap in the circular track between [endAngle] and
  * [startAngle], which leaves room for other content, such as [TimeText] at the top of the screen.
- * Example:
+ * This sample also shows how to disable accessibility semantics for the fullscreen
+ * [CircularProgressIndicator]:
  *
  * @sample androidx.wear.compose.material.samples.CircularProgressIndicatorFullscreenWithGap
  * @param modifier Modifier to be applied to the CircularProgressIndicator
@@ -234,27 +235,27 @@ public object ProgressIndicatorDefaults {
      *
      * This can be customized with the `strokeWidth` parameter on [CircularProgressIndicator]
      */
-    public val StrokeWidth = 4.dp
+    public val StrokeWidth: Dp = 4.dp
 
     /**
      * Default stroke width for indeterminate [CircularProgressIndicator]
      *
      * This can be customized with the `strokeWidth` parameter on [CircularProgressIndicator]
      */
-    public val IndeterminateStrokeWidth = 3.dp
+    public val IndeterminateStrokeWidth: Dp = 3.dp
 
     /**
      * Stroke width for full screen [CircularProgressIndicator]
      *
      * This can be customized with the `strokeWidth` parameter on [CircularProgressIndicator]
      */
-    public val FullScreenStrokeWidth = 5.dp
+    public val FullScreenStrokeWidth: Dp = 5.dp
 
     /**
      * The default [AnimationSpec] that should be used when animating between progress in a
      * determinate progress indicator.
      */
-    public val ProgressAnimationSpec =
+    public val ProgressAnimationSpec: SpringSpec<Float> =
         SpringSpec(
             dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessVeryLow,

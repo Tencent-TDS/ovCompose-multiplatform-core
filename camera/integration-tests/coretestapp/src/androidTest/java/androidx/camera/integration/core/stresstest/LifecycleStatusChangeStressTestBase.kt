@@ -158,11 +158,16 @@ abstract class LifecycleStatusChangeStressTestBase(
         cameraId: String,
         useCaseCombination: Int,
         verificationTarget: Int,
-        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT
+        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT,
+        enableStreamSharing: Boolean = false
     ) {
         // Launches CameraXActivity and wait for the preview ready.
         val activityScenario =
-            launchCameraXActivityAndWaitForPreviewReady(cameraId, useCaseCombination)
+            launchCameraXActivityAndWaitForPreviewReady(
+                cameraId,
+                useCaseCombination,
+                forceEnableStreamSharing = enableStreamSharing
+            )
 
         // Pauses, resumes the activity, and then checks the test target use case can capture
         // images successfully.
@@ -205,11 +210,16 @@ abstract class LifecycleStatusChangeStressTestBase(
         cameraId: String,
         useCaseCombination: Int,
         verificationTarget: Int,
-        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT
+        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT,
+        enableStreamSharing: Boolean = false
     ) {
         // Launches CameraXActivity and wait for the preview ready.
         val activityScenario =
-            launchCameraXActivityAndWaitForPreviewReady(cameraId, useCaseCombination)
+            launchCameraXActivityAndWaitForPreviewReady(
+                cameraId,
+                useCaseCombination,
+                forceEnableStreamSharing = enableStreamSharing
+            )
 
         // Pauses, resumes the activity repeatedly, and then checks the test target use case can
         // capture images successfully.

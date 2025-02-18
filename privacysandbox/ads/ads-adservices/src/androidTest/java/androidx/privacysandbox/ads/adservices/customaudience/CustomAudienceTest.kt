@@ -59,7 +59,7 @@ class CustomAudienceTest {
     @Test
     fun testToStringAndEquals() {
         val result =
-            "CustomAudience: buyer=abc.com, name=abc, activationTime=$activationTime, " +
+            "CustomAudience: buyer=1234, name=abc, activationTime=$activationTime, " +
                 "expirationTime=$expirationTime, dailyUpdateUri=abc.com, " +
                 "userBiddingSignals=AdSelectionSignals: signals, " +
                 "trustedBiddingSignals=TrustedBiddingData: trustedBiddingUri=abc.com " +

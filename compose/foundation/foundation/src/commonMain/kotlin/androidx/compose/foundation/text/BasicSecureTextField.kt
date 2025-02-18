@@ -19,7 +19,6 @@ package androidx.compose.foundation.text
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldBuffer
@@ -39,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -47,9 +47,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
-import androidx.compose.ui.semantics.copyText
-import androidx.compose.ui.semantics.cutText
-import androidx.compose.ui.semantics.password
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -74,8 +72,8 @@ import kotlinx.coroutines.flow.consumeAsFlow
  *   field will be neither editable nor focusable, the input of the text field will not be
  *   selectable.
  * @param readOnly controls the editable state of the [BasicSecureTextField]. When `true`, the text
- *   field can not be modified, however, a user can focus it and copy text from it. Read-only text
- *   fields are usually used to display pre-filled forms that user can not edit.
+ *   field can not be modified, however, a user can focus on it. Read-only text fields are usually
+ *   used to display pre-filled forms that a user can not edit.
  * @param inputTransformation Optional [InputTransformation] that will be used to transform changes
  *   to the [TextFieldState] made by the user. The transformation will be applied to changes made by
  *   hardware and software keyboard events, pasting or dropping text, accessibility services, and
@@ -168,10 +166,12 @@ fun BasicSecureTextField(
 
     val secureTextFieldModifier =
         modifier
-            .semantics(mergeDescendants = true) {
-                password()
-                copyText { false }
-                cutText { false }
+            .semantics { contentType = ContentType.Password }
+            .onPreviewKeyEvent { keyEvent ->
+                // BasicTextField uses this static mapping
+                val command = platformDefaultKeyMapping.map(keyEvent)
+                // do not propagate copy and cut operations
+                command == KeyCommand.COPY || command == KeyCommand.CUT
             }
             .then(
                 if (revealLastTypedEnabled) {
@@ -313,31 +313,21 @@ private fun DisableCutCopy(content: @Composable () -> Unit) {
                     onCopyRequested: (() -> Unit)?,
                     onPasteRequested: (() -> Unit)?,
                     onCutRequested: (() -> Unit)?,
-                    onSelectAllRequested: (() -> Unit)?
+                    onSelectAllRequested: (() -> Unit)?,
+                    onAutofillRequested: (() -> Unit)?
                 ) {
                     currentToolbar.showMenu(
                         rect = rect,
                         onPasteRequested = onPasteRequested,
                         onSelectAllRequested = onSelectAllRequested,
                         onCopyRequested = null,
-                        onCutRequested = null
+                        onCutRequested = null,
+                        onAutofillRequested = onAutofillRequested
                     )
                 }
             }
         }
-    CompositionLocalProvider(LocalTextToolbar provides copyDisabledToolbar) {
-        Box(
-            modifier =
-                Modifier.onPreviewKeyEvent { keyEvent ->
-                    // BasicTextField uses this static mapping
-                    val command = platformDefaultKeyMapping.map(keyEvent)
-                    // do not propagate copy and cut operations
-                    command == KeyCommand.COPY || command == KeyCommand.CUT
-                }
-        ) {
-            content()
-        }
-    }
+    CompositionLocalProvider(LocalTextToolbar provides copyDisabledToolbar, content)
 }
 
 @Deprecated(

@@ -26,11 +26,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextIndent
+import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -150,7 +154,12 @@ class SaversTest {
                 textAlign = TextAlign.Justify,
                 textDirection = TextDirection.Rtl,
                 lineHeight = 10.sp,
-                textIndent = TextIndent(firstLine = 2.sp, restLine = 3.sp)
+                textIndent = TextIndent(firstLine = 2.sp, restLine = 3.sp),
+                platformStyle = PlatformParagraphStyle.Default,
+                lineHeightStyle = LineHeightStyle.Default,
+                lineBreak = LineBreak.Paragraph,
+                hyphens = Hyphens.Auto,
+                textMotion = TextMotion.Animated
             )
         val saved = save(original, ParagraphStyleSaver, defaultSaverScope)
         val restored: ParagraphStyle? = restore(saved, ParagraphStyleSaver)
@@ -477,5 +486,55 @@ class SaversTest {
         val saved = with(LocaleList.Saver) { defaultSaverScope.save(original) }
 
         assertThat(LocaleList.Saver.restore(saved!!)).isEqualTo(original)
+    }
+
+    @Test
+    fun test_PlatformParagraphStyle() {
+        val original = PlatformParagraphStyle.Default
+        val saved = save(original, PlatformParagraphStyle.Saver, defaultSaverScope)
+        val restored: PlatformParagraphStyle? = restore(saved, PlatformParagraphStyle.Saver)
+
+        assertThat(restored).isEqualTo(original)
+    }
+
+    @Test
+    fun test_PlatformParagraphStyle_with_no_null_args() {
+        val original = PlatformParagraphStyle(EmojiSupportMatch.All, true)
+        val saved = save(original, PlatformParagraphStyle.Saver, defaultSaverScope)
+        val restored: PlatformParagraphStyle? = restore(saved, PlatformParagraphStyle.Saver)
+
+        assertThat(restored).isEqualTo(original)
+    }
+
+    @Test
+    fun test_LineHeightStyle() {
+        val original =
+            LineHeightStyle(
+                LineHeightStyle.Alignment.Proportional,
+                LineHeightStyle.Trim.Both,
+                LineHeightStyle.Mode.Minimum
+            )
+        val saved = save(original, LineHeightStyle.Saver, defaultSaverScope)
+        val restored: LineHeightStyle? = restore(saved, LineHeightStyle.Saver)
+
+        assertThat(restored).isEqualTo(original)
+    }
+
+    @Test
+    fun test_LineBreak() {
+        val original = LineBreak.Paragraph
+        val saved = save(original, LineBreak.Saver, defaultSaverScope)
+        val restored: LineBreak? = restore(saved, LineBreak.Saver)
+
+        assertThat(restored).isEqualTo(original)
+    }
+
+    @Test
+    fun test_TextMotion() {
+        val original = TextMotion.Animated
+        val saved = save(original, TextMotion.Saver, defaultSaverScope)
+        val restored: TextMotion? = restore(saved, TextMotion.Saver)
+
+        assertThat(restored).isEqualTo(original)
     }
 }

@@ -23,6 +23,7 @@ import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
 import androidx.annotation.UiContext
+import androidx.window.RequiresWindowSdkExtension
 import androidx.window.WindowSdkExtensions
 import androidx.window.core.ConsumerAdapter
 import androidx.window.layout.adapter.WindowBackend
@@ -41,10 +42,10 @@ interface WindowInfoTracker {
      * A [Flow] of [WindowLayoutInfo] that contains all the available features. A [WindowLayoutInfo]
      * contains a [List] of [DisplayFeature] that intersect the associated [android.view.Window].
      *
-     * This method exports the same content as
-     * [WindowLayoutInfo.windowLayoutInfo(activity: Activity)], but also supports non-Activity
-     * windows to receive [WindowLayoutInfo] updates. A [WindowLayoutInfo] value should be published
-     * when [DisplayFeature] have changed, but the behavior is ultimately decided by the hardware
+     * This method exports the same content as the [windowLayoutInfo] method that accepts an
+     * [Activity] as a parameter, but also supports non-Activity windows to receive
+     * [WindowLayoutInfo] updates. A [WindowLayoutInfo] value should be published when
+     * [DisplayFeature] have changed, but the behavior is ultimately decided by the hardware
      * implementation. It is recommended to test the following scenarios:
      * * Values are emitted immediately after subscribing to this function.
      * * There is a long delay between subscribing and receiving the first value.
@@ -59,8 +60,8 @@ interface WindowInfoTracker {
      *
      * @param context a [UiContext] such as an [Activity], an [InputMethodService], or an instance
      *   created via [Context.createWindowContext] that listens to configuration changes.
-     * @throws NotImplementedError when [Context] is not an [UiContext] or this method has no
-     *   supporting implementation.
+     * @throws IllegalArgumentException when [context] is not an [UiContext].
+     * @throws NotImplementedError when this method has no supporting implementation.
      * @see WindowLayoutInfo
      * @see DisplayFeature
      */
@@ -95,6 +96,24 @@ interface WindowInfoTracker {
      * @see DisplayFeature
      */
     fun windowLayoutInfo(activity: Activity): Flow<WindowLayoutInfo>
+
+    /**
+     * Returns the [List] of [SupportedPosture] values. This value will not change during runtime.
+     * These values are for determining if the device supports the given [SupportedPosture] but does
+     * not mean the device is in the given [SupportedPosture]. Use [windowLayoutInfo] to determine
+     * the current state of the [DisplayFeature]'s on the device.
+     *
+     * @throws UnsupportedOperationException if [WindowSdkExtensions.extensionVersion] is less
+     *   than 6.
+     * @throws NotImplementedError if a derived test class does not override this method.
+     * @see windowLayoutInfo
+     */
+    @RequiresWindowSdkExtension(version = 6)
+    @get:RequiresWindowSdkExtension(version = 6)
+    val supportedPostures: List<SupportedPosture>
+        get() {
+            throw NotImplementedError("Method was not implemented.")
+        }
 
     companion object {
 
@@ -134,7 +153,12 @@ interface WindowInfoTracker {
         @JvmStatic
         fun getOrCreate(context: Context): WindowInfoTracker {
             val backend = extensionBackend ?: SidecarWindowBackend.getInstance(context)
-            val repo = WindowInfoTrackerImpl(WindowMetricsCalculatorCompat, backend)
+            val repo =
+                WindowInfoTrackerImpl(
+                    WindowMetricsCalculatorCompat(),
+                    backend,
+                    WindowSdkExtensions.getInstance()
+                )
             return decorator.decorate(repo)
         }
 

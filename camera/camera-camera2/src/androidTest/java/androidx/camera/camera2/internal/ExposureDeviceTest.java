@@ -40,7 +40,6 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.camera2.internal.util.SemaphoreReleasingCamera2Callbacks;
@@ -71,6 +70,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -425,7 +426,7 @@ public class ExposureDeviceTest {
         FakeTestUseCase(
                 @NonNull FakeUseCaseConfig config,
                 @NonNull CameraInternal cameraInternal,
-                @NonNull CameraCaptureSession.StateCallback sessionStateCallback) {
+                CameraCaptureSession.@NonNull StateCallback sessionStateCallback) {
             super(config);
             mSessionStateCallback = sessionStateCallback;
         }
@@ -444,12 +445,12 @@ public class ExposureDeviceTest {
         }
 
         @Override
-        @NonNull
-        protected StreamSpec onSuggestedStreamSpecUpdated(
-                @NonNull StreamSpec suggestedStreamSpec) {
-            createPipeline(suggestedStreamSpec);
+        protected @NonNull StreamSpec onSuggestedStreamSpecUpdated(
+                @NonNull StreamSpec primaryStreamSpec,
+                @Nullable StreamSpec secondaryStreamSpec) {
+            createPipeline(primaryStreamSpec);
             notifyActive();
-            return suggestedStreamSpec;
+            return primaryStreamSpec;
         }
 
         private void createPipeline(StreamSpec streamSpec) {
@@ -486,11 +487,11 @@ public class ExposureDeviceTest {
                         }
                     }));
 
-            builder.addErrorListener((sessionConfig, error) -> {
+            builder.setErrorListener((sessionConfig, error) -> {
                 // Create new pipeline and it will close the old one.
                 createPipeline(streamSpec);
             });
-            updateSessionConfig(builder.build());
+            updateSessionConfig(List.of(builder.build()));
         }
     }
 }

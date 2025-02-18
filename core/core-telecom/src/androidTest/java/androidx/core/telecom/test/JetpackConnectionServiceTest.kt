@@ -16,6 +16,7 @@
 
 package androidx.core.telecom.test
 
+import android.net.Uri
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.telecom.Connection
@@ -29,11 +30,11 @@ import androidx.core.telecom.internal.utils.Utils
 import androidx.core.telecom.test.utils.BaseTelecomTest
 import androidx.core.telecom.test.utils.TestUtils
 import androidx.core.telecom.test.utils.TestUtils.TEST_CALL_ATTRIB_NAME
-import androidx.core.telecom.test.utils.TestUtils.TEST_PHONE_NUMBER_9001
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -214,6 +215,51 @@ class JetpackConnectionServiceTest : BaseTelecomTest() {
         )
     }
 
+    /**
+     * Verify on sdks 26 & 27 the address is replaced for outgoing calls to a sip and package name
+     * format. Otherwise, the call will fail with an "To place a cal, enter a valid number" error.
+     * see b/372473795 for more info
+     */
+    @SdkSuppress(minSdkVersion = VERSION_CODES.O, maxSdkVersion = VERSION_CODES.O_MR1 /* api=27 */)
+    @SmallTest
+    @Test
+    fun testCustomSchemeOnLowerSdk_outgoingCall() {
+        // create the CallAttributes
+        val attributes =
+            CallAttributesCompat(
+                displayName = TEST_CALL_ATTRIB_NAME,
+                address = Uri.parse("CustomScheme:abc"),
+                direction = CallAttributesCompat.DIRECTION_OUTGOING,
+                callType = CallAttributesCompat.CALL_TYPE_AUDIO_CALL,
+                callCapabilities = TestUtils.ALL_CALL_CAPABILITIES,
+                preferredStartingCallEndpoint = null,
+            )
+        attributes.mHandle = mCallsManager.getPhoneAccountHandleForPackage()
+        val packageName = attributes.mHandle!!.componentName.packageName
+
+        val pcr =
+            mConnectionService.maybeReplaceAddress(
+                JetpackConnectionService.PendingConnectionRequest(
+                    "1",
+                    mContext,
+                    attributes,
+                    callChannels,
+                    mWorkerContext,
+                    null,
+                    TestUtils.mOnAnswerLambda,
+                    TestUtils.mOnDisconnectLambda,
+                    TestUtils.mOnSetActiveLambda,
+                    TestUtils.mOnSetInActiveLambda,
+                    TestUtils.mOnEventLambda,
+                    MutableSharedFlow(),
+                    null,
+                    CompletableDeferred()
+                )
+            )
+
+        assertEquals("sip:" + packageName, pcr.callAttributes.address.toString())
+    }
+
     private fun verifyConnectionPropertiesBasics(connection: Connection?) {
         // assert it's not null
         assertNotNull(connection)
@@ -221,7 +267,7 @@ class JetpackConnectionServiceTest : BaseTelecomTest() {
         val unwrappedConnection = connection!!
         // assert all the properties are the same
         assertEquals(TEST_CALL_ATTRIB_NAME, unwrappedConnection.callerDisplayName)
-        assertEquals(TEST_PHONE_NUMBER_9001, unwrappedConnection.address)
+        assertEquals(TestUtils.TEST_ADDRESS, unwrappedConnection.address)
         assertEquals(
             Connection.CAPABILITY_HOLD,
             unwrappedConnection.connectionCapabilities and Connection.CAPABILITY_HOLD
@@ -246,6 +292,7 @@ class JetpackConnectionServiceTest : BaseTelecomTest() {
         val pr =
             JetpackConnectionService.PendingConnectionRequest(
                 pendingRequestId,
+                mContext,
                 callAttributesCompat,
                 callChannels,
                 mWorkerContext,
@@ -255,6 +302,8 @@ class JetpackConnectionServiceTest : BaseTelecomTest() {
                 TestUtils.mOnSetActiveLambda,
                 TestUtils.mOnSetInActiveLambda,
                 TestUtils.mOnEventLambda,
+                MutableSharedFlow(),
+                null,
                 CompletableDeferred()
             )
 
@@ -263,7 +312,7 @@ class JetpackConnectionServiceTest : BaseTelecomTest() {
         // create a ConnectionRequest
         return ConnectionRequest(
             mPackagePhoneAccountHandle,
-            TEST_PHONE_NUMBER_9001,
+            TestUtils.TEST_ADDRESS,
             pendingRequestIdBundle
         )
     }

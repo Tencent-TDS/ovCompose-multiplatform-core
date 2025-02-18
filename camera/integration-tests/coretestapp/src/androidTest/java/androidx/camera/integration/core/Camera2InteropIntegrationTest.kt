@@ -27,6 +27,7 @@ import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.TotalCaptureResult
+import android.util.Range
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.Camera
@@ -44,12 +45,15 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CameraUtil.PreTestCameraIdList
+import androidx.camera.testing.impl.ExtensionsUtil
+import androidx.camera.testing.impl.fakes.FakeSessionProcessor
 import androidx.concurrent.futures.await
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.testing.TestLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -257,6 +261,70 @@ class Camera2InteropIntegrationTest(
         }
     }
 
+    @Test
+    fun camera2CameraInfo_getCharacteristics(): Unit = runBlocking {
+        val cameraInfo = processCameraProvider!!.getCameraInfo(CameraSelector.DEFAULT_BACK_CAMERA)
+        val cameraId = CameraPipeUtil.getCameraId(implName, cameraInfo)
+        val cameraCharacteristics = getCameraCharacteristics(cameraId)
+
+        val maxZoom =
+            CameraPipeUtil.getCamera2CameraInfoCharacteristics(
+                implName,
+                cameraInfo,
+                CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM
+            )
+
+        assertThat(
+            maxZoom!!.equals(
+                cameraCharacteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)
+            )
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 30)
+    fun camera2CameraInfo_getExtensionsSpecificChars(): Unit = runBlocking {
+        val zoomRange = Range(1f, 2f)
+        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+        val cameraSelectorWithExtensions =
+            ExtensionsUtil.getCameraSelectorWithSessionProcessor(
+                processCameraProvider!!,
+                cameraSelector,
+                FakeSessionProcessor(
+                    extensionSpecificChars =
+                        listOf(
+                            android.util.Pair(
+                                CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE,
+                                zoomRange
+                            )
+                        )
+                )
+            )
+        val cameraInfoWithExtensions =
+            processCameraProvider!!.getCameraInfo(cameraSelectorWithExtensions)
+        assertThat(
+                CameraPipeUtil.getCamera2CameraInfoCharacteristics(
+                    implName,
+                    cameraInfoWithExtensions,
+                    CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE
+                )
+            )
+            .isEqualTo(zoomRange)
+
+        // Ensure it doesn't impact the regular Camera2CameraInfo without Extensions.
+        val cameraInfoWithoutExtensions = processCameraProvider!!.getCameraInfo(cameraSelector)
+        val cameraId = CameraPipeUtil.getCameraId(implName, cameraInfoWithoutExtensions)
+        val cameraCharacteristics = getCameraCharacteristics(cameraId)
+        assertThat(
+                CameraPipeUtil.getCamera2CameraInfoCharacteristics(
+                    implName,
+                    cameraInfoWithoutExtensions,
+                    CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE
+                )
+            )
+            .isEqualTo(cameraCharacteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE))
+    }
+
     private fun ProcessCameraProvider.bindAnalysis(lifecycleOwner: LifecycleOwner): Camera {
         val imageAnalysis =
             ImageAnalysis.Builder()
@@ -429,6 +497,13 @@ class Camera2InteropIntegrationTest(
         }
 
         return false
+    }
+
+    private fun getCameraCharacteristics(cameraId: String): CameraCharacteristics {
+        val cameraManager =
+            ApplicationProvider.getApplicationContext<Context>().getSystemService(CAMERA_SERVICE)
+                as CameraManager
+        return cameraManager.getCameraCharacteristics(cameraId)
     }
 
     companion object {

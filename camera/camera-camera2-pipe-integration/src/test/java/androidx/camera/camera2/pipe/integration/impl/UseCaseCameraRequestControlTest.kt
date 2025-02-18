@@ -33,6 +33,7 @@ import androidx.camera.camera2.pipe.integration.testing.FakeCameraGraph
 import androidx.camera.camera2.pipe.integration.testing.FakeCameraProperties
 import androidx.camera.camera2.pipe.integration.testing.FakeCapturePipeline
 import androidx.camera.camera2.pipe.integration.testing.FakeSurface
+import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseSurfaceManager
 import androidx.camera.camera2.pipe.testing.FakeFrameInfo
 import androidx.camera.camera2.pipe.testing.FakeRequestMetadata
 import androidx.camera.core.impl.CameraCaptureCallback
@@ -43,6 +44,7 @@ import androidx.camera.core.impl.TagBundle
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.collections.removeLast as removeLastKt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +89,8 @@ class UseCaseCameraRequestControlTest {
             capturePipeline = FakeCapturePipeline(),
             state = fakeUseCaseCameraState,
             useCaseGraphConfig = fakeUseCaseGraphConfig,
+            useCaseSurfaceManager = FakeUseCaseSurfaceManager(threads = useCaseThreads),
+            threads = useCaseThreads,
         )
 
     @After
@@ -121,7 +125,7 @@ class UseCaseCameraRequestControlTest {
         // Act
         requestControl.setSessionConfigAsync(sessionConfigBuilder.build()).await()
         requestControl
-            .addParametersAsync(
+            .setParametersAsync(
                 values = mapOf(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION to 5)
             )
             .await()
@@ -135,7 +139,7 @@ class UseCaseCameraRequestControlTest {
         // Assert
         assertThat(fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.size).isEqualTo(3)
 
-        val lastRequest = fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLast()
+        val lastRequest = fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLastKt()
         assertThat(lastRequest.parameters[CaptureRequest.CONTROL_AE_MODE])
             .isEqualTo(CaptureRequest.CONTROL_AE_MODE_ON)
         assertThat(lastRequest.parameters[CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION])
@@ -145,7 +149,7 @@ class UseCaseCameraRequestControlTest {
         assertThat(lastRequest.parameters.size).isEqualTo(3)
 
         val secondLastRequest =
-            fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLast()
+            fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLastKt()
         assertThat(secondLastRequest.parameters[CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION])
             .isEqualTo(5)
         assertThat(secondLastRequest.parameters[CaptureRequest.CONTROL_AE_MODE])
@@ -187,7 +191,7 @@ class UseCaseCameraRequestControlTest {
             type = UseCaseCameraRequestControl.Type.CAMERA2_CAMERA_CONTROL,
             config = camera2CameraControlConfig
         )
-        requestControl.addParametersAsync(
+        requestControl.setParametersAsync(
             values = mapOf(CaptureRequest.CONTROL_AE_MODE to CaptureRequest.CONTROL_AE_MODE_OFF)
         )
         requestControl.setSessionConfigAsync(sessionConfigBuilder.build()).await()
@@ -209,9 +213,6 @@ class UseCaseCameraRequestControlTest {
         val testCamera2InteropTagKey = "testCamera2InteropTagKey"
         val testCamera2InteropTagValue = "testCamera2InteropTagValue"
 
-        val testTagKey = "testTagKey"
-        val testTagValue = "testTagValue"
-
         val sessionConfigBuilder =
             SessionConfig.Builder().also { sessionConfigBuilder ->
                 sessionConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
@@ -231,10 +232,6 @@ class UseCaseCameraRequestControlTest {
                     .build(),
             tags = mapOf(testCamera2InteropTagKey to testCamera2InteropTagValue)
         )
-        requestControl.addParametersAsync(
-            values = mapOf(CaptureRequest.CONTROL_AE_MODE to CaptureRequest.CONTROL_AE_MODE_OFF),
-            tags = mapOf(testTagKey to testTagValue)
-        )
         requestControl.setSessionConfigAsync(sessionConfigBuilder.build()).await()
 
         // Assert.
@@ -243,14 +240,12 @@ class UseCaseCameraRequestControlTest {
         assertThat(tagBundle).isNotNull()
         assertThat(tagBundle.getTag(testSessionTagKey)).isEqualTo(testSessionTagValue)
         assertThat(tagBundle.getTag(testCamera2InteropTagKey)).isEqualTo(testCamera2InteropTagValue)
-        assertThat(tagBundle.getTag(testTagKey)).isEqualTo(testTagValue)
     }
 
     @Test
     fun testMergeListener(): Unit = runBlocking {
         // Arrange
         val testRequestListener = TestRequestListener()
-        val testRequestListener1 = TestRequestListener()
         val testCaptureCallback =
             object : CameraCaptureCallback() {
                 val latch = CountDownLatch(1)
@@ -281,10 +276,6 @@ class UseCaseCameraRequestControlTest {
                     .build(),
             listeners = setOf(testRequestListener)
         )
-        requestControl.addParametersAsync(
-            values = mapOf(CaptureRequest.CONTROL_AE_MODE to CaptureRequest.CONTROL_AE_MODE_OFF),
-            listeners = setOf(testRequestListener1)
-        )
         requestControl.setSessionConfigAsync(sessionConfigBuilder.build()).await()
 
         // Invoke the onComplete on all the listeners.
@@ -294,7 +285,6 @@ class UseCaseCameraRequestControlTest {
 
         // Assert. All the listeners should receive the onComplete signal.
         assertThat(testRequestListener.latch.await(1, TimeUnit.SECONDS)).isTrue()
-        assertThat(testRequestListener1.latch.await(1, TimeUnit.SECONDS)).isTrue()
         assertThat(testCaptureCallback.latch.await(1, TimeUnit.SECONDS)).isTrue()
     }
 
@@ -344,7 +334,7 @@ class UseCaseCameraRequestControlTest {
         // Act
         requestControl.setSessionConfigAsync(sessionConfigBuilder.build()).await()
         requestControl
-            .addParametersAsync(
+            .setParametersAsync(
                 values = mapOf(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION to 5)
             )
             .await()
@@ -357,7 +347,7 @@ class UseCaseCameraRequestControlTest {
 
         // Assert
         assertThat(fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.size).isEqualTo(3)
-        val lastRequest = fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLast()
+        val lastRequest = fakeCameraGraph.fakeCameraGraphSession.repeatingRequests.removeLastKt()
         assertThat(lastRequest.template!!.value)
             .isEqualTo(RequestTemplate(CameraDevice.TEMPLATE_RECORD).value)
     }

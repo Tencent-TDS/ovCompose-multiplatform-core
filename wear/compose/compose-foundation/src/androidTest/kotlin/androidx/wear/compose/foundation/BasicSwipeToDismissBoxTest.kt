@@ -16,6 +16,7 @@
 
 package androidx.wear.compose.foundation
 
+import android.os.Build
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,6 +57,7 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeWithVelocity
+import androidx.test.filters.SdkSuppress
 import java.lang.Math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,6 +65,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@SdkSuppress(maxSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 class BasicSwipeToDismissBoxTest {
     @get:Rule val rule = createComposeRule()
 
@@ -480,6 +483,28 @@ class BasicSwipeToDismissBoxTest {
             assertTrue(focusedContent)
             assertFalse(focusedBackground)
         }
+    }
+
+    @Test
+    fun dragged_right() {
+        lateinit var state: SwipeToDismissBoxState
+        rule.setContent {
+            state = rememberSwipeToDismissBoxState()
+            BasicSwipeToDismissBox(
+                state = state,
+                modifier = Modifier.testTag(TEST_TAG),
+                onDismissed = {}
+            ) {
+                MessageContent()
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(Offset(x = 0f, y = height / 2f))
+            moveTo(Offset(x = 100f, y = height / 2f))
+        }
+
+        rule.runOnIdle { assertTrue(state.offset > 0f) }
     }
 
     private fun testBothDirectionScroll(

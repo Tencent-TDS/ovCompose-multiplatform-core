@@ -16,13 +16,11 @@
 
 package androidx.benchmark.macro.perfetto
 
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
-import androidx.benchmark.perfetto.processNameLikePkg
-import org.intellij.lang.annotations.Language
+import androidx.benchmark.traceprocessor.TraceProcessor
+import androidx.benchmark.traceprocessor.processNameLikePkg
 
 internal object MemoryCountersQuery {
     // https://perfetto.dev/docs/data-sources/memory-counters
-    @Language("sql")
     internal fun getQuery(targetPackageName: String) =
         """
         SELECT
@@ -60,10 +58,7 @@ internal object MemoryCountersQuery {
         val memoryReclaimEvents: Double
     )
 
-    fun getMemoryCounters(
-        session: PerfettoTraceProcessor.Session,
-        targetPackageName: String
-    ): SubMetrics? {
+    fun getMemoryCounters(session: TraceProcessor.Session, targetPackageName: String): SubMetrics? {
         val queryResultIterator =
             session.query(query = getQuery(targetPackageName = targetPackageName))
 

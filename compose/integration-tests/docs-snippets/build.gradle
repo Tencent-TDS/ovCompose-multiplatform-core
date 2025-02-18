@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -65,12 +65,13 @@ dependencies {
 
 androidx {
     name = "Compose Documentation Snippets"
-    publish = Publish.NONE
+    type = SoftwareType.TEST_APPLICATION
     description = "Compose Documentation Snippets on developer.android.com"
 }
 
 android {
-    namespace "androidx.compose.integration.docs"
+    compileSdk = 35
+    namespace = "androidx.compose.integration.docs"
 }
 
-android.buildFeatures.viewBinding true
+android.buildFeatures.viewBinding = true

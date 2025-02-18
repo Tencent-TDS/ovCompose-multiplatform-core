@@ -16,6 +16,9 @@
 
 package androidx.wear.compose.foundation.rotary
 
+import android.os.Build
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.ViewConfiguration
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.CubicBezierEasing
@@ -35,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.input.rotary.RotaryInputModifierNode
 import androidx.compose.ui.input.rotary.RotaryScrollEvent
 import androidx.compose.ui.node.ModifierNodeElement
@@ -50,6 +52,9 @@ import androidx.compose.ui.util.lerp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.foundation.lazy.inverseLerp
+import androidx.wear.compose.foundation.pager.HorizontalPager
+import androidx.wear.compose.foundation.pager.PagerState
+import androidx.wear.compose.foundation.pager.VerticalPager
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import kotlin.math.abs
 import kotlin.math.absoluteValue
@@ -97,7 +102,7 @@ import kotlinx.coroutines.launch
  * @param reverseDirection Reverse the direction of scrolling if required for consistency with the
  *   scrollable state passed via [behavior].
  */
-fun Modifier.rotaryScrollable(
+public fun Modifier.rotaryScrollable(
     behavior: RotaryScrollableBehavior,
     focusRequester: FocusRequester,
     reverseDirection: Boolean = false
@@ -107,7 +112,7 @@ fun Modifier.rotaryScrollable(
             reverseDirection = reverseDirection,
         )
         .focusRequester(focusRequester)
-        .focusTarget()
+        .focusTargetWithSemantics()
 
 /**
  * An interface for handling scroll events. Has implementations for handling scroll with/without
@@ -115,7 +120,7 @@ fun Modifier.rotaryScrollable(
  * [HighResSnapRotaryScrollableBehavior] (see [Modifier.rotaryScrollable] for descriptions of
  * low-res and high-res devices).
  */
-interface RotaryScrollableBehavior {
+public interface RotaryScrollableBehavior {
 
     /**
      * Executes a scrolling operation based on rotary input.
@@ -125,7 +130,7 @@ interface RotaryScrollableBehavior {
      * @param inputDeviceId The id for the input device that this event came from
      * @param orientation Orientation of the scrolling
      */
-    suspend fun CoroutineScope.performScroll(
+    public suspend fun CoroutineScope.performScroll(
         timestampMillis: Long,
         delta: Float,
         inputDeviceId: Int,
@@ -139,29 +144,29 @@ interface RotaryScrollableBehavior {
  * This interface defines the essential properties and methods required for a scrollable to be
  * controlled by rotary input and perform a snap action.
  */
-interface RotarySnapLayoutInfoProvider {
+public interface RotarySnapLayoutInfoProvider {
 
     /**
      * The average size in pixels of an item within the scrollable. This is used to estimate
      * scrolling distances for snapping when responding to rotary input.
      */
-    val averageItemSize: Float
+    public val averageItemSize: Float
 
     /** The index of the item that is closest to the center. */
-    val currentItemIndex: Int
+    public val currentItemIndex: Int
 
     /**
      * The offset in pixels of the currently centered item from its centered position. This value
      * can be positive or negative.
      */
-    val currentItemOffset: Float
+    public val currentItemOffset: Float
 
     /** The total number of items within the scrollable */
-    val totalItemCount: Int
+    public val totalItemCount: Int
 }
 
 /** Defaults for rotaryScrollable modifier */
-object RotaryScrollableDefaults {
+public object RotaryScrollableDefaults {
 
     /**
      * Implementation of [RotaryScrollableBehavior] to define scrolling behaviour with or without
@@ -179,7 +184,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun behavior(
+    public fun behavior(
         scrollableState: ScrollableState,
         flingBehavior: FlingBehavior? = ScrollableDefaults.flingBehavior(),
         hapticFeedbackEnabled: Boolean = true
@@ -211,29 +216,19 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun snapBehavior(
+    public fun snapBehavior(
         scrollableState: ScrollableState,
         layoutInfoProvider: RotarySnapLayoutInfoProvider,
         snapOffset: Dp = 0.dp,
         hapticFeedbackEnabled: Boolean = true
-    ): RotaryScrollableBehavior {
-        val isLowRes = isLowResInput()
-        val snapOffsetPx = with(LocalDensity.current) { snapOffset.roundToPx() }
-        val rotaryHaptics: RotaryHapticHandler =
-            rememberRotaryHapticHandler(scrollableState, hapticFeedbackEnabled)
-
-        return remember(scrollableState, layoutInfoProvider, rotaryHaptics, snapOffset, isLowRes) {
-            snapBehavior(
-                scrollableState,
-                layoutInfoProvider,
-                rotaryHaptics,
-                snapOffsetPx,
-                ThresholdDivider,
-                ResistanceFactor,
-                isLowRes
-            )
-        }
-    }
+    ): RotaryScrollableBehavior =
+        snapBehavior(
+            scrollableState = scrollableState,
+            layoutInfoProvider = layoutInfoProvider,
+            snapSensitivity = RotarySnapSensitivity.DEFAULT,
+            snapOffset = snapOffset,
+            hapticFeedbackEnabled = hapticFeedbackEnabled
+        )
 
     /**
      * Implementation of [RotaryScrollableBehavior] to define scrolling behaviour with snap for
@@ -247,7 +242,7 @@ object RotaryScrollableDefaults {
      *   scrolling experience.
      */
     @Composable
-    fun snapBehavior(
+    public fun snapBehavior(
         scrollableState: ScalingLazyListState,
         snapOffset: Dp = 0.dp,
         hapticFeedbackEnabled: Boolean = true
@@ -259,8 +254,61 @@ object RotaryScrollableDefaults {
                     ScalingLazyColumnRotarySnapLayoutInfoProvider(scrollableState)
                 },
             snapOffset = snapOffset,
+            snapSensitivity = RotarySnapSensitivity.DEFAULT,
             hapticFeedbackEnabled = hapticFeedbackEnabled
         )
+
+    /**
+     * Implementation of [RotaryScrollableBehavior] to define scrolling behaviour with snap for
+     * [HorizontalPager] and [VerticalPager].
+     *
+     * @param pagerState [PagerState] to which rotary scroll will be connected.
+     * @param snapOffset An optional offset to be applied when snapping the item. Defines the
+     *   distance from the center of the scrollable to the center of the snapped item.
+     * @param hapticFeedbackEnabled Controls whether haptic feedback is given during rotary
+     *   scrolling (true by default). It's recommended to keep the default value of true for premium
+     *   scrolling experience.
+     */
+    @Composable
+    public fun snapBehavior(
+        pagerState: PagerState,
+        snapOffset: Dp = 0.dp,
+        hapticFeedbackEnabled: Boolean = true
+    ): RotaryScrollableBehavior {
+        return snapBehavior(
+            scrollableState = pagerState,
+            layoutInfoProvider =
+                remember(pagerState) { PagerRotarySnapLayoutInfoProvider(pagerState) },
+            snapSensitivity = RotarySnapSensitivity.HIGH,
+            snapOffset = snapOffset,
+            hapticFeedbackEnabled = hapticFeedbackEnabled
+        )
+    }
+
+    @Composable
+    private fun snapBehavior(
+        scrollableState: ScrollableState,
+        layoutInfoProvider: RotarySnapLayoutInfoProvider,
+        snapSensitivity: RotarySnapSensitivity,
+        snapOffset: Dp,
+        hapticFeedbackEnabled: Boolean
+    ): RotaryScrollableBehavior {
+        val isLowRes = isLowResInput()
+        val snapOffsetPx = with(LocalDensity.current) { snapOffset.roundToPx() }
+        val rotaryHaptics: RotaryHapticHandler =
+            rememberRotaryHapticHandler(scrollableState, hapticFeedbackEnabled)
+
+        return remember(scrollableState, layoutInfoProvider, rotaryHaptics, snapOffset, isLowRes) {
+            snapBehavior(
+                scrollableState,
+                layoutInfoProvider,
+                rotaryHaptics,
+                snapSensitivity,
+                snapOffsetPx,
+                isLowRes
+            )
+        }
+    }
 
     /** Returns whether the input is Low-res (a bezel) or high-res (a crown/rsb). */
     @Composable
@@ -268,9 +316,6 @@ object RotaryScrollableDefaults {
         LocalContext.current.packageManager.hasSystemFeature(
             "android.hardware.rotaryencoder.lowres"
         )
-
-    private const val ThresholdDivider: Float = 1.5f
-    private const val ResistanceFactor: Float = 3f
 
     // These values represent the timeframe for a fling event. A bigger value is assigned
     // to low-res input due to the lower frequency of low-res rotary events.
@@ -303,6 +348,27 @@ internal class ScalingLazyColumnRotarySnapLayoutInfoProvider(
         get() = scrollableState.layoutInfo.totalItemsCount
 }
 
+/** An implementation of rotary scroll adapter for Pager */
+internal class PagerRotarySnapLayoutInfoProvider(private val pagerState: PagerState) :
+    RotarySnapLayoutInfoProvider {
+
+    /** Calculates the average item height by just taking the pageSize. */
+    override val averageItemSize: Float
+        get() = pagerState.layoutInfo.pageSize.toFloat()
+
+    /** Current page */
+    override val currentItemIndex: Int
+        get() = pagerState.currentPage
+
+    /** The offset from the page center. */
+    override val currentItemOffset: Float
+        get() = pagerState.currentPageOffsetFraction * averageItemSize
+
+    /** The total count of items in Pager */
+    override val totalItemCount: Int
+        get() = pagerState.pageCount
+}
+
 /**
  * Handles scroll with fling.
  *
@@ -322,15 +388,17 @@ private fun flingBehavior(
     viewConfiguration: ViewConfiguration
 ): RotaryScrollableBehavior {
 
-    fun rotaryFlingHandler() =
+    fun rotaryFlingHandler(inputDeviceId: Int, initialTimestamp: Long) =
         flingBehavior?.run {
             RotaryFlingHandler(
-                scrollableState,
-                flingBehavior,
-                viewConfiguration,
+                scrollableState = scrollableState,
+                flingBehavior = flingBehavior,
                 flingTimeframe =
                     if (isLowRes) RotaryScrollableDefaults.LowResFlingTimeframe
-                    else RotaryScrollableDefaults.HighResFlingTimeframe
+                    else RotaryScrollableDefaults.HighResFlingTimeframe,
+                viewConfiguration = viewConfiguration,
+                inputDeviceId = inputDeviceId,
+                initialTimestamp = initialTimestamp
             )
         }
 
@@ -339,7 +407,9 @@ private fun flingBehavior(
     return FlingRotaryScrollableBehavior(
         isLowRes,
         rotaryHaptics,
-        rotaryFlingHandlerFactory = { rotaryFlingHandler() },
+        rotaryFlingHandlerFactory = { inputDeviceId: Int, initialTimestamp: Long ->
+            rotaryFlingHandler(inputDeviceId, initialTimestamp)
+        },
         scrollHandlerFactory = { scrollHandler() }
     )
 }
@@ -353,9 +423,7 @@ private fun flingBehavior(
  *   usage
  * @param snapOffset An offset to be applied when snapping the item. After the snap the snapped
  *   items offset will be [snapOffset]. In pixels.
- * @param maxThresholdDivider Factor to divide item size when calculating threshold.
- * @param scrollDistanceDivider A value which is used to slow down or speed up the scroll before
- *   snap happens. The higher the value the slower the scroll.
+ * @param snapSensitivity Sensitivity of the rotary snap.
  * @param isLowRes Whether the input is Low-res (a bezel) or high-res(a crown/rsb)
  * @return A snap implementation of [RotaryScrollableBehavior] which is either suitable for low-res
  *   or high-res input (see [Modifier.rotaryScrollable] for descriptions of low-res and high-res
@@ -365,9 +433,8 @@ private fun snapBehavior(
     scrollableState: ScrollableState,
     layoutInfoProvider: RotarySnapLayoutInfoProvider,
     rotaryHaptics: RotaryHapticHandler,
+    snapSensitivity: RotarySnapSensitivity,
     snapOffset: Int,
-    maxThresholdDivider: Float,
-    scrollDistanceDivider: Float,
     isLowRes: Boolean
 ): RotaryScrollableBehavior {
     return if (isLowRes) {
@@ -384,10 +451,11 @@ private fun snapBehavior(
     } else {
         HighResSnapRotaryScrollableBehavior(
             rotaryHaptics = rotaryHaptics,
-            scrollDistanceDivider = scrollDistanceDivider,
+            scrollDistanceDivider = snapSensitivity.resistanceFactor,
             thresholdHandlerFactory = {
                 ThresholdHandler(
-                    maxThresholdDivider,
+                    minThresholdDivider = snapSensitivity.minThresholdDivider,
+                    maxThresholdDivider = snapSensitivity.maxThresholdDivider,
                     averageItemSize = { layoutInfoProvider.averageItemSize }
                 )
             },
@@ -637,15 +705,22 @@ internal fun Modifier.rotaryHandler(
  * Class responsible for Fling behaviour with rotary. It tracks rotary events and produces fling
  * when necessary.
  *
- * @param flingTimeframe represents a time interval (in milliseconds) used to determine whether a
+ * @param scrollableState The [ScrollableState] used to perform the fling.
+ * @param flingBehavior The [FlingBehavior] used to control the fling animation.
+ * @param flingTimeframe Represents a time interval (in milliseconds) used to determine whether a
  *   rotary input should trigger a fling. If no new events come during this interval, then the fling
  *   is triggered.
+ * @param viewConfiguration The [ViewConfiguration] used to obtain fling velocity thresholds.
+ * @param inputDeviceId The ID of the input device generating the rotary events.
+ * @param initialTimestamp The initial timestamp of the fling tracking session.
  */
 internal class RotaryFlingHandler(
     private val scrollableState: ScrollableState,
     private val flingBehavior: FlingBehavior,
+    private val flingTimeframe: Long,
     viewConfiguration: ViewConfiguration,
-    private val flingTimeframe: Long
+    inputDeviceId: Int,
+    initialTimestamp: Long
 ) {
     private var flingJob: Job = CompletableDeferred<Unit>()
 
@@ -660,18 +735,29 @@ internal class RotaryFlingHandler(
 
     private val rotaryVelocityTracker = RotaryVelocityTracker()
 
-    private val minFlingSpeed = viewConfiguration.scaledMinimumFlingVelocity.toFloat()
-    private val maxFlingSpeed = viewConfiguration.scaledMaximumFlingVelocity.toFloat()
+    private val minFlingSpeed: Float
+    private val maxFlingSpeed: Float
     private var latestEventTimestamp: Long = 0
 
     private var flingVelocity: Float = 0f
     private var flingTimestamp: Long = 0
 
-    /** Starts a new fling tracking session with specified timestamp */
-    fun startFlingTracking(timestamp: Long) {
-        rotaryVelocityTracker.start(timestamp)
-        latestEventTimestamp = timestamp
-        previousVelocity = 0f
+    init {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            minFlingSpeed =
+                viewConfiguration
+                    .getScaledMinimumFlingVelocity(inputDeviceId, AxisScroll, RotaryInputSource)
+                    .toFloat()
+            maxFlingSpeed =
+                viewConfiguration
+                    .getScaledMaximumFlingVelocity(inputDeviceId, AxisScroll, RotaryInputSource)
+                    .toFloat()
+        } else {
+            minFlingSpeed = viewConfiguration.scaledMinimumFlingVelocity.toFloat()
+            maxFlingSpeed = viewConfiguration.scaledMaximumFlingVelocity.toFloat()
+        }
+
+        startFlingTracking(initialTimestamp)
     }
 
     fun cancelFlingIfActive() {
@@ -692,6 +778,13 @@ internal class RotaryFlingHandler(
         cancelFlingIfActive()
 
         flingJob = coroutineScope.async { trackFling(beforeFling, edgeReached) }
+    }
+
+    /** Starts a new fling tracking session with specified timestamp */
+    private fun startFlingTracking(timestamp: Long) {
+        rotaryVelocityTracker.start(timestamp)
+        latestEventTimestamp = timestamp
+        previousVelocity = 0f
     }
 
     /**
@@ -757,12 +850,13 @@ internal class RotaryFlingHandler(
 internal class FlingRotaryScrollableBehavior(
     private val isLowRes: Boolean,
     private val rotaryHaptics: RotaryHapticHandler,
-    private val rotaryFlingHandlerFactory: () -> RotaryFlingHandler?,
+    private val rotaryFlingHandlerFactory:
+        (inputDeviceId: Int, initialTimestamp: Long) -> RotaryFlingHandler?,
     private val scrollHandlerFactory: () -> RotaryScrollHandler,
 ) : BaseRotaryScrollableBehavior() {
     private var rotaryScrollDistance = 0f
 
-    private var rotaryFlingHandler: RotaryFlingHandler? = rotaryFlingHandlerFactory()
+    private var rotaryFlingHandler: RotaryFlingHandler? = null
     private var scrollHandler: RotaryScrollHandler = scrollHandlerFactory()
 
     override suspend fun CoroutineScope.performScroll(
@@ -776,7 +870,7 @@ internal class FlingRotaryScrollableBehavior(
         if (isNewScrollEvent(timestampMillis)) {
             debugLog { "New scroll event" }
             resetScrolling()
-            resetFlingTracking(timestampMillis)
+            resetFlingTracking(timestampMillis, inputDeviceId)
         } else {
             // Due to the physics of high-res Rotary side button, some events might come
             // with an opposite axis value - either at the start or at the end of the motion.
@@ -791,7 +885,7 @@ internal class FlingRotaryScrollableBehavior(
         rotaryScrollDistance += delta
         debugLog { "Rotary scroll distance: $rotaryScrollDistance" }
 
-        rotaryHaptics.handleScrollHaptic(timestampMillis, delta)
+        rotaryHaptics.handleScrollHaptic(timestampMillis, delta, inputDeviceId, AxisScroll)
 
         previousScrollEventTime = timestampMillis
         scrollHandler.scrollToTarget(this, rotaryScrollDistance)
@@ -802,7 +896,9 @@ internal class FlingRotaryScrollableBehavior(
                 debugLog { "Calling beforeFling section" }
                 resetScrolling()
             },
-            edgeReached = { velocity -> rotaryHaptics.handleLimitHaptic(velocity > 0f) }
+            edgeReached = { velocity ->
+                rotaryHaptics.handleLimitHaptic(velocity > 0f, inputDeviceId, AxisScroll)
+            }
         )
     }
 
@@ -812,10 +908,9 @@ internal class FlingRotaryScrollableBehavior(
         rotaryScrollDistance = 0f
     }
 
-    private fun resetFlingTracking(timestamp: Long) {
+    private fun resetFlingTracking(timestamp: Long, inputDeviceId: Int) {
         rotaryFlingHandler?.cancelFlingIfActive()
-        rotaryFlingHandler = rotaryFlingHandlerFactory()
-        rotaryFlingHandler?.startFlingTracking(timestamp)
+        rotaryFlingHandler = rotaryFlingHandlerFactory(inputDeviceId, timestamp)
     }
 
     private fun isOppositeValueAfterScroll(delta: Float): Boolean =
@@ -908,7 +1003,7 @@ internal class HighResSnapRotaryScrollableBehavior(
                     "Accumulated snap delta: $accumulatedSnapDelta"
             }
             if (edgeNotReached(snapDistanceInItems)) {
-                rotaryHaptics.handleSnapHaptic(timestampMillis, delta)
+                rotaryHaptics.handleSnapHaptic(timestampMillis, delta, inputDeviceId, AxisScroll)
             }
 
             snapHandler.updateSnapTarget(snapDistanceInItems, sequentialSnap)
@@ -1016,7 +1111,7 @@ internal class LowResSnapRotaryScrollableBehavior(
         if (abs(accumulatedSnapDelta) > 1f) {
 
             val snapDistanceInItems = sign(accumulatedSnapDelta).toInt()
-            rotaryHaptics.handleSnapHaptic(timestampMillis, delta)
+            rotaryHaptics.handleSnapHaptic(timestampMillis, delta, inputDeviceId, AxisScroll)
             val sequentialSnap = snapJob.isActive
             debugLog {
                 "Snap threshold reached: snapDistanceInItems:$snapDistanceInItems, " +
@@ -1061,7 +1156,9 @@ internal class LowResSnapRotaryScrollableBehavior(
  */
 internal class ThresholdHandler(
     // Factor to divide item size when calculating threshold.
-    // Depending on the speed, it dynamically varies in range 1..maxThresholdDivider
+    // Threshold is divided by a linear interpolation value between minThresholdDivider and
+    // maxThresholdDivider, based on the scrolling speed.
+    private val minThresholdDivider: Float,
     private val maxThresholdDivider: Float,
     // Min velocity for threshold calculation
     private val minVelocity: Float = 300f,
@@ -1105,7 +1202,8 @@ internal class ThresholdHandler(
             )
         // Calculate the final threshold size by dividing the average item size by a dynamically
         // adjusted threshold divider.
-        return averageItemSize() / lerp(1f, maxThresholdDivider, thresholdDividerFraction)
+        return averageItemSize() /
+            lerp(minThresholdDivider, maxThresholdDivider, thresholdDividerFraction)
     }
 
     /**
@@ -1133,7 +1231,7 @@ internal class ThresholdHandler(
     ): Float = smoothingConstant * currentVelocity + (1 - smoothingConstant) * prevVelocity
 }
 
-private data class RotaryHandlerElement(
+private class RotaryHandlerElement(
     private val behavior: RotaryScrollableBehavior,
     private val reverseDirection: Boolean,
     private val inspectorInfo: InspectorInfo.() -> Unit
@@ -1212,6 +1310,32 @@ private class RotaryInputNode(
         return true
     }
 }
+
+/**
+ * Enum class representing the sensitivity of the rotary scroll.
+ *
+ * It defines two types of parameters that influence scroll behavior:
+ * - min/max thresholdDivider : these parameters reduce the scroll threshold based on the speed of
+ *   rotary input, making the UI more responsive to both slow, deliberate rotations and fast flicks
+ *   of the rotary.
+ * - resistanceFactor : Used to dampen the visual scroll effect. This allows the UI to scroll less
+ *   than the actual input from the rotary device, providing a more controlled scrolling experience.
+ */
+internal enum class RotarySnapSensitivity(
+    val minThresholdDivider: Float,
+    val maxThresholdDivider: Float,
+    val resistanceFactor: Float,
+) {
+    // Default sensitivity
+    DEFAULT(1f, 1.5f, 3f),
+
+    // Used for full-screen pagers
+    HIGH(5f, 7.5f, 5f),
+}
+
+private const val AxisScroll = MotionEvent.AXIS_SCROLL
+
+private const val RotaryInputSource = InputDevice.SOURCE_ROTARY_ENCODER
 
 /** Debug logging that can be enabled. */
 private const val DEBUG = false

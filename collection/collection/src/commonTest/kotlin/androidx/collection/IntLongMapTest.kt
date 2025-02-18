@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -225,6 +226,36 @@ class IntLongMapTest {
         assertEquals(3L, map5[3])
         assertEquals(4L, map5[4])
         assertEquals(5L, map5[5])
+    }
+
+    @Test
+    fun buildIntLongMapFunction() {
+        val contract: Boolean
+        val map = buildIntLongMap {
+            contract = true
+            put(1, 1L)
+            put(2, 2L)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1L, map[1])
+        assertEquals(2L, map[2])
+    }
+
+    @Test
+    fun buildIntObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildIntLongMap(20) {
+                contract = true
+                put(1, 1L)
+                put(2, 2L)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1L, map[1])
+        assertEquals(2L, map[2])
     }
 
     @Test
@@ -619,6 +650,7 @@ class IntLongMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableIntLongMap()
         map[1] = 1L
@@ -631,6 +663,10 @@ class IntLongMapTest {
 
         map2[1] = 1L
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(mutableIntLongMapOf(1, 1L, 2, 2L), mutableIntLongMapOf(1, 1L, 3, 2L))
     }
 
     @Test
@@ -749,5 +785,16 @@ class IntLongMapTest {
 
         assertEquals(1024, map.trim())
         assertEquals(0, map.trim())
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableIntLongMap()
+
+        for (i in 0..1000000) {
+            map[i.toInt()] = i.toLong()
+            map.remove(i.toInt())
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

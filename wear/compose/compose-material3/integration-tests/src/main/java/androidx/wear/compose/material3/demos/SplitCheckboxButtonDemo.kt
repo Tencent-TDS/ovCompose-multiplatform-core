@@ -17,29 +17,22 @@
 package androidx.wear.compose.material3.demos
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.material3.ListHeader
+import androidx.wear.compose.material3.LocalTextConfiguration
 import androidx.wear.compose.material3.SplitCheckboxButton
 import androidx.wear.compose.material3.Text
 
 @Composable
 fun SplitCheckboxButtonDemo() {
-    ScalingLazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    ScalingLazyDemo {
         item { ListHeader { Text("Checkbox") } }
         item { DemoSplitCheckboxButton(enabled = true, initiallyChecked = true) }
         item { DemoSplitCheckboxButton(enabled = true, initiallyChecked = false) }
@@ -59,16 +52,35 @@ fun SplitCheckboxButtonDemo() {
             DemoSplitCheckboxButton(
                 enabled = true,
                 initiallyChecked = true,
-                primary = "Primary Label with 3 lines of content max"
+                primary = "Primary label with at most three lines of content "
             )
         }
         item {
             DemoSplitCheckboxButton(
                 enabled = true,
                 initiallyChecked = true,
-                primary = "Primary Label with 3 lines of content max",
-                secondary = "Secondary label with 2 lines"
+                primary = "Primary label with at most three lines of content",
+                secondary = "Secondary label with at most two lines of text"
             )
+        }
+        item {
+            DemoSplitCheckboxButton(
+                enabled = true,
+                initiallyChecked = true,
+                primary = "Override the maximum number of primary label content to be four",
+                primaryMaxLines = 4,
+            )
+        }
+        item { ListHeader { Text("Disabled Multi-line") } }
+        for (initiallyChecked in booleanArrayOf(true, false)) {
+            item {
+                DemoSplitCheckboxButton(
+                    enabled = false,
+                    initiallyChecked = initiallyChecked,
+                    primary = "Primary label",
+                    secondary = "Secondary label"
+                )
+            }
         }
     }
 }
@@ -78,6 +90,7 @@ private fun DemoSplitCheckboxButton(
     enabled: Boolean,
     initiallyChecked: Boolean,
     primary: String = "Primary label",
+    primaryMaxLines: Int? = null,
     secondary: String? = null
 ) {
     var checked by remember { mutableStateOf(initiallyChecked) }
@@ -97,9 +110,7 @@ private fun DemoSplitCheckboxButton(
             Text(
                 primary,
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3,
-                textAlign = TextAlign.Start,
-                overflow = TextOverflow.Ellipsis
+                maxLines = primaryMaxLines ?: LocalTextConfiguration.current.maxLines
             )
         },
         secondaryLabel =
@@ -108,9 +119,6 @@ private fun DemoSplitCheckboxButton(
                     Text(
                         secondary,
                         modifier = Modifier.fillMaxWidth(),
-                        maxLines = 2,
-                        textAlign = TextAlign.Start,
-                        overflow = TextOverflow.Ellipsis
                     )
                 }
             },

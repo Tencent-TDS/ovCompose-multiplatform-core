@@ -29,6 +29,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.testutils.MainDispatcherRule
+import androidx.testutils.TestDispatcher
 import com.google.common.truth.Truth.assertThat
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -276,10 +278,6 @@ class AsyncPagingDataDifferTest {
                 currentPagedSource!!.invalidate()
                 advanceUntilIdle()
 
-                // UI access refreshed items. Load PREPEND [50] to fulfill prefetch distance
-                differ.getItem(51)
-                advanceUntilIdle()
-
                 assertEvents(
                     // TODO(b/182510751): Every change event here should have payload.
                     listOf(
@@ -480,7 +478,10 @@ class AsyncPagingDataDifferTest {
             // Connect pager2, which should override pager1
             val job2 = launch { pager2.flow.collectLatest(differ::submitData) }
             advanceUntilIdle()
-            assertEquals(19, differ.itemCount)
+            // This prepends an extra page due to transformedAnchorPosition re-sending an Access at
+            // the
+            // first position, we therefore load 19 + 7 items.
+            assertEquals(26, differ.itemCount)
 
             // now if pager1 gets an invalidation, it overrides pager2
             source1.invalidate()
@@ -511,6 +512,65 @@ class AsyncPagingDataDifferTest {
             job1.cancelAndJoin()
             job2.cancelAndJoin()
         }
+
+    @Test
+    fun submitData_cancelsLastItemCount() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config =
+                    PagingConfig(
+                        pageSize = 1,
+                        prefetchDistance = 1,
+                        enablePlaceholders = false,
+                    ),
+            ) {
+                TestPagingSource(loadDelay = 500)
+            }
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val job = launch { pager.flow.collect { differ.submitData(it) } }
+
+        advanceUntilIdle()
+        assertThat(differ.itemCount).isEqualTo(3)
+
+        // trigger first submit data and let it run until it hits computeDiff in presenter
+        differ.refresh()
+        advanceUntilIdle()
+
+        // let diffing run but not what follows to simulate real-life scenario of the
+        // presenter getting interrupted
+        workerDispatcher.executeAll()
+        job.cancel()
+
+        // submit second data - the one that cancels the previous one
+        differ.submitData(
+            PagingData.empty(
+                sourceLoadStates =
+                    loadStates(
+                        refresh = NotLoading(endOfPaginationReached = false),
+                        prepend = NotLoading(endOfPaginationReached = true),
+                        append = NotLoading(endOfPaginationReached = true),
+                    )
+            )
+        )
+
+        advanceUntilIdle()
+        assertThat(differ.itemCount).isEqualTo(0)
+    }
 
     /**
      * This test makes sure we don't inject unnecessary IDLE events when pages are cached. Caching
@@ -1033,6 +1093,329 @@ class AsyncPagingDataDifferTest {
     }
 
     @Test
+    fun prependYieldsToRecyclerView() {
+        Dispatchers.resetMain() // reset MainDispatcherRule
+        // collection on immediate dispatcher to simulate real lifecycle dispatcher
+        val mainDispatcher = Dispatchers.Main.immediate
+        runTest {
+            val events = mutableListOf<String>()
+            val listUpdateCapture = ListUpdateCapture { event -> events.add(event.toString()) }
+            val asyncDiffer =
+                AsyncPagingDataDiffer(
+                    diffCallback =
+                        object : DiffUtil.ItemCallback<Int>() {
+                            override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+
+                            override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+                        },
+                    // override default Dispatcher.Main with Dispatchers.main.immediate so that
+                    // main tasks run without queueing, we need this to simulate real life order of
+                    // events
+                    mainDispatcher = mainDispatcher,
+                    updateCallback = listUpdateCapture,
+                    workerDispatcher = backgroundScope.coroutineContext
+                )
+
+            val pager =
+                Pager(
+                    config =
+                        PagingConfig(
+                            pageSize = 5,
+                            enablePlaceholders = false,
+                            prefetchDistance = 3,
+                            initialLoadSize = 10,
+                        ),
+                    initialKey = 30
+                ) {
+                    TestPagingSource(loadDelay = 0)
+                }
+
+            val collectPager =
+                launch(mainDispatcher) { pager.flow.collectLatest { asyncDiffer.submitData(it) } }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=0, count=10)")
+            events.clear()
+
+            // Simulate RV dispatching layout which calls multi onBind --> getItem. LoadStateUpdates
+            // from upstream should yield until dispatch layout completes or else
+            // LoadState-based RV updates will crash. See original bug b/150162465.
+            withContext(mainDispatcher) {
+                events.add("start dispatchLayout")
+                asyncDiffer.getItem(3)
+                asyncDiffer.getItem(2) // this triggers prepend
+                events.add("end dispatchLayout")
+            }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            // make sure the prepend was not processed until RV is done with layouts
+            assertThat(events)
+                .containsExactly(
+                    "start dispatchLayout",
+                    "end dispatchLayout",
+                    "Inserted(position=0, count=5)"
+                )
+                .inOrder()
+            collectPager.cancel()
+        }
+    }
+
+    @Test
+    fun appendYieldsToRecyclerView() {
+        Dispatchers.resetMain() // reset MainDispatcherRule
+        // collection on immediate dispatcher to simulate real lifecycle dispatcher
+        val mainDispatcher = Dispatchers.Main.immediate
+        runTest {
+            val events = mutableListOf<String>()
+            val listUpdateCapture = ListUpdateCapture { event -> events.add(event.toString()) }
+            val asyncDiffer =
+                AsyncPagingDataDiffer(
+                    diffCallback =
+                        object : DiffUtil.ItemCallback<Int>() {
+                            override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+
+                            override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+                        },
+                    // override default Dispatcher.Main with Dispatchers.main.immediate so that
+                    // main tasks run without queueing, we need this to simulate real life order of
+                    // events
+                    mainDispatcher = mainDispatcher,
+                    updateCallback = listUpdateCapture,
+                    workerDispatcher = backgroundScope.coroutineContext
+                )
+
+            val pager =
+                Pager(
+                    config =
+                        PagingConfig(
+                            pageSize = 5,
+                            enablePlaceholders = false,
+                            prefetchDistance = 3,
+                            initialLoadSize = 10,
+                        ),
+                ) {
+                    TestPagingSource(loadDelay = 0)
+                }
+
+            val collectPager =
+                launch(mainDispatcher) { pager.flow.collectLatest { asyncDiffer.submitData(it) } }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=0, count=10)")
+            events.clear()
+
+            // Simulate RV dispatching layout which calls multi onBind --> getItem. LoadStateUpdates
+            // from upstream should yield until dispatch layout completes or else
+            // LoadState-based RV updates will crash. See original bug b/150162465.
+            withContext(mainDispatcher) {
+                events.add("start dispatchLayout")
+                asyncDiffer.getItem(6)
+                asyncDiffer.getItem(7) // this triggers append
+                events.add("end dispatchLayout")
+            }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            // make sure the append was not processed until RV is done with layouts
+            assertThat(events)
+                .containsExactly(
+                    "start dispatchLayout",
+                    "end dispatchLayout",
+                    "Inserted(position=10, count=5)"
+                )
+                .inOrder()
+            collectPager.cancel()
+        }
+    }
+
+    @Test
+    fun dropPrependYieldsToRecyclerView() {
+        Dispatchers.resetMain() // reset MainDispatcherRule
+        // collection on immediate dispatcher to simulate real lifecycle dispatcher
+        val mainDispatcher = Dispatchers.Main.immediate
+        runTest {
+            val events = mutableListOf<String>()
+            val listUpdateCapture = ListUpdateCapture { event -> events.add(event.toString()) }
+            val asyncDiffer =
+                AsyncPagingDataDiffer(
+                    diffCallback =
+                        object : DiffUtil.ItemCallback<Int>() {
+                            override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+
+                            override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+                        },
+                    // override default Dispatcher.Main with Dispatchers.main.immediate so that
+                    // main tasks run without queueing, we need this to simulate real life order of
+                    // events
+                    mainDispatcher = mainDispatcher,
+                    updateCallback = listUpdateCapture,
+                    workerDispatcher = backgroundScope.coroutineContext
+                )
+
+            val pager =
+                Pager(
+                    config =
+                        PagingConfig(
+                            pageSize = 5,
+                            enablePlaceholders = false,
+                            prefetchDistance = 3,
+                            initialLoadSize = 10,
+                            maxSize = 16
+                        ),
+                    initialKey = 30,
+                ) {
+                    TestPagingSource(loadDelay = 0)
+                }
+
+            val collectPager =
+                launch(mainDispatcher) { pager.flow.collectLatest { asyncDiffer.submitData(it) } }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=0, count=10)")
+            events.clear()
+
+            // trigger a prepend that will be dropped later
+            asyncDiffer.getItem(0)
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=0, count=5)")
+            events.clear()
+
+            // Simulate RV dispatching layout which calls multi onBind --> getItem. LoadStateUpdates
+            // from upstream should yield until dispatch layout completes or else
+            // LoadState-based RV updates will crash. See original bug b/150162465.
+            withContext(mainDispatcher) {
+                events.add("start dispatchLayout")
+                asyncDiffer.getItem(11)
+                // this triggers append which will cause prepend to drop
+                asyncDiffer.getItem(12)
+                events.add("end dispatchLayout")
+            }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            // make sure the append was not processed until RV is done with layouts
+            assertThat(events)
+                .containsExactly(
+                    "start dispatchLayout",
+                    "end dispatchLayout",
+                    "Removed(position=0, count=5)", // drop prepend
+                    "Inserted(position=10, count=5)" // append
+                )
+                .inOrder()
+            collectPager.cancel()
+        }
+    }
+
+    @Test
+    fun dropAppendYieldsToRecyclerView() {
+        Dispatchers.resetMain() // reset MainDispatcherRule
+        // collection on immediate dispatcher to simulate real lifecycle dispatcher
+        val mainDispatcher = Dispatchers.Main.immediate
+        runTest {
+            val events = mutableListOf<String>()
+            val listUpdateCapture = ListUpdateCapture { event -> events.add(event.toString()) }
+            val asyncDiffer =
+                AsyncPagingDataDiffer(
+                    diffCallback =
+                        object : DiffUtil.ItemCallback<Int>() {
+                            override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+
+                            override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                                return oldItem == newItem
+                            }
+                        },
+                    // override default Dispatcher.Main with Dispatchers.main.immediate so that
+                    // main tasks run without queueing, we need this to simulate real life order of
+                    // events
+                    mainDispatcher = mainDispatcher,
+                    updateCallback = listUpdateCapture,
+                    workerDispatcher = backgroundScope.coroutineContext
+                )
+
+            val pager =
+                Pager(
+                    config =
+                        PagingConfig(
+                            pageSize = 5,
+                            enablePlaceholders = false,
+                            prefetchDistance = 3,
+                            initialLoadSize = 10,
+                            maxSize = 16
+                        ),
+                    initialKey = 30,
+                ) {
+                    TestPagingSource(loadDelay = 0)
+                }
+
+            val collectPager =
+                launch(mainDispatcher) { pager.flow.collectLatest { asyncDiffer.submitData(it) } }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=0, count=10)")
+            events.clear()
+
+            // trigger a prepend that will be dropped later
+            asyncDiffer.getItem(9)
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            assertThat(events).containsExactly("Inserted(position=10, count=5)")
+            events.clear()
+
+            // Simulate RV dispatching layout which calls multi onBind --> getItem. LoadStateUpdates
+            // from upstream should yield until dispatch layout completes or else
+            // LoadState-based RV updates will crash. See original bug b/150162465.
+            withContext(mainDispatcher) {
+                events.add("start dispatchLayout")
+                asyncDiffer.getItem(3)
+                // this triggers prepend which will cause append to drop
+                asyncDiffer.getItem(2)
+                events.add("end dispatchLayout")
+            }
+
+            // wait till we get all expected events
+            asyncDiffer.loadStateFlow.awaitNotLoading()
+
+            // make sure the append was not processed until RV is done with layouts
+            assertThat(events)
+                .containsExactly(
+                    "start dispatchLayout",
+                    "end dispatchLayout",
+                    "Removed(position=10, count=5)", // drop append
+                    "Inserted(position=0, count=5)" // prepend
+                )
+                .inOrder()
+            collectPager.cancel()
+        }
+    }
+
+    @Test
     fun loadStateListenerYieldsToGetItem() {
         Dispatchers.resetMain() // reset MainDispatcherRule
         // collection on immediate dispatcher to simulate real lifecycle dispatcher
@@ -1145,6 +1528,331 @@ class AsyncPagingDataDifferTest {
             collectInGetItem.cancel()
             collectPager.cancel()
         }
+    }
+
+    @Test
+    fun recoverFromInterruptedPrefetch() =
+        testScope.runTest {
+            val pagingSources = mutableListOf<TestPagingSource>()
+            val pager =
+                Pager(
+                    config =
+                        PagingConfig(pageSize = 10, prefetchDistance = 3, initialLoadSize = 10),
+                ) {
+                    TestPagingSource().also {
+                        it.getRefreshKeyResult = 0
+                        pagingSources.add(it)
+                    }
+                }
+
+            val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+            // wait refresh
+            advanceUntilIdle()
+            assertThat(differ.snapshot().items.size).isEqualTo(10)
+
+            // sent hint to the first gen hint receiver and trigger a prefetch load
+            differ.getItem(9)
+            // Interrupt prefetch. We set getRefreshKeyResult = 0 so that after refresh, the last
+            // loaded item matches the lastAccessedIndex
+            differ.refresh()
+            advanceUntilIdle()
+
+            assertThat(pagingSources.size).isEqualTo(2)
+            // even though the prefetching hint had been discarded, make sure that after refresh,
+            // the prefetch is still respected even if it was interrupted by an invalidation
+            assertThat(differ.snapshot().items.size).isEqualTo(20)
+            collectPager.cancelAndJoin()
+        }
+
+    @Test
+    fun useTempPresenterOnDiffCalculation() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config = PagingConfig(pageSize = 3, prefetchDistance = 1, initialLoadSize = 5),
+            ) {
+                TestPagingSource(loadDelay = 500)
+            }
+
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+        // wait refresh
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+
+        // append
+        differ.getItem(4)
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        // refresh with 5 items loaded
+        differ.refresh()
+
+        // present new list
+        advanceUntilIdle()
+        // check that presenter has been updated
+        assertThat(differ.presenter.snapshot().items.size).isEqualTo(5)
+        // but then differ should have switched to old presenter
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        // run compute diff and dispatch
+        workerDispatcher.executeAll()
+        // let initial refresh complete
+        advanceTimeBy(1)
+
+        // diff should switch back to new presenter
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+        collectPager.cancelAndJoin()
+    }
+
+    @Test
+    fun resetTempPresenterOnMainThread() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config = PagingConfig(pageSize = 3, prefetchDistance = 1, initialLoadSize = 5),
+            ) {
+                TestPagingSource(loadDelay = 500)
+            }
+
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+        // wait refresh
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+
+        // append
+        differ.getItem(4)
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        // refresh with 5 items loaded
+        differ.refresh()
+        advanceUntilIdle()
+
+        // check that differ delegates to old list
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        // run compute diff
+        workerDispatcher.executeAll()
+        // check that differ still delegates to old list after computeDiff coroutine completes
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        // let refresh complete
+        advanceTimeBy(1)
+
+        // diff should switch back to new presenter
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+        collectPager.cancelAndJoin()
+    }
+
+    @Test
+    fun tempPresenterSnapshotPlaceholders() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config =
+                    PagingConfig(
+                        pageSize = 3,
+                        prefetchDistance = 1,
+                        initialLoadSize = 5,
+                        enablePlaceholders = true
+                    ),
+                initialKey = 20
+            ) {
+                TestPagingSource(loadDelay = 0)
+            }
+
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+        advanceUntilIdle()
+
+        differ.getItem(25)
+        advanceUntilIdle()
+
+        val snapshot1 = differ.snapshot()
+        assertThat(snapshot1.size).isEqualTo(100)
+        assertThat(snapshot1.placeholdersBefore).isEqualTo(20)
+        assertThat(snapshot1.placeholdersAfter).isEqualTo(72)
+
+        // refresh with 5 items loaded
+        differ.refresh()
+        advanceUntilIdle()
+
+        // assert old presenter snapshot()
+        val snapshot2 = differ.snapshot()
+        assertThat(snapshot2.size).isEqualTo(100)
+        assertThat(snapshot2.placeholdersBefore).isEqualTo(20)
+        assertThat(snapshot2.placeholdersAfter).isEqualTo(72)
+
+        // run compute diff and dispatch
+        workerDispatcher.executeAll()
+        advanceUntilIdle()
+
+        // assert new presenter snapshot()
+        val snapshot3 = differ.snapshot()
+        assertThat(snapshot3.size).isEqualTo(100)
+        // load refresh + prefetch from transformedIndex = 8 items loaded
+        assertThat(snapshot3.placeholdersBefore).isEqualTo(22)
+        assertThat(snapshot3.placeholdersAfter).isEqualTo(70)
+        collectPager.cancelAndJoin()
+    }
+
+    @Test
+    fun tempPresenterGetOutOfBounds() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config = PagingConfig(pageSize = 3, prefetchDistance = 1, initialLoadSize = 5),
+            ) {
+                TestPagingSource(loadDelay = 0)
+            }
+
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+        // wait refresh
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+
+        // append
+        differ.getItem(4)
+        advanceUntilIdle()
+
+        // refresh with 5 items loaded
+        differ.refresh()
+        advanceUntilIdle()
+
+        // make sure differ is on old list
+        assertThat(differ.snapshot().items.size).isEqualTo(8)
+
+        var exception: IndexOutOfBoundsException? = null
+        try {
+            differ.getItem(200)
+        } catch (e: IndexOutOfBoundsException) {
+            exception = e
+        }
+        assertThat(exception).isNotNull()
+
+        workerDispatcher.executeAll()
+        advanceUntilIdle()
+        collectPager.cancelAndJoin()
+    }
+
+    @Test
+    fun tempPresenterGetPlaceholder() = runTest {
+        val workerDispatcher = TestDispatcher()
+        val pager =
+            Pager(
+                config =
+                    PagingConfig(
+                        pageSize = 3,
+                        prefetchDistance = 1,
+                        initialLoadSize = 5,
+                        enablePlaceholders = true
+                    ),
+            ) {
+                TestPagingSource(loadDelay = 0)
+            }
+
+        val differ =
+            AsyncPagingDataDiffer(
+                diffCallback =
+                    object : DiffUtil.ItemCallback<Int>() {
+                        override fun areContentsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+
+                        override fun areItemsTheSame(oldItem: Int, newItem: Int): Boolean {
+                            return oldItem == newItem
+                        }
+                    },
+                updateCallback = listUpdateCapture,
+                workerDispatcher = workerDispatcher
+            )
+        val collectPager = launch { pager.flow.collectLatest { differ.submitData(it) } }
+
+        // wait refresh
+        advanceUntilIdle()
+        assertThat(differ.snapshot().items.size).isEqualTo(5)
+
+        // append
+        differ.getItem(4)
+        advanceUntilIdle()
+
+        // refresh with 5 items loaded
+        differ.refresh()
+        advanceUntilIdle()
+
+        // make sure differ is on old list
+        assertThat(differ.snapshot().placeholdersAfter).isEqualTo(92)
+
+        val placeholder = differ.getItem(70)
+        assertThat(placeholder).isNull()
+
+        workerDispatcher.executeAll()
+        advanceUntilIdle()
+        collectPager.cancelAndJoin()
     }
 
     @Test

@@ -92,7 +92,7 @@ public constructor(
 
     override fun toString(): String {
         return "CustomAudience: " +
-            "buyer=$biddingLogicUri, name=$name, activationTime=$activationTime, " +
+            "buyer=$buyer, name=$name, activationTime=$activationTime, " +
             "expirationTime=$expirationTime, dailyUpdateUri=$dailyUpdateUri, " +
             "userBiddingSignals=$userBiddingSignals, " +
             "trustedBiddingSignals=$trustedBiddingSignals, " +

@@ -16,14 +16,15 @@
 
 package androidx.car.app.model;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.model.constraints.ActionsConstraints;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,16 +36,15 @@ import java.util.Objects;
 @CarProtocol
 @ExperimentalCarApi
 public final class SectionedItemTemplate implements Template {
-    @NonNull
-    private final List<Section<?>> mSections;
+    private final @NonNull List<Section<?>> mSections;
 
-    @NonNull
-    private final List<Action> mActions;
+    private final @NonNull List<Action> mActions;
 
-    @Nullable
-    private final Header mHeader;
+    private final @Nullable Header mHeader;
 
     private final boolean mIsLoading;
+
+    private final boolean mIsAlphabeticalIndexingAllowed;
 
     // Empty constructor for serialization
     private SectionedItemTemplate() {
@@ -52,6 +52,7 @@ public final class SectionedItemTemplate implements Template {
         mActions = Collections.emptyList();
         mHeader = null;
         mIsLoading = false;
+        mIsAlphabeticalIndexingAllowed = false;
     }
 
     /** Creates a {@link SectionedItemTemplate} from the {@link Builder}. */
@@ -60,23 +61,21 @@ public final class SectionedItemTemplate implements Template {
         mActions = Collections.unmodifiableList(builder.mActions);
         mHeader = builder.mHeader;
         mIsLoading = builder.mIsLoading;
+        mIsAlphabeticalIndexingAllowed = builder.mIsAlphabeticalIndexingAllowed;
     }
 
     /** Returns the list of sections within this template. */
-    @NonNull
-    public List<Section<?>> getSections() {
+    public @NonNull List<Section<?>> getSections() {
         return mSections;
     }
 
     /** Returns the list of actions that should appear alongside the content of this template. */
-    @NonNull
-    public List<Action> getActions() {
+    public @NonNull List<Action> getActions() {
         return mActions;
     }
 
     /** Returns the optional header for this template. */
-    @Nullable
-    public Header getHeader() {
+    public @Nullable Header getHeader() {
         return mHeader;
     }
 
@@ -85,9 +84,30 @@ public final class SectionedItemTemplate implements Template {
         return mIsLoading;
     }
 
+    /**
+     * Returns whether this list can be indexed alphabetically, by item title.
+     *
+     * <p>"Indexing" refers to the process of examining list contents (e.g. item titles) to sort,
+     * partition, or filter a list. Indexing is generally used for features called "Accelerators",
+     * which allow a user to quickly find a particular {@link Item} in a long list.
+     *
+     * <p>To exclude a single item from indexing, see the relevant item's API.
+     *
+     * <p>To enable/disable accelerators for the entire list, see
+     * {@link SectionedItemTemplate.Builder#setAlphabeticalIndexingAllowed(boolean)}
+     */
+    public boolean isAlphabeticalIndexingAllowed() {
+        return mIsAlphabeticalIndexingAllowed;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(mSections, mActions, mHeader, mIsLoading);
+        return Objects.hash(mSections,
+                mActions,
+                mHeader,
+                mIsLoading,
+                mIsAlphabeticalIndexingAllowed
+        );
     }
 
     @Override
@@ -105,14 +125,13 @@ public final class SectionedItemTemplate implements Template {
         return Objects.equals(mSections, template.mSections)
                 && Objects.equals(mActions, template.mActions)
                 && Objects.equals(mHeader, template.mHeader)
-                && mIsLoading == template.mIsLoading;
+                && mIsLoading == template.mIsLoading
+                && mIsAlphabeticalIndexingAllowed == template.mIsAlphabeticalIndexingAllowed;
     }
 
-    @NonNull
     @Override
-    public String toString() {
-        return "SectionedItemTemplate { sections: " + mSections + ", actions: " + mActions
-                + ", header: " + mHeader + ", isLoading: " + mIsLoading + " }";
+    public @NonNull String toString() {
+        return "SectionedItemTemplate";
     }
 
     /**
@@ -127,16 +146,14 @@ public final class SectionedItemTemplate implements Template {
      */
     @ExperimentalCarApi
     public static final class Builder {
-        @NonNull
-        private List<Section<?>> mSections = new ArrayList<>();
+        private @NonNull List<Section<?>> mSections = new ArrayList<>();
 
-        @NonNull
-        private List<Action> mActions = new ArrayList<>();
+        private @NonNull List<Action> mActions = new ArrayList<>();
 
-        @Nullable
-        private Header mHeader = null;
+        private @Nullable Header mHeader = null;
 
         private boolean mIsLoading = false;
+        private boolean mIsAlphabeticalIndexingAllowed = false;
 
         /** Create a new {@link SectionedItemTemplate} builder. */
         public Builder() {
@@ -151,6 +168,7 @@ public final class SectionedItemTemplate implements Template {
             mActions = template.mActions;
             mHeader = template.mHeader;
             mIsLoading = template.mIsLoading;
+            mIsAlphabeticalIndexingAllowed = template.mIsAlphabeticalIndexingAllowed;
         }
 
         /**
@@ -159,9 +177,8 @@ public final class SectionedItemTemplate implements Template {
          *
          * @see Builder for a list of allowed section types
          */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder setSections(@NonNull List<Section<?>> sections) {
+        public @NonNull Builder setSections(@NonNull List<Section<?>> sections) {
             mSections = sections;
             return this;
         }
@@ -172,17 +189,15 @@ public final class SectionedItemTemplate implements Template {
          *
          * @see Builder for a list of allowed section types
          */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder addSection(@NonNull Section<?> section) {
+        public @NonNull Builder addSection(@NonNull Section<?> section) {
             mSections.add(section);
             return this;
         }
 
         /** Removes all sections from this template. */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder clearSections() {
+        public @NonNull Builder clearSections() {
             mSections.clear();
             return this;
         }
@@ -193,9 +208,8 @@ public final class SectionedItemTemplate implements Template {
          * #addAction(Action)} or {@link #setActions(List)}. All actions must conform to the
          * {@link ActionsConstraints#ACTIONS_CONSTRAINTS_FAB} constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder setActions(@NonNull List<Action> actions) {
+        public @NonNull Builder setActions(@NonNull List<Action> actions) {
             ActionsConstraints.ACTIONS_CONSTRAINTS_FAB.validateOrThrow(actions);
             mActions = actions;
             return this;
@@ -206,9 +220,8 @@ public final class SectionedItemTemplate implements Template {
          * actions. All actions must conform to the
          * {@link ActionsConstraints#ACTIONS_CONSTRAINTS_FAB} constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder addAction(@NonNull Action action) {
+        public @NonNull Builder addAction(@NonNull Action action) {
             List<Action> actionsCopy = new ArrayList<>(mActions);
             actionsCopy.add(action);
             ActionsConstraints.ACTIONS_CONSTRAINTS_FAB.validateOrThrow(actionsCopy);
@@ -218,29 +231,51 @@ public final class SectionedItemTemplate implements Template {
         }
 
         /** Removes all actions in this template. */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder clearActions() {
+        public @NonNull Builder clearActions() {
             mActions.clear();
             return this;
         }
 
         /** Sets or clears the optional header for this template. */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder setHeader(@Nullable Header header) {
+        public @NonNull Builder setHeader(@Nullable Header header) {
             mHeader = header;
             return this;
         }
 
         /**
          * Sets whether or not this template is in a loading state. If passed {@code true}, sections
-         * cannot be added to the template.
+         * cannot be added to the template. By default, this is {@code false}.
          */
-        @NonNull
         @CanIgnoreReturnValue
-        public Builder setLoading(boolean isLoading) {
+        public @NonNull Builder setLoading(boolean isLoading) {
             mIsLoading = isLoading;
+            return this;
+        }
+
+        /**
+         * Sets whether this list can be indexed alphabetically, by item title. By default, this
+         * is {@code false}.
+         *
+         * <p>"Indexing" refers to the process of examining list contents (e.g. item titles) to
+         * sort, partition, or filter a list. Indexing is generally used for features called
+         * "Accelerators", which allow a user to quickly find a particular {@link Item} in a long
+         * list.
+         *
+         * <p>For example, a media app may, by default, show a user's playlists sorted by date
+         * created. If the app provides these playlists via the {@code SectionedItemTemplate} and
+         * enables {@link #isAlphabeticalIndexingAllowed}, the user will be able to jump to their
+         * playlists that start with the letter "H". When this happens, the list is reconstructed
+         * and sorted alphabetically, then shown to the user, jumping down to the letter "H".
+         *
+         * <p>Individual items may be excluded from the list by setting their {@code #isIndexable}
+         * field to {@code false}.
+         */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setAlphabeticalIndexingAllowed(
+                boolean alphabeticalIndexingAllowed) {
+            mIsAlphabeticalIndexingAllowed = alphabeticalIndexingAllowed;
             return this;
         }
 
@@ -250,8 +285,7 @@ public final class SectionedItemTemplate implements Template {
          *
          * @see Builder for the list of validation logic
          */
-        @NonNull
-        public SectionedItemTemplate build() {
+        public @NonNull SectionedItemTemplate build() {
             if (mIsLoading) {
                 if (!mSections.isEmpty()) {
                     throw new IllegalArgumentException(

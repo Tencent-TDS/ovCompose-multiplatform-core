@@ -16,6 +16,7 @@
 
 package androidx.compose.material
 
+import androidx.compose.material.internal.identityHashCode
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -41,11 +43,14 @@ import kotlin.math.roundToInt
  *
  * This uses the Material recommended minimum size of 48.dp x 48.dp, which may not the same as the
  * system enforced minimum size. The minimum clickable / touch target size (48.dp by default) is
- * controlled by the system via ViewConfiguration` and automatically expanded at the touch input
+ * controlled by the system via [ViewConfiguration] and automatically expanded at the touch input
  * layer.
  *
  * This modifier is not needed for touch target expansion to happen. It only affects layout, to make
  * sure there is adequate space for touch target expansion.
+ *
+ * Because layout constraints are affected by modifier order, for this modifier to take effect, it
+ * must come before any size modifiers on the element that might limit its constraints.
  */
 fun Modifier.minimumInteractiveComponentSize(): Modifier = this then MinimumInteractiveModifier
 
@@ -64,7 +69,7 @@ internal object MinimumInteractiveModifier : ModifierNodeElement<MinimumInteract
                 "interactions if the element would measure smaller"
     }
 
-    override fun hashCode(): Int = System.identityHashCode(this)
+    override fun hashCode(): Int = identityHashCode(this)
 
     override fun equals(other: Any?) = (other === this)
 }
