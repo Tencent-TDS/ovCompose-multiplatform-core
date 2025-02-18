@@ -90,7 +90,7 @@ internal class SyntheticEventSender(
             needUpdatePointerPosition = false
 
             previousEvent?.let { event ->
-                if (!event.isMove() &&
+                if (event.eventType != PointerEventType.Move &&
                     event.pointers.fastAny { it.down || it.type == PointerType.Mouse }
                 ) {
                     return sendSyntheticMove(event)
