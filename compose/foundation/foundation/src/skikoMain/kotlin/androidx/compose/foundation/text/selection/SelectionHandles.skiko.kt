@@ -53,9 +53,9 @@ private val RADIUS = 6.dp
 private val THICKNESS = 2.dp
 
 /**
- * [SelectionHandle] is used for drawing selection handlers on all non-android platforms
+ * [SkikoSelectionHandle] is used for drawing selection handlers on all non-android platforms
  * if a certain set of touch-based events happened.
- * The logic of when that happened is out of scope of [SelectionHandle], this is something that
+ * The logic of when that happened is out of scope of [SkikoSelectionHandle], this is something that
  * basically implementations of [Modifier.textFieldPointer] are in charge of.
  * De-facto on any platform, these handles won't be shown on mouse events.
  * That said, one can see them while selecting text on iOS and mobile web targets.
@@ -63,7 +63,7 @@ private val THICKNESS = 2.dp
  * [SelectionHandle] was initially designed as iOS entity but later was commonized as is.
  */
 @Composable
-internal actual fun SelectionHandle(
+internal fun SkikoSelectionHandle(
     offsetProvider: OffsetProvider,
     isStartHandle: Boolean,
     direction: ResolvedTextDirection,
