@@ -19,13 +19,6 @@ open class ComposePublishingTask : AbstractComposePublishingTask() {
 val viewModelPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
 
 val libraryToComponents = mapOf(
-    "CORE_BUNDLE" to listOf(
-        ComposeComponent(
-            path = ":core:core-bundle",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP,
-            neverRedirect = true
-        ),
-    ),
     "CORE_URI" to listOf(
         ComposeComponent(
             path = ":core:core-uri",

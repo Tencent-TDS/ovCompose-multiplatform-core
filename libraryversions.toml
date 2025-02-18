@@ -178,7 +178,6 @@ XR = "1.0.0-alpha01"
 
 # JetBrains overrides
 COMPOSE_COMPILER = "1.5.14"  # Update when preparing for a release
-CORE_BUNDLE = "1.0.0-alpha01"
 CORE_URI = "1.0.0-alpha01"
 
 [groups]
@@ -319,7 +318,6 @@ COMPOSE_COMPILER = { group = "org.jetbrains.compose.compiler", atomicGroupVersio
 COMPOSE_DESKTOP = { group = "org.jetbrains.compose.desktop", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_MATERIAL3_COMMON = { group = "org.jetbrains.compose.material3.common", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_COMMON", overrideInclude = [ ":compose:material3:material3-common" ] }
 
-CORE_BUNDLE_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_BUNDLE", overrideInclude = [ ":core:core-bundle" ] }
 CORE_URI_JETBRAINS = { group = "org.jetbrains.androidx.core", atomicGroupVersion = "versions.CORE_URI", overrideInclude = [ ":core:core-uri" ] }
 GRAPHICS_SHAPES_JETBRAINS = { group = "org.jetbrains.androidx.graphics", atomicGroupVersion = "versions.GRAPHICS_SHAPES", overrideInclude = [ ":graphics:graphics-shapes" ] }
 PERFORMANCE_JETBRAINS = { group = "org.jetbrains.androidx.performance", atomicGroupVersion = "versions.PERFORMANCE", overrideInclude = [ ":performance:performance-annotation" ] }
