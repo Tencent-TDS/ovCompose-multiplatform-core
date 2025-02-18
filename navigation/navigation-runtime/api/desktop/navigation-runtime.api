@@ -22,12 +22,12 @@ public class androidx/navigation/NavController {
 	public fun getPreviousBackStackEntry ()Landroidx/navigation/NavBackStackEntry;
 	public final fun getVisibleEntries ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun handleDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Z
-	public fun navigate (Landroidx/core/uri/Uri;)V
-	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;)V
-	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
+	public fun navigate (Landroidx/navigation/NavUri;)V
+	public fun navigate (Landroidx/navigation/NavUri;Landroidx/navigation/NavOptions;)V
+	public fun navigate (Landroidx/navigation/NavUri;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
 	public final fun navigate (Ljava/lang/Object;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
