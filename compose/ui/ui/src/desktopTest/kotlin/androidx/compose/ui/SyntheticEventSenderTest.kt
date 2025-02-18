@@ -405,7 +405,7 @@ class SyntheticEventSenderTest {
     }
 
     @Test
-    fun `should not update pointer position with move event after pressed event`() {
+    fun `should update pointer position with move event after pressed event`() {
         val received = mutableListOf<PointerInputEvent>()
         val sender = SyntheticEventSender {
             PointerEventResult(received.add(it))
@@ -417,6 +417,7 @@ class SyntheticEventSenderTest {
 
         received positionAndDownShouldEqual listOf(
             event(Press, 1 to touch(10f, 20f, pressed = true)),
+            event(Move, 1 to touch(10f, 20f, pressed = true))
         )
 
         received.clear()
@@ -427,6 +428,7 @@ class SyntheticEventSenderTest {
 
         received positionAndDownShouldEqual listOf(
             event(Move, 1 to touch(5f, 15f, pressed = true)),
+            event(Move, 1 to touch(5f, 15f, pressed = true))
         )
     }
 
