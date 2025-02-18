@@ -16,7 +16,6 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
 
 /**
@@ -28,7 +27,7 @@ import kotlin.jvm.JvmStatic
 public expect open class NavDeepLinkRequest
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 constructor(
-    uri: Uri?,
+    uri: NavUri?,
     action: String?,
     mimeType: String?,
 ) {
@@ -38,7 +37,7 @@ constructor(
      *
      * @see NavDeepLink.uriPattern
      */
-    public open val uri: Uri?
+    public open val uri: NavUri?
 
     /**
      * The action from the NavDeepLinkRequest.
@@ -63,7 +62,7 @@ constructor(
          * @param uri The uri to add to the NavDeepLinkRequest
          * @return This builder.
          */
-        public fun setUri(uri: Uri): Builder
+        public fun setUri(uri: NavUri): Builder
 
         /**
          * Set the action for the [NavDeepLinkRequest].
@@ -98,7 +97,7 @@ constructor(
              * @param uri The uri to add to the NavDeepLinkRequest
              * @return a [Builder] instance
              */
-            @JvmStatic public fun fromUri(uri: Uri): Builder
+            @JvmStatic public fun fromUri(uri: NavUri): Builder
 
             /**
              * Creates a [NavDeepLinkRequest.Builder] with a set action.

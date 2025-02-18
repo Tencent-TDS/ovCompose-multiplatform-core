@@ -22,7 +22,6 @@ package androidx.navigation
 import androidx.annotation.CallSuper
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.core.uri.Uri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStore
@@ -371,7 +370,7 @@ public expect open class NavController {
      * @param deepLink deepLink to the destination reachable from the current NavGraph
      * @see NavController.navigate
      */
-    @MainThread public open fun navigate(deepLink: Uri)
+    @MainThread public open fun navigate(deepLink: NavUri)
 
     /**
      * Navigate to a destination via the given deep link [Uri]. [NavDestination.hasDeepLink] should
@@ -383,7 +382,7 @@ public expect open class NavController {
      * @param navOptions special options for this navigation operation
      * @see NavController.navigate
      */
-    @MainThread public open fun navigate(deepLink: Uri, navOptions: NavOptions?)
+    @MainThread public open fun navigate(deepLink: NavUri, navOptions: NavOptions?)
 
     /**
      * Navigate to a destination via the given deep link [Uri]. [NavDestination.hasDeepLink] should
@@ -398,7 +397,7 @@ public expect open class NavController {
      */
     @MainThread
     public open fun navigate(
-        deepLink: Uri,
+        deepLink: NavUri,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     )
