@@ -89,7 +89,7 @@ import platform.darwin.dispatch_get_main_queue
 internal class ComposeHostingViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val coroutineContext: CoroutineContext = Dispatchers.Main
+    coroutineContext: CoroutineContext = Dispatchers.Main
 ) : CMPViewController(nibName = null, bundle = null) {
     private val lifecycleOwner = ViewControllerBasedLifecycleOwner()
     private val hapticFeedback = CupertinoHapticFeedback()
@@ -126,6 +126,7 @@ internal class ComposeHostingViewController(
             updateMotionSpeed()
         }
     }
+    private val composeCoroutineContext: CoroutineContext = coroutineContext + motionDurationScale
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = rootView.density,
@@ -313,7 +314,7 @@ internal class ComposeHostingViewController(
     ) {
         val displayLinkListener = DisplayLinkListener()
         val sizeTransitionScope = CoroutineScope(
-            coroutineContext + displayLinkListener.frameClock + motionDurationScale
+            composeCoroutineContext + displayLinkListener.frameClock
         )
         val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
         displayLinkListener.start()
@@ -355,6 +356,7 @@ internal class ComposeHostingViewController(
                     focusStack = if (focusable) focusStack else null,
                     windowContext = windowContext,
                     compositionContext = compositionContext,
+                    coroutineContext = composeCoroutineContext
                 )
 
                 attachLayer(layer)
@@ -370,7 +372,7 @@ internal class ComposeHostingViewController(
     ): ComposeScene = PlatformLayersComposeScene(
         density = view.density,
         layoutDirection = layoutDirection,
-        coroutineContext = coroutineContext + motionDurationScale,
+        coroutineContext = composeCoroutineContext,
         composeSceneContext = createComposeSceneContext(
             platformContext = platformContext
         ),
@@ -389,7 +391,7 @@ internal class ComposeHostingViewController(
         onFocusBehavior = configuration.onFocusBehavior,
         focusStack = focusStack,
         windowContext = windowContext,
-        coroutineContext = coroutineContext + motionDurationScale,
+        coroutineContext = composeCoroutineContext,
         redrawer = rootMetalView.redrawer,
         composeSceneFactory = ::createComposeScene,
         backGestureDispatcher = backGestureDispatcher
@@ -484,6 +486,6 @@ private fun getLayoutDirection() =
         else -> LayoutDirection.Ltr
     }
 
-class MotionDurationScaleImpl: MotionDurationScale {
+private class MotionDurationScaleImpl: MotionDurationScale {
     override var scaleFactor by mutableStateOf(1f)
 }
