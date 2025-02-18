@@ -223,14 +223,7 @@ internal class IntermediateTextInputUIView(
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    override fun textInRange(range: UITextRange): String? {
-        val interRange = range as IntermediateTextRange
-        val interRangeStart = (interRange.start() as IntermediateTextPosition).position
-        val interRangeEnd = (interRange.end() as IntermediateTextPosition).position
-        println("Range = ${interRangeStart}, ${interRangeEnd}, range.toIntRange = ${range.toIntRange()}")
-        val text = input?.textInRange(range.toIntRange())
-        return text
-    }
+    override fun textInRange(range: UITextRange): String? = input?.textInRange(range.toIntRange())
 
     /**
      * Replaces the text in a document that is in the specified range.
