@@ -16,6 +16,7 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
+import androidx.core.uri.Uri
 import androidx.savedstate.SavedState
 import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
@@ -101,7 +102,7 @@ public expect open class NavDestination(navigatorName: String) {
     public open val displayName: String
 
     /**
-     * Checks the given deep link [NavUri], and determines whether it matches a Uri pattern added to
+     * Checks the given deep link [Uri], and determines whether it matches a Uri pattern added to
      * the destination by a call to [addDeepLink] . It returns `true` if the deep link is a valid
      * match, and `false` otherwise.
      *
@@ -114,7 +115,7 @@ public expect open class NavDestination(navigatorName: String) {
      * @see NavController.navigate
      * @see NavDestination.hasDeepLink
      */
-    public open fun hasDeepLink(deepLink: NavUri): Boolean
+    public open fun hasDeepLink(deepLink: Uri): Boolean
 
     /**
      * Checks the given [NavDeepLinkRequest], and determines whether it matches a [NavDeepLink]

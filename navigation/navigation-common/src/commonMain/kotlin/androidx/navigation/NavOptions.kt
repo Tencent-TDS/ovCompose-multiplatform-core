@@ -62,7 +62,7 @@ public expect class NavOptions {
      * Whether this navigation action should launch as single-top (i.e., there will be at most one
      * copy of a given destination on the top of the back stack).
      *
-     * This functions similarly to how `android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP` works with
+     * This functions similarly to how [android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP] works with
      * activities.
      */
     public fun shouldLaunchSingleTop(): Boolean
@@ -74,19 +74,18 @@ public expect class NavOptions {
     public fun shouldRestoreState(): Boolean
 
     /**
-     * Whether the destination set in [popUpToRoute] should be popped from the back stack.
+     * Whether the destination set in [getPopUpTo] should be popped from the back stack.
      *
      * @see Builder.setPopUpTo
-     * @see NavOptions.popUpToRoute
+     * @see NavOptions.getPopUpTo
      */
     public fun isPopUpToInclusive(): Boolean
 
     /**
      * Whether the back stack and the state of all destinations between the current destination and
-     * [popUpToRoute] should be saved for later restoration via [Builder.setRestoreState] or the
-     * `restoreState` attribute using the same ID as [popUpToRoute] (note: this matching ID is true
-     * if [isPopUpToInclusive] is true. If [isPopUpToInclusive] is false, this matching ID is the id
-     * of the last destination that is popped).
+     * [popUpToId] should be saved for later restoration via [Builder.setRestoreState] or the
+     * `restoreState` attribute using the same ID as [popUpToId] (note: this matching ID is true
+     * whether [isPopUpToInclusive] is true or false).
      */
     public fun shouldPopUpToSaveState(): Boolean
 
@@ -118,10 +117,9 @@ public expect class NavOptions {
          * @param saveState true if the back stack and the state of all destinations between the
          *   current destination and [route] should be saved for later restoration via
          *   [setRestoreState] or the `restoreState` attribute using the same ID as [popUpToRoute]
-         *   (note: this matching ID is true if [inclusive] is true. If [inclusive] is false, this
-         *   matching ID is the id of the last destination that is popped).
+         *   (note: this matching ID is true whether [inclusive] is true or false).
          * @return this Builder
-         * @see NavOptions.popUpToRoute
+         * @see NavOptions.popUpToId
          * @see NavOptions.isPopUpToInclusive
          */
         @JvmOverloads
@@ -141,11 +139,10 @@ public expect class NavOptions {
          * @param saveState true if the back stack and the state of all destinations between the
          *   current destination and [T] should be saved for later restoration via [setRestoreState]
          *   or the `restoreState` attribute using the same route from [KClass] as
-         *   [popUpToRouteClass] (note: this matching ID is true if [inclusive] is true. If
-         *   [inclusive] is false, this matching ID is the id of the last destination that is
-         *   popped).
+         *   [popUpToRouteClass] (note: this matching route is true whether [inclusive] is true or
+         *   false).
          * @return this Builder
-         * @see NavOptions.popUpToRoute
+         * @see NavOptions.popUpToId
          * @see NavOptions.isPopUpToInclusive
          */
         @JvmOverloads
@@ -165,11 +162,10 @@ public expect class NavOptions {
          * @param saveState true if the back stack and the state of all destinations between the
          *   current destination and [T] should be saved for later restoration via [setRestoreState]
          *   or the `restoreState` attribute using the same route from [KClass] as
-         *   [popUpToRouteClass] (note: this matching ID is true if [inclusive] is true. If
-         *   [inclusive] is false, this matching ID is the id of the last destination that is
-         *   popped).
+         *   [popUpToRouteClass] (note: this matching route is true whether [inclusive] is true or
+         *   false).
          * @return this Builder
-         * @see NavOptions.popUpToRoute
+         * @see NavOptions.popUpToId
          * @see NavOptions.isPopUpToInclusive
          */
         @JvmOverloads
@@ -189,11 +185,10 @@ public expect class NavOptions {
          * @param saveState true if the back stack and the state of all destinations between the
          *   current destination and [route] should be saved for later restoration via
          *   [setRestoreState] or the `restoreState` attribute using the same route from an Object
-         *   as [popUpToRouteObject] (note: this matching ID is true if [inclusive] is true. If
-         *   [inclusive] is false, this matching ID is the id of the last destination that is
-         *   popped).
+         *   as [popUpToRouteObject] (note: this matching route is true whether [inclusive] is true
+         *   or false).
          * @return this Builder
-         * @see NavOptions.popUpToRoute
+         * @see NavOptions.popUpToId
          * @see NavOptions.isPopUpToInclusive
          */
         @JvmOverloads

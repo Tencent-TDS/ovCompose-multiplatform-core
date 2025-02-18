@@ -16,5 +16,7 @@
 
 package androidx.navigation
 
-internal fun NavDestination.matchDeepLink(uri: NavUri) =
+import androidx.core.uri.Uri
+
+internal fun NavDestination.matchDeepLink(uri: Uri) =
     matchDeepLink(NavDeepLinkRequest(uri, null, null))

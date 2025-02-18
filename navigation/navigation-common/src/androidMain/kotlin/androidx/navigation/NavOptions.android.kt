@@ -300,8 +300,7 @@ internal constructor(
          * @param saveState true if the back stack and the state of all destinations between the
          *   current destination and [destinationId] should be saved for later restoration via
          *   [setRestoreState] or the `restoreState` attribute using the same ID as [popUpToId]
-         *   (note: this matching ID is true if [inclusive] is true. If [inclusive] is false, this
-         *   matching ID is the id of the last destination that is popped).
+         *   (note: this matching ID is true whether [inclusive] is true or false).
          * @return this Builder
          * @see NavOptions.popUpToId
          * @see NavOptions.isPopUpToInclusive

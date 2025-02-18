@@ -16,12 +16,13 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
+import androidx.core.uri.Uri
 import kotlin.jvm.JvmStatic
 
 public actual open class NavDeepLinkRequest
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 actual constructor(
-    public actual open val uri: NavUri?,
+    public actual open val uri: Uri?,
     public actual open val action: String?,
     public actual open val mimeType: String?
 ) {
@@ -47,11 +48,11 @@ actual constructor(
     }
 
     public actual class Builder private actual constructor() {
-        private var uri: NavUri? = null
+        private var uri: Uri? = null
         private var action: String? = null
         private var mimeType: String? = null
 
-        public actual fun setUri(uri: NavUri): Builder {
+        public actual fun setUri(uri: Uri): Builder {
             this.uri = uri
             return this
         }
@@ -77,7 +78,7 @@ actual constructor(
 
         public actual companion object {
             @JvmStatic
-            public actual fun fromUri(uri: NavUri): Builder {
+            public actual fun fromUri(uri: Uri): Builder {
                 val builder = Builder()
                 builder.setUri(uri)
                 return builder

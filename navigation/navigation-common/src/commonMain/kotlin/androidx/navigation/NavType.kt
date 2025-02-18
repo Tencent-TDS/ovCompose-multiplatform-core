@@ -16,6 +16,7 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
+import androidx.core.uri.UriUtils
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
@@ -113,7 +114,7 @@ public expect abstract class NavType<T>(isNullableAllowed: Boolean) {
      * This method can be override for custom serialization implementation on types such custom
      * NavType classes.
      *
-     * Note: Final output should be encoded with [NavUriUtils.encode]
+     * Note: Final output should be encoded with [UriUtils.encode]
      *
      * @param value a value representing this NavType to be serialized into a String
      * @return encoded and serialized String value of [value]
@@ -693,7 +694,7 @@ internal class StringNavType : NavType<String?>(true) {
      * null receivers of [kotlin.toString] into "null".
      */
     override fun serializeAsValue(value: String?): String {
-        return value?.let { NavUriUtils.encode(value) } ?: "null"
+        return value?.let { UriUtils.encode(value) } ?: "null"
     }
 }
 
@@ -723,7 +724,7 @@ internal class StringArrayNavType : CollectionNavType<Array<String>?>(true) {
 
     // "null" is still serialized as "null"
     override fun serializeAsValues(value: Array<String>?): List<String> =
-        value?.map { NavUriUtils.encode(it) } ?: emptyList()
+        value?.map { UriUtils.encode(it) } ?: emptyList()
 
     override fun emptyCollection(): Array<String> = arrayOf()
 }
@@ -760,7 +761,7 @@ internal class StringListNavType : CollectionNavType<List<String>?>(true) {
     }
 
     override fun serializeAsValues(value: List<String>?): List<String> =
-        value?.map { NavUriUtils.encode(it) } ?: emptyList()
+        value?.map { UriUtils.encode(it) } ?: emptyList()
 
     override fun emptyCollection(): List<String> = emptyList()
 }

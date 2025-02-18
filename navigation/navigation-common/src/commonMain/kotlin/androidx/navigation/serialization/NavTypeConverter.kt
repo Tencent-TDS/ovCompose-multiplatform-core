@@ -18,9 +18,9 @@
 
 package androidx.navigation.serialization
 
+import androidx.core.uri.UriUtils
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NavType
-import androidx.navigation.NavUriUtils
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
 import androidx.savedstate.write
@@ -306,7 +306,7 @@ internal object InternalNavType {
             override fun parseValue(value: String): String = value
 
             // "null" is still serialized as "null"
-            override fun serializeAsValue(value: String): String = NavUriUtils.encode(value)
+            override fun serializeAsValue(value: String): String = UriUtils.encode(value)
         }
 
     val StringNullableArrayType: NavType<Array<String?>?> =
@@ -342,7 +342,7 @@ internal object InternalNavType {
                 value.contentDeepEquals(other)
 
             override fun serializeAsValues(value: Array<String?>?): List<String> =
-                value?.map { it?.let { NavUriUtils.encode(it) } ?: "null" } ?: emptyList()
+                value?.map { it?.let { UriUtils.encode(it) } ?: "null" } ?: emptyList()
 
             override fun emptyCollection(): Array<String?>? = arrayOf()
         }
@@ -381,7 +381,7 @@ internal object InternalNavType {
             }
 
             override fun serializeAsValues(value: List<String?>?): List<String> =
-                value?.map { it?.let { NavUriUtils.encode(it) } ?: "null" } ?: emptyList()
+                value?.map { it?.let { UriUtils.encode(it) } ?: "null" } ?: emptyList()
 
             override fun emptyCollection(): List<String?> = emptyList()
         }

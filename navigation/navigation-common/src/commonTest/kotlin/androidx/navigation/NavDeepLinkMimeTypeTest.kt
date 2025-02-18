@@ -16,6 +16,7 @@
 
 package androidx.navigation
 
+import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import kotlin.test.Test
@@ -60,7 +61,7 @@ class NavDeepLinkMimeTypeTest {
         assertWithMessage("The mimeTypes should match")
             .that(
                 deepLink.matches(
-                    NavDeepLinkRequest(NavUriUtils.parse(DEEP_LINK_EXACT_HTTPS), null, mimeType)
+                    NavDeepLinkRequest(UriUtils.parse(DEEP_LINK_EXACT_HTTPS), null, mimeType)
                 )
             )
             .isTrue()
