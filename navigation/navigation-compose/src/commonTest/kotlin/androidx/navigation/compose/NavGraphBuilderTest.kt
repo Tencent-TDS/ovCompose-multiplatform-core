@@ -17,13 +17,13 @@
 package androidx.navigation.compose
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.NavUri
 import androidx.navigation.contains
 import androidx.navigation.get
 import androidx.navigation.navArgument
@@ -50,7 +50,7 @@ class NavGraphBuilderTest {
     fun testDeepLink() = runComposeUiTestOnUiThread {
         lateinit var navController: TestNavHostController
         val uriString = "https://www.example.com"
-        val deeplink = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(uriString)).build()
+        val deeplink = NavDeepLinkRequest.Builder.fromUri(NavUri.Utils.parse(uriString)).build()
         setContentWithLifecycleOwner {
             navController = TestNavHostController()
             navController.navigatorProvider.addNavigator(ComposeNavigator())
