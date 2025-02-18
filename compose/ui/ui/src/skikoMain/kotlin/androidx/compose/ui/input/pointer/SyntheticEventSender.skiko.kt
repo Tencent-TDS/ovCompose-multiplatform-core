@@ -90,9 +90,9 @@ internal class SyntheticEventSender(
             needUpdatePointerPosition = false
 
             previousEvent?.let { event ->
-                if (event.eventType != PointerEventType.Move &&
-                    event.pointers.fastAny { it.down || it.type == PointerType.Mouse }
-                ) {
+                // Resent pointer position update only for hover mouse events.
+                // Keep logic in sync with [AndroidComposeView.resendMotionEventOnLayout].
+                if (event.pointers.fastAny { !it.down && it.type == PointerType.Mouse }) {
                     return sendSyntheticMove(event)
                 }
             }
