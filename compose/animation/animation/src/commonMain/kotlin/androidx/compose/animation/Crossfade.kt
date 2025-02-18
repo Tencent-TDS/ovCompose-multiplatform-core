@@ -43,10 +43,11 @@ import androidx.compose.ui.util.fastForEach
  * @param modifier Modifier to be applied to the animation container.
  * @param animationSpec the [AnimationSpec] to configure the animation.
  * @param label An optional label to differentiate from other animations in Android Studio.
+ * @param content A mapping from a given state to the content corresponding to that state.
  */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun <T> Crossfade(
+public fun <T> Crossfade(
     targetState: T,
     modifier: Modifier = Modifier,
     animationSpec: FiniteAnimationSpec<Float> = tween(),
@@ -60,7 +61,7 @@ fun <T> Crossfade(
 @Deprecated("Crossfade API now has a new label parameter added.", level = DeprecationLevel.HIDDEN)
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun <T> Crossfade(
+public fun <T> Crossfade(
     targetState: T,
     modifier: Modifier = Modifier,
     animationSpec: FiniteAnimationSpec<Float> = tween(),
@@ -89,10 +90,12 @@ fun <T> Crossfade(
  *
  * @param modifier Modifier to be applied to the animation container.
  * @param animationSpec the [AnimationSpec] to configure the animation.
+ * @param contentKey A mapping from a given state to an object of [Any].
+ * @param content A mapping from a given state to the content corresponding to that state.
  */
 @ExperimentalAnimationApi
 @Composable
-fun <T> Transition<T>.Crossfade(
+public fun <T> Transition<T>.Crossfade(
     modifier: Modifier = Modifier,
     animationSpec: FiniteAnimationSpec<Float> = tween(),
     contentKey: (targetState: T) -> Any? = { it },

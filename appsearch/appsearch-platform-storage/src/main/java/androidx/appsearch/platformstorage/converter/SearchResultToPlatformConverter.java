@@ -19,12 +19,13 @@ package androidx.appsearch.platformstorage.converter;
 import android.os.Build;
 
 import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.app.SearchResult;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
@@ -38,9 +39,8 @@ public class SearchResultToPlatformConverter {
     private SearchResultToPlatformConverter() {}
 
     /** Translates from Platform to Jetpack versions of {@link SearchResult}. */
-    @NonNull
-    public static SearchResult toJetpackSearchResult(
-            @NonNull android.app.appsearch.SearchResult platformResult) {
+    public static @NonNull SearchResult toJetpackSearchResult(
+            android.app.appsearch.@NonNull SearchResult platformResult) {
         Preconditions.checkNotNull(platformResult);
         GenericDocument document = GenericDocumentToPlatformConverter.toJetpackGenericDocument(
                 platformResult.getGenericDocument());
@@ -60,12 +60,13 @@ public class SearchResultToPlatformConverter {
                 builder.addJoinedResult(toJetpackSearchResult(joinedResult));
             }
         }
+        // TODO(b/332642571): Add informational ranking signal once it is available in platform.
+        // TODO(b/371610934): Set parentTypeMap once it is available in platform.
         return builder.build();
     }
 
-    @NonNull
-    private static SearchResult.MatchInfo toJetpackMatchInfo(
-            @NonNull android.app.appsearch.SearchResult.MatchInfo platformMatchInfo) {
+    private static SearchResult.@NonNull MatchInfo toJetpackMatchInfo(
+            android.app.appsearch.SearchResult.@NonNull MatchInfo platformMatchInfo) {
         Preconditions.checkNotNull(platformMatchInfo);
         SearchResult.MatchInfo.Builder builder = new SearchResult.MatchInfo.Builder(
                 platformMatchInfo.getPropertyPath())
@@ -93,14 +94,14 @@ public class SearchResultToPlatformConverter {
         }
 
         @DoNotInline
-        static int getSubmatchRangeStart(@NonNull
-                android.app.appsearch.SearchResult.MatchInfo platformMatchInfo) {
+        static int getSubmatchRangeStart(
+                android.app.appsearch.SearchResult.@NonNull MatchInfo platformMatchInfo) {
             return platformMatchInfo.getSubmatchRange().getStart();
         }
 
         @DoNotInline
-        static int getSubmatchRangeEnd(@NonNull
-                android.app.appsearch.SearchResult.MatchInfo platformMatchInfo) {
+        static int getSubmatchRangeEnd(
+                android.app.appsearch.SearchResult.@NonNull MatchInfo platformMatchInfo) {
             return platformMatchInfo.getSubmatchRange().getEnd();
         }
     }
@@ -112,8 +113,8 @@ public class SearchResultToPlatformConverter {
         }
 
         @DoNotInline
-        static List<android.app.appsearch.SearchResult> getJoinedResults(@NonNull
-                android.app.appsearch.SearchResult result) {
+        static List<android.app.appsearch.SearchResult> getJoinedResults(
+                android.app.appsearch.@NonNull SearchResult result) {
             return result.getJoinedResults();
         }
     }

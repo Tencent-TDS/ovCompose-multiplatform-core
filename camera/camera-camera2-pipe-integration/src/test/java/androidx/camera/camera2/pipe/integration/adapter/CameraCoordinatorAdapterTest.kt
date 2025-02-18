@@ -32,6 +32,7 @@ import androidx.camera.core.concurrent.CameraCoordinator.CAMERA_OPERATING_MODE_C
 import androidx.camera.core.concurrent.CameraCoordinator.CAMERA_OPERATING_MODE_SINGLE
 import androidx.camera.core.concurrent.CameraCoordinator.CAMERA_OPERATING_MODE_UNSPECIFIED
 import androidx.camera.core.impl.CameraInfoInternal
+import androidx.camera.testing.fakes.FakeCameraInfoInternal
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
@@ -51,7 +52,6 @@ import org.robolectric.util.ReflectionHelpers
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class CameraCoordinatorAdapterTest {
-
     private val cameraMetadata0 =
         FakeCameraMetadata(
             cameraId = CameraId("0"),
@@ -74,6 +74,7 @@ class CameraCoordinatorAdapterTest {
                         ),
                 )
         )
+
     private val cameraMetadata2 = FakeCameraMetadata(cameraId = CameraId("2"))
 
     private val cameraDevices =
@@ -128,6 +129,13 @@ class CameraCoordinatorAdapterTest {
         // REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE will be filtered.
         ReflectionHelpers.setStaticField(Build::class.java, "FINGERPRINT", "fake-fingerprint")
         cameraCoordinatorAdapter = CameraCoordinatorAdapter(cameraPipe, cameraDevices)
+
+        whenever(mockCameraInternalAdapter0.cameraInfoInternal)
+            .thenReturn(FakeCameraInfoInternal("0"))
+        whenever(mockCameraInternalAdapter1.cameraInfoInternal)
+            .thenReturn(FakeCameraInfoInternal("1"))
+        whenever(mockCameraInternalAdapter2.cameraInfoInternal)
+            .thenReturn(FakeCameraInfoInternal("2"))
         cameraCoordinatorAdapter.registerCamera("0", mockCameraInternalAdapter0)
         cameraCoordinatorAdapter.registerCamera("1", mockCameraInternalAdapter1)
         cameraCoordinatorAdapter.registerCamera("2", mockCameraInternalAdapter2)
@@ -174,6 +182,26 @@ class CameraCoordinatorAdapterTest {
             .thenReturn(mockCameraGraphConfig1)
         whenever(mockCameraInternalAdapter2.getDeferredCameraGraphConfig())
             .thenReturn(mockCameraGraphConfig2)
+
+        assertThat(cameraCoordinatorAdapter.getPairedConcurrentCameraId("0")).isNull()
+
+        cameraCoordinatorAdapter.activeConcurrentCameraInfos =
+            mutableListOf(
+                FakeCameraInfoAdapterCreator.createCameraInfoAdapter(cameraId = CameraId("0")),
+                FakeCameraInfoAdapterCreator.createCameraInfoAdapter(cameraId = CameraId("1"))
+            )
+
+        assertThat(cameraCoordinatorAdapter.getPairedConcurrentCameraId("0")).isEqualTo("1")
+    }
+
+    @Test
+    fun getPairedConcurrentCameraId_IgnoresCameraAdaptersWithoutGraphConfig() {
+        whenever(mockCameraInternalAdapter0.getDeferredCameraGraphConfig())
+            .thenReturn(mockCameraGraphConfig0)
+        whenever(mockCameraInternalAdapter1.getDeferredCameraGraphConfig())
+            .thenReturn(mockCameraGraphConfig1)
+        // When one of the adapters doesn't have a graph config, it is filtered and ignored.
+        whenever(mockCameraInternalAdapter2.getDeferredCameraGraphConfig()).thenReturn(null)
 
         assertThat(cameraCoordinatorAdapter.getPairedConcurrentCameraId("0")).isNull()
 

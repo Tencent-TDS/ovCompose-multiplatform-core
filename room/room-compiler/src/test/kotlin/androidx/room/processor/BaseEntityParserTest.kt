@@ -72,6 +72,7 @@ abstract class BaseEntityParserTest {
                                 ENTITY_SUFFIX
                     ),
             options = mapOf(Context.BooleanProcessorOptions.GENERATE_KOTLIN.argName to "false"),
+            kotlincArguments = listOf("-jvm-target=11"),
             classpath = classpathFiles
         ) { invocation ->
             val entity =

@@ -20,12 +20,10 @@ import android.annotation.SuppressLint
 import android.graphics.Region
 import android.view.View
 import androidx.collection.IntObjectMap
+import androidx.collection.MutableIntObjectMap
 import androidx.collection.MutableIntSet
-import androidx.collection.mutableIntObjectMapOf
-import androidx.collection.mutableIntSetOf
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.collection.emptyIntObjectMap
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.OwnerScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.ScrollAxisRange
@@ -34,6 +32,8 @@ import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsProperties.HideFromAccessibility
+import androidx.compose.ui.semantics.SemanticsProperties.InvisibleToUser
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.util.fastForEach
@@ -49,7 +49,7 @@ internal class SemanticsNodeCopy(
     currentSemanticsNodes: IntObjectMap<SemanticsNodeWithAdjustedBounds>
 ) {
     val unmergedConfig = semanticsNode.unmergedConfig
-    val children: MutableIntSet = mutableIntSetOf()
+    val children: MutableIntSet = MutableIntSet(semanticsNode.replacedChildren.size)
 
     init {
         semanticsNode.replacedChildren.fastForEach { child ->
@@ -122,18 +122,24 @@ internal fun Role.toLegacyClassName(): String? =
         Role.RadioButton -> "android.widget.RadioButton"
         Role.Image -> "android.widget.ImageView"
         Role.DropdownList -> "android.widget.Spinner"
+        Role.ValuePicker -> "android.widget.NumberPicker"
         else -> null
     }
 
 internal fun SemanticsNode.isImportantForAccessibility() =
-    isVisible &&
+    !isHidden &&
         (unmergedConfig.isMergingSemanticsOfDescendants ||
             unmergedConfig.containsImportantForAccessibility())
 
-// TODO(347749977): go through and remove experimental tag on `invisible` properties
-@OptIn(ExperimentalComposeUiApi::class)
-internal val SemanticsNode.isVisible: Boolean
-    get() = !isTransparent && !unmergedConfig.contains(SemanticsProperties.InvisibleToUser)
+@Suppress("DEPRECATION")
+internal val SemanticsNode.isHidden: Boolean
+    // A node is considered hidden if it is transparent, or explicitly is hidden from accessibility.
+    // This also checks if the node has been marked as `invisibleToUser`, which is what the
+    // `hiddenFromAccessibility` API used to  be named.
+    get() =
+        isTransparent ||
+            (unmergedConfig.contains(HideFromAccessibility) ||
+                unmergedConfig.contains(InvisibleToUser))
 
 internal val DefaultFakeNodeBounds = Rect(0f, 0f, 10f, 10f)
 
@@ -147,14 +153,6 @@ internal class SemanticsNodeWithAdjustedBounds(
 internal fun AndroidViewsHandler.semanticsIdToView(id: Int): View? =
     layoutNodeToHolder.entries.firstOrNull { it.key.semanticsId == id }?.value
 
-internal fun LayoutNode.isAncestorOf(node: LayoutNode): Boolean {
-    val p = node.parent ?: return false
-    return (p == this) || isAncestorOf(p)
-}
-
-// TODO(mnuzen): refactor `currentSemanticsNodes` in the AccessibilityDelegate file to also use
-// IntObjectMap's. Then ACVADC can also call `getAllUncoveredSemanticsNodesToIntObjectMap` instead
-// of `getAllUncoveredSemanticsNodesToMap` as it does now.
 /**
  * Finds pruned [SemanticsNode]s in the tree owned by this [SemanticsOwner]. A semantics node
  * completely covered by siblings drawn on top of it will be pruned. Return the results in a map.
@@ -162,10 +160,12 @@ internal fun LayoutNode.isAncestorOf(node: LayoutNode): Boolean {
 internal fun SemanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap():
     IntObjectMap<SemanticsNodeWithAdjustedBounds> {
     val root = unmergedRootSemanticsNode
-    val nodes = mutableIntObjectMapOf<SemanticsNodeWithAdjustedBounds>()
     if (!root.layoutNode.isPlaced || !root.layoutNode.isAttached) {
-        return nodes
+        return emptyIntObjectMap()
     }
+
+    // Default capacity chosen to accommodate common scenarios
+    val nodes = MutableIntObjectMap<SemanticsNodeWithAdjustedBounds>(48)
 
     val unaccountedSpace =
         with(root.boundsInRoot) {
@@ -208,6 +208,12 @@ internal fun SemanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap():
             // if block.
             val children = currentNode.replacedChildren
             for (i in children.size - 1 downTo 0) {
+                // Links in text nodes are semantics children. But for Android accessibility support
+                // we don't publish them to the accessibility services because they are exposed
+                // as UrlSpan/ClickableSpan spans instead
+                if (children[i].config.contains(SemanticsProperties.LinkTestMarker)) {
+                    continue
+                }
                 findAllSemanticNodesRecursive(children[i], region)
             }
             if (currentNode.isImportantForAccessibility()) {

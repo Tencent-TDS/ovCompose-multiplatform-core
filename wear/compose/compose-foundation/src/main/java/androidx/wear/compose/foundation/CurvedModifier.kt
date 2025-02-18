@@ -37,15 +37,15 @@ public sealed interface CurvedModifier {
      *
      * Returns a [CurvedModifier] representing this curved modifier followed by [other] in sequence.
      */
-    infix fun then(other: CurvedModifier): CurvedModifier =
+    public infix fun then(other: CurvedModifier): CurvedModifier =
         CurvedModifierImpl(elements() + other.elements())
 
     /**
      * The companion object `CurvedModifier` is the empty, default, or starter [CurvedModifier] that
      * contains no Elements.
      */
-    companion object : CurvedModifier {
-        override fun toString() = "CurvedModifier"
+    public companion object : CurvedModifier {
+        override fun toString(): String = "CurvedModifier"
     }
 }
 

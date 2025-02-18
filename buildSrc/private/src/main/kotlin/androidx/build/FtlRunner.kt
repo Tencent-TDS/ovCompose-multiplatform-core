@@ -100,7 +100,7 @@ abstract class FtlRunner : DefaultTask() {
         option = "api",
         description =
             "repeatable argument for which apis to run ftl tests on. " +
-                "Only relevant to $FTL_ON_APIS_NAME. Can be 21, 26, 28, 30, 33, 34."
+                "Only relevant to $FTL_ON_APIS_NAME. Can be 21, 26, 28, 30, 33, 34, 35."
     )
     abstract val apis: ListProperty<Int>
 
@@ -204,7 +204,9 @@ private const val PETTYL = "pettyl,version=27"
 private const val HWCOR = "HWCOR,version=27"
 private const val Q2Q = "q2q,version=31"
 
+private const val PHYSICAL_PIXEL9 = "tokay,version=34"
 private const val MEDIUM_PHONE_34 = "MediumPhone.arm,version=34"
+private const val MEDIUM_PHONE_35 = "MediumPhone.arm,version=35"
 private const val PIXEL2_33 = "Pixel2.arm,version=33"
 private const val PIXEL2_30 = "Pixel2.arm,version=30"
 private const val PIXEL2_28 = "Pixel2.arm,version=28"
@@ -214,6 +216,7 @@ private const val NEXUS4_21 = "Nexus4.gce_x86,version=21"
 private val API_TO_MODEL_MAP =
     mapOf(
         34 to MEDIUM_PHONE_34,
+        35 to MEDIUM_PHONE_35,
         33 to PIXEL2_33,
         30 to PIXEL2_30,
         28 to PIXEL2_28,
@@ -225,7 +228,9 @@ private const val FTL_ON_APIS_NAME = "ftlOnApis"
 private val devicesToRunOn =
     listOf(
         FTL_ON_APIS_NAME to listOf(), // instead read devices via repeatable --api
+        "ftlphysicalpixel9api34" to listOf(PHYSICAL_PIXEL9),
         "ftlmediumphoneapi34" to listOf(MEDIUM_PHONE_34),
+        "ftlmediumphoneapi35" to listOf(MEDIUM_PHONE_35),
         "ftlpixel2api33" to listOf(PIXEL2_33),
         "ftlpixel2api30" to listOf(PIXEL2_30),
         "ftlpixel2api28" to listOf(PIXEL2_28),
@@ -255,7 +260,7 @@ fun Project.configureFtlRunner(androidComponentsExtension: AndroidComponentsExte
             @Suppress("UnstableApiUsage") // usage of HasDeviceTests
             when {
                 variant is HasDeviceTests -> {
-                    variant.deviceTests.forEach { deviceTest ->
+                    variant.deviceTests.forEach { (_, deviceTest) ->
                         registerRunner(deviceTest.name, deviceTest.artifacts, deviceTest.namespace)
                     }
                 }
@@ -269,8 +274,8 @@ fun Project.configureFtlRunner(androidComponentsExtension: AndroidComponentsExte
 
 fun Project.configureFtlRunner(componentsExtension: KotlinMultiplatformAndroidComponentsExtension) {
     componentsExtension.onVariant { variant ->
-        @Suppress("UnstableApiUsage") // usage of HasDeviceTests
-        variant.deviceTests.forEach { deviceTest ->
+        @Suppress("UnstableApiUsage") // HasDeviceTests is @Incubating b/372495504
+        variant.deviceTests.forEach { (_, deviceTest) ->
             registerRunner(deviceTest.name, deviceTest.artifacts, deviceTest.namespace)
         }
     }

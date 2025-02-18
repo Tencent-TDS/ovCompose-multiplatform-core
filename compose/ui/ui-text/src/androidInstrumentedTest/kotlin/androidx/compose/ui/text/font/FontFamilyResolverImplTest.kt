@@ -17,8 +17,10 @@
 package androidx.compose.ui.text.font
 
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.Build
+import android.view.ContextThemeWrapper
 import androidx.compose.ui.text.FontTestData
 import androidx.compose.ui.text.UncachedFontFamilyResolver
 import androidx.compose.ui.text.font.testutils.AsyncFauxFont
@@ -476,16 +478,18 @@ class FontFamilyResolverImplTest {
         assertThat(typeface).isSameInstanceAs(Typeface.DEFAULT)
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun throwsExceptionIfFontIsNotIncludedInTheApp() {
+    @Test
+    fun doesntThrowExceptionIfFontIsNotIncludedInTheApp() {
         val fontFamily = FontFamily(Font(resId = -1))
-        resolveAsTypeface(fontFamily)
+        val result = resolveAsTypeface(fontFamily)
+        assertThat(result).isNotNull()
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun throwsExceptionIfFontIsNotReadable() {
+    @Test
+    fun doesntThrowExceptionIfFontIsNotReadable() {
         val fontFamily = FontFamily(FontTestData.FONT_INVALID)
-        resolveAsTypeface(fontFamily)
+        val result = resolveAsTypeface(fontFamily)
+        assertThat(result).isNotNull()
     }
 
     @Test
@@ -751,5 +755,33 @@ class FontFamilyResolverImplTest {
 
         val typeface = resolveAsTypeface(fontFamily, FontWeight.W400)
         assertThat(typeface).isSameInstanceAs(Typeface.SERIF)
+    }
+
+    @SdkSuppress(maxSdkVersion = 30)
+    @Test
+    fun androidResolveInterceptor_noFontWeightApplied_beforeApi31() {
+        initializeSubject(AndroidFontResolveInterceptor(context))
+        val typeface = resolveAsTypeface()
+        assertThat(typeface).hasWeightAndStyle(FontWeight.Normal, FontStyle.Normal)
+    }
+
+    @SdkSuppress(minSdkVersion = 31)
+    @Test
+    fun androidResolveInterceptor_fontWeightAdjustment_appliesPastApi31() {
+        val newContext =
+            ContextThemeWrapper(context, 0).apply {
+                applyOverrideConfiguration(
+                    Configuration().apply {
+                        updateFrom(context.resources.configuration)
+                        this.fontWeightAdjustment = 100
+                    }
+                )
+            }
+
+        initializeSubject(AndroidFontResolveInterceptor(newContext))
+        val typeface = resolveAsTypeface()
+
+        // FontWeight.Normal + 100 = FontWeight.Medium
+        assertThat(typeface).hasWeightAndStyle(FontWeight.Medium, FontStyle.Normal)
     }
 }

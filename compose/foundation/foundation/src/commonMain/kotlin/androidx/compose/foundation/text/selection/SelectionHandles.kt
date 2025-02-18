@@ -79,6 +79,7 @@ internal expect fun SelectionHandle(
     direction: ResolvedTextDirection,
     handlesCrossed: Boolean,
     minTouchTargetSize: DpSize = DpSize.Unspecified,
+    lineHeight: Float,
     modifier: Modifier,
 )
 

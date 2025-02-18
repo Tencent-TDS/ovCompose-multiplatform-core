@@ -29,7 +29,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.snapshots.Snapshot
@@ -227,7 +226,12 @@ internal class AndroidComposeTestCaseRunner<T : ComposeTestCase>(
             "Layout can be only executed after measure, current state is '$simulationState'"
         }
         val view = getView()
-        view.layout(view.left, view.top, view.right, view.bottom)
+        view.layout(
+            /* l= */ 0,
+            /* t= */ 0,
+            /* r= */ view.measuredWidth,
+            /* b= */ view.measuredHeight
+        )
         simulationState = SimulationState.LayoutDone
     }
 
@@ -415,7 +419,6 @@ private class MRenderNodeCapture : DrawCapture {
 
 @RequiresApi(28)
 private object BitmapHelper {
-    @DoNotInline
     fun createBitmap(picture: Picture): Bitmap {
         return Bitmap.createBitmap(picture)
     }

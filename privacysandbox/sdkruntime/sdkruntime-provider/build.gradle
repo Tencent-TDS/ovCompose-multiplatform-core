@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    api project(path: ':privacysandbox:sdkruntime:sdkruntime-core')
+    api(project(":privacysandbox:sdkruntime:sdkruntime-core"))
 
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
@@ -38,19 +38,19 @@ dependencies {
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.junit)
 
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockitoInline, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockitoInline)
 }
 
 android {
-    namespace "androidx.privacysandbox.sdkruntime.provider"
-    compileSdk = 34
-    compileSdkExtension = 10
+    namespace = "androidx.privacysandbox.sdkruntime.provider"
+    compileSdk = 35
+    compileSdkExtension = 14
 }
 
 androidx {
     name = "SdkRuntime Provider"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Provides components for SdkRuntime aware SDKs"
     legacyDisableKotlinStrictApiMode = true

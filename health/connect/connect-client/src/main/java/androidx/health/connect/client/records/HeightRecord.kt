@@ -28,7 +28,7 @@ public class HeightRecord(
     override val zoneOffset: ZoneOffset?,
     /** Height in [Length] unit. Required field. Valid range: 0-3 meters. */
     public val height: Length,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : InstantaneousRecord {
 
     init {
@@ -60,6 +60,10 @@ public class HeightRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "HeightRecord(time=$time, zoneOffset=$zoneOffset, height=$height, metadata=$metadata)"
     }
 
     companion object {

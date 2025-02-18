@@ -61,7 +61,7 @@ class XExecutableTypeTest {
                     """
                             .trimIndent()
                     )
-                )
+                ),
         ) { invocation ->
             fun checkConstructor(className: String) {
                 val typeElement = invocation.processingEnv.requireTypeElement(className)

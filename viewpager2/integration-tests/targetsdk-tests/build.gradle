@@ -21,22 +21,30 @@ plugins {
 }
 
 android {
+    compileSdk = 35
     flavorDimensions = ["targetSdk"]
     productFlavors {
         targetSdk29 {
             dimension "targetSdk"
-            targetSdkVersion 29
         }
         targetSdk30 {
             dimension "targetSdk"
-            targetSdkVersion 30
         }
         targetSdkLatest {
             dimension "targetSdk"
             // Default is set to latest
         }
     }
-    namespace "androidx.viewpager2.integration.targestsdktests"
+    namespace = "androidx.viewpager2.integration.targestsdktests"
+}
+
+androidComponents {
+    beforeVariants(selector().withFlavor("targetSdk", "targetSdk29")) { variant ->
+        variant.androidTest.targetSdk = 29
+    }
+    beforeVariants(selector().withFlavor("targetSdk", "targetSdk30")) { variant ->
+        variant.androidTest.targetSdk = 30
+    }
 }
 
 dependencies {

@@ -18,7 +18,6 @@ package androidx.compose.material3
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -28,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.material3.tokens.RadioButtonTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -83,7 +83,8 @@ fun RadioButton(
     val dotRadius =
         animateDpAsState(
             targetValue = if (selected) RadioButtonDotSize / 2 else 0.dp,
-            animationSpec = tween(durationMillis = RadioAnimationDuration)
+            // TODO Load the motionScheme tokens from the component tokens file
+            animationSpec = MotionSchemeKeyTokens.FastSpatial.value()
         )
     val radioColor = colors.radioColor(enabled, selected)
     val selectableModifier =
@@ -233,7 +234,8 @@ constructor(
         // If not enabled 'snap' to the disabled state, as there should be no animations between
         // enabled / disabled.
         return if (enabled) {
-            animateColorAsState(target, tween(durationMillis = RadioAnimationDuration))
+            // TODO Load the motionScheme tokens from the component tokens file
+            animateColorAsState(target, MotionSchemeKeyTokens.DefaultEffects.value())
         } else {
             rememberUpdatedState(target)
         }
@@ -259,8 +261,6 @@ constructor(
         return result
     }
 }
-
-private const val RadioAnimationDuration = 100
 
 private val RadioButtonPadding = 2.dp
 private val RadioButtonDotSize = 12.dp

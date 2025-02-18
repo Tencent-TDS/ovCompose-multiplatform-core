@@ -22,9 +22,8 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
 
@@ -34,17 +33,11 @@ plugins {
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
-    android()
+    androidTarget()
     desktop()
     mac()
     linux()
     ios()
-
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -55,7 +48,7 @@ androidXMultiplatform {
 
         commonMain {
             dependencies {
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.annotation:annotation:1.8.1")
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
             }
@@ -69,11 +62,11 @@ androidXMultiplatform {
             }
         }
 
-        jvmMain {
+        jvmCommonMain {
             dependsOn(commonMain)
         }
 
-        jvmTest {
+        jvmCommonTest {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.junit)
@@ -81,14 +74,15 @@ androidXMultiplatform {
         }
 
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(jvmCommonMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
+                implementation("androidx.core:core-viewtree:1.0.0")
             }
         }
 
         androidUnitTest {
-            dependsOn(jvmTest)
+            dependsOn(jvmCommonTest)
             dependencies {
                 implementation(libs.mockitoCore4)
             }
@@ -104,9 +98,9 @@ androidXMultiplatform {
             }
         }
 
-        desktopMain.dependsOn(jvmMain)
-        nonJvmMain.dependsOn(commonMain)
-        nativeMain.dependsOn(nonJvmMain)
+        desktopMain.dependsOn(jvmCommonMain)
+        nonJvmCommonMain.dependsOn(commonMain)
+        nativeMain.dependsOn(nonJvmCommonMain)
         darwinMain.dependsOn(nativeMain)
         linuxMain.dependsOn(nativeMain)
 
@@ -131,12 +125,13 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.lifecycle.viewmodel"
+    namespace = "androidx.lifecycle.viewmodel"
 }
 
 androidx {
     name = "Lifecycle ViewModel"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Lifecycle ViewModel"
+    metalavaK2UastEnabled = false
 }

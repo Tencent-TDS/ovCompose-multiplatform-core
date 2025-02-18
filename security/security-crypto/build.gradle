@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -30,12 +30,11 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
 
     implementation("com.google.crypto.tink:tink-android:1.8.0")
-
-    implementation("androidx.annotation:annotation:1.2.0")
-    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.collection:collection:1.4.2")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -46,15 +45,14 @@ dependencies {
 }
 
 android {
-    namespace "androidx.security"
+    namespace = "androidx.security"
 }
 
 androidx {
     name = "Security"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.SECURITY
     inceptionYear = "2019"
     description = "AndroidX Security"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

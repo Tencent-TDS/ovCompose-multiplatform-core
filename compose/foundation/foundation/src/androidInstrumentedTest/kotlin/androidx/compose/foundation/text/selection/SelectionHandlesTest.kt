@@ -157,6 +157,7 @@ class SelectionHandlesTest {
                 offsetProvider = { offsetState },
                 isStartHandle = false,
                 direction = ResolvedTextDirection.Ltr,
+                lineHeight = 0f,
                 handlesCrossed = false,
             )
         }

@@ -21,22 +21,25 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
+    js()
     jvm() {
         withJava()
     }
     mac()
     linux()
     ios()
+    wasmJs()
 
     defaultPlatform(PlatformIdentifier.JVM)
 
@@ -44,8 +47,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.0")
-
+                api("androidx.annotation:annotation:1.9.1")
             }
         }
 
@@ -67,13 +69,26 @@ androidXMultiplatform {
                 implementation(libs.kotlinTestJunit)
             }
         }
+
+        nativeMain {
+            dependsOn(commonMain)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nativeMain)
+                }
+            }
+        }
     }
 }
 
 androidx {
     name = "Room-Common"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room-Common"
     legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

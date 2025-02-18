@@ -21,7 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -32,7 +34,7 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.navigation:navigation-runtime:2.5.1")
     api(libs.hiltAndroid)
     ksp(libs.hiltCompiler)
@@ -40,14 +42,18 @@ dependencies {
 
 androidx {
     name = "Navigation Hilt Extension"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.HILT_NAVIGATION
     inceptionYear = "2021"
     description = "Android Navigation Hilt Extension"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {
-    namespace "androidx.hilt.navigation"
+    namespace = "androidx.hilt.navigation"
+}
+
+ksp {
+    useKsp2 = true
 }

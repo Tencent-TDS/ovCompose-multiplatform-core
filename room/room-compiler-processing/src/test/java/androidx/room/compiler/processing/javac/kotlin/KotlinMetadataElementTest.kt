@@ -822,7 +822,11 @@ class KotlinMetadataElementTest(private val preCompiled: Boolean) {
             val subject = env.requireTypeElement("Subject")
             subject.getDeclaredFields().forEach { assertThat(it.getter).isNotNull() }
             subject.getDeclaredMethods().forEach {
-                assertThat(it.isKotlinPropertyMethod()).isTrue()
+                // A private static function was generated for the lambda passed to lazy() with K2
+                // so we filter these out.
+                if (!it.jvmName.contains("$")) {
+                    assertThat(it.isKotlinPropertyMethod()).isTrue()
+                }
             }
         }
     }

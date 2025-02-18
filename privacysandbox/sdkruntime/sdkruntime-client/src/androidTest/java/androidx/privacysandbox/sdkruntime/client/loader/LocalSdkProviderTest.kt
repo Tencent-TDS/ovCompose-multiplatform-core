@@ -31,6 +31,7 @@ import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
 import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
 import androidx.privacysandbox.sdkruntime.core.SandboxedSdkInfo
+import androidx.privacysandbox.sdkruntime.core.SdkSandboxClientImportanceListenerCompat
 import androidx.privacysandbox.sdkruntime.core.activity.SdkSandboxActivityHandlerCompat
 import androidx.privacysandbox.sdkruntime.core.controller.LoadSdkCallback
 import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat
@@ -126,8 +127,6 @@ internal class LocalSdkProviderTest(
 
     @Test
     fun getSandboxedSdks_delegateToSdkController() {
-        assumeFeatureAvailable(ClientFeature.SDK_SANDBOX_CONTROLLER)
-
         val expectedResult =
             SandboxedSdkCompat(
                 sdkInterface = Binder(),
@@ -271,6 +270,47 @@ internal class LocalSdkProviderTest(
         assertThat(result.extraInformation).isSameInstanceAs(expectedError.extraInformation)
     }
 
+    @Test
+    fun getClientPackageName_returnsResultFromSdkController() {
+        assumeFeatureAvailable(ClientFeature.GET_CLIENT_PACKAGE_NAME)
+
+        val clientPackageName = "client.package.name"
+        controller.clientPackageNameResult = clientPackageName
+
+        val result = loadedSdk.loadTestSdk().getClientPackageName()
+
+        assertThat(result).isEqualTo(clientPackageName)
+    }
+
+    @Test
+    fun registerSdkSandboxClientImportanceListener_delegateToSdkController() {
+        assumeFeatureAvailable(ClientFeature.CLIENT_IMPORTANCE_LISTENER)
+
+        val catchingListener = CatchingClientImportanceListener()
+
+        val testSdk = loadedSdk.loadTestSdk()
+        testSdk.registerSdkSandboxClientImportanceListener(catchingListener)
+        val localListener = controller.clientImportanceListeners.keys.first()
+
+        localListener.onForegroundImportanceChanged(false)
+        localListener.onForegroundImportanceChanged(true)
+
+        assertThat(catchingListener.events).containsExactly(false, true).inOrder()
+    }
+
+    @Test
+    fun unregisterSdkSandboxClientImportanceListener_delegateToSdkController() {
+        assumeFeatureAvailable(ClientFeature.CLIENT_IMPORTANCE_LISTENER)
+
+        val catchingListener = CatchingClientImportanceListener()
+
+        val testSdk = loadedSdk.loadTestSdk()
+        testSdk.registerSdkSandboxClientImportanceListener(catchingListener)
+        testSdk.unregisterSdkSandboxClientImportanceListener(catchingListener)
+
+        assertThat(controller.clientImportanceListeners).isEmpty()
+    }
+
     internal class TestClassLoaderFactory(private val testStorage: TestLocalSdkStorage) :
         SdkLoader.ClassLoaderFactory {
         override fun createClassLoaderFor(
@@ -306,7 +346,7 @@ internal class LocalSdkProviderTest(
          * Create test params for each supported [ClientApiVersion] + current and future. Each
          * released version must have test-sdk named as "vX" (where X is version to test). These
          * TestSDKs should be registered in RuntimeEnabledSdkTable.xml and be compatible with
-         * [TestSdkWrapper].
+         * [SdkControllerWrapper].
          */
         @Parameterized.Parameters(name = "{0}")
         @JvmStatic
@@ -368,13 +408,17 @@ internal class LocalSdkProviderTest(
 
         var sandboxedSdksResult: List<SandboxedSdkCompat> = emptyList()
         var appOwnedSdksResult: List<AppOwnedSdkSandboxInterfaceCompat> = emptyList()
-        var sdkActivityHandlers: MutableMap<IBinder, SdkSandboxActivityHandlerCompat> =
+        val sdkActivityHandlers: MutableMap<IBinder, SdkSandboxActivityHandlerCompat> =
+            mutableMapOf()
+        val clientImportanceListeners:
+            MutableMap<SdkSandboxClientImportanceListenerCompat, Executor> =
             mutableMapOf()
 
         var lastLoadSdkName: String? = null
         var lastLoadSdkParams: Bundle? = null
         var loadSdkResult: SandboxedSdkCompat? = null
         var loadSdkError: LoadSdkCompatException? = null
+        var clientPackageNameResult: String? = null
 
         override fun loadSdk(
             sdkName: String,
@@ -421,8 +465,19 @@ internal class LocalSdkProviderTest(
             sdkActivityHandlers.values.remove(handlerCompat)
         }
 
-        override fun getClientPackageName(): String {
-            throw UnsupportedOperationException("Not supported yet")
+        override fun getClientPackageName(): String = clientPackageNameResult!!
+
+        override fun registerSdkSandboxClientImportanceListener(
+            executor: Executor,
+            listenerCompat: SdkSandboxClientImportanceListenerCompat
+        ) {
+            clientImportanceListeners[listenerCompat] = executor
+        }
+
+        override fun unregisterSdkSandboxClientImportanceListener(
+            listenerCompat: SdkSandboxClientImportanceListenerCompat
+        ) {
+            clientImportanceListeners.remove(listenerCompat)
         }
     }
 }

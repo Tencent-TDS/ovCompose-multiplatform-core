@@ -20,6 +20,7 @@ import android.graphics.ImageFormat
 import android.graphics.PixelFormat
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.os.Build
+import android.util.Range
 import android.util.Size
 import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCorrector
 import androidx.camera.camera2.pipe.integration.config.CameraScope
@@ -33,7 +34,7 @@ import javax.inject.Inject
  * @param outputSizesCorrector [OutputSizesCorrector] class to perform correction on sizes.
  */
 @CameraScope
-class StreamConfigurationMapCompat
+public class StreamConfigurationMapCompat
 @Inject
 constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: OutputSizesCorrector) {
     private val tag = "StreamConfigurationMapCompat"
@@ -61,7 +62,7 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
      * @see [ImageFormat]
      * @see [PixelFormat]
      */
-    fun getOutputFormats(): Array<Int>? {
+    public fun getOutputFormats(): Array<Int>? {
         return impl.getOutputFormats()
     }
 
@@ -73,12 +74,20 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
      * @param format an image format from [ImageFormat] or [PixelFormat]
      * @return an array of supported sizes, or `null` if the `format` is not a supported output
      */
-    fun getOutputSizes(format: Int): Array<Size>? {
+    public fun getOutputSizes(format: Int): Array<Size>? {
         if (cachedFormatOutputSizes.contains(format)) {
             return cachedFormatOutputSizes[format]?.clone()
         }
 
-        val outputSizes = impl.getOutputSizes(format)
+        val outputSizes =
+            try {
+                // b/378508360: try-catch to workaround the exception when using
+                // StreamConfigurationMap provided by Robolectric.
+                impl.getOutputSizes(format)
+            } catch (t: Throwable) {
+                Logger.w(tag, "Failed to get output sizes for $format", t)
+                null
+            }
 
         if (outputSizes.isNullOrEmpty()) {
             Logger.w(tag, "Retrieved output sizes array is null or empty for format $format")
@@ -101,12 +110,20 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
      *   `klass` is not a supported output.
      * @throws NullPointerException if `klass` was `null`
      */
-    fun <T> getOutputSizes(klass: Class<T>): Array<Size>? {
+    public fun <T> getOutputSizes(klass: Class<T>): Array<Size>? {
         if (cachedClassOutputSizes.contains(klass)) {
             return cachedClassOutputSizes[klass]?.clone()
         }
 
-        val outputSizes = impl.getOutputSizes(klass)
+        val outputSizes =
+            try {
+                // b/378508360: try-catch to workaround the exception when using
+                // StreamConfigurationMap provided by Robolectric.
+                impl.getOutputSizes(klass)
+            } catch (t: Throwable) {
+                Logger.w(tag, "Failed to get output sizes for $klass", t)
+                null
+            }
 
         if (outputSizes.isNullOrEmpty()) {
             Logger.w(tag, "Retrieved output sizes array is null or empty for class $klass")
@@ -128,7 +145,7 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
      * @param format an image format from [ImageFormat] or [PixelFormat]
      * @return an array of supported sizes, or `null` if the `format` is not a supported output
      */
-    fun getHighResolutionOutputSizes(format: Int): Array<Size>? {
+    public fun getHighResolutionOutputSizes(format: Int): Array<Size>? {
         if (cachedFormatHighResolutionOutputSizes.contains(format)) {
             return cachedFormatHighResolutionOutputSizes[format]?.clone()
         }
@@ -144,12 +161,34 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
         return outputSizes?.clone()
     }
 
-    fun getOutputMinFrameDuration(format: Int, size: Size?): Long? {
+    /** Get a list of supported high speed video recording FPS ranges. */
+    public fun getHighSpeedVideoFpsRanges(): Array<Range<Int>>? {
+        return impl.getHighSpeedVideoFpsRanges()
+    }
+
+    /** Get the frame per second ranges (fpsMin, fpsMax) for input high speed video size. */
+    @Throws(IllegalArgumentException::class)
+    public fun getHighSpeedVideoFpsRangesFor(size: Size): Array<Range<Int>>? {
+        return impl.getHighSpeedVideoFpsRangesFor(size)
+    }
+
+    /** Get a list of supported high speed video recording sizes. */
+    public fun getHighSpeedVideoSizes(): Array<Size>? {
+        return impl.getHighSpeedVideoSizes()
+    }
+
+    /** Get the supported video sizes for an input high speed FPS range. */
+    @Throws(IllegalArgumentException::class)
+    public fun getHighSpeedVideoSizesFor(fpsRange: Range<Int>): Array<Size>? {
+        return impl.getHighSpeedVideoSizesFor(fpsRange)
+    }
+
+    public fun getOutputMinFrameDuration(format: Int, size: Size?): Long? {
         return impl.getOutputMinFrameDuration(format, size)
     }
 
     /** Returns the [StreamConfigurationMap] represented by this object. */
-    fun toStreamConfigurationMap(): StreamConfigurationMap? {
+    public fun toStreamConfigurationMap(): StreamConfigurationMap? {
         return impl.unwrap()
     }
 
@@ -161,6 +200,16 @@ constructor(map: StreamConfigurationMap?, private val outputSizesCorrector: Outp
         fun <T> getOutputSizes(klass: Class<T>): Array<Size>?
 
         fun getHighResolutionOutputSizes(format: Int): Array<Size>?
+
+        fun getHighSpeedVideoFpsRanges(): Array<Range<Int>>?
+
+        @Throws(IllegalArgumentException::class)
+        fun getHighSpeedVideoFpsRangesFor(size: Size): Array<Range<Int>>?
+
+        fun getHighSpeedVideoSizes(): Array<Size>?
+
+        @Throws(IllegalArgumentException::class)
+        fun getHighSpeedVideoSizesFor(fpsRange: Range<Int>): Array<Size>?
 
         fun getOutputMinFrameDuration(format: Int, size: Size?): Long?
 

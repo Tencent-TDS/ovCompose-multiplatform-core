@@ -36,7 +36,7 @@ import androidx.camera.core.impl.CameraThreadConfig
  * share resources across Camera instances. There should generally be one [CameraFactoryProvider]
  * instance per CameraX instance.
  */
-class CameraFactoryProvider(
+public class CameraFactoryProvider(
     private val sharedCameraPipe: CameraPipe? = null,
     private val sharedAppContext: Context? = null,
     private val sharedThreadConfig: CameraThreadConfig? = null
@@ -106,7 +106,8 @@ class CameraFactoryProvider(
                             sharedInteropCallbacks.deviceStateCallback,
                             sharedInteropCallbacks.sessionStateCallback,
                             openRetryMaxTimeout
-                        )
+                        ),
+                    usePruningDeviceManager = true
                 )
             )
         Log.debug { "Created CameraPipe in ${start.measureNow(timeSource).formatMs()}" }

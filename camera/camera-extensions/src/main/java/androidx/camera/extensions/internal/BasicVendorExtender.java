@@ -27,8 +27,6 @@ import android.util.Pair;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.Logger;
@@ -52,6 +50,9 @@ import androidx.camera.extensions.internal.compat.workaround.AvailableKeysRetrie
 import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledValidator;
 import androidx.camera.extensions.internal.sessionprocessor.BasicExtenderSessionProcessor;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -135,7 +136,7 @@ public class BasicVendorExtender implements VendorExtender {
     public boolean isExtensionAvailable(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> characteristicsMap) {
 
-        if (mExtensionDisabledValidator.shouldDisableExtension()) {
+        if (mExtensionDisabledValidator.shouldDisableExtension(cameraId)) {
             return false;
         }
 
@@ -167,9 +168,8 @@ public class BasicVendorExtender implements VendorExtender {
                 + mImageCaptureExtenderImpl.getCaptureProcessor());
     }
 
-    @Nullable
     @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
+    public @Nullable Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         if (mImageCaptureExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
                 Version.VERSION_1_2) >= 0) {
@@ -206,9 +206,8 @@ public class BasicVendorExtender implements VendorExtender {
         }
     }
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
 
         if (mPreviewExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
@@ -242,9 +241,8 @@ public class BasicVendorExtender implements VendorExtender {
     }
 
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         if (mImageCaptureExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
                 Version.VERSION_1_1) >= 0) {
@@ -298,16 +296,14 @@ public class BasicVendorExtender implements VendorExtender {
         return output;
     }
 
-    @NonNull
     @Override
-    public Size[] getSupportedYuvAnalysisResolutions() {
+    public Size @NonNull [] getSupportedYuvAnalysisResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         // Disable ImageAnalysis
         return new Size[0];
     }
 
-    @NonNull
-    private List<CaptureRequest.Key> getSupportedParameterKeys(Context context) {
+    private @NonNull List<CaptureRequest.Key> getSupportedParameterKeys(Context context) {
         if (ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)) {
             try {
                 List<CaptureRequest.Key> keys =
@@ -332,9 +328,8 @@ public class BasicVendorExtender implements VendorExtender {
         }
     }
 
-    @NonNull
     @Override
-    public List<CaptureResult.Key> getSupportedCaptureResultKeys() {
+    public @NonNull List<CaptureResult.Key> getSupportedCaptureResultKeys() {
         if (ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)) {
             try {
                 List<CaptureResult.Key> keys =
@@ -351,9 +346,9 @@ public class BasicVendorExtender implements VendorExtender {
         return Collections.emptyList();
     }
 
-    @NonNull
     @Override
-    public Map<Integer, List<Size>> getSupportedPostviewResolutions(@NonNull Size captureSize) {
+    public @NonNull Map<Integer, List<Size>> getSupportedPostviewResolutions(
+            @NonNull Size captureSize) {
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
             List<Pair<Integer, Size[]>> list =
@@ -396,9 +391,8 @@ public class BasicVendorExtender implements VendorExtender {
         return false;
     }
 
-    @Nullable
     @Override
-    public SessionProcessor createSessionProcessor(@NonNull Context context) {
+    public @Nullable SessionProcessor createSessionProcessor(@NonNull Context context) {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         return new BasicExtenderSessionProcessor(
                 mPreviewExtenderImpl, mImageCaptureExtenderImpl,

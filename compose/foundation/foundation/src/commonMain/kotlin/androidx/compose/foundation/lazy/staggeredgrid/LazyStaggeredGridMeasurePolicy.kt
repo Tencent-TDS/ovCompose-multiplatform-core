@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.staggeredgrid
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.checkScrollableContainerConstraints
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
 import kotlinx.coroutines.CoroutineScope
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun rememberStaggeredGridMeasurePolicy(
     state: LazyStaggeredGridState,
@@ -60,6 +62,8 @@ internal fun rememberStaggeredGridMeasurePolicy(
     ) {
         { constraints ->
             state.measurementScopeInvalidator.attachToScope()
+            // Tracks if the lookahead pass has occurred
+            val isInLookaheadScope = state.hasLookaheadOccurred || isLookingAhead
             checkScrollableContainerConstraints(constraints, orientation)
             val resolvedSlots = slots.invoke(density = this, constraints = constraints)
             val isVertical = orientation == Orientation.Vertical
@@ -120,9 +124,12 @@ internal fun rememberStaggeredGridMeasurePolicy(
                     beforeContentPadding = beforeContentPadding,
                     afterContentPadding = afterContentPadding,
                     coroutineScope = coroutineScope,
+                    isInLookaheadScope = isInLookaheadScope,
+                    isLookingAhead = isLookingAhead,
+                    approachLayoutInfo = state.approachLayoutInfo,
                     graphicsContext = graphicsContext
                 )
-            state.applyMeasureResult(measureResult)
+            state.applyMeasureResult(measureResult, isLookingAhead = isLookingAhead)
             measureResult
         }
     }

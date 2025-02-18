@@ -47,6 +47,10 @@ class InterfaceParserTest {
                         suspend fun doStuff(x: Int, y: Int?): String
                         suspend fun processList(list: List<Int>): List<String>
                         fun doMoreStuff()
+
+                        companion object {
+                            const val MY_CONST = 123
+                        }
                     }
                 """,
             )
@@ -238,12 +242,34 @@ class InterfaceParserTest {
     }
 
     @Test
-    fun interfaceWithCompanionObject_fails() {
+    fun interfaceWithCompanionObjectNonConstDeclarations_fails() {
         checkSourceFails(
                 serviceInterface(
                     """interface MySdk {
-                    |   companion object {
-                    |       fun foo() {}
+                        |   companion object {
+                        |       const val CONST_IS_ALLOWED = 42
+                        |       val nonConstVal = 9
+                        |       fun method() = true
+                        |       class InnerClass() {}
+                        |   }
+                        |}
+                    """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: companion object cannot declare non-const values (nonConstVal).",
+                "Error in com.mysdk.MySdk: companion object cannot declare methods (method).",
+                "Error in com.mysdk.MySdk: companion object cannot declare classes (InnerClass)."
+            )
+    }
+
+    @Test
+    fun interfaceWithObject_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   object MyObject {
                     |   }
                     |}
                 """
@@ -251,7 +277,55 @@ class InterfaceParserTest {
                 )
             )
             .containsExactlyErrors(
-                "Error in com.mysdk.MySdk: annotated interfaces cannot declare companion objects."
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithEnumClass_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   enum class MyEnumClass {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithInterface_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   private interface MyInterface {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithInnerClass_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   class MyInnerClass {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
             )
     }
 

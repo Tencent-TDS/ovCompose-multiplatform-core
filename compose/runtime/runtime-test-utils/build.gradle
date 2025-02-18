@@ -13,19 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
 }
 
 androidXMultiplatform {
-    android()
-    desktop()
+    androidLibrary {
+        namespace = "androidx.compose.runtime.testutils"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
+    jvmStubs()
+    linuxX64Stubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -33,13 +42,11 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlibCommon)
-                implementation(projectOrArtifact(":compose:runtime:runtime"))
-                implementation kotlin("test-junit")
+                implementation(project(":compose:runtime:runtime"))
+                implementation kotlin("test")
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(libs.kotlinReflect)
             }
-        }
-        androidMain.dependencies {
         }
 
         jvmMain {
@@ -54,22 +61,23 @@ androidXMultiplatform {
             }
         }
 
-        desktopMain {
+        commonStubsMain {
+            dependsOn(commonMain)
+        }
+        jvmStubsMain {
             dependsOn(jvmMain)
-            dependencies {
-            }
+        }
+        linuxx64StubsMain {
+            dependsOn(commonStubsMain)
         }
     }
 }
 
 androidx {
+    // This library is consumed by Kotlin CI to run Compose runtime test with the latest compiler.
     name = "Compose Internal Test Utils"
-    type = LibraryType.INTERNAL_TEST_LIBRARY
-    publish = Publish.SNAPSHOT_ONLY
+    type = SoftwareType.SNAPSHOT_ONLY_LIBRARY
     inceptionYear = "2024"
     description = "Compose runtime test utils shared between runtime and compiler tests."
 }
 
-android {
-    namespace "androidx.compose.runtime.testutils"
-}

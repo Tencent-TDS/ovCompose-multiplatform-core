@@ -35,6 +35,7 @@ import androidx.test.espresso.IdlingResource
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -165,7 +166,14 @@ class TimeOutTest {
 
         // Test 1: set an infinite composition and expect it to crash
         expectError<ComposeNotIdleException> {
-            runComposeUiTest { setContent { InfiniteRecompositionCase() } }
+            try {
+                runComposeUiTest { setContent { InfiniteRecompositionCase() } }
+            } catch (e: Throwable) {
+                // Since runComposeUiTest now calls kotlinx.coroutines.test.runTest,
+                // the outer exception is UncompletedCoroutinesError
+                assertEquals(e.javaClass.simpleName, "UncompletedCoroutinesError")
+                throw e.suppressed.first()
+            }
         }
 
         // Test 2: normal composition, should not time out

@@ -21,8 +21,10 @@ plugins {
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
-        applicationId "androidx.camera.integration.core"
+        applicationId = "androidx.camera.integration.core"
 
         externalNativeBuild {
             cmake {
@@ -34,12 +36,12 @@ android {
 
     buildTypes {
         debug {
-            pseudoLocalesEnabled true
+            pseudoLocalesEnabled = true
         }
 
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
@@ -47,13 +49,14 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version libs.versions.cmake.get()
+            version = libs.versions.cmake.get()
         }
     }
-    namespace "androidx.camera.integration.core"
+    namespace = "androidx.camera.integration.core"
 }
 
 dependencies {
+    api(libs.jspecify)
     // Internal library
     implementation(project(":camera:camera-camera2"))
     implementation(project(":camera:camera-camera2-pipe-integration"))
@@ -95,7 +98,7 @@ dependencies {
     debugImplementation(libs.testRunner)
 
     // Align dependencies in debugRuntimeClasspath and debugAndroidTestRuntimeClasspath.
-    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.0")
+    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.1")
 
     // Testing framework
     androidTestImplementation(libs.testCore)

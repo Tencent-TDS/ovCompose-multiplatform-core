@@ -26,8 +26,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -39,9 +37,8 @@ import org.junit.runner.RunWith;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Test {@link MediaSessionCompat.RegistrationCallback}.
- */
+/** Test {@link android.support.v4.media.session.MediaSessionCompat.RegistrationCallback}. */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 public class MediaSessionCompatRegistrationCallbackTest {
     private static final String TAG = "RegistrationCallbackTest";
@@ -49,15 +46,17 @@ public class MediaSessionCompatRegistrationCallbackTest {
     private static final long TIME_OUT_MS = 3000L;
 
     private Context mContext;
-    private MediaSessionCompat mSession;
-    private MediaSessionCompat.Callback mCallback;
+    private android.support.v4.media.session.MediaSessionCompat mSession;
+    private android.support.v4.media.session.MediaSessionCompat.Callback mCallback;
     private Handler mHandler;
 
     @Before
     public void setUp() throws Exception {
         mContext = getApplicationContext();
-        mCallback = new MediaSessionCompat.Callback() {};
-        mSession = new MediaSessionCompat(getApplicationContext(), TEST_SESSION_TAG, null, null);
+        mCallback = new android.support.v4.media.session.MediaSessionCompat.Callback() {};
+        mSession =
+                new android.support.v4.media.session.MediaSessionCompat(
+                        getApplicationContext(), TEST_SESSION_TAG, null, null);
         mHandler = new Handler(Looper.getMainLooper());
         mSession.setCallback(mCallback, mHandler);
     }
@@ -79,7 +78,7 @@ public class MediaSessionCompatRegistrationCallbackTest {
             throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         mSession.setRegistrationCallback(
-                new MediaSessionCompat.RegistrationCallback() {
+                new android.support.v4.media.session.MediaSessionCompat.RegistrationCallback() {
                     @Override
                     public void onCallbackRegistered(int callingPid, int callingUid) {
                         if (callingPid == Process.myPid() && callingUid == Process.myUid()) {
@@ -91,12 +90,14 @@ public class MediaSessionCompatRegistrationCallbackTest {
                     public void onCallbackUnregistered(int callingPid, int callingUid) {
                         // no-op
                     }
-                }, mHandler);
+                },
+                mHandler);
 
-        MediaControllerCompat controllerCompat =
-                new MediaControllerCompat(mContext, mSession.getSessionToken());
-        MediaControllerCompat.Callback controllerCallback =
-                new MediaControllerCompat.Callback() {};
+        android.support.v4.media.session.MediaControllerCompat controllerCompat =
+                new android.support.v4.media.session.MediaControllerCompat(
+                        mContext, mSession.getSessionToken());
+        android.support.v4.media.session.MediaControllerCompat.Callback controllerCallback =
+                new android.support.v4.media.session.MediaControllerCompat.Callback() {};
         controllerCompat.registerCallback(controllerCallback, mHandler);
 
         assertTrue(latch.await(TIME_OUT_MS, TimeUnit.MILLISECONDS));
@@ -107,7 +108,7 @@ public class MediaSessionCompatRegistrationCallbackTest {
             throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         mSession.setRegistrationCallback(
-                new MediaSessionCompat.RegistrationCallback() {
+                new android.support.v4.media.session.MediaSessionCompat.RegistrationCallback() {
                     @Override
                     public void onCallbackRegistered(int callingPid, int callingUid) {
                         // no-op
@@ -119,12 +120,14 @@ public class MediaSessionCompatRegistrationCallbackTest {
                             latch.countDown();
                         }
                     }
-                }, mHandler);
+                },
+                mHandler);
 
-        MediaControllerCompat controllerCompat =
-                new MediaControllerCompat(mContext, mSession.getSessionToken());
-        MediaControllerCompat.Callback controllerCallback =
-                new MediaControllerCompat.Callback() {};
+        android.support.v4.media.session.MediaControllerCompat controllerCompat =
+                new android.support.v4.media.session.MediaControllerCompat(
+                        mContext, mSession.getSessionToken());
+        android.support.v4.media.session.MediaControllerCompat.Callback controllerCallback =
+                new android.support.v4.media.session.MediaControllerCompat.Callback() {};
         controllerCompat.registerCallback(controllerCallback, mHandler);
         controllerCompat.unregisterCallback(controllerCallback);
 

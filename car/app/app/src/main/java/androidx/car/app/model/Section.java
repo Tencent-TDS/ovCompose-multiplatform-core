@@ -16,14 +16,17 @@
 
 package androidx.car.app.model;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.model.constraints.CarTextConstraints;
+import androidx.car.app.serialization.ListDelegate;
+import androidx.car.app.serialization.ListDelegateImpl;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,44 +43,38 @@ import java.util.Objects;
 @CarProtocol
 @ExperimentalCarApi
 public abstract class Section<T extends Item> {
-    @NonNull
-    private final List<T> mItems;
-    @Nullable
-    private final CarText mTitle;
-    @Nullable
-    private final CarText mNoItemsMessage;
+    private final @NonNull ListDelegate<T> mItemsDelegate;
+    private final @Nullable CarText mTitle;
+    private final @Nullable CarText mNoItemsMessage;
 
     // Empty constructor for serialization
     protected Section() {
-        mItems = Collections.emptyList();
+        mItemsDelegate = new ListDelegateImpl<>(Collections.emptyList());
         mTitle = null;
         mNoItemsMessage = null;
     }
 
     /** Constructor that fills out fields from any section builder. */
     protected Section(@NonNull BaseBuilder<T, ?> builder) {
-        mItems = Collections.unmodifiableList(builder.mItems);
+        mItemsDelegate = new ListDelegateImpl<>(Collections.unmodifiableList(builder.mItems));
         mTitle = builder.mHeader;
         mNoItemsMessage = builder.mNoItemsMessage;
     }
 
     /** Returns the items added to this section. */
-    @NonNull
-    public List<T> getItems() {
-        return mItems;
+    public @NonNull ListDelegate<T> getItemsDelegate() {
+        return mItemsDelegate;
     }
 
     /** Returns the optional text that should appear with the items in this section. */
-    @Nullable
-    public CarText getTitle() {
+    public @Nullable CarText getTitle() {
         return mTitle;
     }
 
     /**
      * Returns the optional message that should appear if there are no items added to this section.
      */
-    @Nullable
-    public CarText getNoItemsMessage() {
+    public @Nullable CarText getNoItemsMessage() {
         return mNoItemsMessage;
     }
 
@@ -91,20 +88,19 @@ public abstract class Section<T extends Item> {
         }
         Section<?> section = (Section<?>) other;
 
-        return Objects.equals(mItems, section.mItems) && Objects.equals(mTitle, section.mTitle)
+        return Objects.equals(mItemsDelegate, section.mItemsDelegate) && Objects.equals(mTitle,
+                section.mTitle)
                 && Objects.equals(mNoItemsMessage, section.mNoItemsMessage);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mItems, mTitle, mNoItemsMessage);
+        return Objects.hash(mItemsDelegate, mTitle, mNoItemsMessage);
     }
 
-    @NonNull
     @Override
-    public String toString() {
-        return "Section { items: " + mItems + ", title: " + mTitle + ", noItemsMessage: "
-                + mNoItemsMessage + " }";
+    public @NonNull String toString() {
+        return "Section";
     }
 
     /**
@@ -115,45 +111,33 @@ public abstract class Section<T extends Item> {
      */
     @SuppressWarnings({"StaticFinalBuilder", "MissingBuildMethod"})
     protected abstract static class BaseBuilder<T extends Item, B> {
-        @NonNull
-        List<T> mItems = new ArrayList<>();
-        @Nullable
-        CarText mHeader;
-        @Nullable
-        CarText mNoItemsMessage;
+        @NonNull List<T> mItems = new ArrayList<>();
+        @Nullable CarText mHeader;
+        @Nullable CarText mNoItemsMessage;
 
         protected BaseBuilder() {
         }
 
-        protected BaseBuilder(@NonNull Section<T> section) {
-            mItems = section.mItems;
-            mHeader = section.mTitle;
-            mNoItemsMessage = section.mNoItemsMessage;
-        }
-
         /** Sets the items for this section, overwriting any other previously set items. */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B setItems(@NonNull List<T> items) {
+        public @NonNull B setItems(@NonNull List<T> items) {
             mItems = items;
             return (B) this;
         }
 
         /** Adds an item to this section, appending to the existing list of items. */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B addItem(@NonNull T item) {
+        public @NonNull B addItem(@NonNull T item) {
             mItems.add(item);
             return (B) this;
         }
 
         /** Delete all items in this section. */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B clearItems() {
+        public @NonNull B clearItems() {
             mItems.clear();
             return (B) this;
         }
@@ -163,10 +147,9 @@ public abstract class Section<T extends Item> {
          * set, no title shows up. The title must conform to {@link CarTextConstraints#TEXT_ONLY}
          * constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B setTitle(@Nullable CharSequence title) {
+        public @NonNull B setTitle(@Nullable CharSequence title) {
             if (title == null) {
                 mHeader = null;
                 return (B) this;
@@ -175,7 +158,7 @@ public abstract class Section<T extends Item> {
             CarText carText = CarText.create(title);
             CarTextConstraints.TEXT_ONLY.validateOrThrow(carText);
             mHeader = carText;
-            return  (B) this;
+            return (B) this;
         }
 
         /**
@@ -183,10 +166,9 @@ public abstract class Section<T extends Item> {
          * set, no title shows up. The title must conform to {@link CarTextConstraints#TEXT_ONLY}
          * constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B setTitle(@Nullable CarText title) {
+        public @NonNull B setTitle(@Nullable CarText title) {
             if (title != null) {
                 CarTextConstraints.TEXT_ONLY.validateOrThrow(title);
             }
@@ -199,10 +181,9 @@ public abstract class Section<T extends Item> {
          * added to it. If not set, this section will not show any message when there are 0 items.
          * The message must conform to {@link CarTextConstraints#TEXT_ONLY} constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B setNoItemsMessage(@Nullable CharSequence noItemsMessage) {
+        public @NonNull B setNoItemsMessage(@Nullable CharSequence noItemsMessage) {
             if (noItemsMessage == null) {
                 mNoItemsMessage = null;
                 return (B) this;
@@ -219,10 +200,9 @@ public abstract class Section<T extends Item> {
          * added to it. If not set, this section will not show any message when there are 0 items.
          * The message must conform to {@link CarTextConstraints#TEXT_ONLY} constraints.
          */
-        @NonNull
         @CanIgnoreReturnValue
         @SuppressWarnings({"SetterReturnsThis", "unchecked"})
-        public B setNoItemsMessage(@Nullable CarText noItemsMessage) {
+        public @NonNull B setNoItemsMessage(@Nullable CarText noItemsMessage) {
             if (noItemsMessage != null) {
                 CarTextConstraints.TEXT_ONLY.validateOrThrow(noItemsMessage);
             }

@@ -27,6 +27,12 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.process.CommandLineArgumentProvider
 
+/**
+ * Command line argument provider for annotation processing tasks to configure room-compiler and
+ * wire the schema input directory as configured by the user using [RoomExtension.schemaDirectory]
+ * and output directory (avoiding overlapping outputs) that will be an input of a
+ * [RoomSchemaCopyTask].
+ */
 class RoomArgumentProvider(
     @get:Input val forKsp: Boolean,
     @get:InputFiles
@@ -37,8 +43,11 @@ class RoomArgumentProvider(
 ) : CommandLineArgumentProvider {
     override fun asArguments() = buildList {
         val prefix = if (forKsp) "" else "-A"
-        add("${prefix}room.internal.schemaInput=${schemaInputDir.get().asFile.path}")
-        add("${prefix}room.internal.schemaOutput=${schemaOutputDir.get().asFile.path}")
+        // Warning: Format must match with room-compiler
+        val inputPath = schemaInputDir.get().asFile.path.replace(" ", "%20")
+        val outputPath = schemaOutputDir.get().asFile.path.replace(" ", "%20")
+        add("${prefix}room.internal.schemaInput=$inputPath")
+        add("${prefix}room.internal.schemaOutput=$outputPath")
         if (options.generateKotlin != null) {
             add("${prefix}room.generateKotlin=${options.generateKotlin}")
         }

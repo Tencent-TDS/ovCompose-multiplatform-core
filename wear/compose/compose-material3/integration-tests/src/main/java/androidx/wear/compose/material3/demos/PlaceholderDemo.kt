@@ -294,13 +294,18 @@ fun PlaceholderButtonList() {
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CompactButton(label = { Text("Reset") }, onClick = { resetCount++ })
-        }
+        FloatingResetButton(onClick = { resetCount++ })
+    }
+}
+
+@Composable
+fun FloatingResetButton(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CompactButton(label = { Text("Reset") }, onClick = onClick)
     }
 }
 
@@ -322,7 +327,6 @@ fun PlaceholderCardList() {
 
     ScalingLazyColumn {
         item { ListHeader { Text("Overlaid Placeholders", textAlign = TextAlign.Center) } }
-        item { Centralize { Button(label = { Text("Reset") }, onClick = { resetCount++ }) } }
         repeat(4) { itemIndex ->
             item {
                 CardWithOverlaidPlaceholder(
@@ -335,6 +339,8 @@ fun PlaceholderCardList() {
             }
         }
     }
+
+    FloatingResetButton(onClick = { resetCount++ })
 }
 
 @Composable
@@ -405,7 +411,7 @@ fun ButtonWithOverlaidPlaceholder(
                     placeholderState = buttonPlaceholderState
                 )
         )
-        if (!buttonPlaceholderState.isShowContent) {
+        if (!buttonPlaceholderState.isHidden) {
             Button(
                 modifier =
                     modifier
@@ -457,7 +463,7 @@ fun ButtonWithOverlaidPlaceholder(
             )
         }
     }
-    LaunchedEffect(buttonPlaceholderState) { buttonPlaceholderState.startPlaceholderAnimation() }
+    LaunchedEffect(buttonPlaceholderState) { buttonPlaceholderState.animatePlaceholder() }
 }
 
 @Composable
@@ -532,7 +538,7 @@ fun ButtonWithContentPlaceholders(
                 placeholderState = buttonPlaceholderState
             )
     )
-    LaunchedEffect(buttonPlaceholderState) { buttonPlaceholderState.startPlaceholderAnimation() }
+    LaunchedEffect(buttonPlaceholderState) { buttonPlaceholderState.animatePlaceholder() }
 }
 
 @Composable
@@ -553,7 +559,7 @@ fun CardWithOverlaidPlaceholder(
         ) {
             if (content != null) content()
         }
-        if (!cardPlaceholderState.isShowContent) {
+        if (!cardPlaceholderState.isHidden) {
             AppCard(
                 onClick = {},
                 appName = {
@@ -596,5 +602,5 @@ fun CardWithOverlaidPlaceholder(
             }
         }
     }
-    LaunchedEffect(cardPlaceholderState) { cardPlaceholderState.startPlaceholderAnimation() }
+    LaunchedEffect(cardPlaceholderState) { cardPlaceholderState.animatePlaceholder() }
 }

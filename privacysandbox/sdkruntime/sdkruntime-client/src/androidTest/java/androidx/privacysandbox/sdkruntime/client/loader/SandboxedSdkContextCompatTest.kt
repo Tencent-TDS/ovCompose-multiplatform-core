@@ -16,7 +16,11 @@
 package androidx.privacysandbox.sdkruntime.client.loader
 
 import android.content.Context
+import android.hardware.display.DisplayManager
 import android.os.Build
+import android.view.Display
+import android.view.LayoutInflater
+import android.view.WindowManager.LayoutParams
 import androidx.privacysandbox.sdkruntime.client.loader.impl.SandboxedSdkContextCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SdkSuppress
@@ -45,6 +49,12 @@ internal class SandboxedSdkContextCompatTest(
     }
 
     @Test
+    fun layoutInflater_hasCorrectContext() {
+        val layoutInflater = LayoutInflater.from(sdkContextCompat)
+        assertThat(layoutInflater.context).isEqualTo(sdkContextCompat)
+    }
+
+    @Test
     fun getDataDir_returnSdkDataDirInAppDir() {
         val expectedSdksRoot = appStorageContext.getDir(SDK_ROOT_FOLDER, Context.MODE_PRIVATE)
         val expectedSdkDataDir = File(expectedSdksRoot, SDK_PACKAGE_NAME)
@@ -65,7 +75,6 @@ internal class SandboxedSdkContextCompatTest(
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 21)
     fun getCodeCacheDir_returnSdkCodeCacheDirInAppCodeCacheDir() {
         val expectedSdksCodeCacheRoot = File(appStorageContext.codeCacheDir, SDK_ROOT_FOLDER)
         val expectedSdkCodeCache = File(expectedSdksCodeCacheRoot, SDK_PACKAGE_NAME)
@@ -76,7 +85,6 @@ internal class SandboxedSdkContextCompatTest(
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 21)
     fun getNoBackupFilesDir_returnSdkNoBackupDirInAppNoBackupDir() {
         val expectedSdksNoBackupRoot = File(appStorageContext.noBackupFilesDir, SDK_ROOT_FOLDER)
         val expectedSdkNoBackupDir = File(expectedSdksNoBackupRoot, SDK_PACKAGE_NAME)
@@ -428,6 +436,39 @@ internal class SandboxedSdkContextCompatTest(
                         "DeviceProtectedStorageContext",
                         deviceProtectedSdkContext,
                         appContext.createDeviceProtectedStorageContext()
+                    )
+                )
+            }
+
+            val displayManager =
+                sdkContext.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
+            val displayContext = sdkContext.createDisplayContext(display)
+            add(arrayOf("DisplayContext", displayContext, appContext))
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                add(
+                    arrayOf(
+                        "WindowContext",
+                        displayContext.createWindowContext(
+                            LayoutParams.TYPE_APPLICATION_SUB_PANEL,
+                            /* options = */ null
+                        ),
+                        appContext
+                    )
+                )
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(
+                    arrayOf(
+                        "WindowContextWithDisplay",
+                        displayContext.createWindowContext(
+                            display,
+                            LayoutParams.TYPE_APPLICATION_SUB_PANEL,
+                            /* options = */ null
+                        ),
+                        appContext
                     )
                 )
             }

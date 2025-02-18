@@ -22,9 +22,10 @@
  * modifying its settings.
  */
 import androidx.build.AndroidXConfig
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
 import androidx.build.ProjectLayoutType
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
 import org.jetbrains.kotlin.konan.target.KonanTarget
@@ -113,6 +114,7 @@ androidXMultiplatform {
             KonanTarget.MACOS_X64,
             KonanTarget.MINGW_X64,
             KonanTarget.LINUX_X64,
+            KonanTarget.LINUX_ARM64,
     ].collect { it.INSTANCE } // Use INSTANCE to get object class instance from kotlin
 
     // Define C compilation of SQLite (sqlite3.c)
@@ -176,7 +178,7 @@ androidXMultiplatform {
         configureTargets(requiredNativeTargets)
     }
 
-    android() {
+    androidTarget() {
         addNativeLibrariesToJniLibs(it, jvmArtJniImplementation)
     }
     ios()
@@ -237,19 +239,16 @@ androidXMultiplatform {
             }
         }
     }
-
-    enableBinaryCompatibilityValidator = true
 }
 
 android {
-    namespace "androidx.sqlite.driver.bundled"
+    namespace = "androidx.sqlite.driver.bundled"
 }
 
 androidx {
     name = "SQLite Bundled Integration"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "The implementation of SQLite library using the bundled SQLite."
-    metalavaK2UastEnabled = false
-    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

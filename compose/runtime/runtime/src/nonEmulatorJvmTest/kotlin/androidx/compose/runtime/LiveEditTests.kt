@@ -23,7 +23,6 @@ import androidx.compose.runtime.mock.compositionTest
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 
 class LiveEditTests {
@@ -50,8 +49,7 @@ class LiveEditTests {
             }
         }
 
-    // TODO: This should pass but doesn't. Need to investigate why.
-    @Ignore
+    @Test
     fun testNonRestartableTargetAtRootScope() = liveEditTest { Target("b", restartable = false) }
 
     @Test
@@ -678,14 +676,14 @@ private inline fun LiveEditTestScope.recordErrors(block: () -> Unit) {
     } catch (e: Exception) {
         addError(e)
     }
-    currentCompositionErrors().forEach { addError(it.first) }
+    getCurrentCompositionErrors().forEach { addError(it.first) }
 }
 
 @Stable
 class LiveEditTestScope {
     private val targetKeys = mutableSetOf<Int>()
     private val checks = mutableListOf<() -> Unit>()
-    private val errors = mutableSetOf<Exception>()
+    private val errors = mutableSetOf<Throwable>()
     private val logs = mutableListOf<Pair<String, String>>()
 
     fun invalidateTargets() {
@@ -708,7 +706,7 @@ class LiveEditTestScope {
         logs.add(ref to msg)
     }
 
-    fun addError(e: Exception) {
+    fun addError(e: Throwable) {
         errors.add(e)
     }
 

@@ -21,6 +21,7 @@
 
 package androidx.binarycompatibilityvalidator
 
+import java.io.File
 import org.jetbrains.kotlin.library.abi.AbiClass
 import org.jetbrains.kotlin.library.abi.AbiCompoundName
 import org.jetbrains.kotlin.library.abi.AbiDeclaration
@@ -50,6 +51,8 @@ class MutableAbiInfo(
 
 @OptIn(ExperimentalLibraryAbiReader::class)
 class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
+
+    constructor(file: File) : this(file.readText(), file.path)
 
     /** Cursor to keep track of current location within the dump */
     private val cursor = Cursor(klibDump)
@@ -92,10 +95,9 @@ class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
                                 // To be completed in follow up CLs. This information is currently
                                 // not
                                 // considered when checking for compatibility
-                                nativeTargets = listOf(),
+                                platformTargets = listOf(),
                                 compilerVersion = "",
                                 abiVersion = "",
-                                libraryVersion = "",
                                 irProviderName = ""
                             )
                     )
@@ -227,6 +229,7 @@ class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
             kind = kind,
             getter = getter,
             setter = setter,
+            backingField = null
         )
     }
 

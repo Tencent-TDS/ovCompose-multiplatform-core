@@ -25,6 +25,7 @@ import androidx.room.solver.query.result.QueryResultAdapter
 import androidx.room.solver.query.result.QueryResultBinder
 import androidx.room.solver.query.result.RxQueryResultBinder
 
+/** Generic result binder for Rx classes that are reactive. */
 class RxQueryResultBinderProvider
 private constructor(context: Context, private val rxType: RxType) :
     ObservableQueryResultBinderProvider(context) {
@@ -32,7 +33,8 @@ private constructor(context: Context, private val rxType: RxType) :
         context.processingEnv.findType(rxType.className.canonicalName)?.rawType
     }
 
-    override fun extractTypeArg(declared: XType): XType = declared.typeArguments.first()
+    override fun extractTypeArg(declared: XType): XType =
+        declared.typeArguments.first().makeNullable()
 
     override fun create(
         typeArg: XType,
@@ -69,7 +71,7 @@ private constructor(context: Context, private val rxType: RxType) :
                     RxQueryResultBinderProvider(context, it)
                         .requireArtifact(
                             context = context,
-                            requiredType = it.version.rxRoomClassName,
+                            requiredType = it.version.rxMarkerClassName,
                             missingArtifactErrorMsg = it.version.missingArtifactMessage
                         )
                 }

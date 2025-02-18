@@ -99,6 +99,7 @@ package androidx.test.uiautomator {
 
   public final class Configurator {
     method public long getActionAcknowledgmentTimeout();
+    method public int getDefaultDisplayId();
     method public static androidx.test.uiautomator.Configurator getInstance();
     method @Deprecated public long getKeyInjectionDelay();
     method public long getScrollAcknowledgmentTimeout();
@@ -106,7 +107,9 @@ package androidx.test.uiautomator {
     method public int getUiAutomationFlags();
     method public long getWaitForIdleTimeout();
     method public long getWaitForSelectorTimeout();
+    method public androidx.test.uiautomator.Configurator resetDefaultDisplayId();
     method public androidx.test.uiautomator.Configurator setActionAcknowledgmentTimeout(long);
+    method public androidx.test.uiautomator.Configurator setDefaultDisplayId(int);
     method @Deprecated public androidx.test.uiautomator.Configurator setKeyInjectionDelay(long);
     method public androidx.test.uiautomator.Configurator setScrollAcknowledgmentTimeout(long);
     method public androidx.test.uiautomator.Configurator setToolType(int);

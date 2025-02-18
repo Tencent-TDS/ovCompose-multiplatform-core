@@ -353,9 +353,13 @@ internal constructor(
     private fun Any?.toStringForAssert(): String =
         when {
             this == null -> toString()
-            isIntegralBoxedPrimitive() -> "${this::class.qualifiedName}<$this>"
+            isIntegralBoxedPrimitive() -> "${this::class.qName}<$this>"
             else -> toString()
         }
+
+    @Suppress("NOTHING_TO_INLINE")
+    internal inline fun checkInternal(format: String, vararg args: Any): StandardSubjectBuilder =
+        check(format, *args)
 
     /**
      * Returns a builder for creating a derived subject.
@@ -386,7 +390,7 @@ internal constructor(
      */
     protected fun check(format: String, vararg args: Any): StandardSubjectBuilder {
         validatePlaceholders(format, args)
-        return doCheck(DIFFERENT, lenientFormat(format, *args))
+        return doCheck(DIFFERENT, lenientFormat(format, args))
     }
 
     // TODO(b/134064106): Figure out a public API for this.
@@ -395,7 +399,7 @@ internal constructor(
         vararg args: Any
     ): StandardSubjectBuilder {
         validatePlaceholders(format, args)
-        return doCheck(SIMILAR, lenientFormat(format, *args))
+        return doCheck(SIMILAR, lenientFormat(format, args))
     }
 
     private fun validatePlaceholders(format: String, args: Array<out Any?>) {
@@ -464,7 +468,7 @@ internal constructor(
     }
 }
 
-internal fun lenientFormat(template: String, vararg args: Any?): String {
+internal fun lenientFormat(template: String, args: Array<out Any?>): String {
     val argsToLenientStrings =
         args.map {
             if (it == null) {

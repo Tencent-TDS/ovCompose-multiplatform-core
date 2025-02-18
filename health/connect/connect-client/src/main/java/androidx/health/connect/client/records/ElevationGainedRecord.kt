@@ -30,7 +30,7 @@ public class ElevationGainedRecord(
     override val endZoneOffset: ZoneOffset?,
     /** Elevation in [Length] units. Required field. Valid range: -1000000-1000000 meters. */
     public val elevation: Length,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : IntervalRecord {
 
     init {
@@ -67,6 +67,10 @@ public class ElevationGainedRecord(
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "ElevationGainedRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, elevation=$elevation, metadata=$metadata)"
     }
 
     companion object {

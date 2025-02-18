@@ -39,8 +39,17 @@ private object ContextMenuKey
  *
  * @param state the state that will have its status set to open on a right click
  */
-internal fun Modifier.contextMenuGestures(state: ContextMenuState): Modifier =
-    pointerInput(ContextMenuKey) { onRightClickDown { state.status = Status.Open(offset = it) } }
+internal fun Modifier.contextMenuGestures(state: ContextMenuState): Modifier = contextMenuGestures {
+    state.status = Status.Open(offset = it)
+}
+
+/**
+ * Track right click events and invoke [onOpenGesture] callback
+ *
+ * @param onOpenGesture the callback that will be invoked on a right click
+ */
+internal fun Modifier.contextMenuGestures(onOpenGesture: (Offset) -> Unit): Modifier =
+    pointerInput(ContextMenuKey) { onRightClickDown(onOpenGesture) }
 
 /** Similar to PointerInputScope.detectTapAndPress, but for right clicks. */
 @VisibleForTesting

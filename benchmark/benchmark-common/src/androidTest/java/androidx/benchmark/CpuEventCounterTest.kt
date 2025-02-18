@@ -16,13 +16,16 @@
 
 package androidx.benchmark
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
+import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import org.junit.After
+import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +39,8 @@ class CpuEventCounterTest {
     fun before() {
         // skip test if need root, or event fails to enable
         CpuEventCounter.forceEnable()?.let { errorMessage -> assumeTrue(errorMessage, false) }
+
+        assumeFalse(DeviceInfo.isEmulator && Build.VERSION.SDK_INT == 28) // see b/357101113
     }
 
     @After
@@ -97,7 +102,7 @@ class CpuEventCounterTest {
                 assertNotEquals(0, values.getValue(CpuEventCounter.Event.CpuCycles))
             }
             if (values.numberOfCounters >= 3) {
-                assertNotEquals(0, values.getValue(CpuEventCounter.Event.L1IMisses))
+                assertNotEquals(0, values.getValue(CpuEventCounter.Event.L1IReferences))
             }
         }
 
@@ -137,6 +142,36 @@ class CpuEventCounterTest {
                 instructions[3] > instructions[2] && instructions[2] > instructions[1],
                 "expected increasing instruction counts (ignoring 1st): ${instructions.joinToString()}"
             )
+        }
+
+    @Test
+    fun tooManyEvents(): Unit =
+        CpuEventCounter().use { counter ->
+            val values = CpuEventCounter.Values()
+
+            counter.resetEvents(
+                listOf(
+                    CpuEventCounter.Event.Instructions,
+                    CpuEventCounter.Event.CpuCycles,
+                    CpuEventCounter.Event.L1IReferences,
+                    CpuEventCounter.Event.L1IMisses,
+                    CpuEventCounter.Event.L1DReferences,
+                    CpuEventCounter.Event.L1DMisses,
+                )
+            )
+
+            counter.reset()
+            counter.start()
+
+            // factor chosen because small numbers will cause test to fail on an emulator,
+            // likely due to warmup
+            repeat(100) {
+                // Simple work designed to have minimum amount of Java code
+                System.nanoTime()
+            }
+            counter.stop()
+            assertFailsWith<IllegalStateException> { counter.read(values) }
+                .also { assertThat(it.message!!).contains("Observed 0 for instructions/cpuCycles") }
         }
 
     @Test

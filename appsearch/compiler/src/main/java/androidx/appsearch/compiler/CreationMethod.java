@@ -16,10 +16,10 @@
 
 package androidx.appsearch.compiler;
 
-import androidx.annotation.NonNull;
-
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -75,22 +75,19 @@ public abstract class CreationMethod {
     /**
      * The constructor/static method element.
      */
-    @NonNull
-    public abstract ExecutableElement getElement();
+    public abstract @NonNull ExecutableElement getElement();
 
     /**
      * The enclosing class that the constructor/static method is a part of.
      */
-    @NonNull
-    public DeclaredType getEnclosingClass() {
+    public @NonNull DeclaredType getEnclosingClass() {
         return (DeclaredType) getElement().getEnclosingElement().asType();
     }
 
     /**
      * The static method's return type/constructor's enclosing class.
      */
-    @NonNull
-    public DeclaredType getReturnType() {
+    public @NonNull DeclaredType getReturnType() {
         return isConstructor()
                 ? (DeclaredType) getElement().getEnclosingElement().asType()
                 : (DeclaredType) getElement().getReturnType();
@@ -99,8 +96,7 @@ public abstract class CreationMethod {
     /**
      * The static method/constructor element's name.
      */
-    @NonNull
-    public String getJvmName() {
+    public @NonNull String getJvmName() {
         return getElement().getSimpleName().toString();
     }
 
@@ -114,8 +110,7 @@ public abstract class CreationMethod {
     /**
      * The {@link AnnotatedGetterOrField}s that each input param corresponds to (order sensitive).
      */
-    @NonNull
-    public abstract ImmutableList<AnnotatedGetterOrField> getParamAssociations();
+    public abstract @NonNull ImmutableList<AnnotatedGetterOrField> getParamAssociations();
 
     /**
      * Whether the creation method returns the document class itself instead of a builder.
@@ -141,8 +136,7 @@ public abstract class CreationMethod {
      * @throws ProcessingException If the method is not invocable or the association for a param
      *                             could not be deduced.
      */
-    @NonNull
-    public static CreationMethod inferParamAssociationsAndCreate(
+    public static @NonNull CreationMethod inferParamAssociationsAndCreate(
             @NonNull ExecutableElement method,
             @NonNull Collection<AnnotatedGetterOrField> gettersAndFields,
             boolean returnsDocumentClass) throws ProcessingException {

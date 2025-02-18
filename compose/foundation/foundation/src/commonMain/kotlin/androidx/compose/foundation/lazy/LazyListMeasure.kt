@@ -16,10 +16,17 @@
 
 package androidx.compose.foundation.lazy
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.internal.checkPrecondition
+import androidx.compose.foundation.internal.requirePrecondition
+import androidx.compose.foundation.internal.requirePreconditionNotNull
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
+import androidx.compose.foundation.lazy.layout.StickyItemsPlacement
+import androidx.compose.foundation.lazy.layout.applyStickyItems
+import androidx.compose.foundation.lazy.layout.updatedVisibleItems
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
@@ -29,7 +36,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
-import androidx.compose.ui.util.fastFilter
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
@@ -43,6 +49,7 @@ import kotlinx.coroutines.CoroutineScope
  * Measures and calculates the positions for the requested items. The result is produced as a
  * [LazyListMeasureResult] which contains all the calculations.
  */
+@OptIn(ExperimentalFoundationApi::class)
 internal fun measureLazyList(
     itemsCount: Int,
     measuredItemProvider: LazyListMeasuredItemProvider,
@@ -55,7 +62,6 @@ internal fun measureLazyList(
     scrollToBeConsumed: Float,
     constraints: Constraints,
     isVertical: Boolean,
-    headerIndexes: List<Int>,
     verticalArrangement: Arrangement.Vertical?,
     horizontalArrangement: Arrangement.Horizontal?,
     reverseLayout: Boolean,
@@ -63,16 +69,18 @@ internal fun measureLazyList(
     itemAnimator: LazyLayoutItemAnimator<LazyListMeasuredItem>,
     beyondBoundsItemCount: Int,
     pinnedItems: List<Int>,
-    hasLookaheadPassOccurred: Boolean,
+    hasLookaheadOccurred: Boolean,
     isLookingAhead: Boolean,
-    postLookaheadLayoutInfo: LazyListLayoutInfo?,
+    approachLayoutInfo: LazyListLayoutInfo?,
     coroutineScope: CoroutineScope,
     placementScopeInvalidator: ObservableScopeInvalidator,
     graphicsContext: GraphicsContext,
+    stickyItemsPlacement: StickyItemsPlacement?,
     layout: (Int, Int, Placeable.PlacementScope.() -> Unit) -> MeasureResult
 ): LazyListMeasureResult {
-    require(beforeContentPadding >= 0) { "invalid beforeContentPadding" }
-    require(afterContentPadding >= 0) { "invalid afterContentPadding" }
+    requirePrecondition(beforeContentPadding >= 0) { "invalid beforeContentPadding" }
+    requirePrecondition(afterContentPadding >= 0) { "invalid afterContentPadding" }
+
     if (itemsCount <= 0) {
         // empty data set. reset the current scroll and report zero size
         var layoutWidth = constraints.minWidth
@@ -87,7 +95,7 @@ internal fun measureLazyList(
             isVertical = isVertical,
             laneCount = 1,
             isLookingAhead = isLookingAhead,
-            hasLookaheadOccurred = hasLookaheadPassOccurred,
+            hasLookaheadOccurred = hasLookaheadOccurred,
             layoutMinOffset = 0,
             layoutMaxOffset = 0,
             coroutineScope = coroutineScope,
@@ -278,7 +286,9 @@ internal fun measureLazyList(
             } else 0f
 
         // the initial offset for items from visibleItems list
-        require(currentFirstItemScrollOffset >= 0) { "negative currentFirstItemScrollOffset" }
+        requirePrecondition(currentFirstItemScrollOffset >= 0) {
+            "negative currentFirstItemScrollOffset"
+        }
         val visibleItemsScrollOffset = -currentFirstItemScrollOffset
         var firstItem = visibleItems.first()
 
@@ -322,7 +332,7 @@ internal fun measureLazyList(
                 pinnedItems = pinnedItems,
                 consumedScroll = consumedScroll,
                 isLookingAhead = isLookingAhead,
-                lastPostLookaheadLayoutInfo = postLookaheadLayoutInfo
+                lastApproachLayoutInfo = approachLayoutInfo
             )
 
         // Update maxCrossAxis with extra items
@@ -365,7 +375,7 @@ internal fun measureLazyList(
             isVertical = isVertical,
             laneCount = 1,
             isLookingAhead = isLookingAhead,
-            hasLookaheadOccurred = hasLookaheadPassOccurred,
+            hasLookaheadOccurred = hasLookaheadOccurred,
             coroutineScope = coroutineScope,
             layoutMinOffset = currentFirstItemScrollOffset,
             layoutMaxOffset = currentMainAxisOffset,
@@ -387,19 +397,25 @@ internal fun measureLazyList(
             }
         }
 
-        val headerItem =
-            if (headerIndexes.isNotEmpty()) {
-                findOrComposeLazyListHeader(
-                    composedVisibleItems = positionedItems,
-                    itemProvider = measuredItemProvider,
-                    headerIndexes = headerIndexes,
-                    beforeContentPadding = beforeContentPadding,
-                    layoutWidth = layoutWidth,
-                    layoutHeight = layoutHeight
-                )
-            } else {
-                null
+        // apply sticky items logic.
+        val stickingItems =
+            stickyItemsPlacement.applyStickyItems(
+                positionedItems,
+                measuredItemProvider.headerIndexes,
+                beforeContentPadding,
+                afterContentPadding,
+                layoutWidth,
+                layoutHeight
+            ) {
+                measuredItemProvider.getAndMeasure(it)
             }
+
+        val firstVisibleIndex =
+            if (noExtraItems) positionedItems.firstOrNull()?.index
+            else visibleItems.firstOrNull()?.index
+        val lastVisibleIndex =
+            if (noExtraItems) positionedItems.lastOrNull()?.index
+            else visibleItems.lastOrNull()?.index
 
         return LazyListMeasureResult(
             firstVisibleItem = firstItem,
@@ -408,24 +424,29 @@ internal fun measureLazyList(
             consumedScroll = consumedScroll,
             measureResult =
                 layout(layoutWidth, layoutHeight) {
-                    positionedItems.fastForEach {
-                        if (it !== headerItem) {
-                            it.place(this, isLookingAhead)
-                        }
+                    // Tagging as motion frame of reference placement, meaning the placement
+                    // contains scrolling. This allows the consumer of this placement offset to
+                    // differentiate this offset vs. offsets from structural changes. Generally
+                    // speaking, this signals a preference to directly apply changes rather than
+                    // animating, to avoid a chasing effect to scrolling.
+                    withMotionFrameOfReferencePlacement {
+                        // place normal items
+                        positionedItems.fastForEach { it.place(this, isLookingAhead) }
+                        // stickingItems should be placed after all other items
+                        stickingItems.fastForEach { it.place(this, isLookingAhead) }
                     }
-                    // the header item should be placed (drawn) after all other items
-                    headerItem?.place(this, isLookingAhead)
+
                     // we attach it during the placement so LazyListState can trigger re-placement
                     placementScopeInvalidator.attachToScope()
                 },
             scrollBackAmount = scrollBackAmount,
             visibleItemsInfo =
-                if (noExtraItems) positionedItems
-                else
-                    positionedItems.fastFilter {
-                        (it.index >= visibleItems.first().index &&
-                            it.index <= visibleItems.last().index) || it === headerItem
-                    },
+                updatedVisibleItems(
+                    firstVisibleIndex = firstVisibleIndex ?: 0,
+                    lastVisibleIndex = lastVisibleIndex ?: 0,
+                    positionedItems = positionedItems,
+                    stickingItems = stickingItems
+                ),
             viewportStartOffset = -beforeContentPadding,
             viewportEndOffset = maxOffset + afterContentPadding,
             totalItemsCount = itemsCount,
@@ -449,7 +470,7 @@ private fun createItemsAfterList(
     pinnedItems: List<Int>,
     consumedScroll: Float,
     isLookingAhead: Boolean,
-    lastPostLookaheadLayoutInfo: LazyListLayoutInfo?
+    lastApproachLayoutInfo: LazyListLayoutInfo?
 ): List<LazyListMeasuredItem> {
     var list: MutableList<LazyListMeasuredItem>? = null
 
@@ -463,15 +484,14 @@ private fun createItemsAfterList(
     }
 
     if (isLookingAhead) {
-        // Check if there's any item that needs to be composed based on last postLookaheadLayoutInfo
+        // Check if there's any item that needs to be composed based on last approachLayoutInfo
         if (
-            lastPostLookaheadLayoutInfo != null &&
-                lastPostLookaheadLayoutInfo.visibleItemsInfo.isNotEmpty()
+            lastApproachLayoutInfo != null && lastApproachLayoutInfo.visibleItemsInfo.isNotEmpty()
         ) {
             // Find first item with index > end. Note that `visibleItemsInfo.last()` may not have
             // the largest index as the last few items could be added to animate item placement.
             val firstItem =
-                lastPostLookaheadLayoutInfo.visibleItemsInfo.run {
+                lastApproachLayoutInfo.visibleItemsInfo.run {
                     var found: LazyListItemInfo? = null
                     for (i in size - 1 downTo 0) {
                         if (this[i].index > end && (i == 0 || this[i - 1].index <= end)) {
@@ -481,7 +501,7 @@ private fun createItemsAfterList(
                     }
                     found
                 }
-            val lastVisibleItem = lastPostLookaheadLayoutInfo.visibleItemsInfo.last()
+            val lastVisibleItem = lastApproachLayoutInfo.visibleItemsInfo.last()
             if (firstItem != null) {
                 for (i in firstItem.index..min(lastVisibleItem.index, itemsCount - 1)) {
                     // Only add to the list items that are _not_ already in the list.
@@ -495,7 +515,7 @@ private fun createItemsAfterList(
             // Calculate the additional offset to subcompose based on what was shown in the
             // previous post-loookahead pass and the scroll consumed.
             val additionalOffset =
-                lastPostLookaheadLayoutInfo.viewportEndOffset -
+                lastApproachLayoutInfo.viewportEndOffset -
                     lastVisibleItem.offset -
                     lastVisibleItem.size -
                     consumedScroll
@@ -583,23 +603,25 @@ private fun calculateItemsOffsets(
     val mainAxisLayoutSize = if (isVertical) layoutHeight else layoutWidth
     val hasSpareSpace = finalMainAxisOffset < minOf(mainAxisLayoutSize, maxOffset)
     if (hasSpareSpace) {
-        check(itemsScrollOffset == 0) { "non-zero itemsScrollOffset" }
+        checkPrecondition(itemsScrollOffset == 0) { "non-zero itemsScrollOffset" }
     }
 
     val positionedItems =
         ArrayList<LazyListMeasuredItem>(items.size + extraItemsBefore.size + extraItemsAfter.size)
 
     if (hasSpareSpace) {
-        require(extraItemsBefore.isEmpty() && extraItemsAfter.isEmpty()) { "no extra items" }
+        requirePrecondition(extraItemsBefore.isEmpty() && extraItemsAfter.isEmpty()) {
+            "no extra items"
+        }
 
         val itemsCount = items.size
         fun Int.reverseAware() = if (!reverseLayout) this else itemsCount - this - 1
 
         val sizes = IntArray(itemsCount) { index -> items[index.reverseAware()].size }
-        val offsets = IntArray(itemsCount) { 0 }
+        val offsets = IntArray(itemsCount)
         if (isVertical) {
             with(
-                requireNotNull(verticalArrangement) {
+                requirePreconditionNotNull(verticalArrangement) {
                     "null verticalArrangement when isVertical == true"
                 }
             ) {
@@ -607,7 +629,7 @@ private fun calculateItemsOffsets(
             }
         } else {
             with(
-                requireNotNull(horizontalArrangement) {
+                requirePreconditionNotNull(horizontalArrangement) {
                     "null horizontalArrangement when isVertical == false"
                 }
             ) {

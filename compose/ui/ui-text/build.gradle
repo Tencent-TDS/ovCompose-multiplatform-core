@@ -22,7 +22,9 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
@@ -32,15 +34,16 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
-    desktop()
+    androidTarget()
+    jvmStubs()
+    linuxX64Stubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
 
                 api(project(":compose:ui:ui-graphics"))
@@ -48,9 +51,13 @@ androidXMultiplatform {
 
                 // when updating the runtime version please also update the runtime-saveable version
                 implementation(project(":compose:runtime:runtime"))
-                implementation("androidx.compose.runtime:runtime-saveable:1.6.0")
+                implementation(project(":compose:runtime:runtime-saveable"))
 
                 implementation(project(":compose:ui:ui-util"))
+
+                // TODO: Pin androidx.collection when SieveCache is available
+                // implementation("androidx.collection:collection:1.4.2")
+                implementation(project(":collection:collection"))
             }
         }
 
@@ -59,17 +66,9 @@ androidXMultiplatform {
             }
         }
 
-        skikoMain {
-            dependsOn(commonMain)
-            dependencies {
-                api(libs.skikoCommon)
-            }
-        }
-
         jvmMain {
             dependsOn(commonMain)
             dependencies {
-                implementation(libs.kotlinStdlib)
             }
         }
 
@@ -77,22 +76,29 @@ androidXMultiplatform {
             dependsOn(commonMain)
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.1.0")
-                api("androidx.annotation:annotation-experimental:1.4.0")
+                api("androidx.annotation:annotation:1.8.1")
+                api("androidx.annotation:annotation-experimental:1.4.1")
                 implementation("androidx.core:core:1.7.0")
-                implementation("androidx.emoji2:emoji2:1.2.0")
-                implementation("androidx.collection:collection:1.4.0")
+                implementation("androidx.emoji2:emoji2:1.4.0")
             }
         }
 
-        desktopMain {
-            dependsOn(skikoMain)
-            dependsOn(jvmMain)
+        commonStubsMain {
+            dependsOn(commonMain)
+        }
+
+        jvmStubsMain {
+            dependsOn(commonStubsMain)
+        }
+
+        linuxx64StubsMain {
+            dependsOn(commonStubsMain)
         }
 
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
+                implementation("androidx.emoji2:emoji2-bundled:1.4.0")
                 implementation(project(":compose:ui:ui-test-junit4"))
                 implementation(project(":internal-testutils-fonts"))
                 implementation(project(":compose:foundation:foundation"))
@@ -123,7 +129,6 @@ androidXMultiplatform {
                 implementation(libs.byteBuddy)
             }
         }
-        androidMain.kotlin.srcDirs("${supportRootFolder}/text/text/src/main/java")
     }
 }
 
@@ -134,13 +139,21 @@ dependencies {
 
 androidx {
     name = "Compose UI Text"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2019"
     description = "Compose Text primitives and utilities"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
     samples(project(":compose:ui:ui-text:ui-text-samples"))
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {
-    namespace "androidx.compose.ui.text"
+    compileSdk = 35
+    namespace = "androidx.compose.ui.text"
+    // TODO(b/328001575)
+    experimentalProperties["android.lint.useK2Uast"] = false
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

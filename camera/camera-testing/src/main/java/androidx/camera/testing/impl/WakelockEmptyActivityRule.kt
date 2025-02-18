@@ -21,7 +21,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.view.WindowManager
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.camera.core.Logger
 import androidx.camera.testing.impl.Api27Impl.setShowWhenLocked
@@ -40,7 +39,8 @@ import org.junit.runners.model.Statement
  * By default, all brands will be enabled (brandsToEnable == null). Caller can specify the brand
  * list to enable the rule via the [brandsToEnable] parameter.
  */
-class WakelockEmptyActivityRule(val brandsToEnable: List<String>? = null) : TestRule {
+public class WakelockEmptyActivityRule(private val brandsToEnable: List<String>? = null) :
+    TestRule {
     override fun apply(base: Statement, description: Description): Statement =
         object : Statement() {
             override fun evaluate() {
@@ -102,14 +102,12 @@ class WakelockEmptyActivityRule(val brandsToEnable: List<String>? = null) : Test
 }
 
 @RequiresApi(Build.VERSION_CODES.O_MR1)
-object Api27Impl {
-    @DoNotInline
-    fun Activity.setShowWhenLocked() {
+public object Api27Impl {
+    public fun Activity.setShowWhenLocked() {
         setShowWhenLocked(true)
     }
 
-    @DoNotInline
-    fun Activity.setTurnScreenOn() {
+    public fun Activity.setTurnScreenOn() {
         setTurnScreenOn(true)
     }
 }

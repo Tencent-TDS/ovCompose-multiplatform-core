@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.tokens.NavigationBarTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertIsEqualTo
@@ -94,7 +95,7 @@ class ShortNavigationBarTest {
 
     @Test
     fun bar_size() {
-        val height = 64.dp // TODO: Replace with token.
+        val height = NavigationBarTokens.ContainerHeight
         rule
             .setMaterialContentForSizeAssertions {
                 ShortNavigationBar {
@@ -154,7 +155,7 @@ class ShortNavigationBarTest {
         rule.runOnIdleWithDensity {
             val width = parentCoords.size.width
             val expectedItemWidth = (width / 4f)
-            val expectedItemHeight = 64.dp.toPx() // TODO: Replace with token.
+            val expectedItemHeight = NavigationBarTokens.ContainerHeight.toPx()
 
             Truth.assertThat(itemCoords.size).isEqualTo(4)
             itemCoords.forEach { (index, coord) ->
@@ -169,7 +170,7 @@ class ShortNavigationBarTest {
 
     @Test
     fun bar_equalWeightArrangement_topIconItemWithLongLabel_automaticallyResizesHeight() {
-        val defaultHeight = 64.dp // TODO: Replace with token.
+        val defaultHeight = NavigationBarTokens.ContainerHeight
 
         rule.setMaterialContent(lightColorScheme()) {
             ShortNavigationBar(modifier = Modifier.testTag("TAG")) {
@@ -199,7 +200,7 @@ class ShortNavigationBarTest {
             Modifier.onGloballyPositioned { coords: LayoutCoordinates -> parentCoords = coords }
         ) {
             Box {
-                ShortNavigationBar(arrangement = NavigationBarArrangement.Centered) {
+                ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
                     repeat(3) { index ->
                         ShortNavigationBarItem(
                             icon = { Icon(Icons.Filled.Favorite, null) },
@@ -239,7 +240,7 @@ class ShortNavigationBarTest {
             Modifier.onGloballyPositioned { coords: LayoutCoordinates -> parentCoords = coords }
         ) {
             Box {
-                ShortNavigationBar(arrangement = NavigationBarArrangement.Centered) {
+                ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
                     repeat(4) { index ->
                         ShortNavigationBarItem(
                             icon = { Icon(Icons.Filled.Favorite, null) },
@@ -279,7 +280,7 @@ class ShortNavigationBarTest {
             Modifier.onGloballyPositioned { coords: LayoutCoordinates -> parentCoords = coords }
         ) {
             Box {
-                ShortNavigationBar(arrangement = NavigationBarArrangement.Centered) {
+                ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
                     repeat(5) { index ->
                         ShortNavigationBarItem(
                             icon = { Icon(Icons.Filled.Favorite, null) },
@@ -319,7 +320,7 @@ class ShortNavigationBarTest {
             Modifier.onGloballyPositioned { coords: LayoutCoordinates -> parentCoords = coords }
         ) {
             Box {
-                ShortNavigationBar(arrangement = NavigationBarArrangement.Centered) {
+                ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
                     repeat(6) { index ->
                         ShortNavigationBarItem(
                             icon = { Icon(Icons.Filled.Favorite, null) },
@@ -350,12 +351,12 @@ class ShortNavigationBarTest {
 
     @Test
     fun bar_centeredArrangement_startIconItemWithLongLabel_automaticallyResizesHeight() {
-        val defaultHeight = 64.dp // TODO: Replace with token.
+        val defaultHeight = NavigationBarTokens.ContainerHeight
 
         rule.setMaterialContent(lightColorScheme()) {
             ShortNavigationBar(
                 modifier = Modifier.testTag("TAG"),
-                arrangement = NavigationBarArrangement.Centered
+                arrangement = ShortNavigationBarArrangement.Centered
             ) {
                 repeat(4) { index ->
                     ShortNavigationBarItem(
@@ -475,28 +476,12 @@ class ShortNavigationBarTest {
     }
 
     @Test
-    fun item_iconSemanticsIsNull_whenLabelIsPresent() {
-        rule.setMaterialContent(lightColorScheme()) {
-            ShortNavigationBarItem(
-                modifier = Modifier.testTag("item"),
-                icon = { Icon(Icons.Filled.Favorite, "Favorite") },
-                label = { Text("Favorite") },
-                selected = true,
-                onClick = {}
-            )
-        }
-
-        val node = rule.onNodeWithTag("item").fetchSemanticsNode()
-
-        Truth.assertThat(node.config.getOrNull(SemanticsProperties.ContentDescription)).isNull()
-    }
-
-    @Test
     fun item_unselectedItem_hasIconSemantics_whenLabelNotPresent() {
         rule.setMaterialContent(lightColorScheme()) {
             ShortNavigationBarItem(
                 modifier = Modifier.testTag("item"),
                 icon = { Icon(Icons.Filled.Favorite, "Favorite") },
+                label = null,
                 selected = false,
                 onClick = {}
             )
@@ -509,8 +494,44 @@ class ShortNavigationBarTest {
     }
 
     @Test
-    fun itemContent_topIconPosition_sizeAndPosition() {
+    fun item_customColors() {
         rule.setMaterialContent(lightColorScheme()) {
+            val customColors =
+                ShortNavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.Red,
+                    unselectedTextColor = Color.Green,
+                )
+
+            ShortNavigationBar {
+                ShortNavigationBarItem(
+                    colors = customColors,
+                    icon = { Truth.assertThat(LocalContentColor.current).isEqualTo(Color.Red) },
+                    label = {
+                        Truth.assertThat(LocalContentColor.current)
+                            .isEqualTo(NavigationBarTokens.ItemActiveLabelTextColor.value)
+                    },
+                    selected = true,
+                    onClick = {}
+                )
+                ShortNavigationBarItem(
+                    colors = customColors,
+                    icon = {
+                        Truth.assertThat(LocalContentColor.current)
+                            .isEqualTo(NavigationBarTokens.ItemInactiveIconColor.value)
+                    },
+                    label = { Truth.assertThat(LocalContentColor.current).isEqualTo(Color.Green) },
+                    selected = false,
+                    onClick = {}
+                )
+            }
+        }
+    }
+
+    @Test
+    fun itemContent_topIconPosition_sizeAndPosition() {
+        var minSize: Dp? = null
+        rule.setMaterialContent(lightColorScheme()) {
+            minSize = LocalMinimumInteractiveComponentSize.current
             ShortNavigationBarItem(
                 modifier = Modifier.testTag("item"),
                 icon = { Icon(Icons.Filled.Favorite, null, Modifier.testTag("icon")) },
@@ -525,8 +546,8 @@ class ShortNavigationBarTest {
             rule.onNodeWithTag("icon", useUnmergedTree = true).getUnclippedBoundsInRoot()
 
         // Assert the item has its minimal width and height values.
-        Truth.assertThat(itemBounds.width).isAtLeast(NavigationItemMinWidth)
-        Truth.assertThat(itemBounds.height).isAtLeast(NavigationItemMinHeight)
+        Truth.assertThat(itemBounds.width).isAtLeast(minSize)
+        Truth.assertThat(itemBounds.height).isAtLeast(minSize)
 
         rule
             .onNodeWithTag("icon", useUnmergedTree = true)
@@ -552,7 +573,9 @@ class ShortNavigationBarTest {
 
     @Test
     fun itemContent_startIconPosition_sizeAndPosition() {
+        var minSize: Dp? = null
         rule.setMaterialContent(lightColorScheme()) {
+            minSize = LocalMinimumInteractiveComponentSize.current
             ShortNavigationBarItem(
                 modifier = Modifier.testTag("item"),
                 icon = { Icon(Icons.Filled.Favorite, null, Modifier.testTag("icon")) },
@@ -570,8 +593,8 @@ class ShortNavigationBarTest {
             rule.onNodeWithTag("label", useUnmergedTree = true).getUnclippedBoundsInRoot()
 
         // Assert the item has its minimal width and height values.
-        Truth.assertThat(itemBounds.width).isAtLeast(NavigationItemMinWidth)
-        Truth.assertThat(itemBounds.height).isAtLeast(NavigationItemMinHeight)
+        Truth.assertThat(itemBounds.width).isAtLeast(minSize)
+        Truth.assertThat(itemBounds.height).isAtLeast(minSize)
 
         // Assert width.
         val expectedWidth =
@@ -582,8 +605,8 @@ class ShortNavigationBarTest {
                 StartIconIndicatorHorizontalPadding
         Truth.assertThat(itemBounds.width.value).isWithin(1f).of(expectedWidth.value)
         // Assert height. Note: The item's content height is less than its minimum touch target
-        // height, so its actual height is the same as NavigationItemMinHeight.
-        Truth.assertThat(itemBounds.height).isEqualTo(NavigationItemMinHeight)
+        // height, so its actual height is the same as LocalMinimumInteractiveComponentSize.
+        Truth.assertThat(itemBounds.height).isEqualTo(minSize)
 
         rule
             .onNodeWithTag("icon", useUnmergedTree = true)

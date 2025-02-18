@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.annotation:annotation:1.8.1")
     implementation(libs.kotlinStdlib)
     implementation(project(":camera:camera-camera2"))
     implementation(project(":camera:camera-lifecycle"))
@@ -39,12 +39,13 @@ dependencies {
 }
 
 android {
-    namespace "androidx.camera.lifecycle.samples"
+    compileSdk = 35
+    namespace = "androidx.camera.lifecycle.samples"
 }
 
 androidx {
     name = "Camera Lifecycle Samples"
-    type = LibraryType.SAMPLES
+    type = SoftwareType.SAMPLES
     inceptionYear = "2024"
     description = "Contains sample code for the Androidx Camera Lifecycle APIs and Utilities"
 }

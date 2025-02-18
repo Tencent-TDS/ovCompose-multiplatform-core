@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.demos.focus
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -35,7 +36,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusRequester.Companion.Default
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -46,6 +46,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Preview(widthDp = 200, heightDp = 400)
 @Composable
 fun LazyListChildFocusDemos() {
@@ -77,7 +78,9 @@ fun LazyListChildFocusDemos() {
         stickyHeader { Text("Direct Focus to previously Focused Child") }
         item {
             var previouslyFocusedItem: FocusRequester? by remember { mutableStateOf(null) }
-            LazyRow(Modifier.focusProperties { enter = { previouslyFocusedItem ?: Default } }) {
+            LazyRow(
+                Modifier.focusProperties { onEnter = { previouslyFocusedItem?.requestFocus() } }
+            ) {
                 items(10) { index ->
                     val focusRequester = remember(index) { FocusRequester() }
                     val pinnableContainer = LocalPinnableContainer.current

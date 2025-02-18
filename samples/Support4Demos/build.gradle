@@ -12,6 +12,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     implementation(project(":core:core"))
     implementation(project(":cursoradapter:cursoradapter"))
     implementation("androidx.localbroadcastmanager:localbroadcastmanager:1.0.0")
@@ -27,8 +28,11 @@ dependencies {
     implementation(project(":coordinatorlayout:coordinatorlayout"))
     implementation("com.google.android.material:material:1.6.0")
     implementation(project(":appcompat:appcompat"))
+    api(project(":preference:preference"))
+
 }
 
 android {
-    namespace "com.example.android.supportv4"
+    compileSdk = 35
+    namespace = "com.example.android.supportv4"
 }

@@ -25,15 +25,14 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
+import androidx.compose.material3.internal.IncreaseVerticalSemanticsBounds
 import androidx.compose.material3.internal.toPath
 import androidx.compose.material3.tokens.CircularProgressIndicatorTokens
 import androidx.compose.material3.tokens.LinearProgressIndicatorTokens
@@ -65,13 +64,13 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCoerceIn
 import androidx.graphics.shapes.CornerRounding
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
@@ -91,7 +90,7 @@ import kotlinx.coroutines.launch
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
  * ![Linear wavy progress indicator
- * image](https://developer.android.com/images/reference/androidx/compose/material3/linear-progress-indicator.png)
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/linear-wavy-progress-indicator.png)
  *
  * This version of a linear progress indicator accepts arguments, such as [amplitude], [wavelength],
  * and [waveSpeed] to render the progress as a waveform.
@@ -140,10 +139,10 @@ fun LinearWavyProgressIndicator(
     gapSize: Dp = WavyProgressIndicatorDefaults.LinearIndicatorTrackGapSize,
     stopSize: Dp = WavyProgressIndicatorDefaults.LinearTrackStopIndicatorSize,
     amplitude: (progress: Float) -> Float = WavyProgressIndicatorDefaults.indicatorAmplitude,
-    wavelength: Dp = WavyProgressIndicatorDefaults.LinearWavelength,
+    wavelength: Dp = WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
     waveSpeed: Dp = wavelength // Match to 1 wavelength per second
 ) {
-    val coercedProgress = { progress().coerceIn(0f, 1f) }
+    val coercedProgress = { progress().fastCoerceIn(0f, 1f) }
     val lastOffsetValue = remember { mutableFloatStateOf(0f) }
     val offsetAnimatable =
         remember(waveSpeed, wavelength) { Animatable(lastOffsetValue.floatValue) }
@@ -182,11 +181,12 @@ fun LinearWavyProgressIndicator(
     val progressDrawingCache = remember { LinearProgressDrawingCache() }
     Spacer(
         modifier
-            .then(IncreaseSemanticsBounds)
+            .then(IncreaseVerticalSemanticsBounds)
             .semantics(mergeDescendants = true) {
-                progressBarRangeInfo = ProgressBarRangeInfo(coercedProgress(), 0f..1f)
+                // Check for NaN, as the ProgressBarRangeInfo will throw an exception.
+                progressBarRangeInfo =
+                    ProgressBarRangeInfo(coercedProgress().takeUnless { it.isNaN() } ?: 0f, 0f..1f)
             }
-            .requiredSizeIn(minWidth = LinearContainerMinWidth)
             .size(
                 width = WavyProgressIndicatorDefaults.LinearContainerWidth,
                 height = WavyProgressIndicatorDefaults.LinearContainerHeight
@@ -198,7 +198,7 @@ fun LinearWavyProgressIndicator(
 
                 // Animate changes in the amplitude. As this requires a progress value, we do it
                 // inside the Spacer to avoid redundant recompositions.
-                val amplitudeForProgress = amplitude(progressValue).coerceIn(0f, 1f)
+                val amplitudeForProgress = amplitude(progressValue).fastCoerceIn(0f, 1f)
                 val animatedAmplitude =
                     amplitudeAnimatable
                         ?: Animatable(amplitudeForProgress, Float.VectorConverter).also {
@@ -274,8 +274,8 @@ fun LinearWavyProgressIndicator(
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
- * ![Linear wavy progress indicator
- * image](https://developer.android.com/images/reference/androidx/compose/material3/linear-progress-indicator.png)
+ * ![Indeterminate linear wavy progress indicator
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/indeterminate-linear-wavy-progress-indicator.png)
  *
  * @param modifier the [Modifier] to be applied to this progress indicator
  * @param color the progress indicator color
@@ -284,7 +284,13 @@ fun LinearWavyProgressIndicator(
  * @param stroke a [Stroke] that will be used to draw this indicator
  * @param trackStroke a [Stroke] that will be used to draw the indicator's track
  * @param gapSize the gap between the track and the progress parts of the indicator
+ * @param amplitude the wave's amplitude. 0.0 represents no amplitude, and 1.0 represents an
+ *   amplitude that will take the full height of the progress indicator. Values outside of this
+ *   range are coerced into the range.
  * @param wavelength the length of a wave
+ * @param waveSpeed the speed in which the wave will move when the [amplitude] is greater than zero.
+ *   The value here represents a DP per seconds, and by default it's matched to the [wavelength] to
+ *   render an animation that moves the wave by one wave length per second.
  * @sample androidx.compose.material3.samples.IndeterminateLinearWavyProgressIndicatorSample
  */
 @ExperimentalMaterial3ExpressiveApi
@@ -296,73 +302,65 @@ fun LinearWavyProgressIndicator(
     stroke: Stroke = WavyProgressIndicatorDefaults.linearIndicatorStroke,
     trackStroke: Stroke = WavyProgressIndicatorDefaults.linearTrackStroke,
     gapSize: Dp = WavyProgressIndicatorDefaults.LinearIndicatorTrackGapSize,
-    wavelength: Dp = WavyProgressIndicatorDefaults.LinearWavelength
+    @FloatRange(from = 0.0, to = 1.0) amplitude: Float = 1f,
+    wavelength: Dp = WavyProgressIndicatorDefaults.LinearIndeterminateWavelength,
+    waveSpeed: Dp = wavelength // Match to 1 wavelength per second
 ) {
+    // Progress offset animation for the waves that is determined by the wave speed and wavelength.
+    val lastOffsetValue = remember { mutableFloatStateOf(0f) }
+    val offsetAnimatable =
+        remember(waveSpeed, wavelength) { Animatable(lastOffsetValue.floatValue) }
+    LaunchedEffect(waveSpeed, wavelength) {
+        if (waveSpeed > 0.dp) {
+            // Compute the duration as a Dp per second.
+            val durationMillis = ((wavelength / waveSpeed) * 1000).toInt()
+            if (durationMillis > 0) {
+                // Update the bounds to start from the current value and to end at the value plus 1.
+                // This will ensure that there are no jumps in the animation in case the wave's
+                // speed or length are changing.
+                offsetAnimatable.updateBounds(
+                    lastOffsetValue.floatValue,
+                    lastOffsetValue.floatValue + 1
+                )
+                offsetAnimatable.animateTo(
+                    lastOffsetValue.floatValue + 1,
+                    animationSpec =
+                        infiniteRepeatable(
+                            animation = tween(durationMillis, easing = LinearEasing),
+                            repeatMode = RepeatMode.Restart,
+                        )
+                ) {
+                    lastOffsetValue.floatValue = value % 1f
+                }
+            }
+        }
+    }
+
+    // Head and tail animation for the two progress lines we will be displaying.
     val infiniteTransition = rememberInfiniteTransition()
     val firstLineHead =
         infiniteTransition.animateFloat(
-            0f,
-            1f,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = LinearAnimationDuration
-                        0f at FirstLineHeadDelay using IndeterminateLinearProgressEasing
-                        1f at FirstLineHeadDuration + FirstLineHeadDelay
-                    }
-            )
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = linearIndeterminateFirstLineHeadAnimationSpec
         )
     val firstLineTail =
         infiniteTransition.animateFloat(
-            0f,
-            1f,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = LinearAnimationDuration
-                        0f at FirstLineTailDelay using IndeterminateLinearProgressEasing
-                        1f at FirstLineTailDuration + FirstLineTailDelay
-                    }
-            )
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = linearIndeterminateFirstLineTailAnimationSpec
         )
     val secondLineHead =
         infiniteTransition.animateFloat(
-            0f,
-            1f,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = LinearAnimationDuration
-                        0f at SecondLineHeadDelay using IndeterminateLinearProgressEasing
-                        1f at SecondLineHeadDuration + SecondLineHeadDelay
-                    }
-            )
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = linearIndeterminateSecondLineHeadAnimationSpec
         )
     val secondLineTail =
         infiniteTransition.animateFloat(
-            0f,
-            1f,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = LinearAnimationDuration
-                        0f at SecondLineTailDelay using IndeterminateLinearProgressEasing
-                        1f at SecondLineTailDuration + SecondLineTailDelay
-                    }
-            )
-        )
-
-    val waveOffset =
-        infiniteTransition.animateFloat(
-            0f,
-            1f,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = LinearAnimationDuration
-                        1f at LinearAnimationDuration using IndeterminateLinearProgressEasing
-                    }
-            )
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = linearIndeterminateSecondLineTailAnimationSpec
         )
 
     // Holds the start and end progress fractions (each two consecutive numbers in the array hold
@@ -371,11 +369,11 @@ fun LinearWavyProgressIndicator(
     // appear at the same time while the indicator animates.
     val progressFractions = floatArrayOf(0f, 0f, 0f, 0f)
     val progressDrawingCache = remember { LinearProgressDrawingCache() }
+    val coercedAmplitude = amplitude.fastCoerceIn(0f, 1f)
     Spacer(
         modifier
-            .then(IncreaseSemanticsBounds)
+            .then(IncreaseVerticalSemanticsBounds)
             .progressSemantics()
-            .requiredSizeIn(minWidth = LinearContainerMinWidth)
             .size(
                 WavyProgressIndicatorDefaults.LinearContainerWidth,
                 WavyProgressIndicatorDefaults.LinearContainerHeight
@@ -392,8 +390,8 @@ fun LinearWavyProgressIndicator(
                     size = size,
                     wavelength = wavelength.toPx(),
                     progressFractions = progressFractions,
-                    amplitude = 1f,
-                    waveOffset = (waveOffset.value * 3) % 1f,
+                    amplitude = coercedAmplitude,
+                    waveOffset = if (coercedAmplitude > 0f) lastOffsetValue.floatValue else 0f,
                     gapSize = max(0f, gapSize.toPx()),
                     stroke = stroke,
                     trackStroke = trackStroke
@@ -422,8 +420,8 @@ fun LinearWavyProgressIndicator(
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
- * ![Circular progress indicator
- * image](https://developer.android.com/images/reference/androidx/compose/material3/circular-progress-indicator.png)
+ * ![Circular wavy progress indicator
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/circular-wavy-progress-indicator.png)
  *
  * By default there is no animation between [progress] values. You can use
  * [ProgressIndicatorDefaults.ProgressAnimationSpec] as the default recommended [AnimationSpec] when
@@ -513,8 +511,7 @@ fun CircularWavyProgressIndicator(
         progress = progress,
         // Resolves the Path from the morph by using the amplitude value as a Morph's progress.
         // Ensure that the Path is created with `repeatPath = supportMotion` to allow us to offset
-        // the
-        // progress later to simulate motion, if enabled.
+        // the progress later to simulate motion, if enabled.
         progressPath = {
             progressAmplitude,
             progressWavelength,
@@ -557,8 +554,8 @@ fun CircularWavyProgressIndicator(
  *
  * Progress indicators express an unspecified wait time or display the duration of a process.
  *
- * ![Circular progress indicator
- * image](https://developer.android.com/images/reference/androidx/compose/material3/circular-progress-indicator.png)
+ * ![Indeterminate circular wavy progress indicator
+ * image](https://developer.android.com/images/reference/androidx/compose/material3/indeterminate-circular-wavy-progress-indicator.png)
  *
  * @param modifier the [Modifier] to be applied to this progress indicator
  * @param color the progress indicator color
@@ -567,8 +564,16 @@ fun CircularWavyProgressIndicator(
  * @param stroke a [Stroke] that will be used to draw this indicator
  * @param trackStroke a [Stroke] that will be used to draw the indicator's track
  * @param gapSize the gap between the track and the progress parts of the indicator
+ * @param amplitude the wave's amplitude. 0.0 represents no amplitude, and 1.0 represents an
+ *   amplitude that will take the full height of the progress indicator. Values outside of this
+ *   range are coerced into the range.
  * @param wavelength the length of a wave in this circular indicator. Note that the actual
  *   wavelength may be different to ensure a continuous wave shape.
+ * @param waveSpeed the speed in which the wave will move when the [amplitude] is greater than zero.
+ *   The value here represents a DP per seconds, and by default it's matched to the [wavelength] to
+ *   render an animation that moves the wave by one wave length per second. Note that the actual
+ *   speed may be slightly different, as the [wavelength] can be adjusted to ensure a continuous
+ *   wave shape.
  * @sample androidx.compose.material3.samples.IndeterminateCircularWavyProgressIndicatorSample
  */
 @ExperimentalMaterial3ExpressiveApi
@@ -580,15 +585,62 @@ fun CircularWavyProgressIndicator(
     stroke: Stroke = WavyProgressIndicatorDefaults.circularIndicatorStroke,
     trackStroke: Stroke = WavyProgressIndicatorDefaults.circularTrackStroke,
     gapSize: Dp = WavyProgressIndicatorDefaults.CircularIndicatorTrackGapSize,
-    wavelength: Dp = WavyProgressIndicatorDefaults.CircularWavelength
+    @FloatRange(from = 0.0, to = 1.0) amplitude: Float = 1f,
+    wavelength: Dp = WavyProgressIndicatorDefaults.CircularWavelength,
+    waveSpeed: Dp = wavelength // Match to 1 wavelength per second
 ) {
     val circularShapes = remember { CircularShapes() }
+    val lastOffsetValue = remember { mutableFloatStateOf(0f) }
+    val offsetAnimatable =
+        remember(waveSpeed, wavelength) { Animatable(lastOffsetValue.floatValue) }
+
+    with(circularShapes) {
+        // Have the LaunchedEffect execute whenever a change in the currentVertexCount state
+        // happens.
+        if (currentVertexCount.intValue >= MinCircularVertexCount) {
+            LaunchedEffect(waveSpeed) {
+                if (waveSpeed > 0.dp) {
+                    // Computes the duration as a Dp per second, and take into account the vertex
+                    // count. We use the currentVertexCount to compute the duration for the wave's
+                    // motion to be as close as possible to the requested speed.
+                    val durationMillis =
+                        ((wavelength / waveSpeed) * 1000 * currentVertexCount.intValue).toInt()
+                    if (durationMillis > 0) {
+                        // Update the bounds to start from the current value and to end at the value
+                        // plus 1. This will ensure that there are no jumps in the animation in case
+                        // the wave's speed or length are changing.
+                        offsetAnimatable.updateBounds(
+                            lowerBound = lastOffsetValue.floatValue,
+                            upperBound = lastOffsetValue.floatValue + 1
+                        )
+                        offsetAnimatable.animateTo(
+                            lastOffsetValue.floatValue + 1,
+                            animationSpec =
+                                infiniteRepeatable(
+                                    animation = tween(durationMillis, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart,
+                                )
+                        ) {
+                            lastOffsetValue.floatValue = value % 1f
+                        }
+                    }
+                }
+            }
+        }
+    }
+    val coercedAmplitude = amplitude.fastCoerceIn(0f, 1f)
     PathProgressIndicator(
         modifier = modifier.size(WavyProgressIndicatorDefaults.CircularContainerSize),
         // Resolves the Path from a RoundedPolygon that represents the active indicator.
-        progressPath = { _, progressWavelength, strokeWidth, size, _, path ->
+        progressPath = { _, progressWavelength, strokeWidth, size, supportMotion, path ->
             circularShapes.update(size, progressWavelength, strokeWidth)
-            circularShapes.activeIndicatorPolygon!!.toPath(path)
+            circularShapes.activeIndicatorMorph!!.toPath(
+                progress = coercedAmplitude,
+                path = path,
+                repeatPath = supportMotion,
+                rotationPivotX = 0.5f,
+                rotationPivotY = 0.5f,
+            )
         },
         // Resolves the Path from a RoundedPolygon that represents the track.
         trackPath = { _, progressWavelength, strokeWidth, size, path ->
@@ -599,10 +651,13 @@ fun CircularWavyProgressIndicator(
         trackColor = trackColor,
         stroke = stroke,
         trackStroke = trackStroke,
+        amplitude = coercedAmplitude,
+        waveOffset = { lastOffsetValue.floatValue },
         wavelength = wavelength,
         gapSize = gapSize,
         progressStart = CircularIndeterminateMinProgress,
-        progressEnd = CircularIndeterminateMaxProgress
+        progressEnd = CircularIndeterminateMaxProgress,
+        enableProgressMotion = true
     )
 }
 
@@ -664,7 +719,7 @@ private fun PathProgressIndicator(
     wavelength: Dp,
     enableProgressMotion: Boolean
 ) {
-    val coercedProgress = { progress().coerceIn(0f, 1f) }
+    val coercedProgress = { progress().fastCoerceIn(0f, 1f) }
     var amplitudeAnimatable by remember {
         mutableStateOf<Animatable<Float, AnimationVector1D>?>(null)
     }
@@ -674,7 +729,9 @@ private fun PathProgressIndicator(
     Spacer(
         modifier
             .semantics(mergeDescendants = true) {
-                progressBarRangeInfo = ProgressBarRangeInfo(coercedProgress(), 0f..1f)
+                // Check for NaN, as the ProgressBarRangeInfo will throw an exception.
+                progressBarRangeInfo =
+                    ProgressBarRangeInfo(coercedProgress().takeUnless { it.isNaN() } ?: 0f, 0f..1f)
             }
             .drawWithCache {
                 val progressValue = coercedProgress()
@@ -682,7 +739,7 @@ private fun PathProgressIndicator(
 
                 // Animate changes in the amplitude. As this requires a progress value, we do it
                 // inside the Spacer to avoid redundant recompositions.
-                val amplitudeForProgress = amplitude(progressValue)
+                val amplitudeForProgress = amplitude(progressValue).fastCoerceIn(0f, 1f)
                 val animatedAmplitude =
                     amplitudeAnimatable
                         ?: Animatable(amplitudeForProgress, Float.VectorConverter).also {
@@ -691,6 +748,16 @@ private fun PathProgressIndicator(
 
                 if (animatedAmplitude.targetValue != amplitudeForProgress) {
                     coroutineScope.launch {
+                        if (animatedAmplitude.isRunning) {
+                            // In case the amplitude animation is running, update the upperBound to
+                            // match the new amplitudeForProgress. This will help when that
+                            // amplitudeForProgress is changing before the previous change animation
+                            // is done.
+                            animatedAmplitude.updateBounds(
+                                lowerBound = 0f,
+                                upperBound = amplitudeForProgress
+                            )
+                        }
                         animatedAmplitude.animateTo(
                             targetValue = amplitudeForProgress,
                             animationSpec =
@@ -712,7 +779,7 @@ private fun PathProgressIndicator(
                     amplitude = animatedAmplitude.value,
                     waveOffset =
                         if (animatedAmplitude.value > 0f) {
-                            waveOffset().coerceIn(0f, 1f)
+                            waveOffset().fastCoerceIn(0f, 1f)
                         } else {
                             0f
                         },
@@ -765,6 +832,12 @@ private fun PathProgressIndicator(
  * @param stroke a [Stroke] that will be used to draw this indicator's progress
  * @param trackStroke a [Stroke] that will be used to draw the indicator's track
  * @param gapSize the gap between the track and the progress parts of the indicator
+ * @param amplitude the wave's amplitude. 0.0 represents no amplitude, and 1.0 represents an
+ *   amplitude that will take the full height of the progress indicator. Values outside of this
+ *   range are coerced into the range.
+ * @param waveOffset a lambda that controls the offset of the drawn wave and can be used to apply
+ *   motion to the wave. The expected value is between 0.0 to 1.0. Values outside of this range are
+ *   coerced into the range. An offset will only be applied when [enableProgressMotion] is true.
  * @param wavelength the length of a wave in this circular indicator. Note that the actual
  *   wavelength may be different to ensure a continuous wave shape.
  * @param progressStart the progress value that this indeterminate indicator will start animating
@@ -773,6 +846,10 @@ private fun PathProgressIndicator(
  * @param progressEnd the progress value that this indeterminate indicator will progress towards
  *   when animating from the [progressStart]. This value is expected to be between 0.0 and 1.0, and
  *   greater than [progressStart].
+ * @param enableProgressMotion indicates if a progress motion should be enabled for the provided
+ *   progress. When enabled, the calls to the [progressPath] will be made with a `supportMotion =
+ *   true`, and the generated [Path] will need to be repeated to allow drawing it while shifting the
+ *   start and stop points, as well as rotating it, in order to simulate a progress motion.
  */
 @Composable
 private fun PathProgressIndicator(
@@ -793,66 +870,50 @@ private fun PathProgressIndicator(
     stroke: Stroke,
     trackStroke: Stroke,
     gapSize: Dp,
+    @FloatRange(from = 0.0, to = 1.0) amplitude: Float,
+    waveOffset: () -> Float,
     wavelength: Dp,
     @FloatRange(from = 0.0, to = 1.0) progressStart: Float,
-    @FloatRange(from = 0.0, to = 1.0) progressEnd: Float
+    @FloatRange(from = 0.0, to = 1.0) progressEnd: Float,
+    enableProgressMotion: Boolean
 ) {
     require(progressEnd > progressStart) {
         "Expecting a progress end that is greater than the progress start"
     }
     val infiniteTransition = rememberInfiniteTransition()
-
-    // Rotation animation of 360 degrees, where the initial 90 degrees are moving in an accelerated
-    // speed.
+    // A global rotation that does a 1080 degrees rotation in 6 seconds.
     val globalRotation =
         infiniteTransition.animateFloat(
             initialValue = 0f,
-            targetValue = 360f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation =
-                        keyframes {
-                            durationMillis = CircularAnimationGlobalRotationDuration // 1500ms
-                            90f at
-                                CircularAnimationGlobalRotationAcceleratedDuration using
-                                CircularGlobalRotationEasing // 200ms
-                            360f at CircularAnimationGlobalRotationDuration // 1500ms
-                        }
-                )
+            targetValue = CircularGlobalRotationDegreesTarget,
+            animationSpec = circularIndeterminateGlobalRotationAnimationSpec
+        )
+
+    // An additional rotation that moves by 90 degrees in 500ms and then rest for 1 second.
+    val additionalRotation =
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = CircularAdditionalRotationDegreesTarget,
+            animationSpec = circularIndeterminateRotationAnimationSpec
         )
 
     // Indicator progress animation that will be changing the progress up and down as the indicator
     // rotates.
     val progressAnimation =
         infiniteTransition.animateFloat(
-            initialValue = progressStart,
-            targetValue = progressStart,
-            infiniteRepeatable(
-                animation =
-                    keyframes {
-                        durationMillis = CircularAnimationProgressDuration // 6000ms
-                        progressStart at
-                            CircularAnimationProgressDelay using
-                            CircularProgressEasing // 1000ms
-                        progressEnd at
-                            CircularAnimationProgressDelay +
-                                CircularAnimationProgressMovementDuration // 3000ms
-                        progressEnd at
-                            CircularAnimationProgressDelay * 2 +
-                                CircularAnimationProgressMovementDuration // 4000ms
-                        progressStart at CircularAnimationProgressDuration // 6000ms
-                    }
-            )
+            initialValue = CircularIndeterminateMinProgress,
+            targetValue = CircularIndeterminateMaxProgress,
+            animationSpec = circularIndeterminateProgressAnimationSpec
         )
 
     // Holds the start and end progress fractions.
     val progressDrawingCache = remember { CircularProgressDrawingCache() }
-    val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
     Box(modifier = modifier) {
         Spacer(
             // Apply the rotation from the animation.
             Modifier.fillMaxSize()
-                .graphicsLayer { rotationZ = globalRotation.value * direction }
+                // Adding 90 degrees to align the Wavy indicator motion to the NTC indicator motion.
+                .graphicsLayer { rotationZ = globalRotation.value + additionalRotation.value + 90 }
                 .drawWithCache {
                     val trackGapSize = gapSize.toPx()
                     with(progressDrawingCache) {
@@ -866,11 +927,16 @@ private fun PathProgressIndicator(
                             size = size,
                             progressPath = progressPath,
                             trackPath = trackPath,
-                            enableProgressMotion = false,
+                            enableProgressMotion = enableProgressMotion,
                             startProgress = 0f,
                             endProgress = progressAnimation.value,
-                            amplitude = 1f,
-                            waveOffset = 0f,
+                            amplitude = amplitude,
+                            waveOffset =
+                                if (amplitude > 0f) {
+                                    waveOffset().fastCoerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                },
                             wavelength = wavelength.toPx(),
                             gapSize = trackGapSize,
                             stroke = stroke,
@@ -878,26 +944,13 @@ private fun PathProgressIndicator(
                         )
                     }
                     onDrawWithContent {
-                        if (layoutDirection == LayoutDirection.Rtl) {
-                            // Scaling on the X will flip the drawing for RTL
-                            scale(scaleX = -1f, scaleY = 1f) {
-                                drawCircularIndicator(
-                                    color = color,
-                                    trackColor = trackColor,
-                                    stroke = stroke,
-                                    trackStroke = trackStroke,
-                                    drawingCache = progressDrawingCache
-                                )
-                            }
-                        } else {
-                            drawCircularIndicator(
-                                color = color,
-                                trackColor = trackColor,
-                                stroke = stroke,
-                                trackStroke = trackStroke,
-                                drawingCache = progressDrawingCache
-                            )
-                        }
+                        drawCircularIndicator(
+                            color = color,
+                            trackColor = trackColor,
+                            stroke = stroke,
+                            trackStroke = trackStroke,
+                            drawingCache = progressDrawingCache
+                        )
                     }
                 }
         )
@@ -996,8 +1049,12 @@ object WavyProgressIndicatorDefaults {
                 cap = StrokeCap.Round
             )
 
+    /** A default wavelength of a determinate linear progress indicator when it's in a wavy form. */
+    val LinearDeterminateWavelength: Dp = LinearProgressIndicatorTokens.ActiveWaveWavelength
+
     /** A default wavelength of a linear progress indicator when it's in a wavy form. */
-    val LinearWavelength: Dp = LinearProgressIndicatorTokens.ActiveWaveWavelength
+    val LinearIndeterminateWavelength: Dp =
+        LinearProgressIndicatorTokens.IndeterminateActiveWaveWavelength
 
     /** A default linear progress indicator container height. */
     val LinearContainerHeight: Dp = LinearProgressIndicatorTokens.WaveHeight
@@ -1026,7 +1083,7 @@ object WavyProgressIndicatorDefaults {
      */
     val CircularIndicatorTrackGapSize: Dp = CircularProgressIndicatorTokens.TrackActiveSpace
 
-    /** A function that returns the indicator's amplitude for a given progress */
+    /** A function that returns a determinate indicator's amplitude for a given progress. */
     val indicatorAmplitude: (progress: Float) -> Float = { progress ->
         // Sets the amplitude to the max on 10%, and back to zero on 95% of the progress.
         if (progress <= 0.1f || progress >= 0.95f) {
@@ -1424,7 +1481,10 @@ private class LinearProgressDrawingCache {
         val halfHeight = currentSize.height / 2f
 
         var adjustedTrackGapSize = currentIndicatorTrackGapSize
-        var horizontalInsets = currentStrokeCapWidth
+
+        // The path will only be visible if the Cap can be drawn, so this flag will indicate when
+        // that happens to help us adjust the gap between the active indicator and the track.
+        var activeIndicatorVisible = false
 
         // For each of the progress paths, apply a segment from the PathMeasure that was previously
         // created for the entire width of the progress bar. Also, draw the track parts in the gaps
@@ -1443,21 +1503,28 @@ private class LinearProgressDrawingCache {
 
             if (i == 0) {
                 // Potentially shorten the gap and insets when the progress bar just enters the
-                // track
-                adjustedTrackGapSize = min(barHead, currentIndicatorTrackGapSize)
-                horizontalInsets = min(barHead, currentStrokeCapWidth)
+                // track.
+                // When rounded caps are applied, we need enough space to draw the initial path
+                // (i.e. circle), so by only adjusting the gap size when the
+                // barHead >= currentStrokeCapWidth we ensure that the track is not being shortened
+                // in this initial progress phase.
+                adjustedTrackGapSize =
+                    if (barHead < currentStrokeCapWidth) {
+                        0f // barHead
+                    } else {
+                        min(
+                            barHead - currentStrokeCapWidth,
+                            currentIndicatorTrackGapSize /*+ currentStrokeCapWidth * 2*/
+                        )
+                    }
+                activeIndicatorVisible = barHead >= currentStrokeCapWidth
             }
-            // Coerce the bar's head and tail with the horizontalInsets (i.e leave room for the
-            // drawing of the stroke caps). The adjustments here also ensure that the progress is
-            // visible even when the progress is very small by leaving the tail's value unadjusted.
-            val coerceRange = horizontalInsets..(width - currentStrokeCapWidth)
-            val adjustedBarHead = barHead.coerceIn(coerceRange)
+            // Coerce the bar's head and tail to ensure we leave room for the drawing of the
+            // stroke's caps.
+            val adjustedBarHead =
+                barHead.fastCoerceIn(currentStrokeCapWidth, width - currentStrokeCapWidth)
             val adjustedBarTail =
-                if (barTail + horizontalInsets < adjustedBarHead) {
-                    barTail.coerceIn(coerceRange)
-                } else {
-                    barTail
-                }
+                barTail.fastCoerceIn(currentStrokeCapWidth, width - currentStrokeCapWidth)
 
             // Update the progressPathToDraw
             if (abs(endProgressFraction - startProgressFraction) > 0) {
@@ -1483,8 +1550,7 @@ private class LinearProgressDrawingCache {
                         )
                         // The progressPathToDraw is a segment of the full progress path, which is
                         // always in the maximum possible amplitude. This scaling will flatten the
-                        // wave
-                        // to the given amplitude percentage.
+                        // wave to the given amplitude percentage.
                         if (amplitude != 1f) {
                             scale(y = amplitude)
                         }
@@ -1494,7 +1560,14 @@ private class LinearProgressDrawingCache {
 
             // While we draw the progress parts from left to right, we also draw the track parts
             // from right to left and update the nextEndTrackOffset on every pass.
-            val adaptiveTrackSpacing = horizontalInsets * 2 + adjustedTrackGapSize
+            // Before that, we calculate the spacing between the active indicator and the track to
+            // adjust it if needed when the progress is small.
+            val adaptiveTrackSpacing =
+                if (activeIndicatorVisible) {
+                    adjustedTrackGapSize + currentStrokeCapWidth * 2
+                } else {
+                    adjustedTrackGapSize
+                }
             if (nextEndTrackOffset > adjustedBarHead + adaptiveTrackSpacing) {
                 trackPathToDraw.lineTo(
                     x = max(currentStrokeCapWidth, adjustedBarHead + adaptiveTrackSpacing),
@@ -1836,7 +1909,7 @@ private class CircularProgressDrawingCache {
         // motion is enabled was repeated to allow us to call getSegment with offsets and then
         // rotate the progressPathToDraw in order to create a shifted path as the progress moves.
         if (currentProgressMotionEnabled) {
-            val coercedWaveOffset = waveOffset.coerceIn(0f, 1f)
+            val coercedWaveOffset = waveOffset.fastCoerceIn(0f, 1f)
             val startStopShift = coercedWaveOffset * progressPathLength
 
             progressPathMeasure.getSegment(
@@ -1887,23 +1960,6 @@ private class CircularProgressDrawingCache {
 // linear indicators should be substituted with circular ones.
 private val LinearContainerMinWidth = CircularProgressIndicatorTokens.Size
 
-// Total duration for one linear cycle
-private const val LinearAnimationDuration = 1750
-
-// Duration of the head and tail animations for both lines
-private const val FirstLineHeadDuration = 1000
-private const val FirstLineTailDuration = 1000
-private const val SecondLineHeadDuration = 850
-private const val SecondLineTailDuration = 850
-
-// Delay before the start of the head and tail animations for both lines
-private const val FirstLineHeadDelay = 0
-private const val FirstLineTailDelay = 250
-private const val SecondLineHeadDelay = 650
-private const val SecondLineTailDelay = 900
-
-private val IndeterminateLinearProgressEasing = MotionTokens.EasingEmphasizedAccelerateCubicBezier
-
 // Animation spec for increasing the amplitude drawing when its changing.
 private val IncreasingAmplitudeAnimationSpec: AnimationSpec<Float> =
     tween(
@@ -1917,18 +1973,5 @@ private val DecreasingAmplitudeAnimationSpec: AnimationSpec<Float> =
         durationMillis = MotionTokens.DurationLong2.toInt(),
         easing = MotionTokens.EasingEmphasizedAccelerateCubicBezier
     )
-
-// The indeterminate circular indicator easing constants for its motion
-private val CircularProgressEasing = MotionTokens.EasingStandardCubicBezier
-private val CircularGlobalRotationEasing = MotionTokens.EasingLinearCubicBezier
-private const val CircularIndeterminateMinProgress = 0.1f
-private const val CircularIndeterminateMaxProgress = 0.87f
-
-private const val CircularAnimationGlobalRotationDuration = 1500
-private const val CircularAnimationGlobalRotationAcceleratedDuration = 200
-
-private const val CircularAnimationProgressDuration = 6000
-private const val CircularAnimationProgressDelay = 1000
-private const val CircularAnimationProgressMovementDuration = 2000
 
 private const val MinCircularVertexCount = 5

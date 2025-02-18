@@ -23,8 +23,10 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.os.Looper
 import android.os.RemoteException
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.HealthConnectFeaturesApkImpl
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.permission.HealthPermission.Companion.getReadPermission
 import androidx.health.connect.client.permission.HealthPermission.Companion.getWritePermission
@@ -36,7 +38,10 @@ import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.StepsRecord.Companion.COUNT_TOTAL
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.records.metadata.Device
+import androidx.health.connect.client.records.metadata.DeviceTypes
 import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.records.metadata.Metadata.Companion.RECORDING_METHOD_MANUAL_ENTRY
 import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
@@ -135,19 +140,7 @@ class HealthConnectClientImplTest {
         val clientConfig =
             ClientConfiguration("FakeAHPProvider", PROVIDER_PACKAGE_NAME, PROVIDER_ACTION)
 
-        healthConnectClient =
-            HealthConnectClientImpl(
-                ServiceBackedHealthDataClient(
-                    ApplicationProvider.getApplicationContext(),
-                    clientConfig,
-                    ConnectionManager(
-                        ApplicationProvider.getApplicationContext(),
-                        Looper.getMainLooper()
-                    )
-                )
-            )
         fakeAhpServiceStub = FakeHealthDataService()
-
         Shadows.shadowOf(ApplicationProvider.getApplicationContext<Application>())
             .setComponentNameAndServiceForBindServiceForIntent(
                 Intent()
@@ -158,11 +151,45 @@ class HealthConnectClientImplTest {
             )
         installPackage(ApplicationProvider.getApplicationContext(), PROVIDER_PACKAGE_NAME, true)
         Intents.init()
+
+        healthConnectClient =
+            HealthConnectClientImpl(
+                delegate =
+                    ServiceBackedHealthDataClient(
+                        ApplicationProvider.getApplicationContext(),
+                        clientConfig,
+                        ConnectionManager(
+                            ApplicationProvider.getApplicationContext(),
+                            Looper.getMainLooper()
+                        )
+                    ),
+                features =
+                    HealthConnectFeaturesApkImpl(
+                        ApplicationProvider.getApplicationContext(),
+                        PROVIDER_PACKAGE_NAME
+                    )
+            )
     }
 
     @After
     fun teardown() {
         Intents.release()
+    }
+
+    @Test
+    fun allFeatures_defaultVersion_unavailable() {
+        val features =
+            listOf(
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY,
+                HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE,
+                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE
+            )
+
+        for (feature in features) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_UNAVAILABLE)
+        }
     }
 
     @Test
@@ -279,7 +306,7 @@ class HealthConnectClientImplTest {
                         endTime = Instant.ofEpochMilli(5678L),
                         endZoneOffset = null,
                         metadata =
-                            Metadata(recordingMethod = Metadata.RECORDING_METHOD_ACTIVELY_RECORDED)
+                            Metadata.activelyRecorded(device = Device(type = Device.TYPE_UNKNOWN)),
                     )
                 )
             )
@@ -294,6 +321,7 @@ class HealthConnectClientImplTest {
                     .putValues("count", DataProto.Value.newBuilder().setLongVal(100).build())
                     .setDataType(DataProto.DataType.newBuilder().setName("Steps"))
                     .setRecordingMethod(Metadata.RECORDING_METHOD_ACTIVELY_RECORDED)
+                    .setDevice(DataProto.Device.newBuilder().setType(DeviceTypes.UNKNOWN).build())
                     .build()
             )
     }
@@ -309,6 +337,7 @@ class HealthConnectClientImplTest {
                         weight = 45.8.kilograms,
                         time = Instant.ofEpochMilli(1234L),
                         zoneOffset = null,
+                        metadata = Metadata.manualEntry(),
                     )
                 )
             )
@@ -321,6 +350,7 @@ class HealthConnectClientImplTest {
                     .setInstantTimeMillis(1234L)
                     .putValues("weight", DataProto.Value.newBuilder().setDoubleVal(45.8).build())
                     .setDataType(DataProto.DataType.newBuilder().setName("Weight"))
+                    .setRecordingMethod(RECORDING_METHOD_MANUAL_ENTRY)
                     .build()
             )
     }
@@ -338,7 +368,8 @@ class HealthConnectClientImplTest {
                         startTime = Instant.ofEpochMilli(1234L),
                         startZoneOffset = null,
                         endTime = Instant.ofEpochMilli(5678L),
-                        endZoneOffset = null
+                        endZoneOffset = null,
+                        metadata = Metadata.manualEntry(),
                     )
                 )
             )
@@ -357,6 +388,7 @@ class HealthConnectClientImplTest {
                         DataProto.Value.newBuilder().setEnumVal(MealType.UNKNOWN).build()
                     )
                     .setDataType(DataProto.DataType.newBuilder().setName("Nutrition"))
+                    .setRecordingMethod(RECORDING_METHOD_MANUAL_ENTRY)
                     .build()
             )
     }
@@ -405,7 +437,7 @@ class HealthConnectClientImplTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(5678L),
                     endZoneOffset = null,
-                    metadata = Metadata(id = "testUid")
+                    metadata = Metadata.unknownRecordingMethodWithId(id = "testUid")
                 )
             )
     }
@@ -421,6 +453,9 @@ class HealthConnectClientImplTest {
                             .setStartTimeMillis(1234L)
                             .setEndTimeMillis(5678L)
                             .setRecordingMethod(Metadata.RECORDING_METHOD_ACTIVELY_RECORDED)
+                            .setDevice(
+                                DataProto.Device.newBuilder().setType(DeviceTypes.UNKNOWN).build()
+                            )
                             .putValues(
                                 "count",
                                 DataProto.Value.newBuilder().setLongVal(100).build()
@@ -460,10 +495,10 @@ class HealthConnectClientImplTest {
                     endTime = Instant.ofEpochMilli(5678L),
                     endZoneOffset = null,
                     metadata =
-                        Metadata(
+                        Metadata.activelyRecordedWithId(
                             id = "testUid",
-                            recordingMethod = Metadata.RECORDING_METHOD_ACTIVELY_RECORDED,
-                        )
+                            device = Device(type = Device.TYPE_UNKNOWN),
+                        ),
                 )
             )
     }
@@ -524,7 +559,7 @@ class HealthConnectClientImplTest {
                         startZoneOffset = null,
                         endTime = Instant.ofEpochMilli(5678L),
                         endZoneOffset = null,
-                        metadata = Metadata(id = "testUid")
+                        metadata = Metadata.unknownRecordingMethodWithId(id = "testUid"),
                     )
                 )
             )
@@ -813,7 +848,7 @@ class HealthConnectClientImplTest {
         val packageInfo = PackageInfo()
         packageInfo.packageName = packageName
         packageInfo.applicationInfo = ApplicationInfo()
-        packageInfo.applicationInfo.enabled = enabled
+        packageInfo.applicationInfo!!.enabled = enabled
         val packageManager = context.packageManager
         Shadows.shadowOf(packageManager).installPackage(packageInfo)
     }

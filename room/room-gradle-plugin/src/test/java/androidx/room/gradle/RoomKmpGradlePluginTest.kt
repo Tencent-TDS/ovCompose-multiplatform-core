@@ -20,6 +20,7 @@ import androidx.kruth.assertThat
 import androidx.testutils.gradle.ProjectSetupRule
 import java.io.File
 import org.gradle.testkit.runner.TaskOutcome
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 
@@ -55,9 +56,6 @@ class RoomKmpGradlePluginTest {
             |
             |${projectSetup.androidProject}
             |
-            |// Disabled due to https://youtrack.jetbrains.com/issue/KT-65761
-            |ext["kotlin.native.disableCompilerDaemon"] = 'true'
-            |
             |kotlin {
             |  androidTarget()
             |  linuxX64("native")
@@ -68,6 +66,10 @@ class RoomKmpGradlePluginTest {
             |        implementation "androidx.room:room-runtime:$roomVersion"
             |      }
             |    }
+            |  }
+            |
+            |  compilerOptions {
+            |    languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
             |  }
             |}
             |
@@ -102,6 +104,7 @@ class RoomKmpGradlePluginTest {
             )
     }
 
+    @Ignore // b/374360882
     @Test
     fun `Test Workflow`() {
         setup()
@@ -131,6 +134,7 @@ class RoomKmpGradlePluginTest {
         assertThat(androidSchema.readText()).isNotEqualTo(nativeSchema.readText())
     }
 
+    @Ignore // b/374360882
     @Test
     fun `Generate Java with Non-Android targets error`() {
         setup(generateKotlin = "false")
@@ -164,6 +168,7 @@ class RoomKmpGradlePluginTest {
             .assertTaskOutcome(ANDROID_KSP_TASK, TaskOutcome.SUCCESS)
     }
 
+    @Ignore // b/374360882
     @Test
     fun `Blocking query DAO function in non-Android source set`() {
         setup(generateKotlin = "true")
@@ -189,6 +194,7 @@ class RoomKmpGradlePluginTest {
             }
     }
 
+    @Ignore // b/374360882
     @Test
     fun `Blocking shortcut DAO function in non-Android source set`() {
         setup(generateKotlin = "true")
@@ -214,6 +220,7 @@ class RoomKmpGradlePluginTest {
             }
     }
 
+    @Ignore // b/374360882
     @Test
     fun `Blocking transaction wrapper DAO function in non-Android source set`() {
         setup(generateKotlin = "true")

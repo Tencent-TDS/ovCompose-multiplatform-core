@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -44,7 +44,7 @@ dependencies {
 
     api(libs.junit)
 
-    implementation("androidx.annotation:annotation:1.0.0")
+    implementation("androidx.annotation:annotation:1.8.1")
     implementation(libs.kotlinStdlib)
     implementation(libs.testMonitor)
 
@@ -55,9 +55,9 @@ dependencies {
 
 androidx {
     name = "Screenshot Test"
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.INTERNAL_TEST_LIBRARY
 }
 
 android {
-    namespace "androidx.test.screenshot"
+    namespace = "androidx.test.screenshot"
 }

@@ -27,16 +27,19 @@ import androidx.paging.PageEvent.Insert
 import androidx.paging.PageEvent.StaticList
 import androidx.paging.internal.CopyOnWriteArrayList
 import androidx.paging.internal.appendMediatorStatesIfNotNull
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
 import kotlin.jvm.JvmSuppressWildcards
-import kotlin.jvm.Volatile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 /**
  * The class that connects the UI layer to the underlying Paging operations. Takes input from UI
@@ -65,7 +68,7 @@ public abstract class PagingDataPresenter<T : Any>(
     cachedPagingData: PagingData<T>? = null,
 ) {
     private var hintReceiver: HintReceiver? = null
-    private var uiReceiver: UiReceiver? = null
+    private var uiReceiver: UiReceiver = InitialUiReceiver()
     private var pageStore: PageStore<T> = PageStore.initial(cachedPagingData?.cachedEvent())
     private val combinedLoadStatesCollection =
         MutableCombinedLoadStateCollection().apply {
@@ -111,7 +114,7 @@ public abstract class PagingDataPresenter<T : Any>(
 
     public suspend fun collectFrom(pagingData: PagingData<T>): @JvmSuppressWildcards Unit {
         collectFromRunner.runInIsolation {
-            uiReceiver = pagingData.uiReceiver
+            setUiReceiver(pagingData.uiReceiver)
             pagingData.flow.collect { event ->
                 log(VERBOSE) { "Collected $event" }
                 withContext(mainContext) {
@@ -160,6 +163,9 @@ public abstract class PagingDataPresenter<T : Any>(
                             )
                         }
                         event is Insert -> {
+                            if (inGetItem.value) {
+                                yield()
+                            }
                             // Process APPEND/PREPEND and send to presenter
                             presentPagingDataEvent(pageStore.processEvent(event))
 
@@ -215,6 +221,9 @@ public abstract class PagingDataPresenter<T : Any>(
                             }
                         }
                         event is Drop -> {
+                            if (inGetItem.value) {
+                                yield()
+                            }
                             // Process DROP and send to presenter
                             presentPagingDataEvent(pageStore.processEvent(event))
 
@@ -249,6 +258,8 @@ public abstract class PagingDataPresenter<T : Any>(
         }
     }
 
+    private val inGetItem = MutableStateFlow(false)
+
     /**
      * Returns the presented item at the specified position, notifying Paging of the item access to
      * trigger any loads necessary to fulfill [prefetchDistance][PagingConfig.prefetchDistance].
@@ -258,12 +269,13 @@ public abstract class PagingDataPresenter<T : Any>(
      */
     @MainThread
     public operator fun get(@IntRange(from = 0) index: Int): T? {
+        inGetItem.update { true }
         lastAccessedIndexUnfulfilled = true
         lastAccessedIndex = index
 
         log(VERBOSE) { "Accessing item index[$index]" }
         hintReceiver?.accessHint(pageStore.accessHintForPresenterIndex(index))
-        return pageStore.get(index)
+        return pageStore.get(index).also { inGetItem.update { false } }
     }
 
     /**
@@ -297,7 +309,7 @@ public abstract class PagingDataPresenter<T : Any>(
      */
     public fun retry() {
         log(DEBUG) { "Retry signal received" }
-        uiReceiver?.retry()
+        uiReceiver.retry()
     }
 
     /**
@@ -317,7 +329,7 @@ public abstract class PagingDataPresenter<T : Any>(
      */
     public fun refresh() {
         log(DEBUG) { "Refresh signal received" }
-        uiReceiver?.refresh()
+        uiReceiver.refresh()
     }
 
     /** @return Total number of presented items, including placeholders. */
@@ -486,6 +498,33 @@ public abstract class PagingDataPresenter<T : Any>(
             // no items to bind from initial load. Without this hint, paging would stall on
             // an empty list because prepend/append would be not triggered.
             hintReceiver?.accessHint(newPageStore.initializeHint())
+        }
+    }
+
+    // Holds on to retry/refresh requests to deliver them when the real UiReceiver is attached.
+    private class InitialUiReceiver : UiReceiver {
+        var retry = false
+        var refresh = false
+
+        override fun retry() {
+            retry = true
+        }
+
+        override fun refresh() {
+            refresh = true
+        }
+    }
+
+    private fun setUiReceiver(receiver: UiReceiver) {
+        val oldReceiver = this.uiReceiver
+        this.uiReceiver = receiver
+        if (oldReceiver is InitialUiReceiver) {
+            if (oldReceiver.retry) {
+                receiver.retry()
+            }
+            if (oldReceiver.refresh) {
+                receiver.refresh()
+            }
         }
     }
 }

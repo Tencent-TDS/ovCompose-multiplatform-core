@@ -34,7 +34,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.testTag
@@ -152,12 +152,12 @@ class TextFieldLongPressTest : FocusedWindowTest {
         val state = TextFieldState("abc")
         var showMenuCalled = 0
         val textToolbar =
-            FakeTextToolbar(onShowMenu = { _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
-        val clipboardManager = FakeClipboardManager("hello")
+            FakeTextToolbar(onShowMenu = { _, _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
+        val clipboard = FakeClipboard("hello")
         rule.setTextFieldTestContent {
             CompositionLocalProvider(
                 LocalTextToolbar provides textToolbar,
-                LocalClipboardManager provides clipboardManager
+                LocalClipboard provides clipboard
             ) {
                 BasicTextField(
                     state = state,

@@ -25,7 +25,6 @@ import android.text.Annotation
 import android.text.SpannableString
 import android.text.Spanned
 import android.util.Base64
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -48,6 +47,7 @@ import androidx.compose.ui.util.fastForEach
 private const val PLAIN_TEXT_LABEL = "plain text"
 
 /** Android implementation for [ClipboardManager]. */
+@Suppress("DEPRECATION")
 internal class AndroidClipboardManager
 internal constructor(private val clipboardManager: android.content.ClipboardManager) :
     ClipboardManager {
@@ -123,7 +123,6 @@ actual typealias NativeClipboard = android.content.ClipboardManager
 @RequiresApi(28)
 private object Api28ClipboardManagerClipClear {
 
-    @DoNotInline
     @JvmStatic
     fun clearPrimaryClip(clipboardManager: android.content.ClipboardManager) {
         clipboardManager.clearPrimaryClip()

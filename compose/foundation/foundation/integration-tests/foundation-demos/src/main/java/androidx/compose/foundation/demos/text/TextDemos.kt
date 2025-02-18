@@ -92,6 +92,9 @@ val TextDemos =
                             ComposableDemo("Min/max lines") { BasicTextMinMaxLinesDemo() },
                             ComposableDemo("Get last character after clip") {
                                 LastClippedCharacterDemo()
+                            },
+                            ComposableDemo("Ellipses plays well with redraw") {
+                                EllipsizeRedrawDemo()
                             }
                         )
                     ),
@@ -99,6 +102,7 @@ val TextDemos =
                     ComposableDemo("Line Height Behavior") { TextLineHeightDemo() },
                     ComposableDemo("Layout Reuse") { TextReuseLayoutDemo() },
                     ComposableDemo("Multi paragraph") { MultiParagraphDemo() },
+                    ComposableDemo("Auto Size") { AutoSizeTextDemo() }
                 )
             ),
             DemoCategory(
@@ -212,6 +216,7 @@ val TextDemos =
                         MinTouchTargetTextSelection()
                     },
                     ComposableDemo("Selection & DropdownMenu") { DropdownMenuSelection() },
+                    ComposableDemo("Selection in Popup") { SelectionPopupDemo() },
                 )
             ),
             DemoCategory(

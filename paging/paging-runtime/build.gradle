@@ -21,7 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -30,7 +32,7 @@ plugins {
 }
 
 android {
-    namespace "androidx.paging.runtime"
+    namespace = "androidx.paging.runtime"
 }
 
 dependencies {
@@ -38,9 +40,9 @@ dependencies {
     // Ensure that the -ktx dependency graph mirrors the Java dependency graph
     api(project(":paging:paging-common-ktx"))
 
-    api("androidx.lifecycle:lifecycle-livedata-ktx:2.4.0")
-    api("androidx.lifecycle:lifecycle-runtime-ktx:2.4.0")
-    api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0")
+    api("androidx.lifecycle:lifecycle-livedata-ktx:2.8.3")
+    api("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
+    api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3")
     api("androidx.recyclerview:recyclerview:1.2.1")
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesAndroid)
@@ -50,7 +52,7 @@ dependencies {
     androidTestImplementation(project(":internal-testutils-ktx"))
     androidTestImplementation(project(":internal-testutils-paging"))
     androidTestImplementation(project(":paging:paging-testing"))
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
+    androidTestImplementation(project(":lifecycle:lifecycle-runtime-testing"))
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRunner)
@@ -63,10 +65,10 @@ dependencies {
 
 androidx {
     name = "Paging-Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Paging-Runtime"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     samples(project(":paging:paging-samples"))
 }

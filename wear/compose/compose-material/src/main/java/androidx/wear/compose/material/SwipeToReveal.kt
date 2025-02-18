@@ -49,9 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.RevealActionType
-import androidx.wear.compose.foundation.RevealScope
 import androidx.wear.compose.foundation.RevealState
 import androidx.wear.compose.foundation.SwipeToReveal
 import kotlin.math.abs
@@ -91,16 +89,15 @@ import kotlin.math.abs
  * @see [SwipeToReveal]
  */
 @ExperimentalWearMaterialApi
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 public fun SwipeToRevealChip(
-    primaryAction: @Composable RevealScope.() -> Unit,
+    primaryAction: @Composable () -> Unit,
     revealState: RevealState,
     onFullSwipe: () -> Unit,
     modifier: Modifier = Modifier,
-    secondaryAction: @Composable (RevealScope.() -> Unit)? = null,
-    undoPrimaryAction: @Composable (RevealScope.() -> Unit)? = null,
-    undoSecondaryAction: @Composable (RevealScope.() -> Unit)? = null,
+    secondaryAction: @Composable (() -> Unit)? = null,
+    undoPrimaryAction: @Composable (() -> Unit)? = null,
+    undoSecondaryAction: @Composable (() -> Unit)? = null,
     colors: SwipeToRevealActionColors = SwipeToRevealDefaults.actionColors(),
     shape: Shape = MaterialTheme.shapes.small,
     content: @Composable () -> Unit
@@ -154,16 +151,15 @@ public fun SwipeToRevealChip(
  * @see [SwipeToReveal]
  */
 @ExperimentalWearMaterialApi
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 public fun SwipeToRevealCard(
-    primaryAction: @Composable RevealScope.() -> Unit,
+    primaryAction: @Composable () -> Unit,
     revealState: RevealState,
     onFullSwipe: () -> Unit,
     modifier: Modifier = Modifier,
-    secondaryAction: @Composable (RevealScope.() -> Unit)? = null,
-    undoPrimaryAction: @Composable (RevealScope.() -> Unit)? = null,
-    undoSecondaryAction: @Composable (RevealScope.() -> Unit)? = null,
+    secondaryAction: @Composable (() -> Unit)? = null,
+    undoPrimaryAction: @Composable (() -> Unit)? = null,
+    undoSecondaryAction: @Composable (() -> Unit)? = null,
     colors: SwipeToRevealActionColors = SwipeToRevealDefaults.actionColors(),
     shape: Shape = SwipeToRevealDefaults.CardActionShape,
     content: @Composable () -> Unit
@@ -194,17 +190,16 @@ public fun SwipeToRevealCard(
  * @param interactionSource The [MutableInteractionSource] representing the stream of interactions
  *   with this action.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @ExperimentalWearMaterialApi
 @Composable
-public fun RevealScope.SwipeToRevealPrimaryAction(
+public fun SwipeToRevealPrimaryAction(
     revealState: RevealState,
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
     label: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource? = null,
-) =
+): Unit =
     ActionCommon(
         revealState = revealState,
         actionType = RevealActionType.PrimaryAction,
@@ -227,16 +222,15 @@ public fun RevealScope.SwipeToRevealPrimaryAction(
  * @param content The composable which will be displayed on the action. It is recommended to keep
  *   this content as an [Icon] composable.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @ExperimentalWearMaterialApi
 @Composable
-public fun RevealScope.SwipeToRevealSecondaryAction(
+public fun SwipeToRevealSecondaryAction(
     revealState: RevealState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable () -> Unit,
-) =
+): Unit =
     ActionCommon(
         revealState = revealState,
         actionType = RevealActionType.SecondaryAction,
@@ -260,10 +254,9 @@ public fun RevealScope.SwipeToRevealSecondaryAction(
  * @param label An optional label which will be displayed on the action. We strongly recommend to
  *   set [icon] and/or [label] for the action.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @ExperimentalWearMaterialApi
 @Composable
-public fun RevealScope.SwipeToRevealUndoAction(
+public fun SwipeToRevealUndoAction(
     revealState: RevealState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -292,10 +285,9 @@ public fun RevealScope.SwipeToRevealUndoAction(
 
 /** Defaults for Material [SwipeToReveal]. */
 @ExperimentalWearMaterialApi
-@OptIn(ExperimentalWearFoundationApi::class)
 public object SwipeToRevealDefaults {
     /** Recommended shape for [SwipeToReveal] actions when used with [Card]. */
-    public val CardActionShape = RoundedCornerShape(40.dp)
+    public val CardActionShape: RoundedCornerShape = RoundedCornerShape(40.dp)
 
     /**
      * The recommended colors used to display the contents of the primary, secondary and undo
@@ -330,10 +322,10 @@ public object SwipeToRevealDefaults {
     }
 
     /** [ImageVector] for delete icon, often used for the primary action. */
-    public val Delete = Icons.Outlined.Delete
+    public val Delete: ImageVector = Icons.Outlined.Delete
 
     /** [ImageVector] for more options icon, often used for the secondary action. */
-    public val MoreOptions = Icons.Outlined.MoreVert
+    public val MoreOptions: ImageVector = Icons.Outlined.MoreVert
 
     internal val UndoButtonHorizontalPadding = 14.dp
     internal val UndoButtonVerticalPadding = 6.dp
@@ -354,12 +346,12 @@ public object SwipeToRevealDefaults {
 @ExperimentalWearMaterialApi
 public class SwipeToRevealActionColors
 constructor(
-    val primaryActionBackgroundColor: Color,
-    val primaryActionContentColor: Color,
-    val secondaryActionBackgroundColor: Color,
-    val secondaryActionContentColor: Color,
-    val undoActionBackgroundColor: Color,
-    val undoActionContentColor: Color
+    public val primaryActionBackgroundColor: Color,
+    public val primaryActionContentColor: Color,
+    public val secondaryActionBackgroundColor: Color,
+    public val secondaryActionContentColor: Color,
+    public val undoActionBackgroundColor: Color,
+    public val undoActionContentColor: Color
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -389,15 +381,15 @@ constructor(
     }
 }
 
-@OptIn(ExperimentalWearMaterialApi::class, ExperimentalWearFoundationApi::class)
+@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
 private fun SwipeToRevealComponent(
-    primaryAction: @Composable RevealScope.() -> Unit,
+    primaryAction: @Composable () -> Unit,
     revealState: RevealState,
     modifier: Modifier,
-    secondaryAction: @Composable (RevealScope.() -> Unit)?,
-    undoPrimaryAction: @Composable (RevealScope.() -> Unit)?,
-    undoSecondaryAction: @Composable (RevealScope.() -> Unit)?,
+    secondaryAction: @Composable (() -> Unit)?,
+    undoPrimaryAction: @Composable (() -> Unit)?,
+    undoSecondaryAction: @Composable (() -> Unit)?,
     colors: SwipeToRevealActionColors,
     shape: Shape,
     onFullSwipe: () -> Unit,
@@ -452,22 +444,21 @@ private fun SwipeToRevealComponent(
 }
 
 /** Action composables for [SwipeToReveal]. */
-@OptIn(ExperimentalWearFoundationApi::class, ExperimentalWearMaterialApi::class)
+@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
-private fun RevealScope.ActionWrapper(
+private fun ActionWrapper(
     revealState: RevealState,
     backgroundColor: Color,
     contentColor: Color,
     shape: Shape,
-    content: @Composable RevealScope.() -> Unit,
+    content: @Composable () -> Unit,
 ) {
     // Change opacity of shape from 0% to 100% between 10% and 20% of the progress
     val shapeAlpha =
-        if (revealOffset > 0)
-            ((-revealState.offset - revealOffset * 0.1f) / (0.1f * revealOffset)).coerceIn(
-                0.0f,
-                1.0f
-            )
+        if (revealState.revealThreshold > 0)
+            ((-revealState.offset - revealState.revealThreshold * 0.1f) /
+                    (0.1f * revealState.revealThreshold))
+                .coerceIn(0.0f, 1.0f)
         else 1f
     Box(
         modifier =
@@ -480,16 +471,13 @@ private fun RevealScope.ActionWrapper(
                 .clip(shape),
         contentAlignment = Alignment.Center
     ) {
-        CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
+        CompositionLocalProvider(LocalContentColor provides contentColor, content = content)
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class, ExperimentalWearMaterialApi::class)
+@OptIn(ExperimentalWearMaterialApi::class)
 @Composable
-private fun RevealScope.UndoActionWrapper(
-    colors: SwipeToRevealActionColors,
-    content: @Composable RevealScope.() -> Unit
-) {
+private fun UndoActionWrapper(colors: SwipeToRevealActionColors, content: @Composable () -> Unit) {
     Box(
         modifier =
             Modifier.clip(MaterialTheme.shapes.small)
@@ -501,15 +489,15 @@ private fun RevealScope.UndoActionWrapper(
                 ),
         contentAlignment = Alignment.Center
     ) {
-        CompositionLocalProvider(LocalContentColor provides colors.undoActionContentColor) {
-            content()
-        }
+        CompositionLocalProvider(
+            LocalContentColor provides colors.undoActionContentColor,
+            content = content
+        )
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
-private fun RevealScope.ActionCommon(
+private fun ActionCommon(
     revealState: RevealState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -543,24 +531,24 @@ private fun RevealScope.ActionCommon(
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
-private fun RevealScope.ActionIcon(revealState: RevealState, content: @Composable () -> Unit) {
+private fun ActionIcon(revealState: RevealState, content: @Composable () -> Unit) {
     // Change opacity of icons from 0% to 100% between 50% to 75% of the progress
     val iconAlpha =
-        if (revealOffset > 0)
-            ((-revealState.offset - revealOffset * 0.5f) / (revealOffset * 0.25f)).coerceIn(
-                0.0f,
-                1.0f
-            )
+        if (revealState.revealThreshold > 0)
+            ((-revealState.offset - revealState.revealThreshold * 0.5f) /
+                    (revealState.revealThreshold * 0.25f))
+                .coerceIn(0.0f, 1.0f)
         else 1f
     // Scale icons from 70% to 100% between 50% and 100% of the progress
     val iconScale =
-        if (revealOffset > 0)
+        if (revealState.revealThreshold > 0)
             lerp(
                 start = 0.7f,
                 stop = 1.0f,
-                fraction = (-revealState.offset - revealOffset * 0.5f) / revealOffset + 0.5f
+                fraction =
+                    (-revealState.offset - revealState.revealThreshold * 0.5f) /
+                        revealState.revealThreshold + 0.5f
             )
         else 1f
     Box(
@@ -575,17 +563,16 @@ private fun RevealScope.ActionIcon(revealState: RevealState, content: @Composabl
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
-private fun RevealScope.ActionLabel(revealState: RevealState, content: @Composable () -> Unit) {
+private fun ActionLabel(revealState: RevealState, content: @Composable () -> Unit) {
     val labelAlpha =
         animateFloatAsState(
-            targetValue = if (abs(revealState.offset) > revealOffset) 1f else 0f,
+            targetValue = if (abs(revealState.offset) > revealState.revealThreshold) 1f else 0f,
             animationSpec = tween(durationMillis = RAPID, delayMillis = RAPID),
             label = "ActionLabelAlpha"
         )
     AnimatedVisibility(
-        visible = abs(revealState.offset) > revealOffset,
+        visible = abs(revealState.offset) > revealState.revealThreshold,
         enter = expandHorizontally(animationSpec = tween(durationMillis = RAPID)),
         exit = ExitTransition.None
     ) {

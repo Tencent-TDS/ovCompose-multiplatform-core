@@ -21,6 +21,7 @@ import android.os.Build
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.FirstBaseline
+import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
@@ -60,12 +64,14 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
+import androidx.compose.ui.util.fastRoundToInt
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -2365,6 +2371,220 @@ class ConstraintLayoutTest {
             rule.mainClock.autoAdvance = true
             rule.waitForIdle()
             assertEquals(expectedEndPosition, box0Position)
+        }
+
+    @Test
+    fun testEmptyConstraintLayoutSize() =
+        with(rule.density) {
+            val rootSizePx = 200f
+
+            // Mutable state to trigger invalidations. By default simply passes original
+            // constraints.
+            // But we'll use this to test empty ConstraintLayout under different constraints
+            var transformConstraints: ((Constraints) -> Constraints) by
+                mutableStateOf({ constraints -> constraints })
+
+            // To capture measured ConstraintLayout size
+            var layoutSize = IntSize(-1, -1)
+
+            rule.setContent {
+                Column(Modifier.size(rootSizePx.toDp()).verticalScroll(rememberScrollState())) {
+                    ConstraintLayout(
+                        modifier =
+                            Modifier.layout { measurable, constraints ->
+                                    // Measure policy to test ConstraintLayout under different
+                                    // constraints
+                                    val placeable =
+                                        measurable.measure(transformConstraints(constraints))
+                                    layout(placeable.width, placeable.height) {
+                                        placeable.place(0, 0)
+                                    }
+                                }
+                                .onGloballyPositioned { layoutSize = it.size }
+                    ) {
+                        // Empty content
+                    }
+                }
+            }
+            // For this case, the default behavior should be a ConstraintLayout of size 0x0
+            rule.waitForIdle()
+            assertEquals(IntSize.Zero, layoutSize)
+
+            // Test with min constraints
+            transformConstraints = { constraints ->
+                // Demonstrate that vertical scroll constraints propagate
+                assert(constraints.maxHeight == Constraints.Infinity)
+                constraints.copy(minWidth = 123, minHeight = 321)
+            }
+            rule.waitForIdle()
+
+            // Minimum size is preferred for empty layouts. Should not crash :)
+            assertEquals(IntSize(width = 123, height = 321), layoutSize)
+
+            // Transform to an equivalent of fillMaxSize(), which fills bounded constraints only
+            transformConstraints = { constraints ->
+                val minWidth: Int
+                val maxWidth: Int
+                val minHeight: Int
+                val maxHeight: Int
+
+                if (constraints.hasBoundedWidth) {
+                    minWidth = constraints.maxWidth
+                    maxWidth = constraints.maxWidth
+                } else {
+                    minWidth = constraints.minWidth
+                    maxWidth = constraints.maxWidth
+                }
+                if (constraints.hasBoundedHeight) {
+                    minHeight = constraints.maxHeight
+                    maxHeight = constraints.maxHeight
+                } else {
+                    minHeight = constraints.minHeight
+                    maxHeight = constraints.maxHeight
+                }
+                Constraints(
+                    minWidth = minWidth,
+                    maxWidth = maxWidth,
+                    minHeight = minHeight,
+                    maxHeight = maxHeight
+                )
+            }
+            rule.waitForIdle()
+
+            // Vertical is infinity, fillMaxSize behavior should pin it to minimum height (Zero)
+            assertEquals(IntSize(rootSizePx.fastRoundToInt(), 0), layoutSize)
+        }
+
+    @Test
+    fun testToggleVisibilityWithFillConstraintsWidth() =
+        with(rule.density) {
+            val rootSizePx = 100f
+
+            var toggleVisibility by mutableStateOf(false)
+
+            rule.setContent {
+                // Regression test, modify only dimensions if necessary
+                ConstraintLayout(modifier = Modifier.size(rootSizePx.toDp())) {
+                    val (titleRef, detailRef) = createRefs()
+                    Box(
+                        modifier =
+                            Modifier.background(Color.Cyan).testTag("box1").constrainAs(detailRef) {
+                                centerHorizontallyTo(parent)
+
+                                width = Dimension.fillToConstraints
+                                height = rootSizePx.toDp().asDimension()
+
+                                visibility =
+                                    if (!toggleVisibility) Visibility.Gone else Visibility.Visible
+                            }
+                    )
+                    Box(
+                        modifier =
+                            Modifier.background(Color.Red).testTag("box2").constrainAs(titleRef) {
+                                centerHorizontallyTo(parent)
+
+                                width = Dimension.fillToConstraints
+                                height = rootSizePx.toDp().asDimension()
+
+                                visibility =
+                                    if (toggleVisibility) Visibility.Gone else Visibility.Visible
+                            }
+                    )
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("box1").apply {
+                assertWidthIsEqualTo(Dp.Unspecified)
+                assertHeightIsEqualTo(Dp.Unspecified)
+            }
+            rule.onNodeWithTag("box2").apply {
+                assertWidthIsEqualTo(rootSizePx.toDp())
+                assertHeightIsEqualTo(rootSizePx.toDp())
+            }
+
+            toggleVisibility = !toggleVisibility
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("box1").apply {
+                assertWidthIsEqualTo(rootSizePx.toDp())
+                assertHeightIsEqualTo(rootSizePx.toDp())
+            }
+            rule.onNodeWithTag("box2").apply {
+                assertWidthIsEqualTo(Dp.Unspecified)
+                assertHeightIsEqualTo(Dp.Unspecified)
+            }
+            Unit // Test expects to return Unit
+        }
+
+    @Test
+    fun testToggleVisibilityWithFillConstraintsWidth_underLookahead() =
+        with(rule.density) {
+            val rootSizePx = 100f
+
+            var toggleVisibility by mutableStateOf(false)
+
+            rule.setContent {
+                LookaheadScope {
+                    // Regression test, modify only dimensions if necessary
+                    ConstraintLayout(modifier = Modifier.size(rootSizePx.toDp())) {
+                        val (titleRef, detailRef) = createRefs()
+                        Box(
+                            modifier =
+                                Modifier.background(Color.Cyan).testTag("box1").constrainAs(
+                                    detailRef
+                                ) {
+                                    centerHorizontallyTo(parent)
+
+                                    width = Dimension.fillToConstraints
+                                    height = rootSizePx.toDp().asDimension()
+
+                                    visibility =
+                                        if (!toggleVisibility) Visibility.Gone
+                                        else Visibility.Visible
+                                }
+                        )
+                        Box(
+                            modifier =
+                                Modifier.background(Color.Red).testTag("box2").constrainAs(
+                                    titleRef
+                                ) {
+                                    centerHorizontallyTo(parent)
+
+                                    width = Dimension.fillToConstraints
+                                    height = rootSizePx.toDp().asDimension()
+
+                                    visibility =
+                                        if (toggleVisibility) Visibility.Gone
+                                        else Visibility.Visible
+                                }
+                        )
+                    }
+                }
+            }
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("box1").apply {
+                assertWidthIsEqualTo(Dp.Unspecified)
+                assertHeightIsEqualTo(Dp.Unspecified)
+            }
+            rule.onNodeWithTag("box2").apply {
+                assertWidthIsEqualTo(rootSizePx.toDp())
+                assertHeightIsEqualTo(rootSizePx.toDp())
+            }
+
+            toggleVisibility = !toggleVisibility
+            rule.waitForIdle()
+
+            rule.onNodeWithTag("box1").apply {
+                assertWidthIsEqualTo(rootSizePx.toDp())
+                assertHeightIsEqualTo(rootSizePx.toDp())
+            }
+            rule.onNodeWithTag("box2").apply {
+                assertWidthIsEqualTo(Dp.Unspecified)
+                assertHeightIsEqualTo(Dp.Unspecified)
+            }
+            Unit // Test expects to return Unit
         }
 
     /**

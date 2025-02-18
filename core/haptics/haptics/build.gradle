@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -33,9 +33,9 @@ plugins {
 dependencies {
     api(libs.kotlinStdlib)
 
-    implementation("androidx.annotation:annotation:1.8.0")
-    implementation(projectOrArtifact(":core:core"))
-    implementation(projectOrArtifact(":media:media"))
+    implementation("androidx.annotation:annotation:1.8.1")
+    implementation(project(":core:core"))
+    implementation(project(":media:media"))
 
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
@@ -43,16 +43,15 @@ dependencies {
 }
 
 android {
-    namespace "androidx.core.haptics"
+    compileSdk = 35
+    namespace = "androidx.core.haptics"
 }
 
 androidx {
     name = "AndroidX Core Haptics"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Core Haptics Libraries to help navigate different device and Android SDK " +
             "functionalities and create reliable haptic effects across all of Android."
-    metalavaK2UastEnabled = true
-    legacyDisableKotlinStrictApiMode = true
     samples(project(":core:haptics:haptics-samples"))
 }

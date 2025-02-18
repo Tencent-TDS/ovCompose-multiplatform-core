@@ -22,8 +22,11 @@ import androidx.wear.compose.foundation.samples.CurvedAndNormalText
 import androidx.wear.compose.foundation.samples.CurvedBackground
 import androidx.wear.compose.foundation.samples.CurvedBottomLayout
 import androidx.wear.compose.foundation.samples.CurvedFixedSize
+import androidx.wear.compose.foundation.samples.CurvedFontHeight
 import androidx.wear.compose.foundation.samples.CurvedFontWeight
 import androidx.wear.compose.foundation.samples.CurvedFonts
+import androidx.wear.compose.foundation.samples.CurvedLetterSpacingSample
+import androidx.wear.compose.foundation.samples.CurvedLineHeight
 import androidx.wear.compose.foundation.samples.CurvedRowAndColumn
 import androidx.wear.compose.foundation.samples.CurvedWeight
 import androidx.wear.compose.foundation.samples.EdgeSwipeForSwipeToDismiss
@@ -35,16 +38,21 @@ import androidx.wear.compose.foundation.samples.RotaryScrollSample
 import androidx.wear.compose.foundation.samples.RotarySnapSample
 import androidx.wear.compose.foundation.samples.ScalingLazyColumnEdgeAnchoredAndAnimatedScrollTo
 import androidx.wear.compose.foundation.samples.SimpleCurvedWorld
+import androidx.wear.compose.foundation.samples.SimpleHorizontalPagerSample
 import androidx.wear.compose.foundation.samples.SimpleScalingLazyColumn
 import androidx.wear.compose.foundation.samples.SimpleScalingLazyColumnWithContentPadding
 import androidx.wear.compose.foundation.samples.SimpleScalingLazyColumnWithSnap
 import androidx.wear.compose.foundation.samples.SimpleSwipeToDismissBox
+import androidx.wear.compose.foundation.samples.SimpleVerticalPagerSample
 import androidx.wear.compose.foundation.samples.StatefulSwipeToDismissBox
+import androidx.wear.compose.foundation.samples.SwipeToRevealSample
+import androidx.wear.compose.foundation.samples.SwipeToRevealWithDelayedText
+import androidx.wear.compose.foundation.samples.SwipeToRevealWithExpandables
+import androidx.wear.compose.foundation.samples.TransformingLazyColumnAnimateItemSample
+import androidx.wear.compose.foundation.samples.TransformingLazyColumnLettersSample
 import androidx.wear.compose.integration.demos.common.Centralize
 import androidx.wear.compose.integration.demos.common.ComposableDemo
 import androidx.wear.compose.integration.demos.common.DemoCategory
-import androidx.wear.compose.material.samples.SwipeToRevealCardSample
-import androidx.wear.compose.material.samples.SwipeToRevealChipSample
 
 // Declare the swipe to dismiss demos so that we can use this variable as the background composable
 // for the SwipeToDismissDemo itself.
@@ -115,8 +123,20 @@ val WearFoundationDemos =
                     ComposableDemo("Curved layout direction") { CurvedLayoutDirection() },
                     ComposableDemo("Background") { CurvedBackground() },
                     ComposableDemo("Font Weight") { CurvedFontWeight() },
+                    ComposableDemo("Font Height") { CurvedFontHeight() },
                     ComposableDemo("Fonts") { CurvedFonts() },
                     ComposableDemo("Curved Icons") { CurvedIconsDemo() },
+                    ComposableDemo("Letter Spacing (em)") { CurvedSpacingEmDemo() },
+                    ComposableDemo("Letter Spacing (sp)") { CurvedSpacingSpDemo() },
+                    ComposableDemo("Letter Spacing top & down") { CurvedLetterSpacingSample() },
+                    ComposableDemo("Line Height") { CurvedLineHeight() },
+                )
+            ),
+            DemoCategory(
+                "Pagers",
+                listOf(
+                    ComposableDemo("Horizontal Pager") { SimpleHorizontalPagerSample() },
+                    ComposableDemo("Vertical Pager") { SimpleVerticalPagerSample() },
                 )
             ),
             ComposableDemo("Scrollable Column") { ScrollableColumnDemo() },
@@ -170,41 +190,25 @@ val WearFoundationDemos =
             DemoCategory(
                 "Swipe To Reveal",
                 listOf(
-                    DemoCategory(
-                        "Samples",
-                        listOf(
-                            ComposableDemo("Material S2R Chip") { params ->
-                                Centralize {
-                                    SwipeToRevealChipSample(params.swipeToDismissBoxState)
-                                }
-                            },
-                            ComposableDemo("Material S2R Card") { params ->
-                                Centralize {
-                                    SwipeToRevealCardSample(params.swipeToDismissBoxState)
-                                }
-                            },
-                        )
-                    ),
-                    DemoCategory(
-                        "Demos",
-                        listOf(
-                            ComposableDemo("S2R Chip, 2 actions") { params ->
-                                SwipeToRevealChips(
-                                    params.swipeToDismissBoxState,
-                                    includeSecondaryAction = true
-                                )
-                            },
-                            ComposableDemo("S2R Chip, 1 action") { params ->
-                                SwipeToRevealChips(
-                                    params.swipeToDismissBoxState,
-                                    includeSecondaryAction = false
-                                )
-                            },
-                            ComposableDemo("S2R Card") { params ->
-                                SwipeToRevealCards(params.swipeToDismissBoxState)
-                            },
-                        )
-                    )
+                    ComposableDemo("S2R") { Centralize { SwipeToRevealSample() } },
+                    ComposableDemo("S2R With Delayed Text") {
+                        Centralize { SwipeToRevealWithDelayedText() }
+                    },
+                    ComposableDemo("S2R With Expandables") {
+                        Centralize { SwipeToRevealWithExpandables() }
+                    },
+                    ComposableDemo("Bi-directional") {
+                        Centralize { SwipeToRevealDemoBothDirections() }
+                    },
+                )
+            ),
+            DemoCategory(
+                "TransformingLazyColumn",
+                listOf(
+                    ComposableDemo("Letter Sample") { TransformingLazyColumnLettersSample() },
+                    ComposableDemo("Animation Sample") {
+                        TransformingLazyColumnAnimateItemSample()
+                    },
                 )
             )
         ),

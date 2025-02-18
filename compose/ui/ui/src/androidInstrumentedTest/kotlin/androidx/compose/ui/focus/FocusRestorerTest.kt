@@ -19,6 +19,8 @@ package androidx.compose.ui.focus
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -196,7 +198,7 @@ class FocusRestorerTest {
         lateinit var child1State: FocusState
         lateinit var child2State: FocusState
         rule.setFocusableContent {
-            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer { child2 }.focusGroup()) {
+            Box(Modifier.size(10.dp).focusRequester(parent).focusRestorer(child2).focusGroup()) {
                 key(1) {
                     Box(Modifier.size(10.dp).onFocusChanged { child1State = it }.focusTarget())
                 }
@@ -219,5 +221,37 @@ class FocusRestorerTest {
             assertThat(child1State.isFocused).isFalse()
             assertThat(child2State.isFocused).isTrue()
         }
+    }
+
+    @Test
+    fun moveFocus_restoration() {
+        // Arrange.
+        lateinit var focusManager: FocusManager
+        rule.setFocusableContent {
+            focusManager = LocalFocusManager.current
+            Column {
+                Box(Modifier.size(10.dp).focusable())
+                Row(Modifier.focusRestorer().focusGroup()) {
+                    Box(Modifier.size(10.dp).focusable())
+                    Box(Modifier.size(10.dp).focusable())
+                    Box(Modifier.size(10.dp).focusable().testTag("inside item to restore"))
+                    Box(Modifier.size(10.dp).focusable())
+                }
+                Box(Modifier.size(10.dp).focusable().testTag("outside focus group"))
+            }
+        }
+        rule.onNodeWithTag("inside item to restore").requestFocus()
+
+        // Act - Move focus outside the focus group.
+        rule.runOnIdle { focusManager.moveFocus(FocusDirection.Down) }
+
+        // Assert.
+        rule.onNodeWithTag("outside focus group").assertIsFocused()
+
+        // Act - Move focus inside the focus group.
+        rule.runOnIdle { focusManager.moveFocus(FocusDirection.Up) }
+
+        // Assert.
+        rule.onNodeWithTag("inside item to restore").assertIsFocused()
     }
 }

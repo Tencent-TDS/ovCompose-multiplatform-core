@@ -20,7 +20,6 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -51,6 +50,7 @@ import androidx.glance.layout.WidthModifier
 import androidx.glance.unit.ColorProvider
 import androidx.glance.unit.Dimension
 import androidx.glance.unit.ResourceColorProvider
+import kotlin.math.round
 
 internal fun RemoteViews.translateEmittableImage(
     translationContext: TranslationContext,
@@ -66,6 +66,13 @@ internal fun RemoteViews.translateEmittableImage(
         else -> throw IllegalArgumentException("An unsupported ImageProvider type was used.")
     }
     element.colorFilterParams?.let { applyColorFilter(translationContext, this, it, viewDef) }
+
+    element.alpha?.let {
+        val alpha = it.coerceIn(0f, 1f) // sanitized
+        val convertedAlpha = round(alpha * 255).toInt().coerceIn(0, 255)
+        setImageViewImageAlpha(viewDef.mainViewId, /* alpha= */ convertedAlpha)
+    }
+
     applyModifiers(translationContext, this, element.modifier, viewDef)
 
     // If the content scale is Fit, the developer has expressed that they want the image to
@@ -160,7 +167,6 @@ private fun setImageViewIcon(rv: RemoteViews, viewId: Int, provider: IconImagePr
 
 @RequiresApi(Build.VERSION_CODES.M)
 private object ImageTranslatorApi23Impl {
-    @DoNotInline
     fun setImageViewIcon(rv: RemoteViews, viewId: Int, icon: Icon) {
         rv.setImageViewIcon(viewId, icon)
     }
@@ -168,7 +174,6 @@ private object ImageTranslatorApi23Impl {
 
 @RequiresApi(Build.VERSION_CODES.S)
 private object ImageTranslatorApi31Impl {
-    @DoNotInline
     fun applyTintColorFilter(
         translationContext: TranslationContext,
         rv: RemoteViews,

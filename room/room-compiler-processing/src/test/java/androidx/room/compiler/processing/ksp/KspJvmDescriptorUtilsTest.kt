@@ -82,8 +82,8 @@ class KspJvmDescriptorUtilsTest(private val isPreCompiled: Boolean) {
 
     @Test
     fun descriptor_field() {
-        fun checkSources(vararg sources: Source) {
-            runTest(sources = sources) { invocation ->
+        fun checkSources(vararg sources: Source, kotlincArgs: List<String> = emptyList()) {
+            runTest(sources = sources, kotlincArgs = kotlincArgs) { invocation ->
                 assertThat(invocation.annotatedElements().map(this::descriptor))
                     .containsExactly(
                         "field1:I",
@@ -108,7 +108,7 @@ class KspJvmDescriptorUtilsTest(private val isPreCompiled: Boolean) {
                     @Describe List<String> field4;
                 }
                 """
-            )
+            ),
         )
         checkSources(
             Source.kotlin(
@@ -515,7 +515,11 @@ class KspJvmDescriptorUtilsTest(private val isPreCompiled: Boolean) {
         )
     }
 
-    private fun runTest(vararg sources: Source, handler: (XTestInvocation) -> Unit) {
+    private fun runTest(
+        vararg sources: Source,
+        kotlincArgs: List<String> = emptyList(),
+        handler: (XTestInvocation) -> Unit
+    ) {
         if (isPreCompiled) {
             val compiled = compileFiles(listOf(*sources) + describeAnnotation)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
@@ -528,9 +532,18 @@ class KspJvmDescriptorUtilsTest(private val isPreCompiled: Boolean) {
             val newSources =
                 kotlinSources +
                     Source.java("PlaceholderJava", "public class " + "PlaceholderJava {}")
-            runProcessorTest(sources = newSources, handler = handler, classpath = compiled)
+            runProcessorTest(
+                sources = newSources,
+                handler = handler,
+                classpath = compiled,
+                kotlincArguments = kotlincArgs
+            )
         } else {
-            runProcessorTest(sources = listOf(*sources) + describeAnnotation, handler = handler)
+            runProcessorTest(
+                sources = listOf(*sources) + describeAnnotation,
+                handler = handler,
+                kotlincArguments = kotlincArgs
+            )
         }
     }
 

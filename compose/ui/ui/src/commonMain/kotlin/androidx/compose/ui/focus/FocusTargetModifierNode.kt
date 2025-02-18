@@ -17,6 +17,9 @@
 package androidx.compose.ui.focus
 
 import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.SemanticsModifierNode
+import androidx.compose.ui.node.invalidateSemantics
+import kotlin.js.JsName
 
 /**
  * This modifier node can be delegated to in order to create a modifier that makes a component
@@ -35,7 +38,20 @@ sealed interface FocusTargetModifierNode : DelegatableNode {
      *
      * @return true if focus was successfully requested
      */
+    @Deprecated(
+        message = "Use the version accepting FocusDirection",
+        replaceWith = ReplaceWith("this.requestFocus()"),
+        level = DeprecationLevel.HIDDEN
+    )
     fun requestFocus(): Boolean
+
+    /**
+     * Request focus for this node.
+     *
+     * @param focusDirection The direction from which the focus is being requested
+     * @return true if focus was successfully requested
+     */
+    fun requestFocus(focusDirection: FocusDirection = FocusDirection.Enter): Boolean
 
     /**
      * The [Focusability] for this node.
@@ -49,6 +65,18 @@ sealed interface FocusTargetModifierNode : DelegatableNode {
     var focusability: Focusability
 }
 
+// Before aosp/3296711 we would calculate semantics configuration lazily. The focusable
+// implementation used to call invalidateSemantics() and then change focus state. However, now that
+// we are calculating semantics configuration eagerly, the old implementation of focusable would
+// end up calculating semantics configuration before the local copy of focus state is updated.
+// To fix this, we added an extra invalidateSemantics() call for the deprecated
+// [FocusTargetModifierNode].
+private object InvalidateSemantics {
+    fun onDispatchEventsCompleted(focusTargetNode: FocusTargetNode) {
+        (focusTargetNode.node as? SemanticsModifierNode)?.invalidateSemantics()
+    }
+}
+
 /**
  * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that
  * makes a component focusable. Use a different instance of [FocusTargetModifierNode] for each
@@ -58,7 +86,9 @@ sealed interface FocusTargetModifierNode : DelegatableNode {
     "Use the other overload with added parameters for focusability and onFocusChange",
     level = DeprecationLevel.HIDDEN
 )
-fun FocusTargetModifierNode(): FocusTargetModifierNode = FocusTargetNode()
+@JsName("funFocusTargetModifierNode")
+fun FocusTargetModifierNode(): FocusTargetModifierNode =
+    FocusTargetNode(onDispatchEventsCompleted = InvalidateSemantics::onDispatchEventsCompleted)
 
 /**
  * Create a [FocusTargetModifierNode] that can be delegated to in order to create a modifier that
@@ -71,6 +101,7 @@ fun FocusTargetModifierNode(): FocusTargetModifierNode = FocusTargetNode()
  *   will be invoked if the node is losing focus due to being detached from the hierarchy, but
  *   before the node is marked as detached (node.isAttached will still be true).
  */
+@JsName("funFocusTargetModifierNode2")
 fun FocusTargetModifierNode(
     focusability: Focusability = Focusability.Always,
     onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null

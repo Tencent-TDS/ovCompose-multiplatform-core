@@ -16,9 +16,16 @@
 
 package androidx.compose.ui.focus
 
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.CustomDestinationResult.Cancelled
+import androidx.compose.ui.focus.CustomDestinationResult.None
+import androidx.compose.ui.focus.CustomDestinationResult.RedirectCancelled
+import androidx.compose.ui.focus.CustomDestinationResult.Redirected
 import androidx.compose.ui.focus.FocusDirection.Companion.Exit
-import androidx.compose.ui.focus.FocusRequester.Companion.Default
+import androidx.compose.ui.focus.FocusRequester.Companion.Cancel
+import androidx.compose.ui.focus.FocusRequester.Companion.Redirect
 import androidx.compose.ui.focus.FocusStateImpl.Active
 import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
 import androidx.compose.ui.focus.FocusStateImpl.Captured
@@ -37,10 +44,12 @@ import androidx.compose.ui.node.visitAncestors
 import androidx.compose.ui.node.visitSelfAndAncestors
 import androidx.compose.ui.node.visitSubtreeIf
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.util.trace
 
 internal class FocusTargetNode(
     focusability: Focusability = Focusability.Always,
-    private val onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null
+    private val onFocusChange: ((previous: FocusState, current: FocusState) -> Unit)? = null,
+    private val onDispatchEventsCompleted: ((FocusTargetNode) -> Unit)? = null
 ) :
     CompositionLocalConsumerModifierNode,
     FocusTargetModifierNode,
@@ -58,27 +67,86 @@ internal class FocusTargetNode(
     override val shouldAutoInvalidate = false
 
     override var focusState: FocusStateImpl
-        get() =
-            focusTransactionManager?.run { uncommittedFocusState }
-                ?: committedFocusState
-                ?: Inactive
+        get() {
+            if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                if (!isAttached) return Inactive
+                val focusOwner = requireOwner().focusOwner
+                val activeNode = focusOwner.activeFocusTargetNode ?: return Inactive
+                return if (this === activeNode) {
+                    if (focusOwner.isFocusCaptured) Captured else Active
+                } else {
+                    if (activeNode.isAttached) {
+                        activeNode.visitAncestors(Nodes.FocusTarget) {
+                            if (this === it) return ActiveParent
+                        }
+                    }
+                    Inactive
+                }
+            } else {
+                return focusTransactionManager?.run { uncommittedFocusState }
+                    ?: committedFocusState
+                    ?: Inactive
+            }
+        }
         set(value) {
-            with(requireTransactionManager()) { uncommittedFocusState = value }
+            if (!@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                with(requireTransactionManager()) { uncommittedFocusState = value }
+            }
         }
 
+    @Deprecated(
+        message = "Use the version accepting FocusDirection",
+        replaceWith = ReplaceWith("this.requestFocus()"),
+        level = DeprecationLevel.HIDDEN
+    )
     override fun requestFocus(): Boolean {
-        return requestFocus(FocusDirection.Enter) ?: false
+        return requestFocus(FocusDirection.Enter)
+    }
+
+    override fun requestFocus(focusDirection: FocusDirection): Boolean {
+        trace("FocusTransactions:requestFocus") {
+            if (!fetchFocusProperties().canFocus) return false
+            return if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                when (performCustomRequestFocus(focusDirection)) {
+                    None -> performRequestFocus()
+                    Redirected -> true
+                    Cancelled,
+                    RedirectCancelled -> false
+                }
+            } else {
+                requireTransactionManager().withNewTransaction(
+                    onCancelled = { if (node.isAttached) dispatchFocusCallbacks() }
+                ) {
+                    when (performCustomRequestFocus(focusDirection)) {
+                        None -> performRequestFocus()
+                        Redirected -> true
+                        Cancelled,
+                        RedirectCancelled -> false
+                    }
+                }
+            }
+        }
     }
 
     override var focusability: Focusability = focusability
         set(value) {
             if (field != value) {
                 field = value
-                // Avoid invalidating if we have not been initialized yet: there is no need to
-                // invalidate since these property changes cannot affect anything.
-                if (isAttached && isInitialized()) {
-                    // Invalidate focus if needed
-                    onObservedReadsChanged()
+                if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                    if (
+                        isAttached &&
+                            this === requireOwner().focusOwner.activeFocusTargetNode &&
+                            !field.canFocus(this)
+                    ) {
+                        clearFocus(forced = true, refreshFocusEvents = true)
+                    }
+                } else {
+                    // Avoid invalidating if we have not been initialized yet: there is no need to
+                    // invalidate since these property changes cannot affect anything.
+                    if (isAttached && isInitialized()) {
+                        // Invalidate focus if needed
+                        onObservedReadsChanged()
+                    }
                 }
             }
         }
@@ -89,9 +157,18 @@ internal class FocusTargetNode(
         get() = ModifierLocalBeyondBoundsLayout.current
 
     override fun onObservedReadsChanged() {
-        val previousFocusState = focusState
-        invalidateFocus()
-        if (previousFocusState != focusState) dispatchFocusCallbacks()
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+            invalidateFocus()
+        } else {
+            val previousFocusState = focusState
+            invalidateFocus()
+            if (previousFocusState != focusState) dispatchFocusCallbacks()
+        }
+    }
+
+    override fun onAttach() {
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) return
+        invalidateFocusTarget()
     }
 
     /** Clears focus if this focus target has it. */
@@ -104,23 +181,29 @@ internal class FocusTargetNode(
             // implementation so that focus is sent to the immediate focus parent.
             Active,
             Captured -> {
-                requireOwner()
-                    .focusOwner
-                    .clearFocus(
-                        force = true,
-                        refreshFocusEvents = true,
-                        clearOwnerFocus = false,
-                        focusDirection = Exit
-                    )
+                val focusOwner = requireOwner().focusOwner
+                focusOwner.clearFocus(
+                    force = true,
+                    refreshFocusEvents = true,
+                    clearOwnerFocus = false,
+                    focusDirection = Exit
+                )
                 // We don't clear the owner's focus yet, because this could trigger an initial
                 // focus scenario after the focus is cleared. Instead, we schedule invalidation
                 // after onApplyChanges. The FocusInvalidationManager contains the invalidation
                 // logic and calls clearFocus() on the owner after all the nodes in the hierarchy
                 // are invalidated.
-                invalidateFocusTarget()
+                if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                    focusOwner.scheduleInvalidationForOwner()
+                } else {
+                    invalidateFocusTarget()
+                }
             }
             // This node might be reused, so reset the state to Inactive.
-            ActiveParent -> requireTransactionManager().withNewTransaction { focusState = Inactive }
+            ActiveParent ->
+                if (!@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+                    requireTransactionManager().withNewTransaction { focusState = Inactive }
+                }
             Inactive -> {}
         }
         // This node might be reused, so we reset its state.
@@ -141,6 +224,31 @@ internal class FocusTargetNode(
         return properties
     }
 
+    private inline fun fetchCustomEnterOrExit(
+        focusDirection: FocusDirection,
+        block: (FocusRequester) -> Unit,
+        enterOrExit: FocusProperties.(FocusEnterExitScope) -> Unit
+    ) {
+        val focusProperties = fetchFocusProperties()
+        val scope = CancelIndicatingFocusBoundaryScope(focusDirection)
+        val focusTransactionManager = focusTransactionManager
+        val generationBefore = focusTransactionManager?.generation ?: 0
+        val focusOwner = requireOwner().focusOwner
+        val activeNodeBefore = focusOwner.activeFocusTargetNode
+        focusProperties.enterOrExit(scope)
+        val generationAfter = focusTransactionManager?.generation ?: 0
+        val activeNodeAfter = focusOwner.activeFocusTargetNode
+        if (scope.isCanceled) {
+            block(Cancel)
+        } else if (
+            generationBefore != generationAfter ||
+                (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled &&
+                    (activeNodeBefore !== activeNodeAfter && activeNodeAfter != null))
+        ) {
+            block(Redirect)
+        }
+    }
+
     /**
      * Fetch custom enter destination associated with this [focusTarget].
      *
@@ -158,7 +266,7 @@ internal class FocusTargetNode(
         if (!isProcessingCustomEnter) {
             isProcessingCustomEnter = true
             try {
-                fetchFocusProperties().enter(focusDirection).also { if (it !== Default) block(it) }
+                fetchCustomEnterOrExit(focusDirection, block) { it.onEnter() }
             } finally {
                 isProcessingCustomEnter = false
             }
@@ -182,7 +290,7 @@ internal class FocusTargetNode(
         if (!isProcessingCustomExit) {
             isProcessingCustomExit = true
             try {
-                fetchFocusProperties().exit(focusDirection).also { if (it !== Default) block(it) }
+                fetchCustomEnterOrExit(focusDirection, block) { it.onExit() }
             } finally {
                 isProcessingCustomExit = false
             }
@@ -234,6 +342,21 @@ internal class FocusTargetNode(
             // TODO(251833873): Consider caching it.getFocusState().
             it.onFocusEvent(it.getFocusState())
         }
+        onDispatchEventsCompleted?.invoke(this)
+    }
+
+    internal fun dispatchFocusCallbacks(previousState: FocusState, newState: FocusState) {
+        val focusOwner = requireOwner().focusOwner
+        val activeNode = focusOwner.activeFocusTargetNode
+        if (previousState != newState) onFocusChange?.invoke(previousState, newState)
+        visitSelfAndAncestors(Nodes.FocusEvent, untilType = Nodes.FocusTarget) {
+            if (activeNode !== focusOwner.activeFocusTargetNode) {
+                // Stop sending events, as focus changed in a callback
+                return@visitSelfAndAncestors
+            }
+            it.onFocusEvent(newState)
+        }
+        onDispatchEventsCompleted?.invoke(this)
     }
 
     internal object FocusTargetElement : ModifierNodeElement<FocusTargetNode>() {
@@ -250,7 +373,9 @@ internal class FocusTargetNode(
         override fun equals(other: Any?) = other === this
     }
 
-    internal fun isInitialized(): Boolean = committedFocusState != null
+    internal fun isInitialized(): Boolean =
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) true
+        else committedFocusState != null
 
     internal fun initializeFocusState(initialFocusState: FocusStateImpl? = null) {
         fun isInActiveSubTree(): Boolean {
@@ -271,11 +396,11 @@ internal class FocusTargetNode(
             visitSubtreeIf(Nodes.FocusTarget) {
                 if (!it.isInitialized()) return@visitSubtreeIf true
 
-                return when (it.focusState) {
+                when (it.focusState) {
                     Active,
                     ActiveParent,
-                    Captured -> true
-                    Inactive -> false
+                    Captured -> return true
+                    Inactive -> return@visitSubtreeIf false
                 }
             }
             return false
@@ -283,12 +408,14 @@ internal class FocusTargetNode(
 
         check(!isInitialized()) { "Re-initializing focus target node." }
 
-        requireTransactionManager().withNewTransaction {
-            // Note: hasActiveChild() is expensive since it searches the entire subtree. So we only
-            // do this if we are part of the active subtree.
-            this.focusState =
-                initialFocusState
-                    ?: if (isInActiveSubTree() && hasActiveChild()) ActiveParent else Inactive
+        if (!@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled) {
+            requireTransactionManager().withNewTransaction {
+                // Note: hasActiveChild() is expensive since it searches the entire subtree. So we
+                // only do this if we are part of the active subtree.
+                this.focusState =
+                    initialFocusState
+                        ?: if (isInActiveSubTree() && hasActiveChild()) ActiveParent else Inactive
+            }
         }
     }
 }
@@ -297,7 +424,7 @@ internal fun FocusTargetNode.requireTransactionManager(): FocusTransactionManage
     return requireOwner().focusOwner.focusTransactionManager
 }
 
-private val FocusTargetNode.focusTransactionManager: FocusTransactionManager?
+internal val FocusTargetNode.focusTransactionManager: FocusTransactionManager?
     get() = node.coordinator?.layoutNode?.owner?.focusOwner?.focusTransactionManager
 
 internal fun FocusTargetNode.invalidateFocusTarget() {

@@ -22,8 +22,10 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
 
@@ -53,7 +55,7 @@ configurations {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios() {
         // Link to sqlite3 available in iOS
         binaries.configureEach {
@@ -69,7 +71,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.annotation:annotation:1.8.1")
                 api(project(":sqlite:sqlite"))
             }
         }
@@ -134,8 +136,6 @@ androidXMultiplatform {
             }
         }
     }
-
-    enableBinaryCompatibilityValidator = true
 }
 
 dependencies {
@@ -145,13 +145,12 @@ dependencies {
 
 androidx {
     name = "SQLite Framework Integration"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "The implementation of SQLite library using the framework code."
-    metalavaK2UastEnabled = true
-    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {
-    namespace "androidx.sqlite.db.framework"
+    namespace = "androidx.sqlite.db.framework"
 }

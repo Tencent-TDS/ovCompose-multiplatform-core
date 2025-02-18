@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -42,7 +43,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxOfOrNull
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.HierarchicalFocusCoordinator
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import kotlin.math.roundToInt
@@ -83,7 +83,6 @@ import kotlinx.coroutines.coroutineScope
  *   The integer parameter to the composable depicts the index where it will be kept. For example, 0
  *   would represent the separator between the first and second picker.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 public fun PickerGroup(
     vararg pickers: PickerGroupItem,
@@ -199,10 +198,10 @@ constructor(
 ) {
 
     /** The current selected [Picker] index. */
-    var selectedIndex by mutableIntStateOf(initiallySelectedIndex)
+    public var selectedIndex: Int by mutableIntStateOf(initiallySelectedIndex)
 
     public companion object {
-        val Saver =
+        public val Saver: Saver<PickerGroupState, Any> =
             listSaver<PickerGroupState, Any?>(
                 save = { listOf(it.selectedIndex) },
                 restore = { saved -> PickerGroupState(initiallySelectedIndex = saved[0] as Int) }
@@ -230,13 +229,13 @@ constructor(
  *   denotes the index of the option and boolean denotes whether the picker is selected or not.
  */
 public class PickerGroupItem(
-    val pickerState: PickerState,
-    val modifier: Modifier = Modifier,
-    val contentDescription: String? = null,
-    val focusRequester: FocusRequester? = null,
-    val onSelected: () -> Unit = {},
-    val readOnlyLabel: @Composable (BoxScope.() -> Unit)? = null,
-    val option: @Composable PickerScope.(optionIndex: Int, pickerSelected: Boolean) -> Unit
+    public val pickerState: PickerState,
+    public val modifier: Modifier = Modifier,
+    public val contentDescription: String? = null,
+    public val focusRequester: FocusRequester? = null,
+    public val onSelected: () -> Unit = {},
+    public val readOnlyLabel: @Composable (BoxScope.() -> Unit)? = null,
+    public val option: @Composable PickerScope.(optionIndex: Int, pickerSelected: Boolean) -> Unit
 )
 
 /*

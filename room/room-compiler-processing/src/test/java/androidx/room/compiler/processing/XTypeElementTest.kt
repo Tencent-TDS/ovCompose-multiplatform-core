@@ -53,7 +53,11 @@ import org.junit.runners.Parameterized
 class XTypeElementTest(
     private val isPreCompiled: Boolean,
 ) {
-    private fun runTest(sources: List<Source>, handler: (XTestInvocation) -> Unit) {
+    private fun runTest(
+        sources: List<Source>,
+        kotlincArgs: List<String> = emptyList(),
+        handler: (XTestInvocation) -> Unit
+    ) {
         if (isPreCompiled) {
             val compiled = compileFiles(sources)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
@@ -66,9 +70,14 @@ class XTypeElementTest(
             val newSources =
                 kotlinSources +
                     Source.java("PlaceholderJava", "public class " + "PlaceholderJava {}")
-            runProcessorTest(sources = newSources, handler = handler, classpath = compiled)
+            runProcessorTest(
+                sources = newSources,
+                handler = handler,
+                classpath = compiled,
+                kotlincArguments = kotlincArgs
+            )
         } else {
-            runProcessorTest(sources = sources, handler = handler)
+            runProcessorTest(sources = sources, handler = handler, kotlincArguments = kotlincArgs)
         }
     }
 
@@ -187,10 +196,12 @@ class XTypeElementTest(
             }
             invocation.processingEnv.requireTypeElement("foo.bar.AbstractClass").let {
                 assertThat(it.superClass!!.asTypeName())
-                    .isEqualTo(invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName())
+                    .isEqualTo(
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
+                    )
                 assertThat(it.type.superTypes.map(XType::asTypeName))
                     .containsExactly(
-                        invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName()
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
                     )
                 assertThat(it.isAbstract()).isTrue()
                 assertThat(it.isInterface()).isFalse()
@@ -203,7 +214,7 @@ class XTypeElementTest(
                 assertThat(it.superClass).isNull()
                 assertThat(it.type.superTypes.map(XType::asTypeName))
                     .containsExactly(
-                        invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName()
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
                     )
                 assertThat(it.isInterface()).isTrue()
                 assertThat(it.type.asTypeName())
@@ -965,17 +976,22 @@ class XTypeElementTest(
             val baseCompanion = invocation.processingEnv.requireTypeElement("Base.Companion")
             val objectMethodNames = invocation.objectMethodNames()
             val declaredMethods = base.getDeclaredMethods()
-            assertThat(declaredMethods.jvmNames())
-                .containsExactly(
-                    "baseFun",
-                    "suspendFun",
-                    "privateBaseFun",
-                    "staticBaseFun",
-                    "getName",
-                    "suspendFun2",
-                    "extFun"
-                )
-                .inOrder()
+            val ordered =
+                assertThat(declaredMethods.jvmNames())
+                    .containsExactly(
+                        "baseFun",
+                        "suspendFun",
+                        "privateBaseFun",
+                        "staticBaseFun",
+                        "getName",
+                        "suspendFun2",
+                        "extFun"
+                    )
+            // Member ordering in companion objects cannot be restored in KSP2:
+            // https://github.com/google/ksp/issues/1898
+            if (!invocation.isKsp2) {
+                ordered.inOrder()
+            }
             declaredMethods.forEach { method ->
                 assertWithMessage("Enclosing element of method ${method.jvmName}")
                     .that(method.enclosingElement.name)
@@ -1345,7 +1361,7 @@ class XTypeElementTest(
             """
                             .trimIndent()
                     )
-                ),
+                )
         ) { invocation ->
             val appSubject = invocation.processingEnv.requireTypeElement("test.Subject")
             val methodNames = appSubject.getAllMethods().map { it.name }.toList()
@@ -1646,24 +1662,45 @@ class XTypeElementTest(
                     )
                     .inOrder()
             } else {
-                assertThat(defaultArgsConstructors)
-                    .containsExactly(
-                        "DefaultArgs(int,double,long)",
-                        "DefaultArgs(double)",
-                        "DefaultArgs(int,double)"
-                    )
-                    .inOrder()
+                if (invocation.isKsp) {
+                    assertThat(defaultArgsConstructors)
+                        .containsExactly(
+                            "DefaultArgs(int,double,long)",
+                            "DefaultArgs(double)",
+                            "DefaultArgs(int,double)",
+                        )
+                        .inOrder()
+                } else {
+                    assertThat(defaultArgsConstructors)
+                        .containsExactly(
+                            "DefaultArgs(double)",
+                            "DefaultArgs(int,double)",
+                            "DefaultArgs(int,double,long)",
+                        )
+                        .inOrder()
+                }
                 assertThat(noDefaultArgsConstructors)
                     .containsExactly("NoDefaultArgs(int,double,long)")
                     .inOrder()
-                assertThat(allDefaultArgsConstructors)
-                    .containsExactly(
-                        "AllDefaultArgs(int,double,long)",
-                        "AllDefaultArgs()",
-                        "AllDefaultArgs(int)",
-                        "AllDefaultArgs(int,double)"
-                    )
-                    .inOrder()
+                if (invocation.isKsp) {
+                    assertThat(allDefaultArgsConstructors)
+                        .containsExactly(
+                            "AllDefaultArgs(int,double,long)",
+                            "AllDefaultArgs()",
+                            "AllDefaultArgs(int)",
+                            "AllDefaultArgs(int,double)",
+                        )
+                        .inOrder()
+                } else {
+                    assertThat(allDefaultArgsConstructors)
+                        .containsExactly(
+                            "AllDefaultArgs()",
+                            "AllDefaultArgs(int)",
+                            "AllDefaultArgs(int,double)",
+                            "AllDefaultArgs(int,double,long)",
+                        )
+                        .inOrder()
+                }
             }
 
             val subjects = listOf("DefaultArgs", "NoDefaultArgs", "AllDefaultArgs")

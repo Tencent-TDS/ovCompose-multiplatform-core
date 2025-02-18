@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.text
 
+import android.os.Build
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -45,24 +46,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextIndent
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.emoji2.bundled.BundledEmojiCompatConfig
+import androidx.emoji2.text.EmojiCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
-import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-@SmallTest
+@LargeTest
 class ParagraphIntegrationTest {
     private val fontFamilyMeasureFont = BASIC_MEASURE_FONT.toFontFamily()
     private val fontFamilyKernFont = BASIC_KERN_FONT.toFontFamily()
@@ -74,6 +80,28 @@ class ParagraphIntegrationTest {
     private val ltrLocaleList = LocaleList("en")
 
     private val resourceLoader = UncachedFontFamilyResolver(context)
+
+    companion object {
+        private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
+
+        @BeforeClass
+        @JvmStatic
+        fun setup() {
+            EmojiCompat.reset(null)
+            // we want a temporary thread, we don't need to control the font loading thread
+            // for this test, hence the deprecation suppression
+            @Suppress("DEPRECATION") EmojiCompat.init(BundledEmojiCompatConfig(appContext))
+
+            // wait for EmojiCompat instance to fully load
+            while (EmojiCompat.get().loadState != EmojiCompat.LOAD_STATE_SUCCEEDED) {}
+        }
+
+        @AfterClass
+        @JvmStatic
+        fun clean() {
+            EmojiCompat.reset(null)
+        }
+    }
 
     private fun hasEdgeLetterSpacingBugFix(): Boolean {
         val text = "a"
@@ -733,7 +761,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     maxLines = 1
                 )
 
@@ -757,7 +785,7 @@ class ParagraphIntegrationTest {
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
                     height = fontSizeInPx,
-                    ellipsis = true
+                    overflow = TextOverflow.Ellipsis
                 )
 
             val box = paragraph.getBoundingBox(5)
@@ -780,7 +808,7 @@ class ParagraphIntegrationTest {
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
                     height = fontSizeInPx,
-                    ellipsis = true
+                    overflow = TextOverflow.Ellipsis
                 )
 
             val box = paragraph.getBoundingBox(4)
@@ -802,7 +830,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     maxLines = 1
                 )
 
@@ -825,7 +853,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     height = fontSizeInPx
                 )
 
@@ -848,7 +876,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     width = 3 * fontSizeInPx,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     height = fontSizeInPx
                 )
 
@@ -1982,7 +2010,8 @@ class ParagraphIntegrationTest {
                             density = defaultDensity,
                             fontFamilyResolver = resourceLoader,
                             // just have 10x font size to have a bitmap
-                            constraints = Constraints(maxWidth = (fontSizeInPx * 10).ceilToInt())
+                            constraints = Constraints(maxWidth = (fontSizeInPx * 10).ceilToInt()),
+                            overflow = TextOverflow.Clip
                         )
 
                     paragraph.bitmap()
@@ -2271,7 +2300,8 @@ class ParagraphIntegrationTest {
     fun didExceedMaxLines_ellipsis_withMaxLinesSmallerThanTextLines_returnsTrue() {
         val text = "aaa\naa"
         val maxLines = text.lines().size - 1
-        val paragraph = simpleParagraph(text = text, maxLines = maxLines, ellipsis = true)
+        val paragraph =
+            simpleParagraph(text = text, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 
         assertThat(paragraph.didExceedMaxLines).isTrue()
     }
@@ -2280,7 +2310,8 @@ class ParagraphIntegrationTest {
     fun didExceedMaxLines_ellipsis_withMaxLinesEqualToTextLines_returnsFalse() {
         val text = "aaa\naa"
         val maxLines = text.lines().size
-        val paragraph = simpleParagraph(text = text, maxLines = maxLines, ellipsis = true)
+        val paragraph =
+            simpleParagraph(text = text, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 
         assertThat(paragraph.didExceedMaxLines).isFalse()
     }
@@ -2289,7 +2320,8 @@ class ParagraphIntegrationTest {
     fun didExceedMaxLines_ellipsis_withMaxLinesGreaterThanTextLines_returnsFalse() {
         val text = "aaa\naa"
         val maxLines = text.lines().size + 1
-        val paragraph = simpleParagraph(text = text, maxLines = maxLines, ellipsis = true)
+        val paragraph =
+            simpleParagraph(text = text, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 
         assertThat(paragraph.didExceedMaxLines).isFalse()
     }
@@ -2306,7 +2338,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     maxLines = maxLines,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     // One line can only contain 1 character
                     width = fontSizeInPx
                 )
@@ -2319,7 +2351,8 @@ class ParagraphIntegrationTest {
     fun didExceedMaxLines_ellipsis_withMaxLinesEqualToTextLines_withLineWrap_returnsFalse() {
         val text = "a"
         val maxLines = text.lines().size
-        val paragraph = simpleParagraph(text = text, maxLines = maxLines, ellipsis = true)
+        val paragraph =
+            simpleParagraph(text = text, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 
         assertThat(paragraph.didExceedMaxLines).isFalse()
     }
@@ -2336,7 +2369,7 @@ class ParagraphIntegrationTest {
                     text = text,
                     style = TextStyle(fontSize = fontSize),
                     maxLines = maxLines,
-                    ellipsis = true,
+                    overflow = TextOverflow.Ellipsis,
                     // One line can only contain 1 character
                     width = fontSizeInPx
                 )
@@ -2746,7 +2779,7 @@ class ParagraphIntegrationTest {
             simpleParagraph(
                 text = text,
                 maxLines = 1,
-                ellipsis = true,
+                overflow = TextOverflow.Ellipsis,
                 style = TextStyle(),
                 width = Float.MAX_VALUE
             )
@@ -2857,7 +2890,12 @@ class ParagraphIntegrationTest {
         val text = "aaa\nbbb\nccc"
 
         val paragraph =
-            simpleParagraph(text = text, maxLines = 2, ellipsis = true, width = Float.MAX_VALUE)
+            simpleParagraph(
+                text = text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                width = Float.MAX_VALUE
+            )
 
         assertThat(paragraph.lineCount).isEqualTo(2)
         assertThat(paragraph.getLineEnd(0)).isEqualTo(4)
@@ -2877,7 +2915,7 @@ class ParagraphIntegrationTest {
                 text = text,
                 style = TextStyle(fontFamily = fontFamilyMeasureFont, fontSize = 10.sp),
                 maxLines = 2,
-                ellipsis = true,
+                overflow = TextOverflow.Ellipsis,
                 width = 50f
             )
 
@@ -2895,6 +2933,52 @@ class ParagraphIntegrationTest {
         // The ellipsizer may reserve multiple characters for drawing HORIZONTAL ELLIPSIS
         // character (U+2026). We can only expect the visible end is not the end of the line.
         assertThat(paragraph.getLineEnd(1, true)).isNotEqualTo(text.length)
+    }
+
+    @Test
+    fun getLineStartEllipsisCount() {
+        val text = "aaaaabbbbbccccc"
+        val paragraph =
+            simpleParagraph(
+                text = text,
+                style = TextStyle(fontFamily = fontFamilyMeasureFont, fontSize = 10.sp),
+                maxLines = 1,
+                overflow = TextOverflow.StartEllipsis,
+                width = 50f
+            )
+
+        assertThat(paragraph.lineCount).isEqualTo(1)
+
+        assertThat(paragraph.isLineEllipsized(0)).isTrue()
+        assertThat(paragraph.getLineStart(0)).isEqualTo(0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            assertThat(paragraph.getLineEnd(0)).isEqualTo(text.length)
+        } else {
+            assertThat(paragraph.getLineEnd(0)).isEqualTo(5)
+        }
+    }
+
+    @Test
+    fun getLineMiddleEllipsisCount() {
+        val text = "aaaaabbbbbccccc"
+        val paragraph =
+            simpleParagraph(
+                text = text,
+                style = TextStyle(fontFamily = fontFamilyMeasureFont, fontSize = 10.sp),
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
+                width = 50f
+            )
+
+        assertThat(paragraph.lineCount).isEqualTo(1)
+
+        assertThat(paragraph.isLineEllipsized(0)).isTrue()
+        assertThat(paragraph.getLineStart(0)).isEqualTo(0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+            assertThat(paragraph.getLineEnd(0)).isEqualTo(text.length)
+        } else {
+            assertThat(paragraph.getLineEnd(0)).isEqualTo(5)
+        }
     }
 
     @Test
@@ -3002,7 +3086,7 @@ class ParagraphIntegrationTest {
                 text = text,
                 style = textStyle,
                 maxLines = maxLines,
-                ellipsis = true,
+                overflow = TextOverflow.Ellipsis,
                 width = 480f // px
             )
                 as AndroidParagraph
@@ -4337,6 +4421,60 @@ class ParagraphIntegrationTest {
         assertThat(resultHebrew.end).isEqualTo(text.indexOf('\u05d2') + 1)
     }
 
+    @Test(timeout = 5000)
+    fun getWordBoundary_emoji() {
+        // "ab 🧑🏿‍🦰 cd" - example of complex emoji
+        //             | (offset=3)      | (offset=6)
+        assertThat(EmojiCompat.isConfigured()).isTrue()
+
+        val text = "ab \uD83E\uDDD1\uD83C\uDFFF\u200D\uD83E\uDDB0 cd"
+        val paragraph = simpleParagraph(text = text, style = TextStyle())
+        val result = paragraph.getWordBoundary(6)
+
+        assertThat(result.start).isEqualTo(3)
+        assertThat(result.end).isEqualTo(10)
+    }
+
+    @Test(timeout = 5000)
+    fun getWordBoundary_letters_emojis_mixed() {
+        assertThat(EmojiCompat.isConfigured()).isTrue()
+
+        val text = "a b\uD83E\uDDD1\uD83C\uDFFF\u200D\uD83E\uDDB0c\uD83D\uDC4D\uD83C\uDFFE d"
+        // a b🧑🏿‍🦰c👍🏾 d
+        val paragraph = simpleParagraph(text = text, style = TextStyle())
+        val result1 = paragraph.getWordBoundary(7)
+        val result2 = paragraph.getWordBoundary(13)
+
+        assertThat(result1.start).isEqualTo(text.indexOf('b'))
+        assertThat(result2.start).isEqualTo(text.indexOf('b'))
+
+        assertThat(result1.end).isEqualTo(text.indexOf('d') - 1)
+        assertThat(result2.end).isEqualTo(text.indexOf('d') - 1)
+    }
+
+    @Test(timeout = 5000)
+    fun getWordBoundary_multiple_emojis() {
+        assertThat(EmojiCompat.isConfigured()).isTrue()
+        val text = "\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00" // 😀😀😀
+        val paragraph = simpleParagraph(text, TextStyle())
+        val result = paragraph.getWordBoundary(3)
+
+        assertThat(result.start).isEqualTo(0)
+        assertThat(result.end).isEqualTo(text.length)
+    }
+
+    @Test
+    fun getWordBoundary_multichar() {
+        // "ab 𐐔𐐯𐑅𐐨𐑉𐐯𐐻 cd" - example of multi-char code units
+        //             | (offset=3)      | (offset=6)
+        val text =
+            "ab \uD801\uDC14\uD801\uDC2F\uD801\uDC45\uD801\uDC28\uD801\uDC49\uD801\uDC2F\uD801\uDC3B cd"
+        val paragraph = simpleParagraph(text, TextStyle())
+        val result = paragraph.getWordBoundary(6)
+        assertThat(result.start).isEqualTo(3)
+        assertThat(result.end).isEqualTo(17)
+    }
+
     @Test
     fun test_finalFontSizeChangesWithDensity() {
         val text = "a"
@@ -4462,15 +4600,17 @@ class ParagraphIntegrationTest {
                 ParagraphIntrinsics(
                     text = text,
                     style = TextStyle(fontSize = fontSize, fontFamily = fontFamilyMeasureFont),
-                    spanStyles = listOf(),
+                    annotations = listOf(),
                     density = defaultDensity,
-                    fontFamilyResolver = UncachedFontFamilyResolver(context)
+                    fontFamilyResolver = UncachedFontFamilyResolver(context),
+                    placeholders = listOf()
                 )
 
             val paragraph =
                 Paragraph(
                     paragraphIntrinsics = paragraphIntrinsics,
-                    constraints = Constraints(maxWidth = (fontSizeInPx * text.length).ceilToInt())
+                    constraints = Constraints(maxWidth = (fontSizeInPx * text.length).ceilToInt()),
+                    overflow = TextOverflow.Clip
                 )
 
             assertThat(paragraph.maxIntrinsicWidth).isEqualTo(paragraphIntrinsics.maxIntrinsicWidth)
@@ -4727,7 +4867,7 @@ class ParagraphIntegrationTest {
         text: String = "",
         style: TextStyle? = null,
         maxLines: Int = Int.MAX_VALUE,
-        ellipsis: Boolean = false,
+        overflow: TextOverflow = TextOverflow.Clip,
         spanStyles: List<AnnotatedString.Range<SpanStyle>> = listOf(),
         density: Density? = null,
         width: Float = Float.MAX_VALUE,
@@ -4738,7 +4878,7 @@ class ParagraphIntegrationTest {
             spanStyles = spanStyles,
             style = TextStyle(fontFamily = fontFamilyMeasureFont).merge(style),
             maxLines = maxLines,
-            ellipsis = ellipsis,
+            overflow = overflow,
             constraints = Constraints(maxWidth = width.ceilToInt(), maxHeight = height.ceilToInt()),
             density = density ?: defaultDensity,
             fontFamilyResolver = UncachedFontFamilyResolver(context)

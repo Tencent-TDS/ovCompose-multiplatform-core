@@ -34,14 +34,15 @@ import androidx.camera.integration.extensions.utils.CameraIdExtensionModePair
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CoreAppTestUtil
 import androidx.camera.testing.impl.StressTestRule
-import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.idling.CountingIdlingResource
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import androidx.test.uiautomator.UiDevice
+import androidx.testutils.withActivity
 import org.junit.After
 import org.junit.Assume
 import org.junit.Assume.assumeTrue
@@ -134,8 +135,7 @@ class Camera2ExtensionsActivityTest(private val config: CameraIdExtensionModePai
                 waitForPreviewIdle()
 
                 // Pauses and resumes the activity
-                moveToState(Lifecycle.State.CREATED)
-                moveToState(Lifecycle.State.RESUMED)
+                launchAutoClosedForegroundActivity(activityScenario)
 
                 // Waits for preview to receive enough frames again
                 waitForPreviewIdle()
@@ -153,8 +153,7 @@ class Camera2ExtensionsActivityTest(private val config: CameraIdExtensionModePai
                 waitForImageSavedIdle()
 
                 // Pauses and resumes the activity
-                moveToState(Lifecycle.State.CREATED)
-                moveToState(Lifecycle.State.RESUMED)
+                launchAutoClosedForegroundActivity(activityScenario)
 
                 // Waits for the capture session configured again after resuming the activity
                 waitForCaptureSessionConfiguredIdle()
@@ -163,6 +162,18 @@ class Camera2ExtensionsActivityTest(private val config: CameraIdExtensionModePai
                 waitForImageSavedIdle()
             }
         }
+    }
+
+    private fun launchAutoClosedForegroundActivity(
+        activityScenario: ActivityScenario<Camera2ExtensionsActivity>
+    ) {
+        var countingIdlingResource: CountingIdlingResource? = null
+        activityScenario.withActivity { countingIdlingResource = getCameraClosedIdlingResource() }
+        CoreAppTestUtil.launchAutoClosedForegroundActivity(
+            context,
+            InstrumentationRegistry.getInstrumentation(),
+            countingIdlingResource
+        )
     }
 
     @Test
@@ -199,5 +210,22 @@ class Camera2ExtensionsActivityTest(private val config: CameraIdExtensionModePai
         activityScenario.waitForCaptureSessionConfiguredIdle()
 
         return activityScenario
+    }
+
+    @Test
+    fun checkPreviewUpdated_afterSwitchCamera() {
+        val activityScenario =
+            launchCamera2ExtensionsActivityAndWaitForCaptureSessionConfigured(config)
+        with(activityScenario) { // Launches activity
+            use { // Ensures that ActivityScenario is cleaned up properly
+                // Waits for preview to receive enough frames for its IdlingResource to idle.
+                waitForPreviewIdle()
+
+                withActivity { switchCamera() }
+
+                // Waits for preview to receive enough frames again after switching camera
+                waitForPreviewIdle()
+            }
+        }
     }
 }

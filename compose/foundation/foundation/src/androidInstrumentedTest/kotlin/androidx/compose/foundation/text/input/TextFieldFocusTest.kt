@@ -55,7 +55,6 @@ import androidx.compose.ui.input.key.NativeKeyEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -71,6 +70,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
@@ -81,7 +81,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(ExperimentalTestApi::class)
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 internal class TextFieldFocusTest {
@@ -382,6 +381,7 @@ internal class TextFieldFocusTest {
         rule.onNodeWithTag("test-text-field-1").assertSelection(TextRange(2))
     }
 
+    @FlakyTest(bugId = 348380475)
     @SdkSuppress(minSdkVersion = 22) // b/266742195
     @Test
     fun basicTextField_checkFocusNavigation_onDPadRight_hardwareKeyboard() {
@@ -424,6 +424,7 @@ internal class TextFieldFocusTest {
         rule.onNodeWithTag("test-text-field-1").assertSelection(TextRange(3))
     }
 
+    @FlakyTest(bugId = 348380475)
     @SdkSuppress(minSdkVersion = 22) // b/266742195
     @Test
     fun basicTextField_checkFocusNavigation_onDPadDown_hardwareKeyboard() {

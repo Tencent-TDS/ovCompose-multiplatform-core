@@ -411,6 +411,33 @@ class FocusEventCountTest(private val focusEventType: String) {
     }
 
     @Test
+    fun addingFocusEventAndTargetToActiveChild_onFocusEventIsCalledOnce() {
+        // Arrange.
+        val focusStates = mutableListOf<FocusState>()
+        val focusRequester = FocusRequester()
+        var addParentNodes by mutableStateOf(false)
+        rule.setFocusableContent {
+            Box(
+                modifier =
+                    Modifier.then(
+                        if (addParentNodes)
+                            Modifier.onFocusEvent { focusStates.add(it) }.focusTarget()
+                        else Modifier
+                    )
+            ) {
+                Box(Modifier.focusRequester(focusRequester).focusTarget())
+            }
+        }
+        rule.runOnIdle { focusRequester.requestFocus() }
+
+        // Act.
+        rule.runOnIdle { addParentNodes = true }
+
+        // Assert.
+        rule.runOnIdle { assertThat(focusStates).isExactly(ActiveParent) }
+    }
+
+    @Test
     fun addingEmptyFocusProperties_onFocusEventIsTriggered() {
         // Arrange.
         val focusStates = mutableListOf<FocusState>()

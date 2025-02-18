@@ -19,7 +19,7 @@ package androidx.credentials
 import android.graphics.drawable.Icon
 import androidx.credentials.CreateCredentialRequest.DisplayInfo
 import androidx.credentials.CreateCredentialRequest.DisplayInfo.Companion.createFrom
-import androidx.credentials.internal.FrameworkImplHelper.Companion.getFinalCreateCredentialData
+import androidx.credentials.internal.getFinalCreateCredentialData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
@@ -101,7 +101,7 @@ class CreateCredentialRequestDisplayInfoTest {
         assertThat(displayInfo.preferDefaultProvider).isEqualTo(expectedDefaultProvider)
     }
 
-    @SdkSuppress(minSdkVersion = 28)
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun constructFromBundle_success() {
         val expectedUserId = "userId"

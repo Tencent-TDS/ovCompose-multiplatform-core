@@ -17,6 +17,7 @@
 package androidx.graphics.shapes
 
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import androidx.core.graphics.get
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
@@ -72,6 +73,24 @@ internal fun assertCubicListsEqualish(expected: List<Cubic>, actual: List<Cubic>
     }
 }
 
+internal fun assertFeaturesEqualish(expected: Feature, actual: Feature) {
+    assertCubicListsEqualish(expected.cubics, actual.cubics)
+    assertEquals(expected::class, actual::class)
+
+    if (expected is Feature.Corner && actual is Feature.Corner) {
+        assertEquals(expected.convex, actual.convex)
+    }
+}
+
+internal fun assertPolygonsEqualish(expected: RoundedPolygon, actual: RoundedPolygon) {
+    assertCubicListsEqualish(expected.cubics, actual.cubics)
+
+    assertEquals(expected.features.size, actual.features.size)
+    for (i in expected.features.indices) {
+        assertFeaturesEqualish(expected.features[i], actual.features[i])
+    }
+}
+
 internal fun assertPointGreaterish(expected: Point, actual: Point) {
     assertTrue(actual.x >= expected.x - Epsilon)
     assertTrue(actual.y >= expected.y - Epsilon)
@@ -100,6 +119,15 @@ internal fun assertInBounds(shape: List<Cubic>, minPoint: Point, maxPoint: Point
 }
 
 internal fun identityTransform() = PointTransformer { x, y -> TransformResult(x, y) }
+
+internal fun pointRotator(angle: Float): PointTransformer {
+    val matrix = Matrix().apply { setRotate(angle) }
+    return PointTransformer { x, y ->
+        val point = floatArrayOf(x, y)
+        matrix.mapPoints(point)
+        TransformResult(point[0], point[1])
+    }
+}
 
 internal fun scaleTransform(sx: Float, sy: Float) = PointTransformer { x, y ->
     TransformResult(x * sx, y * sy)

@@ -16,13 +16,17 @@
 
 package androidx.camera.core.impl;
 
+import android.hardware.camera2.CameraCharacteristics;
 import android.media.ImageReader;
+import android.os.Build;
 import android.util.Pair;
+import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.CameraInfo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,8 +63,7 @@ public interface SessionProcessor {
      * @return a {@link SessionConfig} that contains the surfaces and the session parameters and
      * should be used to configure the camera session.
      */
-    @NonNull
-    SessionConfig initSession(@NonNull CameraInfo cameraInfo,
+    @NonNull SessionConfig initSession(@NonNull CameraInfo cameraInfo,
             @NonNull OutputSurfaceConfiguration outputSurfaceConfig);
 
     /**
@@ -138,18 +141,56 @@ public interface SessionProcessor {
      * Returns supported output format/size map for postview image. The API is provided
      * for camera-core to query the supported postview sizes from SessionProcessor.
      */
-    @NonNull
-    default Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
+    default @NonNull Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
         return Collections.emptyMap();
     }
 
     /**
      * Returns the supported camera operations when the SessionProcessor is enabled.
      */
-    @NonNull
-    default @RestrictedCameraInfo.CameraOperation Set<Integer> getSupportedCameraOperations() {
+    default @AdapterCameraInfo.CameraOperation @NonNull Set<Integer>
+            getSupportedCameraOperations() {
         return Collections.emptySet();
     }
+
+    default @NonNull List<Pair<CameraCharacteristics.Key, Object>>
+            getAvailableCharacteristicsKeyValues() {
+        return Collections.emptyList();
+    }
+
+    /**
+     * Returns the extensions-specific zoom range
+     */
+    @SuppressWarnings("unchecked")
+    default @Nullable Range<Float> getExtensionZoomRange() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            List<Pair<CameraCharacteristics.Key, Object>> keyValues =
+                    getAvailableCharacteristicsKeyValues();
+            for (Pair<CameraCharacteristics.Key, Object> keyValue : keyValues) {
+                if (keyValue.first.equals(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE)) {
+                    return (Range<Float>) keyValue.second;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the extensions-specific available stabilization modes.
+     */
+    @SuppressWarnings("unchecked")
+    default int @Nullable [] getExtensionAvailableStabilizationModes() {
+        List<Pair<CameraCharacteristics.Key, Object>> keyValues =
+                getAvailableCharacteristicsKeyValues();
+        for (Pair<CameraCharacteristics.Key, Object> keyValue : keyValues) {
+            if (keyValue.first.equals(
+                    CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES)) {
+                return (int[]) keyValue.second;
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Returns the dynamically calculated capture latency pair in milliseconds.
@@ -170,8 +211,7 @@ public interface SessionProcessor {
      * If clients have not configured a still capture output, then this method can also return a
      * null pair.
      */
-    @Nullable
-    default Pair<Long, Long> getRealtimeCaptureLatency() {
+    default @Nullable Pair<Long, Long> getRealtimeCaptureLatency() {
         return null;
     }
 

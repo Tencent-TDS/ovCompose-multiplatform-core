@@ -211,7 +211,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 mFrontBufferTarget.set(false)
                 mDrawCompleteRunnable.set(drawingFinished)
                 mFrontBufferedRenderer?.render(Unit)
-                hideFrontBuffer()
             }
         }
 
@@ -223,6 +222,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 holder.addCallback(mSurfaceHolderCallbacks)
             }
         mSurfaceView = surfaceView
+        hideFrontBuffer()
         addView(surfaceView)
     }
 
@@ -540,7 +540,14 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             mSceneBitmapDrawn = false
 
             renderer.release(cancelPending) {
-                frontBufferedLayerSurfaceControl?.release()
+                if (frontBufferedLayerSurfaceControl?.isValid() == true) {
+                    SurfaceControlCompat.Transaction().apply {
+                        reparent(frontBufferedLayerSurfaceControl, null)
+                        commit()
+                        close()
+                    }
+                    frontBufferedLayerSurfaceControl.release()
+                }
                 onReleaseCallback?.invoke()
                 if (hardwareBuffer != null && !hardwareBuffer.isClosed) {
                     hardwareBuffer.close()
@@ -678,7 +685,6 @@ internal class ColorSpaceVerificationHelper {
     companion object {
 
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        @androidx.annotation.DoNotInline
         fun getColorSpaceFromDataSpace(dataSpace: Int) =
             ColorSpace.getFromDataSpace(dataSpace)
                 // If wide color gamut is supported, then this should always return non-null

@@ -54,8 +54,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
-import androidx.compose.ui.util.fastMaxBy
-import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastMaxOfOrDefault
+import kotlin.math.max
 
 /**
  * [AnimatedVisibility] composable animates the appearance and disappearance of its content, as
@@ -110,6 +110,7 @@ import androidx.compose.ui.util.fastMaxOfOrNull
  *   default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking by
  *   default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on the value of [visible]
  * @see EnterTransition
  * @see ExitTransition
@@ -120,7 +121,7 @@ import androidx.compose.ui.util.fastMaxOfOrNull
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun AnimatedVisibility(
+public fun AnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandIn(),
@@ -181,6 +182,7 @@ fun AnimatedVisibility(
  *   horizontally by default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking
  *   horizontally by default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on the value of [visible]
  * @see EnterTransition
  * @see ExitTransition
@@ -193,7 +195,7 @@ fun AnimatedVisibility(
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun RowScope.AnimatedVisibility(
+public fun RowScope.AnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandHorizontally(),
@@ -254,6 +256,7 @@ fun RowScope.AnimatedVisibility(
  *   vertically by default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking
  *   vertically by default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on the value of [visible]
  * @see EnterTransition
  * @see ExitTransition
@@ -265,7 +268,7 @@ fun RowScope.AnimatedVisibility(
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun ColumnScope.AnimatedVisibility(
+public fun ColumnScope.AnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandVertically(),
@@ -289,7 +292,7 @@ fun ColumnScope.AnimatedVisibility(
  * @sample androidx.compose.animation.samples.AnimatedVisibilityWithBooleanVisibleParamNoReceiver
  * @see AnimatedVisibility
  */
-enum class EnterExitState {
+public enum class EnterExitState {
     /** The initial state of a custom enter animation in [AnimatedVisibility].. */
     PreEnter,
 
@@ -351,6 +354,7 @@ enum class EnterExitState {
  *   default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking by
  *   default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on the value of [visibleState]
  * @see EnterTransition
  * @see ExitTransition
@@ -363,7 +367,7 @@ enum class EnterExitState {
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun AnimatedVisibility(
+public fun AnimatedVisibility(
     visibleState: MutableTransitionState<Boolean>,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandIn(),
@@ -422,6 +426,7 @@ fun AnimatedVisibility(
  *   vertically by default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking
  *   vertically by default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on the value of [visibleState]
  * @see EnterTransition
  * @see ExitTransition
@@ -434,7 +439,7 @@ fun AnimatedVisibility(
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun RowScope.AnimatedVisibility(
+public fun RowScope.AnimatedVisibility(
     visibleState: MutableTransitionState<Boolean>,
     modifier: Modifier = Modifier,
     enter: EnterTransition = expandHorizontally() + fadeIn(),
@@ -495,6 +500,7 @@ fun RowScope.AnimatedVisibility(
  *   vertically by default
  * @param exit ExitTransition(s) used for the disappearing animation, fading out while shrinking
  *   vertically by default
+ * @param label A label to differentiate from other animations in Android Studio animation preview.
  * @param content Content to appear or disappear based on of [visibleState]
  * @see EnterTransition
  * @see ExitTransition
@@ -507,7 +513,7 @@ fun RowScope.AnimatedVisibility(
  * @see AnimatedVisibilityScope
  */
 @Composable
-fun ColumnScope.AnimatedVisibility(
+public fun ColumnScope.AnimatedVisibility(
     visibleState: MutableTransitionState<Boolean>,
     modifier: Modifier = Modifier,
     enter: EnterTransition = expandVertically() + fadeIn(),
@@ -579,13 +585,13 @@ fun ColumnScope.AnimatedVisibility(
  * @see Transition.AnimatedVisibility
  */
 @Composable
-fun <T> Transition<T>.AnimatedVisibility(
+public fun <T> Transition<T>.AnimatedVisibility(
     visible: (T) -> Boolean,
     modifier: Modifier = Modifier,
     enter: EnterTransition = fadeIn() + expandIn(),
     exit: ExitTransition = shrinkOut() + fadeOut(),
     content: @Composable() AnimatedVisibilityScope.() -> Unit
-) = AnimatedVisibilityImpl(this, visible, modifier, enter, exit, content = content)
+): Unit = AnimatedVisibilityImpl(this, visible, modifier, enter, exit, content = content)
 
 /**
  * This is the scope for the content of [AnimatedVisibility]. In this scope, direct and indirect
@@ -602,12 +608,12 @@ fun <T> Transition<T>.AnimatedVisibility(
  * @sample androidx.compose.animation.samples.AVScopeAnimateEnterExit
  */
 @JvmDefaultWithCompatibility
-interface AnimatedVisibilityScope {
+public interface AnimatedVisibilityScope {
     /**
      * [transition] allows custom enter/exit animations to be specified. It will run simultaneously
      * with the built-in enter/exit transitions specified in [AnimatedVisibility].
      */
-    val transition: Transition<EnterExitState>
+    public val transition: Transition<EnterExitState>
 
     /**
      * [animateEnterExit] modifier can be used for any direct or indirect children of
@@ -632,7 +638,7 @@ interface AnimatedVisibilityScope {
      *
      * @sample androidx.compose.animation.samples.AnimateEnterExitPartialContent
      */
-    fun Modifier.animateEnterExit(
+    public fun Modifier.animateEnterExit(
         enter: EnterTransition = fadeIn(),
         exit: ExitTransition = fadeOut(),
         label: String = "animateEnterExit"
@@ -781,9 +787,15 @@ private class AnimatedEnterExitMeasurePolicy(val scope: AnimatedVisibilityScopeI
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
-        val placeables = measurables.fastMap { it.measure(constraints) }
-        val maxWidth: Int = placeables.fastMaxBy { it.width }?.width ?: 0
-        val maxHeight = placeables.fastMaxBy { it.height }?.height ?: 0
+        var maxWidth = 0
+        var maxHeight = 0
+        val placeables =
+            measurables.fastMap {
+                it.measure(constraints).apply {
+                    maxWidth = max(maxWidth, width)
+                    maxHeight = max(maxHeight, height)
+                }
+            }
         // Position the children.
         if (isLookingAhead) {
             hasLookaheadOccurred = true
@@ -798,22 +810,22 @@ private class AnimatedEnterExitMeasurePolicy(val scope: AnimatedVisibilityScopeI
     override fun IntrinsicMeasureScope.minIntrinsicWidth(
         measurables: List<IntrinsicMeasurable>,
         height: Int
-    ) = measurables.fastMaxOfOrNull { it.minIntrinsicWidth(height) } ?: 0
+    ) = measurables.fastMaxOfOrDefault(0) { it.minIntrinsicWidth(height) }
 
     override fun IntrinsicMeasureScope.minIntrinsicHeight(
         measurables: List<IntrinsicMeasurable>,
         width: Int
-    ) = measurables.fastMaxOfOrNull { it.minIntrinsicHeight(width) } ?: 0
+    ) = measurables.fastMaxOfOrDefault(0) { it.minIntrinsicHeight(width) }
 
     override fun IntrinsicMeasureScope.maxIntrinsicWidth(
         measurables: List<IntrinsicMeasurable>,
         height: Int
-    ) = measurables.fastMaxOfOrNull { it.maxIntrinsicWidth(height) } ?: 0
+    ) = measurables.fastMaxOfOrDefault(0) { it.maxIntrinsicWidth(height) }
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurables: List<IntrinsicMeasurable>,
         width: Int
-    ) = measurables.fastMaxOfOrNull { it.maxIntrinsicHeight(width) } ?: 0
+    ) = measurables.fastMaxOfOrDefault(0) { it.maxIntrinsicHeight(width) }
 }
 
 // This converts Boolean visible to EnterExitState

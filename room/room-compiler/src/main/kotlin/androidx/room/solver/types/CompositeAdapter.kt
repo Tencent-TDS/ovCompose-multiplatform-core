@@ -29,21 +29,19 @@ class CompositeAdapter(
     val intoStatementConverter: TypeConverter?,
     val fromCursorConverter: TypeConverter?
 ) : ColumnTypeAdapter(out, columnTypeAdapter.typeAffinity) {
-    override fun readFromCursor(
+    override fun readFromStatement(
         outVarName: String,
-        cursorVarName: String,
+        stmtVarName: String,
         indexVarName: String,
         scope: CodeGenScope
     ) {
         if (fromCursorConverter == null) {
             return
         }
-        scope.builder.apply {
-            val tmpCursorValue = scope.getTmpVar()
-            addLocalVariable(tmpCursorValue, columnTypeAdapter.outTypeName)
-            columnTypeAdapter.readFromCursor(tmpCursorValue, cursorVarName, indexVarName, scope)
-            fromCursorConverter.convert(tmpCursorValue, outVarName, scope)
-        }
+        val tmpCursorValue = scope.getTmpVar()
+        scope.builder.addLocalVariable(tmpCursorValue, columnTypeAdapter.outTypeName)
+        columnTypeAdapter.readFromStatement(tmpCursorValue, stmtVarName, indexVarName, scope)
+        fromCursorConverter.convert(tmpCursorValue, outVarName, scope)
     }
 
     override fun bindToStmt(
@@ -55,9 +53,7 @@ class CompositeAdapter(
         if (intoStatementConverter == null) {
             return
         }
-        scope.builder.apply {
-            val bindVar = intoStatementConverter.convert(valueVarName, scope)
-            columnTypeAdapter.bindToStmt(stmtName, indexVarName, bindVar, scope)
-        }
+        val bindVar = intoStatementConverter.convert(valueVarName, scope)
+        columnTypeAdapter.bindToStmt(stmtName, indexVarName, bindVar, scope)
     }
 }

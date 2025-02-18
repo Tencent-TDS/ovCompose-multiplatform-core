@@ -114,9 +114,9 @@ class RecomposerTests : BaseComposeTest() {
 
     @Test
     fun testFrameTransition() {
-        var snapshotId: Int? = null
-        compose { snapshotId = Snapshot.current.id }
-            .then { assertNotSame(snapshotId, Snapshot.current.id) }
+        var snapshotId: Long? = null
+        compose { snapshotId = Snapshot.current.snapshotId }
+            .then { assertNotSame(snapshotId, Snapshot.current.snapshotId) }
     }
 
     @Test

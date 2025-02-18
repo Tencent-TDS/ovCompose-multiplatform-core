@@ -25,6 +25,7 @@ import java.time.ZoneOffset
 public class Vo2MaxRecord(
     override val time: Instant,
     override val zoneOffset: ZoneOffset?,
+    override val metadata: Metadata,
     /** Maximal aerobic capacity (VO2 max) in milliliters. Required field. Valid range: 0-100. */
     public val vo2MillilitersPerMinuteKilogram: Double,
     /**
@@ -33,7 +34,6 @@ public class Vo2MaxRecord(
      * @see MeasurementMethod
      */
     @property:MeasurementMethods public val measurementMethod: Int = MEASUREMENT_METHOD_OTHER,
-    override val metadata: Metadata = Metadata.EMPTY,
 ) : InstantaneousRecord {
     init {
         requireNonNegative(
@@ -67,6 +67,10 @@ public class Vo2MaxRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "Vo2MaxRecord(time=$time, zoneOffset=$zoneOffset, vo2MillilitersPerMinuteKilogram=$vo2MillilitersPerMinuteKilogram, measurementMethod=$measurementMethod, metadata=$metadata)"
     }
 
     companion object {

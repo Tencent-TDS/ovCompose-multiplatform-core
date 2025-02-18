@@ -21,13 +21,15 @@ import static androidx.appsearch.compiler.IntrospectionHelper.DOCUMENT_ANNOTATIO
 
 import static com.google.auto.common.MoreTypes.asElement;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appsearch.compiler.IntrospectionHelper;
 import androidx.appsearch.compiler.ProcessingException;
 
 import com.google.auto.value.AutoValue;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
@@ -62,14 +64,14 @@ public abstract class StringPropertyAnnotation extends DataPropertyAnnotation {
      *                    params do not mention an explicit name.
      * @throws ProcessingException If the annotation points to an Illegal serializer class.
      */
-    @NonNull
-    static StringPropertyAnnotation parse(
+    static @NonNull StringPropertyAnnotation parse(
             @NonNull Map<String, Object> annotationParams,
             @NonNull String defaultName) throws ProcessingException {
         String name = (String) annotationParams.get("name");
         SerializerClass customSerializer = null;
         TypeMirror serializerInAnnotation = (TypeMirror) annotationParams.get("serializer");
-        if (!serializerInAnnotation.toString().equals(DEFAULT_SERIALIZER_CLASS.canonicalName())) {
+        String typeName = TypeName.get(serializerInAnnotation).toString();
+        if (!typeName.equals(DEFAULT_SERIALIZER_CLASS.canonicalName())) {
             customSerializer = SerializerClass.create(
                     (TypeElement) asElement(serializerInAnnotation),
                     SerializerClass.Kind.STRING_SERIALIZER);
@@ -106,18 +108,16 @@ public abstract class StringPropertyAnnotation extends DataPropertyAnnotation {
      *
      * @see androidx.appsearch.annotation.Document.StringProperty#serializer()
      */
-    @Nullable
-    public abstract SerializerClass getCustomSerializer();
+    public abstract @Nullable SerializerClass getCustomSerializer();
 
-    @NonNull
     @Override
-    public final Kind getDataPropertyKind() {
+    public final @NonNull Kind getDataPropertyKind() {
         return Kind.STRING_PROPERTY;
     }
 
-    @NonNull
     @Override
-    public TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper) {
+    public @NonNull TypeMirror getUnderlyingTypeWithinGenericDoc(
+            @NonNull IntrospectionHelper helper) {
         return helper.mStringType;
     }
 }

@@ -19,6 +19,7 @@ import android.annotation.SuppressLint
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
+import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.db.SupportSQLiteProgram
 import androidx.sqlite.db.SupportSQLiteQuery
 import java.util.TreeMap
@@ -30,7 +31,7 @@ import java.util.TreeMap
  * Because it is relatively a big object, they are pooled and must be released after each use.
  */
 @SuppressLint("WrongConstant")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 class RoomSQLiteQuery private constructor(@field:VisibleForTesting val capacity: Int) :
     SupportSQLiteQuery, SupportSQLiteProgram {
     @Volatile private var query: String? = null
@@ -77,6 +78,11 @@ class RoomSQLiteQuery private constructor(@field:VisibleForTesting val capacity:
         }
     }
 
+    /** Converts a SupportSQLiteStatement to a [RoomRawQuery]. */
+    fun toRoomRawQuery(): RoomRawQuery {
+        return RoomRawQuery(sql = this.sql, onBindStatement = { this.bindTo(it) })
+    }
+
     override val sql: String
         get() = checkNotNull(this.query)
 
@@ -87,6 +93,18 @@ class RoomSQLiteQuery private constructor(@field:VisibleForTesting val capacity:
                 LONG -> statement.bindLong(index, longBindings[index])
                 DOUBLE -> statement.bindDouble(index, doubleBindings[index])
                 STRING -> statement.bindString(index, requireNotNull(stringBindings[index]))
+                BLOB -> statement.bindBlob(index, requireNotNull(blobBindings[index]))
+            }
+        }
+    }
+
+    fun bindTo(statement: SQLiteStatement) {
+        for (index in 1..argCount) {
+            when (bindingTypes[index]) {
+                NULL -> statement.bindNull(index)
+                LONG -> statement.bindLong(index, longBindings[index])
+                DOUBLE -> statement.bindDouble(index, doubleBindings[index])
+                STRING -> statement.bindText(index, requireNotNull(stringBindings[index]))
                 BLOB -> statement.bindBlob(index, requireNotNull(blobBindings[index]))
             }
         }
@@ -110,6 +128,8 @@ class RoomSQLiteQuery private constructor(@field:VisibleForTesting val capacity:
         bindingTypes[index] = STRING
         stringBindings[index] = value
     }
+
+    fun bindText(index: Int, value: String) = bindString(index, value)
 
     override fun bindBlob(index: Int, value: ByteArray) {
         bindingTypes[index] = BLOB

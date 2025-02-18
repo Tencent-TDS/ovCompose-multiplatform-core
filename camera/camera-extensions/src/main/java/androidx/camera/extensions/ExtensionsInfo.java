@@ -21,8 +21,6 @@ import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraFilter;
 import androidx.camera.core.CameraInfo;
@@ -42,6 +40,9 @@ import androidx.camera.extensions.internal.ExtensionsUseCaseConfigFactory;
 import androidx.camera.extensions.internal.VendorExtender;
 import androidx.camera.extensions.internal.Version;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -58,8 +59,7 @@ final class ExtensionsInfo {
     private static final String EXTENDED_CAMERA_CONFIG_PROVIDER_ID_PREFIX = ":camera:camera"
             + "-extensions-";
     private final CameraProvider mCameraProvider;
-    @NonNull
-    private VendorExtenderFactory mVendorExtenderFactory;
+    private @NonNull VendorExtenderFactory mVendorExtenderFactory;
 
     ExtensionsInfo(@NonNull CameraProvider cameraProvider) {
         mCameraProvider = cameraProvider;
@@ -81,8 +81,7 @@ final class ExtensionsInfo {
      *                                  contained
      *                                  extension related configuration in it.
      */
-    @NonNull
-    CameraSelector getExtensionCameraSelectorAndInjectCameraConfig(
+    @NonNull CameraSelector getExtensionCameraSelectorAndInjectCameraConfig(
             @NonNull CameraSelector baseCameraSelector,
             @ExtensionMode.Mode int mode) {
         if (!isExtensionAvailable(baseCameraSelector, mode)) {
@@ -148,8 +147,7 @@ final class ExtensionsInfo {
      * @throws IllegalArgumentException If no camera can be found to support the specified
      *                                  extension mode.
      */
-    @Nullable
-    Range<Long> getEstimatedCaptureLatencyRange(
+    @Nullable Range<Long> getEstimatedCaptureLatencyRange(
             @NonNull CameraSelector cameraSelector,
             @ExtensionMode.Mode int mode, @Nullable Size resolution) {
         // Adds the filter to find a CameraInfo of the Camera which supports the specified
@@ -254,8 +252,7 @@ final class ExtensionsInfo {
         }
     }
 
-    @NonNull
-    static VendorExtender getVendorExtender(@ExtensionMode.Mode int mode) {
+    static @NonNull VendorExtender getVendorExtender(@ExtensionMode.Mode int mode) {
         boolean isAdvancedExtenderSupported = isAdvancedExtenderSupported();
 
         VendorExtender vendorExtender;

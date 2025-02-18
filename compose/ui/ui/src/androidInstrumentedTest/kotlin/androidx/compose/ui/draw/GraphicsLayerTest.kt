@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.LightingColorFilter
 import androidx.compose.ui.graphics.OffsetEffect
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.RenderEffect
@@ -84,7 +85,7 @@ import androidx.compose.ui.scale
 import androidx.compose.ui.test.TestActivity
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
@@ -97,9 +98,11 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -112,12 +115,20 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class GraphicsLayerTest {
-    @Suppress("DEPRECATION")
-    @get:Rule
-    val activityTestRule =
-        androidx.test.rule.ActivityTestRule<TestActivity>(TestActivity::class.java)
+    @get:Rule val rule = createAndroidComposeRule<TestActivity>()
 
-    @get:Rule val rule = createComposeRule()
+    @After
+    fun teardown() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val activity = rule.activity
+        while (!activity.isDestroyed) {
+            instrumentation.runOnMainSync {
+                if (!activity.isDestroyed) {
+                    activity.finish()
+                }
+            }
+        }
+    }
 
     @Test
     fun testLayerBoundsPosition() {
@@ -428,6 +439,102 @@ class GraphicsLayerTest {
         }
     }
 
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun testColorFilter() {
+        val testTag = "colorFilterTag"
+        rule.setContent {
+            Box(modifier = Modifier.testTag(testTag).wrapContentSize()) {
+                Box(modifier = Modifier.requiredSize(10.dp).background(Color.Green))
+                Box(
+                    modifier =
+                        Modifier.requiredSize(10.dp)
+                            .graphicsLayer(
+                                colorFilter = LightingColorFilter(Color.White, Color.Red)
+                            )
+                            .background(Color.Black)
+                )
+            }
+        }
+
+        rule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap().apply {
+            assertColor(Color.Red, 0, 0)
+            assertColor(Color.Red, 0, height - 1)
+            assertColor(Color.Red, width / 2 - 10, height / 2)
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun testColorFilterAsScope() {
+        val testTag = "colorFilterTag"
+        rule.setContent {
+            Box(modifier = Modifier.testTag(testTag).wrapContentSize()) {
+                Box(modifier = Modifier.requiredSize(10.dp).background(Color.Green))
+                Box(
+                    modifier =
+                        Modifier.requiredSize(10.dp)
+                            .graphicsLayer {
+                                colorFilter = LightingColorFilter(Color.White, Color.Red)
+                            }
+                            .background(Color.Black)
+                )
+            }
+        }
+
+        rule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap().apply {
+            assertColor(Color.Red, 0, 0)
+            assertColor(Color.Red, 0, height - 1)
+            assertColor(Color.Red, width / 2 - 10, height / 2)
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun testBlendMode() {
+        val testTag = "blendModeTag"
+        rule.setContent {
+            Box(modifier = Modifier.testTag(testTag).wrapContentSize()) {
+                Box(modifier = Modifier.requiredSize(10.dp).background(Color.Yellow))
+                Box(
+                    modifier =
+                        Modifier.requiredSize(10.dp)
+                            .graphicsLayer(blendMode = BlendMode.Dst)
+                            .background(Color.Blue)
+                )
+            }
+        }
+
+        rule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap().apply {
+            assertColor(Color.Yellow, 0, 0)
+            assertColor(Color.Yellow, 0, height - 1)
+            assertColor(Color.Yellow, width / 2 - 10, height / 2)
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun testBlendModeAsScope() {
+        val testTag = "blendModeTag"
+        rule.setContent {
+            Box(modifier = Modifier.testTag(testTag).wrapContentSize()) {
+                Box(modifier = Modifier.requiredSize(10.dp).background(Color.Yellow))
+                Box(
+                    modifier =
+                        Modifier.requiredSize(10.dp)
+                            .graphicsLayer { blendMode = BlendMode.Dst }
+                            .background(Color.Blue)
+                )
+            }
+        }
+
+        rule.onNodeWithTag(testTag).captureToImage().asAndroidBitmap().apply {
+            assertColor(Color.Yellow, 0, 0)
+            assertColor(Color.Yellow, 0, height - 1)
+            assertColor(Color.Yellow, width / 2 - 10, height / 2)
+        }
+    }
+
     @Composable
     fun BoxBlur(tag: String, size: Float, blurRadius: Float) {
         BoxRenderEffect(
@@ -478,6 +585,14 @@ class GraphicsLayerTest {
             }
             assertTrue(nonPureBlueCount > 0)
         }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
+    fun testZeroRadiusBlurDoesNotCrash() {
+        val tag = "blurTag"
+        val size = 100f
+        rule.setContent { BoxBlur(tag, size, 0f) }
     }
 
     @Test

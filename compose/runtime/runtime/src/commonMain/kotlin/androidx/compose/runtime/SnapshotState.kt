@@ -19,7 +19,9 @@
 
 package androidx.compose.runtime
 
+import androidx.compose.runtime.snapshots.GlobalSnapshot
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotId
 import androidx.compose.runtime.snapshots.SnapshotMutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -27,8 +29,10 @@ import androidx.compose.runtime.snapshots.SnapshotStateSet
 import androidx.compose.runtime.snapshots.StateFactoryMarker
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.StateRecord
+import androidx.compose.runtime.snapshots.currentSnapshot
 import androidx.compose.runtime.snapshots.overwritable
 import androidx.compose.runtime.snapshots.readable
+import androidx.compose.runtime.snapshots.toSnapshotId
 import androidx.compose.runtime.snapshots.withCurrent
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
@@ -140,12 +144,11 @@ internal open class SnapshotMutableStateImpl<T>(
             }
 
     private var next: StateStateRecord<T> =
-        StateStateRecord(value).also {
-            if (Snapshot.isInSnapshot) {
-                it.next =
-                    StateStateRecord(value).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+        currentSnapshot().let { snapshot ->
+            StateStateRecord(snapshot.snapshotId, value).also {
+                if (snapshot !is GlobalSnapshot) {
+                    it.next = StateStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), value)
+                }
             }
         }
 
@@ -171,7 +174,7 @@ internal open class SnapshotMutableStateImpl<T>(
             val merged =
                 policy.merge(previousRecord.value, currentRecord.value, appliedRecord.value)
             if (merged != null) {
-                appliedRecord.create().also { (it as StateStateRecord<T>).value = merged }
+                appliedRecord.create(appliedRecord.snapshotId).also { it.value = merged }
             } else {
                 null
             }
@@ -181,13 +184,17 @@ internal open class SnapshotMutableStateImpl<T>(
     override fun toString(): String =
         next.withCurrent { "MutableState(value=${it.value})@${hashCode()}" }
 
-    private class StateStateRecord<T>(myValue: T) : StateRecord() {
+    private class StateStateRecord<T>(snapshotId: SnapshotId, myValue: T) :
+        StateRecord(snapshotId) {
         override fun assign(value: StateRecord) {
             @Suppress("UNCHECKED_CAST")
             this.value = (value as StateStateRecord<T>).value
         }
 
-        override fun create(): StateRecord = StateStateRecord(value)
+        override fun create() = StateStateRecord(currentSnapshot().snapshotId, value)
+
+        override fun create(snapshotId: SnapshotId) =
+            StateStateRecord(currentSnapshot().snapshotId, value)
 
         var value: T = myValue
     }

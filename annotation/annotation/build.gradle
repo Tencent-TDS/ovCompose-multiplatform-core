@@ -5,7 +5,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 import androidx.build.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
@@ -17,11 +17,15 @@ plugins {
 
 androidXMultiplatform {
     androidNative()
-    jvm()
-    mac()
-    linux()
-    linuxArm64()
     ios()
+    js()
+    jvm()
+    linux()
+    mac()
+    mingwX64()
+    tvos()
+    wasmJs()
+    watchos()
 
     defaultPlatform(PlatformIdentifier.JVM)
 
@@ -33,7 +37,15 @@ androidXMultiplatform {
         }
 
         nonJvmMain {
-            dependsOn commonMain
+            dependsOn(commonMain)
+        }
+
+        wasmJsMain {
+            dependsOn(nonJvmMain)
+        }
+
+        jsMain {
+            dependsOn(nonJvmMain)
         }
 
         targets.configureEach { target ->
@@ -43,7 +55,6 @@ androidXMultiplatform {
                 }
             }
         }
-
 
         // Workaround for https://youtrack.jetbrains.com/issue/KT-51763
         // Make sure commonization runs before any compilation task.
@@ -77,9 +88,9 @@ artifacts {
 
 androidx {
     name = "Annotation"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.ANNOTATION
-    kotlinTarget = KotlinTarget.KOTLIN_1_7
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2013"
     description = "Provides source annotations for tooling and readability."
 }

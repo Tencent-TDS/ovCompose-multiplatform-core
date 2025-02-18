@@ -18,7 +18,6 @@ package androidx.wear.compose.material3.demos
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,7 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.Text
@@ -35,6 +33,7 @@ import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
 import androidx.wear.compose.material3.samples.FilledTextButtonSample
 import androidx.wear.compose.material3.samples.FilledTonalTextButtonSample
+import androidx.wear.compose.material3.samples.FilledVariantTextButtonSample
 import androidx.wear.compose.material3.samples.LargeFilledTonalTextButtonSample
 import androidx.wear.compose.material3.samples.OutlinedTextButtonSample
 import androidx.wear.compose.material3.samples.TextButtonSample
@@ -44,10 +43,7 @@ import androidx.wear.compose.material3.touchTargetAwareSize
 @Composable
 fun TextButtonDemo() {
     val context = LocalContext.current
-    ScalingLazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    ScalingLazyDemo {
         item { ListHeader { Text("Text Button") } }
         item {
             Row {
@@ -84,6 +80,20 @@ fun TextButtonDemo() {
                 }
             }
         }
+        item { ListHeader { Text("Filled Variant") } }
+        item {
+            Row {
+                FilledVariantTextButtonSample()
+                Spacer(modifier = Modifier.width(5.dp))
+                TextButton(
+                    onClick = {},
+                    enabled = false,
+                    colors = TextButtonDefaults.filledVariantTextButtonColors()
+                ) {
+                    Text(text = "ABC")
+                }
+            }
+        }
         item { ListHeader { Text("Outlined") } }
         item {
             Row {
@@ -101,6 +111,26 @@ fun TextButtonDemo() {
         }
         item { ListHeader { Text("With onLongClick") } }
         item { TextButtonWithOnLongClickSample { showOnLongClickToast(context) } }
+        item { ListHeader { Text("Animated") } }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledTextButtonColors(),
+                    shapes = TextButtonDefaults.animatedShapes(),
+                ) {
+                    Text(text = "ABC")
+                }
+                Spacer(modifier = Modifier.width(5.dp))
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledVariantTextButtonColors(),
+                    shapes = TextButtonDefaults.animatedShapes(),
+                ) {
+                    Text(text = "ABC")
+                }
+            }
+        }
         item { ListHeader { Text("Sizes") } }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -471,7 +471,6 @@ fun Expandables() {
     }
 }
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 fun FocusCoordinator() {
     var selected by remember { mutableIntStateOf(0) }
@@ -645,7 +644,7 @@ fun SwipeToReveal() {
             Box(
                 modifier = Modifier.fillMaxSize().clickable { /* Add the primary action */ },
             ) {
-                if (abs(state.offset) > revealOffset) {
+                if (abs(state.offset) > state.revealThreshold) {
                     Spacer(Modifier.size(5.dp))
                     Text("Clear")
                 }

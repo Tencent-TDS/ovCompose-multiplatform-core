@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.util.fastSumBy
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineScope
 
@@ -123,6 +124,8 @@ internal class LazyStaggeredGridMeasureResult(
     val firstVisibleItemScrollOffsets: IntArray,
     val consumedScroll: Float,
     val measureResult: MeasureResult,
+    /** The amount of scroll-back that happened due to reaching the end of the list. */
+    val scrollBackAmount: Float,
     val canScrollForward: Boolean,
     val isVertical: Boolean,
     /** True when extra remeasure is required. */
@@ -159,7 +162,10 @@ internal class LazyStaggeredGridMeasureResult(
      *   If If new layout info is returned, only the placement phase is needed to apply new offsets.
      *   If null is returned, it means we have to rerun the full measure phase to apply the [delta].
      */
-    fun copyWithScrollDeltaWithoutRemeasure(delta: Int): LazyStaggeredGridMeasureResult? {
+    fun copyWithScrollDeltaWithoutRemeasure(
+        delta: Int,
+        updateAnimations: Boolean
+    ): LazyStaggeredGridMeasureResult? {
         if (
             remeasureNeeded ||
                 visibleItemsInfo.isEmpty() ||
@@ -168,6 +174,7 @@ internal class LazyStaggeredGridMeasureResult(
         ) {
             return null
         }
+        val mainAxisMax = viewportEndOffset - afterContentPadding
         visibleItemsInfo.fastForEach {
             // non scrollable items require special handling.
             if (
@@ -192,7 +199,7 @@ internal class LazyStaggeredGridMeasureResult(
                 if (!canApply) return null
             }
             // item is partially visible at the bottom.
-            if (it.mainAxisOffset + it.mainAxisSizeWithSpacings >= viewportEndOffset) {
+            if (it.mainAxisOffset + it.mainAxisSizeWithSpacings >= mainAxisMax) {
                 val canApply =
                     if (delta < 0) { // scrolling forward
                         it.mainAxisOffset + it.mainAxisSizeWithSpacings - viewportEndOffset > -delta
@@ -202,7 +209,7 @@ internal class LazyStaggeredGridMeasureResult(
                 if (!canApply) return null
             }
         }
-        visibleItemsInfo.fastForEach { it.applyScrollDelta(delta) }
+        visibleItemsInfo.fastForEach { it.applyScrollDelta(delta, updateAnimations) }
         return LazyStaggeredGridMeasureResult(
             firstVisibleItemIndices = firstVisibleItemIndices,
             firstVisibleItemScrollOffsets =
@@ -210,6 +217,7 @@ internal class LazyStaggeredGridMeasureResult(
                     firstVisibleItemScrollOffsets[index] - delta
                 },
             consumedScroll = delta.toFloat(),
+            scrollBackAmount = scrollBackAmount,
             measureResult = measureResult,
             canScrollForward =
                 canScrollForward || delta > 0, // we scrolled backward, so now we can scroll forward
@@ -261,5 +269,28 @@ internal val EmptyLazyStaggeredGridLayoutInfo =
         slots = LazyStaggeredGridSlots(EmptyArray, EmptyArray),
         spanProvider = LazyStaggeredGridSpanProvider(MutableIntervalList()),
         density = Density(1f),
+        scrollBackAmount = 0f,
         coroutineScope = CoroutineScope(EmptyCoroutineContext)
     )
+
+internal fun LazyStaggeredGridLayoutInfo.visibleItemsAverageSize(): Int {
+    val visibleItems = visibleItemsInfo
+    if (visibleItems.isEmpty()) return 0
+    val itemSizeSum =
+        visibleItems.fastSumBy {
+            if (orientation == Orientation.Vertical) {
+                it.size.height
+            } else {
+                it.size.width
+            }
+        }
+    return itemSizeSum / visibleItems.size + mainAxisItemSpacing
+}
+
+internal val LazyStaggeredGridLayoutInfo.singleAxisViewportSize: Int
+    get() =
+        if (orientation == Orientation.Vertical) {
+            viewportSize.height
+        } else {
+            viewportSize.width
+        }

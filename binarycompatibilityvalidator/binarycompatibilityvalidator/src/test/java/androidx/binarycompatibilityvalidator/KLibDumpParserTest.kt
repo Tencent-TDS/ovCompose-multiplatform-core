@@ -21,6 +21,7 @@ import kotlin.test.assertFailsWith
 import org.jetbrains.kotlin.library.abi.AbiClassKind
 import org.jetbrains.kotlin.library.abi.AbiCompoundName
 import org.jetbrains.kotlin.library.abi.AbiModality
+import org.jetbrains.kotlin.library.abi.AbiProperty
 import org.jetbrains.kotlin.library.abi.AbiQualifiedName
 import org.jetbrains.kotlin.library.abi.AbiSignatureVersion
 import org.jetbrains.kotlin.library.abi.ExperimentalLibraryAbiReader
@@ -33,6 +34,7 @@ class KlibDumpParserTest {
     private val collectionDump = getJavaResource("collection.txt").readText()
     private val datastoreCoreDump = getJavaResource("datastore.txt").readText()
     private val annotationDump = getJavaResource("annotation.txt").readText()
+    private val datastorePreferencesDump = getJavaResource("datastore-preferences.txt").readText()
     private val uniqueTargetDump = getJavaResource("unique_targets.txt").readText()
 
     @Test
@@ -87,6 +89,24 @@ class KlibDumpParserTest {
     }
 
     @Test
+    fun parseAClassBug() {
+        val input =
+            """
+            abstract interface androidx.graphics.shapes/MutablePoint { // androidx.graphics.shapes/MutablePoint|null[0]
+                abstract var x // androidx.graphics.shapes/MutablePoint.x|{}x[0]
+                    abstract fun <get-x>(): kotlin/Float // androidx.graphics.shapes/MutablePoint.x.<get-x>|<get-x>(){}[0]
+                    abstract fun <set-x>(kotlin/Float) // androidx.graphics.shapes/MutablePoint.x.<set-x>|<set-x>(kotlin.Float){}[0]
+                abstract var y // androidx.graphics.shapes/MutablePoint.y|{}y[0]
+                    abstract fun <get-y>(): kotlin/Float // androidx.graphics.shapes/MutablePoint.y.<get-y>|<get-y>(){}[0]
+                    abstract fun <set-y>(kotlin/Float) // androidx.graphics.shapes/MutablePoint.y.<set-y>|<set-y>(kotlin.Float){}[0]
+            }
+        """
+                .trimIndent()
+        val parsed = KlibDumpParser(input).parseClass()
+        assertThat(parsed.declarations.filterIsInstance<AbiProperty>()).hasSize(2)
+    }
+
+    @Test
     fun parseAnAnnotationClass() {
         val input = "open annotation class my.lib/MyClass : kotlin/Annotation"
         val parsed = KlibDumpParser(input).parseClass()
@@ -94,6 +114,33 @@ class KlibDumpParserTest {
 
         assertThat(parsed.qualifiedName.toString()).isEqualTo("my.lib/MyClass")
         assertThat(parsed.kind).isEqualTo(AbiClassKind.ANNOTATION_CLASS)
+    }
+
+    @Test
+    fun parseASerializerClass() {
+        val input =
+            """
+                final object ${'$'}serializer : kotlinx.serialization.internal/GeneratedSerializer<androidx.room.migration.bundle/DatabaseBundle> { // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer|null[0]
+                    final val descriptor // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer.descriptor|{}descriptor[0]
+                        final fun <get-descriptor>(): kotlinx.serialization.descriptors/SerialDescriptor // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer.descriptor.<get-descriptor>|<get-descriptor>(){}[0]
+
+                    final fun childSerializers(): kotlin/Array<kotlinx.serialization/KSerializer<*>> // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer.childSerializers|childSerializers(){}[0]
+                    final fun deserialize(kotlinx.serialization.encoding/Decoder): androidx.room.migration.bundle/DatabaseBundle // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer.deserialize|deserialize(kotlinx.serialization.encoding.Decoder){}[0]
+                    final fun serialize(kotlinx.serialization.encoding/Encoder, androidx.room.migration.bundle/DatabaseBundle) // androidx.room.migration.bundle/DatabaseBundle.${'$'}serializer.serialize|serialize(kotlinx.serialization.encoding.Encoder;androidx.room.migration.bundle.DatabaseBundle){}[0]
+                }
+        """
+                .trimIndent()
+        val parsed =
+            KlibDumpParser(input)
+                .parseClass(
+                    AbiQualifiedName(
+                        AbiCompoundName("androidx.room.migration.bundle"),
+                        AbiCompoundName("DatabaseBundle")
+                    )
+                )
+        assertThat(parsed).isNotNull()
+        assertThat(parsed.qualifiedName.toString())
+            .isEqualTo("androidx.room.migration.bundle/DatabaseBundle.\$serializer")
     }
 
     @Test
@@ -170,6 +217,21 @@ class KlibDumpParserTest {
     }
 
     @Test
+    fun parseAComplexFunctionWithK2Formatting() {
+        val input =
+            "final inline fun <#A: kotlin/Any, #B: kotlin/Any> androidx.collection/" +
+                "lruCache(kotlin/Int, crossinline kotlin/Function2<#A, #B, kotlin/Int> = ..., " +
+                "crossinline kotlin/Function1<#A, #B?> = ..., " +
+                "crossinline kotlin/Function4<kotlin/Boolean, #A, #B, #B?, kotlin/Unit> = ...): " +
+                "androidx.collection/LruCache<#A, #B>"
+        val parsed = KlibDumpParser(input).parseFunction()
+        assertThat(parsed.modality).isEqualTo(AbiModality.FINAL)
+        assertThat(parsed.typeParameters).hasSize(2)
+        assertThat(parsed.qualifiedName.toString()).isEqualTo("androidx.collection/lruCache")
+        assertThat(parsed.valueParameters).hasSize(4)
+    }
+
+    @Test
     fun parseANestedValProperty() {
         val input = "final val size\n        final fun <get-size>(): kotlin/Int"
         val parsed =
@@ -200,6 +262,19 @@ class KlibDumpParserTest {
                 )
         assertThat(parsed.getter).isNotNull()
         assertThat(parsed.setter).isNotNull()
+    }
+
+    @Test
+    fun parseAPropertyWithStarParamsInReceiver() {
+        val input =
+            """
+            final val androidx.compose.animation.core/isFinished
+                final fun (androidx.compose.animation.core/AnimationState<*, *>).<get-isFinished>(): kotlin/Boolean
+        """
+                .trimIndent()
+        val parsed = KlibDumpParser(input).parseProperty()
+        assertThat(parsed.getter).isNotNull()
+        assertThat(parsed.getter?.hasExtensionReceiverParameter).isTrue()
     }
 
     @Test
@@ -256,6 +331,12 @@ class KlibDumpParserTest {
     @Test
     fun parseFullAnnotationKlibDumpSucceeds() {
         val parsed = KlibDumpParser(annotationDump).parse()
+        assertThat(parsed).isNotNull()
+    }
+
+    @Test
+    fun parseFullDatastorePreferencesKlibDumpSucceeds() {
+        val parsed = KlibDumpParser(datastorePreferencesDump).parse()
         assertThat(parsed).isNotNull()
     }
 

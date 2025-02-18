@@ -114,6 +114,16 @@ class OnApplyWindowInsetsListenerTest(private val config: TestConfig) {
                     orientation = LinearLayout.VERTICAL
                 }
 
+            // Calling setContentView when the window is attached will make the window dispatch
+            // WindowInsets again. To avoid the insets dispatched by window affecting this test,
+            // here:
+            // 1. exits the onActivity scope after calling setContentView,
+            // 2. lets the window dispatch WindowInsets, and then
+            // 3. adds the rest views to viewRoot in the next message.
+            it.setContentView(viewRoot)
+        }
+
+        activityTestRule.scenario.onActivity {
             viewPager =
                 ViewPager2(it).apply {
                     layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f)
@@ -131,8 +141,6 @@ class OnApplyWindowInsetsListenerTest(private val config: TestConfig) {
                 tag = "SIBLING"
                 viewRoot.addView(this)
             }
-
-            it.setContentView(viewRoot)
         }
     }
 

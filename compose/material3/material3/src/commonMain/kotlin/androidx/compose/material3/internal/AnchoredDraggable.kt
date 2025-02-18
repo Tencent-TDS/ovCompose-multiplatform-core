@@ -218,7 +218,7 @@ internal class AnchoredDraggableState<T>(
     initialValue: T,
     internal val positionalThreshold: (totalDistance: Float) -> Float,
     internal val velocityThreshold: () -> Float,
-    val animationSpec: AnimationSpec<Float>,
+    val animationSpec: () -> AnimationSpec<Float>,
     internal val confirmValueChange: (newValue: T) -> Boolean = { true }
 ) {
 
@@ -244,7 +244,7 @@ internal class AnchoredDraggableState<T>(
         anchors: DraggableAnchors<T>,
         positionalThreshold: (totalDistance: Float) -> Float,
         velocityThreshold: () -> Float,
-        animationSpec: AnimationSpec<Float>,
+        animationSpec: () -> AnimationSpec<Float>,
         confirmValueChange: (newValue: T) -> Boolean = { true }
     ) : this(
         initialValue,
@@ -628,7 +628,7 @@ internal class AnchoredDraggableState<T>(
     companion object {
         /** The default [Saver] implementation for [AnchoredDraggableState]. */
         fun <T : Any> Saver(
-            animationSpec: AnimationSpec<Float>,
+            animationSpec: () -> AnimationSpec<Float>,
             confirmValueChange: (T) -> Boolean,
             positionalThreshold: (distance: Float) -> Float,
             velocityThreshold: () -> Float,
@@ -682,7 +682,7 @@ internal suspend fun <T> AnchoredDraggableState<T>.animateTo(
         val targetOffset = anchors.positionOf(latestTarget)
         if (!targetOffset.isNaN()) {
             var prev = if (offset.isNaN()) 0f else offset
-            animate(prev, targetOffset, velocity, animationSpec) { value, velocity ->
+            animate(prev, targetOffset, velocity, animationSpec.invoke()) { value, velocity ->
                 // Our onDrag coerces the value within the bounds, but an animation may
                 // overshoot, for example a spring animation or an overshooting interpolator
                 // We respect the user's intention and allow the overshoot, but still use
@@ -701,12 +701,8 @@ internal object AnchoredDraggableDefaults {
     val AnimationSpec = SpringSpec<Float>()
 }
 
-private class AnchoredDragFinishedSignal : CancellationException() {
-    override fun fillInStackTrace(): Throwable {
-        stackTrace = emptyArray()
-        return this
-    }
-}
+internal class AnchoredDragFinishedSignal :
+    PlatformOptimizedCancellationException("Anchored drag finished")
 
 private suspend fun <I> restartable(inputs: () -> I, block: suspend (I) -> Unit) {
     try {
@@ -861,7 +857,14 @@ private class DraggableAnchorsNode<T>(
                 } else state.requireOffset()
             val xOffset = if (orientation == Orientation.Horizontal) offset else 0f
             val yOffset = if (orientation == Orientation.Vertical) offset else 0f
-            placeable.place(xOffset.roundToInt(), yOffset.roundToInt())
+            // Tagging as motion frame of reference placement, meaning the placement
+            // contains scrolling. This allows the consumer of this placement offset to
+            // differentiate this offset vs. offsets from structural changes. Generally
+            // speaking, this signals a preference to directly apply changes rather than
+            // animating, to avoid a chasing effect to scrolling.
+            withMotionFrameOfReferencePlacement {
+                placeable.place(xOffset.roundToInt(), yOffset.roundToInt())
+            }
         }
     }
 }

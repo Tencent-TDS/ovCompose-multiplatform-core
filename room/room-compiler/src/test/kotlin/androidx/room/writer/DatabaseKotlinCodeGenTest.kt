@@ -146,6 +146,7 @@ class DatabaseKotlinCodeGenTest {
             }
 
             @Entity
+            @ConsistentCopyVisibility
             internal data class MyEntity internal constructor(
                 @PrimaryKey
                 var pk: Int
@@ -248,6 +249,7 @@ class DatabaseKotlinCodeGenTest {
         runKspTest(
             sources = sources,
             options = mapOf(Context.BooleanProcessorOptions.GENERATE_KOTLIN.argName to "true"),
+            kotlincArguments = listOf("-jvm-target=11")
         ) {
             val databaseFqn = "androidx.room.Database"
             DatabaseProcessingStep()

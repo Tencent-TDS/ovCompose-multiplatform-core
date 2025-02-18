@@ -19,6 +19,7 @@ package androidx.core.telecom.test
 import android.os.Build.VERSION_CODES
 import android.telecom.Call
 import android.telecom.DisconnectCause
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallControlResult
@@ -26,16 +27,19 @@ import androidx.core.telecom.CallControlScope
 import androidx.core.telecom.CallEndpointCompat
 import androidx.core.telecom.internal.utils.Utils
 import androidx.core.telecom.test.utils.BaseTelecomTest
-import androidx.core.telecom.test.utils.MockInCallServiceDelegate
+import androidx.core.telecom.test.utils.TestInCallService
 import androidx.core.telecom.test.utils.TestUtils
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,7 +47,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -70,6 +73,10 @@ class BasicCallControlsTest : BaseTelecomTest() {
     @After
     fun onDestroy() {
         Utils.resetUtils()
+    }
+
+    companion object {
+        val TAG = BasicCallControlsTest::class.simpleName
     }
 
     /**
@@ -135,7 +142,6 @@ class BasicCallControlsTest : BaseTelecomTest() {
      * [CallEndpointCompat] via [CallControlScope.requestEndpointChange]. The call should use the
      * *V2 platform APIs* under the hood.
      */
-    @Ignore // b/329357697  TODO:: re-enable when cache_call_audio_callbacks is enabled in builds
     @SdkSuppress(minSdkVersion = VERSION_CODES.UPSIDE_DOWN_CAKE)
     @LargeTest
     @Test(timeout = 10000)
@@ -149,7 +155,6 @@ class BasicCallControlsTest : BaseTelecomTest() {
      * mute/unmute the call are reflected in [CallControlScope.isMuted]. The call should use the *V2
      * platform APIs* under the hood.
      */
-    @Ignore // b/323006293  TODO:: re-enable when cache_call_audio_callbacks is enabled in builds
     @SdkSuppress(minSdkVersion = VERSION_CODES.UPSIDE_DOWN_CAKE)
     @LargeTest
     @Test(timeout = 10000)
@@ -276,6 +281,21 @@ class BasicCallControlsTest : BaseTelecomTest() {
         }
     }
 
+    /** Add test coverage for [CallControlScope.getCallId] */
+    @SdkSuppress(minSdkVersion = VERSION_CODES.O)
+    @LargeTest
+    @Test
+    fun testGetCallId() {
+        runBlocking {
+            assertWithinTimeout_addCall(TestUtils.OUTGOING_CALL_ATTRIBUTES) {
+                launch {
+                    assertNotNull(getCallId())
+                    disconnect(DisconnectCause(DisconnectCause.LOCAL))
+                }
+            }
+        }
+    }
+
     /**
      * ********************************************************************************************
      * Helpers
@@ -293,23 +313,25 @@ class BasicCallControlsTest : BaseTelecomTest() {
      */
     private fun runBlocking_addCallAndSetActive(callAttributesCompat: CallAttributesCompat) {
         runBlocking {
-            assertWithinTimeout_addCall(callAttributesCompat) {
-                launch {
-                    val call = TestUtils.waitOnInCallServiceToReachXCalls(1)
-                    assertNotNull("The returned Call object is <NULL>", call)
-                    if (callAttributesCompat.isOutgoingCall()) {
-                        assertEquals(CallControlResult.Success(), setActive())
-                    } else {
+            usingIcs { ics ->
+                assertWithinTimeout_addCall(callAttributesCompat) {
+                    launch {
+                        val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)
+                        assertNotNull("The returned Call object is <NULL>", call)
+                        if (callAttributesCompat.isOutgoingCall()) {
+                            assertEquals(CallControlResult.Success(), setActive())
+                        } else {
+                            assertEquals(
+                                CallControlResult.Success(),
+                                answer(CallAttributesCompat.CALL_TYPE_AUDIO_CALL)
+                            )
+                        }
+                        TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
                         assertEquals(
                             CallControlResult.Success(),
-                            answer(CallAttributesCompat.CALL_TYPE_AUDIO_CALL)
+                            disconnect(DisconnectCause(DisconnectCause.LOCAL))
                         )
                     }
-                    TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
-                    assertEquals(
-                        CallControlResult.Success(),
-                        disconnect(DisconnectCause(DisconnectCause.LOCAL))
-                    )
                 }
             }
         }
@@ -318,20 +340,22 @@ class BasicCallControlsTest : BaseTelecomTest() {
     // similar to runBlocking_addCallAndSetActive except for toggling
     private fun runBlocking_ToggleCallAsserts(callAttributesCompat: CallAttributesCompat) {
         runBlocking {
-            assertWithinTimeout_addCall(callAttributesCompat) {
-                launch {
-                    val call = TestUtils.waitOnInCallServiceToReachXCalls(1)
-                    assertNotNull("The returned Call object is <NULL>", call)
-                    repeat(NUM_OF_TIMES_TO_TOGGLE) {
-                        assertEquals(CallControlResult.Success(), setActive())
-                        TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
-                        assertEquals(CallControlResult.Success(), setInactive())
-                        TestUtils.waitOnCallState(call, Call.STATE_HOLDING)
+            usingIcs { ics ->
+                assertWithinTimeout_addCall(callAttributesCompat) {
+                    launch {
+                        val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)
+                        assertNotNull("The returned Call object is <NULL>", call)
+                        repeat(NUM_OF_TIMES_TO_TOGGLE) {
+                            assertEquals(CallControlResult.Success(), setActive())
+                            TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
+                            assertEquals(CallControlResult.Success(), setInactive())
+                            TestUtils.waitOnCallState(call, Call.STATE_HOLDING)
+                        }
+                        assertEquals(
+                            CallControlResult.Success(),
+                            disconnect(DisconnectCause(DisconnectCause.LOCAL))
+                        )
                     }
-                    assertEquals(
-                        CallControlResult.Success(),
-                        disconnect(DisconnectCause(DisconnectCause.LOCAL))
-                    )
                 }
             }
         }
@@ -339,17 +363,19 @@ class BasicCallControlsTest : BaseTelecomTest() {
 
     private fun runBlocking_ShouldFailHold(callAttributesCompat: CallAttributesCompat) {
         runBlocking {
-            assertWithinTimeout_addCall(callAttributesCompat) {
-                launch {
-                    val call = TestUtils.waitOnInCallServiceToReachXCalls(1)
-                    assertNotNull("The returned Call object is <NULL>", call)
-                    assertEquals(CallControlResult.Success(), setActive())
-                    TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
-                    assertNotEquals(CallControlResult.Success(), setInactive())
-                    assertEquals(
-                        CallControlResult.Success(),
-                        disconnect(DisconnectCause(DisconnectCause.LOCAL))
-                    )
+            usingIcs { ics ->
+                assertWithinTimeout_addCall(callAttributesCompat) {
+                    launch {
+                        val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)
+                        assertNotNull("The returned Call object is <NULL>", call)
+                        assertEquals(CallControlResult.Success(), setActive())
+                        TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
+                        assertNotEquals(CallControlResult.Success(), setInactive())
+                        assertEquals(
+                            CallControlResult.Success(),
+                            disconnect(DisconnectCause(DisconnectCause.LOCAL))
+                        )
+                    }
                 }
             }
         }
@@ -392,7 +418,7 @@ class BasicCallControlsTest : BaseTelecomTest() {
 
     /**
      * This helper verifies that [CallControlScope.isMuted] properly collects updates to the mute
-     * state via [MockInCallServiceDelegate.setMuted].
+     * state via [TestInCallService.setMuted].
      *
      * Note: Due to the possibility that the channel can receive stale updates, it's necessary to
      * keep receiving those updates until the state does change. To prevent the test execution from
@@ -401,40 +427,40 @@ class BasicCallControlsTest : BaseTelecomTest() {
     @Suppress("deprecation")
     private fun verifyMuteStateChange() {
         runBlocking {
-            assertWithinTimeout_addCall(TestUtils.OUTGOING_CALL_ATTRIBUTES) {
-                launch {
-                    val call = TestUtils.waitOnInCallServiceToReachXCalls(1)
-                    assertNotNull("The returned Call object is <NULL>", call)
-                    assertEquals(CallControlResult.Success(), setActive())
-                    TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
-                    // Grab initial mute state
-                    val initialMuteState = isMuted.first()
-                    // Toggle to other state
-                    val setMuteStateTo = !initialMuteState
-                    var muteStateChanged = false
-                    // Toggle mute via ICS
-                    MockInCallServiceDelegate.setMute(setMuteStateTo)
-                    runBlocking {
-                        launch {
-                            isMuted.collect {
-                                if (it != initialMuteState) {
-                                    muteStateChanged = true
-                                    // Cancel the coroutine to ensure we don't block on waiting for
-                                    // updates and force a timeout.
-                                    cancel()
-                                }
-                            }
-                        }
+            usingIcs { ics ->
+                assertWithinTimeout_addCall(TestUtils.OUTGOING_CALL_ATTRIBUTES) {
+                    launch {
+                        val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)
+                        assertNotNull("The returned Call object is <NULL>", call)
+                        assertEquals(CallControlResult.Success(), setActive())
+                        TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
+                        // Grab initial mute state
+                        val initialMuteState = isMuted.first()
+                        // Toggle mute via ICS
+                        ics.setMuted(!initialMuteState)
+                        waitForMuteStateChange(!initialMuteState, isMuted)
+                        assertEquals(
+                            CallControlResult.Success(),
+                            disconnect(DisconnectCause(DisconnectCause.LOCAL))
+                        )
                     }
-                    // Ensure that the updated mute state was collected
-                    assertTrue(muteStateChanged)
-                    assertEquals(
-                        CallControlResult.Success(),
-                        disconnect(DisconnectCause(DisconnectCause.LOCAL))
-                    )
                 }
             }
         }
+    }
+
+    private suspend fun waitForMuteStateChange(isMuted: Boolean, isMutedFlow: Flow<Boolean>) {
+        Log.i(TAG, "waitForGlobalMuteState: v=[$isMuted]")
+        val result =
+            withTimeoutOrNull(5000) {
+                isMutedFlow
+                    .filter {
+                        Log.i(TAG, "it=[$isMuted], isMuted=[$isMuted]")
+                        it == isMuted
+                    }
+                    .firstOrNull()
+            }
+        assertEquals("Global Mute State never reached the expected state", isMuted, result)
     }
 
     private fun getAnotherEndpoint(

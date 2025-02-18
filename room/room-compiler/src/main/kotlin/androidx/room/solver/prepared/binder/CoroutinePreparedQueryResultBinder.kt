@@ -17,14 +17,12 @@
 package androidx.room.solver.prepared.binder
 
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
-import androidx.room.compiler.codegen.XMemberName.Companion.packageMember
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.box
 import androidx.room.ext.InvokeWithLambdaParameter
 import androidx.room.ext.LambdaSpec
-import androidx.room.ext.RoomTypeNames
+import androidx.room.ext.RoomMemberNames.DB_UTIL_PERFORM_SUSPENDING
 import androidx.room.ext.SQLiteDriverTypeNames
 import androidx.room.solver.CodeGenScope
 import androidx.room.solver.prepared.result.PreparedQueryResultAdapter
@@ -34,17 +32,6 @@ class CoroutinePreparedQueryResultBinder(
     adapter: PreparedQueryResultAdapter?,
     private val continuationParamName: String,
 ) : PreparedQueryResultBinder(adapter) {
-
-    override fun executeAndReturn(
-        prepareQueryStmtBlock: CodeGenScope.() -> String,
-        preparedStmtProperty: XPropertySpec?,
-        dbProperty: XPropertySpec,
-        scope: CodeGenScope
-    ) {
-        error("Wrong executeAndReturn invoked")
-    }
-
-    override fun isMigratedToDriver(): Boolean = true
 
     override fun executeAndReturn(
         sqlQueryVar: String,
@@ -57,7 +44,7 @@ class CoroutinePreparedQueryResultBinder(
         val performBlock =
             InvokeWithLambdaParameter(
                 scope = scope,
-                functionName = RoomTypeNames.DB_UTIL.packageMember("performSuspending"),
+                functionName = DB_UTIL_PERFORM_SUSPENDING,
                 argFormat = listOf("%N", "%L", "%L"),
                 args = listOf(dbProperty, /* isReadOnly= */ false, /* inTransaction= */ true),
                 continuationParamName = continuationParamName,

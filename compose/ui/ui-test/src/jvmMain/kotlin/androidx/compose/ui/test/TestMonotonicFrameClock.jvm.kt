@@ -17,6 +17,8 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.MonotonicFrameClock
+import androidx.compose.ui.test.platform.makeSynchronizedObject
+import androidx.compose.ui.test.platform.synchronized
 import kotlin.coroutines.ContinuationInterceptor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +41,7 @@ private const val DefaultFrameDelay = 16_000_000L
  * [coroutineScope] contain the test dispatcher controlled by [delayController].
  *
  * @param coroutineScope The [CoroutineScope] used to simulate the main thread and schedule frames
- *   on. It must contain a [TestCoroutineScheduler].
+ *   on. It must contain a [TestCoroutineScheduler] and a [ContinuationInterceptor].
  * @param frameDelayNanos The number of nanoseconds to [delay] between executing frames.
  * @param onPerformTraversals Called with the frame time of the frame that was just executed, after
  *   running all `withFrameNanos` callbacks, but before resuming their callers' continuations. Any
@@ -60,10 +62,14 @@ class TestMonotonicFrameClock(
 ) : MonotonicFrameClock {
     private val delayController =
         requireNotNull(coroutineScope.coroutineContext[TestCoroutineScheduler]) {
-            "coroutineScope should have TestCoroutineScheduler"
+            "TestMonotonicFrameClock's coroutineScope must have a TestCoroutineScheduler"
         }
-    private val parentInterceptor = coroutineScope.coroutineContext[ContinuationInterceptor]
-    private val lock = Any()
+    // The parentInterceptor resolves to the TestDispatcher
+    private val parentInterceptor =
+        requireNotNull(coroutineScope.coroutineContext[ContinuationInterceptor]) {
+            "TestMonotonicFrameClock's coroutineScope must have a ContinuationInterceptor"
+        }
+    private val lock = makeSynchronizedObject()
     private var awaiters = mutableListOf<(Long) -> Unit>()
     private var spareAwaiters = mutableListOf<(Long) -> Unit>()
     private var scheduledFrameDispatch = false
@@ -129,7 +135,7 @@ class TestMonotonicFrameClock(
         frameDeferringInterceptor.runWithoutResumingCoroutines {
             // This is set after acquiring the lock in case the virtual time was advanced while
             // waiting for it.
-            val frameTime: Long
+            var frameTime = -1L // it's re-initialized below
             val toRun =
                 synchronized(lock) {
                     check(scheduledFrameDispatch) { "frame dispatch not scheduled" }

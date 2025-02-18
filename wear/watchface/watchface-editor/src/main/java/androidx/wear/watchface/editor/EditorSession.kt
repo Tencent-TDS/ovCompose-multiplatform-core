@@ -606,15 +606,15 @@ internal constructor(
                     getPreviewData(
                         complicationDataSourceInfoRetriever,
                         complicationDataSourceChooserResult.dataSourceInfo
-                    )
+                    ) ?: EmptyComplicationData()
 
                 // Emit an updated complicationPreviewDataMap.
                 complicationsPreviewData.value =
                     HashMap(complicationsPreviewData.value).apply {
-                        this[complicationSlotId] = previewData ?: EmptyComplicationData()
+                        this[complicationSlotId] = previewData
                     }
 
-                onComplicationDataSourceForSlotSelected(complicationSlotId)
+                onComplicationDataSourceForSlotSelected(complicationSlotId, previewData)
 
                 return ChosenComplicationDataSource(
                     complicationSlotId,
@@ -718,6 +718,12 @@ internal constructor(
         }
     }
 
+    protected fun forceCloseComplicationSourceInfoRetriever() {
+        val complicationDataSourceInfoRetriever =
+            complicationDataSourceInfoRetrieverProvider!!.getComplicationDataSourceInfoRetriever()
+        complicationDataSourceInfoRetriever.close()
+    }
+
     override fun close() {
         Log.d(TAG, "close")
         // Silently do nothing if we've been force closed, this simplifies the editor activity.
@@ -806,7 +812,7 @@ internal constructor(
     protected open val showComplicationRationaleDialogIntent: Intent? = null
 
     /** Called when the user has selected a complication for a slot. */
-    open fun onComplicationDataSourceForSlotSelected(slotId: Int) {}
+    open fun onComplicationDataSourceForSlotSelected(slotId: Int, previewData: ComplicationData) {}
 }
 
 /**
@@ -838,6 +844,12 @@ internal class OnWatchFaceEditorSessionImpl(
 
     private companion object {
         private const val TAG = "OnWatchFaceEditorSessionImpl"
+
+        /**
+         * Timeout for waiting for the fetch complication job completion in
+         * [BaseEditorSession.close].
+         */
+        private const val CLOSE_FETCH_COMPLICATION_TIMEOUT_MILLIS = 500L
     }
 
     override val userStyleSchema by lazy {
@@ -974,12 +986,23 @@ internal class OnWatchFaceEditorSessionImpl(
             // finishes before this is finished we'll get errors complaining that the service
             // wasn't unbound.
             runBlocking {
-                // Canceling the scope & the job means the join will be fast and we won't block for
-                // long. In practice we often won't block at all because fetchComplicationsDataJob
-                // is run only once during editor initialization and it will usually be finished
-                // by the time the user closes the editor.
-                backgroundCoroutineScope.cancel()
-                fetchComplicationsDataJob.join()
+                try {
+                    withTimeout(CLOSE_FETCH_COMPLICATION_TIMEOUT_MILLIS) {
+                        // Canceling the scope & the job means the join will be fast and we won't
+                        // block for long.
+                        // In practice we often won't block at all because
+                        // fetchComplicationsDataJob  is run only once during editor initialization
+                        // and it will usually be finished  by the time the user closes the editor.
+                        backgroundCoroutineScope.cancel()
+                        fetchComplicationsDataJob.join()
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Log.w(
+                        TAG,
+                        "The fetchComplicationsDataJob didn't finish within the timeout, unbind explicitly from provider"
+                    )
+                    forceCloseComplicationSourceInfoRetriever()
+                }
             }
         }
 
@@ -1030,8 +1053,11 @@ internal class OnWatchFaceEditorSessionImpl(
         return editorDelegate.complicationSlotsManager.getComplicationSlotAt(x, y)?.id
     }
 
-    override fun onComplicationDataSourceForSlotSelected(slotId: Int) {
-        editorDelegate.clearComplicationSlotAfterEditing(slotId)
+    override fun onComplicationDataSourceForSlotSelected(
+        slotId: Int,
+        previewData: ComplicationData
+    ) {
+        editorDelegate.clearComplicationSlotAfterEditing(slotId, previewData)
     }
 }
 

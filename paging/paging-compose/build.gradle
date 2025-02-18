@@ -21,7 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -30,9 +32,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
-    android()
+    androidTarget()
 
     sourceSets {
         commonMain {
@@ -54,16 +54,16 @@ androidXMultiplatform {
 
         commonTest {
             dependencies {
-                implementation projectOrArtifact(":compose:ui:ui-tooling")
+                implementation(project(":compose:ui:ui-tooling"))
                 implementation(project(":compose:test-utils"))
-                implementation(projectOrArtifact(":internal-testutils-paging"))
+                implementation(project(":internal-testutils-paging"))
             }
         }
 
         jvmTest {
             dependsOn(commonTest)
             dependencies {
-                implementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
+                implementation(project(":compose:ui:ui-test-junit4"))
             }
         }
 
@@ -80,13 +80,17 @@ androidXMultiplatform {
 
 androidx {
     name = "Paging-Compose"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Compose integration with Paging"
     legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     samples(project(":paging:paging-compose:paging-compose-samples"))
 }
 
 android {
-    namespace "androidx.paging.compose"
+    compileSdk = 35
+    namespace = "androidx.paging.compose"
+    // TODO(b/313699418): need to update compose.runtime version to 1.6.0+
+    experimentalProperties["android.lint.useK2Uast"] = false
 }

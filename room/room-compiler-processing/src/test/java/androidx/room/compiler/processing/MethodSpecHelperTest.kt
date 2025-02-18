@@ -467,7 +467,11 @@ class MethodSpecHelperTest(
     }
 
     @Suppress("NAME_SHADOWING") // intentional
-    private fun overridesCheck(vararg sources: Source, ignoreInheritedMethods: Boolean = false) {
+    private fun overridesCheck(
+        vararg sources: Source,
+        ignoreInheritedMethods: Boolean = false,
+        kotlincArgs: List<String> = emptyList()
+    ) {
         val (sources: List<Source>, classpath: List<File>) =
             if (preCompiledCode) {
                 emptyList<Source>() to compileFiles(sources.toList())
@@ -483,7 +487,8 @@ class MethodSpecHelperTest(
             )
         runProcessorTest(
             sources = sources + Source.kotlin("Placeholder.kt", ""),
-            classpath = classpath
+            classpath = classpath,
+            kotlincArguments = kotlincArgs
         ) { invocation ->
             val (target, methods) = invocation.getOverrideTestTargets(ignoreInheritedMethods)
             methods.forEachIndexed { index, method ->

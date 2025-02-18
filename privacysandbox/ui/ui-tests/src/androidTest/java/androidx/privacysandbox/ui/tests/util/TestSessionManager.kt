@@ -17,24 +17,28 @@
 package androidx.privacysandbox.ui.tests.util
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
-import android.os.Binder
 import android.os.Bundle
-import android.os.IBinder
+import android.view.Display
 import android.view.View
 import android.widget.FrameLayout
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionState
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
+import androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter
+import androidx.privacysandbox.ui.core.ExperimentalFeatures
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SessionConstants
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
 import androidx.privacysandbox.ui.core.SessionObserverFactory
+import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.privacysandbox.ui.provider.toCoreLibInfo
-import androidx.privacysandbox.ui.tests.endtoend.IntegrationTests
+import androidx.privacysandbox.ui.tests.endtoend.IntegrationTestSetupRule.Companion.INITIAL_HEIGHT
+import androidx.privacysandbox.ui.tests.endtoend.IntegrationTestSetupRule.Companion.INITIAL_WIDTH
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.CountDownLatch
@@ -60,14 +64,15 @@ class TestSessionManager(
      * the created adapter is set on [viewForSession] to establish the session.
      */
     fun createAdapterAndEstablishSession(
-        hasFailingTestSession: Boolean = false,
+        failToProvideUi: Boolean = false,
         placeViewInsideFrameLayout: Boolean = false,
         viewForSession: SandboxedSdkView?,
         testSessionClient: TestSessionClient = TestSessionClient(),
-        sessionObserverFactories: List<SessionObserverFactory>? = null
+        sessionObserverFactories: List<SessionObserverFactory>? = null,
+        sessionConstants: SessionConstants = SessionConstants()
     ): TestSandboxedUiAdapter {
 
-        val adapter = TestSandboxedUiAdapter(hasFailingTestSession, placeViewInsideFrameLayout)
+        val adapter = TestSandboxedUiAdapter(failToProvideUi, placeViewInsideFrameLayout)
         sessionObserverFactories?.forEach { adapter.addObserverFactory(it) }
         val adapterFromCoreLibInfo =
             SandboxedUiAdapterFactory.createFromCoreLibInfo(getCoreLibInfoFromAdapter(adapter))
@@ -76,9 +81,9 @@ class TestSessionManager(
         } else {
             adapterFromCoreLibInfo.openSession(
                 context,
-                windowInputToken = Binder(),
-                IntegrationTests.INITIAL_WIDTH,
-                IntegrationTests.INITIAL_HEIGHT,
+                sessionConstants,
+                INITIAL_WIDTH,
+                INITIAL_HEIGHT,
                 isZOrderOnTop = true,
                 clientExecutor = Runnable::run,
                 testSessionClient
@@ -93,7 +98,48 @@ class TestSessionManager(
                 .that(testSessionClient.isSessionOpened)
                 .isTrue()
         }
+
+        assertWithMessage("SdkContext passed to openSession")
+            .that(adapter.session!!.context)
+            .isInstanceOf(SdkContext::class.java)
+
         return adapter
+    }
+
+    /**
+     * Creates a [TestDelegatingAdapterWithDelegate] and establishes a session.
+     *
+     * A [DelegatingSandboxedUiAdapter] is set to the [viewForSession], to open a session with the
+     * delegate adapter.
+     */
+    @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
+    fun createDelegatingAdapterAndEstablishSession(
+        failToProvideUi: Boolean = false,
+        placeViewInsideFrameLayout: Boolean = false,
+        viewForSession: SandboxedSdkView,
+        sessionObserverFactories: List<SessionObserverFactory>? = null
+    ): TestDelegatingAdapterWithDelegate {
+
+        val delegate = TestSandboxedUiAdapter(failToProvideUi, placeViewInsideFrameLayout)
+        sessionObserverFactories?.forEach { delegate.addObserverFactory(it) }
+        val delegatingAdapterProvider =
+            DelegatingSandboxedUiAdapter(getCoreLibInfoFromAdapter(delegate))
+        val testEventListener = TestEventListener()
+        viewForSession.setEventListener(testEventListener)
+        val delegatingAdapterClient =
+            SandboxedUiAdapterFactory.createFromCoreLibInfo(
+                getCoreLibInfoFromAdapter(delegatingAdapterProvider)
+            )
+
+        viewForSession.setAdapter(delegatingAdapterClient)
+
+        assertThat(testEventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+            .isTrue()
+        assertWithMessage("openSession is called on adapter")
+            .that(delegate.isOpenSessionCalled)
+            .isTrue()
+
+        return TestDelegatingAdapterWithDelegate(delegatingAdapterProvider, delegate)
     }
 
     fun createAdapterAndWaitToBeActive(
@@ -103,6 +149,8 @@ class TestSessionManager(
         sessionObserverFactories: List<SessionObserverFactory>? = null,
     ): TestSandboxedUiAdapter {
         viewForSession.orderProviderUiAboveClientUi(initialZOrder)
+        val testEventListener = TestEventListener()
+        viewForSession.setEventListener(testEventListener)
 
         val adapter =
             createAdapterAndEstablishSession(
@@ -111,15 +159,17 @@ class TestSessionManager(
                 sessionObserverFactories = sessionObserverFactories
             )
 
-        val activeLatch = CountDownLatch(1)
-        viewForSession.addStateChangedListener { state ->
-            if (state is SandboxedSdkUiSessionState.Active) {
-                activeLatch.countDown()
-            }
-        }
-        assertThat(activeLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(testEventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+            .isTrue()
         return adapter
     }
+
+    class TestDelegatingAdapterWithDelegate
+    @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
+    constructor(
+        var delegatingAdapter: DelegatingSandboxedUiAdapter,
+        var delegate: TestSandboxedUiAdapter
+    )
 
     /**
      * TestSandboxedUiAdapter provides content from a fake SDK to show on the host's UI.
@@ -127,11 +177,12 @@ class TestSessionManager(
      * A [SandboxedUiAdapter] is supposed to fetch the content from SandboxedSdk, but we fake the
      * source of content in this class.
      *
-     * If [hasFailingTestSession] is true, the fake server side logic returns error.
+     * If [failToProvideUi] is true, the fake server side logic returns error.
      */
     class TestSandboxedUiAdapter(
-        private val hasFailingTestSession: Boolean = false,
-        private val placeViewInsideFrameLayout: Boolean = false
+        private val failToProvideUi: Boolean = false,
+        private val placeViewInsideFrameLayout: Boolean = false,
+        private val failSessionCreation: Boolean = false
     ) : AbstractSandboxedUiAdapter() {
 
         private val openSessionLatch: CountDownLatch = CountDownLatch(1)
@@ -142,13 +193,13 @@ class TestSessionManager(
         var initialZOrderOnTop = false
         var touchedLatch = CountDownLatch(1)
 
-        lateinit var session: SandboxedUiAdapter.Session
+        var session: TestSession? = null
         var initialHeight: Int = -1
         var initialWidth: Int = -1
 
         override fun openSession(
             context: Context,
-            windowInputToken: IBinder,
+            sessionConstants: SessionConstants,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -158,26 +209,37 @@ class TestSessionManager(
             initialZOrderOnTop = isZOrderOnTop
             this.initialHeight = initialHeight
             this.initialWidth = initialWidth
-            session =
-                if (hasFailingTestSession) {
-                    FailingTestSession(context, client)
-                } else {
-                    TestSession(context, client, placeViewInsideFrameLayout)
+
+            if (failToProvideUi) {
+                // Forms a session and fails when a view is fetched
+                session = FailingTestSession(context, client, clientExecutor)
+                clientExecutor.execute { client.onSessionOpened(checkNotNull(session)) }
+                openSessionLatch.countDown()
+            } else if (failSessionCreation) {
+                // Doesn't form a session at all
+                clientExecutor.execute {
+                    client.onSessionError(Throwable("Test Session Not Established"))
                 }
-            client.onSessionOpened(session)
-            openSessionLatch.countDown()
+            } else {
+                session = TestSession(context, client, placeViewInsideFrameLayout)
+                clientExecutor.execute { client.onSessionOpened(checkNotNull(session)) }
+                openSessionLatch.countDown()
+            }
         }
 
         /**
          * A failing session that always sends error notice to the client when content is requested.
          */
         inner class FailingTestSession(
-            private val context: Context,
-            sessionClient: SandboxedUiAdapter.SessionClient
+            context: Context,
+            sessionClient: SandboxedUiAdapter.SessionClient,
+            private val clientExecutor: Executor
         ) : TestSession(context, sessionClient) {
             override val view: View
                 get() {
-                    sessionClient.onSessionError(Throwable("Test Session Exception"))
+                    clientExecutor.execute {
+                        sessionClient.onSessionError(Throwable("Test Session Exception"))
+                    }
                     return View(context)
                 }
 
@@ -187,11 +249,13 @@ class TestSessionManager(
 
             override fun notifyConfigurationChanged(configuration: Configuration) {}
 
-            override fun close() {}
+            override fun close() {
+                session = null
+            }
         }
 
         open inner class TestSession(
-            private val context: Context,
+            val context: Context,
             val sessionClient: SandboxedUiAdapter.SessionClient,
             private val placeViewInsideFrameLayout: Boolean = false
         ) : AbstractSession() {
@@ -235,7 +299,7 @@ class TestSessionManager(
                 }
             }
 
-            private val testView: View =
+            val testView: View =
                 TestView(context).also {
                     it.setOnTouchListener { _, _ ->
                         touchedLatch.countDown()
@@ -277,7 +341,9 @@ class TestSessionManager(
                 configLatch.countDown()
             }
 
-            override fun close() {}
+            override fun close() {
+                session = null
+            }
 
             internal fun assertResizeOccurred(expectedWidth: Int, expectedHeight: Int) {
                 assertThat(sizeChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
@@ -325,7 +391,9 @@ class TestSessionManager(
             sessionOpenedLatch.countDown()
         }
 
-        override fun onSessionError(throwable: Throwable) {}
+        override fun onSessionError(throwable: Throwable) {
+            this.session = null
+        }
 
         override fun onResizeRequested(width: Int, height: Int) {
             resizedWidth = width
@@ -352,6 +420,7 @@ class TestSessionManager(
 
     class SessionObserverImpl : SessionObserver {
         var sessionObserverContext: SessionObserverContext? = null
+        var latestUiChange: Bundle = Bundle()
         private val sessionOpenedLatch = CountDownLatch(1)
         private val sessionClosedLatch = CountDownLatch(1)
         private val uiContainerChangedLatch = CountDownLatch(1)
@@ -362,6 +431,7 @@ class TestSessionManager(
         }
 
         override fun onUiContainerChanged(uiContainerInfo: Bundle) {
+            latestUiChange = uiContainerInfo
             uiContainerChangedLatch.countDown()
         }
 
@@ -382,8 +452,14 @@ class TestSessionManager(
         }
     }
 
+    private class SdkContext(base: Context) : ContextWrapper(base) {
+        override fun createDisplayContext(display: Display): Context {
+            return SdkContext(baseContext.createDisplayContext(display))
+        }
+    }
+
     fun getCoreLibInfoFromAdapter(sdkAdapter: SandboxedUiAdapter): Bundle {
-        val bundle = sdkAdapter.toCoreLibInfo(context)
+        val bundle = sdkAdapter.toCoreLibInfo(SdkContext(context))
         bundle.putBoolean(TEST_ONLY_USE_REMOTE_ADAPTER, !invokeBackwardsCompatFlow)
         return bundle
     }

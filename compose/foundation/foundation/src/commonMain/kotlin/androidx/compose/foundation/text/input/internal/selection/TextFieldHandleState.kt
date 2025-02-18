@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.ResolvedTextDirection
 internal data class TextFieldHandleState(
     val visible: Boolean,
     val position: Offset,
+    val lineHeight: Float,
     val direction: ResolvedTextDirection,
     val handlesCrossed: Boolean
 ) {
@@ -31,6 +32,7 @@ internal data class TextFieldHandleState(
             TextFieldHandleState(
                 visible = false,
                 position = Offset.Unspecified,
+                lineHeight = 0f,
                 direction = ResolvedTextDirection.Ltr,
                 handlesCrossed = false
             )

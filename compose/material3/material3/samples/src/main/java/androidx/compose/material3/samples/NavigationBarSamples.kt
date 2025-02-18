@@ -23,13 +23,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarArrangement
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationItemIconPosition
 import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ShortNavigationBarArrangement
 import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,11 +53,19 @@ import androidx.compose.ui.unit.dp
 fun ShortNavigationBarSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Songs", "Artists", "Playlists")
+    val selectedIcons = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Star)
+    val unselectedIcons =
+        listOf(Icons.Outlined.Home, Icons.Outlined.FavoriteBorder, Icons.Outlined.StarBorder)
 
     ShortNavigationBar {
         items.forEachIndexed { index, item ->
             ShortNavigationBarItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                icon = {
+                    Icon(
+                        if (selectedItem == index) selectedIcons[index] else unselectedIcons[index],
+                        contentDescription = null
+                    )
+                },
                 label = { Text(item) },
                 selected = selectedItem == index,
                 onClick = { selectedItem = index }
@@ -68,6 +81,9 @@ fun ShortNavigationBarSample() {
 fun ShortNavigationBarWithHorizontalItemsSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Songs", "Artists", "Playlists")
+    val selectedIcons = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Star)
+    val unselectedIcons =
+        listOf(Icons.Outlined.Home, Icons.Outlined.FavoriteBorder, Icons.Outlined.StarBorder)
 
     Column {
         Text(
@@ -77,11 +93,17 @@ fun ShortNavigationBarWithHorizontalItemsSample() {
 
         Spacer(Modifier.height(32.dp))
 
-        ShortNavigationBar(arrangement = NavigationBarArrangement.Centered) {
+        ShortNavigationBar(arrangement = ShortNavigationBarArrangement.Centered) {
             items.forEachIndexed { index, item ->
                 ShortNavigationBarItem(
                     iconPosition = NavigationItemIconPosition.Start,
-                    icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                    icon = {
+                        Icon(
+                            if (selectedItem == index) selectedIcons[index]
+                            else unselectedIcons[index],
+                            contentDescription = null
+                        )
+                    },
                     label = { Text(item) },
                     selected = selectedItem == index,
                     onClick = { selectedItem = index }
@@ -97,11 +119,19 @@ fun ShortNavigationBarWithHorizontalItemsSample() {
 fun NavigationBarSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Songs", "Artists", "Playlists")
+    val selectedIcons = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Star)
+    val unselectedIcons =
+        listOf(Icons.Outlined.Home, Icons.Outlined.FavoriteBorder, Icons.Outlined.StarBorder)
 
     NavigationBar {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                icon = {
+                    Icon(
+                        if (selectedItem == index) selectedIcons[index] else unselectedIcons[index],
+                        contentDescription = item
+                    )
+                },
                 label = { Text(item) },
                 selected = selectedItem == index,
                 onClick = { selectedItem = index }
@@ -114,11 +144,19 @@ fun NavigationBarSample() {
 fun NavigationBarWithOnlySelectedLabelsSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Songs", "Artists", "Playlists")
+    val selectedIcons = listOf(Icons.Filled.Home, Icons.Filled.Favorite, Icons.Filled.Star)
+    val unselectedIcons =
+        listOf(Icons.Outlined.Home, Icons.Outlined.FavoriteBorder, Icons.Outlined.StarBorder)
 
     NavigationBar {
         items.forEachIndexed { index, item ->
             NavigationBarItem(
-                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                icon = {
+                    Icon(
+                        if (selectedItem == index) selectedIcons[index] else unselectedIcons[index],
+                        contentDescription = item
+                    )
+                },
                 label = { Text(item) },
                 selected = selectedItem == index,
                 onClick = { selectedItem = index },

@@ -18,6 +18,7 @@ package androidx.compose.ui
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.PlatformOptimizedCancellationException
 import androidx.compose.ui.internal.checkPrecondition
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
@@ -25,26 +26,12 @@ import androidx.compose.ui.node.NodeCoordinator
 import androidx.compose.ui.node.NodeKind
 import androidx.compose.ui.node.ObserverNodeOwnerScope
 import androidx.compose.ui.node.requireOwner
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 
-private val EmptyStackTraceElements = emptyArray<StackTraceElement>()
-
-/**
- * Used in place of the standard Job cancellation pathway to avoid reflective javaClass.simpleName
- * lookups to build the exception message and stack trace collection. Remove if these are changed in
- * kotlinx.coroutines.
- */
-private class ModifierNodeDetachedCancellationException :
-    CancellationException("The Modifier.Node was detached") {
-    override fun fillInStackTrace(): Throwable {
-        // Avoid null.clone() on Android <= 6.0 when accessing stackTrace
-        stackTrace = EmptyStackTraceElements
-        return this
-    }
-}
+internal class ModifierNodeDetachedCancellationException :
+    PlatformOptimizedCancellationException("The Modifier.Node was detached")
 
 /**
  * An ordered, immutable collection of [modifier elements][Modifier.Element] that decorate or add
@@ -220,6 +207,9 @@ interface Modifier {
         internal var updatedNodeAwaitingAttachForInvalidation = false
         private var onAttachRunExpected = false
         private var onDetachRunExpected = false
+
+        internal var detachedListener: (() -> Unit)? = null
+
         /**
          * Indicates that the node is attached to a [androidx.compose.ui.layout.Layout] which is
          * part of the UI tree. This will get set to true right before [onAttach] is called, and set
@@ -287,6 +277,7 @@ interface Modifier {
                     "markAsDetached()"
             }
             onDetachRunExpected = false
+            detachedListener?.invoke()
             onDetach()
         }
 

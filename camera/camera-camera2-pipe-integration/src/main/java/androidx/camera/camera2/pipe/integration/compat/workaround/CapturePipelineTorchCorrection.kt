@@ -16,8 +16,8 @@
 
 package androidx.camera.camera2.pipe.integration.compat.workaround
 
-import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.isHardwareLevelLegacy
 import androidx.camera.camera2.pipe.RequestTemplate
 import androidx.camera.camera2.pipe.core.Log
 import androidx.camera.camera2.pipe.integration.adapter.CaptureConfigAdapter.Companion.getStillCaptureTemplate
@@ -31,6 +31,7 @@ import androidx.camera.camera2.pipe.integration.impl.TorchControl
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.TorchState
+import androidx.camera.core.imagecapture.CameraCapturePipeline
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.Config
 import javax.inject.Inject
@@ -46,7 +47,7 @@ import kotlinx.coroutines.launch
  * OFF then ON after the capturing.
  */
 @UseCaseCameraScope
-class CapturePipelineTorchCorrection
+public class CapturePipelineTorchCorrection
 @Inject
 constructor(
     cameraProperties: CameraProperties,
@@ -54,9 +55,7 @@ constructor(
     private val threads: UseCaseThreads,
     private val torchControl: TorchControl,
 ) : CapturePipeline {
-    private val isLegacyDevice =
-        cameraProperties.metadata[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL] ==
-            CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY
+    private val isLegacyDevice = cameraProperties.metadata.isHardwareLevelLegacy
 
     override suspend fun submitStillCaptures(
         configs: List<CaptureConfig>,
@@ -92,6 +91,13 @@ constructor(
         return deferredResults
     }
 
+    override suspend fun getCameraCapturePipeline(
+        captureMode: Int,
+        flashMode: Int,
+        flashType: Int
+    ): CameraCapturePipeline =
+        capturePipelineImpl.getCameraCapturePipeline(captureMode, flashMode, flashType)
+
     override var template: Int = CameraDevice.TEMPLATE_PREVIEW
         set(value) {
             capturePipelineImpl.template = value
@@ -117,7 +123,8 @@ constructor(
 
     private fun isTorchOn() = torchControl.torchStateLiveData.value == TorchState.ON
 
-    companion object {
-        val isEnabled = DeviceQuirks[TorchIsClosedAfterImageCapturingQuirk::class.java] != null
+    public companion object {
+        public val isEnabled: Boolean =
+            DeviceQuirks[TorchIsClosedAfterImageCapturingQuirk::class.java] != null
     }
 }

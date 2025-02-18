@@ -16,6 +16,9 @@
 
 package androidx.compose.ui.demos
 
+import android.os.Build
+import android.os.Build.VERSION.SDK_INT
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.demos.text.SoftwareKeyboardControllerDemo
 import androidx.compose.integration.demos.common.ActivityDemo
 import androidx.compose.integration.demos.common.ComposableDemo
@@ -23,11 +26,19 @@ import androidx.compose.integration.demos.common.DemoCategory
 import androidx.compose.ui.demos.accessibility.LinearProgressIndicatorDemo
 import androidx.compose.ui.demos.accessibility.NestedContainersFalseDemo
 import androidx.compose.ui.demos.accessibility.NestedContainersTrueDemo
+import androidx.compose.ui.demos.accessibility.SampleScrollingTooltipScreen
 import androidx.compose.ui.demos.accessibility.ScaffoldSampleDemo
 import androidx.compose.ui.demos.accessibility.ScaffoldSampleScrollDemo
 import androidx.compose.ui.demos.accessibility.ScrollingColumnDemo
 import androidx.compose.ui.demos.accessibility.SimpleRtlLayoutDemo
+import androidx.compose.ui.demos.autofill.AutofillNavigation
+import androidx.compose.ui.demos.autofill.BTFResetCredentialsDemo
+import androidx.compose.ui.demos.autofill.BasicSecureTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.BasicTextFieldAutofill
 import androidx.compose.ui.demos.autofill.ExplicitAutofillTypesDemo
+import androidx.compose.ui.demos.autofill.LegacyTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.MixedOldNewAutofillDemo
+import androidx.compose.ui.demos.autofill.OutlinedTextFieldAutofillDemo
 import androidx.compose.ui.demos.focus.AdjacentScrollablesFocusDemo
 import androidx.compose.ui.demos.focus.CancelFocusDemo
 import androidx.compose.ui.demos.focus.CaptureFocusDemo
@@ -57,6 +68,7 @@ import androidx.compose.ui.demos.gestures.DragGestureFilterDemo
 import androidx.compose.ui.demos.gestures.DragSlopExceededGestureFilterDemo
 import androidx.compose.ui.demos.gestures.EventTypesDemo
 import androidx.compose.ui.demos.gestures.HorizontalScrollersInVerticalScrollersDemo
+import androidx.compose.ui.demos.gestures.LongPressChangesHierarchyDemo
 import androidx.compose.ui.demos.gestures.LongPressDragGestureFilterDemo
 import androidx.compose.ui.demos.gestures.LongPressGestureDetectorDemo
 import androidx.compose.ui.demos.gestures.MultiButtonsWithLoggingUsingOnClick
@@ -66,6 +78,8 @@ import androidx.compose.ui.demos.gestures.NestedPressingDemo
 import androidx.compose.ui.demos.gestures.NestedScrollDispatchDemo
 import androidx.compose.ui.demos.gestures.NestedScrollingDemo
 import androidx.compose.ui.demos.gestures.PointerInputDuringSubComp
+import androidx.compose.ui.demos.gestures.PointerInputLambdaExecutions
+import androidx.compose.ui.demos.gestures.PointerInputLambdaExecutionsUsingExternalFunctions
 import androidx.compose.ui.demos.gestures.PopupDragDemo
 import androidx.compose.ui.demos.gestures.PressIndicatorGestureFilterDemo
 import androidx.compose.ui.demos.gestures.RawDragGestureFilterDemo
@@ -107,6 +121,9 @@ private val GestureDemos =
                     ComposableDemo("Pressure Tap") { DetectTapPressureGesturesDemo() },
                     ComposableDemo("Double Tap") { DoubleTapGestureFilterDemo() },
                     ComposableDemo("Long Press") { LongPressGestureDetectorDemo() },
+                    ComposableDemo("Long Press (changes hierarchy)") {
+                        LongPressChangesHierarchyDemo()
+                    },
                     ComposableDemo("Scroll") { ScrollGestureFilterDemo() },
                     ComposableDemo("Drag") { DragGestureFilterDemo() },
                     ComposableDemo("Long Press Drag") { LongPressDragGestureFilterDemo() },
@@ -143,7 +160,11 @@ private val GestureDemos =
                     ComposableDemo("Popup Drag") { PopupDragDemo() },
                     ComposableDemo("Double Tap in Tap") { DoubleTapInTapDemo() },
                     ComposableDemo("Nested Long Press") { NestedLongPressDemo() },
-                    ComposableDemo("Pointer Input During Sub Comp") { PointerInputDuringSubComp() }
+                    ComposableDemo("Pointer Input During Sub Comp") { PointerInputDuringSubComp() },
+                    ComposableDemo("Pointer Input Lambda Stats") { PointerInputLambdaExecutions() },
+                    ComposableDemo("Pointer Input Lambda Stats w/ external function") {
+                        PointerInputLambdaExecutionsUsingExternalFunctions()
+                    }
                 )
             ),
             DemoCategory(
@@ -255,6 +276,23 @@ private val ModifierDemos =
         )
     )
 
+@RequiresApi(Build.VERSION_CODES.O)
+private val AutofillDemos =
+    DemoCategory(
+        "Autofill",
+        listOf(
+            ComposableDemo("S: New login") { BTFResetCredentialsDemo() },
+            ComposableDemo("S: BasicTextField Autofill") { BasicTextFieldAutofill() },
+            ComposableDemo("S: BasicSecureTextField Autofill") {
+                BasicSecureTextFieldAutofillDemo()
+            },
+            ComposableDemo("S: TextField Autofill") { LegacyTextFieldAutofillDemo() },
+            ComposableDemo("S: OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() },
+            ComposableDemo("Navigation Sample") { AutofillNavigation() },
+            ComposableDemo("Old and New Autofill Mixed") { MixedOldNewAutofillDemo() }
+        )
+    )
+
 val AccessibilityDemos =
     DemoCategory(
         "Accessibility",
@@ -265,15 +303,17 @@ val AccessibilityDemos =
             ComposableDemo("Nested Containers—True") { NestedContainersTrueDemo() },
             ComposableDemo("Nested Containers—False") { NestedContainersFalseDemo() },
             ComposableDemo("Linear Progress Indicator") { LinearProgressIndicatorDemo() },
-            ComposableDemo("Dual LTR and RTL Scene") { SimpleRtlLayoutDemo() }
+            ComposableDemo("Dual LTR and RTL Scene") { SimpleRtlLayoutDemo() },
+            ComposableDemo("Scrolling Tooltip scene") { SampleScrollingTooltipScreen() }
         )
     )
 
 val CoreDemos =
     DemoCategory(
         "Framework",
-        listOf(
+        listOfNotNull(
             ModifierDemos,
+            if (SDK_INT >= 26) AutofillDemos else null,
             ComposableDemo("Explicit autofill types") { ExplicitAutofillTypesDemo() },
             FocusDemos,
             KeyInputDemos,

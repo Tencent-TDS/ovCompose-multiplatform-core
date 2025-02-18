@@ -16,6 +16,7 @@
 
 package androidx.camera.camera2.pipe.integration.impl
 
+import androidx.annotation.VisibleForTesting
 import androidx.camera.camera2.pipe.CameraTimestamp
 import androidx.camera.camera2.pipe.FrameInfo
 import androidx.camera.camera2.pipe.FrameMetadata
@@ -35,12 +36,15 @@ import javax.inject.Inject
  * propagate to the registered [Request.Listener]s.
  */
 @CameraScope
-class ComboRequestListener @Inject constructor() : Request.Listener {
+public class ComboRequestListener @Inject constructor() : Request.Listener {
     private val requestListeners = mutableMapOf<Request.Listener, Executor>()
 
-    @Volatile private var listeners: Map<Request.Listener, Executor> = mapOf()
+    @Volatile
+    public var listeners: Map<Request.Listener, Executor> = mapOf()
+        @VisibleForTesting get
+        private set
 
-    fun addListener(listener: Request.Listener, executor: Executor) {
+    public fun addListener(listener: Request.Listener, executor: Executor) {
         check(!listeners.contains(listener)) { "$listener was already registered!" }
         synchronized(requestListeners) {
             requestListeners[listener] = executor
@@ -48,7 +52,7 @@ class ComboRequestListener @Inject constructor() : Request.Listener {
         }
     }
 
-    fun removeListener(listener: Request.Listener) {
+    public fun removeListener(listener: Request.Listener) {
         synchronized(requestListeners) {
             requestListeners.remove(listener)
             listeners = requestListeners.toMap()
@@ -153,7 +157,7 @@ class ComboRequestListener @Inject constructor() : Request.Listener {
     }
 }
 
-fun RequestMetadata.containsTag(tagKey: String, tagValue: Any): Boolean =
+public fun RequestMetadata.containsTag(tagKey: String, tagValue: Any): Boolean =
     getOrDefault(CAMERAX_TAG_BUNDLE, TagBundle.emptyBundle()).getTag(tagKey).let {
         return it == tagValue
     }

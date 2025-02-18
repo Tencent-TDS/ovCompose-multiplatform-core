@@ -17,10 +17,16 @@
 package androidx.compose.ui.test.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.DarkMode
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.FontScale
@@ -29,11 +35,16 @@ import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.LayoutDirection
 import androidx.compose.ui.test.Locales
 import androidx.compose.ui.test.RoundScreen
+import androidx.compose.ui.test.WindowInsets
 import androidx.compose.ui.test.then
 import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.roundToIntRect
+import androidx.core.view.WindowInsetsCompat
 
 @Sampled
 @Composable
@@ -94,12 +105,44 @@ fun DeviceConfigurationOverrideFontWeightAdjustmentSample() {
     }
 }
 
-@Suppress("ClassVerificationFailure") // Only used in sample
 @Sampled
 @Composable
 fun DeviceConfigurationOverrideRoundScreenSample() {
     DeviceConfigurationOverride(DeviceConfigurationOverride.RoundScreen(true)) {
         LocalConfiguration.current.isScreenRound // will be true
+    }
+}
+
+@Sampled
+@Composable
+fun DeviceConfigurationOverrideWindowInsetsSample() {
+    fun IntRect.toAndroidXInsets() = androidx.core.graphics.Insets.of(left, top, right, bottom)
+
+    DeviceConfigurationOverride(
+        DeviceConfigurationOverride.WindowInsets(
+            WindowInsetsCompat.Builder()
+                .setInsets(
+                    WindowInsetsCompat.Type.captionBar(),
+                    with(LocalDensity.current) { DpRect(0.dp, 64.dp, 0.dp, 0.dp).toRect() }
+                        .roundToIntRect()
+                        .toAndroidXInsets()
+                )
+                .setInsets(
+                    WindowInsetsCompat.Type.navigationBars(),
+                    with(LocalDensity.current) { DpRect(24.dp, 0.dp, 48.dp, 24.dp).toRect() }
+                        .roundToIntRect()
+                        .toAndroidXInsets()
+                )
+                .build()
+        )
+    ) {
+        Box(
+            Modifier.background(Color.Blue)
+                // Will apply 64dp padding on the top, 24dp padding on the sides, and 48dp on the
+                // bottom
+                .safeDrawingPadding()
+                .background(Color.Red)
+        )
     }
 }
 

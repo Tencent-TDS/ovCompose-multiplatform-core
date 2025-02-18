@@ -16,12 +16,13 @@
 
 package androidx.appsearch.compiler.annotationwrapper;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appsearch.compiler.IntrospectionHelper;
 import androidx.appsearch.compiler.ProcessingException;
 
 import com.squareup.javapoet.ClassName;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
@@ -38,28 +39,25 @@ import javax.lang.model.element.AnnotationMirror;
  *     <li>{@link DoublePropertyAnnotation}</li>
  *     <li>{@link BooleanPropertyAnnotation}</li>
  *     <li>{@link BytesPropertyAnnotation}</li>
+ *     <li>{@link EmbeddingPropertyAnnotation}</li>
+ *     <li>{@link BlobHandlePropertyAnnotation}</li>
  * </ul>
  */
 public abstract class DataPropertyAnnotation implements PropertyAnnotation {
     public enum Kind {
         STRING_PROPERTY, DOCUMENT_PROPERTY, LONG_PROPERTY, DOUBLE_PROPERTY, BOOLEAN_PROPERTY,
-        BYTES_PROPERTY
+        BYTES_PROPERTY, EMBEDDING_PROPERTY, BLOB_HANDLE_PROPERTY
     }
 
-    @NonNull
-    private final ClassName mClassName;
+    private final @NonNull ClassName mClassName;
 
-    @NonNull
-    private final ClassName mConfigClassName;
+    private final @NonNull ClassName mConfigClassName;
 
-    @NonNull
-    private final String mGenericDocGetterName;
+    private final @NonNull String mGenericDocGetterName;
 
-    @NonNull
-    private final String mGenericDocArrayGetterName;
+    private final @NonNull String mGenericDocArrayGetterName;
 
-    @NonNull
-    private final String mGenericDocSetterName;
+    private final @NonNull String mGenericDocSetterName;
 
     DataPropertyAnnotation(
             @NonNull ClassName className,
@@ -83,8 +81,7 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
      *                             {@link DataPropertyAnnotation} but its params are malformed
      *                             e.g. point to an illegal serializer class etc.
      */
-    @Nullable
-    public static DataPropertyAnnotation tryParse(
+    public static @Nullable DataPropertyAnnotation tryParse(
             @NonNull AnnotationMirror annotation,
             @NonNull String defaultName,
             @NonNull IntrospectionHelper helper) throws ProcessingException {
@@ -103,6 +100,12 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
             return LongPropertyAnnotation.parse(annotationParams, defaultName);
         } else if (qualifiedClassName.equals(StringPropertyAnnotation.CLASS_NAME.canonicalName())) {
             return StringPropertyAnnotation.parse(annotationParams, defaultName);
+        } else if (qualifiedClassName.equals(
+                EmbeddingPropertyAnnotation.CLASS_NAME.canonicalName())) {
+            return EmbeddingPropertyAnnotation.parse(annotationParams, defaultName);
+        } else if (qualifiedClassName.equals(
+                BlobHandlePropertyAnnotation.CLASS_NAME.canonicalName())) {
+            return BlobHandlePropertyAnnotation.parse(annotationParams, defaultName);
         }
         return null;
     }
@@ -110,17 +113,15 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
     /**
      * The serialized name for the property in the database.
      */
-    @NonNull
-    public abstract String getName();
+    public abstract @NonNull String getName();
 
     /**
      * Denotes whether this property must be specified for the document to be valid.
      */
     public abstract boolean isRequired();
 
-    @NonNull
     @Override
-    public final ClassName getClassName() {
+    public final @NonNull ClassName getClassName() {
         return mClassName;
     }
 
@@ -130,14 +131,12 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
      * <p>For example, {@link androidx.appsearch.app.AppSearchSchema.StringPropertyConfig} for
      * {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    public final ClassName getConfigClassName() {
+    public final @NonNull ClassName getConfigClassName() {
         return mConfigClassName;
     }
 
     @Override
-    @NonNull
-    public final String getGenericDocGetterName() {
+    public final @NonNull String getGenericDocGetterName() {
         return mGenericDocGetterName;
     }
 
@@ -147,26 +146,22 @@ public abstract class DataPropertyAnnotation implements PropertyAnnotation {
      *
      * <p>For example, {@code getPropertyStringArray} for a {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    public final String getGenericDocArrayGetterName() {
+    public final @NonNull String getGenericDocArrayGetterName() {
         return mGenericDocArrayGetterName;
     }
 
-    @NonNull
     @Override
-    public final String getGenericDocSetterName() {
+    public final @NonNull String getGenericDocSetterName() {
         return mGenericDocSetterName;
     }
 
-    @NonNull
     @Override
-    public final PropertyAnnotation.Kind getPropertyKind() {
+    public final PropertyAnnotation.@NonNull Kind getPropertyKind() {
         return PropertyAnnotation.Kind.DATA_PROPERTY;
     }
 
     /**
      * The {@link Kind} of {@link DataPropertyAnnotation}.
      */
-    @NonNull
-    public abstract Kind getDataPropertyKind();
+    public abstract @NonNull Kind getDataPropertyKind();
 }

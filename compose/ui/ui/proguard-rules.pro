@@ -35,8 +35,21 @@
 # Keep all the functions created to throw an exception. We don't want these functions to be
 # inlined in any way, which R8 will do by default. The whole point of these functions is to
 # reduce the amount of code generated at the call site.
--keep,allowshrinking,allowobfuscation class androidx.compose.**.* {
+-keepclassmembers,allowshrinking,allowobfuscation class androidx.compose.**.* {
     static void throw*Exception(...);
+    static void throw*ExceptionForNullCheck(...);
     # For methods returning Nothing
     static java.lang.Void throw*Exception(...);
+    static java.lang.Void throw*ExceptionForNullCheck(...);
+    # For functions generating error messages
+    static java.lang.String exceptionMessage*(...);
+    java.lang.String exceptionMessage*(...);
 }
+
+# When pointer input modifier nodes are added dynamically and have the same keys (common when
+# developers `Unit` for their keys), we need a way to differentiate them and using a
+# functional interface and comparing classes allows us to do that.
+-keepnames class androidx.compose.ui.input.pointer.PointerInputEventHandler {
+    *;
+}
+

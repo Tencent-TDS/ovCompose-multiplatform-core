@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.testing.TestLifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.delay
@@ -104,6 +105,36 @@ class PredictiveBackHandlerTestApi {
     }
 
     @Test
+    fun testHandleOnCompleteWithDispatcher() {
+        var counter = 0
+        lateinit var dispatcher: OnBackPressedDispatcher
+
+        rule.setContent {
+            PredictiveBackHandler { progress ->
+                progress.collect()
+                counter++
+            }
+            dispatcher = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            Button(
+                onClick = {
+                    dispatcher.startGestureBack()
+                    dispatcher.api34Complete()
+                }
+            ) {
+                Text(text = "backPress")
+            }
+        }
+
+        rule.onNodeWithText("backPress").performClick()
+
+        rule.runOnIdle { assertThat(counter).isEqualTo(1) }
+
+        dispatcher.onBackPressed()
+
+        rule.runOnIdle { assertThat(counter).isEqualTo(2) }
+    }
+
+    @Test
     fun testDisabledBackHandler() {
         val result = mutableListOf<String>()
         var enabled by mutableStateOf(true)
@@ -140,6 +171,80 @@ class PredictiveBackHandlerTestApi {
             dispatcher.api34Complete()
             assertThat(result).isEqualTo(listOf("onBack", "onBack"))
         }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 34) // Below API 34 startGestureBack triggers back
+    fun testPredictiveBackHandlerDisabledBeforeStart() {
+        val result = mutableListOf<String>()
+        var count by mutableStateOf(2)
+        lateinit var dispatcherOwner: TestOnBackPressedDispatcherOwner
+        lateinit var dispatcher: OnBackPressedDispatcher
+        var started = false
+        var cancelled = false
+
+        rule.setContent {
+            dispatcherOwner =
+                TestOnBackPressedDispatcherOwner(LocalLifecycleOwner.current.lifecycle)
+            CompositionLocalProvider(LocalOnBackPressedDispatcherOwner provides dispatcherOwner) {
+                PredictiveBackHandler(count > 1) { progress ->
+                    if (count <= 1) {
+                        started = true
+                    }
+                    try {
+                        progress.collect()
+                        result += "onBack"
+                    } catch (e: CancellationException) {
+                        cancelled = true
+                    }
+                }
+                dispatcher = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            }
+        }
+
+        // Changing the count right before starting the gesture is received in the
+        // onBackStackStarted callback
+        count = 1
+        dispatcher.startGestureBack()
+
+        // In a test, we don't get the launched effect fast enough to prevent starting
+        // but since we idle here, we can cancel the callback channel and keep from completing
+        rule.runOnIdle { assertThat(started).isTrue() }
+        dispatcher.api34Complete()
+        rule.runOnIdle { assertThat(result).isEqualTo(listOf("onBack")) }
+        rule.runOnIdle { assertThat(cancelled).isFalse() }
+    }
+
+    fun testPredictiveBackHandlerDisabledAfterStart() {
+        val result = mutableListOf<String>()
+        var count by mutableStateOf(2)
+        lateinit var dispatcherOwner: TestOnBackPressedDispatcherOwner
+        lateinit var dispatcher: OnBackPressedDispatcher
+        var started = false
+
+        rule.setContent {
+            dispatcherOwner =
+                TestOnBackPressedDispatcherOwner(LocalLifecycleOwner.current.lifecycle)
+            CompositionLocalProvider(LocalOnBackPressedDispatcherOwner provides dispatcherOwner) {
+                PredictiveBackHandler(count > 1) { progress ->
+                    if (count <= 1) {
+                        started = true
+                    }
+                    progress.collect()
+                    result += "onBack"
+                }
+                dispatcher = LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            }
+        }
+
+        dispatcher.startGestureBack()
+        // Changing the count right after starting the gesture is not received in the
+        // onBackStackStarted callback
+        count = 1
+
+        rule.runOnIdle { assertThat(started).isFalse() }
+        dispatcher.api34Complete()
+        rule.runOnIdle { assertThat(result).isEqualTo(listOf("onBack")) }
     }
 
     @Test(expected = IllegalStateException::class)

@@ -260,14 +260,13 @@ internal fun Cursor.parseTypeParam(peek: Boolean = false): AbiTypeParameter? {
 }
 
 internal fun Cursor.parseValueParameters(): List<AbiValueParameter>? {
-    val valueParamString = parseValueParametersString() ?: return null
-    val subCursor = Cursor(valueParamString)
     val valueParams = mutableListOf<AbiValueParameter>()
-    subCursor.parseSymbol(openParenRegex)
-    while (null != subCursor.parseValueParameter(peek = true)) {
-        valueParams.add(subCursor.parseValueParameter()!!)
-        subCursor.parseSymbol(commaRegex)
+    parseSymbol(openParenRegex)
+    while (null != parseValueParameter(peek = true)) {
+        valueParams.add(parseValueParameter()!!)
+        parseSymbol(commaRegex)
     }
+    parseSymbol(closeParenRegex)
     return valueParams
 }
 
@@ -304,10 +303,11 @@ internal fun Cursor.parseVarargSymbol() = parseSymbol(varargSymbolRegex)
 internal fun Cursor.parseDefaultArg() = parseSymbol(defaultArgSymbolRegex)
 
 internal fun Cursor.parseFunctionReceiver(): AbiType? {
-    val string = parseFunctionReceiverString() ?: return null
-    val subCursor = Cursor(string)
-    subCursor.parseSymbol(openParenRegex)
-    return subCursor.parseAbiType()
+    parseSymbol(openParenRegex) ?: return null
+    val type = parseAbiType()
+    parseSymbol(closeParenRegex)
+    parseSymbol(dotRegex)
+    return type
 }
 
 internal fun Cursor.parseReturnType(): AbiType? {
@@ -409,10 +409,6 @@ private fun Cursor.parseTypeParamsString(peek: Boolean = false): String? {
     return result.toString()
 }
 
-private fun Cursor.parseFunctionReceiverString() = parseSymbol(functionReceiverStringRegex)
-
-private fun Cursor.parseValueParametersString() = parseSymbol(valueParameterStringRegex)
-
 private fun Cursor.parseAbiModalityString(peek: Boolean = false) =
     parseSymbol(abiModalityRegex, peek)?.uppercase()
 
@@ -427,20 +423,21 @@ private enum class GetterOrSetter() {
     SETTER
 }
 
-private val constructorNameRegex = Regex("constructor\\s<init>")
+private val constructorNameRegex = Regex("^constructor\\s<init>")
 private val closeCurlyBraceRegex = Regex("^}")
-private val uniqueNameMarkerRegex = Regex("Library unique name: ")
+private val uniqueNameMarkerRegex = Regex("^Library unique name: ")
 private val uniqueNameRegex = Regex("[a-zA-Z\\-\\.:]+")
 private val commentMarkerRegex = Regex("^\\/\\/")
 private val anyCharRegex = Regex(".")
 private val closeSquareBracketRegex = Regex("^\\]")
 private val openSquareBracketRegex = Regex("^\\[")
 private val targetsRegex = Regex("^Targets:")
-private val defaultArgSymbolRegex = Regex("^=\\.\\.\\.")
+private val defaultArgSymbolRegex = Regex("^=(\\s)?\\.\\.\\.")
 private val varargSymbolRegex = Regex("^\\.\\.\\.")
-private val openParenRegex = Regex("\\(")
+private val openParenRegex = Regex("^\\(")
+private val closeParenRegex = Regex("^\\)")
 private val reifiedRegex = Regex("reified")
-private val colonRegex = Regex(":")
+private val colonRegex = Regex("^:")
 private val commaRegex = Regex("^,")
 private val notNullSymbolRegex = Regex("^\\!\\!")
 private val nullableSymbolRegex = Regex("^\\?")
@@ -460,10 +457,9 @@ private val valueParameterModifierRegex = Regex("^(crossinline|noinline)")
 private val abiModalityRegex = Regex("^(final|open|abstract|sealed)")
 private val classKindRegex = Regex("^(class|interface|object|enum\\sclass|annotation\\sclass)")
 private val propertyKindRegex = Regex("^(const\\sval|val|var)")
-private val valueParameterStringRegex = Regex("^\\(([a-zA-Z0-9,\\/<>,#\\.\\s\\?=]+)?\\)")
-private val functionReceiverStringRegex = Regex("^\\([a-zA-Z0-9,\\/<>,#\\.\\s]+?\\)\\.")
 private val getterOrSetterSignalRegex = Regex("^<(get|set)\\-")
 private val enumNameRegex = Regex("^[A-Z_]+")
 private val enumEntryKindRegex = Regex("^enum\\sentry")
 private val signatureMarkerRegex = Regex("-\\sSignature\\sversion:")
-private val digitRegex = Regex("\\d+")
+private val digitRegex = Regex("^\\d+")
+private val dotRegex = Regex("^\\.")

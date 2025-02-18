@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.ui.layout
 
 import androidx.activity.ComponentActivity
@@ -22,9 +24,14 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector2D
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Arrangement.Absolute.SpaceAround
 import androidx.compose.foundation.layout.Box
@@ -34,6 +41,7 @@ import androidx.compose.foundation.layout.FlowColumn
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.FlowRowOverflow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -47,6 +55,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
@@ -54,24 +63,40 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
+import androidx.compose.foundation.pager.PagerDefaults
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Icon
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.movableContentOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -83,7 +108,10 @@ import androidx.compose.ui.platform.AndroidOwnerExtraAssertionsRule
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -110,6 +138,7 @@ import kotlin.test.assertNotNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -1258,6 +1287,7 @@ class LookaheadScopeTest {
         }
     }
 
+    @Suppress("DEPRECATION")
     @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun testNestedLookaheadPlacement() {
@@ -2546,8 +2576,9 @@ class LookaheadScopeTest {
             // Verify initial offset, should be the same values for the "excluded" offset
             positionToExcludedArray.forEachIndexed { index, (position, excluded) ->
                 // Rounding to avoid -0.0f
-                assertEquals((index * boxSizePx).fastRoundToInt(), position.y.fastRoundToInt())
-                assertEquals((index * boxSizePx).fastRoundToInt(), excluded.y.fastRoundToInt())
+                val expected = (index * boxSizePx).fastRoundToInt()
+                assertEquals("At index: $index", expected, position.y.fastRoundToInt())
+                assertEquals("At index: $index", expected, excluded.y.fastRoundToInt())
             }
 
             // Scroll to the end
@@ -2622,8 +2653,9 @@ class LookaheadScopeTest {
             // Verify initial offset, should be the same values for the "excluded" offset
             positionToExcludedArray.forEachIndexed { index, (position, excluded) ->
                 // Rounding to avoid -0.0f
-                assertEquals((index * boxSizePx).fastRoundToInt(), position.y.fastRoundToInt())
-                assertEquals((index * boxSizePx).fastRoundToInt(), excluded.y.fastRoundToInt())
+                val expected = (index * boxSizePx).fastRoundToInt()
+                assertEquals("At index: $index", expected, position.y.fastRoundToInt())
+                assertEquals("At index: $index", expected, excluded.y.fastRoundToInt())
             }
 
             // Scroll to the end
@@ -2831,6 +2863,195 @@ class LookaheadScopeTest {
     }
 
     @Test
+    fun testPlacementChangeInLookahead() {
+        @Composable
+        fun TestItem(tall: Boolean) {
+            Box(Modifier.requiredSize(20.dp)) {
+                Column(Modifier.requiredSize(20.dp)) {
+                    Box(Modifier.size(10.dp))
+                    if (tall) {
+                        Box(Modifier.size(10.dp))
+                    }
+                }
+            }
+        }
+
+        var tall by mutableStateOf(false)
+        var placeLastInApproach by mutableStateOf(false)
+        var placeInLookahead by mutableStateOf(true)
+        rule.setContent {
+            LookaheadScope {
+                Layout(
+                    content = {
+                        TestItem(tall)
+                        TestItem(tall)
+                        TestItem(tall)
+                    },
+                    Modifier.requiredHeight(60.dp).fillMaxWidth()
+                ) { measurables, constraints ->
+                    val placeables = measurables.map { it.measure(constraints) }
+                    layout(100, 100) {
+                        if (isLookingAhead) {
+                            if (placeInLookahead) {
+                                placeables.forEachIndexed { id, placeable ->
+                                    placeable.place(0, id * 10)
+                                }
+                            }
+                        } else if (placeLastInApproach) {
+                            placeables.forEachIndexed { id, placeable ->
+                                placeable.place(0, id * 10)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        placeInLookahead = false
+        rule.waitForIdle()
+        tall = true
+        rule.waitForIdle()
+
+        placeInLookahead = true
+        rule.waitForIdle()
+        placeLastInApproach = true
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun testPlacementInLazyWithAnimatedItem() {
+        var expandedHeaders by mutableStateOf(setOf<String>())
+        fun generateItems() = buildList {
+            repeat(5) { header ->
+                add(Element.Header(header.toString()))
+                if (expandedHeaders.contains(header.toString())) {
+                    repeat(100) {
+                        add(Element.Item(header.toString(), it.toString(), Random.nextBoolean()))
+                    }
+                }
+                add(Element.Divider("$header-divider"))
+            }
+        }
+
+        var items by mutableStateOf(generateItems())
+
+        fun update(headers: Set<String>) {
+            expandedHeaders = headers
+            items = generateItems()
+        }
+
+        rule.setContent {
+            LookaheadScope {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = { Box(modifier = Modifier.fillMaxWidth().height(100.dp)) }
+                ) { innerPadding ->
+                    LazyColumn(Modifier.padding(innerPadding)) {
+                        items(items, key = { it.id }, contentType = { it.javaClass.simpleName }) {
+                            element ->
+                            when (element) {
+                                is Element.Header ->
+                                    Box(
+                                        modifier =
+                                            Modifier.animateItem()
+                                                .testTag(element.title)
+                                                .clickable {
+                                                    if (expandedHeaders.contains(element.title)) {
+                                                        update(
+                                                            expandedHeaders
+                                                                .filter { it != element.title }
+                                                                .toSet()
+                                                        )
+                                                    } else {
+                                                        update(expandedHeaders + element.title)
+                                                    }
+                                                }
+                                    ) {
+                                        Text(text = "Header ${element.title}")
+                                    }
+                                is Element.Item -> {
+                                    Row(Modifier.animateItem().padding(16.dp)) {
+                                        Box(
+                                            modifier =
+                                                Modifier.padding(16.dp)
+                                                    .height(48.dp)
+                                                    .aspectRatio(1f, true)
+                                                    .background(Color.Red, CircleShape)
+                                        ) {
+                                            Text(
+                                                modifier = Modifier.align(Alignment.Center),
+                                                text = "A"
+                                            )
+                                            if (element.hasCheckmark) {
+                                                Box(
+                                                    modifier =
+                                                        Modifier.align(Alignment.BottomEnd)
+                                                            .clip(CircleShape),
+                                                ) {
+                                                    Icon(
+                                                        modifier = Modifier.size(16.dp),
+                                                        imageVector = Icons.Rounded.CheckCircle,
+                                                        contentDescription = null,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Text(text = element.text)
+                                    }
+                                }
+                                is Element.Divider -> {
+                                    Box(Modifier.animateItem().fillMaxWidth().height(5.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+
+        rule.onNodeWithTag("1").performClick()
+        rule.waitUntil { expandedHeaders.size > 0 }
+        rule.mainClock.advanceTimeBy(200)
+
+        rule.onNodeWithTag("0").performClick()
+        rule.waitUntil { expandedHeaders.size > 1 }
+        rule.mainClock.advanceTimeBy(300)
+
+        rule.onNodeWithTag("0").performClick()
+        rule.waitUntil { expandedHeaders.size < 2 }
+        rule.mainClock.advanceTimeBy(400)
+
+        rule.onNodeWithTag("1").performClick()
+        rule.waitUntil { expandedHeaders.size < 1 }
+        rule.mainClock.advanceTimeBy(400)
+    }
+
+    private sealed interface Element {
+        val id: String
+
+        data class Header(
+            val title: String,
+        ) : Element {
+            override val id = title
+        }
+
+        data class Divider(
+            override val id: String,
+        ) : Element
+
+        data class Item(
+            private val headerId: String,
+            val text: String,
+            val hasCheckmark: Boolean,
+        ) : Element {
+            override val id = "$headerId-$text"
+        }
+    }
+
+    @Test
     fun testDirectManipulationCoordinates_duringPlacement() =
         with(rule.density) {
             var placeWithDirectManipulation by mutableStateOf(false)
@@ -2900,6 +3121,434 @@ class LookaheadScopeTest {
             assertEquals(200f, lookingAheadPosition.y)
             // Round to int, since it may return -0.0f
             assertEquals(0, lookingAheadPositionExcludingDmp.y.fastRoundToInt())
+        }
+
+    @Test
+    fun testApproachUsingContentNotComposedInLookahead() {
+        var items by mutableStateOf(List(500) { it })
+        rule.setContent {
+            LookaheadScope {
+                LazyColumn(Modifier.requiredHeight(400.dp)) {
+                    items(items, key = { it }) {
+                        Box(
+                            Modifier.animateItem(
+                                fadeInSpec = null,
+                                placementSpec = tween(15),
+                                fadeOutSpec = tween(15)
+                            )
+                        ) {
+                            Box { Text("Item $it") }
+                        }
+                    }
+                }
+            }
+        }
+
+        repeat(30) {
+            rule.waitForIdle()
+            items = items.shuffled()
+            Snapshot.sendApplyNotifications()
+        }
+    }
+
+    @Test
+    fun testLookaheadAndApproachCoordinatesAreConsistentOnFirstPass_usingAlign() =
+        with(rule.density) {
+            val rootSizePx = 300
+            val alignmentOffsetPx = IntOffset(0, 100)
+
+            // Both positions are expected to be from lookahead coordinates
+            var lookaheadPassPosition = Offset.Unspecified
+            var approachPassPosition = Offset.Unspecified
+
+            rule.setContent {
+                Box(Modifier.size(rootSizePx.toDp())) {
+                    LookaheadScope {
+                        Box(Modifier.align { _, _, _ -> alignmentOffsetPx }.fillMaxWidth()) {
+                            // Capture lookahead coordinates from Lookahead and Approach pass.
+                            Box(
+                                Modifier.onLookaheadPassCoordinates(this@LookaheadScope) {
+                                        lookaheadScopeCoordinates,
+                                        coordinates ->
+                                        lookaheadPassPosition =
+                                            lookaheadScopeCoordinates.localPositionOf(coordinates)
+                                    }
+                                    .onApproachPassCoordinates(this@LookaheadScope) {
+                                        lookaheadScopeCoordinates,
+                                        coordinates ->
+                                        approachPassPosition =
+                                            lookaheadScopeCoordinates.localLookaheadPositionOf(
+                                                coordinates
+                                            )
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+            rule.waitForIdle()
+
+            // Assert both positions are equal on the first pass.
+            assertEquals(alignmentOffsetPx, lookaheadPassPosition.round())
+            assertEquals(alignmentOffsetPx, approachPassPosition.round())
+        }
+
+    @Test
+    fun testLookaheadAndApproachCoordinatesAreConsistentOnFirstPass_usingOffset() =
+        with(rule.density) {
+            val rootSizePx = 300
+            val alignmentOffsetPx = IntOffset(0, 100)
+
+            // Both positions are expected to be from lookahead coordinates
+            var lookaheadPassPosition = Offset.Unspecified
+            var approachPassPosition = Offset.Unspecified
+
+            rule.setContent {
+                Box(Modifier.size(rootSizePx.toDp())) {
+                    LookaheadScope {
+                        Box(Modifier.offset { alignmentOffsetPx }.fillMaxWidth()) {
+                            // Capture lookahead coordinates from Lookahead and Approach pass.
+                            Box(
+                                Modifier.onLookaheadPassCoordinates(this@LookaheadScope) {
+                                        lookaheadScopeCoordinates,
+                                        coordinates ->
+                                        lookaheadPassPosition =
+                                            lookaheadScopeCoordinates.localPositionOf(coordinates)
+                                    }
+                                    .onApproachPassCoordinates(this@LookaheadScope) {
+                                        lookaheadScopeCoordinates,
+                                        coordinates ->
+                                        approachPassPosition =
+                                            lookaheadScopeCoordinates.localLookaheadPositionOf(
+                                                coordinates
+                                            )
+                                    }
+                            )
+                        }
+                    }
+                }
+            }
+            rule.waitForIdle()
+
+            // Assert both positions are equal on the first pass.
+            assertEquals(alignmentOffsetPx, lookaheadPassPosition.round())
+            assertEquals(alignmentOffsetPx, approachPassPosition.round())
+        }
+
+    @Test
+    fun testDifferentPlacementsInTwoPasses() {
+        val state = PagerState { 4 }
+        val lookaheadPos = arrayOfNulls<Offset>(4)
+        val approachPos = arrayOfNulls<Offset>(4)
+        rule.setContent {
+            val pageTotalSize = 50.dp
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                LookaheadScope {
+                    Box(modifier = Modifier.size(pageTotalSize * 1.5f)) {
+                        HorizontalPager(
+                            state = state,
+                            contentPadding = PaddingValues(horizontal = pageTotalSize * 2),
+                            pageSize = PageSize.Fixed(pageTotalSize),
+                            flingBehavior = PagerDefaults.flingBehavior(state = state),
+                            snapPosition = SnapPosition.Start,
+                        ) {
+                            Box(
+                                Modifier.layout { m, c ->
+                                        m.measure(c).run {
+                                            layout(width, height) {
+                                                val pos = coordinates?.positionInParent()
+                                                if (isLookingAhead) {
+                                                    lookaheadPos[it] = pos ?: lookaheadPos[it]
+                                                } else {
+                                                    approachPos[it] = pos ?: lookaheadPos[it]
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .background(Color.Red)
+                                    .size(pageTotalSize)
+                            )
+                        }
+                    }
+                    val density = LocalDensity.current
+                    LaunchedEffect(Unit) {
+                        state.animateScrollBy(
+                            with(density) {
+                                (pageTotalSize * 1.5f + // container size
+                                        pageTotalSize * 2 + // start padding
+                                        pageTotalSize * 3) // all pages
+                                    .roundToPx()
+                                    .toFloat()
+                            },
+                            snap()
+                        )
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        repeat(4) { Assert.assertEquals(approachPos[it], lookaheadPos[it]) }
+    }
+
+    @Test
+    fun testReorderChildrenInLookaheadScope() {
+        val list = mutableStateListOf(1, 2)
+        data class Stats(
+            var lookaheadMeasurementCount: Int = 0,
+            var measurementCount: Int = 0,
+            var lookaheadPlacementCount: Int = 0,
+            var placementCount: Int = 0,
+        )
+        val boxStats = Stats()
+        val rowStats = Stats()
+        rule.setContent {
+            Row {
+                LookaheadScope {
+                    list.fastForEach {
+                        key(it) {
+                            if (it == 1) {
+                                Box(
+                                    Modifier.size(100.dp).layout { m, c ->
+                                        if (isLookingAhead) boxStats.lookaheadMeasurementCount++
+                                        else boxStats.measurementCount++
+                                        m.measure(c).run {
+                                            layout(width, height) {
+                                                if (isLookingAhead)
+                                                    boxStats.lookaheadPlacementCount++
+                                                else boxStats.placementCount++
+                                                place(0, 0)
+                                            }
+                                        }
+                                    }
+                                )
+                            } else {
+                                Row(
+                                    Modifier.size(200.dp).layout { m, c ->
+                                        if (isLookingAhead) rowStats.lookaheadMeasurementCount++
+                                        else rowStats.measurementCount++
+                                        m.measure(c).run {
+                                            layout(width, height) {
+                                                if (isLookingAhead)
+                                                    rowStats.lookaheadPlacementCount++
+                                                else rowStats.placementCount++
+                                                place(0, 0)
+                                            }
+                                        }
+                                    }
+                                ) {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.runOnIdle {
+            assertEquals(1, boxStats.lookaheadMeasurementCount)
+            assertEquals(1, boxStats.lookaheadPlacementCount)
+            assertEquals(1, boxStats.measurementCount)
+            assertEquals(1, boxStats.placementCount)
+            assertEquals(1, rowStats.lookaheadMeasurementCount)
+            assertEquals(1, rowStats.lookaheadPlacementCount)
+            assertEquals(1, rowStats.measurementCount)
+            assertEquals(1, rowStats.placementCount)
+        }
+        list[0] = 2
+        list[1] = 1
+        rule.waitForIdle()
+        rule.runOnIdle {
+            assertEquals(2, boxStats.lookaheadMeasurementCount)
+            assertEquals(2, boxStats.lookaheadPlacementCount)
+            assertEquals(2, boxStats.measurementCount)
+            assertEquals(2, boxStats.placementCount)
+            assertEquals(2, rowStats.lookaheadMeasurementCount)
+            assertEquals(2, rowStats.lookaheadPlacementCount)
+            assertEquals(2, rowStats.measurementCount)
+            assertEquals(2, rowStats.placementCount)
+        }
+    }
+
+    @Test
+    fun testSkipPlacementInLookahead() {
+        var lookaheadMeasured = false
+        var lookaheadPlaced = false
+        rule.setContent {
+            ConditionallyMeasureAndPlace(
+                lookaheadMeasured = { lookaheadMeasured = true },
+                lookaheadPlaced = { lookaheadPlaced = true }
+            )
+        }
+        rule.runOnIdle {
+            assertTrue(lookaheadMeasured)
+            assertTrue(lookaheadPlaced)
+        }
+    }
+
+    @Test
+    fun lookaheadRecomposesLayoutOnStaticLocalChange() {
+        val local = staticCompositionLocalOf { -1 }
+
+        var current = -1
+        var value by mutableIntStateOf(0)
+
+        val measurePolicy: SubcomposeMeasureScope.(Constraints) -> MeasureResult = { c ->
+            subcompose(Unit) {
+                    current = local.current
+                    Box(Modifier.size(100.dp, 100.dp))
+                }
+                .single()
+                .measure(c)
+            layout(0, 0) {}
+        }
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(local provides value) {
+                    SubcomposeLayout(measurePolicy = measurePolicy)
+                }
+            }
+        }
+
+        rule.runOnIdle {
+            assertEquals(0, current)
+            value = 1
+        }
+
+        rule.runOnIdle { assertEquals(1, current) }
+    }
+
+    @Test
+    fun onlyApproachRecomposesLayoutOnStaticLocalChange() {
+        val local = staticCompositionLocalOf { -1 }
+
+        var current = -1
+        var value by mutableIntStateOf(0)
+
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(local provides value) {
+                    SubcomposeLayout { c ->
+                        if (!isLookingAhead) {
+                            // Only run subcompose and emit a layout node in the approach pass,
+                            // to verify invalidation in the approach pass works correctly.
+                            subcompose(Unit) {
+                                    current = local.current
+                                    Box(Modifier.size(100.dp, 100.dp))
+                                }
+                                .single()
+                                .measure(c)
+                        }
+                        layout(0, 0) {}
+                    }
+                }
+            }
+        }
+
+        rule.runOnIdle {
+            assertEquals(0, current)
+            value = 1
+        }
+
+        rule.runOnIdle { assertEquals(1, current) }
+    }
+
+    @Composable
+    fun ConditionallyMeasureAndPlace(lookaheadMeasured: () -> Unit, lookaheadPlaced: () -> Unit) {
+        Box(Modifier.fillMaxSize().safeDrawingPadding()) {
+            Box(
+                Modifier.align(Alignment.Center).border(3.dp, Color.Blue).approachLayout(
+                    isMeasurementApproachInProgress = { false }
+                ) { measurable, constraints ->
+                    val c =
+                        if (isLookingAhead) {
+                            constraints
+                        } else {
+                            Constraints.fixed(
+                                lookaheadSize.width,
+                                lookaheadSize.height,
+                            )
+                        }
+
+                    measurable.measure(c).run { layout(width, this.height) { placeRelative(0, 0) } }
+                }
+            ) {
+                Box(
+                    Modifier.align(Alignment.Center)
+                        .width(100.dp)
+                        .height(0.dp)
+                        .layout { measurable, constraints ->
+                            if (isLookingAhead) {
+                                measurable.measure(constraints)
+                                layout(0, 0) {}
+                            } else {
+                                measurable.measure(constraints).run {
+                                    layout(width, this.height) { placeRelative(0, 0) }
+                                }
+                            }
+                        }
+                        .background(Color.Red)
+                ) {
+                    Box(
+                        Modifier.layout { m, c ->
+                            if (isLookingAhead) {
+                                lookaheadMeasured()
+                            }
+                            m.measure(c).run {
+                                layout(width, this.height) {
+                                    if (isLookingAhead) {
+                                        lookaheadPlaced()
+                                    }
+                                    place(0, 0)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    /** Capture LookaheadScope coordinates during the Lookahead pass. */
+    private fun Modifier.onLookaheadPassCoordinates(
+        lookaheadScope: LookaheadScope,
+        onLookaheadPassCoordinates:
+            (
+                lookaheadScopeCoordinates: LayoutCoordinates, layoutCoordinates: LayoutCoordinates
+            ) -> Unit
+    ): Modifier =
+        with(lookaheadScope) {
+            this@onLookaheadPassCoordinates.layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    if (isLookingAhead) {
+                        coordinates?.let { coordinates ->
+                            onLookaheadPassCoordinates(lookaheadScopeCoordinates, coordinates)
+                        }
+                    }
+                    placeable.place(0, 0)
+                }
+            }
+        }
+
+    /** Capture LookaheadScope coordinates during the Approach pass. */
+    private fun Modifier.onApproachPassCoordinates(
+        lookaheadScope: LookaheadScope,
+        onApproachPassCoordinates:
+            (
+                lookaheadScopeCoordinates: LayoutCoordinates, layoutCoordinates: LayoutCoordinates
+            ) -> Unit
+    ): Modifier =
+        with(lookaheadScope) {
+            this@onApproachPassCoordinates.approachLayout(
+                isMeasurementApproachInProgress = { false },
+                isPlacementApproachInProgress = {
+                    onApproachPassCoordinates(lookaheadScopeCoordinates, it)
+                    false
+                },
+                approachMeasure = { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                }
+            )
         }
 
     private fun assertSameLayoutWithAndWithoutLookahead(

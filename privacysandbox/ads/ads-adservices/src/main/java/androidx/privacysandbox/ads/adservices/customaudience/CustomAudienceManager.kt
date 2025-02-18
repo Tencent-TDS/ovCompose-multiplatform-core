@@ -125,7 +125,7 @@ abstract class CustomAudienceManager internal constructor() {
          *   value returned is null.
          */
         @JvmStatic
-        @SuppressLint("NewApi", "ClassVerificationFailure")
+        @SuppressLint("NewApi")
         fun obtain(context: Context): CustomAudienceManager? {
             return if (AdServicesInfo.adServicesVersion() >= 4) {
                 CustomAudienceManagerApi33Ext4Impl(context)

@@ -19,7 +19,12 @@ package androidx.compose.foundation.lazy.staggeredgrid
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.list.assertIsNotPlaced
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
@@ -221,7 +226,7 @@ class LazyStaggeredGridContentPaddingTest(orientation: Orientation) :
 
         state.scrollBy(itemSizeDp * 20)
 
-        rule.onNodeWithTag("8").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * -2f)
+        rule.onNodeWithTag("8").assertIsNotPlaced()
 
         assertThat(state.firstVisibleItemIndex).isEqualTo(8)
         // normally this item is invisible, but being the last item in the lane, it is forced to
@@ -312,5 +317,67 @@ class LazyStaggeredGridContentPaddingTest(orientation: Orientation) :
         }
 
         rule.onNodeWithTag(LazyStaggeredGrid).assertMainAxisSizeIsEqualTo(itemSizeDp * 6)
+    }
+
+    @Test
+    fun afterContentPaddingWithSmallScrolls() {
+        state = LazyStaggeredGridState(initialFirstVisibleItemIndex = 0)
+        rule.setContent {
+            Box(Modifier.axisSize(itemSizeDp * 2, itemSizeDp * 4)) {
+                LazyStaggeredGrid(
+                    lanes = 2,
+                    modifier = Modifier.testTag(LazyStaggeredGrid),
+                    contentPadding = PaddingValues(afterContent = itemSizeDp / 2),
+                    state = state
+                ) {
+                    items(20, key = { it }) {
+                        val size = if (it == 0 || it == 19) itemSizeDp / 2 else itemSizeDp * 2
+                        Spacer(Modifier.mainAxisSize(size).testTag("$it").debugBorder())
+                    }
+                }
+            }
+        }
+
+        // scroll to the end
+        state.scrollBy(itemSizeDp * 30)
+
+        state.scrollBy(-5.dp)
+
+        state.scrollBy(itemSizeDp / 2)
+
+        rule.onNodeWithTag("19").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 3f)
+    }
+
+    @Test
+    fun pinnedItemWorksIsPlacedOnceInContentPadding() {
+        state = LazyStaggeredGridState(initialFirstVisibleItemIndex = 0)
+        val focusRequester = FocusRequester()
+        rule.setContent {
+            Box(Modifier.axisSize(itemSizeDp * 2, itemSizeDp * 4)) {
+                LazyStaggeredGrid(
+                    lanes = 1,
+                    modifier = Modifier.testTag(LazyStaggeredGrid),
+                    contentPadding = PaddingValues(beforeContent = itemSizeDp),
+                    state = state
+                ) {
+                    item {
+                        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+                        BasicTextField(
+                            "Test",
+                            onValueChange = {},
+                            modifier =
+                                Modifier.focusRequester(focusRequester).mainAxisSize(itemSizeDp)
+                        )
+                    }
+
+                    items(10) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
+                }
+            }
+        }
+
+        // scroll to the end
+        state.scrollBy(itemSizeDp / 2)
+
+        rule.onNodeWithTag("0").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 1.5f)
     }
 }

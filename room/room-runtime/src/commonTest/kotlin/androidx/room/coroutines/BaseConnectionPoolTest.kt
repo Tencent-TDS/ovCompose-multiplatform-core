@@ -19,6 +19,7 @@ package androidx.room.coroutines
 import androidx.kruth.assertThat
 import androidx.room.PooledConnection
 import androidx.room.Transactor
+import androidx.room.concurrent.AtomicInt
 import androidx.room.deferredTransaction
 import androidx.room.exclusiveTransaction
 import androidx.room.execSQL
@@ -28,13 +29,12 @@ import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.SQLiteException
 import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
-import androidx.sqlite.use
 import kotlin.coroutines.CoroutineContext
+import kotlin.random.Random
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.fail
-import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -463,7 +463,7 @@ abstract class BaseConnectionPoolTest {
     @Test
     fun singleConnectionPool() = runTest {
         val multiThreadContext = newFixedThreadPoolContext(2, "Test-Threads")
-        val connectionsOpened = atomic(0)
+        val connectionsOpened = AtomicInt(0)
         val actualDriver = setupDriver()
         val driver =
             object : SQLiteDriver by actualDriver {
@@ -487,12 +487,12 @@ abstract class BaseConnectionPoolTest {
         jobs.joinAll()
         pool.close()
         multiThreadContext.close()
-        assertThat(connectionsOpened.value).isEqualTo(1)
+        assertThat(connectionsOpened.get()).isEqualTo(1)
     }
 
     @Test
     fun openOneConnectionWhenUsedSerially() = runTest {
-        val connectionsOpened = atomic(0)
+        val connectionsOpened = AtomicInt(0)
         val actualDriver = setupDriver()
         val driver =
             object : SQLiteDriver by actualDriver {
@@ -518,7 +518,7 @@ abstract class BaseConnectionPoolTest {
             }
         }
         pool.close()
-        assertThat(connectionsOpened.value).isEqualTo(1)
+        assertThat(connectionsOpened.get()).isEqualTo(1)
     }
 
     @Test
@@ -551,6 +551,43 @@ abstract class BaseConnectionPoolTest {
     }
 
     @Test
+    fun stressCancelCoroutineAcquiringConnection() = runBlocking {
+        val multiThreadContext = newFixedThreadPoolContext(3, "Test-Threads")
+        val driver = setupDriver()
+        val pool =
+            newConnectionPool(
+                driver = driver,
+                fileName = fileName,
+                maxNumOfReaders = 1,
+                maxNumOfWriters = 1
+            )
+        // This stress test is very non-deterministic, on purpose. It launches three coroutines, two
+        // of them attempt to use the connection, but one of the coroutines is canceled shortly
+        // after by the third coroutines. The goal of this test is to validate the
+        // onUndeliveredElement callback of the Pool's Channel. If this test fails it will likely be
+        // due to a 'Timed out attempting to acquire a connection'.
+        val jobsToWaitFor = mutableListOf<Job>()
+        repeat(1000) {
+            val jobToCancel =
+                launch(multiThreadContext) {
+                    pool.useWriterConnection { delay(Random.nextLong(5)) }
+                }
+            jobsToWaitFor.add(
+                launch(multiThreadContext) {
+                    pool.useWriterConnection { delay(Random.nextLong(5)) }
+                }
+            )
+            jobsToWaitFor.add(
+                launch(multiThreadContext) {
+                    delay(Random.nextLong(5))
+                    jobToCancel.cancel()
+                }
+            )
+        }
+        jobsToWaitFor.joinAll()
+    }
+
+    @Test
     fun timeoutCoroutineWaitingForConnection() = runTest {
         val multiThreadContext = newFixedThreadPoolContext(2, "Test-Threads")
         val driver = setupDriver()
@@ -575,8 +612,9 @@ abstract class BaseConnectionPoolTest {
                                     }
                                     .message
                             )
-                            .isEqualTo(
-                                "Error code: 5, message: Timed out attempting to acquire a connection"
+                            .contains(
+                                "Error code: 5, message: Timed out attempting to acquire a " +
+                                    "reader connection"
                             )
                     }
                 coroutineStartedMutex.withLock {
@@ -651,7 +689,7 @@ abstract class BaseConnectionPoolTest {
                 actual.close()
             }
         }
-        val connectionArrCount = atomic(0)
+        val connectionArrCount = AtomicInt(0)
         val connectionsArr = arrayOfNulls<CloseAwareConnection>(4)
         val actualDriver = setupDriver()
         val driver =
@@ -676,7 +714,7 @@ abstract class BaseConnectionPoolTest {
                 launch(multiThreadContext) { pool.useReaderConnection { barrier.withLock {} } }
             jobs.add(job)
         }
-        while (connectionArrCount.value < 4) {
+        while (connectionArrCount.get() < 4) {
             delay(100)
         }
         barrier.unlock()

@@ -87,7 +87,13 @@ class FallbackLocationInformationTest {
                 assertThat(propSetter.fallbackLocationText)
                     .isEqualTo("foo.bar.KotlinSubject.setProp(java.lang.String)")
                 assertThat(propSetter.parameters.first().fallbackLocationText)
-                    .isEqualTo("p0 in foo.bar.KotlinSubject.setProp(java.lang.String)")
+                    .isEqualTo(
+                        if (invocation.isKsp2) {
+                            "value in foo.bar.KotlinSubject.setProp(java.lang.String)"
+                        } else {
+                            "p0 in foo.bar.KotlinSubject.setProp(java.lang.String)"
+                        }
+                    )
             }
 
             kotlinSubject.getMethodByJvmName("setPropWithAccessors").let { propSetter ->

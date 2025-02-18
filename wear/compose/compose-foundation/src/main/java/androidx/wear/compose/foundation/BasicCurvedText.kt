@@ -16,6 +16,8 @@
 
 package androidx.wear.compose.foundation
 
+import android.graphics.Paint.LINEAR_TEXT_FLAG
+import android.graphics.Paint.SUBPIXEL_TEXT_FLAG
 import android.graphics.Typeface
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -49,6 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.resolveAsTypeface
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.isUnspecified
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -75,7 +81,7 @@ public fun CurvedScope.basicCurvedText(
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
     style: @Composable () -> CurvedTextStyle = { CurvedTextStyle() }
-) =
+): Unit =
     add(
         CurvedTextChild(
             text,
@@ -106,7 +112,7 @@ public fun CurvedScope.basicCurvedText(
     modifier: CurvedModifier = CurvedModifier,
     angularDirection: CurvedDirection.Angular? = null,
     overflow: TextOverflow = TextOverflow.Clip,
-) = basicCurvedText(text, modifier, angularDirection, overflow) { style }
+): Unit = basicCurvedText(text, modifier, angularDirection, overflow) { style }
 
 internal class CurvedTextChild(
     val text: String,
@@ -137,7 +143,16 @@ internal class CurvedTextChild(
     }
 
     override fun CurvedMeasureScope.initializeMeasure(measurables: Iterator<Measurable>) {
-        delegate.updateIfNeeded(text, clockwise, actualStyle.fontSize.toPx())
+        delegate.updateIfNeeded(
+            text,
+            clockwise,
+            actualStyle.fontSize.toPx(),
+            if (clockwise || actualStyle.letterSpacingCounterClockwise.isUnspecified)
+                actualStyle.letterSpacing
+            else actualStyle.letterSpacingCounterClockwise,
+            density,
+            if (actualStyle.lineHeight.isSpecified) actualStyle.lineHeight.toPx() else -1f
+        )
 
         // Size the compose-ui node reasonably.
 
@@ -221,6 +236,9 @@ internal class CurvedTextDelegate {
     private var text: String = ""
     private var clockwise: Boolean = true
     private var fontSizePx: Float = 0f
+    private var letterSpacing: TextUnit = TextUnit.Unspecified
+    private var density: Float = 0f
+    private var lastLineHeightPx: Float = 0f
 
     var textWidth by mutableFloatStateOf(0f)
     var textHeight by mutableFloatStateOf(0f)
@@ -228,19 +246,54 @@ internal class CurvedTextDelegate {
 
     private var typeFace: State<Typeface?> = mutableStateOf(null)
 
-    private val paint = android.graphics.Paint().apply { isAntiAlias = true }
+    private val paint =
+        android.graphics.Paint().apply {
+            isAntiAlias = true
+            flags = flags or (SUBPIXEL_TEXT_FLAG + LINEAR_TEXT_FLAG)
+        }
     private val backgroundPath = android.graphics.Path()
     private val textPath = android.graphics.Path()
 
     var lastLayoutInfo: CurvedLayoutInfo? = null
     var lastParentSweepRadians: Float = 0f
 
-    fun updateIfNeeded(text: String, clockwise: Boolean, fontSizePx: Float) {
-        if (text != this.text || clockwise != this.clockwise || fontSizePx != this.fontSizePx) {
+    fun updateIfNeeded(
+        text: String,
+        clockwise: Boolean,
+        fontSizePx: Float,
+        letterSpacing: TextUnit,
+        density: Float,
+        lineHeightPx: Float
+    ) {
+        if (
+            text != this.text ||
+                clockwise != this.clockwise ||
+                fontSizePx != this.fontSizePx ||
+                letterSpacing != this.letterSpacing ||
+                density != this.density ||
+                lineHeightPx != lastLineHeightPx
+        ) {
             this.text = text
             this.clockwise = clockwise
             this.fontSizePx = fontSizePx
+            this.letterSpacing = letterSpacing
+            this.density = density
+            this.lastLineHeightPx = lineHeightPx
+
             paint.textSize = fontSizePx
+            paint.letterSpacing =
+                letterSpacing.let {
+                    when (it.type) {
+                        TextUnitType.Em -> it.value
+                        TextUnitType.Sp -> {
+                            val emWidth = paint.textSize * paint.textScaleX
+                            if (emWidth == 0.0f) 0f else it.value * density / emWidth
+                        }
+                        // This includes the TextUnit.Unspecified case
+                        else -> 0f
+                    }
+                }
+
             updateMeasures()
             lastLayoutInfo = null // Ensure paths are recomputed
         }
@@ -275,8 +328,14 @@ internal class CurvedTextDelegate {
         paint.getTextBounds(text, 0, text.length, rect)
 
         textWidth = rect.width().toFloat()
-        textHeight = -paint.fontMetrics.top + paint.fontMetrics.bottom
-        baseLinePosition = if (clockwise) -paint.fontMetrics.top else paint.fontMetrics.bottom
+
+        // Note that ascent is negative, since it's above the baseline (which is at 0).
+        val height = paint.fontMetrics.descent - paint.fontMetrics.ascent
+        val diff = if (lastLineHeightPx >= 0f) (lastLineHeightPx - height) else 0f
+        val actualAscent = -paint.fontMetrics.ascent + diff / 2
+        val actualDescent = paint.fontMetrics.descent + diff / 2
+        textHeight = actualAscent + actualDescent
+        baseLinePosition = if (clockwise) actualAscent else actualDescent
     }
 
     private fun updateTypeFace() {

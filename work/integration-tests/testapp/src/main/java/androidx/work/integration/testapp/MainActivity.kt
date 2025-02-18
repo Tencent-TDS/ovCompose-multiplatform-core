@@ -15,7 +15,6 @@
  */
 package androidx.work.integration.testapp
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
@@ -69,7 +68,6 @@ class MainActivity : AppCompatActivity() {
     private var lastNotificationId = 10
     private val workManager: WorkManager by lazy { WorkManager.getInstance(this) }
 
-    @SuppressLint("ClassVerificationFailure")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -299,6 +297,19 @@ class MainActivity : AppCompatActivity() {
             lastForegroundWorkRequest = request
             workManager.enqueue(request)
         }
+        findViewById<View>(R.id.run_foreground_worker_location).setOnClickListener {
+            lastNotificationId += 1
+            val inputData =
+                workDataOf(ForegroundLocationWorker.InputNotificationId to lastNotificationId)
+
+            val request =
+                OneTimeWorkRequest.Builder(ForegroundLocationWorker::class.java)
+                    .setInputData(inputData)
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .build()
+            lastForegroundWorkRequest = request
+            workManager.enqueue(request)
+        }
         findViewById<View>(R.id.run_foreground_worker_network_request).setOnClickListener {
             lastNotificationId += 1
             val inputData = workDataOf(ForegroundWorker.InputNotificationId to lastNotificationId)
@@ -382,9 +393,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.crash_app).setOnClickListener {
             throw RuntimeException("Crashed app")
         }
-        findViewById<View>(R.id.enqueue_infinite_work_charging).setOnClickListener {
-            queueLotsOfWorkers(workManager)
-        }
+        findViewById<View>(R.id.stress_test).setOnClickListener { queueLotsOfWorkers(workManager) }
         findViewById<View>(R.id.enqueue_network_request).setOnClickListener {
             enqueueWithNetworkRequest(workManager)
         }
@@ -426,12 +435,12 @@ class MainActivity : AppCompatActivity() {
             )
         return OneTimeWorkRequest.Builder(RemoteWorker::class.java)
             .setInputData(data)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
             .build()
     }
 }
 
-@SuppressLint("ClassVerificationFailure")
 private fun enqueueWithNetworkRequest(workManager: WorkManager) {
     if (Build.VERSION.SDK_INT < 21) {
         Log.w(TAG, "Ignoring enqueueWithNetworkRequest on old API levels")

@@ -2,7 +2,6 @@ package androidx.camera.camera2.pipe.integration.internal
 
 import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.core.Log
@@ -12,7 +11,7 @@ import androidx.camera.core.impl.AttachedSurfaceInfo
 import androidx.camera.core.impl.UseCaseConfig
 import androidx.core.util.Preconditions
 
-class DynamicRangeResolver(val cameraMetadata: CameraMetadata) {
+public class DynamicRangeResolver(public val cameraMetadata: CameraMetadata) {
     private val is10BitSupported: Boolean
     private val dynamicRangesInfo: DynamicRangeProfilesCompat
 
@@ -27,7 +26,7 @@ class DynamicRangeResolver(val cameraMetadata: CameraMetadata) {
     }
 
     /** Returns whether 10-bit dynamic ranges are supported on this device. */
-    fun is10BitDynamicRangeSupported(): Boolean = is10BitSupported
+    public fun is10BitDynamicRangeSupported(): Boolean = is10BitSupported
 
     /**
      * Returns a set of supported dynamic ranges for the dynamic ranges requested by the list of
@@ -36,7 +35,7 @@ class DynamicRangeResolver(val cameraMetadata: CameraMetadata) {
      * If a new use case requests a dynamic range that isn't supported, an IllegalArgumentException
      * will be thrown.
      */
-    fun resolveAndValidateDynamicRanges(
+    public fun resolveAndValidateDynamicRanges(
         existingSurfaces: List<AttachedSurfaceInfo>,
         newUseCaseConfigs: List<UseCaseConfig<*>>,
         useCasePriorityOrder: List<Int>
@@ -454,7 +453,6 @@ class DynamicRangeResolver(val cameraMetadata: CameraMetadata) {
 
     @RequiresApi(33)
     internal object Api33Impl {
-        @DoNotInline
         fun getRecommended10BitDynamicRange(cameraMetadata: CameraMetadata): DynamicRange? {
             val recommendedProfile =
                 cameraMetadata[

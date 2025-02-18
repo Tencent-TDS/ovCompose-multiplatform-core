@@ -18,9 +18,12 @@ package androidx.wear.compose.material3.test
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Modifier
@@ -40,6 +43,7 @@ import androidx.wear.compose.material3.TEST_TAG
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
+import androidx.wear.compose.material3.TextButtonShapes
 import androidx.wear.compose.material3.setContentWithTheme
 import org.junit.Rule
 import org.junit.Test
@@ -92,6 +96,24 @@ class TextButtonScreenshotTest {
         sampleTextButton(enabled = true, modifier = Modifier.offset(10.dp))
     }
 
+    @Test
+    fun text_button_with_corner_animation() = verifyScreenshot {
+        sampleTextButton(
+            shapes = TextButtonDefaults.animatedShapes(),
+        )
+    }
+
+    @Test
+    fun text_button_with_morph_animation() = verifyScreenshot {
+        sampleTextButton(
+            shapes =
+                TextButtonDefaults.animatedShapes(
+                    shape = CutCornerShape(15.dp),
+                    pressedShape = RoundedCornerShape(15.dp)
+                ),
+        )
+    }
+
     @Composable
     private fun sampleFilledTextButton(enabled: Boolean) {
         TextButton(
@@ -130,8 +152,19 @@ class TextButtonScreenshotTest {
     }
 
     @Composable
-    private fun sampleTextButton(enabled: Boolean, modifier: Modifier = Modifier) {
-        TextButton(onClick = {}, enabled = enabled, modifier = modifier.testTag(TEST_TAG)) {
+    private fun sampleTextButton(
+        enabled: Boolean = true,
+        shapes: TextButtonShapes = TextButtonDefaults.shapes(),
+        modifier: Modifier = Modifier,
+        interactionSource: MutableInteractionSource? = null
+    ) {
+        TextButton(
+            onClick = {},
+            enabled = enabled,
+            shapes = shapes,
+            modifier = modifier.testTag(TEST_TAG),
+            interactionSource = interactionSource
+        ) {
             Text(text = "ABC")
         }
     }

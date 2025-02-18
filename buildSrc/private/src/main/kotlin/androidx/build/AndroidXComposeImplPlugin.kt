@@ -16,8 +16,6 @@
 
 package androidx.build
 
-import androidx.build.dependencies.KOTLIN_NATIVE_VERSION
-import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
@@ -30,7 +28,6 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.plugin.CompilerPluginConfig
 import org.jetbrains.kotlin.gradle.plugin.KotlinBasePluginWrapper
-import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -46,18 +43,10 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
             when (plugin) {
                 is AppPlugin,
                 is LibraryPlugin -> {
-                    val commonExtension =
-                        project.extensions.findByType(CommonExtension::class.java)
-                            ?: throw Exception("Failed to find Android extension")
-                    commonExtension.defaultConfig.minSdk = 21
                     project.configureAndroidCommonOptions()
                 }
                 is KotlinBasePluginWrapper -> {
                     configureComposeCompilerPlugin(project, extension)
-
-                    if (plugin is KotlinMultiplatformPluginWrapper) {
-                        project.configureForMultiplatform()
-                    }
                 }
             }
         }
@@ -65,10 +54,10 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
 
     companion object {
         private fun Project.configureAndroidCommonOptions() {
-            extensions.findByType(AndroidComponentsExtension::class.java)!!.finalizeDsl {
+            extensions.findByType(AndroidComponentsExtension::class.java)!!.finalizeDsl { android ->
                 val isPublished = androidXExtension.shouldPublish()
 
-                it.lint {
+                android.lint {
                     // These lint checks are normally a warning (or lower), but we ignore (in
                     // AndroidX)
                     // warnings in Lint, so we make it an error here so it will fail the build.
@@ -97,6 +86,12 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                     if (ignoreListIteratorFilter.any { path.contains(it) } || !isPublished) {
                         disable.add("ListIterator")
                     }
+
+                    // b/333784604 Disable ConfigurationScreenWidthHeight for wear libraries, it
+                    // does not apply to wear
+                    if (path.startsWith(":wear:")) {
+                        disable.add("ConfigurationScreenWidthHeight")
+                    }
                 }
             }
 
@@ -114,54 +109,6 @@ class AndroidXComposeImplPlugin : Plugin<Project> {
                 )
             }
         }
-
-        /**
-         * General configuration for MPP projects. In the future, these workarounds should either be
-         * generified and added to AndroidXPlugin, or removed as/when the underlying issues have
-         * been resolved.
-         */
-        private fun Project.configureForMultiplatform() {
-            // This is to allow K/N not matching the kotlinVersion
-            this.rootProject.extensions.extraProperties.set(
-                "kotlin.native.version",
-                KOTLIN_NATIVE_VERSION
-            )
-
-            val multiplatformExtension =
-                checkNotNull(multiplatformExtension) {
-                    "Unable to configureForMultiplatform() when " +
-                        "multiplatformExtension is null (multiplatform plugin not enabled?)"
-                }
-
-            /*
-            The following configures source sets - note:
-
-            1. The common unit test source set, commonTest, is included by default in both android
-            unit and instrumented tests. This causes unnecessary duplication, so we explicitly do
-            _not_ use commonTest, instead choosing to just use the unit test variant.
-            TODO: Consider using commonTest for unit tests if a usable feature is added for
-            https://youtrack.jetbrains.com/issue/KT-34662.
-
-            2. The default (android) unit test source set is named 'androidTest', which conflicts / is
-            confusing as this shares the same name / expected directory as AGP's 'androidTest', which
-            represents _instrumented_ tests.
-            TODO: Consider changing unitTest to androidLocalTest and androidAndroidTest to
-            androidDeviceTest when https://github.com/JetBrains/kotlin/pull/2829 rolls in.
-            */
-            multiplatformExtension.sourceSets.configureEach {
-                // Allow all experimental APIs, since MPP projects are themselves experimental
-                it.languageSettings.apply { optIn("kotlin.ExperimentalMultiplatform") }
-            }
-
-            afterEvaluate {
-                if (multiplatformExtension.targets.findByName("jvm") != null) {
-                    tasks.named("jvmTestClasses").also(::addToBuildOnServer)
-                }
-                if (multiplatformExtension.targets.findByName("desktop") != null) {
-                    tasks.named("desktopTestClasses").also(::addToBuildOnServer)
-                }
-            }
-        }
     }
 }
 
@@ -172,11 +119,6 @@ private fun configureComposeCompilerPlugin(project: Project, extension: AndroidX
         // If a project has opted-out of Compose compiler plugin, don't add it
         if (!extension.composeCompilerPluginEnabled) return@afterEvaluate
 
-        val androidXExtension =
-            project.extensions.findByType(AndroidXExtension::class.java)
-                ?: throw Exception("You have applied AndroidXComposePlugin without AndroidXPlugin")
-        val shouldPublish = androidXExtension.shouldPublish()
-
         // Create configuration that we'll use to load Compose compiler plugin
         val configuration =
             project.configurations.create(COMPILER_PLUGIN_CONFIGURATION) {
@@ -184,11 +126,19 @@ private fun configureComposeCompilerPlugin(project: Project, extension: AndroidX
             }
         // Add Compose compiler plugin to kotlinPlugin configuration, making sure it works
         // for Playground builds as well
-        val pluginVersionToml = project.getVersionByName("composeCompilerPlugin")
-        val versionToUse =
-            if (ProjectLayoutType.isPlayground(project)) {
-                pluginVersionToml
-            } else {
+        val isPlayground = ProjectLayoutType.isPlayground(project)
+        val compilerPluginVersion = project.getVersionByName("kotlin")
+        project.dependencies.add(
+            COMPILER_PLUGIN_CONFIGURATION,
+            "org.jetbrains.kotlin:kotlin-compose-compiler-plugin-embeddable:$compilerPluginVersion"
+        )
+
+        if (
+            !isPlayground &&
+                // ksp is also a compiler plugin, updating Kotlin for it will likely break the build
+                !project.plugins.hasPlugin("com.google.devtools.ksp")
+        ) {
+            if (compilerPluginVersion.endsWith("-SNAPSHOT")) {
                 // use exact project path instead of subprojects.find, it is faster
                 val compilerProject = project.rootProject.resolveProject(":compose")
                 val compilerMavenDirectory =
@@ -196,22 +146,21 @@ private fun configureComposeCompilerPlugin(project: Project, extension: AndroidX
                         compilerProject.projectDir,
                         "compiler/compose-compiler-snapshot-repository"
                     )
-                if (!compilerMavenDirectory.exists()) {
-                    pluginVersionToml
-                } else {
-                    project.repositories.maven { it.url = compilerMavenDirectory.toURI() }
-                    // Version chosen to be not a "-SNAPSHOT" since apparently gradle doesn't
-                    // validate signatures for -SNAPSHOT builds.  Version is chosen to be higher
-                    // than anything real to ensure it is seen as newer than any explicit dependency
-                    // to prevent gradle from "upgrading" to a stable build instead of local build.
-                    // This version is built by: snapshot-compose-compiler.sh (in compiler project)
-                    "99.0.0"
+                project.repositories.maven { it.url = compilerMavenDirectory.toURI() }
+                project.configurations.configureEach {
+                    it.resolutionStrategy.eachDependency { dep ->
+                        val requested = dep.requested
+                        if (
+                            requested.group == "org.jetbrains.kotlin" &&
+                                (requested.name == "kotlin-compiler-embeddable" ||
+                                    requested.name == "kotlin-compose-compiler-plugin-embeddable")
+                        ) {
+                            dep.useVersion(compilerPluginVersion)
+                        }
+                    }
                 }
             }
-        project.dependencies.add(
-            COMPILER_PLUGIN_CONFIGURATION,
-            "androidx.compose.compiler:compiler:$versionToUse"
-        )
+        }
 
         val kotlinPluginProvider =
             project.provider {
@@ -238,14 +187,10 @@ private fun configureComposeCompilerPlugin(project: Project, extension: AndroidX
 
             compile.pluginClasspath.from(kotlinPluginProvider.get())
 
-            // todo(b/291587160): enable when Compose compiler 2.0 is merged
-            // compile.enableFeatureFlag(ComposeFeatureFlag.StrongSkipping)
-            // compile.enableFeatureFlag(ComposeFeatureFlag.OptimizeNonSkippingGroups)
-            compile.addPluginOption(ComposeCompileOptions.StrongSkipping, "true")
-            compile.addPluginOption(ComposeCompileOptions.NonSkippingGroupOptimization, "true")
-            if (shouldPublish) {
-                compile.addPluginOption(ComposeCompileOptions.SourceOption, "true")
-            }
+            compile.enableFeatureFlag(ComposeFeatureFlag.OptimizeNonSkippingGroups)
+            compile.enableFeatureFlag(ComposeFeatureFlag.PausableComposition)
+
+            compile.addPluginOption(ComposeCompileOptions.SourceOption, "true")
         }
 
         if (enableMetrics) {
@@ -298,7 +243,7 @@ private fun KotlinCompile.disableFeatureFlag(featureFlag: ComposeFeatureFlag) {
     addPluginOption(ComposeCompileOptions.FeatureFlagOption, "-${featureFlag.featureName}")
 }
 
-public fun Project.zipComposeCompilerMetrics() {
+internal fun Project.zipComposeCompilerMetrics() {
     if (project.enableComposeCompilerMetrics()) {
         val zipComposeMetrics =
             project.tasks.register(zipComposeMetricsTaskName, Zip::class.java) { zipTask ->
@@ -310,7 +255,7 @@ public fun Project.zipComposeCompilerMetrics() {
     }
 }
 
-public fun Project.zipComposeCompilerReports() {
+internal fun Project.zipComposeCompilerReports() {
     if (project.enableComposeCompilerReports()) {
         val zipComposeReports =
             project.tasks.register(zipComposeReportsTaskName, Zip::class.java) { zipTask ->
@@ -322,21 +267,21 @@ public fun Project.zipComposeCompilerReports() {
     }
 }
 
-fun Project.compilerMetricsIntermediatesDir(): File {
+private fun Project.compilerMetricsIntermediatesDir(): File {
     return project.rootProject.layout.buildDirectory
         .dir("libraryreports/composemetrics")
         .get()
-        .getAsFile()
+        .asFile
 }
 
-fun Project.compilerReportsIntermediatesDir(): File {
+private fun Project.compilerReportsIntermediatesDir(): File {
     return project.rootProject.layout.buildDirectory
         .dir("libraryreports/composereports")
         .get()
-        .getAsFile()
+        .asFile
 }
 
-fun Project.composeCompilerDataDir(): File {
+private fun Project.composeCompilerDataDir(): File {
     return File(getDistributionDirectory(), "compose-compiler-data")
 }
 
@@ -354,4 +299,5 @@ private enum class ComposeCompileOptions(val pluginId: String, val key: String) 
 private enum class ComposeFeatureFlag(val featureName: String) {
     StrongSkipping("StrongSkipping"),
     OptimizeNonSkippingGroups("OptimizeNonSkippingGroups"),
+    PausableComposition("PausableComposition"),
 }

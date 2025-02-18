@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.BitcodeEmbeddingMode
 import org.jetbrains.kotlin.gradle.plugin.mpp.apple.XCFrameworkConfig
@@ -35,7 +37,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
 
     // XCFrameworkConfig must always be called AndroidXDarwinBenchmarks
     def xcf = new XCFrameworkConfig(project, "AndroidXDarwinBenchmarks")
@@ -110,6 +112,7 @@ androidXMultiplatform {
 
 androidx {
     name = "Collections Benchmarks (Android / iOS)"
+    type = SoftwareType.BENCHMARK
     inceptionYear = "2022"
     description = "AndroidX Collections Benchmarks (Android / iOS)"
 }
@@ -126,8 +129,8 @@ darwinBenchmark {
 }
 
 android {
-    namespace "androidx.collection.benchmark"
+    namespace = "androidx.collection.benchmark"
     defaultConfig {
-        minSdkVersion 22 // b/294570164
+        minSdk = 22 // b/294570164
     }
 }

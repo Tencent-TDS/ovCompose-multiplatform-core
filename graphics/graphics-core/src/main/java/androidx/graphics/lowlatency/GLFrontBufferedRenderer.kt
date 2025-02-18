@@ -37,7 +37,6 @@ import androidx.hardware.HardwareBufferFormat
 import androidx.hardware.SyncFenceCompat
 import androidx.opengl.EGLExt.Companion.EGL_ANDROID_NATIVE_FENCE_SYNC
 import androidx.opengl.EGLExt.Companion.EGL_KHR_FENCE_SYNC
-import java.util.Collections
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -75,7 +74,6 @@ import kotlin.math.max
  * https://developer.android.com/reference/android/hardware/HardwareBuffer
  */
 @RequiresApi(Build.VERSION_CODES.Q)
-@Suppress("AcronymName")
 class GLFrontBufferedRenderer<T>
 @JvmOverloads
 constructor(
@@ -210,7 +208,7 @@ constructor(
                     height,
                     bufferInfo,
                     transform,
-                    mSegments.poll() ?: Collections.emptyList()
+                    mSegments.poll() ?: emptyList()
                 )
             }
 
@@ -617,7 +615,7 @@ constructor(
     private fun commitInternal() {
         if (isValid()) {
             mPendingRenderCount.set(0)
-            mSegments.add(mActiveSegment.release())
+            mSegments.add(if (mActiveSegment.isEmpty()) emptyList() else mActiveSegment.release())
             mMultiBufferedRenderer?.render()
         } else {
             Log.w(

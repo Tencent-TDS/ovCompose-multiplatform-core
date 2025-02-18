@@ -181,7 +181,7 @@ val DEVICE_CONFIG =
 @MediumTest
 public class WatchFaceControlServiceTest {
 
-    @get:Rule internal val screenshotRule = AndroidXScreenshotTestRule("wear/wear-watchface")
+    @get:Rule internal val screenshotRule = AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
     private lateinit var instance: IHeadlessWatchFace
 

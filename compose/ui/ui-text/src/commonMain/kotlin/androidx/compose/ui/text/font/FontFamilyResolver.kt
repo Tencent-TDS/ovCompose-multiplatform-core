@@ -16,9 +16,9 @@
 
 package androidx.compose.ui.text.font
 
+import androidx.collection.LruCache
 import androidx.compose.runtime.State
-import androidx.compose.ui.text.caches.LruCache
-import androidx.compose.ui.text.platform.createSynchronizedObject
+import androidx.compose.ui.text.platform.makeSynchronizedObject
 import androidx.compose.ui.text.platform.synchronized
 import androidx.compose.ui.util.fastMap
 
@@ -165,7 +165,7 @@ internal sealed interface TypefaceResult : State<Any> {
 }
 
 internal class TypefaceRequestCache {
-    internal val lock = createSynchronizedObject()
+    internal val lock = makeSynchronizedObject()
     // @GuardedBy("lock")
     private val resultCache = LruCache<TypefaceRequest, TypefaceResult>(16)
 
@@ -174,7 +174,7 @@ internal class TypefaceRequestCache {
         resolveTypeface: ((TypefaceResult) -> Unit) -> TypefaceResult
     ): State<Any> {
         synchronized(lock) {
-            resultCache.get(typefaceRequest)?.let {
+            resultCache[typefaceRequest]?.let {
                 if (it.cacheable) {
                     return it
                 } else {
@@ -216,7 +216,7 @@ internal class TypefaceRequestCache {
         synchronized(lock) {
             // async result may have completed prior to this block entering, do not overwrite
             // final results
-            if (resultCache.get(typefaceRequest) == null && currentTypefaceResult.cacheable) {
+            if (resultCache[typefaceRequest] == null && currentTypefaceResult.cacheable) {
                 resultCache.put(typefaceRequest, currentTypefaceResult)
             }
         }
@@ -230,7 +230,7 @@ internal class TypefaceRequestCache {
         for (i in typefaceRequests.indices) {
             val typeRequest = typefaceRequests[i]
 
-            val prior = synchronized(lock) { resultCache.get(typeRequest) }
+            val prior = synchronized(lock) { resultCache[typeRequest] }
             if (prior != null) continue
 
             val next =
@@ -254,5 +254,5 @@ internal class TypefaceRequestCache {
 
     // @VisibleForTesting
     internal val size: Int
-        get() = synchronized(lock) { resultCache.size }
+        get() = synchronized(lock) { resultCache.size() }
 }

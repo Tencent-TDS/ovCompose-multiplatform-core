@@ -17,6 +17,7 @@
 package androidx.window.embedding
 
 import android.content.ComponentName
+import android.graphics.Color
 import android.graphics.Rect
 import androidx.window.core.ActivityComponentInfo
 import androidx.window.embedding.SplitRule.Companion.SPLIT_MAX_ASPECT_RATIO_LANDSCAPE_DEFAULT
@@ -39,7 +40,7 @@ internal class SplitPairRuleTest {
 
     @Test
     fun test_builderMatchesConstruction() {
-        val splitAttributes = SplitAttributes()
+        val splitAttributes = SplitAttributes.Builder().build()
         val filterSet = setOf(createSplitPairFilter())
         val expected = SplitPairRule(filterSet, splitAttributes)
 
@@ -78,6 +79,7 @@ internal class SplitPairRuleTest {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
                 .setLayoutDirection(SplitAttributes.LayoutDirection.LOCALE)
+                .setAnimationParams(EmbeddingAnimationParams.Builder().build())
                 .build()
         TestCase.assertNull(rule.tag)
         assertEquals(SPLIT_MIN_DIMENSION_DP_DEFAULT, rule.minWidthDp)
@@ -101,6 +103,13 @@ internal class SplitPairRuleTest {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.3f))
                 .setLayoutDirection(SplitAttributes.LayoutDirection.LEFT_TO_RIGHT)
+                .setAnimationParams(
+                    EmbeddingAnimationParams.Builder()
+                        .setAnimationBackground(
+                            EmbeddingAnimationBackground.createColorBackground(Color.GREEN)
+                        )
+                        .build()
+                )
                 .build()
         filters.add(SplitPairFilter(ComponentName("a", "b"), ComponentName("c", "d"), "ACTION"))
         val rule =
