@@ -16,13 +16,12 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.WebTextInputService
-import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -33,11 +32,19 @@ internal class WebTextInputSession(
 
     private val innerSessionMutex = SessionMutex<Nothing?>()
 
-    override suspend fun startInputMethod(request: PlatformTextInputMethodRequest) =
-        innerSessionMutex.withSessionCancellingPrevious(
-            // This session has no data, just init/dispose tasks.
-            sessionInitializer = { null }
-        ) {
+    override suspend fun startInputMethod(
+        request: PlatformTextInputMethodRequest
+    ): Nothing = innerSessionMutex.withSessionCancellingPrevious(
+        // This session has no data, just init/dispose tasks.
+        sessionInitializer = { null }
+    ) {
+        coroutineScope {
+            // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7831/Web-Adopt-PlatformTextInputService2)
+            launch {
+                request.outputValue.collect {
+                    webTextInputService.updateState(oldValue = null, newValue = it)
+                }
+            }
             launch {
                 request.focusedRectInRoot.collect {
                     webTextInputService.notifyFocusedRect(it)
@@ -45,7 +52,7 @@ internal class WebTextInputSession(
             }
             suspendCancellableCoroutine<Nothing> { continuation ->
                 webTextInputService.startInput(
-                    value = request.state,
+                    value = request.value(),
                     imeOptions = request.imeOptions,
                     onEditCommand = request.onEditCommand,
                     onImeActionPerformed = request.onImeAction ?: {}
@@ -56,9 +63,5 @@ internal class WebTextInputSession(
                 }
             }
         }
-
-    @ExperimentalComposeUiApi
-    override fun updateTextFieldValue(newValue: TextFieldValue) {
-        webTextInputService.updateState(oldValue = null, newValue)
     }
 }
