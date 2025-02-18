@@ -465,6 +465,8 @@ internal class ComposeHostingViewController(
 
     private fun updateMotionSpeed() {
         motionDurationScale.scaleFactor = if (UIAccessibilityIsReduceMotionEnabled()) {
+            // 0f would cause motion to finish in the next frame callback.
+            // See [MotionDurationScale.scaleFactor] for more details.
             0f
         } else {
             1f / (view.window?.layer?.speed?.takeIf { it > 0 } ?: 1f)
