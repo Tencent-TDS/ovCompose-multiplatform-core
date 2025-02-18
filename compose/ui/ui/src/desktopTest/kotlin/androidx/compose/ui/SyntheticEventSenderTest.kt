@@ -24,7 +24,6 @@ import androidx.compose.ui.input.pointer.PointerEventType.Companion.Release
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.SyntheticEventSender
 import androidx.compose.ui.scene.PointerEventResult
-import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -378,8 +377,35 @@ class SyntheticEventSenderTest {
     }
 
     @Test
-    @Ignore
-    fun `should update pointer position with move event after press event`() {
+    fun `should update pointer position with move event after hover event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Enter, 1 to touch(10f, 20f, pressed = false)),
+            event(Move, 1 to touch(10f, 20f, pressed = false))
+        )
+
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = false)),
+            event(Move, 1 to touch(5f, 15f, pressed = false))
+        )
+    }
+
+    @Test
+    fun `should not update pointer position with move event after pressed event`() {
         val received = mutableListOf<PointerInputEvent>()
         val sender = SyntheticEventSender {
             PointerEventResult(received.add(it))
@@ -391,24 +417,42 @@ class SyntheticEventSenderTest {
 
         received positionAndDownShouldEqual listOf(
             event(Press, 1 to touch(10f, 20f, pressed = true)),
-            event(Move, 1 to touch(10f, 20f, pressed = true))
         )
-    }
 
-    @Test
-    @Ignore
-    fun `should not update pointer position with move event after touch event`() {
-        val received = mutableListOf<PointerInputEvent>()
-        val sender = SyntheticEventSender {
-            PointerEventResult(received.add(it))
-        }
-        sender.send(event(Move, 1 to touch(10f, 20f, pressed = true)))
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = true))
 
         sender.needUpdatePointerPosition = true
         sender.updatePointerPosition()
 
         received positionAndDownShouldEqual listOf(
-            event(Move, 1 to touch(10f, 20f, pressed = true))
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
+        )
+    }
+
+    @Test
+    fun `should not update pointer position with move event after touch event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(event(Press, 1 to touch(10f, 20f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Press, 1 to touch(10f, 20f, pressed = true)),
+        )
+
+        received.clear()
+        sender.send(event(Move, 1 to touch(5f, 15f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
         )
     }
 
