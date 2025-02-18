@@ -1198,8 +1198,10 @@ package androidx.compose.runtime.snapshots.tooling {
   @SuppressCompatibility @androidx.compose.runtime.ExperimentalComposeRuntimeApi public interface SnapshotObserver {
     method public default void onApplied(androidx.compose.runtime.snapshots.Snapshot snapshot, java.util.Set<?> changed);
     method public default void onCreated(androidx.compose.runtime.snapshots.Snapshot snapshot, androidx.compose.runtime.snapshots.Snapshot? parent, androidx.compose.runtime.snapshots.tooling.SnapshotInstanceObservers? observers);
-    method public default androidx.compose.runtime.snapshots.tooling.SnapshotInstanceObservers? onCreating(androidx.compose.runtime.snapshots.Snapshot? parent, boolean readonly);
-    method public default void onDisposing(androidx.compose.runtime.snapshots.Snapshot snapshot);
+    method @Deprecated public default androidx.compose.runtime.snapshots.tooling.SnapshotInstanceObservers? onCreating(androidx.compose.runtime.snapshots.Snapshot? parent, boolean readonly);
+    method @Deprecated public default void onDisposing(androidx.compose.runtime.snapshots.Snapshot snapshot);
+    method public default androidx.compose.runtime.snapshots.tooling.SnapshotInstanceObservers? onPreCreate(androidx.compose.runtime.snapshots.Snapshot? parent, boolean readonly);
+    method public default void onPreDispose(androidx.compose.runtime.snapshots.Snapshot snapshot);
   }
 
   public final class SnapshotObserverKt {
