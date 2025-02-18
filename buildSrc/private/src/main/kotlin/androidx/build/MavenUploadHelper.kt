@@ -368,7 +368,6 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
 }
 
 private val jetBrainsLibrariesWithAndroidTarget = setOf(
-    ":core:core-bundle",
     ":core:core-uri",
     ":compose:ui:ui-backhandler",
 )
