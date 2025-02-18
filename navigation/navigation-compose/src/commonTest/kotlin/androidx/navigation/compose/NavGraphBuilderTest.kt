@@ -17,13 +17,13 @@
 package androidx.navigation.compose
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.navigation.NavDeepLinkRequest
 import androidx.navigation.NavGraph
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.compose.internal.parseNavUri
 import androidx.navigation.contains
 import androidx.navigation.get
 import androidx.navigation.navArgument
@@ -50,7 +50,7 @@ class NavGraphBuilderTest {
     fun testDeepLink() = runComposeUiTestOnUiThread {
         lateinit var navController: TestNavHostController
         val uriString = "https://www.example.com"
-        val deeplink = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(uriString)).build()
+        val deeplink = NavDeepLinkRequest.Builder.fromUri(parseNavUri(uriString)).build()
         setContentWithLifecycleOwner {
             navController = TestNavHostController()
             navController.navigatorProvider.addNavigator(ComposeNavigator())
@@ -65,7 +65,7 @@ class NavGraphBuilderTest {
         }
 
         runOnUiThread {
-            navController.navigate(UriUtils.parse(uriString))
+            navController.navigate(parseNavUri(uriString))
             assertThat(navController.currentBackStackEntry!!.destination.hasDeepLink(deeplink))
                 .isTrue()
         }
@@ -75,7 +75,7 @@ class NavGraphBuilderTest {
     fun testNestedNavigationDeepLink() = runComposeUiTestOnUiThread {
         lateinit var navController: TestNavHostController
         val uriString = "https://www.example.com"
-        val deeplink = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(uriString)).build()
+        val deeplink = NavDeepLinkRequest.Builder.fromUri(parseNavUri(uriString)).build()
         setContentWithLifecycleOwner {
             navController = TestNavHostController()
             navController.navigatorProvider.addNavigator(ComposeNavigator())
@@ -93,7 +93,7 @@ class NavGraphBuilderTest {
         }
 
         runOnUiThread {
-            navController.navigate(UriUtils.parse(uriString))
+            navController.navigate(parseNavUri(uriString))
             assertThat(
                 navController.getBackStackEntry(secondRoute).destination.hasDeepLink(deeplink)
             )
