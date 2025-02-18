@@ -231,7 +231,6 @@ includeProject(":kruth:kruth")
 includeProject(":lint-checks")
 includeProject(":lint-checks:integration-tests")
 
-includeProject(":core:core-uri")
 includeProject(":graphics:graphics-shapes")
 includeProject(":lifecycle:lifecycle-common")
 includeProject(":lifecycle:lifecycle-runtime")
