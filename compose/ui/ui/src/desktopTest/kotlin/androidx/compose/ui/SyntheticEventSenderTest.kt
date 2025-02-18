@@ -376,6 +376,88 @@ class SyntheticEventSenderTest {
         )
     }
 
+    @Test
+    fun `should update pointer position with move event after hover event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Enter, 1 to touch(10f, 20f, pressed = false)),
+            event(Move, 1 to touch(10f, 20f, pressed = false))
+        )
+
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = false)),
+            event(Move, 1 to touch(5f, 15f, pressed = false))
+        )
+    }
+
+    @Test
+    fun `should update pointer position with move event after pressed event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(mouseEvent(Press, 10f, 20f, pressed = true))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Press, 1 to touch(10f, 20f, pressed = true)),
+            event(Move, 1 to touch(10f, 20f, pressed = true))
+        )
+
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = true))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
+            event(Move, 1 to touch(5f, 15f, pressed = true))
+        )
+    }
+
+    @Test
+    fun `should not update pointer position with move event after touch event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(event(Press, 1 to touch(10f, 20f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Press, 1 to touch(10f, 20f, pressed = true)),
+        )
+
+        received.clear()
+        sender.send(event(Move, 1 to touch(5f, 15f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
+        )
+    }
+
     private fun eventsSentBy(
         vararg inputEvents: PointerInputEvent
     ): List<PointerInputEvent> {
