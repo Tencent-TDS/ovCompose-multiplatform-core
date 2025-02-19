@@ -105,9 +105,9 @@ internal class AndroidAutofillManager(
         val prevConfig = previousSemanticsConfiguration
         val semanticsId = semanticsInfo.semanticsId
 
-        // Check Editable Text.
-        val previousText = prevConfig?.getOrNull(SemanticsProperties.EditableText)?.text
-        val newText = config?.getOrNull(SemanticsProperties.EditableText)?.text
+        // Check Input Text.
+        val previousText = prevConfig?.getOrNull(SemanticsProperties.InputText)?.text
+        val newText = config?.getOrNull(SemanticsProperties.InputText)?.text
         if (!previousText.isNullOrEmpty() && previousText != newText && !newText.isNullOrEmpty()) {
             val contentDataType = config.getOrNull(SemanticsProperties.ContentDataType)
             if (contentDataType == ContentDataType.Text) {
