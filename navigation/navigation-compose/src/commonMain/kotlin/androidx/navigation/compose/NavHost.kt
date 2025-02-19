@@ -52,6 +52,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.Navigator
+import androidx.navigation.compose.internal.DefaultNavTransitions
 import androidx.navigation.compose.internal.LocalViewModelStoreOwner
 import androidx.navigation.compose.internal.PredictiveBackHandler
 import androidx.navigation.createGraph
@@ -130,16 +131,14 @@ public fun NavHost(
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.TopStart,
     route: String? = null,
-    enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) = {
-        fadeIn(animationSpec = tween(700))
-    },
-    exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) = {
-        fadeOut(animationSpec = tween(700))
-    },
+    enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+        DefaultNavTransitions.enterTransition,
+    exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+        DefaultNavTransitions.exitTransition,
     popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
     builder: NavGraphBuilder.() -> Unit
 ) {
     NavHost(
@@ -187,27 +186,23 @@ public fun NavHost(
     enterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        {
-            fadeIn(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.enterTransition,
     exitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        {
-            fadeOut(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.exitTransition,
     popEnterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
     sizeTransform:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
-        null,
+        DefaultNavTransitions.sizeTransform,
     builder: NavGraphBuilder.() -> Unit
 ) {
     NavHost(
@@ -259,27 +254,23 @@ public fun NavHost(
     enterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        {
-            fadeIn(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.enterTransition,
     exitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        {
-            fadeOut(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.exitTransition,
     popEnterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
     sizeTransform:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
-        null,
+        DefaultNavTransitions.sizeTransform,
     builder: NavGraphBuilder.() -> Unit
 ) {
     NavHost(
@@ -331,27 +322,23 @@ public fun NavHost(
     enterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        {
-            fadeIn(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.enterTransition,
     exitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        {
-            fadeOut(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.exitTransition,
     popEnterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
     sizeTransform:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
-        null,
+        DefaultNavTransitions.sizeTransform,
     builder: NavGraphBuilder.() -> Unit
 ) {
     NavHost(
@@ -418,16 +405,14 @@ public fun NavHost(
     graph: NavGraph,
     modifier: Modifier = Modifier,
     contentAlignment: Alignment = Alignment.TopStart,
-    enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) = {
-        fadeIn(animationSpec = tween(700))
-    },
-    exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) = {
-        fadeOut(animationSpec = tween(700))
-    },
+    enterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
+        DefaultNavTransitions.enterTransition,
+    exitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
+        DefaultNavTransitions.exitTransition,
     popEnterTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
 ) {
     NavHost(
         navController,
@@ -466,27 +451,23 @@ public fun NavHost(
     enterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        {
-            fadeIn(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.enterTransition,
     exitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        {
-            fadeOut(animationSpec = tween(700))
-        },
+        DefaultNavTransitions.exitTransition,
     popEnterTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition) =
-        enterTransition,
+        DefaultNavTransitions.popEnterTransition,
     popExitTransition:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition) =
-        exitTransition,
+        DefaultNavTransitions.popExitTransition,
     sizeTransform:
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
-        null
+        DefaultNavTransitions.sizeTransform
 ) {
 
     val lifecycleOwner = LocalLifecycleOwner.current

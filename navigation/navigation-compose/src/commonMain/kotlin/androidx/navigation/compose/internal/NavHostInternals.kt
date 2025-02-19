@@ -16,8 +16,16 @@
 
 package androidx.navigation.compose.internal
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.navigation.NavBackStackEntry
 import kotlinx.coroutines.flow.Flow
 
 internal expect object LocalViewModelStoreOwner {
@@ -37,3 +45,28 @@ internal expect fun PredictiveBackHandler(
     enabled: Boolean = true,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 )
+
+internal expect object DefaultNavTransitions {
+    val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
+    val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+    val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
+    val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+    val sizeTransform: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?
+}
+
+internal object StandardDefaultNavTransitions {
+    val enterTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        fadeIn(animationSpec = tween(700))
+    }
+    val exitTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        fadeOut(animationSpec = tween(700))
+    }
+    val popEnterTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = enterTransition
+    val popExitTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = exitTransition
+    val sizeTransform:
+        (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? = null
+}
