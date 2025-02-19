@@ -19,6 +19,10 @@ package androidx.camera.video;
 import static androidx.camera.core.DynamicRange.ENCODING_HLG;
 import static androidx.camera.core.DynamicRange.SDR;
 import static androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE;
+import static androidx.camera.video.CapabilitiesByQuality.containsSupportedQuality;
+import static androidx.camera.video.Quality.FHD;
+import static androidx.camera.video.Quality.HD;
+import static androidx.camera.video.Quality.SD;
 import static androidx.camera.video.Quality.getSortedQualities;
 import static androidx.camera.video.Recorder.VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE;
 import static androidx.camera.video.Recorder.VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES;
@@ -28,13 +32,10 @@ import static java.util.Collections.singleton;
 
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
-import androidx.arch.core.util.Function;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.DynamicRange;
+import androidx.camera.core.Logger;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.DynamicRanges;
 import androidx.camera.core.impl.EncoderProfilesProvider;
@@ -46,13 +47,17 @@ import androidx.camera.video.internal.DynamicRangeMatchedEncoderProfilesProvider
 import androidx.camera.video.internal.QualityExploredEncoderProfilesProvider;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
 import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
-import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+import androidx.camera.video.internal.workaround.DefaultEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityAddedEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityResolutionModifiedEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityValidatedEncoderProfilesProvider;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,9 +73,9 @@ import java.util.Set;
  *
  * @see Recorder#getVideoCapabilities(CameraInfo)
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public final class RecorderVideoCapabilities implements VideoCapabilities {
+    private static final String TAG = "RecorderVideoCapabilities";
 
     private final EncoderProfilesProvider mProfilesProvider;
     private final boolean mIsStabilizationSupported;
@@ -99,11 +104,25 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
      */
     RecorderVideoCapabilities(@Recorder.VideoCapabilitiesSource int videoCapabilitiesSource,
             @NonNull CameraInfoInternal cameraInfo,
-            @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
+            VideoEncoderInfo.@NonNull Finder videoEncoderInfoFinder) {
         checkArgument(videoCapabilitiesSource == VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE
                         || videoCapabilitiesSource == VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES,
                 "Not a supported video capabilities source: " + videoCapabilitiesSource);
         EncoderProfilesProvider encoderProfilesProvider = cameraInfo.getEncoderProfilesProvider();
+
+        if (!containsSupportedQuality(encoderProfilesProvider)) {
+            Logger.w(TAG, "Camera EncoderProfilesProvider doesn't contain any supported Quality.");
+            // Limit maximum supported video resolution to 1080p(FHD).
+            // While 2160p(UHD) may be reported as supported by the Camera and MediaCodec APIs,
+            // testing on lab devices has shown that recording at this resolution is not always
+            // reliable. This aligns with the Android 5.1 CDD, which recommends 1080p as the
+            // supported resolution.
+            // See: https://source.android.com/static/docs/compatibility/5.1/android-5.1-cdd.pdf,
+            // 5.2. Video Encoding.
+            List<Quality> targetQualities = Arrays.asList(FHD, HD, SD);
+            encoderProfilesProvider = new DefaultEncoderProfilesProvider(cameraInfo,
+                    targetQualities, videoEncoderInfoFinder);
+        }
 
         Quirks deviceQuirks = DeviceQuirks.getAll();
         // Add extra supported quality.
@@ -151,15 +170,13 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         mIsStabilizationSupported = cameraInfo.isVideoStabilizationSupported();
     }
 
-    @NonNull
     @Override
-    public Set<DynamicRange> getSupportedDynamicRanges() {
+    public @NonNull Set<DynamicRange> getSupportedDynamicRanges() {
         return mCapabilitiesMapForFullySpecifiedDynamicRange.keySet();
     }
 
-    @NonNull
     @Override
-    public List<Quality> getSupportedQualities(@NonNull DynamicRange dynamicRange) {
+    public @NonNull List<Quality> getSupportedQualities(@NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? new ArrayList<>() : capabilities.getSupportedQualities();
     }
@@ -176,34 +193,31 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         return mIsStabilizationSupported;
     }
 
-    @Nullable
     @Override
-    public VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality,
+    public @Nullable VideoValidatedEncoderProfilesProxy getProfiles(@NonNull Quality quality,
             @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? null : capabilities.getProfiles(quality);
     }
 
-    @Nullable
     @Override
-    public VideoValidatedEncoderProfilesProxy findNearestHigherSupportedEncoderProfilesFor(
-            @NonNull Size size, @NonNull DynamicRange dynamicRange) {
+    public @Nullable VideoValidatedEncoderProfilesProxy
+            findNearestHigherSupportedEncoderProfilesFor(
+                    @NonNull Size size, @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? null
                 : capabilities.findNearestHigherSupportedEncoderProfilesFor(size);
     }
 
-    @NonNull
     @Override
-    public Quality findNearestHigherSupportedQualityFor(@NonNull Size size,
+    public @NonNull Quality findNearestHigherSupportedQualityFor(@NonNull Size size,
             @NonNull DynamicRange dynamicRange) {
         CapabilitiesByQuality capabilities = getCapabilities(dynamicRange);
         return capabilities == null ? Quality.NONE
                 : capabilities.findNearestHigherSupportedQualityFor(size);
     }
 
-    @Nullable
-    private CapabilitiesByQuality getCapabilities(@NonNull DynamicRange dynamicRange) {
+    private @Nullable CapabilitiesByQuality getCapabilities(@NonNull DynamicRange dynamicRange) {
         if (dynamicRange.isFullySpecified()) {
             return mCapabilitiesMapForFullySpecifiedDynamicRange.get(dynamicRange);
         }
@@ -233,8 +247,7 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
         return false;
     }
 
-    @Nullable
-    private CapabilitiesByQuality generateCapabilitiesForNonFullySpecifiedDynamicRange(
+    private @Nullable CapabilitiesByQuality generateCapabilitiesForNonFullySpecifiedDynamicRange(
             @NonNull DynamicRange dynamicRange) {
         if (!DynamicRanges.canResolve(dynamicRange, getSupportedDynamicRanges())) {
             return null;

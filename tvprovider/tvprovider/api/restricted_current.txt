@@ -91,7 +91,7 @@ package androidx.tvprovider.media.tv {
   }
 
   public class PreviewChannel {
-    method public static androidx.tvprovider.media.tv.PreviewChannel! fromCursor(android.database.Cursor!);
+    method public static androidx.tvprovider.media.tv.PreviewChannel? fromCursor(android.database.Cursor!);
     method public android.content.Intent! getAppLinkIntent() throws java.net.URISyntaxException;
     method public android.net.Uri! getAppLinkIntentUri();
     method public CharSequence! getDescription();

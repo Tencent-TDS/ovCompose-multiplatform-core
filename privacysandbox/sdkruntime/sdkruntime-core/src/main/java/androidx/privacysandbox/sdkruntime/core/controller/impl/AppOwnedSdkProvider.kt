@@ -25,12 +25,8 @@ import androidx.core.os.BuildCompat
 import androidx.privacysandbox.sdkruntime.core.AdServicesInfo
 import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 
-/**
- * Fetches all registered [AppOwnedSdkSandboxInterfaceCompat] from [SdkSandboxController].
- */
-internal class AppOwnedSdkProvider private constructor(
-    private val providerImpl: ProviderImpl
-) {
+/** Fetches all registered [AppOwnedSdkSandboxInterfaceCompat] from [SdkSandboxController]. */
+internal class AppOwnedSdkProvider private constructor(private val providerImpl: ProviderImpl) {
 
     fun getAppOwnedSdkSandboxInterfaces(): List<AppOwnedSdkSandboxInterfaceCompat> =
         providerImpl.getAppOwnedSdkSandboxInterfaces()
@@ -39,24 +35,17 @@ internal class AppOwnedSdkProvider private constructor(
         fun getAppOwnedSdkSandboxInterfaces(): List<AppOwnedSdkSandboxInterfaceCompat>
     }
 
-    /**
-     * Implementation for cases when API not supported by [SdkSandboxController]
-     */
+    /** Implementation for cases when API not supported by [SdkSandboxController] */
     private class NoOpImpl : ProviderImpl {
         override fun getAppOwnedSdkSandboxInterfaces(): List<AppOwnedSdkSandboxInterfaceCompat> {
             return emptyList()
         }
     }
 
-    /**
-     * Implementation for AdServices V8.
-     */
+    /** Implementation for AdServices V8. */
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 8)
-    private class ApiAdServicesV8Impl(
-        private val controller: SdkSandboxController
-    ) : ProviderImpl {
+    private class ApiAdServicesV8Impl(private val controller: SdkSandboxController) : ProviderImpl {
         @DoNotInline
-        @SuppressLint("ClassVerificationFailure") // flaky lint
         override fun getAppOwnedSdkSandboxInterfaces(): List<AppOwnedSdkSandboxInterfaceCompat> {
             val apiResult = controller.getAppOwnedSdkSandboxInterfaces()
             return apiResult.map { AppOwnedSdkSandboxInterfaceCompat(it) }
@@ -64,10 +53,10 @@ internal class AppOwnedSdkProvider private constructor(
     }
 
     companion object {
-        @SuppressLint("NewApi", "ClassVerificationFailure") // For supporting DP Builds
+        @SuppressLint("NewApi") // For supporting DP Builds
         fun create(controller: SdkSandboxController): AppOwnedSdkProvider {
-            return if (BuildCompat.AD_SERVICES_EXTENSION_INT >= 8 ||
-                AdServicesInfo.isDeveloperPreview()
+            return if (
+                BuildCompat.AD_SERVICES_EXTENSION_INT >= 8 || AdServicesInfo.isDeveloperPreview()
             ) {
                 AppOwnedSdkProvider(ApiAdServicesV8Impl(controller))
             } else {

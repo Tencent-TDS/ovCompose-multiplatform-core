@@ -23,6 +23,8 @@ import androidx.pdf.util.HighlightOverlay;
 import androidx.pdf.util.HighlightPaint;
 import androidx.pdf.util.RectDrawSpec;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * A {@link HighlightOverlay} overlay that highlights all of the matches described in the given
  * {@link MatchRects} object or a given {@link PageSelection}.
@@ -31,17 +33,17 @@ import androidx.pdf.util.RectDrawSpec;
 public class PdfHighlightOverlay extends HighlightOverlay {
 
     /** Highlights the selection blue. */
-    public PdfHighlightOverlay(PageSelection selection) {
+    public PdfHighlightOverlay(@NonNull PageSelection selection) {
         super(new RectDrawSpec(HighlightPaint.SELECTION, selection.getRects()));
     }
 
     /** Highlights all the matches yellow. */
-    public PdfHighlightOverlay(MatchRects matchRects) {
+    public PdfHighlightOverlay(@NonNull MatchRects matchRects) {
         super(new RectDrawSpec(HighlightPaint.MATCH, matchRects.flatten()));
     }
 
     /** Highlights the current match orange, and all the other matches yellow. */
-    public PdfHighlightOverlay(MatchRects matchRects, int currentMatch) {
+    public PdfHighlightOverlay(@NonNull MatchRects matchRects, int currentMatch) {
         super(
                 new RectDrawSpec(HighlightPaint.CURRENT_MATCH, matchRects.get(currentMatch)),
                 new RectDrawSpec(HighlightPaint.MATCH,

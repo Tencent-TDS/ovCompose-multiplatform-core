@@ -40,10 +40,10 @@ import android.media.MediaFormat;
 import android.media.MediaRecorder;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -54,7 +54,6 @@ import java.util.List;
  * EncoderProfilesProxy defines the get methods that is mapping to the fields of
  * {@link EncoderProfiles}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface EncoderProfilesProxy {
 
     /** Constant representing no codec profile. */
@@ -67,12 +66,10 @@ public interface EncoderProfilesProxy {
     int getRecommendedFileFormat();
 
     /** @see EncoderProfiles#getAudioProfiles() */
-    @NonNull
-    List<AudioProfileProxy> getAudioProfiles();
+    @NonNull List<AudioProfileProxy> getAudioProfiles();
 
     /** @see EncoderProfiles#getVideoProfiles() */
-    @NonNull
-    List<VideoProfileProxy> getVideoProfiles();
+    @NonNull List<VideoProfileProxy> getVideoProfiles();
 
     /**
      * VideoProfileProxy defines the get methods that is mapping to the fields of
@@ -97,8 +94,7 @@ public interface EncoderProfilesProxy {
         }
 
         /** Creates a VideoProfileProxy instance. */
-        @NonNull
-        public static VideoProfileProxy create(
+        public static @NonNull VideoProfileProxy create(
                 @VideoEncoder int codec,
                 @NonNull String mediaType,
                 int bitrate,
@@ -128,8 +124,7 @@ public interface EncoderProfilesProxy {
         public abstract int getCodec();
 
         /** @see EncoderProfiles.VideoProfile#getMediaType() */
-        @NonNull
-        public abstract String getMediaType();
+        public abstract @NonNull String getMediaType();
 
         /** @see EncoderProfiles.VideoProfile#getBitrate() */
         public abstract int getBitrate();
@@ -173,8 +168,7 @@ public interface EncoderProfilesProxy {
         }
 
         /** Creates an AudioProfileProxy instance. */
-        @NonNull
-        public static AudioProfileProxy create(
+        public static @NonNull AudioProfileProxy create(
                 @AudioEncoder int codec,
                 @NonNull String mediaType,
                 int bitRate,
@@ -196,8 +190,7 @@ public interface EncoderProfilesProxy {
         public abstract int getCodec();
 
         /** @see EncoderProfiles.AudioProfile#getMediaType() */
-        @NonNull
-        public abstract String getMediaType();
+        public abstract @NonNull String getMediaType();
 
         /** @see EncoderProfiles.AudioProfile#getBitrate() */
         public abstract int getBitrate();
@@ -219,8 +212,7 @@ public interface EncoderProfilesProxy {
     abstract class ImmutableEncoderProfilesProxy implements EncoderProfilesProxy {
 
         /** Creates an EncoderProfilesProxy instance. */
-        @NonNull
-        public static ImmutableEncoderProfilesProxy create(
+        public static @NonNull ImmutableEncoderProfilesProxy create(
                 int defaultDurationSeconds,
                 int recommendedFileFormat,
                 @NonNull List<AudioProfileProxy> audioProfiles,
@@ -241,8 +233,7 @@ public interface EncoderProfilesProxy {
      * {@link MediaRecorder.VideoEncoder#DEFAULT}, as this type is under-defined and cannot be
      * resolved to a specific mime type without more information.
      */
-    @NonNull
-    static String getVideoCodecMimeType(
+    static @NonNull String getVideoCodecMimeType(
             @VideoProfileProxy.VideoEncoder int codec) {
         switch (codec) {
             // Mime-type definitions taken from
@@ -277,8 +268,7 @@ public interface EncoderProfilesProxy {
      * {@link android.media.MediaRecorder.AudioEncoder#DEFAULT}, as this type is under-defined
      * and cannot be resolved to a specific mime type without more information.
      */
-    @NonNull
-    static String getAudioCodecMimeType(@AudioProfileProxy.AudioEncoder int codec) {
+    static @NonNull String getAudioCodecMimeType(@AudioProfileProxy.AudioEncoder int codec) {
         // Mime-type definitions taken from
         // frameworks/av/media/libstagefright/foundation/MediaDefs.cpp
         switch (codec) {

@@ -43,37 +43,30 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ResultReceiver;
 import android.support.mediacompat.testlib.util.IntentUtil;
-import android.support.v4.media.MediaBrowserCompat.MediaItem;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaSessionCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.media.MediaBrowserServiceCompat;
-import androidx.media.MediaSessionManager.RemoteUserInfo;
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Stub implementation of {@link MediaBrowserServiceCompat}.
- */
-public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
+/** Stub implementation of {@link androidx.media.MediaBrowserServiceCompat}. */
+@SuppressWarnings("deprecation")
+public class StubMediaBrowserServiceCompat extends androidx.media.MediaBrowserServiceCompat {
     private static final String TAG = "StubMBSC";
 
     public static StubMediaBrowserServiceCompat sInstance;
 
-    public static MediaSessionCompat sSession;
+    public static android.support.v4.media.session.MediaSessionCompat sSession;
     public static MediaSessionCompatCallback sSessionCallback;
     private Bundle mExtras;
-    private Result<List<MediaItem>> mPendingLoadChildrenResult;
-    private Result<MediaItem> mPendingLoadItemResult;
+    private Result<List<android.support.v4.media.MediaBrowserCompat.MediaItem>>
+            mPendingLoadChildrenResult;
+    private Result<android.support.v4.media.MediaBrowserCompat.MediaItem> mPendingLoadItemResult;
     private Bundle mPendingRootHints;
-    private RemoteUserInfo mClientAppRemoteUserInfo;
+    private androidx.media.MediaSessionManager.RemoteUserInfo mClientAppRemoteUserInfo;
 
     public Bundle mCustomActionExtras;
     public Result<Bundle> mCustomActionResult;
@@ -86,12 +79,17 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     public void onCreate() {
         super.onCreate();
         sInstance = this;
-        sSession = new MediaSessionCompat(this, "StubMediaBrowserServiceCompat");
+        sSession =
+                new android.support.v4.media.session.MediaSessionCompat(
+                        this, "StubMediaBrowserServiceCompat");
         sSessionCallback = new MediaSessionCompatCallback(this, sSession);
         sSession.setCallback(sSessionCallback);
-        sSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
-                | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
-                | MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS);
+        sSession.setFlags(
+                android.support.v4.media.session.MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS
+                        | android.support.v4.media.session.MediaSessionCompat
+                                .FLAG_HANDLES_TRANSPORT_CONTROLS
+                        | android.support.v4.media.session.MediaSessionCompat
+                                .FLAG_HANDLES_QUEUE_COMMANDS);
         setSessionToken(sSession.getSessionToken());
     }
 
@@ -116,27 +114,31 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
         mExtras.putString(EXTRAS_KEY, EXTRAS_VALUE);
         mClientAppRemoteUserInfo = getCurrentBrowserInfo();
         if (rootHints.containsKey(ROOT_HINT_EXTRA_KEY_CALLER_PKG)) {
-            mExpectedCallerPackageName = (21 <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < 24)
-                    ? RemoteUserInfo.LEGACY_CONTROLLER
-                    : rootHints.getString(ROOT_HINT_EXTRA_KEY_CALLER_PKG);
+            mExpectedCallerPackageName =
+                    (21 <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < 24)
+                            ? androidx.media.MediaSessionManager.RemoteUserInfo.LEGACY_CONTROLLER
+                            : rootHints.getString(ROOT_HINT_EXTRA_KEY_CALLER_PKG);
         }
         if (rootHints.containsKey(ROOT_HINT_EXTRA_KEY_CALLER_UID)) {
-            mExpectedCallerUid = (21 <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < 28)
-                    ? RemoteUserInfo.UNKNOWN_UID
-                    : rootHints.getInt(ROOT_HINT_EXTRA_KEY_CALLER_UID);
+            mExpectedCallerUid =
+                    (21 <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < 28)
+                            ? androidx.media.MediaSessionManager.RemoteUserInfo.UNKNOWN_UID
+                            : rootHints.getInt(ROOT_HINT_EXTRA_KEY_CALLER_UID);
         }
         return new BrowserRoot(MEDIA_ID_ROOT, mExtras);
     }
 
     @Override
-    public void onLoadChildren(final String parentId, final Result<List<MediaItem>> result) {
+    public void onLoadChildren(
+            final String parentId,
+            final Result<List<android.support.v4.media.MediaBrowserCompat.MediaItem>> result) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
         getBrowserRootHints();
-        RemoteUserInfo info = getCurrentBrowserInfo();
+        androidx.media.MediaSessionManager.RemoteUserInfo info = getCurrentBrowserInfo();
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(mClientAppRemoteUserInfo, info);
         }
-        List<MediaItem> mediaItems = new ArrayList<>();
+        List<android.support.v4.media.MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<>();
         if (MEDIA_ID_ROOT.equals(parentId)) {
             Bundle rootHints = getBrowserRootHints();
             for (String id : MEDIA_ID_CHILDREN) {
@@ -155,22 +157,30 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
 
     @Override
     @SuppressWarnings("deprecation")
-    public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaItem>> result,
+    public void onLoadChildren(
+            @NonNull String parentId,
+            @NonNull Result<List<android.support.v4.media.MediaBrowserCompat.MediaItem>> result,
             @NonNull Bundle options) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
         getBrowserRootHints();
-        RemoteUserInfo info = getCurrentBrowserInfo();
+        androidx.media.MediaSessionManager.RemoteUserInfo info = getCurrentBrowserInfo();
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(mClientAppRemoteUserInfo, info);
         }
         if (MEDIA_ID_INCLUDE_METADATA.equals(parentId)) {
             // Test unparcelling the Bundle.
-            MediaMetadataCompat metadata = options.getParcelable(MEDIA_METADATA);
+            android.support.v4.media.MediaMetadataCompat metadata =
+                    options.getParcelable(MEDIA_METADATA);
             if (metadata == null) {
                 super.onLoadChildren(parentId, result, options);
             } else {
-                List<MediaItem> mediaItems = new ArrayList<>();
-                mediaItems.add(new MediaItem(metadata.getDescription(), MediaItem.FLAG_PLAYABLE));
+                List<android.support.v4.media.MediaBrowserCompat.MediaItem> mediaItems =
+                        new ArrayList<>();
+                mediaItems.add(
+                        new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                                metadata.getDescription(),
+                                android.support.v4.media.MediaBrowserCompat.MediaItem
+                                        .FLAG_PLAYABLE));
                 result.sendResult(mediaItems);
             }
         } else {
@@ -179,10 +189,11 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public void onLoadItem(String itemId, Result<MediaItem> result) {
+    public void onLoadItem(
+            String itemId, Result<android.support.v4.media.MediaBrowserCompat.MediaItem> result) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
         getBrowserRootHints();
-        RemoteUserInfo info = getCurrentBrowserInfo();
+        androidx.media.MediaSessionManager.RemoteUserInfo info = getCurrentBrowserInfo();
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(mClientAppRemoteUserInfo, info);
         }
@@ -210,19 +221,23 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     }
 
     @Override
-    public void onSearch(String query, Bundle extras, Result<List<MediaItem>> result) {
+    public void onSearch(
+            String query,
+            Bundle extras,
+            Result<List<android.support.v4.media.MediaBrowserCompat.MediaItem>> result) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
         getBrowserRootHints();
-        RemoteUserInfo info = getCurrentBrowserInfo();
+        androidx.media.MediaSessionManager.RemoteUserInfo info = getCurrentBrowserInfo();
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(mClientAppRemoteUserInfo, info);
         }
         if (SEARCH_QUERY_FOR_NO_RESULT.equals(query)) {
-            result.sendResult(Collections.<MediaItem>emptyList());
+            result.sendResult(
+                    Collections.<android.support.v4.media.MediaBrowserCompat.MediaItem>emptyList());
         } else if (SEARCH_QUERY_FOR_ERROR.equals(query)) {
             result.sendResult(null);
         } else if (SEARCH_QUERY.equals(query)) {
-            List<MediaItem> items = new ArrayList<>();
+            List<android.support.v4.media.MediaBrowserCompat.MediaItem> items = new ArrayList<>();
             for (String id : MEDIA_ID_CHILDREN) {
                 if (id.contains(query)) {
                     items.add(createMediaItem(id));
@@ -236,7 +251,7 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
     public void onCustomAction(String action, Bundle extras, Result<Bundle> result) {
         // Calling getBrowserRootHints()/getCurrentBrowserInfo() should not fail.
         getBrowserRootHints();
-        RemoteUserInfo info = getCurrentBrowserInfo();
+        androidx.media.MediaSessionManager.RemoteUserInfo info = getCurrentBrowserInfo();
         if (Build.VERSION.SDK_INT >= 28) {
             assertEquals(mClientAppRemoteUserInfo, info);
         }
@@ -251,7 +266,8 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
 
     public void sendDelayedNotifyChildrenChanged() {
         if (mPendingLoadChildrenResult != null) {
-            mPendingLoadChildrenResult.sendResult(Collections.<MediaItem>emptyList());
+            mPendingLoadChildrenResult.sendResult(
+                    Collections.<android.support.v4.media.MediaBrowserCompat.MediaItem>emptyList());
             mPendingRootHints = null;
             mPendingLoadChildrenResult = null;
         }
@@ -259,24 +275,33 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
 
     public void sendDelayedItemLoaded() {
         if (mPendingLoadItemResult != null) {
-            mPendingLoadItemResult.sendResult(new MediaItem(new MediaDescriptionCompat.Builder()
-                    .setMediaId(MEDIA_ID_CHILDREN_DELAYED).setExtras(mPendingRootHints).build(),
-                    MediaItem.FLAG_BROWSABLE));
+            mPendingLoadItemResult.sendResult(
+                    new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                            new android.support.v4.media.MediaDescriptionCompat.Builder()
+                                    .setMediaId(MEDIA_ID_CHILDREN_DELAYED)
+                                    .setExtras(mPendingRootHints)
+                                    .build(),
+                            android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
             mPendingRootHints = null;
             mPendingLoadItemResult = null;
         }
     }
 
-    private MediaItem createMediaItem(String id) {
-        return new MediaItem(new MediaDescriptionCompat.Builder().setMediaId(id).build(),
-                MediaItem.FLAG_BROWSABLE);
+    private android.support.v4.media.MediaBrowserCompat.MediaItem createMediaItem(String id) {
+        return new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId(id)
+                        .build(),
+                android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
     }
 
-    public class MediaSessionCompatCallback extends MediaSessionCompat.Callback {
+    public class MediaSessionCompatCallback
+            extends android.support.v4.media.session.MediaSessionCompat.Callback {
         Context mContext;
-        MediaSessionCompat mSession;
+        android.support.v4.media.session.MediaSessionCompat mSession;
 
-        public MediaSessionCompatCallback(Context context, MediaSessionCompat session) {
+        public MediaSessionCompatCallback(
+                Context context, android.support.v4.media.session.MediaSessionCompat session) {
             mContext = context;
             mSession = session;
         }
@@ -373,12 +398,12 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
         }
 
         @Override
-        public void onSetRating(RatingCompat rating) {
+        public void onSetRating(android.support.v4.media.RatingCompat rating) {
             notifyCurrentControllerInfo("onSetRating");
         }
 
         @Override
-        public void onSetRating(RatingCompat rating, Bundle extras) {
+        public void onSetRating(android.support.v4.media.RatingCompat rating, Bundle extras) {
             notifyCurrentControllerInfo("onSetRating");
         }
 
@@ -408,17 +433,18 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
         }
 
         @Override
-        public void onAddQueueItem(MediaDescriptionCompat description) {
+        public void onAddQueueItem(android.support.v4.media.MediaDescriptionCompat description) {
             notifyCurrentControllerInfo("onAddQueueItem");
         }
 
         @Override
-        public void onAddQueueItem(MediaDescriptionCompat description, int index) {
+        public void onAddQueueItem(
+                android.support.v4.media.MediaDescriptionCompat description, int index) {
             notifyCurrentControllerInfo("onAddQueueItem");
         }
 
         @Override
-        public void onRemoveQueueItem(MediaDescriptionCompat description) {
+        public void onRemoveQueueItem(android.support.v4.media.MediaDescriptionCompat description) {
             notifyCurrentControllerInfo("onRemoveQueueItem");
         }
 
@@ -429,7 +455,8 @@ public class StubMediaBrowserServiceCompat extends MediaBrowserServiceCompat {
         }
 
         private void notifyCurrentControllerInfo(String callbackMethodName) {
-            RemoteUserInfo remoteUserInfo = mSession.getCurrentControllerInfo();
+            androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo =
+                    mSession.getCurrentControllerInfo();
             int callerUid = remoteUserInfo.getUid();
             String callerPkg = remoteUserInfo.getPackageName();
 

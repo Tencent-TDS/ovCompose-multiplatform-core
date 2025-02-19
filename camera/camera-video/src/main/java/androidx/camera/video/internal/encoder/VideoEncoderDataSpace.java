@@ -18,10 +18,9 @@ package androidx.camera.video.internal.encoder;
 
 import android.media.MediaFormat;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Defines the three components of colors used by an encoder.
@@ -29,7 +28,6 @@ import com.google.auto.value.AutoValue;
  * <p>This is the encoder equivalent of {@link android.hardware.DataSpace}, and should be used to
  * communicate the {@link MediaFormat} keys needed by the encoder.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @AutoValue
 public abstract class VideoEncoderDataSpace {
 
@@ -47,6 +45,16 @@ public abstract class VideoEncoderDataSpace {
             create(VIDEO_COLOR_STANDARD_UNSPECIFIED,
                     VIDEO_COLOR_TRANSFER_UNSPECIFIED,
                     VIDEO_COLOR_RANGE_UNSPECIFIED);
+
+    /**
+     * Color standard BT.601 625 with SDR video transfer function.
+     *
+     * <p>This mirrors the data space from {@link android.hardware.DataSpace#DATASPACE_BT601_625}.
+     */
+    public static final VideoEncoderDataSpace ENCODER_DATA_SPACE_BT601_625 =
+            create(MediaFormat.COLOR_STANDARD_BT601_PAL,
+                    MediaFormat.COLOR_TRANSFER_SDR_VIDEO,
+                    MediaFormat.COLOR_RANGE_LIMITED);
 
     /**
      * Color standard BT.709 with SDR video transfer function.
@@ -83,8 +91,7 @@ public abstract class VideoEncoderDataSpace {
     }
 
     /** Creates a data space from the three primaries. */
-    @NonNull
-    public static VideoEncoderDataSpace create(int standard, int transfer, int range) {
+    public static @NonNull VideoEncoderDataSpace create(int standard, int transfer, int range) {
         return new AutoValue_VideoEncoderDataSpace(standard, transfer, range);
     }
 

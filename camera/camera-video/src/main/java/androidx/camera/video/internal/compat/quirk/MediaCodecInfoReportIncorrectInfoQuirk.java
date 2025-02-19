@@ -26,10 +26,10 @@ import android.media.MediaFormat;
 import android.os.Build;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.Quirk;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +92,6 @@ import java.util.Set;
  *                Samsung Galaxy A03 Core, Vivo Y75, Realme C11 2021, Redmi 12, Realme GT neo5 SE,
  *                Realme C35, Vivo Y22, Motorola Moto E20
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
 
     static boolean load() {
@@ -168,8 +167,7 @@ public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
      * Returns the extra supported sizes for the problematic devices if any, otherwise returns an
      * empty set.
      */
-    @NonNull
-    public static Set<Size> getExtraSupportedSizes() {
+    public static @NonNull Set<Size> getExtraSupportedSizes() {
         if (isFHDProblematicDevice()) {
             return Collections.singleton(new Size(1920, 1080));
         }
@@ -206,8 +204,7 @@ public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
             return formatWidth == width && formatHeight == height;
         }
 
-        @Nullable
-        private String getMime() {
+        private @Nullable String getMime() {
             return mMediaFormat.getString(MediaFormat.KEY_MIME);
         }
     }

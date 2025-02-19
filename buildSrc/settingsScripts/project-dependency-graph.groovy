@@ -224,18 +224,21 @@ class ProjectDependencyGraph {
     }
 
     /**
-     * Parses the build.gradle file in the given projectDir to find its project dependencies.
+     * Parses the build file in the given projectDir to find its project dependencies.
      *
      * @param projectPath The Gradle projectPath of the project
      * @param projectDir The project directory on the file system
      * @return Set of project paths that are dependent by the given project
      */
     private Set<String> extractReferencesFromBuildFile(String projectPath, File projectDir) {
-        File buildGradle = new File(projectDir, "build.gradle")
+        File buildFile = buildFileNames.findResult { buildFileName ->
+            File candidate = new File(projectDir, buildFileName)
+            return candidate.exists() ? candidate : null
+        }
         Set<String> links = new HashSet<String>()
-        if (buildGradle.exists()) {
+        if (buildFile != null) {
             def buildGradleProperty = settings.services.get(ObjectFactory).fileProperty()
-                    .fileValue(buildGradle)
+                    .fileValue(buildFile)
             def contents = settings.providers.fileContents(buildGradleProperty)
                     .getAsText().get()
             for (line in contents.lines()) {
@@ -263,11 +266,7 @@ class ProjectDependencyGraph {
                     links.add(matcherInspection.group(1))
                 }
                 if (composePlugin.matcher(line).find()) {
-                    links.add(":compose:compiler:compiler")
                     links.add(":compose:lint:internal-lint-checks")
-                }
-                if (iconGenerator.matcher(line).find()) {
-                    links.add(":compose:material:material:icons:generator")
                 }
                 if (publishedLibrary.matcher(line).find()) {
                     publishedLibraryProjects.add(projectPath)
@@ -279,7 +278,7 @@ class ProjectDependencyGraph {
             // This option is supported so that development/simplify_build_failure.sh can try
             // deleting entire projects at once to identify the cause of a build failure
             if (System.getenv("ALLOW_MISSING_PROJECTS") == null) {
-                throw new Exception("Path " + buildGradle + " does not exist;" +
+                throw new Exception("Path " + buildFile + " does not exist;" +
                         "cannot include project " + projectPath + " ($projectDir)")
             }
         }
@@ -293,11 +292,13 @@ class ProjectDependencyGraph {
     private static Pattern multilineProjectReference = Pattern.compile("project\\(\$")
     private static Pattern inspection = Pattern.compile("packageInspector\\(project, \"(.*)\"\\)")
     private static Pattern composePlugin = Pattern.compile("id\\(\"AndroidXComposePlugin\"\\)")
-    private static Pattern iconGenerator = Pattern.compile("IconGenerationTask\\.register")
     private static Pattern publishedLibrary = Pattern.compile(
-            "(type = LibraryType\\.(PUBLISHED_LIBRARY|GRADLE_PLUGIN|ANNOTATION_PROCESSOR|PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS)|" +
+            "(type = SoftwareType\\.(PUBLISHED_LIBRARY|GRADLE_PLUGIN|ANNOTATION_PROCESSOR|ANNOTATION_PROCESSOR_UTILS|OTHER_CODE_PROCESSOR" +
+                    "|STANDALONE_PUBLISHED_LINT|PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS" +
+                    "|PUBLISHED_TEST_LIBRARY|PUBLISHED_PROTO_LIBRARY|PUBLISHED_KOTLIN_ONLY_TEST_LIBRARY)|" +
                     "publish = Publish\\.SNAPSHOT_AND_RELEASE)"
     )
+    private static List<String> buildFileNames = ["build.gradle", "build.gradle.kts"]
 }
 
 ProjectDependencyGraph createProjectDependencyGraph(Settings settings, boolean constraintsEnabled) {

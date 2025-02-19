@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.compat
 
 import android.graphics.SurfaceTexture
@@ -58,9 +56,9 @@ internal data class SessionConfigData(
 
 /**
  * A data class that mirrors the fields in
- * [android.hardware.camera2.params.ExtensionSessionConfiguration] so
- * that a real instance can be constructed when creating a
- * [android.hardware.camera2.CameraExtensionSession] on newer versions of the OS.
+ * [android.hardware.camera2.params.ExtensionSessionConfiguration] so that a real instance can be
+ * constructed when creating a [android.hardware.camera2.CameraExtensionSession] on newer versions
+ * of the OS.
  */
 internal data class ExtensionSessionConfigData(
     val sessionType: Int,
@@ -163,8 +161,6 @@ internal class AndroidOutputConfiguration(
             surfaceSharing: Boolean = false,
             surfaceGroupId: Int = SURFACE_GROUP_ID_NONE,
             physicalCameraId: CameraId? = null,
-            cameraId: CameraId? = null,
-            camera2MetadataProvider: Camera2MetadataProvider? = null,
         ): OutputConfigurationWrapper? {
             check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
 
@@ -263,14 +259,9 @@ internal class AndroidOutputConfiguration(
                 }
             }
 
-            if (streamUseCase != null && cameraId != null && camera2MetadataProvider != null) {
+            if (streamUseCase != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    val cameraMetadata = camera2MetadataProvider.awaitCameraMetadata(cameraId)
-                    val availableStreamUseCases =
-                        Api33Compat.getAvailableStreamUseCases(cameraMetadata)
-                    if (availableStreamUseCases?.contains(streamUseCase.value) == true) {
-                        Api33Compat.setStreamUseCase(configuration, streamUseCase.value)
-                    }
+                    Api33Compat.setStreamUseCase(configuration, streamUseCase.value)
                 }
             }
 

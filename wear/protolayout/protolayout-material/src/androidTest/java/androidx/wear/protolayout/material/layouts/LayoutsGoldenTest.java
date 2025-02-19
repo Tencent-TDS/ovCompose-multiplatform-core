@@ -21,6 +21,7 @@ import static androidx.wear.protolayout.material.RunnerUtils.SCREEN_WIDTH;
 import static androidx.wear.protolayout.material.RunnerUtils.convertToTestParameters;
 import static androidx.wear.protolayout.material.RunnerUtils.runSingleScreenshotTest;
 import static androidx.wear.protolayout.material.RunnerUtils.waitForNotificationToDisappears;
+import static androidx.wear.protolayout.material.ScreenshotKt.SCREENSHOT_GOLDEN_PATH;
 import static androidx.wear.protolayout.material.layouts.TestCasesGenerator.generateTestCases;
 
 import android.content.Context;
@@ -51,7 +52,7 @@ public class LayoutsGoldenTest {
 
     @Rule
     public AndroidXScreenshotTestRule mScreenshotRule =
-            new AndroidXScreenshotTestRule("wear/wear-protolayout-material");
+            new AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH);
 
     public LayoutsGoldenTest(String expected, TestCase testCase) {
         mTestCase = testCase;
@@ -65,20 +66,9 @@ public class LayoutsGoldenTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> data() {
-        Context context = InstrumentationRegistry.getInstrumentation().getContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
         float scale = displayMetrics.density;
-
-        InstrumentationRegistry.getInstrumentation()
-                .getContext()
-                .getResources()
-                .getDisplayMetrics()
-                .setTo(displayMetrics);
-        InstrumentationRegistry.getInstrumentation()
-                .getTargetContext()
-                .getResources()
-                .getDisplayMetrics()
-                .setTo(displayMetrics);
 
         DeviceParameters deviceParameters =
                 new DeviceParameters.Builder()

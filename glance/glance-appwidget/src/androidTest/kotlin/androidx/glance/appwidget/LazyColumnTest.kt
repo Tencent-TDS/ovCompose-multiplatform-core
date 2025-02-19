@@ -43,6 +43,7 @@ import androidx.glance.appwidget.lazy.ReservedItemIdRangeEnd
 import androidx.glance.appwidget.lazy.items
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.padding
+import androidx.glance.session.GlanceSessionManager
 import androidx.glance.text.Text
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
@@ -70,8 +71,7 @@ import org.junit.Test
 @MediumTest
 @SdkSuppress(minSdkVersion = 29)
 class LazyColumnTest {
-    @get:Rule
-    val mHostRule = AppWidgetHostRule()
+    @get:Rule val mHostRule = AppWidgetHostRule()
 
     @Test
     fun modifier_modifiesColumn() {
@@ -140,9 +140,7 @@ class LazyColumnTest {
     @Test
     fun items_withoutItemIds_createsNonStableList() {
         TestGlanceAppWidget.uiDefinition = {
-            LazyColumn {
-                items(count = 3) { index -> Text("Row $index") }
-            }
+            LazyColumn { items(count = 3) { index -> Text("Row $index") } }
         }
 
         mHostRule.startHost()
@@ -241,13 +239,7 @@ class LazyColumnTest {
 
     @Test
     fun itemContent_defaultAlignment_doesNotWrapItem() {
-        TestGlanceAppWidget.uiDefinition = {
-            LazyColumn {
-                item {
-                    Text("Row item 0")
-                }
-            }
-        }
+        TestGlanceAppWidget.uiDefinition = { LazyColumn { item { Text("Row item 0") } } }
 
         mHostRule.startHost()
 
@@ -259,11 +251,7 @@ class LazyColumnTest {
     @Test
     fun itemContent_startAlignment_doesNotWrapItem() {
         TestGlanceAppWidget.uiDefinition = {
-            LazyColumn(horizontalAlignment = Alignment.Start) {
-                item {
-                    Text("Row item 0")
-                }
-            }
+            LazyColumn(horizontalAlignment = Alignment.Start) { item { Text("Row item 0") } }
         }
 
         mHostRule.startHost()
@@ -277,9 +265,7 @@ class LazyColumnTest {
     fun itemContent_centerAlignment_wrapsItemWithGravityCenterContainer() {
         TestGlanceAppWidget.uiDefinition = {
             LazyColumn(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
-                item {
-                    Text("Row item 0")
-                }
+                item { Text("Row item 0") }
             }
         }
 
@@ -297,9 +283,7 @@ class LazyColumnTest {
     fun itemContent_endAlignment_wrapsItemWithGravityEndContainer() {
         TestGlanceAppWidget.uiDefinition = {
             LazyColumn(horizontalAlignment = Alignment.Horizontal.End) {
-                item {
-                    Text("Row item 0")
-                }
+                item { Text("Row item 0") }
             }
         }
 
@@ -338,11 +322,7 @@ class LazyColumnTest {
 
     @Test
     fun adapter_setsViewTypeCount() {
-        TestGlanceAppWidget.uiDefinition = {
-            LazyColumn {
-                item { Text("Item") }
-            }
-        }
+        TestGlanceAppWidget.uiDefinition = { LazyColumn { item { Text("Item") } } }
 
         mHostRule.startHost()
 
@@ -355,9 +335,7 @@ class LazyColumnTest {
 
     @Test
     fun adapter_emptyList() {
-        TestGlanceAppWidget.uiDefinition = {
-            LazyColumn { }
-        }
+        TestGlanceAppWidget.uiDefinition = { LazyColumn {} }
 
         mHostRule.startHost()
 
@@ -377,9 +355,8 @@ class LazyColumnTest {
                 item {
                     Text(
                         text = "Row item 0, count $count",
-                        modifier = GlanceModifier.clickable {
-                            count++
-                        })
+                        modifier = GlanceModifier.clickable { count++ }
+                    )
                 }
             }
         }
@@ -405,10 +382,7 @@ class LazyColumnTest {
                         "Text",
                         modifier = GlanceModifier.clickable(actionStartActivity<Activity>())
                     )
-                    Button(
-                        "Button",
-                        onClick = actionStartActivity<Activity>()
-                    )
+                    Button("Button", onClick = actionStartActivity<Activity>())
                 }
             }
         }
@@ -436,10 +410,7 @@ class LazyColumnTest {
                         "Text",
                         modifier = GlanceModifier.clickable(actionStartActivity<Activity>())
                     )
-                    Button(
-                        "Button",
-                        onClick = actionStartActivity<Activity>()
-                    )
+                    Button("Button", onClick = actionStartActivity<Activity>())
                 }
             }
         }
@@ -464,14 +435,7 @@ class LazyColumnTest {
         val received = MutableStateFlow(-1)
         TestGlanceAppWidget.uiDefinition = {
             LazyColumn {
-                items((0..4).toList()) {
-                    Button(
-                        "$it",
-                        onClick = {
-                            launch { received.emit(it) }
-                        }
-                    )
-                }
+                items((0..4).toList()) { Button("$it", onClick = { launch { received.emit(it) } }) }
             }
         }
 
@@ -486,9 +450,7 @@ class LazyColumnTest {
             }
         }
         (0..4).shuffled().forEach { index ->
-            mHostRule.onHostActivity {
-                buttons[index]!!.performClick()
-            }
+            mHostRule.onHostActivity { buttons[index]!!.performClick() }
             val lastClicked = received.debounce(500.milliseconds).first()
             assertThat(lastClicked).isEqualTo(index)
         }
@@ -500,14 +462,7 @@ class LazyColumnTest {
         val received = MutableStateFlow(-1)
         TestGlanceAppWidget.uiDefinition = {
             LazyColumn {
-                items((0..4).toList()) {
-                    Button(
-                        "$it",
-                        onClick = {
-                            launch { received.emit(it) }
-                        }
-                    )
-                }
+                items((0..4).toList()) { Button("$it", onClick = { launch { received.emit(it) } }) }
             }
         }
 
@@ -516,17 +471,16 @@ class LazyColumnTest {
         val buttons = arrayOfNulls<FrameLayout>(5)
         mHostRule.waitForListViewChildren { list ->
             for (it in 0..4) {
-                val button = list.getViewFromUnboxedListItem<FrameLayout>(
-                    itemPosition = it,
-                    viewPosition = 0
-                )
+                val button =
+                    list.getViewFromUnboxedListItem<FrameLayout>(
+                        itemPosition = it,
+                        viewPosition = 0
+                    )
                 buttons[it] = assertIs<FrameLayout>(button)
             }
         }
         (0..4).shuffled().forEach { index ->
-            mHostRule.onHostActivity {
-                buttons[index]!!.performClick()
-            }
+            mHostRule.onHostActivity { buttons[index]!!.performClick() }
             val lastClicked = received.debounce(500.milliseconds).first()
             assertThat(lastClicked).isEqualTo(index)
         }
@@ -538,9 +492,7 @@ class LazyColumnTest {
         val countFlow = MutableStateFlow(0)
         TestGlanceAppWidget.uiDefinition = {
             val count by countFlow.collectAsState()
-            LazyColumn {
-                items(count) { Text("$it") }
-            }
+            LazyColumn { items(count) { Text("$it") } }
         }
 
         mHostRule.startHost()
@@ -557,9 +509,7 @@ class LazyColumnTest {
         val countFlow = MutableStateFlow(0)
         TestGlanceAppWidget.uiDefinition = {
             val count by countFlow.collectAsState()
-            LazyColumn {
-                items(count) { Text("$it") }
-            }
+            LazyColumn { items(count) { Text("$it") } }
         }
 
         mHostRule.startHost()
@@ -569,6 +519,33 @@ class LazyColumnTest {
             mHostRule.waitForListViewChildCount(next)
         }
     }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 29, maxSdkVersion = 31)
+    fun glanceRemoteViewsFactory_loadDataCatchesErrors() = runTest {
+        TestGlanceAppWidget.uiDefinition = {
+            LazyColumn {
+                item { Text("Row item 0") }
+                item { Text("Row item 1") }
+            }
+        }
+
+        mHostRule.startHost()
+        // Close session so that GlanceRemoteViewsFactory is forced to call createAppWidgetSession.
+        GlanceSessionManager.runWithLock {
+            closeSession(AppWidgetId(mHostRule.appWidgetId).toSessionKey())
+        }
+        val factory =
+            GlanceRemoteViewsService.GlanceRemoteViewsFactory(
+                context = context,
+                appWidgetId = mHostRule.appWidgetId,
+                viewId = 2,
+                size = "",
+            )
+        // withErrorOnSessionCreation causes the GlanceAppWidget to throw an IllegalStateException
+        // in createAppWidgetSession.
+        TestGlanceAppWidget.withErrorOnSessionCreation { factory.onDataSetChanged() }
+    }
 }
 
 /**
@@ -576,7 +553,7 @@ class LazyColumnTest {
  * not). Use waitForListViewChildren if the list is expected to have children.
  */
 internal fun AppWidgetHostRule.waitForListView(action: (list: ListView) -> Unit = {}) {
-    onHostView { }
+    onHostView {}
 
     runAndObserveUntilDraw(condition = "ListView did not load in time") {
         mHostView.let { host ->
@@ -589,7 +566,7 @@ internal fun AppWidgetHostRule.waitForListView(action: (list: ListView) -> Unit 
 }
 
 internal fun AppWidgetHostRule.waitForListViewChildren(action: (list: ListView) -> Unit = {}) {
-    onHostView { }
+    onHostView {}
 
     runAndObserveUntilDraw(condition = "ListView did not load in time") {
         mHostView.let { host ->
@@ -605,7 +582,7 @@ internal fun AppWidgetHostRule.waitForListViewChildWithText(
     text: String,
     action: (list: ListView) -> Unit = {}
 ) {
-    onHostView { }
+    onHostView {}
 
     runAndObserveUntilDraw(condition = "List child with text '$text' not load in time") {
         mHostView.let { host ->
@@ -625,9 +602,7 @@ internal fun AppWidgetHostRule.waitForListViewChildWithText(
 internal suspend fun AppWidgetHostRule.waitForListViewChildCount(count: Int) {
     val resume = Channel<Unit>(Channel.CONFLATED)
     fun test() = mHostView.findChildByType<ListView>()?.childCount == count
-    val onDrawListener = ViewTreeObserver.OnDrawListener {
-        if (test()) resume.trySend(Unit)
-    }
+    val onDrawListener = ViewTreeObserver.OnDrawListener { if (test()) resume.trySend(Unit) }
 
     onHostActivity {
         // If test is already true, do not wait for the next draw to resume
@@ -637,9 +612,7 @@ internal suspend fun AppWidgetHostRule.waitForListViewChildCount(count: Int) {
     try {
         resume.receive()
     } finally {
-        onHostActivity {
-            mHostView.viewTreeObserver.removeOnDrawListener(onDrawListener)
-        }
+        onHostActivity { mHostView.viewTreeObserver.removeOnDrawListener(onDrawListener) }
     }
 }
 
@@ -647,12 +620,14 @@ internal suspend fun AppWidgetHostRule.waitForListViewChildCount(count: Int) {
  * Returns a flow that mirrors the original flow, but filters out values that are followed by the
  * newer values within the given timeout.
  */
-fun <T> Flow<T>.debounce(timeout: Duration): Flow<T> = channelFlow {
-    collectLatest {
-        delay(timeout)
-        send(it)
-    }
-}.buffer(0)
+fun <T> Flow<T>.debounce(timeout: Duration): Flow<T> =
+    channelFlow {
+            collectLatest {
+                delay(timeout)
+                send(it)
+            }
+        }
+        .buffer(0)
 
 internal inline fun <reified T : View> ListView.getUnboxedListItem(position: Int): T {
     // Get adapter item at position
@@ -664,16 +639,14 @@ internal inline fun <reified T : View> ListView.getUnboxedListItem(position: Int
     return rootView.getChildAt(0).getTargetView()
 }
 
-private suspend fun ListAdapter.waitForItemIdAtPosition(
-    position: Int,
-    expectedItemId: Long
-) {
+private suspend fun ListAdapter.waitForItemIdAtPosition(position: Int, expectedItemId: Long) {
     var actualItemId = getItemId(position)
     try {
         withTimeout(600) {
             while (actualItemId != expectedItemId) {
                 Log.i(
-                    "LazyColumnTest", "ItemId at $position was expected to be " +
+                    "LazyColumnTest",
+                    "ItemId at $position was expected to be " +
                         "$expectedItemId, but was $actualItemId. Waiting for 200 ms."
                 )
                 delay(200) // Wait before retrying

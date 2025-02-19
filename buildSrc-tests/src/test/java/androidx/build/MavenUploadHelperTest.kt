@@ -23,6 +23,7 @@ import androidx.build.testutils.POM_CORE_CORE
 import androidx.build.testutils.XmlProviderImpl
 import androidx.testutils.assertThrows
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -34,10 +35,9 @@ class MavenUploadHelperTest {
     fun insertDefaultMultiplatformDependenciesTest() {
         val pom = XmlProviderImpl(POM_COLLECTION)
 
-        /* ktlint-disable max-line-length */
-
         // Expect that collection-jvm has been inserted in <dependencies>.
-        val expected = """<?xml version="1.0"?>
+        val expected =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -84,7 +84,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         insertDefaultMultiplatformDependencies(pom, "jvm")
 
@@ -96,10 +95,9 @@ class MavenUploadHelperTest {
     fun insertDefaultMultiplatformDependenciesNoDepsTest() {
         val pom = XmlProviderImpl(POM_COMPOSE_UI_GEOMETRY)
 
-        /* ktlint-disable max-line-length */
-
         // Expect that collection-jvm has been inserted in <dependencies>.
-        val expected = """<?xml version="1.0"?>
+        val expected =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -142,7 +140,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         insertDefaultMultiplatformDependencies(pom, "android")
 
@@ -153,15 +150,15 @@ class MavenUploadHelperTest {
     @Test
     fun testAssignAarTypes() {
         val pom = XmlProviderImpl(POM_CORE_CORE)
-        val androidLibrariesSet = setOf(
-            "androidx.annotation:annotation-experimental",
-            "androidx.lifecycle:lifecycle-runtime"
-        )
-
-        /* ktlint-disable max-line-length */
+        val androidLibrariesSet =
+            setOf(
+                "androidx.annotation:annotation-experimental",
+                "androidx.lifecycle:lifecycle-runtime"
+            )
 
         // Expect that elements in <dependencies> are sorted alphabetically.
-        val expected = """<?xml version="1.0"?>
+        val expected =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -261,7 +258,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         assignAarDependencyTypes(pom, androidLibrariesSet)
 
@@ -271,9 +267,9 @@ class MavenUploadHelperTest {
 
     @Test
     fun testEnsureConsistentJvmSuffix() {
-        /* ktlint-disable max-line-length */
 
-        val pom = """<?xml version="1.0"?>
+        val pom =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -291,7 +287,8 @@ class MavenUploadHelperTest {
 </project>
 """
 
-        val expected = """<?xml version="1.0"?>
+        val expected =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -308,7 +305,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         val xmlProvider = XmlProviderImpl(pom)
         ensureConsistentJvmSuffix(xmlProvider)
@@ -319,9 +315,9 @@ class MavenUploadHelperTest {
 
     @Test
     fun testAssignSingleVersionDependenciesInGroupForPom() {
-        /* ktlint-disable max-line-length */
 
-        val pom = """<?xml version="1.0"?>
+        val pom =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -345,7 +341,8 @@ class MavenUploadHelperTest {
 </project>
 """
 
-        val expected = """<?xml version="1.0"?>
+        val expected =
+            """<?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -368,7 +365,6 @@ class MavenUploadHelperTest {
   </dependencies>
 </project>
 """
-        /* ktlint-enable max-line-length */
 
         val xmlProvider = XmlProviderImpl(pom)
         val mavenGroup = LibraryGroup("androidx.example", Version("1.0.0"))
@@ -382,10 +378,9 @@ class MavenUploadHelperTest {
     fun testSortPomDependencies() {
         val pom = POM_COLLECTION_JVM
 
-        /* ktlint-disable max-line-length */
-
         // Expect that elements in <dependencies> are sorted alphabetically.
-        val expected = """<?xml version="1.0" encoding="UTF-8"?>
+        val expected =
+            """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- This module was also published with a richer model, Gradle metadata,  -->
   <!-- which should be used instead. Do not delete the following line which  -->
@@ -440,16 +435,15 @@ class MavenUploadHelperTest {
     </dependency>
   </dependencies>
 </project>"""
-        /* ktlint-enable max-line-length */
-
+        assertNotEquals(expected, pom)
         val actual = sortPomDependencies(pom)
         assertEquals(expected, actual)
     }
 
     @Test
     fun testSortGradleMetadataDependencies() {
-        /* ktlint-disable max-line-length */
-        val metadata = """
+        val metadata =
+            """
 {
   "formatVersion": "1.1",
   "component": {
@@ -555,10 +549,12 @@ class MavenUploadHelperTest {
     }
   ]
 }
-        """.trimIndent()
+        """
+                .trimIndent()
 
         // Expect that elements in "dependencies" are sorted alphabetically.
-        val expected = """
+        val expected =
+            """
 {
   "formatVersion": "1.1",
   "component": {
@@ -664,8 +660,8 @@ class MavenUploadHelperTest {
     }
   ]
 }
-        """.trimIndent()
-        /* ktlint-enable max-line-length */
+        """
+                .trimIndent()
 
         val actual = sortGradleMetadataDependencies(metadata)
         assertEquals(expected, actual)
@@ -673,8 +669,8 @@ class MavenUploadHelperTest {
 
     @Test
     fun testSortGradleMetadataDependenciesWithConstraints() {
-        /* ktlint-disable max-line-length */
-        val metadata = """
+        val metadata =
+            """
 {
   "formatVersion": "1.1",
   "component": {
@@ -847,10 +843,12 @@ class MavenUploadHelperTest {
     }
   ]
 }
-        """.trimIndent()
+        """
+                .trimIndent()
 
         // Expect that elements in "dependencies" are sorted alphabetically.
-        val expected = """
+        val expected =
+            """
 {
   "formatVersion": "1.1",
   "component": {
@@ -1023,8 +1021,8 @@ class MavenUploadHelperTest {
     }
   ]
 }
-        """.trimIndent()
-        /* ktlint-enable max-line-length */
+        """
+                .trimIndent()
 
         val actual = sortGradleMetadataDependencies(metadata)
         assertEquals(expected, actual)
@@ -1032,8 +1030,8 @@ class MavenUploadHelperTest {
 
     @Test
     fun testVerifyGradleMetadata() {
-        /* ktlint-disable max-line-length */
-        val metadata = """
+        val metadata =
+            """
 {
   "formatVersion": "1.1",
   "component": {
@@ -1186,10 +1184,12 @@ class MavenUploadHelperTest {
     }
   ]
 }
-        """.trimIndent()
+        """
+                .trimIndent()
 
-       val error =  assertThrows<Exception> { verifyGradleMetadata(metadata) }
-        error.hasMessageThat()
+        val error = assertThrows<Exception> { verifyGradleMetadata(metadata) }
+        error
+            .hasMessageThat()
             .isEqualTo("The sourcesElements variant must exist in the module file.")
     }
 }

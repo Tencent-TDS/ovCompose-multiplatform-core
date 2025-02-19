@@ -32,7 +32,7 @@ public class WheelchairPushesRecord(
     override val endZoneOffset: ZoneOffset?,
     /** Count. Required field. Valid range: 1-1000000. */
     public val count: Long,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : IntervalRecord {
 
     init {
@@ -63,6 +63,10 @@ public class WheelchairPushesRecord(
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "WheelchairPushesRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, count=$count, metadata=$metadata)"
     }
 
     companion object {

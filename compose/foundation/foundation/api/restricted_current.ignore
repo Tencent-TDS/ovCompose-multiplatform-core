@@ -1,35 +1,11 @@
 // Baseline format: 1.0
-AddedAbstractMethod: androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider#calculateSnapOffset(float):
-    Added method androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider.calculateSnapOffset(float)
-AddedAbstractMethod: androidx.compose.foundation.lazy.grid.LazyGridItemScope#animateItem(androidx.compose.ui.Modifier, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>, androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>):
-    Added method androidx.compose.foundation.lazy.grid.LazyGridItemScope.animateItem(androidx.compose.ui.Modifier,androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>,androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>,androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>)
-AddedAbstractMethod: androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemScope#animateItem(androidx.compose.ui.Modifier, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>, androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>, androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>):
-    Added method androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemScope.animateItem(androidx.compose.ui.Modifier,androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>,androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>,androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float>)
-AddedAbstractMethod: androidx.compose.foundation.pager.PageInfo#getKey():
-    Added method androidx.compose.foundation.pager.PageInfo.getKey()
-AddedAbstractMethod: androidx.compose.foundation.pager.PagerLayoutInfo#getBeyondViewportPageCount():
-    Added method androidx.compose.foundation.pager.PagerLayoutInfo.getBeyondViewportPageCount()
-AddedAbstractMethod: androidx.compose.foundation.pager.PagerLayoutInfo#getSnapPosition():
-    Added method androidx.compose.foundation.pager.PagerLayoutInfo.getSnapPosition()
+ParameterNameChange: androidx.compose.foundation.text.BasicTextKt#BasicText(androidx.compose.ui.text.AnnotatedString, androidx.compose.ui.Modifier, androidx.compose.ui.text.TextStyle, kotlin.jvm.functions.Function1<? super androidx.compose.ui.text.TextLayoutResult,kotlin.Unit>, int, boolean, int, int, java.util.Map<java.lang.String,androidx.compose.foundation.text.InlineTextContent>, androidx.compose.ui.graphics.ColorProducer, androidx.compose.foundation.text.TextAutoSize) parameter #10:
+    Attempted to change parameter name from textAutoSize to autoSize in method androidx.compose.foundation.text.BasicTextKt.BasicText
 
 
-ChangedType: androidx.compose.foundation.gestures.snapping.SnapFlingBehaviorKt#rememberSnapFlingBehavior(androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider):
-    Method androidx.compose.foundation.gestures.snapping.SnapFlingBehaviorKt.rememberSnapFlingBehavior has changed return type from androidx.compose.foundation.gestures.snapping.SnapFlingBehavior to androidx.compose.foundation.gestures.TargetedFlingBehavior
+RemovedDeprecatedClass: androidx.compose.foundation.text.AutoSizeDefaults:
+    Removed deprecated class androidx.compose.foundation.text.AutoSizeDefaults
 
 
-RemovedClass: androidx.compose.foundation.lazy.layout.LazyLayoutItemProviderKt:
-    Removed class androidx.compose.foundation.lazy.layout.LazyLayoutItemProviderKt
-RemovedClass: androidx.compose.foundation.relocation.BringIntoViewResponderKt:
-    Removed class androidx.compose.foundation.relocation.BringIntoViewResponderKt
-
-
-RemovedDeprecatedMethod: androidx.compose.foundation.gestures.TapGestureDetectorKt#awaitFirstDown(androidx.compose.ui.input.pointer.AwaitPointerEventScope, boolean):
-    Removed deprecated method androidx.compose.foundation.gestures.TapGestureDetectorKt.awaitFirstDown(androidx.compose.ui.input.pointer.AwaitPointerEventScope,boolean)
-RemovedDeprecatedMethod: androidx.compose.foundation.gestures.TapGestureDetectorKt#waitForUpOrCancellation(androidx.compose.ui.input.pointer.AwaitPointerEventScope):
-    Removed deprecated method androidx.compose.foundation.gestures.TapGestureDetectorKt.waitForUpOrCancellation(androidx.compose.ui.input.pointer.AwaitPointerEventScope)
-
-
-RemovedPackage: androidx.compose.foundation.text2:
-    Removed package androidx.compose.foundation.text2
-RemovedPackage: androidx.compose.foundation.text2.input:
-    Removed package androidx.compose.foundation.text2.input
+RemovedInterface: androidx.compose.foundation.text.AutoSize:
+    Removed deprecated class androidx.compose.foundation.text.AutoSize

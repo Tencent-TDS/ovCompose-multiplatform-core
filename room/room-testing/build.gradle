@@ -22,8 +22,10 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -32,7 +34,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios()
     jvm()
     linux()
@@ -76,7 +78,7 @@ androidXMultiplatform {
                 implementation(libs.okio)
             }
         }
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
@@ -87,12 +89,15 @@ androidXMultiplatform {
 }
 
 android {
-    namespace "androidx.room.testing"
+    namespace = "androidx.room.testing"
 }
 
 androidx {
     name = "Room Testing"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room Testing"
+    legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

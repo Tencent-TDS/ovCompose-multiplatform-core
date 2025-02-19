@@ -26,9 +26,8 @@ import org.gradle.api.attributes.Usage
 import org.gradle.api.file.FileTreeElement
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.jvm.tasks.Jar
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.named
 
 /** Allow java and Android libraries to bundle other projects inside the project jar/aar. */
@@ -61,6 +60,7 @@ object BundleInsideHelper {
         // Add to AGP's configuration so this jar get packaged inside of the aar.
         dependencies.add("implementation", files(repackage.flatMap { it.archiveFile }))
     }
+
     /**
      * Creates 3 configurations for the users to use that will be used bundle these dependency jars
      * inside of libs/ directory inside of the aar.
@@ -85,10 +85,10 @@ object BundleInsideHelper {
     }
 
     /**
-     * Creates a configuration for users to use that will bundle the dependency jars
-     * inside of this lint check's jar. This is required because lintPublish does not currently
-     * support dependencies, so instead we need to bundle any dependencies with the lint jar
-     * manually. (b/182319899)
+     * Creates a configuration for users to use that will bundle the dependency jars inside of this
+     * lint check's jar. This is required because lintPublish does not currently support
+     * dependencies, so instead we need to bundle any dependencies with the lint jar manually.
+     * (b/182319899)
      *
      * ```
      * dependencies {
@@ -114,13 +114,29 @@ object BundleInsideHelper {
         compileOnly.extendsFrom(bundle)
         testImplementation.extendsFrom(bundle)
 
-        val extractTask = tasks.register("extractBundleJars", ExtractJarTask::class.java) { task ->
-            task.description = "Extracts all JARs from the bundle configuration."
-            task.jarFiles.setFrom(bundle.incoming.artifactView { }.files)
-            task.outputDir.set(layout.buildDirectory.dir("extractedJars"))
+        // Relocation needed to avoid classpath conflicts with Android Studio (b/337980250)
+        // Can be removed if we migrate from using kotlin-metadata-jvm inside of lint checks
+        val relocations = listOf(Relocation("kotlin.metadata", "androidx.lint.kotlin.metadata"))
+        val repackage = configureRepackageTaskForType(relocations, bundle, null)
+        val sourceSets = extensions.getByType(SourceSetContainer::class.java)
+        repackage.configure { task ->
+            task.from(sourceSets.findByName("main")?.output)
+            // kotlin-metadata-jvm has a service descriptor that needs transformation
+            task.mergeServiceFiles()
+            // Exclude Kotlin metadata files from kotlin-metadata-jvm
+            task.exclude(
+                "META-INF/kotlin-metadata-jvm.kotlin_module",
+                "META-INF/kotlin-metadata.kotlin_module",
+                "META-INF/metadata.jvm.kotlin_module",
+                "META-INF/metadata.kotlin_module"
+            )
         }
-        tasks.named("jar", Jar::class.java).configure {
-            it.from(extractTask.flatMap { it.outputDir })
+
+        listOf("apiElements", "runtimeElements").forEach { config ->
+            configurations.getByName(config).apply {
+                outgoing.artifacts.clear()
+                outgoing.artifact(repackage)
+            }
         }
     }
 
@@ -150,15 +166,13 @@ object BundleInsideHelper {
     }
 
     private fun Project.createBundleConfiguration(): Configuration {
-        val bundle = configurations.create(CONFIGURATION_NAME) {
-            it.attributes {
-                   it.attribute(
-                         Usage.USAGE_ATTRIBUTE,
-                        objects.named<Usage>(Usage.JAVA_RUNTIME)
-                   )
+        val bundle =
+            configurations.create(CONFIGURATION_NAME) {
+                it.attributes {
+                    it.attribute(Usage.USAGE_ATTRIBUTE, objects.named<Usage>(Usage.JAVA_RUNTIME))
+                }
+                it.isCanBeConsumed = false
             }
-            it.isCanBeConsumed = false
-        }
         return bundle
     }
 

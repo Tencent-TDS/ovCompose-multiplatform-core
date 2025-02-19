@@ -16,10 +16,11 @@
 
 package androidx.appsearch.compiler.annotationwrapper;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.IntrospectionHelper;
 
 import com.squareup.javapoet.ClassName;
+
+import org.jspecify.annotations.NonNull;
 
 import javax.lang.model.type.TypeMirror;
 
@@ -43,14 +44,12 @@ public interface PropertyAnnotation {
      * <p>For example, {@code androidx.appsearch.annotation.Document.StringProperty} for a
      * {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    ClassName getClassName();
+    @NonNull ClassName getClassName();
 
     /**
      * The {@link Kind} of {@link PropertyAnnotation}.
      */
-    @NonNull
-    Kind getPropertyKind();
+    @NonNull Kind getPropertyKind();
 
     /**
      * The underlying type that the property is stored as within a
@@ -58,22 +57,19 @@ public interface PropertyAnnotation {
      *
      * <p>For example, {@link String} for {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper);
+    @NonNull TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper);
 
     /**
      * The corresponding getter within {@link androidx.appsearch.app.GenericDocument}.
      *
      * <p>For example, {@code getPropertyString} for a {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    String getGenericDocGetterName();
+    @NonNull String getGenericDocGetterName();
 
     /**
      * The corresponding setter within {@link androidx.appsearch.app.GenericDocument.Builder}.
      *
      * <p>For example, {@code setPropertyString} for a {@link StringPropertyAnnotation}.
      */
-    @NonNull
-    String getGenericDocSetterName();
+    @NonNull String getGenericDocSetterName();
 }

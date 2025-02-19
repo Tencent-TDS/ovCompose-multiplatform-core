@@ -28,7 +28,7 @@ public class FloorsClimbedRecord(
     override val endZoneOffset: ZoneOffset?,
     /** Number of floors. Required field. Valid range: 0-1000000. */
     public val floors: Double,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : IntervalRecord {
     init {
         requireNonNegative(value = floors, name = "floors")
@@ -58,6 +58,10 @@ public class FloorsClimbedRecord(
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "FloorsClimbedRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, floors=$floors, metadata=$metadata)"
     }
 
     companion object {

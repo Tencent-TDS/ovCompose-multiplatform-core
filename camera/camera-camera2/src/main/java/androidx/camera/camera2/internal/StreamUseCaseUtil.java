@@ -21,10 +21,7 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraMetadata;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
@@ -45,6 +42,9 @@ import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.core.streamsharing.StreamSharingConfig;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,7 +57,6 @@ import java.util.Set;
 /**
  * A class that contains utility methods for stream use case.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class StreamUseCaseUtil {
 
     private static final String TAG = "StreamUseCaseUtil";
@@ -178,8 +177,7 @@ public final class StreamUseCaseUtil {
      * StreamSpec for this UseCaseConfig
      */
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    @NonNull
-    public static Camera2ImplConfig getStreamSpecImplementationOptions(
+    public static @NonNull Camera2ImplConfig getStreamSpecImplementationOptions(
             @NonNull UseCaseConfig<?> useCaseConfig
     ) {
         MutableOptionsBundle optionsBundle = MutableOptionsBundle.create();
@@ -233,7 +231,7 @@ public final class StreamUseCaseUtil {
      * Return true if the given feature settings is appropriate for stream use case usage.
      */
     public static boolean shouldUseStreamUseCase(
-            @NonNull SupportedSurfaceCombination.FeatureSettings featureSettings) {
+            SupportedSurfaceCombination.@NonNull FeatureSettings featureSettings) {
         return featureSettings.getCameraMode() == CameraMode.DEFAULT
                 && featureSettings.getRequiredMaxBitDepth() == DynamicRange.BIT_DEPTH_8_BIT;
     }
@@ -483,9 +481,8 @@ public final class StreamUseCaseUtil {
     /**
      * Given an old options, return a new option with stream use case stream spec option inserted
      */
-    @Nullable
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    private static Config getUpdatedImplementationOptionsWithUseCaseStreamSpecOption(
+    private static @Nullable Config getUpdatedImplementationOptionsWithUseCaseStreamSpecOption(
             Config oldImplementationOptions,
             long streamUseCase
     ) {

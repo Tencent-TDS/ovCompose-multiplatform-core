@@ -28,7 +28,7 @@ public class HeartRateVariabilityRmssdRecord(
     override val zoneOffset: ZoneOffset?,
     /** Heart rate variability in milliseconds. Required field. Valid Range: 1-200. */
     public val heartRateVariabilityMillis: Double,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : InstantaneousRecord {
 
     init {
@@ -63,5 +63,9 @@ public class HeartRateVariabilityRmssdRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "HeartRateVariabilityRmssdRecord(time=$time, zoneOffset=$zoneOffset, heartRateVariabilityMillis=$heartRateVariabilityMillis, metadata=$metadata)"
     }
 }

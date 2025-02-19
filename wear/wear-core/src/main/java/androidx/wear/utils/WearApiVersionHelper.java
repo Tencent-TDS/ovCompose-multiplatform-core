@@ -21,10 +21,11 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StringDef;
 import androidx.annotation.VisibleForTesting;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -194,7 +195,7 @@ public final class WearApiVersionHelper {
         private int mPlatformApiLevel = Integer.MAX_VALUE;
         private int mIncrementalApiLevel = Integer.MAX_VALUE;
 
-        private WearApiVersionCompat(@NonNull @WearApiVersionCode String versionString) {
+        private WearApiVersionCompat(@WearApiVersionCode @NonNull String versionString) {
             if (TextUtils.isEmpty(versionString)) {
                 throw new IllegalArgumentException("Non-empty version required.");
             }
@@ -246,7 +247,7 @@ public final class WearApiVersionHelper {
      *                        {@code IllegalArgumentException} will result for any other value.
      * @return true if the current API version is equal to or greater than the required version.
      */
-    public static boolean isApiVersionAtLeast(@NonNull @WearApiVersionCode String requiredVersion) {
+    public static boolean isApiVersionAtLeast(@WearApiVersionCode @NonNull String requiredVersion) {
         if (sTestApiVersion != null) {
             return sTestApiVersion.compareTo(new WearApiVersionCompat(requiredVersion)) >= 0;
         } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

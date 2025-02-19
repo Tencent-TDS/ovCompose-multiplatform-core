@@ -16,40 +16,31 @@
 
 package androidx.compose.material
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.testutils.assertContainsColor
-import androidx.compose.testutils.assertDoesNotContainColor
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -59,16 +50,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TextTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
-    private val ExpectedTextStyle = TextStyle(
-        color = Color.Blue,
-        textAlign = TextAlign.End,
-        fontSize = 32.sp,
-        fontStyle = FontStyle.Italic,
-        letterSpacing = 0.3.em
-    )
+    private val ExpectedTextStyle =
+        TextStyle(
+            color = Color.Blue,
+            textAlign = TextAlign.End,
+            fontSize = 32.sp,
+            fontStyle = FontStyle.Italic,
+            letterSpacing = 0.3.em
+        )
 
     private val TestText = "TestText"
 
@@ -83,12 +74,10 @@ class TextTest {
             }
         }
 
-        assertThat(
-            localTextStyle?.platformStyle?.paragraphStyle?.includeFontPadding
-        ).isEqualTo(false)
-        assertThat(
-            display1TextStyle?.platformStyle?.paragraphStyle?.includeFontPadding
-        ).isEqualTo(false)
+        assertThat(localTextStyle?.platformStyle?.paragraphStyle?.includeFontPadding)
+            .isEqualTo(false)
+        assertThat(display1TextStyle?.platformStyle?.paragraphStyle?.includeFontPadding)
+            .isEqualTo(false)
     }
 
     @Test
@@ -125,19 +114,39 @@ class TextTest {
     }
 
     @Test
+    fun testChangingFontSizeDoesNotInvalidateSemantics() {
+        val fontSize = mutableStateOf(16.sp)
+        var count = 0
+        val countModifier = Modifier.semantics { count++ }
+        rule.setContent {
+            ProvideTextStyle(ExpectedTextStyle) {
+                Box(Modifier.background(Color.White)) {
+                    Text(modifier = countModifier, text = TestText, fontSize = fontSize.value)
+                }
+            }
+        }
+        rule.runOnIdle {
+            count = 0
+            fontSize.value = 20.sp
+        }
+        rule.runOnIdle { assertThat(count).isEqualTo(0) }
+    }
+
+    @Test
     fun settingCustomTextStyle() {
         var textColor: Color? = null
         var textAlign: TextAlign? = null
         var fontSize: TextUnit? = null
         var fontStyle: FontStyle? = null
         var letterSpacing: TextUnit? = null
-        val testStyle = TextStyle(
-            color = Color.Green,
-            textAlign = TextAlign.Center,
-            fontSize = 16.sp,
-            fontStyle = FontStyle.Normal,
-            letterSpacing = 0.6.em
-        )
+        val testStyle =
+            TextStyle(
+                color = Color.Green,
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                fontStyle = FontStyle.Normal,
+                letterSpacing = 0.6.em
+            )
         rule.setContent {
             ProvideTextStyle(ExpectedTextStyle) {
                 Box(Modifier.background(Color.White)) {
@@ -256,163 +265,37 @@ class TextTest {
         rule.setContent {
             ProvideTextStyle(ExpectedTextStyle) {
                 Box(Modifier.background(Color.White)) {
-                    Text(
-                        TestText,
-                        modifier = Modifier.testTag("text")
-                    )
+                    Text(TestText, modifier = Modifier.testTag("text"))
                 }
             }
         }
 
         val textLayoutResults = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithTag("text")
-            .assertTextEquals(TestText)
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayoutResults) }
+        rule.onNodeWithTag("text").assertTextEquals(TestText).performSemanticsAction(
+            SemanticsActions.GetTextLayoutResult
+        ) {
+            it(textLayoutResults)
+        }
         assert(textLayoutResults.size == 1) { "TextLayoutResult is null" }
     }
 
     @Test
     fun semantics_hasColor_providedByParameter() {
         val expectedColor = Color(0.7f, 0.13f, 1.0f, 0.323f)
-        rule.setContent {
-            Text(
-                "Test",
-                color = expectedColor
+        rule.setContent { Text("Test", color = expectedColor) }
+
+        rule
+            .onNodeWithText("Test")
+            .assert(
+                SemanticsMatcher("") {
+                    val textLayoutResult = ArrayList<TextLayoutResult>()
+                    it.config
+                        .getOrNull(SemanticsActions.GetTextLayoutResult)
+                        ?.action
+                        ?.invoke(textLayoutResult)
+                    val color = textLayoutResult.first().layoutInput.style.color
+                    color == expectedColor
+                }
             )
-        }
-
-        rule.onNodeWithText("Test").assert(SemanticsMatcher("") {
-            val textLayoutResult = ArrayList<TextLayoutResult>()
-            it.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(
-                textLayoutResult
-            )
-            val color = textLayoutResult.first().layoutInput.style.color
-            color == expectedColor
-        })
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun fromHtml_links_getColorFromMaterialTheme() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(AnnotatedString.fromHtml("<a href=url>link</a>"))
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(primary!!)
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun fromHtml_links_materialThemeRespectsStyleInLinkAnnotation() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(
-                AnnotatedString.fromHtml(
-                    "<a href=url>link</a>",
-                    linkStyle = SpanStyle(color = Color.Green)
-                )
-            )
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(Color.Green)
-            .assertDoesNotContainColor(primary!!)
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun fromHtml_links_materialThemeMergedIntoStyleInLinkAnnotation() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(
-                AnnotatedString.fromHtml(
-                    "<a href=url>link</a>",
-                    linkStyle = SpanStyle(background = Color.Green)
-                )
-            )
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(Color.Green)
-            .assertContainsColor(primary!!)
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun links_getColorFromMaterialTheme() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(buildAnnotatedString {
-                append("link")
-                addLink(LinkAnnotation.Url(url = "url"), 0, 4)
-            })
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(primary!!)
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun links_materialThemeRespectsStyleInLinkAnnotation() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(buildAnnotatedString {
-                append("link")
-                addLink(LinkAnnotation.Url(url = "url", SpanStyle(color = Color.Green)), 0, 4)
-            })
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(Color.Green)
-            .assertDoesNotContainColor(primary!!)
-    }
-
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
-    @Test
-    fun links_materialThemeMergedIntoStyleInLinkAnnotation() {
-        var primary: Color? = null
-        rule.setMaterialContent {
-            primary = MaterialTheme.colors.primary
-            Text(buildAnnotatedString {
-                append("link")
-                addLink(LinkAnnotation.Url(url = "url", SpanStyle(background = Color.Green)), 0, 4)
-            })
-        }
-
-        rule.runOnIdle {
-            assertThat(primary).isNotNull()
-        }
-        rule.onNode(hasClickAction(), useUnmergedTree = true)
-            .captureToImage()
-            .assertContainsColor(primary!!)
-            .assertContainsColor(Color.Green)
     }
 }

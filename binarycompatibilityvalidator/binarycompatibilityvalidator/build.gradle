@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 
 plugins {
@@ -32,14 +32,17 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    implementation(libs.kotlinCompiler)
+    compileOnly(libs.kotlinCompiler)
+    implementation(libs.binaryCompatibilityValidator)
     testImplementation(libs.truth)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinCompiler)
 }
 
 androidx {
     name = "AndroidX Binary Compatibility Validator"
-    type = LibraryType.INTERNAL_HOST_TEST_LIBRARY
+    type = SoftwareType.INTERNAL_HOST_TEST_LIBRARY
     inceptionYear = "2024"
     description = "Enforce binary compatibility for klibs"
 }

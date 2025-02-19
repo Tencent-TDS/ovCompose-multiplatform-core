@@ -1,0 +1,21 @@
+{
+  "projectPath": ":arch:core:core-common",
+  "dependencyAdvice": [
+    {
+      "coordinates": {
+        "type": "module",
+        "identifier": "org.hamcrest:hamcrest-core",
+        "resolvedVersion": "1.3"
+      },
+      "toConfiguration": "testImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "module",
+        "identifier": "org.mockito:mockito-core",
+        "resolvedVersion": "4.8.0"
+      },
+      "fromConfiguration": "testImplementation"
+    }
+  ]
+}

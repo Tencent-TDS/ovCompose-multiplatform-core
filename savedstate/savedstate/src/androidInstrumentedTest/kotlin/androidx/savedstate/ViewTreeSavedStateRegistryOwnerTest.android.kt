@@ -19,20 +19,21 @@ package androidx.savedstate
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.core.viewtree.setViewTreeDisjointParent
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import com.google.common.truth.Truth.assertWithMessage
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @SmallTest
 class ViewTreeSavedStateRegistryOwnerTest {
-    /**
-     * Tests that a direct set/get on a single view survives a round trip
-     */
+    /** Tests that a direct set/get on a single view survives a round trip */
     @Test
     fun setGetSameView() {
         val v = View(InstrumentationRegistry.getInstrumentation().context)
@@ -50,8 +51,8 @@ class ViewTreeSavedStateRegistryOwnerTest {
     }
 
     /**
-     * Tests that the owner set on a root of a subhierarchy is seen by both direct children
-     * and other descendants
+     * Tests that the owner set on a root of a subhierarchy is seen by both direct children and
+     * other descendants
      */
     @Test
     fun getAncestorOwner() {
@@ -81,13 +82,12 @@ class ViewTreeSavedStateRegistryOwnerTest {
     }
 
     /**
-     * Tests that a new owner set between a root and a descendant is seen by the descendant
-     * instead of the root value
+     * Tests that a new owner set between a root and a descendant is seen by the descendant instead
+     * of the root value
      */
     @Test
     fun shadowedOwner() {
-        val context =
-            InstrumentationRegistry.getInstrumentation().context
+        val context = InstrumentationRegistry.getInstrumentation().context
         val root: ViewGroup = FrameLayout(context)
         val parent: ViewGroup = FrameLayout(context)
         val child = View(context)
@@ -113,6 +113,57 @@ class ViewTreeSavedStateRegistryOwnerTest {
         assertWithMessage("grandchild sees owner")
             .that(child.findViewTreeSavedStateRegistryOwner())
             .isEqualTo(parentFakeOwner)
+    }
+
+    @Test
+    fun disjointParentOwner() {
+        val context = getInstrumentation().context
+        val root = FrameLayout(context)
+        val disjointParent = FrameLayout(context)
+        val parent = FrameLayout(context)
+        val child = View(context)
+
+        root.addView(disjointParent)
+        parent.addView(child)
+        parent.setViewTreeDisjointParent(disjointParent)
+
+        val rootFakeOwner = FakeSavedStateRegistryOwner()
+        root.setViewTreeSavedStateRegistryOwner(rootFakeOwner)
+
+        assertEquals(
+            "disjoint parent sees owner",
+            rootFakeOwner,
+            parent.findViewTreeSavedStateRegistryOwner()
+        )
+        assertEquals(
+            "disjoint child sees owner",
+            rootFakeOwner,
+            child.findViewTreeSavedStateRegistryOwner()
+        )
+    }
+
+    @Test
+    fun shadowedDisjointParentOwner() {
+        val context = getInstrumentation().context
+        val root = FrameLayout(context)
+        val disjointParent = FrameLayout(context)
+        val parent = FrameLayout(context)
+        val child = View(context)
+
+        root.addView(disjointParent)
+        parent.addView(child)
+        parent.setViewTreeDisjointParent(disjointParent)
+
+        val rootFakeOwner = FakeSavedStateRegistryOwner()
+        val parentFakeOwner = FakeSavedStateRegistryOwner()
+        root.setViewTreeSavedStateRegistryOwner(rootFakeOwner)
+        parent.setViewTreeSavedStateRegistryOwner(parentFakeOwner)
+
+        assertEquals(
+            "child sees owner",
+            parentFakeOwner,
+            child.findViewTreeSavedStateRegistryOwner()
+        )
     }
 
     internal class FakeSavedStateRegistryOwner : SavedStateRegistryOwner {

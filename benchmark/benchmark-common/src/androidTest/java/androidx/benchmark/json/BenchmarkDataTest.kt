@@ -16,12 +16,16 @@
 
 package androidx.benchmark.json
 
+import android.os.Build
 import androidx.benchmark.ResultWriter
+import androidx.benchmark.validateArtMainlineVersion
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -92,30 +96,50 @@ class BenchmarkDataTest {
                 warmupIterations = 1,
                 repeatIterations = 1,
                 thermalThrottleSleepSeconds = 0,
-                profilerOutputs = listOf(
-                    BenchmarkData.TestResult.ProfilerOutput(
-                        BenchmarkData.TestResult.ProfilerOutput.Type.MethodTrace,
-                        "duplicate label",
-                        "filename1.trace"
-                    ),
-                    BenchmarkData.TestResult.ProfilerOutput(
-                        BenchmarkData.TestResult.ProfilerOutput.Type.MethodTrace,
-                        "duplicate label",
-                        "filename2.trace"
+                profilerOutputs =
+                    listOf(
+                        BenchmarkData.TestResult.ProfilerOutput(
+                            BenchmarkData.TestResult.ProfilerOutput.Type.MethodTrace,
+                            "duplicate label",
+                            "filename1.trace"
+                        ),
+                        BenchmarkData.TestResult.ProfilerOutput(
+                            BenchmarkData.TestResult.ProfilerOutput.Type.MethodTrace,
+                            "duplicate label",
+                            "filename2.trace"
+                        )
                     )
-                )
             )
         }
     }
 
+    @Test
+    fun osCodenameAbbreviated() {
+        BenchmarkData.Context().osCodenameAbbreviated.run {
+            assertEquals(1, length, "expected 1 char codename, observed $this")
+            assertContains('A'..'Z', this[0])
+            if (Build.VERSION.SDK_INT != 30) {
+                // check we're not incorrectly parsing R from "REL"
+                assertNotEquals("R", this)
+            }
+            if (Build.VERSION.SDK_INT !in listOf(23, 35)) {
+                // check we're not incorrectly parsing M from "MAIN"
+                assertNotEquals("M", this)
+            }
+        }
+    }
+
+    @Test
+    fun artMainlineVersion() {
+        validateArtMainlineVersion(artMainlineVersion = BenchmarkData.Context().artMainlineVersion)
+    }
+
     private fun readTextAsset(filename: String): String {
-        return InstrumentationRegistry
-            .getInstrumentation()
+        return InstrumentationRegistry.getInstrumentation()
             .context
             .assets
             .open(filename)
-            .reader().use {
-                it.readText()
-            }
+            .reader()
+            .use { it.readText() }
     }
 }

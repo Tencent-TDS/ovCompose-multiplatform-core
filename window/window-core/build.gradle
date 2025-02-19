@@ -21,17 +21,30 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
 }
 
 androidXMultiplatform {
     jvm()
-    android()
+    androidLibrary {
+        namespace = "androidx.window.core"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+    }
+    mac()
+    linux()
+    ios()
+    watchos()
+    tvos()
 
     defaultPlatform(PlatformIdentifier.JVM)
 
@@ -39,7 +52,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.7.0")
+                api("androidx.annotation:annotation:1.9.1")
             }
         }
 
@@ -60,15 +73,15 @@ androidXMultiplatform {
             }
         }
     }
-}
 
-android {
-    namespace "androidx.window.core"
+    enableBinaryCompatibilityValidator = false
 }
 
 androidx {
     name = "WindowManager Core"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "WindowManager Core Library."
+    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

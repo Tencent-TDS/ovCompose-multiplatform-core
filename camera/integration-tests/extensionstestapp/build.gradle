@@ -31,28 +31,28 @@ plugins {
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
-        applicationId "androidx.camera.integration.extensions"
-        minSdkVersion 21
-        versionCode 1
-        multiDexEnabled true
+        applicationId = "androidx.camera.integration.extensions"
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             testProguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    namespace "androidx.camera.integration.extensions"
+    namespace = "androidx.camera.integration.extensions"
 }
 
 dependencies {
+    api(libs.jspecify)
     // Internal library
     implementation(project(":camera:camera-camera2"))
-    implementation(project(':camera:camera-camera2-pipe-integration'))
+    implementation(project(":camera:camera-camera2-pipe-integration"))
     implementation(project(":camera:camera-extensions"))
     implementation(project(":camera:camera-lifecycle"))
     implementation(project(":camera:camera-view"))
@@ -74,7 +74,7 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.0.0")
 
     // Align dependencies in debugRuntimeClasspath and debugAndroidTestRuntimeClasspath.
-    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.0")
+    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.1")
     androidTestImplementation(project(":concurrent:concurrent-futures"))
     androidTestImplementation(project(":concurrent:concurrent-futures-ktx"))
 
@@ -102,6 +102,7 @@ dependencies {
 
 // Copy apks to dist/apks as they are used outside of androidx test infrastructure
 ApkCopyHelperKt.setupAppApkCopy(project, "debug")
+ApkCopyHelperKt.setupAppApkCopy(project, "release")
 ApkCopyHelperKt.setupTestApkCopy(project)
 
 androidx {
