@@ -79,11 +79,10 @@ open class BackGestureDispatcher {
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal class BackGestureListenerImpl(
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit,
     private val onReadyStateChanged: (isReady: Boolean) -> Unit
 ) : BackGestureListener {
-    var onBackScope: CoroutineScope = scope
     var currentOnBack: suspend (progress: Flow<BackEventCompat>) -> Unit = onBack
     private var channel: Channel<BackEventCompat>? = null
     private var progressJob: Job? = null
@@ -132,7 +131,7 @@ internal class BackGestureListenerImpl(
         progressJob = null
     }
 
-    private fun provideProgress(flow: Flow<BackEventCompat>): Job = onBackScope.launch {
+    private fun provideProgress(flow: Flow<BackEventCompat>): Job = scope.launch {
         var completed = false
         currentOnBack(flow.onCompletion { completed = true })
         check(completed) { "You must collect the progress flow" }

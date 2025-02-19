@@ -43,19 +43,18 @@ actual fun PredictiveBackHandler(
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 )  {
     val backGestureDispatcher = LocalBackGestureDispatcher.current ?: return
+    val onBackScope = rememberCoroutineScope()
 
     // ensure we don't re-register callbacks when onBack changes
     val currentOnBack by rememberUpdatedState(onBack)
-    val onBackScope = rememberCoroutineScope()
 
     val listener = remember {
         BackGestureListenerImpl(onBackScope, currentOnBack) { backGestureDispatcher.activeListenerChanged() }
     }
 
     // we want to use the same callback, but ensure we adjust the variable on recomposition
-    remember(currentOnBack, onBackScope) {
+    remember(currentOnBack) {
         listener.currentOnBack = currentOnBack
-        listener.onBackScope = onBackScope
     }
 
     LaunchedEffect(enabled) { listener.enabled = enabled }
