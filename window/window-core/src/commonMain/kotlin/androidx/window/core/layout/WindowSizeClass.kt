@@ -92,6 +92,8 @@ class WindowSizeClass(
      * Returns `true` when [minWidthDp] is greater than or equal to [widthDpBreakpoint], `false`
      * otherwise. When processing a [WindowSizeClass] note that this method is order dependent.
      * Selection should go from largest to smallest breakpoints.
+     *
+     * @sample androidx.window.core.samples.layout.processWindowSizeClassWidthOnly
      */
     fun isWidthAtLeastBreakpoint(widthDpBreakpoint: Int): Boolean {
         return minWidthDp >= widthDpBreakpoint
@@ -158,6 +160,11 @@ class WindowSizeClass(
         private val HEIGHT_DP_BREAKPOINTS_V1 =
             listOf(0, HEIGHT_DP_MEDIUM_LOWER_BOUND, HEIGHT_DP_EXPANDED_LOWER_BOUND)
 
+        /**
+         * The recommended breakpoints for window size classes.
+         *
+         * @sample androidx.window.core.samples.layout.calculateWindowSizeClass
+         */
         @JvmField
         val BREAKPOINTS_V1 =
             WIDTH_DP_BREAKPOINTS_V1.flatMap { widthBp ->
