@@ -154,9 +154,6 @@ private sealed interface AccessibilityNode {
      * The object itself is a node in a generated tree that matches 1-to-1 with the [SemanticsNode].
      * @semanticsNode node associated with current accessibility element
      * @mediator reference to the containing AccessibilityMediator
-     * @isBeyondBounds indicates that the node is not visible and may be focusable under certain
-     * circumstances. See [isAccessibilityElement].
-     * @ignoreSemanticChildren used for nodes that is [Container] and [Semantics] at the same time to prevent
      */
     class Semantics(
         override val semanticsNode: SemanticsNode,
@@ -712,14 +709,6 @@ private sealed interface AccessibilityElementFocusMode {
     val targetElementKey: AccessibilityElementKey?
 
     /**
-     * Do not change focus. Notifies about significant changes on a screen to let iOS Accessibility
-     * decide about the next focused element.
-     */
-    data object Initial : AccessibilityElementFocusMode {
-        override val targetElementKey: AccessibilityElementKey? = null
-    }
-
-    /**
      * Do not change focus. Notifies about content changes.
      */
     data object None : AccessibilityElementFocusMode {
@@ -745,17 +734,24 @@ internal class AccessibilityMediator(
     onKeyboardPresses: (Set<*>) -> Unit,
     val onScreenReaderActive: (Boolean) -> Unit,
 ) {
-    private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.Initial
+    private var focusMode: AccessibilityElementFocusMode = AccessibilityElementFocusMode.None
         set(value) {
             field = value
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
 
-            focusedNodesScrollableParentsIds = when (value) {
-                AccessibilityElementFocusMode.Initial,
-                AccessibilityElementFocusMode.None -> emptySet()
+            val ids = (focusMode as? AccessibilityElementFocusMode.KeepFocus)?.key?.let {
+                accessibilityElementsMap[it]?.node?.semanticsNode?.allScrollableParentNodeIds
+            } ?: emptySet()
 
-                is AccessibilityElementFocusMode.KeepFocus -> accessibilityElementsMap[value.key]
-                    ?.node?.semanticsNode?.allScrollableParentNodeIds ?: emptySet()
+            if (focusedNodesScrollableParentsIds != ids) {
+                focusedNodesScrollableParentsIds = ids
+                invalidationChannel.trySend(Unit)
+
+                if (ids.isNotEmpty()) {
+                    // Hack to fix an issue where iOS accessibility only reads the items visible
+                    // at the moment of the beginning of the "Speak Screen" command.
+                    UIAccessibilityPostNotification(UIAccessibilityPageScrolledNotification, null)
+                }
             }
         }
 
@@ -793,6 +789,8 @@ internal class AccessibilityMediator(
             if (field != value) {
                 field = value
                 onSemanticsChange()
+
+                UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, null)
             }
         }
 
@@ -1105,11 +1103,6 @@ internal class AccessibilityMediator(
 
     private fun updateFocusedElement(): NodesSyncResult {
         return when (val mode = focusMode) {
-            AccessibilityElementFocusMode.Initial -> {
-                focusMode = AccessibilityElementFocusMode.None
-                NodesSyncResult(newElementToFocus = null, isScreenChange = true)
-            }
-
             AccessibilityElementFocusMode.None -> {
                 NodesSyncResult(newElementToFocus = null, isScreenChange = false)
             }
