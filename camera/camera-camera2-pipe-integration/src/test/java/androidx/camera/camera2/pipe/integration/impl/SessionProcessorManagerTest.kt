@@ -19,6 +19,7 @@ package androidx.camera.camera2.pipe.integration.impl
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import android.os.Build
+import android.os.Looper
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.integration.adapter.FakeTestUseCase
@@ -54,6 +55,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
@@ -66,14 +68,12 @@ class SessionProcessorManagerTest {
     private val testScope = TestScope()
     private val testDispatcher = StandardTestDispatcher(testScope.testScheduler)
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule(testDispatcher)
+    @get:Rule val mainDispatcherRule = MainDispatcherRule(testDispatcher)
 
     private val fakeSessionProcessor = FakeSessionProcessor()
     private val fakeCameraId = CameraId.fromCamera2Id("0")
-    private val fakeCameraInfoAdapter = FakeCameraInfoAdapterCreator.createCameraInfoAdapter(
-        fakeCameraId
-    )
+    private val fakeCameraInfoAdapter =
+        FakeCameraInfoAdapterCreator.createCameraInfoAdapter(fakeCameraId)
 
     private val sessionProcessorManager =
         SessionProcessorManager(fakeSessionProcessor, fakeCameraInfoAdapter, testScope)
@@ -81,19 +81,16 @@ class SessionProcessorManagerTest {
     @Test
     fun testInitializeSucceedsWithPreview() = runTest {
         val useCaseManager: UseCaseManager = mock()
-        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any())).thenReturn(
-            CameraGraph.Config(fakeCameraId, emptyList())
-        )
-        val fakePreviewUseCase = createFakeTestUseCase(
-            "Preview",
-            CameraDevice.TEMPLATE_PREVIEW,
-            Preview::class.java
-        )
-        val fakeImageCaptureUseCase = createFakeTestUseCase(
-            "ImageCapture",
-            CameraDevice.TEMPLATE_STILL_CAPTURE,
-            ImageCapture::class.java
-        )
+        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any()))
+            .thenReturn(CameraGraph.Config(fakeCameraId, emptyList()))
+        val fakePreviewUseCase =
+            createFakeTestUseCase("Preview", CameraDevice.TEMPLATE_PREVIEW, Preview::class.java)
+        val fakeImageCaptureUseCase =
+            createFakeTestUseCase(
+                "ImageCapture",
+                CameraDevice.TEMPLATE_STILL_CAPTURE,
+                ImageCapture::class.java
+            )
 
         sessionProcessorManager.initialize(
             useCaseManager,
@@ -109,19 +106,20 @@ class SessionProcessorManagerTest {
     @Test
     fun testInitializeSucceedsWithStreamSharing() = runTest {
         val useCaseManager: UseCaseManager = mock()
-        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any())).thenReturn(
-            CameraGraph.Config(fakeCameraId, emptyList())
-        )
-        val fakeStreamSharingUseCase = createFakeTestUseCase(
-            "Preview",
-            CameraDevice.TEMPLATE_PREVIEW,
-            StreamSharing::class.java
-        )
-        val fakeImageCaptureUseCase = createFakeTestUseCase(
-            "ImageCapture",
-            CameraDevice.TEMPLATE_STILL_CAPTURE,
-            ImageCapture::class.java
-        )
+        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any()))
+            .thenReturn(CameraGraph.Config(fakeCameraId, emptyList()))
+        val fakeStreamSharingUseCase =
+            createFakeTestUseCase(
+                "Preview",
+                CameraDevice.TEMPLATE_PREVIEW,
+                StreamSharing::class.java
+            )
+        val fakeImageCaptureUseCase =
+            createFakeTestUseCase(
+                "ImageCapture",
+                CameraDevice.TEMPLATE_STILL_CAPTURE,
+                ImageCapture::class.java
+            )
 
         sessionProcessorManager.initialize(
             useCaseManager,
@@ -130,6 +128,8 @@ class SessionProcessorManagerTest {
             assertNotNull(useCaseManagerConfig)
         }
 
+        shadowOf(Looper.getMainLooper()).idle()
+
         advanceUntilIdle()
         verify(useCaseManager).createCameraGraphConfig(any(), any(), eq(true))
     }
@@ -137,19 +137,16 @@ class SessionProcessorManagerTest {
     @Test
     fun testSubmitCaptureConfigs() = runTest {
         val useCaseManager: UseCaseManager = mock()
-        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any())).thenReturn(
-            CameraGraph.Config(fakeCameraId, emptyList())
-        )
-        val fakePreviewUseCase = createFakeTestUseCase(
-            "Preview",
-            CameraDevice.TEMPLATE_PREVIEW,
-            Preview::class.java
-        )
-        val fakeImageCaptureUseCase = createFakeTestUseCase(
-            "ImageCapture",
-            CameraDevice.TEMPLATE_STILL_CAPTURE,
-            ImageCapture::class.java
-        )
+        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any()))
+            .thenReturn(CameraGraph.Config(fakeCameraId, emptyList()))
+        val fakePreviewUseCase =
+            createFakeTestUseCase("Preview", CameraDevice.TEMPLATE_PREVIEW, Preview::class.java)
+        val fakeImageCaptureUseCase =
+            createFakeTestUseCase(
+                "ImageCapture",
+                CameraDevice.TEMPLATE_STILL_CAPTURE,
+                ImageCapture::class.java
+            )
 
         sessionProcessorManager.initialize(
             useCaseManager,
@@ -165,11 +162,14 @@ class SessionProcessorManagerTest {
 
         val jpegRotation = 90
         val jpegQuality = 95
-        val captureConfig = CaptureConfig.Builder().apply {
-            templateType = CameraDevice.TEMPLATE_STILL_CAPTURE
-            addImplementationOption(CaptureConfig.OPTION_ROTATION, jpegRotation)
-            addImplementationOption(CaptureConfig.OPTION_JPEG_QUALITY, jpegQuality)
-        }.build()
+        val captureConfig =
+            CaptureConfig.Builder()
+                .apply {
+                    templateType = CameraDevice.TEMPLATE_STILL_CAPTURE
+                    addImplementationOption(CaptureConfig.OPTION_ROTATION, jpegRotation)
+                    addImplementationOption(CaptureConfig.OPTION_JPEG_QUALITY, jpegQuality)
+                }
+                .build()
         sessionProcessorManager.submitCaptureConfigs(
             listOf(captureConfig),
             listOf(object : CaptureCallback {})
@@ -188,19 +188,16 @@ class SessionProcessorManagerTest {
     @Test
     fun testSessionProcessorManagerConfiguresNullWhenClosed() = runTest {
         val useCaseManager: UseCaseManager = mock()
-        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any())).thenReturn(
-            CameraGraph.Config(fakeCameraId, emptyList())
-        )
-        val fakePreviewUseCase = createFakeTestUseCase(
-            "Preview",
-            CameraDevice.TEMPLATE_PREVIEW,
-            Preview::class.java
-        )
-        val fakeImageCaptureUseCase = createFakeTestUseCase(
-            "ImageCapture",
-            CameraDevice.TEMPLATE_STILL_CAPTURE,
-            ImageCapture::class.java
-        )
+        whenever(useCaseManager.createCameraGraphConfig(any(), any(), any()))
+            .thenReturn(CameraGraph.Config(fakeCameraId, emptyList()))
+        val fakePreviewUseCase =
+            createFakeTestUseCase("Preview", CameraDevice.TEMPLATE_PREVIEW, Preview::class.java)
+        val fakeImageCaptureUseCase =
+            createFakeTestUseCase(
+                "ImageCapture",
+                CameraDevice.TEMPLATE_STILL_CAPTURE,
+                ImageCapture::class.java
+            )
 
         sessionProcessorManager.prepareClose()
         sessionProcessorManager.close()
@@ -218,16 +215,15 @@ class SessionProcessorManagerTest {
         containerClass: Class<T>,
     ): FakeTestUseCase {
         val deferrableSurface = createTestDeferrableSurface(containerClass)
-        return FakeTestUseCase(
-            FakeUseCaseConfig.Builder().setTargetName(name).useCaseConfig
-        ).apply {
-            setupSessionConfig(
-                SessionConfig.Builder().also { sessionConfigBuilder ->
-                    sessionConfigBuilder.setTemplateType(template)
-                    sessionConfigBuilder.addSurface(deferrableSurface)
-                }
-            )
-        }
+        return FakeTestUseCase(FakeUseCaseConfig.Builder().setTargetName(name).useCaseConfig)
+            .apply {
+                setupSessionConfig(
+                    SessionConfig.Builder().also { sessionConfigBuilder ->
+                        sessionConfigBuilder.setTemplateType(template)
+                        sessionConfigBuilder.addSurface(deferrableSurface)
+                    }
+                )
+            }
     }
 
     private fun <T> createTestDeferrableSurface(containerClass: Class<T>): TestDeferrableSurface {

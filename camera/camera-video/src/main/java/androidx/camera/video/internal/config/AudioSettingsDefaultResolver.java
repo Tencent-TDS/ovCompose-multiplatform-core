@@ -18,18 +18,17 @@ package androidx.camera.video.internal.config;
 
 import android.util.Range;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.video.AudioSpec;
 import androidx.camera.video.internal.audio.AudioSettings;
 import androidx.core.util.Supplier;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * An {@link AudioSettings} supplier that resolves requested source settings from an
  * {@link AudioSpec} using pre-defined default values.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class AudioSettingsDefaultResolver implements Supplier<AudioSettings> {
 
     private static final String TAG = "DefAudioResolver";
@@ -47,8 +46,7 @@ public final class AudioSettingsDefaultResolver implements Supplier<AudioSetting
     }
 
     @Override
-    @NonNull
-    public AudioSettings get() {
+    public @NonNull AudioSettings get() {
         // Resolve audio source
         int resolvedAudioSource = AudioConfigUtil.resolveAudioSource(mAudioSpec);
 

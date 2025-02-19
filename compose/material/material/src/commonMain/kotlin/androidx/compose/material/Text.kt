@@ -20,16 +20,13 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.Paragraph
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -39,58 +36,57 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.util.fastForEach
 
 /**
  * High level element that displays text and provides semantics / accessibility information.
  *
  * The default [style] uses the [LocalTextStyle] provided by the [MaterialTheme] / components. If
- * you are setting your own style, you may want to consider first retrieving [LocalTextStyle],
- * and using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
+ * you are setting your own style, you may want to consider first retrieving [LocalTextStyle], and
+ * using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
  * attributes you want to override.
  *
  * For ease of use, commonly used parameters from [TextStyle] are also present here. The order of
  * precedence is as follows:
- * - If a parameter is explicitly set here (i.e, it is _not_ `null` or [TextUnit.Unspecified]),
- * then this parameter will always be used.
+ * - If a parameter is explicitly set here (i.e, it is _not_ `null` or [TextUnit.Unspecified]), then
+ *   this parameter will always be used.
  * - If a parameter is _not_ set, (`null` or [TextUnit.Unspecified]), then the corresponding value
- * from [style] will be used instead.
+ *   from [style] will be used instead.
  *
  * Additionally, for [color], if [color] is not set, and [style] does not have a color, then
- * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this
- * [Text] or element containing this [Text] to adapt to different background colors and still
- * maintain contrast and accessibility.
+ * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this [Text] or
+ * element containing this [Text] to adapt to different background colors and still maintain
+ * contrast and accessibility.
  *
  * @param text The text to be displayed.
  * @param modifier [Modifier] to apply to this layout node.
  * @param color [Color] to apply to the text. If [Color.Unspecified], and [style] has no color set,
- * this will be [LocalContentColor].
+ *   this will be [LocalContentColor].
  * @param fontSize The size of glyphs to use when painting the text. See [TextStyle.fontSize].
- * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic).
- * See [TextStyle.fontStyle].
+ * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic). See
+ *   [TextStyle.fontStyle].
  * @param fontWeight The typeface thickness to use when painting the text (e.g., [FontWeight.Bold]).
  * @param fontFamily The font family to be used when rendering the text. See [TextStyle.fontFamily].
- * @param letterSpacing The amount of space to add between each letter.
- * See [TextStyle.letterSpacing].
- * @param textDecoration The decorations to paint on the text (e.g., an underline).
- * See [TextStyle.textDecoration].
- * @param textAlign The alignment of the text within the lines of the paragraph.
- * See [TextStyle.textAlign].
- * @param lineHeight Line height for the [Paragraph] in [TextUnit] unit, e.g. SP or EM.
- * See [TextStyle.lineHeight].
+ * @param letterSpacing The amount of space to add between each letter. See
+ *   [TextStyle.letterSpacing].
+ * @param textDecoration The decorations to paint on the text (e.g., an underline). See
+ *   [TextStyle.textDecoration].
+ * @param textAlign The alignment of the text within the lines of the paragraph. See
+ *   [TextStyle.textAlign].
+ * @param lineHeight Line height for the [Paragraph] in [TextUnit] unit, e.g. SP or EM. See
+ *   [TextStyle.lineHeight].
  * @param overflow How visual overflow should be handled.
  * @param softWrap Whether the text should break at soft line breaks. If false, the glyphs in the
- * text will be positioned as if there was unlimited horizontal space. If [softWrap] is false,
- * [overflow] and TextAlign may have unexpected effects.
- * @param maxLines An optional maximum number of lines for the text to span, wrapping if
- * necessary. If the text exceeds the given number of lines, it will be truncated according to
- * [overflow] and [softWrap]. It is required that 1 <= [minLines] <= [maxLines].
+ *   text will be positioned as if there was unlimited horizontal space. If [softWrap] is false,
+ *   [overflow] and TextAlign may have unexpected effects.
+ * @param maxLines An optional maximum number of lines for the text to span, wrapping if necessary.
+ *   If the text exceeds the given number of lines, it will be truncated according to [overflow] and
+ *   [softWrap]. It is required that 1 <= [minLines] <= [maxLines].
  * @param minLines The minimum height in terms of minimum number of visible lines. It is required
- * that 1 <= [minLines] <= [maxLines].
+ *   that 1 <= [minLines] <= [maxLines].
  * @param onTextLayout Callback that is executed when a new text layout is calculated. A
- * [TextLayoutResult] object that callback provides contains paragraph information, size of the
- * text, baselines and other details. The callback can be used to add additional decoration or
- * functionality to the text. For example, to draw selection around the text.
+ *   [TextLayoutResult] object that callback provides contains paragraph information, size of the
+ *   text, baselines and other details. The callback can be used to add additional decoration or
+ *   functionality to the text. For example, to draw selection around the text.
  * @param style Style configuration for the text such as color, font, line height etc.
  */
 @Composable
@@ -132,27 +128,29 @@ fun Text(
     // profilers and benchmarks.
     val localContentColor = LocalContentColor.current
     val localContentAlpha = LocalContentAlpha.current
-    val overrideColorOrUnspecified: Color = if (color.isSpecified) {
-        color
-    } else if (style.color.isSpecified) {
-        style.color
-    } else {
-        localContentColor.copy(localContentAlpha)
-    }
+    val overrideColorOrUnspecified: Color =
+        if (color.isSpecified) {
+            color
+        } else if (style.color.isSpecified) {
+            style.color
+        } else {
+            localContentColor.copy(localContentAlpha)
+        }
 
     BasicText(
         text = text,
         modifier = modifier,
-        style = style.merge(
-            fontSize = fontSize,
-            fontWeight = fontWeight,
-            textAlign = textAlign ?: TextAlign.Unspecified,
-            lineHeight = lineHeight,
-            fontFamily = fontFamily,
-            textDecoration = textDecoration,
-            fontStyle = fontStyle,
-            letterSpacing = letterSpacing
-        ),
+        style =
+            style.merge(
+                fontSize = fontSize,
+                fontWeight = fontWeight,
+                textAlign = textAlign ?: TextAlign.Unspecified,
+                lineHeight = lineHeight,
+                fontFamily = fontFamily,
+                textDecoration = textDecoration,
+                fontStyle = fontStyle,
+                letterSpacing = letterSpacing
+            ),
         onTextLayout = onTextLayout,
         overflow = overflow,
         softWrap = softWrap,
@@ -210,139 +208,59 @@ fun Text(
  * High level element that displays text and provides semantics / accessibility information.
  *
  * The default [style] uses the [LocalTextStyle] provided by the [MaterialTheme] / components. If
- * you are setting your own style, you may want to consider first retrieving [LocalTextStyle],
- * and using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
+ * you are setting your own style, you may want to consider first retrieving [LocalTextStyle], and
+ * using [TextStyle.copy] to keep any theme defined attributes, only modifying the specific
  * attributes you want to override.
  *
  * For ease of use, commonly used parameters from [TextStyle] are also present here. The order of
  * precedence is as follows:
- * - If a parameter is explicitly set here (i.e, it is _not_ `null` or [TextUnit.Unspecified]),
- * then this parameter will always be used.
+ * - If a parameter is explicitly set here (i.e, it is _not_ `null` or [TextUnit.Unspecified]), then
+ *   this parameter will always be used.
  * - If a parameter is _not_ set, (`null` or [TextUnit.Unspecified]), then the corresponding value
- * from [style] will be used instead.
+ *   from [style] will be used instead.
  *
  * Additionally, for [color], if [color] is not set, and [style] does not have a color, then
- * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this
- * [Text] or element containing this [Text] to adapt to different background colors and still
- * maintain contrast and accessibility.
+ * [LocalContentColor] will be used with an alpha of [LocalContentAlpha]- this allows this [Text] or
+ * element containing this [Text] to adapt to different background colors and still maintain
+ * contrast and accessibility.
  *
+ * See an example of displaying text with links where links apply the styling from the theme:
+ *
+ * @sample androidx.compose.material.samples.TextWithLinks
  * @param text The text to be displayed.
  * @param modifier [Modifier] to apply to this layout node.
  * @param color [Color] to apply to the text. If [Color.Unspecified], and [style] has no color set,
- * this will be [LocalContentColor].
+ *   this will be [LocalContentColor].
  * @param fontSize The size of glyphs to use when painting the text. See [TextStyle.fontSize].
- * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic).
- * See [TextStyle.fontStyle].
+ * @param fontStyle The typeface variant to use when drawing the letters (e.g., italic). See
+ *   [TextStyle.fontStyle].
  * @param fontWeight The typeface thickness to use when painting the text (e.g., [FontWeight.Bold]).
  * @param fontFamily The font family to be used when rendering the text. See [TextStyle.fontFamily].
- * @param letterSpacing The amount of space to add between each letter.
- * See [TextStyle.letterSpacing].
- * @param textDecoration The decorations to paint on the text (e.g., an underline).
- * See [TextStyle.textDecoration].
- * @param textAlign The alignment of the text within the lines of the paragraph.
- * See [TextStyle.textAlign].
- * @param lineHeight Line height for the [Paragraph] in [TextUnit] unit, e.g. SP or EM.
- * See [TextStyle.lineHeight].
+ * @param letterSpacing The amount of space to add between each letter. See
+ *   [TextStyle.letterSpacing].
+ * @param textDecoration The decorations to paint on the text (e.g., an underline). See
+ *   [TextStyle.textDecoration].
+ * @param textAlign The alignment of the text within the lines of the paragraph. See
+ *   [TextStyle.textAlign].
+ * @param lineHeight Line height for the [Paragraph] in [TextUnit] unit, e.g. SP or EM. See
+ *   [TextStyle.lineHeight].
  * @param overflow How visual overflow should be handled.
  * @param softWrap Whether the text should break at soft line breaks. If false, the glyphs in the
- * text will be positioned as if there was unlimited horizontal space. If [softWrap] is false,
- * [overflow] and TextAlign may have unexpected effects.
- * @param maxLines An optional maximum number of lines for the text to span, wrapping if
- * necessary. If the text exceeds the given number of lines, it will be truncated according to
- * [overflow] and [softWrap]. It is required that 1 <= [minLines] <= [maxLines].
+ *   text will be positioned as if there was unlimited horizontal space. If [softWrap] is false,
+ *   [overflow] and TextAlign may have unexpected effects.
+ * @param maxLines An optional maximum number of lines for the text to span, wrapping if necessary.
+ *   If the text exceeds the given number of lines, it will be truncated according to [overflow] and
+ *   [softWrap]. It is required that 1 <= [minLines] <= [maxLines].
  * @param minLines The minimum height in terms of minimum number of visible lines. It is required
- * that 1 <= [minLines] <= [maxLines].
- * @param inlineContent A map store composables that replaces certain ranges of the text. It's
- * used to insert composables into text layout. Check [InlineTextContent] for more information.
+ *   that 1 <= [minLines] <= [maxLines].
+ * @param inlineContent A map store composables that replaces certain ranges of the text. It's used
+ *   to insert composables into text layout. Check [InlineTextContent] for more information.
  * @param onTextLayout Callback that is executed when a new text layout is calculated. A
- * [TextLayoutResult] object that callback provides contains paragraph information, size of the
- * text, baselines and other details. The callback can be used to add additional decoration or
- * functionality to the text. For example, to draw selection around the text.
+ *   [TextLayoutResult] object that callback provides contains paragraph information, size of the
+ *   text, baselines and other details. The callback can be used to add additional decoration or
+ *   functionality to the text. For example, to draw selection around the text.
  * @param style Style configuration for the text such as color, font, line height etc.
- * @param linkStyles Configures styles for the links in different states which are present in text
- * as [androidx.compose.ui.text.LinkAnnotation] annotations. This object passes the styles directly
- * to the link annotations. If you style the [text] either using the [SpanStyle] annotations or
- * via the parameters from this composable like [color], [style] and others, the [linkStyles] will
- * override them for links
- *
- * @sample androidx.compose.material.samples.AnnotatedStringWithLinks
  */
-@Composable
-fun Text(
-    text: AnnotatedString,
-    modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    fontSize: TextUnit = TextUnit.Unspecified,
-    fontStyle: FontStyle? = null,
-    fontWeight: FontWeight? = null,
-    fontFamily: FontFamily? = null,
-    letterSpacing: TextUnit = TextUnit.Unspecified,
-    textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = null,
-    lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = TextOverflow.Clip,
-    softWrap: Boolean = true,
-    maxLines: Int = Int.MAX_VALUE,
-    minLines: Int = 1,
-    inlineContent: Map<String, InlineTextContent> = mapOf(),
-    onTextLayout: (TextLayoutResult) -> Unit = {},
-    style: TextStyle = LocalTextStyle.current,
-    linkStyles: TextLinkStyles = TextDefaults.linkStyles()
-) {
-    // TL:DR: profile before you change any line of code in this method
-    //
-    // The call to LocalContentAlpha.current looks like it can be avoided by only calling it in the
-    // last else block but, in 1.5, this causes a control flow group to be created because it would
-    // be a conditional call to a composable function. The call is currently made unconditionally
-    // since the call to LocalContentAlpha.current does not create a group (it is a read-only
-    // composable) and looking up the value in the composition locals map is currently faster than
-    // creating a group to avoid it.
-    //
-    // Similar notes regarding lambda allocations. It appears there's a path to optimize for
-    // zero-allocations in the style-provided color route, but this either introduces a group or a
-    // box depending on how it's coded. It's also possible that allocating a final ColorProducer
-    // subclass with no capture may be a successful optimization, but it appeared slower in initial
-    // profiling.
-    //
-    // If changing ANY LINE OF CODE, please confirm that it's faster or the same speed using
-    // profilers and benchmarks.
-    val localContentColor = LocalContentColor.current
-    val localContentAlpha = LocalContentAlpha.current
-    val overrideColorOrUnspecified = if (color.isSpecified) {
-        color
-    } else if (style.color.isSpecified) {
-        style.color
-    } else {
-        localContentColor.copy(localContentAlpha)
-    }
-
-    BasicText(
-        text = textWithLinkStyles(text, linkStyles),
-        modifier = modifier,
-        style = style.merge(
-            fontSize = fontSize,
-            fontWeight = fontWeight,
-            textAlign = textAlign ?: TextAlign.Unspecified,
-            lineHeight = lineHeight,
-            fontFamily = fontFamily,
-            textDecoration = textDecoration,
-            fontStyle = fontStyle,
-            letterSpacing = letterSpacing
-        ),
-        onTextLayout = onTextLayout,
-        overflow = overflow,
-        softWrap = softWrap,
-        maxLines = maxLines,
-        minLines = minLines,
-        inlineContent = inlineContent,
-        color = { overrideColorOrUnspecified }
-    )
-}
-
-@Deprecated(
-    "Maintained for binary compatibility. Use version with a textLinkStyles instead",
-    level = DeprecationLevel.HIDDEN
-)
 @Composable
 fun Text(
     text: AnnotatedString,
@@ -364,25 +282,55 @@ fun Text(
     onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = LocalTextStyle.current
 ) {
-    Text(
-        text,
-        modifier,
-        color,
-        fontSize,
-        fontStyle,
-        fontWeight,
-        fontFamily,
-        letterSpacing,
-        textDecoration,
-        textAlign,
-        lineHeight,
-        overflow,
-        softWrap,
-        maxLines,
-        minLines,
-        inlineContent,
-        onTextLayout,
-        style
+    // TL:DR: profile before you change any line of code in this method
+    //
+    // The call to LocalContentAlpha.current looks like it can be avoided by only calling it in the
+    // last else block but, in 1.5, this causes a control flow group to be created because it would
+    // be a conditional call to a composable function. The call is currently made unconditionally
+    // since the call to LocalContentAlpha.current does not create a group (it is a read-only
+    // composable) and looking up the value in the composition locals map is currently faster than
+    // creating a group to avoid it.
+    //
+    // Similar notes regarding lambda allocations. It appears there's a path to optimize for
+    // zero-allocations in the style-provided color route, but this either introduces a group or a
+    // box depending on how it's coded. It's also possible that allocating a final ColorProducer
+    // subclass with no capture may be a successful optimization, but it appeared slower in initial
+    // profiling.
+    //
+    // If changing ANY LINE OF CODE, please confirm that it's faster or the same speed using
+    // profilers and benchmarks.
+    val localContentColor = LocalContentColor.current
+    val localContentAlpha = LocalContentAlpha.current
+    val overrideColorOrUnspecified =
+        if (color.isSpecified) {
+            color
+        } else if (style.color.isSpecified) {
+            style.color
+        } else {
+            localContentColor.copy(localContentAlpha)
+        }
+
+    BasicText(
+        text = text,
+        modifier = modifier,
+        style =
+            style.merge(
+                fontSize = fontSize,
+                fontWeight = fontWeight,
+                textAlign = textAlign ?: TextAlign.Unspecified,
+                lineHeight = lineHeight,
+                fontFamily = fontFamily,
+                textDecoration = textDecoration,
+                fontStyle = fontStyle,
+                letterSpacing = letterSpacing
+            ),
+        onTextLayout = onTextLayout,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        inlineContent = inlineContent,
+        color = { overrideColorOrUnspecified }
     )
 }
 
@@ -443,9 +391,9 @@ val LocalTextStyle = compositionLocalOf(structuralEqualityPolicy()) { DefaultTex
 
 // TODO: b/156598010 remove this and replace with fold definition on the backing CompositionLocal
 /**
- * This function is used to set the current value of [LocalTextStyle], merging the given style
- * with the current style values for any missing attributes. Any [Text] components included in
- * this component's [content] will be styled with this style unless styled explicitly.
+ * This function is used to set the current value of [LocalTextStyle], merging the given style with
+ * the current style values for any missing attributes. Any [Text] components included in this
+ * component's [content] will be styled with this style unless styled explicitly.
  *
  * @see LocalTextStyle
  */
@@ -453,118 +401,4 @@ val LocalTextStyle = compositionLocalOf(structuralEqualityPolicy()) { DefaultTex
 fun ProvideTextStyle(value: TextStyle, content: @Composable () -> Unit) {
     val mergedStyle = LocalTextStyle.current.merge(value)
     CompositionLocalProvider(LocalTextStyle provides mergedStyle, content = content)
-}
-
-/** Contains the methods to be used by [Text] */
-object TextDefaults {
-
-    /**
-     * Creates a [TextLinkStyles] that are used to style the links present in the text
-     */
-    @Composable
-    fun linkStyles(): TextLinkStyles = MaterialTheme.colors.defaultTextLinkStyles
-
-    /**
-     * Creates a [TextLinkStyles] that are used to style the links present in the text based on
-     * their state
-     *
-     * @see LinkAnnotation
-     */
-    @Composable
-    fun linkStyles(
-        linkStyle: SpanStyle? = null,
-        linkFocusedStyle: SpanStyle? = null,
-        linkHoveredStyle: SpanStyle? = null,
-        linkPressedStyle: SpanStyle? = null
-    ): TextLinkStyles = MaterialTheme.colors.defaultTextLinkStyles.copy(
-        linkStyle, linkFocusedStyle, linkHoveredStyle, linkPressedStyle
-    )
-
-    private val Colors.defaultTextLinkStyles: TextLinkStyles
-        get() {
-            return defaultTextLinkStylesCached ?: TextLinkStyles(
-                linkStyle = SpanStyle(color = primary)
-            ).also {
-                defaultTextLinkStylesCached = it
-            }
-        }
-}
-
-/**
- * Represents the styles of the links in the Text in different states
- *
- * @param linkStyle style to be applied to links present in the string
- * @param linkFocusedStyle style to be applied to links present in the string when they are
- * focused
- * @param linkHoveredStyle style to be applied to links present in the string when they are
- * hovered
- * @param linkPressedStyle style to be applied to links present in the string when they are
- * pressed
- */
-@Immutable
-class TextLinkStyles(
-    val linkStyle: SpanStyle?,
-    val linkFocusedStyle: SpanStyle? = null,
-    val linkHoveredStyle: SpanStyle? = null,
-    val linkPressedStyle: SpanStyle? = null
-) {
-    /**
-     * Returns a copy of this TextLinkStyles, optionally overriding some of the values.
-     * This uses the null to mean “use the value from the source”
-     */
-    fun copy(
-        linkStyle: SpanStyle? = this.linkStyle,
-        linkFocusedStyle: SpanStyle? = this.linkFocusedStyle,
-        linkHoveredStyle: SpanStyle? = this.linkHoveredStyle,
-        linkPressedStyle: SpanStyle? = this.linkPressedStyle
-    ) = TextLinkStyles(
-        linkStyle ?: this.linkStyle,
-        linkFocusedStyle ?: this.linkFocusedStyle,
-        linkHoveredStyle ?: this.linkHoveredStyle,
-        linkPressedStyle ?: this.linkPressedStyle
-    )
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || other !is TextLinkStyles) return false
-
-        if (linkStyle != other.linkStyle) return false
-        if (linkFocusedStyle != other.linkFocusedStyle) return false
-        if (linkHoveredStyle != other.linkHoveredStyle) return false
-        if (linkPressedStyle != other.linkPressedStyle) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = linkStyle?.hashCode() ?: 0
-        result = 31 * result + (linkFocusedStyle?.hashCode() ?: 0)
-        result = 31 * result + (linkHoveredStyle?.hashCode() ?: 0)
-        result = 31 * result + (linkPressedStyle?.hashCode() ?: 0)
-        return result
-    }
-}
-
-/**
- * Replaces all link annotations in the AnnotatedString with the new link annotations the styles of
- * which are merged with the Material styling.
- *
- * If the [text]'s link annotation has a style defined in the annotation, Material theming will
- * not fully override it but apply on top the _missing_ fields.
-*/
-private fun textWithLinkStyles(text: AnnotatedString, linkStyles: TextLinkStyles): AnnotatedString {
-    val links = text.getLinkAnnotations(0, text.length)
-    if (links.isEmpty()) return text
-
-    val builder = AnnotatedString.Builder(text)
-    links.fastForEach {
-        val styledLink = it.item.withDefaultsFrom(
-            linkStyles.linkStyle,
-            linkStyles.linkFocusedStyle,
-            linkStyles.linkHoveredStyle,
-            linkStyles.linkPressedStyle
-        )
-        builder.replace(it, styledLink)
-    }
-    return builder.toAnnotatedString()
 }

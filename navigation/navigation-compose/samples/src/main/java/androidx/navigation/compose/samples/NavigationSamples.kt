@@ -16,6 +16,7 @@
 
 package androidx.navigation.compose.samples
 
+import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
 import androidx.annotation.Sampled
@@ -60,34 +61,43 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import java.util.UUID
+import kotlin.reflect.typeOf
 import kotlinx.parcelize.Parcelize
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
 
-@Serializable object Profile {
+@Serializable
+object Profile {
     val resourceId: Int = R.string.profile
 }
 
-@Serializable object Scrollable {
+@Serializable
+object Scrollable {
     val resourceId: Int = R.string.scrollable
 }
 
-@Serializable object Dialog {
+@Serializable
+object Dialog {
     val resourceId: Int = R.string.dialog
 }
 
-@Serializable data class Dashboard(val userId: String? = "no value given") {
+@Serializable
+data class Dashboard(val userId: String? = "no value given") {
     companion object {
         val resourceId: Int = R.string.dashboard
     }
 }
 
-@Serializable
-object Nested
+@Serializable object Nested
 
-@Serializable
-data class NestedWithArg(val userId: String? = "default nested arg")
+@Serializable data class NestedWithArg(val userId: String? = "default nested arg")
 
 @Composable
 fun BasicNav() {
@@ -199,17 +209,11 @@ fun NavWithArgsInNestedGraph() {
 fun Profile(navController: NavHostController) {
     Column(Modifier.fillMaxSize().then(Modifier.padding(8.dp))) {
         Text(text = stringResource(Profile.resourceId))
-        NavigateButton(stringResource(Dashboard.resourceId)) {
-            navController.navigate(Dashboard())
-        }
+        NavigateButton(stringResource(Dashboard.resourceId)) { navController.navigate(Dashboard()) }
         Divider(color = Color.Black)
-        NavigateButton(stringResource(Scrollable.resourceId)) {
-            navController.navigate(Scrollable)
-        }
+        NavigateButton(stringResource(Scrollable.resourceId)) { navController.navigate(Scrollable) }
         Divider(color = Color.Black)
-        NavigateButton(stringResource(Dialog.resourceId)) {
-            navController.navigate(Dialog)
-        }
+        NavigateButton(stringResource(Dialog.resourceId)) { navController.navigate(Dialog) }
         Spacer(Modifier.weight(1f))
         NavigateBackButton(navController)
     }
@@ -229,9 +233,7 @@ fun ProfileWithArgs(navController: NavController) {
             )
         }
         Divider(color = Color.Black)
-        NavigateButton("Dashboard with userId") {
-            navController.navigate(Dashboard(state.value))
-        }
+        NavigateButton("Dashboard with userId") { navController.navigate(Dashboard(state.value)) }
     }
 }
 
@@ -247,13 +249,9 @@ fun Dashboard(navController: NavController, title: String? = null) {
 @Composable
 fun Scrollable(navController: NavController) {
     Column(Modifier.fillMaxSize().then(Modifier.padding(8.dp))) {
-        NavigateButton(stringResource(Dashboard.resourceId)) {
-            navController.navigate(Dashboard())
-        }
+        NavigateButton(stringResource(Dashboard.resourceId)) { navController.navigate(Dashboard()) }
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(phrases) { phrase ->
-                Text(phrase, fontSize = 30.sp)
-            }
+            items(phrases) { phrase -> Text(phrase, fontSize = 30.sp) }
         }
         NavigateBackButton(navController)
     }
@@ -266,18 +264,13 @@ fun DialogContent(navController: NavController) {
     Column(Modifier.size(dialogWidth, dialogHeight).background(Color.White).padding(8.dp)) {
         NavigateBackButton(navController)
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(phrases) { phrase ->
-                Text(phrase, fontSize = 16.sp)
-            }
+            items(phrases) { phrase -> Text(phrase, fontSize = 16.sp) }
         }
     }
 }
 
 @Composable
-fun NavigateButton(
-    text: String,
-    listener: () -> Unit = { }
-) {
+fun NavigateButton(text: String, listener: () -> Unit = {}) {
     Button(
         onClick = listener,
         colors = ButtonDefaults.buttonColors(backgroundColor = LightGray),
@@ -291,8 +284,9 @@ fun NavigateButton(
 fun NavigateBackButton(navController: NavController) {
     // Use LocalLifecycleOwner.current as a proxy for the NavBackStackEntry
     // associated with this Composable
-    if (navController.currentBackStackEntry == LocalLifecycleOwner.current &&
-        navController.previousBackStackEntry != null
+    if (
+        navController.currentBackStackEntry == LocalLifecycleOwner.current &&
+            navController.previousBackStackEntry != null
     ) {
         Button(
             onClick = { navController.popBackStack() },
@@ -311,10 +305,7 @@ fun NavHostPreview() {
         LocalInspectionMode provides true,
     ) {
         Box(Modifier.fillMaxSize().background(Color.Red)) {
-            NavHost(
-                navController = rememberNavController(),
-                startDestination = "home"
-            ) {
+            NavHost(navController = rememberNavController(), startDestination = "home") {
                 composable("home") {
                     Box(Modifier.fillMaxSize().background(Color.Blue)) {
                         Text(text = "test", modifier = Modifier.testTag("text"))
@@ -325,38 +316,81 @@ fun NavHostPreview() {
     }
 }
 
-private val phrases = listOf(
-    "Easy As Pie",
-    "Wouldn't Harm a Fly",
-    "No-Brainer",
-    "Keep On Truckin'",
-    "An Arm and a Leg",
-    "Down To Earth",
-    "Under the Weather",
-    "Up In Arms",
-    "Cup Of Joe",
-    "Not the Sharpest Tool in the Shed",
-    "Ring Any Bells?",
-    "Son of a Gun",
-    "Hard Pill to Swallow",
-    "Close But No Cigar",
-    "Beating a Dead Horse",
-    "If You Can't Stand the Heat, Get Out of the Kitchen",
-    "Cut To The Chase",
-    "Heads Up",
-    "Goody Two-Shoes",
-    "Fish Out Of Water",
-    "Cry Over Spilt Milk",
-    "Elephant in the Room",
-    "There's No I in Team",
-    "Poke Fun At",
-    "Talk the Talk",
-    "Know the Ropes",
-    "Fool's Gold",
-    "It's Not Brain Surgery",
-    "Fight Fire With Fire",
-    "Go For Broke"
-)
+@Composable
+@Preview
+fun ThirdPartySerializableType() {
+    val navController = rememberNavController()
+    NavHost(navController, startDestination = User(WrappedUUID(UUID.randomUUID()))) {
+        composable<User>(typeMap = mapOf(typeOf<WrappedUUID>() to WrappedUUIDNavType)) { entry ->
+            val uuid = entry.toRoute<User>().id.uuid
+            Box(Modifier.fillMaxSize().background(Color.Blue)) {
+                Text(text = "uuid: $uuid", modifier = Modifier.testTag("text"))
+            }
+        }
+    }
+}
+
+@Serializable class User(val id: WrappedUUID)
+
+@Serializable class WrappedUUID(@Serializable(with = UUIDSerializer::class) val uuid: UUID)
+
+object WrappedUUIDNavType : NavType<WrappedUUID>(isNullableAllowed = false) {
+    override fun put(bundle: Bundle, key: String, value: WrappedUUID) {
+        bundle.putString(key, value.uuid.toString())
+    }
+
+    override fun get(bundle: Bundle, key: String): WrappedUUID? =
+        WrappedUUID(UUID.fromString(bundle.getString(key)))
+
+    override fun parseValue(value: String): WrappedUUID = WrappedUUID(UUID.fromString(value))
+
+    override fun serializeAsValue(value: WrappedUUID): String = Uri.encode(value.uuid.toString())
+}
+
+object UUIDSerializer : KSerializer<UUID> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UUID", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): UUID = UUID.fromString(decoder.decodeString())
+
+    override fun serialize(encoder: Encoder, value: UUID) {
+        encoder.encodeString(value.toString())
+    }
+}
+
+private val phrases =
+    listOf(
+        "Easy As Pie",
+        "Wouldn't Harm a Fly",
+        "No-Brainer",
+        "Keep On Truckin'",
+        "An Arm and a Leg",
+        "Down To Earth",
+        "Under the Weather",
+        "Up In Arms",
+        "Cup Of Joe",
+        "Not the Sharpest Tool in the Shed",
+        "Ring Any Bells?",
+        "Son of a Gun",
+        "Hard Pill to Swallow",
+        "Close But No Cigar",
+        "Beating a Dead Horse",
+        "If You Can't Stand the Heat, Get Out of the Kitchen",
+        "Cut To The Chase",
+        "Heads Up",
+        "Goody Two-Shoes",
+        "Fish Out Of Water",
+        "Cry Over Spilt Milk",
+        "Elephant in the Room",
+        "There's No I in Team",
+        "Poke Fun At",
+        "Talk the Talk",
+        "Know the Ropes",
+        "Fool's Gold",
+        "It's Not Brain Surgery",
+        "Fight Fire With Fire",
+        "Go For Broke"
+    )
 
 @Serializable
 @Parcelize

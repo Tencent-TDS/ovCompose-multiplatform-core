@@ -32,6 +32,7 @@ public class NutritionRecord(
     override val startZoneOffset: ZoneOffset?,
     override val endTime: Instant,
     override val endZoneOffset: ZoneOffset?,
+    override val metadata: Metadata,
     /** Biotin in [Mass] unit. Optional field. Valid range: 0-100 grams. */
     public val biotin: Mass? = null,
     /** Caffeine in [Mass] unit. Optional field. Valid range: 0-100 grams. */
@@ -125,7 +126,6 @@ public class NutritionRecord(
      * @see MealType
      */
     @property:MealTypes public val mealType: Int = MealType.MEAL_TYPE_UNKNOWN,
-    override val metadata: Metadata = Metadata.EMPTY,
 ) : IntervalRecord {
 
     init {
@@ -289,6 +289,10 @@ public class NutritionRecord(
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "NutritionRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, biotin=$biotin, caffeine=$caffeine, calcium=$calcium, energy=$energy, energyFromFat=$energyFromFat, chloride=$chloride, cholesterol=$cholesterol, chromium=$chromium, copper=$copper, dietaryFiber=$dietaryFiber, folate=$folate, folicAcid=$folicAcid, iodine=$iodine, iron=$iron, magnesium=$magnesium, manganese=$manganese, molybdenum=$molybdenum, monounsaturatedFat=$monounsaturatedFat, niacin=$niacin, pantothenicAcid=$pantothenicAcid, phosphorus=$phosphorus, polyunsaturatedFat=$polyunsaturatedFat, potassium=$potassium, protein=$protein, riboflavin=$riboflavin, saturatedFat=$saturatedFat, selenium=$selenium, sodium=$sodium, sugar=$sugar, thiamin=$thiamin, totalCarbohydrate=$totalCarbohydrate, totalFat=$totalFat, transFat=$transFat, unsaturatedFat=$unsaturatedFat, vitaminA=$vitaminA, vitaminB12=$vitaminB12, vitaminB6=$vitaminB6, vitaminC=$vitaminC, vitaminD=$vitaminD, vitaminE=$vitaminE, vitaminK=$vitaminK, zinc=$zinc, name=$name, mealType=$mealType, metadata=$metadata)"
     }
 
     companion object {

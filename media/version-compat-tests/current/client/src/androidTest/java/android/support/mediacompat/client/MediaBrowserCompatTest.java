@@ -66,20 +66,14 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.mediacompat.testlib.util.PollingCheck;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaBrowserCompat.MediaItem;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.RatingCompat;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.media.MediaBrowserServiceCompat;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SmallTest;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,9 +84,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Test {@link MediaBrowserCompat}.
- */
+/** Test {@link android.support.v4.media.MediaBrowserCompat}. */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 public class MediaBrowserCompatTest {
 
@@ -103,16 +96,19 @@ public class MediaBrowserCompatTest {
     private static final long WAIT_TIME_FOR_NO_RESPONSE_MS = 300L;
 
     /**
-     * To check {@link MediaBrowserCompat#unsubscribe} works properly,
-     * we notify to the browser after the unsubscription that the media items have changed.
-     * Then {@link MediaBrowserCompat.SubscriptionCallback#onChildrenLoaded} should not be called.
+     * To check {@link android.support.v4.media.MediaBrowserCompat#unsubscribe} works properly, we
+     * notify to the browser after the unsubscription that the media items have changed. Then {@link
+     * android.support.v4.media.MediaBrowserCompat.SubscriptionCallback#onChildrenLoaded} should not
+     * be called.
      *
-     * The measured time from calling {@link MediaBrowserServiceCompat#notifyChildrenChanged}
-     * to {@link MediaBrowserCompat.SubscriptionCallback#onChildrenLoaded} being called is about
-     * 50ms.
-     * So we make the thread sleep for 100ms to properly check that the callback is not called.
+     * <p>The measured time from calling {@link
+     * androidx.media.MediaBrowserServiceCompat#notifyChildrenChanged} to {@link
+     * android.support.v4.media.MediaBrowserCompat.SubscriptionCallback#onChildrenLoaded} being
+     * called is about 50ms. So we make the thread sleep for 100ms to properly check that the
+     * callback is not called.
      */
     private static final long SLEEP_MS = 100L;
+
     private static final ComponentName TEST_BROWSER_SERVICE = new ComponentName(
             SERVICE_PACKAGE_NAME,
             "android.support.mediacompat.service.StubMediaBrowserServiceCompat");
@@ -125,7 +121,7 @@ public class MediaBrowserCompatTest {
             "invalid.package", "invalid.ServiceClassName");
 
     private String mServiceVersion;
-    private MediaBrowserCompat mMediaBrowser;
+    private android.support.v4.media.MediaBrowserCompat mMediaBrowser;
     private StubConnectionCallback mConnectionCallback;
     private StubSubscriptionCallback mSubscriptionCallback;
     private StubItemCallback mItemCallback;
@@ -146,17 +142,26 @@ public class MediaBrowserCompatTest {
         mCustomActionCallback = new CustomActionCallback();
 
         mRootHints = new Bundle();
-        mRootHints.putBoolean(MediaBrowserServiceCompat.BrowserRoot.EXTRA_RECENT, true);
-        mRootHints.putBoolean(MediaBrowserServiceCompat.BrowserRoot.EXTRA_OFFLINE, true);
-        mRootHints.putBoolean(MediaBrowserServiceCompat.BrowserRoot.EXTRA_SUGGESTED, true);
+        mRootHints.putBoolean(
+                androidx.media.MediaBrowserServiceCompat.BrowserRoot.EXTRA_RECENT, true);
+        mRootHints.putBoolean(
+                androidx.media.MediaBrowserServiceCompat.BrowserRoot.EXTRA_OFFLINE, true);
+        mRootHints.putBoolean(
+                androidx.media.MediaBrowserServiceCompat.BrowserRoot.EXTRA_SUGGESTED, true);
 
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mMediaBrowser = new MediaBrowserCompat(getInstrumentation().getTargetContext(),
-                        TEST_BROWSER_SERVICE, mConnectionCallback, mRootHints);
-            }
-        });
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mMediaBrowser =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                getInstrumentation().getTargetContext(),
+                                                TEST_BROWSER_SERVICE,
+                                                mConnectionCallback,
+                                                mRootHints);
+                            }
+                        });
     }
 
     @After
@@ -175,8 +180,8 @@ public class MediaBrowserCompatTest {
         final Bundle extras = new Bundle();
         extras.putString(key, val);
 
-        MediaBrowserServiceCompat.BrowserRoot browserRoot =
-                new MediaBrowserServiceCompat.BrowserRoot(id, extras);
+        androidx.media.MediaBrowserServiceCompat.BrowserRoot browserRoot =
+                new androidx.media.MediaBrowserServiceCompat.BrowserRoot(id, extras);
         assertEquals(id, browserRoot.getRootId());
         assertEquals(val, browserRoot.getExtras().getString(key));
     }
@@ -216,13 +221,19 @@ public class MediaBrowserCompatTest {
     @Test
     @SmallTest
     public void testConnectionFailed() throws Exception {
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mMediaBrowser = new MediaBrowserCompat(getInstrumentation().getTargetContext(),
-                        TEST_INVALID_BROWSER_SERVICE, mConnectionCallback, mRootHints);
-            }
-        });
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mMediaBrowser =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                getInstrumentation().getTargetContext(),
+                                                TEST_INVALID_BROWSER_SERVICE,
+                                                mConnectionCallback,
+                                                mRootHints);
+                            }
+                        });
 
         synchronized (mConnectionCallback.mWaitLock) {
             mMediaBrowser.connect();
@@ -320,27 +331,41 @@ public class MediaBrowserCompatTest {
         final StubConnectionCallback callback1 = new StubConnectionCallback();
         final StubConnectionCallback callback2 = new StubConnectionCallback();
         final StubConnectionCallback callback3 = new StubConnectionCallback();
-        final List<MediaBrowserCompat> browserList = new ArrayList<>();
+        final List<android.support.v4.media.MediaBrowserCompat> browserList = new ArrayList<>();
 
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                MediaBrowserCompat browser1 = new MediaBrowserCompat(context, TEST_BROWSER_SERVICE,
-                        callback1, new Bundle());
-                MediaBrowserCompat browser2 = new MediaBrowserCompat(context, TEST_BROWSER_SERVICE,
-                        callback2, new Bundle());
-                MediaBrowserCompat browser3 = new MediaBrowserCompat(context, TEST_BROWSER_SERVICE,
-                        callback3, new Bundle());
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                android.support.v4.media.MediaBrowserCompat browser1 =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                context,
+                                                TEST_BROWSER_SERVICE,
+                                                callback1,
+                                                new Bundle());
+                                android.support.v4.media.MediaBrowserCompat browser2 =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                context,
+                                                TEST_BROWSER_SERVICE,
+                                                callback2,
+                                                new Bundle());
+                                android.support.v4.media.MediaBrowserCompat browser3 =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                context,
+                                                TEST_BROWSER_SERVICE,
+                                                callback3,
+                                                new Bundle());
 
-                browserList.add(browser1);
-                browserList.add(browser2);
-                browserList.add(browser3);
+                                browserList.add(browser1);
+                                browserList.add(browser2);
+                                browserList.add(browser3);
 
-                browser1.connect();
-                browser2.connect();
-                browser3.connect();
-            }
-        });
+                                browser1.connect();
+                                browser2.connect();
+                                browser3.connect();
+                            }
+                        });
 
         try {
             new PollingCheck(TIME_OUT_MS) {
@@ -353,7 +378,7 @@ public class MediaBrowserCompatTest {
             }.run();
         } finally {
             for (int i = 0; i < browserList.size(); i++) {
-                MediaBrowserCompat browser = browserList.get(i);
+                android.support.v4.media.MediaBrowserCompat browser = browserList.get(i);
                 if (browser.isConnected()) {
                     browser.disconnect();
                 }
@@ -405,11 +430,11 @@ public class MediaBrowserCompatTest {
         final int pageSize = 3;
         final int lastPage = (MEDIA_ID_CHILDREN.length - 1) / pageSize;
         Bundle options = new Bundle();
-        options.putInt(MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
+        options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
 
         for (int page = 0; page <= lastPage; ++page) {
             mSubscriptionCallback.reset(1);
-            options.putInt(MediaBrowserCompat.EXTRA_PAGE, page);
+            options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE, page);
             mMediaBrowser.subscribe(MEDIA_ID_ROOT, options, mSubscriptionCallback);
             mSubscriptionCallback.await(TIME_OUT_MS);
             assertEquals(1, mSubscriptionCallback.mChildrenLoadedWithOptionCount);
@@ -458,15 +483,27 @@ public class MediaBrowserCompatTest {
         connectMediaBrowserService();
 
         final String mediaId = "1000";
-        final RatingCompat percentageRating = RatingCompat.newPercentageRating(0.5f);
-        final RatingCompat starRating =
-                RatingCompat.newStarRating(RatingCompat.RATING_5_STARS, 4.0f);
-        MediaMetadataCompat mediaMetadataCompat = new MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaId)
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "title")
-                .putRating(MediaMetadataCompat.METADATA_KEY_RATING, percentageRating)
-                .putRating(MediaMetadataCompat.METADATA_KEY_USER_RATING, starRating)
-                .build();
+        final android.support.v4.media.RatingCompat percentageRating =
+                android.support.v4.media.RatingCompat.newPercentageRating(0.5f);
+        final android.support.v4.media.RatingCompat starRating =
+                android.support.v4.media.RatingCompat.newStarRating(
+                        android.support.v4.media.RatingCompat.RATING_5_STARS, 4.0f);
+        android.support.v4.media.MediaMetadataCompat mediaMetadataCompat =
+                new android.support.v4.media.MediaMetadataCompat.Builder()
+                        .putString(
+                                android.support.v4.media.MediaMetadataCompat.METADATA_KEY_MEDIA_ID,
+                                mediaId)
+                        .putString(
+                                android.support.v4.media.MediaMetadataCompat.METADATA_KEY_TITLE,
+                                "title")
+                        .putRating(
+                                android.support.v4.media.MediaMetadataCompat.METADATA_KEY_RATING,
+                                percentageRating)
+                        .putRating(
+                                android.support.v4.media.MediaMetadataCompat
+                                        .METADATA_KEY_USER_RATING,
+                                starRating)
+                        .build();
         Bundle options = new Bundle();
         options.putParcelable(MEDIA_METADATA, mediaMetadataCompat);
 
@@ -479,14 +516,24 @@ public class MediaBrowserCompatTest {
         assertEquals(1, mSubscriptionCallback.mLastChildMediaItems.size());
         assertEquals(mediaId, mSubscriptionCallback.mLastChildMediaItems.get(0).getMediaId());
 
-        MediaMetadataCompat metadataOut = mSubscriptionCallback.mLastOptions
-                .getParcelable(MEDIA_METADATA);
-        assertEquals(mediaId, metadataOut.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID));
-        assertEquals("title", metadataOut.getString(MediaMetadataCompat.METADATA_KEY_TITLE));
-        assertRatingEquals(percentageRating,
-                metadataOut.getRating(MediaMetadataCompat.METADATA_KEY_RATING));
-        assertRatingEquals(starRating,
-                metadataOut.getRating(MediaMetadataCompat.METADATA_KEY_USER_RATING));
+        android.support.v4.media.MediaMetadataCompat metadataOut =
+                mSubscriptionCallback.mLastOptions.getParcelable(MEDIA_METADATA);
+        assertEquals(
+                mediaId,
+                metadataOut.getString(
+                        android.support.v4.media.MediaMetadataCompat.METADATA_KEY_MEDIA_ID));
+        assertEquals(
+                "title",
+                metadataOut.getString(
+                        android.support.v4.media.MediaMetadataCompat.METADATA_KEY_TITLE));
+        assertRatingEquals(
+                percentageRating,
+                metadataOut.getRating(
+                        android.support.v4.media.MediaMetadataCompat.METADATA_KEY_RATING));
+        assertRatingEquals(
+                starRating,
+                metadataOut.getRating(
+                        android.support.v4.media.MediaMetadataCompat.METADATA_KEY_USER_RATING));
     }
 
     @Test
@@ -525,18 +572,22 @@ public class MediaBrowserCompatTest {
         final int pageSize = 5;
         final int page = 2;
         Bundle options = new Bundle();
-        options.putInt(MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
-        options.putInt(MediaBrowserCompat.EXTRA_PAGE, page);
+        options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
+        options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE, page);
 
         mSubscriptionCallback.reset(1);
         mMediaBrowser.subscribe(MEDIA_ID_INVALID, options, mSubscriptionCallback);
         mSubscriptionCallback.await(TIME_OUT_MS);
         assertEquals(MEDIA_ID_INVALID, mSubscriptionCallback.mLastErrorId);
         assertNotNull(mSubscriptionCallback.mLastOptions);
-        assertEquals(page,
-                mSubscriptionCallback.mLastOptions.getInt(MediaBrowserCompat.EXTRA_PAGE));
-        assertEquals(pageSize,
-                mSubscriptionCallback.mLastOptions.getInt(MediaBrowserCompat.EXTRA_PAGE_SIZE));
+        assertEquals(
+                page,
+                mSubscriptionCallback.mLastOptions.getInt(
+                        android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE));
+        assertEquals(
+                pageSize,
+                mSubscriptionCallback.mLastOptions.getInt(
+                        android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE_SIZE));
     }
 
     @Test
@@ -552,8 +603,8 @@ public class MediaBrowserCompatTest {
             subscriptionCallbacks.add(callback);
 
             Bundle options = new Bundle();
-            options.putInt(MediaBrowserCompat.EXTRA_PAGE, page);
-            options.putInt(MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
+            options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE, page);
+            options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
             callback.reset(1);
             mMediaBrowser.subscribe(MEDIA_ID_ROOT, options, callback);
             callback.await(TIME_OUT_MS);
@@ -597,8 +648,8 @@ public class MediaBrowserCompatTest {
             subscriptionCallbacks.add(callback);
 
             Bundle options = new Bundle();
-            options.putInt(MediaBrowserCompat.EXTRA_PAGE, page);
-            options.putInt(MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
+            options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE, page);
+            options.putInt(android.support.v4.media.MediaBrowserCompat.EXTRA_PAGE_SIZE, pageSize);
             callback.reset(1);
             mMediaBrowser.subscribe(MEDIA_ID_ROOT, options, callback);
             callback.await(TIME_OUT_MS);
@@ -693,8 +744,12 @@ public class MediaBrowserCompatTest {
     @Test
     @SmallTest
     public void testGetItemWhenMediaIdIsInvalid() throws Exception {
-        mItemCallback.mLastMediaItem = new MediaItem(new MediaDescriptionCompat.Builder()
-                .setMediaId("dummy_id").build(), MediaItem.FLAG_BROWSABLE);
+        mItemCallback.mLastMediaItem =
+                new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                        new android.support.v4.media.MediaDescriptionCompat.Builder()
+                                .setMediaId("dummy_id")
+                                .build(),
+                        android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
 
         connectMediaBrowserService();
         synchronized (mItemCallback.mWaitLock) {
@@ -736,7 +791,8 @@ public class MediaBrowserCompatTest {
             mSearchCallback.mWaitLock.wait(WAIT_TIME_FOR_NO_RESPONSE_MS);
             assertTrue(mSearchCallback.mOnSearchResult);
             assertNotNull(mSearchCallback.mSearchResults);
-            for (MediaItem item : mSearchCallback.mSearchResults) {
+            for (android.support.v4.media.MediaBrowserCompat.MediaItem item :
+                    mSearchCallback.mSearchResults) {
                 assertNotNull(item.getMediaId());
                 assertTrue(item.getMediaId().contains(SEARCH_QUERY));
             }
@@ -885,16 +941,19 @@ public class MediaBrowserCompatTest {
         final ConnectionCallbackForDelayedMediaSession callback =
                 new ConnectionCallbackForDelayedMediaSession();
 
-        getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                mMediaBrowser = new MediaBrowserCompat(
-                        getInstrumentation().getTargetContext(),
-                        TEST_BROWSER_SERVICE_DELAYED_MEDIA_SESSION,
-                        callback,
-                        null);
-            }
-        });
+        getInstrumentation()
+                .runOnMainSync(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                mMediaBrowser =
+                                        new android.support.v4.media.MediaBrowserCompat(
+                                                getInstrumentation().getTargetContext(),
+                                                TEST_BROWSER_SERVICE_DELAYED_MEDIA_SESSION,
+                                                callback,
+                                                null);
+                            }
+                        });
 
         synchronized (callback.mWaitLock) {
             mMediaBrowser.connect();
@@ -921,15 +980,18 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private void assertRatingEquals(RatingCompat expected, RatingCompat observed) {
+    private void assertRatingEquals(
+            android.support.v4.media.RatingCompat expected,
+            android.support.v4.media.RatingCompat observed) {
         if (expected == null || observed == null) {
             assertSame(expected, observed);
         }
         assertEquals(expected.getRatingStyle(), observed.getRatingStyle());
 
-        if (expected.getRatingStyle() == RatingCompat.RATING_PERCENTAGE) {
+        if (expected.getRatingStyle() == android.support.v4.media.RatingCompat.RATING_PERCENTAGE) {
             assertEquals(expected.getPercentRating(), observed.getPercentRating(), 0.01f);
-        } else if (expected.getRatingStyle() == RatingCompat.RATING_5_STARS) {
+        } else if (expected.getRatingStyle()
+                == android.support.v4.media.RatingCompat.RATING_5_STARS) {
             assertEquals(expected.getStarRating(), observed.getStarRating(), 0.01f);
         } else {
             // Currently, we use only star and percentage rating.
@@ -937,7 +999,8 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class StubConnectionCallback extends MediaBrowserCompat.ConnectionCallback {
+    private class StubConnectionCallback
+            extends android.support.v4.media.MediaBrowserCompat.ConnectionCallback {
         final Object mWaitLock = new Object();
         volatile int mConnectedCount;
         volatile int mConnectionFailedCount;
@@ -974,14 +1037,16 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class StubSubscriptionCallback extends MediaBrowserCompat.SubscriptionCallback {
+    private class StubSubscriptionCallback
+            extends android.support.v4.media.MediaBrowserCompat.SubscriptionCallback {
         private volatile CountDownLatch mLatch;
         private volatile int mChildrenLoadedCount;
         private volatile int mChildrenLoadedWithOptionCount;
         private volatile String mLastErrorId;
         private volatile String mLastParentId;
         private volatile Bundle mLastOptions;
-        private volatile List<MediaItem> mLastChildMediaItems;
+        private volatile List<android.support.v4.media.MediaBrowserCompat.MediaItem>
+                mLastChildMediaItems;
 
         public void reset(int count) {
             mLatch = new CountDownLatch(count);
@@ -1003,7 +1068,9 @@ public class MediaBrowserCompatTest {
         }
 
         @Override
-        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaItem> children) {
+        public void onChildrenLoaded(
+                @NonNull String parentId,
+                @NonNull List<android.support.v4.media.MediaBrowserCompat.MediaItem> children) {
             mChildrenLoadedCount++;
             mLastParentId = parentId;
             mLastChildMediaItems = children;
@@ -1011,7 +1078,9 @@ public class MediaBrowserCompatTest {
         }
 
         @Override
-        public void onChildrenLoaded(@NonNull String parentId, @NonNull List<MediaItem> children,
+        public void onChildrenLoaded(
+                @NonNull String parentId,
+                @NonNull List<android.support.v4.media.MediaBrowserCompat.MediaItem> children,
                 @NonNull Bundle options) {
             mChildrenLoadedWithOptionCount++;
             mLastParentId = parentId;
@@ -1034,9 +1103,10 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class StubItemCallback extends MediaBrowserCompat.ItemCallback {
+    private class StubItemCallback
+            extends android.support.v4.media.MediaBrowserCompat.ItemCallback {
         final Object mWaitLock = new Object();
-        private volatile MediaItem mLastMediaItem;
+        private volatile android.support.v4.media.MediaBrowserCompat.MediaItem mLastMediaItem;
         private volatile String mLastErrorId;
 
         public void reset() {
@@ -1045,7 +1115,7 @@ public class MediaBrowserCompatTest {
         }
 
         @Override
-        public void onItemLoaded(MediaItem item) {
+        public void onItemLoaded(android.support.v4.media.MediaBrowserCompat.MediaItem item) {
             synchronized (mWaitLock) {
                 mLastMediaItem = item;
                 mWaitLock.notify();
@@ -1061,15 +1131,18 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class StubSearchCallback extends MediaBrowserCompat.SearchCallback {
+    private class StubSearchCallback
+            extends android.support.v4.media.MediaBrowserCompat.SearchCallback {
         final Object mWaitLock = new Object();
         boolean mOnSearchResult;
         Bundle mSearchExtras;
-        List<MediaItem> mSearchResults;
+        List<android.support.v4.media.MediaBrowserCompat.MediaItem> mSearchResults;
 
         @Override
-        public void onSearchResult(@NonNull String query, Bundle extras,
-                @NonNull List<MediaItem> items) {
+        public void onSearchResult(
+                @NonNull String query,
+                Bundle extras,
+                @NonNull List<android.support.v4.media.MediaBrowserCompat.MediaItem> items) {
             synchronized (mWaitLock) {
                 mOnSearchResult = true;
                 mSearchResults = items;
@@ -1095,7 +1168,8 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class CustomActionCallback extends MediaBrowserCompat.CustomActionCallback {
+    private class CustomActionCallback
+            extends android.support.v4.media.MediaBrowserCompat.CustomActionCallback {
         final Object mWaitLock = new Object();
         String mAction;
         Bundle mExtras;
@@ -1147,8 +1221,8 @@ public class MediaBrowserCompatTest {
         }
     }
 
-    private class ConnectionCallbackForDelayedMediaSession extends
-            MediaBrowserCompat.ConnectionCallback {
+    private class ConnectionCallbackForDelayedMediaSession
+            extends android.support.v4.media.MediaBrowserCompat.ConnectionCallback {
         final Object mWaitLock = new Object();
         private int mConnectedCount = 0;
 

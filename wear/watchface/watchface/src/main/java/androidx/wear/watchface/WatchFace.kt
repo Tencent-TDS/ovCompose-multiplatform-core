@@ -121,6 +121,7 @@ public class WatchFace(
     internal var tapListener: TapListener? = null
     internal var complicationDeniedDialogIntent: Intent? = null
     internal var complicationRationaleDialogIntent: Intent? = null
+    internal var updateScreenshotOnConfigurationChange = false
 
     public companion object {
         /** Returns whether [LegacyWatchFaceOverlayStyle] is supported on this device. */
@@ -256,7 +257,10 @@ public class WatchFace(
                 watchFaceService.createHeadlessEngine(componentName)
                     as WatchFaceService.EngineWrapper
             val headlessWatchFaceImpl = engine.createHeadlessInstance(params)
-            return engine.deferredWatchFaceImpl.await().WFEditorDelegate(headlessWatchFaceImpl)
+            return engine.watchFaceDetails!!
+                .deferredWatchFaceImpl
+                .await()
+                .WFEditorDelegate(headlessWatchFaceImpl)
         }
     }
 
@@ -316,6 +320,19 @@ public class WatchFace(
          * they should be buffered until [onDestroy] is called.
          */
         public fun setOverrideComplications(slotIdToComplicationData: Map<Int, ComplicationData>)
+
+        /**
+         * When a complication slot has been edited, we don't want to see a glimpse of the previous
+         * complication when the user has selected a new complication. To prevent that if the
+         * datasource source changed, the complication will be replaced with EmptyComplicationData
+         * when [onDestroy] is called.
+         */
+        public fun clearComplicationSlotAfterEditing(slotId: Int, previewData: ComplicationData)
+
+        /**
+         * Instructs the system to ignore any previous calls to [clearComplicationSlotAfterEditing].
+         */
+        public fun dontClearAnyComplicationSlotsAfterEditing()
     }
 
     /** Used to inform EditorSession about changes to [ComplicationSlot.configExtras]. */
@@ -549,6 +566,23 @@ public class WatchFace(
     ): WatchFace = apply {
         this.complicationRationaleDialogIntent = complicationRationaleDialogIntent
     }
+
+    /**
+     * If [updateScreenshotOnConfigurationChange] is true then whenever
+     * [WatchFaceService.onConfigurationChanged] gets called while this watch face is active then a
+     * request will be made for the system to update the watch's screenshot displayed in the picker.
+     *
+     * By default this is off.
+     *
+     * Note if [WatchFaceService.onConfigurationChanged] or
+     * [Renderer.sendPreviewImageNeedsUpdateRequest] get called very frequently then the system may
+     * throttle the rate at which screenshots are taken.
+     */
+    public fun setUpdateScreenshotOnConfigurationChange(
+        updateScreenshotOnConfigurationChange: Boolean
+    ): WatchFace = apply {
+        this.updateScreenshotOnConfigurationChange = updateScreenshotOnConfigurationChange
+    }
 }
 
 internal class MockTime(var speed: Double, var minTime: Long, var maxTime: Long) {
@@ -661,6 +695,8 @@ constructor(
     internal var complicationDeniedDialogIntent = watchface.complicationDeniedDialogIntent
     internal var complicationRationaleDialogIntent = watchface.complicationRationaleDialogIntent
     @Suppress("Deprecation") internal var overlayStyle = watchface.overlayStyle
+    internal val updateScreenshotOnConfigurationChange =
+        watchface.updateScreenshotOnConfigurationChange
 
     private var mockTime = MockTime(1.0, 0, Long.MAX_VALUE)
 
@@ -677,23 +713,24 @@ constructor(
 
     init {
         val context = watchFaceHostApi.getContext()
-         displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-         displayListener = object : DisplayManager.DisplayListener {
-            override fun onDisplayAdded(displayId: Int) {}
+        displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        displayListener =
+            object : DisplayManager.DisplayListener {
+                override fun onDisplayAdded(displayId: Int) {}
 
-            override fun onDisplayChanged(displayId: Int) {
-                val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)!!
-                if (display.state == Display.STATE_OFF && watchState.isVisible.value == false) {
-                    // We want to avoid a glimpse of a stale time when transitioning from
-                    // hidden to visible, so we render two black frames to clear the buffers
-                    // when the display has been turned off and the watch is not visible.
-                    renderer.renderBlackFrame()
-                    renderer.renderBlackFrame()
+                override fun onDisplayChanged(displayId: Int) {
+                    val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)!!
+                    if (display.state == Display.STATE_OFF && watchState.isVisible.value == false) {
+                        // We want to avoid a glimpse of a stale time when transitioning from
+                        // hidden to visible, so we render two black frames to clear the buffers
+                        // when the display has been turned off and the watch is not visible.
+                        renderer.renderBlackFrame()
+                        renderer.renderBlackFrame()
+                    }
                 }
-            }
 
-            override fun onDisplayRemoved(displayId: Int) {}
-        }
+                override fun onDisplayRemoved(displayId: Int) {}
+            }
         displayManager.registerDisplayListener(
             displayListener,
             watchFaceHostApi.getUiThreadHandler()
@@ -907,8 +944,7 @@ constructor(
             get() =
                 InteractiveInstanceManager.getCurrentInteractiveInstance()
                     ?.engine
-                    ?.editorObscuresWatchFace
-                    ?: false
+                    ?.editorObscuresWatchFace ?: false
             set(value) {
                 InteractiveInstanceManager.getCurrentInteractiveInstance()?.engine?.let {
                     it.editorObscuresWatchFace = value
@@ -940,10 +976,21 @@ constructor(
         override fun setOverrideComplications(
             slotIdToComplicationData: Map<Int, ComplicationData>
         ) {
-            InteractiveInstanceManager
-                .getCurrentInteractiveInstance()
+            InteractiveInstanceManager.getCurrentInteractiveInstance()
                 ?.engine
-                ?.overrideComplications(slotIdToComplicationData)
+                ?.overrideComplicationsForEditing(slotIdToComplicationData)
+        }
+
+        override fun clearComplicationSlotAfterEditing(slotId: Int, previewData: ComplicationData) {
+            InteractiveInstanceManager.getCurrentInteractiveInstance()
+                ?.engine
+                ?.clearComplicationSlotAfterEditing(slotId, previewData)
+        }
+
+        override fun dontClearAnyComplicationSlotsAfterEditing() {
+            InteractiveInstanceManager.getCurrentInteractiveInstance()
+                ?.engine
+                ?.dontClearAnyComplicationSlotsAfterEditing()
         }
 
         @SuppressLint("NewApi") // release
@@ -951,11 +998,10 @@ constructor(
             TraceEvent("WFEditorDelegate.onDestroy").use {
                 InteractiveInstanceManager.getCurrentInteractiveInstance()?.engine?.let {
                     it.editorObscuresWatchFace = false
-                    it.removeAnyComplicationOverrides()
+                    it.onEditSessionFinished()
                 }
                 if (watchState.isHeadless) {
                     headlessWatchFaceImpl!!.release()
-                    this@WatchFaceImpl.onDestroy()
                 }
             }
     }

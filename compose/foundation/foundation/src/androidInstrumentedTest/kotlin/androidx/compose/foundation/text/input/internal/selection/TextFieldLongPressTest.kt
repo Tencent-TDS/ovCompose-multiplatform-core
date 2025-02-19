@@ -34,7 +34,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.testTag
@@ -62,14 +62,11 @@ import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * Tests for long click interactions on BasicTextField.
- */
+/** Tests for long click interactions on BasicTextField. */
 @LargeTest
 class TextFieldLongPressTest : FocusedWindowTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private val TAG = "BasicTextField"
 
@@ -103,9 +100,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(TAG).performTouchInput {
-            longPress(center)
-        }
+        rule.onNodeWithTag(TAG).performTouchInput { longPress(center) }
 
         rule.onNodeWithTag(TAG).assertIsNotFocused()
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsNotDisplayed()
@@ -124,15 +119,11 @@ class TextFieldLongPressTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(TAG).performTouchInput {
-            longPress(center)
-        }
+        rule.onNodeWithTag(TAG).performTouchInput { longPress(center) }
 
         rule.onNodeWithTag(TAG).assertIsNotFocused()
 
-        rule.onNodeWithTag(TAG).performTouchInput {
-            up()
-        }
+        rule.onNodeWithTag(TAG).performTouchInput { up() }
 
         rule.onNodeWithTag(TAG).assertIsFocused()
     }
@@ -144,9 +135,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
             BasicTextField(
                 state = state,
                 textStyle = defaultTextStyle,
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
@@ -162,23 +151,18 @@ class TextFieldLongPressTest : FocusedWindowTest {
     fun longPressOnEmptyRegion_showsTextToolbar() {
         val state = TextFieldState("abc")
         var showMenuCalled = 0
-        val textToolbar = FakeTextToolbar(
-            onShowMenu = { _, _, _, _, _ ->
-                showMenuCalled++
-            }, onHideMenu = {}
-        )
-        val clipboardManager = FakeClipboardManager("hello")
+        val textToolbar =
+            FakeTextToolbar(onShowMenu = { _, _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
+        val clipboard = FakeClipboard("hello")
         rule.setTextFieldTestContent {
             CompositionLocalProvider(
                 LocalTextToolbar provides textToolbar,
-                LocalClipboardManager provides clipboardManager
+                LocalClipboard provides clipboard
             ) {
                 BasicTextField(
                     state = state,
                     textStyle = defaultTextStyle,
-                    modifier = Modifier
-                        .testTag(TAG)
-                        .width(100.dp)
+                    modifier = Modifier.testTag(TAG).width(100.dp)
                 )
             }
         }
@@ -187,9 +171,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
             longClick(Offset(fontSize.toPx() * 5, fontSize.toPx() / 2))
         }
 
-        rule.runOnIdle {
-            assertThat(showMenuCalled).isEqualTo(1)
-        }
+        rule.runOnIdle { assertThat(showMenuCalled).isEqualTo(1) }
     }
 
     @Test
@@ -245,9 +227,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 textStyle = defaultTextStyle,
                 scrollState = scrollState,
                 lineLimits = TextFieldLineLimits.SingleLine,
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(30.dp)
+                modifier = Modifier.testTag(TAG).width(30.dp)
             )
         }
 
@@ -269,11 +249,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 state = state,
                 textStyle = defaultTextStyle,
                 modifier = Modifier.testTag(TAG),
-                decorator = {
-                    Box(modifier = Modifier.padding(32.dp)) {
-                        it()
-                    }
-                }
+                decorator = { Box(modifier = Modifier.padding(32.dp)) { it() } }
             )
         }
 
@@ -378,9 +354,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
             BasicTextField(
                 state = state,
                 textStyle = defaultTextStyle,
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
@@ -400,26 +374,20 @@ class TextFieldLongPressTest : FocusedWindowTest {
             BasicTextField(
                 state = state,
                 textStyle = TextStyle(),
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(200.dp)
+                modifier = Modifier.testTag(TAG).width(200.dp)
             )
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             longPress(bottomRight)
-            repeat((bottomRight - topRight).y.roundToInt()) {
-                moveBy(Offset(0f, -1f))
-            }
+            repeat((bottomRight - topRight).y.roundToInt()) { moveBy(Offset(0f, -1f)) }
             up()
         }
 
-        rule.runOnIdle {
-            assertThat(state.selection).isEqualTo(TextRange(4, 23))
-        }
+        rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(4, 23)) }
     }
 
-    //region RTL
+    // region RTL
 
     @Test
     fun longPress_dragToRight_selectsCurrentAndPreviousWord_rtl() {
@@ -509,9 +477,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 BasicTextField(
                     state = state,
                     textStyle = defaultTextStyle,
-                    modifier = Modifier
-                        .testTag(TAG)
-                        .width(100.dp)
+                    modifier = Modifier.testTag(TAG).width(100.dp)
                 )
             }
         }
@@ -533,24 +499,18 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 BasicTextField(
                     state = state,
                     textStyle = TextStyle(),
-                    modifier = Modifier
-                        .testTag(TAG)
-                        .width(200.dp)
+                    modifier = Modifier.testTag(TAG).width(200.dp)
                 )
             }
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             longPress(bottomLeft)
-            repeat((bottomLeft - topLeft).y.roundToInt()) {
-                moveBy(Offset(0f, -1f))
-            }
+            repeat((bottomLeft - topLeft).y.roundToInt()) { moveBy(Offset(0f, -1f)) }
             up()
         }
 
-        rule.runOnIdle {
-            assertThat(state.selection).isEqualTo(TextRange(4, 23))
-        }
+        rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(4, 23)) }
     }
 
     @Test
@@ -561,15 +521,35 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 state = state,
                 textStyle = defaultTextStyle,
                 lineLimits = TextFieldLineLimits.SingleLine,
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
+        rule.onNodeWithTag(TAG).performTouchInput { click(center) }
+
         rule.onNodeWithTag(TAG).performTouchInput {
-            click(center)
+            longPress(Offset(fontSize.toPx(), fontSize.toPx() / 2))
+            moveBy(Offset(fontSize.toPx() * 30, 0f))
+            up()
         }
+
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertIsDisplayed()
+    }
+
+    @Test
+    fun longPress_startDraggingToScrollRightThenSlightlyBack_startHandleDoesNotShow_ltr() {
+        val state = TextFieldState("abc def ghi ".repeat(10))
+        rule.setTextFieldTestContent {
+            BasicTextField(
+                state = state,
+                textStyle = defaultTextStyle,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                modifier = Modifier.testTag(TAG).width(100.dp)
+            )
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput { click(center) }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             longPress(Offset(fontSize.toPx(), fontSize.toPx() / 2))
@@ -577,12 +557,13 @@ class TextFieldLongPressTest : FocusedWindowTest {
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
-        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertIsDisplayed()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
 
         // slightly back a little bit so that selection seems to be collapsing but the acting
         // handle should remain the same
         rule.onNodeWithTag(TAG).performTouchInput {
             moveBy(Offset(-fontSize.toPx(), 0f))
+            up()
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
@@ -597,15 +578,35 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 state = state,
                 textStyle = defaultTextStyle,
                 lineLimits = TextFieldLineLimits.MultiLine(1, 3),
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
+        rule.onNodeWithTag(TAG).performTouchInput { click(center) }
+
         rule.onNodeWithTag(TAG).performTouchInput {
-            click(center)
+            longPress(Offset(fontSize.toPx(), fontSize.toPx() / 2))
+            moveBy(Offset(0f, fontSize.toPx() * 30))
+            up()
         }
+
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertIsDisplayed()
+    }
+
+    @Test
+    fun longPress_startDraggingToScrollDownThenSlightlyBack_startHandleDoesNotShow_ltr() {
+        val state = TextFieldState("abc def ghi ".repeat(10))
+        rule.setTextFieldTestContent {
+            BasicTextField(
+                state = state,
+                textStyle = defaultTextStyle,
+                lineLimits = TextFieldLineLimits.MultiLine(1, 3),
+                modifier = Modifier.testTag(TAG).width(100.dp)
+            )
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput { click(center) }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             longPress(Offset(fontSize.toPx(), fontSize.toPx() / 2))
@@ -613,12 +614,13 @@ class TextFieldLongPressTest : FocusedWindowTest {
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
-        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertIsDisplayed()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
 
         // slightly back a little bit so that selection seems to be collapsing but the acting
         // handle should remain the same
         rule.onNodeWithTag(TAG).performTouchInput {
             moveBy(Offset(0f, -fontSize.toPx()))
+            up()
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
@@ -633,30 +635,61 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 state = state,
                 textStyle = defaultTextStyle,
                 lineLimits = TextFieldLineLimits.SingleLine,
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             click(center)
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
             // swipe to the absolute right by specifying a huge swipe delta
             swipeLeft(endX = -10000f)
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
+            longPress(Offset(right - 1f, centerY))
+            moveBy(Offset(-fontSize.toPx() * 30, 0f))
+            up()
+        }
+
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
+    }
+
+    @Test
+    fun longPress_startDraggingToScrollLeftThenSlightlyForward_endHandleDoesNotShow_ltr() {
+        val state = TextFieldState("abc def ghi ".repeat(10))
+        rule.setTextFieldTestContent {
+            BasicTextField(
+                state = state,
+                textStyle = defaultTextStyle,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                modifier = Modifier.testTag(TAG).width(100.dp)
+            )
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput {
+            click(center)
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
+            // swipe to the absolute right by specifying a huge swipe delta
+            swipeLeft(endX = -10000f)
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput {
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
             longPress(Offset(right - 1f, centerY))
             moveBy(Offset(-fontSize.toPx() * 30, 0f))
         }
 
-        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
         rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
 
         // slightly back a little bit so that selection seems to be collapsing but the acting
         // handle should remain the same
         rule.onNodeWithTag(TAG).performTouchInput {
             moveBy(Offset(fontSize.toPx(), 0f))
+            up()
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
@@ -671,37 +704,68 @@ class TextFieldLongPressTest : FocusedWindowTest {
                 state = state,
                 textStyle = defaultTextStyle,
                 lineLimits = TextFieldLineLimits.MultiLine(1, 3),
-                modifier = Modifier
-                    .testTag(TAG)
-                    .width(100.dp)
+                modifier = Modifier.testTag(TAG).width(100.dp)
             )
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
             click(center)
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
             // swipe to the absolute bottom by specifying a huge swipe delta
             swipeUp(endY = -10000f)
         }
 
         rule.onNodeWithTag(TAG).performTouchInput {
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
             longPress(Offset(centerX, bottom - 1f))
             moveBy(Offset(0f, -fontSize.toPx() * 30))
-        }
-
-        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
-        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
-
-        // slightly back a little bit so that selection seems to be collapsing but the acting
-        // handle should remain the same
-        rule.onNodeWithTag(TAG).performTouchInput {
-            moveBy(Offset(0f, fontSize.toPx()))
+            up()
         }
 
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
         rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
     }
 
-    //endregion
+    @Test
+    fun longPress_startDraggingToScrollUpThenSlightlyForward_endHandleDoesNotShow_ltr() {
+        val state = TextFieldState("abc def ghi ".repeat(10))
+        rule.setTextFieldTestContent {
+            BasicTextField(
+                state = state,
+                textStyle = defaultTextStyle,
+                lineLimits = TextFieldLineLimits.MultiLine(1, 3),
+                modifier = Modifier.testTag(TAG).width(100.dp)
+            )
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput {
+            click(center)
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
+            // swipe to the absolute bottom by specifying a huge swipe delta
+            swipeUp(endY = -10000f)
+        }
+
+        rule.onNodeWithTag(TAG).performTouchInput {
+            advanceEventTime(viewConfiguration.doubleTapTimeoutMillis * 2)
+            longPress(Offset(centerX, bottom - 1f))
+            moveBy(Offset(0f, -fontSize.toPx() * 30))
+        }
+
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertDoesNotExist()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
+
+        // slightly back a little bit so that selection seems to be collapsing but the acting
+        // handle should remain the same
+        rule.onNodeWithTag(TAG).performTouchInput {
+            moveBy(Offset(0f, fontSize.toPx()))
+            up()
+        }
+
+        rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
+        rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertDoesNotExist()
+    }
+
+    // endregion
 
     companion object {
         private const val rtlText2 = "\u05D0\u05D1\u05D2 \u05D3\u05D4\u05D5"

@@ -17,7 +17,6 @@
 package androidx.compose.ui.modifier
 
 import androidx.compose.runtime.Stable
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.platform.InspectorInfo
@@ -32,8 +31,8 @@ import androidx.compose.ui.platform.debugInspectorInfo
 @JvmDefaultWithCompatibility
 interface ModifierLocalConsumer : Modifier.Element {
     /**
-     * This function is called whenever one of the consumed values has changed.
-     * This could be called in response to the modifier being added, removed or re-ordered.
+     * This function is called whenever one of the consumed values has changed. This could be called
+     * in response to the modifier being added, removed or re-ordered.
      */
     fun onModifierLocalsUpdated(scope: ModifierLocalReadScope)
 }
@@ -43,7 +42,6 @@ interface ModifierLocalConsumer : Modifier.Element {
  * the left of this modifier, or above this modifier in the layout tree.
  */
 @Stable
-@ExperimentalComposeUiApi
 fun Modifier.modifierLocalConsumer(consumer: ModifierLocalReadScope.() -> Unit): Modifier {
     return this.then(
         ModifierLocalConsumerImpl(

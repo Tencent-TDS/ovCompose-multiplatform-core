@@ -16,8 +16,6 @@
 
 package androidx.pdf.data;
 
-import android.util.Log;
-
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.pdf.data.FutureValue.Callback;
@@ -25,10 +23,12 @@ import androidx.pdf.data.FutureValues.Converter;
 import androidx.pdf.data.FutureValues.SettableFutureValue;
 import androidx.pdf.util.ThreadUtils;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Helpers to create {@link FutureValue}s that are ready to be used for UI operations: their
@@ -59,10 +59,17 @@ import java.util.concurrent.Executors;
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class UiFutureValues {
     private static final String TAG = UiFutureValues.class.getSimpleName();
+
     private static final Executor DEFAULT_EXECUTOR = Executors.newFixedThreadPool(4,
-            new ThreadFactoryBuilder().setNameFormat("PdfViewer-" + TAG + "-%d").build());
+            new ThreadFactory() {
+                private final AtomicInteger mCount = new AtomicInteger(1);
+
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "PdfViewer-" + TAG + "-" + mCount.getAndIncrement());
+                }
+            });
     private static Executor sExecutor = DEFAULT_EXECUTOR;
-    private static boolean sDebug;
 
     private UiFutureValues() {
     }
@@ -85,7 +92,7 @@ public class UiFutureValues {
      *              {@link
      *              Callback#failed(Throwable)} to be called instead.
      */
-    public static <T> FutureValue<T> immediateValue(final T value) {
+    public static <T> @NonNull FutureValue<T> immediateValue(final T value) {
         return callback -> ThreadUtils.runOnUiThread(() -> callback.available(value));
     }
 
@@ -97,23 +104,17 @@ public class UiFutureValues {
      *
      * @param error the exception to be delivered on fail.
      */
-    public static <T> FutureValue<T> immediateFail(final Exception error) {
+    public static <T> @NonNull FutureValue<T> immediateFail(final @NonNull Exception error) {
         return callback -> ThreadUtils.runOnUiThread(() -> callback.failed(error));
     }
 
-    /** Log the calling threads stack trace when exceptions occur in the background thread. */
-    public static void setDebugTrace(boolean debug) {
-        Log.v(TAG, "Setting debug trace to " + debug);
-        UiFutureValues.sDebug = debug;
-    }
-
     /** Wraps up a {@link Supplier} to supply a converted value. */
-    public static <F, T> Supplier<T> postConvert(final Supplier<F> supplier,
-            final Converter<F, T> converter) {
+    public static <F, T> @NonNull Supplier<T> postConvert(final @NonNull Supplier<F> supplier,
+            final @NonNull Converter<F, T> converter) {
         return new Supplier<T>() {
 
             @Override
-            public T supply(Progress progress) throws Exception {
+            public T supply(@NonNull Progress progress) throws Exception {
                 return converter.convert(supplier.supply(progress));
             }
         };
@@ -123,7 +124,7 @@ public class UiFutureValues {
      * Calls through to {@link #execute(Supplier)} in order to disambigute it from {@link
      * #execute(FutureValue)}.
      */
-    public static <T> FutureValue<T> executeAsync(Supplier<T> supplier) {
+    public static <T> @NonNull FutureValue<T> executeAsync(@NonNull Supplier<T> supplier) {
         return execute(supplier);
     }
 
@@ -134,7 +135,7 @@ public class UiFutureValues {
      * @return The value to be supplied at some point in the future.
      */
     @SuppressWarnings("deprecation")
-    public static <T> FutureValue<T> execute(Supplier<T> supplier) {
+    public static <T> @NonNull FutureValue<T> execute(@NonNull Supplier<T> supplier) {
         SettableFutureValue<T> future = FutureValues.newSettableValue();
         new FutureAsyncTask<>(supplier, future).executeOnExecutor(sExecutor);
         return future;
@@ -147,9 +148,9 @@ public class UiFutureValues {
      *
      * @return a {@link FutureValue} that reports progress and result on the main thread.
      */
-    public static <T> FutureValue<T> execute(final FutureValue<T> sourceFuture) {
+    public static <T> @NonNull FutureValue<T> execute(final @NonNull FutureValue<T> sourceFuture) {
         final SettableFutureValue<T> future = FutureValues.newSettableValue();
-        sExecutor.execute(() -> pipe(sourceFuture, future));
+        sExecutor.execute(() -> pipe(future, sourceFuture));
         return future;
     }
 
@@ -157,7 +158,8 @@ public class UiFutureValues {
      * Pipes the results of one {@link FutureValue} into a {@link SettableFutureValue}, making sure
      * each callback call is run on the UI thread.
      */
-    public static <T> void pipe(FutureValue<T> sourceFuture, SettableFutureValue<T> targetFuture) {
+    public static <T> void pipe(@NonNull SettableFutureValue<T> targetFuture,
+            @NonNull FutureValue<T> sourceFuture) {
         FutureValue.Callback<T> pipeCallback = runOnUi(FutureValues.setterCallback(targetFuture));
         sourceFuture.get(pipeCallback);
     }
@@ -182,7 +184,7 @@ public class UiFutureValues {
             }
 
             @Override
-            public void failed(final Throwable thrown) {
+            public void failed(final @NonNull Throwable thrown) {
                 if (ThreadUtils.isUiThread()) {
                     targetCallback.failed(thrown);
                 } else {
@@ -206,8 +208,8 @@ public class UiFutureValues {
      * result
      * into another destination {@link SettableFutureValue}.
      */
-    public static <F, T> void convert(FutureValue<F> sourceFuture, Converter<F, T> converter,
-            final SettableFutureValue<T> destFuture) {
+    public static <F, T> void convert(@NonNull FutureValue<F> sourceFuture,
+            final @NonNull SettableFutureValue<T> destFuture, @NonNull Converter<F, T> converter) {
         FutureValue<T> convertedValue = FutureValues.convert(sourceFuture, converter);
 
         convertedValue.get(new FutureValue.Callback<T>() {
@@ -217,7 +219,7 @@ public class UiFutureValues {
             }
 
             @Override
-            public void failed(final Throwable thrown) {
+            public void failed(final @NonNull Throwable thrown) {
                 ThreadUtils.runOnUiThread(() -> destFuture.fail(thrown));
             }
 
@@ -240,15 +242,10 @@ public class UiFutureValues {
         private final FutureValues.SettableFutureValue<T> mFuture;
         // Any throwable caught during the call to supply() is kept here for onPostExecute.
         private Throwable mCaught;
-        // Debug exception to trace the calling threads stack.
-        private Exception mDebugTraceException;
 
         FutureAsyncTask(Supplier<T> supplier, SettableFutureValue<T> settable) {
             this.mSupplier = supplier;
             this.mFuture = settable;
-            if (sDebug) {
-                this.mDebugTraceException = new Exception("A debug stack trace");
-            }
         }
 
         @Override
@@ -263,12 +260,6 @@ public class UiFutureValues {
                 };
                 return mSupplier.supply(progress);
             } catch (Throwable e) {
-                if (mDebugTraceException != null) {
-                    Log.d(TAG, "Exception during background processing: ", e);
-                    Log.d(TAG, "Problem during background called from:", mDebugTraceException);
-                } else {
-                    Log.d(TAG, "Exception during background processing: " + e);
-                }
                 mCaught = e;
                 return null;
             }
@@ -289,13 +280,8 @@ public class UiFutureValues {
                 } else {
                     mFuture.set(result);
                 }
-            } catch (Exception e) {
-                if (mDebugTraceException != null) {
-                    Log.e(TAG, "Exception during post processing: ", e);
-                    Log.e(TAG, "Problem in post-execute called from:", mDebugTraceException);
-                } else {
-                    Log.w(TAG, "Exception during post processing: ", e);
-                }
+            } catch (Exception ignored) {
+                // TODO: Rethrow exception or return error code
             }
         }
     }

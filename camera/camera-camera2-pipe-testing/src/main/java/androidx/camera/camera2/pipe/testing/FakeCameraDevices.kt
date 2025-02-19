@@ -16,19 +16,19 @@
 
 package androidx.camera.camera2.pipe.testing
 
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraBackend
 import androidx.camera.camera2.pipe.CameraBackendId
 import androidx.camera.camera2.pipe.CameraDevices
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * This provides a fake implementation of [CameraDevices] for tests with a fixed list of Cameras.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-class FakeCameraDevices(
+public class FakeCameraDevices(
     private val defaultCameraBackendId: CameraBackendId,
     private val concurrentCameraBackendIds: Set<Set<CameraBackendId>>,
     private val cameraMetadataMap: Map<CameraBackendId, List<CameraMetadata>>
@@ -40,10 +40,14 @@ class FakeCameraDevices(
             "FakeCameraDevices must include $defaultCameraBackendId"
         }
 
-        cameraBackends = cameraMetadataMap.mapValues { entry ->
-            FakeCameraBackend(entry.value.associateBy { it.camera })
-        }
+        cameraBackends =
+            cameraMetadataMap.mapValues { entry ->
+                FakeCameraBackend(entry.value.associateBy { it.camera })
+            }
     }
+
+    override fun cameraIdsFlow(cameraBackendId: CameraBackendId?): Flow<List<CameraId>> =
+        flowOf(awaitCameraIds(null) ?: emptyList())
 
     override suspend fun getCameraIds(cameraBackendId: CameraBackendId?): List<CameraId>? =
         awaitCameraIds(cameraBackendId)
@@ -58,11 +62,13 @@ class FakeCameraDevices(
     ): Set<Set<CameraId>> = awaitConcurrentCameraIds(cameraBackendId)
 
     override fun awaitConcurrentCameraIds(cameraBackendId: CameraBackendId?): Set<Set<CameraId>> {
-        return concurrentCameraBackendIds.map { concurrentCameraIds ->
-            concurrentCameraIds.map { cameraId ->
-                CameraId.fromCamera2Id(cameraId.value)
-            }.toSet()
-        }.toSet()
+        return concurrentCameraBackendIds
+            .map { concurrentCameraIds ->
+                concurrentCameraIds
+                    .map { cameraId -> CameraId.fromCamera2Id(cameraId.value) }
+                    .toSet()
+            }
+            .toSet()
     }
 
     override suspend fun getCameraMetadata(

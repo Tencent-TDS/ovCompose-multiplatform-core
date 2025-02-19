@@ -21,7 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -35,7 +37,7 @@ android {
     defaultConfig {
         testInstrumentationRunner "androidx.hilt.navigation.fragment.TestRunner"
     }
-    namespace "androidx.hilt.navigation.fragment"
+    namespace = "androidx.hilt.navigation.fragment"
 }
 
 dependencies {
@@ -64,9 +66,14 @@ hilt {
 
 androidx {
     name = "Navigation Fragment Hilt Extension"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.HILT_NAVIGATION
     inceptionYear = "2021"
     description = "Android Navigation Fragment Hilt Extension"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+ksp {
+    useKsp2 = true
 }

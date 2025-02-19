@@ -17,36 +17,48 @@
 package androidx.privacysandbox.ui.integration.testapp
 
 import android.app.Activity
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
-import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.fragment.app.Fragment
 import androidx.privacysandbox.sdkruntime.client.SdkSandboxManagerCompat
-import androidx.privacysandbox.sdkruntime.client.SdkSandboxProcessDeathCallbackCompat
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionState
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUiSessionStateChangedListener
+import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
-import androidx.privacysandbox.ui.integration.testaidl.ISdkApi
+import androidx.privacysandbox.ui.client.view.SandboxedSdkViewEventListener
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApi
+import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApiFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
  * Base fragment to be used for testing different manual flows.
  *
- * Create a new subclass of this for each independent flow you wish to test. There will only be
- * one active fragment in the app's main activity at any time. Use [getSdkApi] to get a handle
- * to the SDK.
+ * Create a new subclass of this for each independent flow you wish to test. There will only be one
+ * active fragment in the app's main activity at any time. Use [getSdkApi] to get a handle to the
+ * SDK.
  */
 abstract class BaseFragment : Fragment() {
     private lateinit var sdkApi: ISdkApi
+
     private lateinit var sdkSandboxManager: SdkSandboxManagerCompat
     private lateinit var activity: Activity
+    protected var providerUiOnTop by mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         activity = requireActivity()
-        sdkSandboxManager = SdkSandboxManagerCompat.from(requireContext())
+        sdkSandboxManager = SdkSandboxManagerCompat.from(requireContext().applicationContext)
         runBlocking {
             val loadedSdks = sdkSandboxManager.getSandboxedSdks()
             var loadedSdk = loadedSdks.firstOrNull { it.getSdkInfo()?.name == SDK_NAME }
@@ -54,70 +66,113 @@ abstract class BaseFragment : Fragment() {
                 loadedSdk = sdkSandboxManager.loadSdk(SDK_NAME, Bundle())
                 sdkSandboxManager.loadSdk(MEDIATEE_SDK_NAME, Bundle())
             }
-            sdkApi = ISdkApi.Stub.asInterface(loadedSdk.getInterface())
+            sdkApi =
+                ISdkApiFactory.wrapToISdkApi(
+                    checkNotNull(loadedSdk.getInterface()) { "Cannot find Sdk Service!" }
+                )
         }
     }
 
-    /**
-     * Returns a handle to the already loaded SDK.
-     */
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        getSandboxedSdkViews().forEach { it.setEventListener() }
+    }
+
+    /** Returns a handle to the already loaded SDK. */
     fun getSdkApi(): ISdkApi {
         return sdkApi
     }
 
-    fun SandboxedSdkView.addStateChangedListener() {
-        addStateChangedListener(StateChangeListener(this))
+    fun SandboxedSdkView.setEventListener() {
+        setEventListener(TestEventListener(this))
+    }
+
+    fun handleOptionsFromIntent(options: FragmentOptions) {
+        currentMediationOption = options.mediation
+        currentAdType = options.adType
+        shouldDrawViewabilityLayer = options.drawViewability
+        providerUiOnTop = options.isZOrderOnTop
     }
 
     /**
-     * Unloads all SDKs, resulting in sandbox death. This method registers a death callback to
-     * ensure that the app is not also killed.
+     * Returns the list of [SandboxedSdkView]s that are currently displayed inside this fragment.
+     *
+     * This will be called when the drawer is opened or closed, to automatically flip the Z-ordering
+     * of any remote views.
      */
-    fun unloadAllSdks() {
-        sdkSandboxManager.addSdkSandboxProcessDeathCallback(Runnable::run, DeathCallbackImpl())
-        sdkSandboxManager.unloadSdk(SDK_NAME)
-        sdkSandboxManager.unloadSdk(MEDIATEE_SDK_NAME)
-    }
+    open fun getSandboxedSdkViews(): List<SandboxedSdkView> = emptyList()
 
     /**
-     * Called when the app's drawer layout state changes. When called, change the Z-order of
-     * any [SandboxedSdkView] owned by the fragment to ensure that the remote UI is not drawn over
-     * the drawer. If the drawer is open, move all remote views to Z-below, otherwise move them
-     * to Z-above.
+     * Called when the @AdType or @MediationOption of any [SandboxedSdkView] inside the fragment is
+     * changed using the toggle switches in the drawer.
+     *
+     * Set the value of [currentAdType], [currentMediationOption] and [shouldDrawViewabilityLayer]
+     * inside the method using the parameters passed to it, then call [loadBannerAd] method using
+     * the parameters along with the [SandboxedSdkView] for which the new Ad needs to be loaded.
      */
-    abstract fun handleDrawerStateChange(isDrawerOpen: Boolean)
+    // TODO(b/343436839) : Handle this automatically
+    // TODO(b/348194843): Clean up the options
+    open fun handleLoadAdFromDrawer(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        drawViewabilityLayer: Boolean
+    ) {}
 
-    private inner class StateChangeListener(val view: SandboxedSdkView) :
-        SandboxedSdkUiSessionStateChangedListener {
-        override fun onStateChanged(state: SandboxedSdkUiSessionState) {
-            Log.i(TAG, "UI session state changed to: $state")
-            if (state is SandboxedSdkUiSessionState.Error) {
-                // If the session fails to open, display the error.
-                val parent = view.parent as ViewGroup
-                val index = parent.indexOfChild(view)
-                val textView = TextView(requireActivity())
-                textView.text = state.throwable.message
-
-                requireActivity().runOnUiThread {
-                    parent.removeView(view)
-                    parent.addView(textView, index)
-                }
-            }
+    fun loadBannerAd(
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        sandboxedSdkView: SandboxedSdkView,
+        drawViewabilityLayer: Boolean,
+        waitInsideOnDraw: Boolean = false
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val sdkBundle =
+                sdkApi.loadAd(
+                    AdFormat.BANNER_AD,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewabilityLayer
+                )
+            sandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(sdkBundle))
+            sandboxedSdkView.orderProviderUiAboveClientUi(providerUiOnTop)
         }
     }
 
-    private inner class DeathCallbackImpl : SdkSandboxProcessDeathCallbackCompat {
-        override fun onSdkSandboxDied() {
-            activity.runOnUiThread {
-                Toast.makeText(activity, "Sandbox died", Toast.LENGTH_LONG).show()
+    open fun handleDrawerStateChange(isDrawerOpen: Boolean) {
+        providerUiOnTop = !isDrawerOpen && !isZOrderBelowToggleChecked
+        getSandboxedSdkViews().forEach { it.orderProviderUiAboveClientUi(providerUiOnTop) }
+    }
+
+    private inner class TestEventListener(val view: SandboxedSdkView) :
+        SandboxedSdkViewEventListener {
+        override fun onUiDisplayed() {}
+
+        override fun onUiError(error: Throwable) {
+            val parent = view.parent as ViewGroup
+            val index = parent.indexOfChild(view)
+            val textView = TextView(requireActivity())
+            textView.setTypeface(null, Typeface.BOLD_ITALIC)
+            textView.setTextColor(Color.RED)
+            textView.text = error.message
+            requireActivity().runOnUiThread {
+                parent.removeView(view)
+                parent.addView(textView, index)
             }
         }
+
+        override fun onUiClosed() {}
     }
 
     companion object {
-        private const val SDK_NAME = "androidx.privacysandbox.ui.integration.testsdkprovider"
+        private const val SDK_NAME = "androidx.privacysandbox.ui.integration.testsdkproviderwrapper"
         private const val MEDIATEE_SDK_NAME =
-            "androidx.privacysandbox.ui.integration.mediateesdkprovider"
+            "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
         const val TAG = "TestSandboxClient"
+        var isZOrderBelowToggleChecked = false
+        @AdFormat var currentAdFormat = AdFormat.BANNER_AD
+        @AdType var currentAdType = AdType.BASIC_NON_WEBVIEW
+        @MediationOption var currentMediationOption = MediationOption.NON_MEDIATED
+        var shouldDrawViewabilityLayer = false
     }
 }

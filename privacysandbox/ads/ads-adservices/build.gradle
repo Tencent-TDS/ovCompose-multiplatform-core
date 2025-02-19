@@ -21,9 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
-import androidx.build.Publish
-import androidx.build.RunApiTasks
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -35,12 +33,11 @@ dependencies {
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesCore)
     implementation("androidx.core:core-ktx:1.8.0")
-    api("androidx.annotation:annotation:1.6.0")
+    api("androidx.annotation:annotation:1.8.1")
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinTestJunit)
     androidTestImplementation(libs.mockitoKotlin4)
-    androidTestImplementation(libs.multidex)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRunner)
@@ -48,26 +45,21 @@ dependencies {
     androidTestImplementation(libs.truth)
     androidTestImplementation(project(":internal-testutils-truth"))
 
-    androidTestImplementation(libs.mockitoCore4, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockitoInline, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.mockitoCore4)
+    androidTestImplementation(libs.dexmakerMockitoInline)
     androidTestImplementation(libs.dexmakerMockitoInlineExtended)
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-
     compileSdk = 34
-    compileSdkExtension = 11
-    namespace "androidx.privacysandbox.ads.adservices"
+    compileSdkExtension = 12
+    namespace = "androidx.privacysandbox.ads.adservices"
 }
 
 androidx {
     name = "Privacy Sandbox for Ad Services"
-    type = LibraryType.PUBLISHED_LIBRARY
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "This library enables integration with Privacy Preserving APIs, which are part of Privacy Sandbox on Android."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

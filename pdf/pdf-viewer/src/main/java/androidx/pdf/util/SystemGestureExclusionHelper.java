@@ -21,6 +21,8 @@ import android.view.View;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,8 +51,9 @@ public class SystemGestureExclusionHelper {
      *
      * <p>{@code rect} is in unscaled screen coordinates.
      */
-    public static List<Rect> createExclusionRectsForCorners(
-            Rect rect, int systemGestureInsetsWidthPx, int bufferDistancePx, int screenWidthPx) {
+    public static @NonNull List<Rect> createExclusionRectsForCorners(
+            @NonNull Rect rect, int systemGestureInsetsWidthPx, int bufferDistancePx,
+            int screenWidthPx) {
         List<Rect> exclusionRects = new ArrayList<>();
 
         if (needsLeftSideExclusionRect(rect.left, systemGestureInsetsWidthPx, bufferDistancePx)) {
@@ -82,7 +85,7 @@ public class SystemGestureExclusionHelper {
      *
      * @throws IllegalArgumentException if {@code reservedDistancePx} <= 0.
      */
-    public static Rect createLeftSideExclusionRect(
+    public static @NonNull Rect createLeftSideExclusionRect(
             int yCoordinatePx, int systemGestureInsetsWidthPx, int reservedDistancePx) {
         Preconditions.checkArgument(
                 reservedDistancePx > 0,
@@ -102,7 +105,7 @@ public class SystemGestureExclusionHelper {
      *
      * @throws IllegalArgumentException if {@code reservedDistancePx} <= 0.
      */
-    public static Rect createRightSideExclusionRect(
+    public static @NonNull Rect createRightSideExclusionRect(
             int yCoordinatePx,
             int systemGestureInsetsWidthPx,
             int reservedDistancePx,
@@ -149,7 +152,8 @@ public class SystemGestureExclusionHelper {
      *
      * @return true if the {@code exclusionRects} were set, false otherwise.
      */
-    public static boolean setSystemGestureExclusionRects(View view, List<Rect> exclusionRects) {
+    public static boolean setSystemGestureExclusionRects(@NonNull View view,
+            @NonNull List<Rect> exclusionRects) {
         if (view == null || exclusionRects == null) {
             return false;
         }

@@ -16,8 +16,6 @@
 
 package androidx.camera.camera2.pipe.integration.adapter
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraTimestamp
 import androidx.camera.camera2.pipe.FrameInfo
 import androidx.camera.camera2.pipe.FrameMetadata
@@ -33,19 +31,19 @@ import androidx.camera.camera2.pipe.core.withLockLaunch
 import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
 import androidx.camera.camera2.pipe.integration.impl.CAMERAX_TAG_BUNDLE
 import androidx.camera.camera2.pipe.integration.impl.Camera2ImplConfig
+import androidx.camera.camera2.pipe.integration.impl.CameraCallbackMap
+import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.camera2.pipe.integration.impl.toParameters
 import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.RequestProcessor
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.SessionProcessorSurface
 import kotlinx.atomicfu.atomic
-import kotlinx.coroutines.CoroutineScope
 
-@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-class RequestProcessorAdapter(
+public class RequestProcessorAdapter(
     private val useCaseGraphConfig: UseCaseGraphConfig,
     private val processorSurfaces: List<SessionProcessorSurface>,
-    private val scope: CoroutineScope,
+    private val threads: UseCaseThreads
 ) : RequestProcessor {
     private val coroutineMutex = CoroutineMutex()
     private val sequenceIds = atomic(0)
@@ -93,10 +91,7 @@ class RequestProcessorAdapter(
             frameNumber: FrameNumber,
             requestFailure: RequestFailure
         ) {
-            callback.onCaptureFailed(
-                request,
-                CaptureFailureAdapter(requestFailure)
-            )
+            callback.onCaptureFailed(request, CaptureFailureAdapter(requestFailure))
         }
 
         override fun onBufferLost(
@@ -141,37 +136,46 @@ class RequestProcessorAdapter(
     ): Int {
         Log.debug { "$this#submit" }
         val sequenceId = sequenceIds.incrementAndGet()
-        val requestsToSubmit = requests.mapIndexed { index, request ->
-            val parameters = sessionConfig?.let { sessionConfig ->
-                val builder = Camera2ImplConfig.Builder().apply {
-                    insertAllOptions(sessionConfig.repeatingCaptureConfig.implementationOptions)
-                    insertAllOptions(request.parameters)
-                }
-                builder.build().toParameters()
-            } ?: Camera2ImplConfig.Builder().insertAllOptions(request.parameters).build()
-                .toParameters()
+        val requestsToSubmit =
+            requests.mapIndexed { index, request ->
+                val parameters =
+                    sessionConfig?.let { sessionConfig ->
+                        val builder =
+                            Camera2ImplConfig.Builder().apply {
+                                insertAllOptions(
+                                    sessionConfig.repeatingCaptureConfig.implementationOptions
+                                )
+                                insertAllOptions(request.parameters)
+                            }
+                        builder.build().toParameters()
+                    }
+                        ?: Camera2ImplConfig.Builder()
+                            .insertAllOptions(request.parameters)
+                            .build()
+                            .toParameters()
 
-            Request(
-                template = RequestTemplate(request.templateId),
-                parameters = parameters,
-                streams = request.targetOutputConfigIds.mapNotNull { findSurface(it) }
-                    .mapNotNull { useCaseGraphConfig.surfaceToStreamMap[it] },
-                listeners = listOf(
-                    RequestProcessorCallbackAdapter(
-                        callback,
-                        sequenceId,
-                        shouldInvokeSequenceCallback = index == 0,
-                        request,
-                        this,
-                    )
+                Request(
+                    template = RequestTemplate(request.templateId),
+                    parameters = parameters,
+                    streams =
+                        request.targetOutputConfigIds
+                            .mapNotNull { findSurface(it) }
+                            .mapNotNull { useCaseGraphConfig.surfaceToStreamMap[it] },
+                    listeners =
+                        listOf(
+                            RequestProcessorCallbackAdapter(
+                                callback,
+                                sequenceId,
+                                shouldInvokeSequenceCallback = index == 0,
+                                request,
+                                this,
+                            )
+                        )
                 )
-            )
-        }
-
-        coroutineMutex.withLockLaunch(scope) {
-            useCaseGraphConfig.graph.acquireSession().use {
-                it.submit(requestsToSubmit)
             }
+
+        coroutineMutex.withLockLaunch(threads.scope) {
+            useCaseGraphConfig.graph.acquireSession().use { it.submit(requestsToSubmit) }
         }
         return sequenceId
     }
@@ -182,46 +186,52 @@ class RequestProcessorAdapter(
     ): Int {
         Log.debug { "$this#setRepeating" }
         val sequenceId = sequenceIds.incrementAndGet()
-        val requestsToSubmit = Request(
-            template = RequestTemplate(request.templateId),
-            parameters = Camera2ImplConfig.Builder().insertAllOptions(request.parameters).build()
-                .toParameters(),
-            extras = mapOf(CAMERAX_TAG_BUNDLE to sessionConfig!!.repeatingCaptureConfig.tagBundle),
-            streams = request.targetOutputConfigIds.mapNotNull { findSurface(it) }
-                .mapNotNull { useCaseGraphConfig.surfaceToStreamMap[it] },
-            listeners = listOf(
-                RequestProcessorCallbackAdapter(
-                    callback,
-                    sequenceId,
-                    shouldInvokeSequenceCallback = true,
-                    request,
-                    this
-                )
+        val requestsToSubmit =
+            Request(
+                template = RequestTemplate(request.templateId),
+                parameters =
+                    Camera2ImplConfig.Builder()
+                        .insertAllOptions(request.parameters)
+                        .build()
+                        .toParameters(),
+                extras =
+                    mapOf(CAMERAX_TAG_BUNDLE to sessionConfig!!.repeatingCaptureConfig.tagBundle),
+                streams =
+                    request.targetOutputConfigIds
+                        .mapNotNull { findSurface(it) }
+                        .mapNotNull { useCaseGraphConfig.surfaceToStreamMap[it] },
+                listeners =
+                    listOf(
+                        RequestProcessorCallbackAdapter(
+                            callback,
+                            sequenceId,
+                            shouldInvokeSequenceCallback = true,
+                            request,
+                            this
+                        ),
+                        CameraCallbackMap.createFor(
+                            sessionConfig!!.repeatingCameraCaptureCallbacks,
+                            threads.backgroundExecutor
+                        )
+                    )
             )
-        )
-        coroutineMutex.withLockLaunch(scope) {
-            useCaseGraphConfig.graph.acquireSession().use {
-                it.startRepeating(requestsToSubmit)
-            }
+        coroutineMutex.withLockLaunch(threads.scope) {
+            useCaseGraphConfig.graph.acquireSession().use { it.startRepeating(requestsToSubmit) }
         }
         return sequenceId
     }
 
     override fun abortCaptures() {
         Log.debug { "$this#abortCaptures" }
-        coroutineMutex.withLockLaunch(scope) {
-            useCaseGraphConfig.graph.acquireSession().use {
-                it.abort()
-            }
+        coroutineMutex.withLockLaunch(threads.scope) {
+            useCaseGraphConfig.graph.acquireSession().use { it.abort() }
         }
     }
 
     override fun stopRepeating() {
         Log.debug { "$this#stopRepeating" }
-        coroutineMutex.withLockLaunch(scope) {
-            useCaseGraphConfig.graph.acquireSession().use {
-                it.stopRepeating()
-            }
+        coroutineMutex.withLockLaunch(threads.scope) {
+            useCaseGraphConfig.graph.acquireSession().use { it.stopRepeating() }
         }
     }
 

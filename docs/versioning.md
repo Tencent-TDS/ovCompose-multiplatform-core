@@ -235,8 +235,9 @@ each stage:
 ### Alpha {#alpha}
 
 Alpha releases are expected to be functionally stable, but may have unstable API
-surface or incomplete features. Typically, alphas have not gone through API
-Council review but are expected to have performed a minimum level of validation.
+surface or incomplete features. Changes in alpha do trigger API Council review,
+but the feedback does not block an alpha release. Library owners are expected to
+have performed a minimum level of validation.
 
 #### Within the `alphaXX` cycle
 
@@ -321,6 +322,10 @@ APIs.
 Release candidates are expected to be nearly-identical to the final release, but
 may contain critical last-minute fixes for issues found during integration
 testing.
+
+To allow for continued development, Jetpack allows concurrent releases of RC
+versions from a release branch and alpha or beta versions from a working branch
+like `androidx-main`.
 
 #### Checklist for moving to `rc01`
 

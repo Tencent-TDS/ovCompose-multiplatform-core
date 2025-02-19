@@ -20,7 +20,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import android.view.InputDevice
+import android.view.ScrollFeedbackProvider
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 import com.google.wear.input.WearHapticFeedbackConstants
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -39,31 +43,17 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 
-/**
- * Handles haptics for rotary usage
- */
+/** Handles haptics for rotary usage */
 internal interface RotaryHapticHandler {
 
-    /**
-     * Handles haptics when scroll is used
-     */
-    fun handleScrollHaptic(
-        timestamp: Long,
-        deltaInPixels: Float
-    )
+    /** Handles haptics when scroll is used */
+    fun handleScrollHaptic(timestamp: Long, deltaInPixels: Float, inputDeviceId: Int, axis: Int)
 
-    /**
-     * Handles haptics when scroll with snap is used
-     */
-    fun handleSnapHaptic(
-        timestamp: Long,
-        deltaInPixels: Float
-    )
+    /** Handles haptics when scroll with snap is used */
+    fun handleSnapHaptic(timestamp: Long, deltaInPixels: Float, inputDeviceId: Int, axis: Int)
 
-    /**
-     * Handles haptics when edge of the list is reached
-     */
-    fun handleLimitHaptic(isStart: Boolean)
+    /** Handles haptics when edge of the list is reached */
+    fun handleLimitHaptic(isStart: Boolean, inputDeviceId: Int, axis: Int)
 }
 
 @Composable
@@ -72,20 +62,24 @@ internal fun rememberRotaryHapticHandler(
     hapticsEnabled: Boolean
 ): RotaryHapticHandler =
     if (hapticsEnabled) {
-        // TODO(b/319103162): Add platform haptics once AndroidX updates to Android VanillaIceCream
-        rememberCustomRotaryHapticHandler(scrollableState)
-    } else {
-        rememberDisabledRotaryHapticHandler()
-    }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.VANILLA_ICE_CREAM)
+            rememberCustomRotaryHapticHandler(
+                scrollableState = scrollableState,
+                performInSeparateThread = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+            )
+        else rememberPlatformRotaryHapticHandler(scrollableState)
+    } else rememberDisabledRotaryHapticHandler()
 
 /**
  * Remembers custom rotary haptic handler.
- * @param scrollableState A scrollableState, used to determine whether the end of the scrollable
- * was reached or not.
+ *
+ * @param scrollableState A scrollableState, used to determine whether the end of the scrollable was
+ *   reached or not.
  */
 @Composable
 private fun rememberCustomRotaryHapticHandler(
     scrollableState: ScrollableState,
+    performInSeparateThread: Boolean,
 ): RotaryHapticHandler {
     val hapticsProvider = rememberRotaryHapticFeedbackProvider()
     // Channel to which haptic events will be sent
@@ -97,22 +91,27 @@ private fun rememberCustomRotaryHapticHandler(
     // A scroll threshold after which haptic is produced.
     val hapticsThresholdPx: Long = 50
 
-    LaunchedEffect(hapticsChannel, throttleThresholdMs) {
-        hapticsChannel.receiveAsFlow()
-            .throttleLatest(throttleThresholdMs)
-            .collect { hapticType ->
-                // 'withContext' launches performHapticFeedback in a separate thread,
-                // as otherwise it produces a visible lag (b/219776664)
-                val currentTime = System.currentTimeMillis()
-                debugLog { "Haptics started" }
+    LaunchedEffect(hapticsChannel, performInSeparateThread, throttleThresholdMs) {
+        hapticsChannel.receiveAsFlow().throttleLatest(throttleThresholdMs).collect { hapticType ->
+            // 'withContext' launches performHapticFeedback in a separate thread,
+            // as otherwise it produces a visible lag (b/219776664)
+            val currentTime = System.currentTimeMillis()
+            debugLog { "Haptics started" }
+            if (performInSeparateThread) {
+                // Dispatchers.Default should be avoided in Compose library code.
+                // Used here because of legacy API requirements, on a rare code path
                 withContext(Dispatchers.Default) {
                     debugLog {
-                        "Performing haptics, delay: " +
+                        "Performing haptics in separate thread, delay: " +
                             "${System.currentTimeMillis() - currentTime}"
                     }
                     hapticsProvider.performHapticFeedback(hapticType)
                 }
+            } else {
+                debugLog { "Performing haptics" }
+                hapticsProvider.performHapticFeedback(hapticType)
             }
+        }
     }
     return remember(scrollableState, hapticsChannel, hapticsProvider) {
         CustomRotaryHapticHandler(scrollableState, hapticsChannel, hapticsThresholdPx)
@@ -147,64 +146,44 @@ internal sealed class HapticConstants(
     val scrollTick: Int?,
     val scrollLimit: Int?
 ) {
-    /**
-     * Rotary haptic constants from WearSDK
-     */
-    object WearSDKHapticConstants : HapticConstants(
-        WearHapticFeedbackConstants.getScrollItemFocus(),
-        WearHapticFeedbackConstants.getScrollTick(),
-        WearHapticFeedbackConstants.getScrollLimit()
-    )
+    /** Rotary haptic constants from WearSDK */
+    object WearSDKHapticConstants :
+        HapticConstants(
+            WearHapticFeedbackConstants.getScrollItemFocus(),
+            WearHapticFeedbackConstants.getScrollTick(),
+            WearHapticFeedbackConstants.getScrollLimit()
+        )
 
     /**
-     * Rotary haptic constants for Galaxy Watch. These constants
-     * are used by Samsung for producing rotary haptics
+     * Rotary haptic constants for Galaxy Watch. These constants are used by Samsung for producing
+     * rotary haptics
      */
-    object GalaxyWatchConstants : HapticConstants(
-        102, 101, 50107
-    )
+    object GalaxyWatchConstants : HapticConstants(102, 101, 50107)
 
-    /**
-     * Hidden constants from HapticFeedbackConstants.java
-     * API 33, Wear 4
-     */
-    object Wear4RotaryHapticConstants : HapticConstants(
-        19, 18, 20
-    )
+    /** Hidden constants from HapticFeedbackConstants.java API 33, Wear 4 */
+    object Wear4RotaryHapticConstants : HapticConstants(19, 18, 20)
 
-    /**
-     * Hidden constants from HapticFeedbackConstants.java
-     * API 30, Wear 3.5
-     */
-    object Wear3Point5RotaryHapticConstants : HapticConstants(
-        10003, 10002, 10003
-    )
+    /** Hidden constants from HapticFeedbackConstants.java API 30, Wear 3.5 */
+    object Wear3Point5RotaryHapticConstants : HapticConstants(10003, 10002, 10003)
 
-    object DisabledHapticConstants : HapticConstants(
-        null, null, null
-    )
+    object DisabledHapticConstants : HapticConstants(null, null, null)
 }
 
 @Composable
-private fun rememberHapticChannel() =
-    remember {
-        Channel<RotaryHapticsType>(
-            capacity = 2,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-    }
+private fun rememberHapticChannel() = remember {
+    Channel<RotaryHapticsType>(capacity = 2, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+}
 
 /**
- * This class handles haptic feedback based
- * on the [scrollableState], scrolled pixels and [hapticsThresholdPx].
- * Haptic is not fired in this class, instead it's sent to [hapticsChannel]
+ * This class handles haptic feedback based on the [scrollableState], scrolled pixels and
+ * [hapticsThresholdPx]. Haptic is not fired in this class, instead it's sent to [hapticsChannel]
  * where it'll be performed later.
  *
  * @param scrollableState Haptic performed based on this state
  * @param hapticsChannel Channel to which haptic events will be sent
  * @param hapticsThresholdPx A scroll threshold after which haptic is produced.
  */
-private class CustomRotaryHapticHandler(
+internal class CustomRotaryHapticHandler(
     private val scrollableState: ScrollableState,
     private val hapticsChannel: Channel<RotaryHapticsType>,
     private val hapticsThresholdPx: Long = 50
@@ -216,10 +195,12 @@ private class CustomRotaryHapticHandler(
 
     override fun handleScrollHaptic(
         timestamp: Long,
-        deltaInPixels: Float
+        deltaInPixels: Float,
+        inputDeviceId: Int,
+        axis: Int
     ) {
         if (scrollableState.reachedTheLimit(deltaInPixels)) {
-            handleLimitHaptic(scrollableState.canScrollBackward)
+            handleLimitHaptic(scrollableState.canScrollBackward, inputDeviceId, axis)
         } else {
             overscrollHapticTriggered = false
             currScrollPosition += deltaInPixels
@@ -234,17 +215,19 @@ private class CustomRotaryHapticHandler(
 
     override fun handleSnapHaptic(
         timestamp: Long,
-        deltaInPixels: Float
+        deltaInPixels: Float,
+        inputDeviceId: Int,
+        axis: Int
     ) {
         if (scrollableState.reachedTheLimit(deltaInPixels)) {
-            handleLimitHaptic(scrollableState.canScrollBackward)
+            handleLimitHaptic(scrollableState.canScrollBackward, inputDeviceId, axis)
         } else {
             overscrollHapticTriggered = false
             hapticsChannel.trySend(RotaryHapticsType.ScrollItemFocus)
         }
     }
 
-    override fun handleLimitHaptic(isStart: Boolean) {
+    override fun handleLimitHaptic(isStart: Boolean, inputDeviceId: Int, axis: Int) {
         if (!overscrollHapticTriggered) {
             hapticsChannel.trySend(RotaryHapticsType.ScrollLimit)
             overscrollHapticTriggered = true
@@ -252,63 +235,116 @@ private class CustomRotaryHapticHandler(
     }
 }
 
-/**
- * Rotary haptic types
- */
+/** Rotary haptic types */
 @JvmInline
 @VisibleForTesting
 internal value class RotaryHapticsType(private val type: Int) {
     companion object {
 
         /**
-         * A scroll ticking haptic. Similar to texture haptic - performed each time when
-         * a scrollable content is scrolled by a certain distance
+         * A scroll ticking haptic. Similar to texture haptic - performed each time when a
+         * scrollable content is scrolled by a certain distance
          */
         public val ScrollTick: RotaryHapticsType = RotaryHapticsType(1)
 
         /**
-         * An item focus (snap) haptic. Performed when a scrollable content is snapped
-         * to a specific item.
+         * An item focus (snap) haptic. Performed when a scrollable content is snapped to a specific
+         * item.
          */
         public val ScrollItemFocus: RotaryHapticsType = RotaryHapticsType(2)
 
         /**
-         * A limit(overscroll) haptic. Performed when a list reaches the limit
-         * (start or end) and can't scroll further
+         * A limit(overscroll) haptic. Performed when a list reaches the limit (start or end) and
+         * can't scroll further
          */
         public val ScrollLimit: RotaryHapticsType = RotaryHapticsType(3)
     }
 }
 
-/**
- * Remember disabled haptics handler
- */
+/** Remember disabled haptics handler */
 @Composable
 private fun rememberDisabledRotaryHapticHandler(): RotaryHapticHandler = remember {
     object : RotaryHapticHandler {
         override fun handleScrollHaptic(
             timestamp: Long,
-            deltaInPixels: Float
+            deltaInPixels: Float,
+            inputDeviceId: Int,
+            axis: Int
         ) {
             // Do nothing
         }
 
         override fun handleSnapHaptic(
             timestamp: Long,
-            deltaInPixels: Float
+            deltaInPixels: Float,
+            inputDeviceId: Int,
+            axis: Int
         ) {
             // Do nothing
         }
 
-        override fun handleLimitHaptic(isStart: Boolean) {
+        override fun handleLimitHaptic(isStart: Boolean, inputDeviceId: Int, axis: Int) {
             // Do nothing
         }
     }
 }
 
-/**
- * Rotary haptic feedback
- */
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+@Composable
+private fun rememberPlatformRotaryHapticHandler(
+    scrollableState: ScrollableState,
+): RotaryHapticHandler {
+    val view = LocalView.current
+    return remember(scrollableState, view) {
+        PlatformRotaryHapticHandler(scrollableState, ScrollFeedbackProvider.createProvider(view))
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+@VisibleForTesting
+internal class PlatformRotaryHapticHandler(
+    private val scrollableState: ScrollableState,
+    private val scrollFeedbackProvider: ScrollFeedbackProvider,
+) : RotaryHapticHandler {
+
+    override fun handleScrollHaptic(
+        timestamp: Long,
+        deltaInPixels: Float,
+        inputDeviceId: Int,
+        axis: Int
+    ) {
+        if (scrollableState.reachedTheLimit(deltaInPixels)) {
+            handleLimitHaptic(scrollableState.canScrollBackward, inputDeviceId, axis)
+        } else {
+            scrollFeedbackProvider.onScrollProgress(
+                inputDeviceId,
+                InputDevice.SOURCE_ROTARY_ENCODER,
+                axis,
+                deltaInPixels.roundToInt()
+            )
+        }
+    }
+
+    override fun handleSnapHaptic(
+        timestamp: Long,
+        deltaInPixels: Float,
+        inputDeviceId: Int,
+        axis: Int
+    ) {
+        scrollFeedbackProvider.onSnapToItem(inputDeviceId, InputDevice.SOURCE_ROTARY_ENCODER, axis)
+    }
+
+    override fun handleLimitHaptic(isStart: Boolean, inputDeviceId: Int, axis: Int) {
+        scrollFeedbackProvider.onScrollLimit(
+            inputDeviceId,
+            InputDevice.SOURCE_ROTARY_ENCODER,
+            axis,
+            isStart
+        )
+    }
+}
+
+/** Rotary haptic feedback */
 private class RotaryHapticFeedbackProvider(
     private val view: View,
     private val hapticConstants: HapticConstants
@@ -320,11 +356,9 @@ private class RotaryHapticFeedbackProvider(
             RotaryHapticsType.ScrollItemFocus -> {
                 hapticConstants.scrollFocus?.let { view.performHapticFeedback(it) }
             }
-
             RotaryHapticsType.ScrollTick -> {
                 hapticConstants.scrollTick?.let { view.performHapticFeedback(it) }
             }
-
             RotaryHapticsType.ScrollLimit -> {
                 hapticConstants.scrollLimit?.let { view.performHapticFeedback(it) }
             }
@@ -339,25 +373,21 @@ private fun isGalaxyWatch(): Boolean =
 private fun isWear3_5(context: Context): Boolean =
     Build.VERSION.SDK_INT == Build.VERSION_CODES.R && getWearPlatformMrNumber(context) >= 5
 
-private fun isWear4(): Boolean =
-    Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU
+private fun isWear4(): Boolean = Build.VERSION.SDK_INT == Build.VERSION_CODES.TIRAMISU
 
 private fun hasWearSDK(context: Context): Boolean =
     context.packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH) &&
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
 
 private fun getWearPlatformMrNumber(context: Context): Int =
-    Settings.Global
-        .getString(context.contentResolver, WEAR_PLATFORM_MR_NUMBER)?.toIntOrNull() ?: 0
+    Settings.Global.getString(context.contentResolver, WEAR_PLATFORM_MR_NUMBER)?.toIntOrNull() ?: 0
 
 private const val WEAR_PLATFORM_MR_NUMBER: String = "wear_platform_mr_number"
 
 private fun ScrollableState.reachedTheLimit(scrollDelta: Float): Boolean =
     (scrollDelta > 0 && !canScrollForward) || (scrollDelta < 0 && !canScrollBackward)
 
-/**
- * Debug logging that can be enabled.
- */
+/** Debug logging that can be enabled. */
 private const val DEBUG = false
 
 private inline fun debugLog(generateMsg: () -> String) {
@@ -378,13 +408,13 @@ private inline fun debugLog(generateMsg: () -> String) {
  *     }
  * }
  * ```
+ *
  * With timeframe=1000 only those integers will be received: 1, 10, 20, 30 .
  */
 @VisibleForTesting
-internal fun <T> Flow<T>.throttleLatest(timeframe: Long): Flow<T> =
-    flow {
-        conflate().collect {
-            emit(it)
-            delay(timeframe)
-        }
+internal fun <T> Flow<T>.throttleLatest(timeframe: Long): Flow<T> = flow {
+    conflate().collect {
+        emit(it)
+        delay(timeframe)
     }
+}

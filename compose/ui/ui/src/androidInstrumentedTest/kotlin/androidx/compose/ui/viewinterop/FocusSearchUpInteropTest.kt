@@ -25,6 +25,7 @@ import android.widget.LinearLayout.VERTICAL
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
@@ -57,8 +59,7 @@ import org.junit.runners.Parameterized
 @MediumTest
 @RunWith(Parameterized::class)
 class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private lateinit var focusManager: FocusManager
     private lateinit var view: View
@@ -73,9 +74,7 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
     @Test
     fun singleFocusableComposable() {
         // Arrange.
-        setContent {
-            FocusableComponent(composable)
-        }
+        setContent { FocusableComponent(composable) }
 
         // Act.
         rule.focusSearchUp()
@@ -87,17 +86,13 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
     @Test
     fun singleFocusableView() {
         // Arrange.
-        setContent {
-            AndroidView({ FocusableView(it).apply { view = this } })
-        }
+        setContent { AndroidView({ FocusableView(it).apply { view = this } }) }
 
         // Act.
         rule.focusSearchUp()
 
         // Assert.
-        rule.runOnIdle {
-            assertThat(view.isFocused).isTrue()
-        }
+        rule.runOnIdle { assertThat(view.isFocused).isTrue() }
     }
 
     @Test
@@ -148,6 +143,40 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
     }
 
     @Test
+    fun viewViewInLinearLayout2() {
+        // Arrange.
+        setContent {
+            Row {
+                Column {
+                    FocusableComponent(composable1)
+                    FocusableComponent(composable2)
+                }
+                Column {
+                    AndroidView({
+                        LinearLayout(it).apply {
+                            orientation = VERTICAL
+                            addView(FocusableView(it).apply { view2 = this })
+                            addView(FocusableView(it).apply { view1 = this })
+                        }
+                    })
+                    FocusableComponent(composable)
+                }
+            }
+        }
+        rule.onNodeWithTag(composable).requestFocus()
+        rule.focusSearchUp()
+
+        // Act.
+        rule.focusSearchUp()
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(view1.isFocused).isFalse()
+            assertThat(view2.isFocused).isTrue()
+        }
+    }
+
+    @Test
     fun focusedViewViewInLinearLayout() {
         // Arrange.
         setContent {
@@ -193,6 +222,7 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
         rule.runOnIdle { assertThat(view.isFocused).isTrue() }
     }
 
+    @FlakyTest(bugId = 332542822)
     @Test
     fun focusedComposableWithFocusableView_view_inLinearLayout() {
         // Arrange.
@@ -202,18 +232,19 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
                 LinearLayout(context).apply {
                     orientation = VERTICAL
                     addView(FocusableView(context).apply { view2 = this })
-                    addView(ComposeView(context).apply {
-                        setContent {
-                            Column(
-                                Modifier
-                                    .testTag(composable)
-                                    .onFocusChanged { isComposableFocused = it.isFocused }
-                                    .focusable()
-                            ) {
-                                AndroidView({ FocusableView(it).apply { view1 = this } })
+                    addView(
+                        ComposeView(context).apply {
+                            setContent {
+                                Column(
+                                    Modifier.testTag(composable)
+                                        .onFocusChanged { isComposableFocused = it.isFocused }
+                                        .focusable()
+                                ) {
+                                    AndroidView({ FocusableView(it).apply { view1 = this } })
+                                }
                             }
                         }
-                    })
+                    )
                 }
             })
         }
@@ -265,11 +296,7 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
                 LinearLayout(it).apply {
                     orientation = VERTICAL
                     addView(FocusableView(it).apply { view2 = this })
-                    addView(
-                        ComposeView(it).apply {
-                            setContent { FocusableComponent(composable) }
-                        }
-                    )
+                    addView(ComposeView(it).apply { setContent { FocusableComponent(composable) } })
                     addView(FocusableView(it).apply { view1 = this })
                 }
             })
@@ -677,8 +704,7 @@ class FocusSearchUpInteropTest(private val moveFocusProgrammatically: Boolean) {
         if (moveFocusProgrammatically) {
             runOnUiThread { focusManager.moveFocus(FocusDirection.Up) }
         } else {
-            InstrumentationRegistry
-                .getInstrumentation()
+            InstrumentationRegistry.getInstrumentation()
                 .sendKeySync(KeyEvent(KeyEvent.ACTION_DOWN, Key.DirectionUp.nativeKeyCode))
         }
     }

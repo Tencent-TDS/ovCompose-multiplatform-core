@@ -1011,8 +1011,7 @@ internal constructor(
 
     /**
      * The data set by [setComplicationData] (and then selected by
-     * [selectComplicationDataForInstant]). Exposed by [complicationData] unless
-     * [frozenDataSourceForEdit] is set.
+     * [selectComplicationDataForInstant]). Exposed by [complicationData].
      */
     private var selectedData: ComplicationData = NoDataComplicationData()
 
@@ -1022,39 +1021,25 @@ internal constructor(
     )
 
     /**
-     * Marks the slot frozen, so [complicationData] only returns [EmptyComplicationData].
-     *
-     * This reduces the chances of the slot showing the previous complication momentarily when the
-     * user finishes editing.
-     *
-     * Memorizing from/to edited data source because we need to avoid clearing the complication data
-     * when the data source is the same, because the platform doesn't re-fetch complications when
-     * only updating configuration.
-     */
-    private var frozenDataSourceForEdit: FrozenDataSourceForEdit? = null
-
-    /**
      * The [androidx.wear.watchface.complications.data.ComplicationData] associated with the
      * [ComplicationSlot]. This defaults to [NoDataComplicationData].
-     *
-     * If the slot is frozen for edit, this is set to [EmptyComplicationData].
      */
-    // Can be described as:
-    //   selectedData.combine(frozenDataSourceForEdit) { data, frozenDataSource ->
-    //     if (frozenDataSource == null) data else EmptyComplicationData()
-    //   }
-    // but some flows depend on this StateFlow updating immediately after selectedData was changed,
-    // and Flow.combine() doesn't ensure that.
     public val complicationData: StateFlow<ComplicationData> = MutableStateFlow(selectedData)
 
     /**
      * The complication data sent by the system. This may contain a timeline out of which
      * [complicationData] is selected.
      */
-    private var timelineComplicationData: ComplicationData = NoDataComplicationData()
-    private var timelineEntries: List<ApiTimelineEntry>? = null
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public var timelineComplicationData: ComplicationData = NoDataComplicationData()
+        private set
 
-    private class ApiTimelineEntry(
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public var timelineEntries: List<ApiTimelineEntry>? = null
+        private set
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public class ApiTimelineEntry(
         val timelineStartEpochSecond: Long?,
         val timelineEndEpochSecond: Long?,
         val complicationData: ComplicationData
@@ -1072,7 +1057,7 @@ internal constructor(
     ) {
         complicationHistory?.push(ComplicationDataHistoryEntry(complicationData, instant))
         setTimelineData(complicationData, instant)
-        selectComplicationDataForInstant(instant, forceUpdate = true, forceLoad = forceLoad)
+        selectComplicationDataForInstant(instant, forceLoad = forceLoad)
     }
 
     /**
@@ -1092,12 +1077,12 @@ internal constructor(
             // Avoid overwriting a change made by someone else, can still race.
             if (timelineComplicationData !== complicationData) return@AutoCloseable
             setTimelineData(originalComplicationData, originalInstant)
-            selectComplicationDataForInstant(originalInstant, forceUpdate = true)
+            selectComplicationDataForInstant(originalInstant, forceLoad = true)
         }
 
         try {
             setTimelineData(complicationData, instant)
-            selectComplicationDataForInstant(instant, forceUpdate = true, forceLoad = true)
+            selectComplicationDataForInstant(instant, forceLoad = true)
         } catch (e: Throwable) {
             // Cleanup on failure.
             restore.close()
@@ -1109,9 +1094,8 @@ internal constructor(
     private fun setTimelineData(data: ComplicationData, instant: Instant) {
         lastComplicationUpdate = instant
         timelineComplicationData = data
-        timelineEntries = data.asWireComplicationData()
-            .timelineEntries
-            ?.mapTo(ArrayList<ApiTimelineEntry>()) {
+        timelineEntries =
+            data.asWireComplicationData().timelineEntries?.mapTo(ArrayList<ApiTimelineEntry>()) {
                 ApiTimelineEntry(
                     it.timelineStartEpochSecond,
                     it.timelineEndEpochSecond,
@@ -1129,11 +1113,7 @@ internal constructor(
      * If the current [ComplicationData] is a timeline, the correct override for [instant] is
      * chosen.
      */
-    internal fun selectComplicationDataForInstant(
-        instant: Instant,
-        forceUpdate: Boolean,
-        forceLoad: Boolean = false,
-    ) {
+    internal fun selectComplicationDataForInstant(instant: Instant, forceLoad: Boolean) {
         var previousShortest = Long.MAX_VALUE
         val time = instant.epochSecond
         var best = timelineComplicationData
@@ -1164,48 +1144,13 @@ internal constructor(
 
         // When b/323483515 is fixed, go back to using regular equality rather than reference
         // equality.
-        if (!forceUpdate && selectedData === best) return
+        if (!forceLoad && selectedData === best) return
 
-        val frozen = frozenDataSourceForEdit != null
-        if (!frozen || forceLoad) {
-            loadData(best, loadDrawablesAsynchronous = !forceLoad)
-        } else {
-            // Restoring frozen slot to empty in case it was changed for screenshot.
-            loadData(EmptyComplicationData())
-        }
+        loadData(best, loadDrawablesAsynchronous = !forceLoad)
         selectedData = best
 
-        // forceUpdate is used for screenshots, don't set the dirty flag for those.
-        if (!forceUpdate) dataDirty = true
-    }
-
-    /** Sets [frozenDataSourceForEdit]. */
-    internal fun freezeForEdit(
-        from: ComplicationDataSourceInfo?,
-        to: ComplicationDataSourceInfo?,
-    ) {
-        val previous = frozenDataSourceForEdit
-        // Keeping the original "from" of the first edit.
-        frozenDataSourceForEdit = FrozenDataSourceForEdit(from = previous?.from ?: from, to = to)
-        // If this is the first freeze, render EmptyComplicationData.
-        if (previous == null) loadData(EmptyComplicationData())
-    }
-
-    /** Unsets [frozenDataSourceForEdit]. */
-    internal fun unfreezeForEdit(clearData: Boolean) {
-        val frozenDataSourceForEdit = frozenDataSourceForEdit ?: return
-        // Clearing the previously selected data if needed.
-        if (
-            clearData &&
-                frozenDataSourceForEdit.from?.componentName !=
-                    frozenDataSourceForEdit.to?.componentName
-        ) {
-            setComplicationData(EmptyComplicationData(), Instant.now())
-        }
-        this.frozenDataSourceForEdit = null
-        // Re-load current/new data immediately
-        // (especially in case of new data skipped loading in selectComplicationDataForInstant).
-        loadData(selectedData)
+        // For screenshots don't set the dirty flag.
+        if (!forceLoad) dataDirty = true
     }
 
     /**

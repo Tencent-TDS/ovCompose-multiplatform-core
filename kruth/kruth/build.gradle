@@ -22,10 +22,11 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
-import androidx.build.RunApiTasks
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -38,10 +39,26 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
+    watchos()
+    tvos()
     androidNative()
+    mingwX64()
+    wasmJs()
+    js()
 
     defaultPlatform(PlatformIdentifier.JVM)
 
+    // Source Structure
+    //            commonMain
+    //    ┌────────────────────────┐
+    //    ▼                        ▼
+    // jvmMain                nonJvmMain
+    //                    ┌────────────────┐
+    //                    ▼                ▼
+    //                nativeMain        webMain
+    //                               ┌───────────┐
+    //                               ▼           ▼
+    //                             jsMain   wasmJsMain
     sourceSets {
         commonMain {
             dependencies {
@@ -67,21 +84,59 @@ androidXMultiplatform {
         }
 
         jvmTest {
+            dependsOn(commonTest)
             dependencies {
                 api(libs.kotlinCoroutinesTest)
             }
         }
 
-        nativeMain {
+        nonJvmMain {
             dependsOn(commonMain)
         }
 
-        nativeTest {
+        nonJvmTest {
             dependsOn(commonTest)
         }
 
-        targets.all { target ->
-            if (target.platformType == org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.native) {
+        webMain {
+            dependsOn(nonJvmMain)
+            dependencies {
+                implementation(libs.kotlinTest)
+            }
+        }
+        webTest {
+            dependsOn(nonJvmTest)
+            dependencies {
+                // https://youtrack.jetbrains.com/issue/KT-71032
+                implementation(libs.kotlinTestForWasmTests)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+            }
+        }
+
+        jsMain {
+            dependsOn(webMain)
+        }
+        jsTest {
+            dependsOn(webTest)
+        }
+
+        wasmJsMain {
+            dependsOn(webMain)
+        }
+        wasmJsTest {
+            dependsOn(webTest)
+        }
+
+        nativeMain {
+            dependsOn(nonJvmMain)
+        }
+        nativeTest {
+            dependsOn(nonJvmTest)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
                 }
@@ -101,8 +156,7 @@ androidXMultiplatform {
 
 androidx {
     legacyDisableKotlinStrictApiMode = true // Temporarily enabled to allow API tracking
-    publish = Publish.SNAPSHOT_ONLY
-    runApiTasks = new RunApiTasks.Yes() // Used to diff against Google Truth
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.SNAPSHOT_ONLY_TEST_LIBRARY_WITH_API_TASKS // Used to diff against Google Truth
     doNotDocumentReason = "Not shipped externally"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

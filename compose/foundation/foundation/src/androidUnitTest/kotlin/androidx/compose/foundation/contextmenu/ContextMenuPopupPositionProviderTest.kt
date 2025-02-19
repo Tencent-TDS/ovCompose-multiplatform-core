@@ -24,7 +24,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class ContextMenuPopupPositionProviderTest {
-    //region ContextMenuPopupPositionProvider Tests
+    // region ContextMenuPopupPositionProvider Tests
     @Test
     fun calculatePosition_onlyFitsInXDirection() {
         val layoutDirection = LayoutDirection.Ltr
@@ -33,11 +33,18 @@ class ContextMenuPopupPositionProviderTest {
         val position = IntOffset(x = 40, y = 30) // 50, 50 when translated to window
         val popupContentSize = IntSize(width = 10, height = 200)
 
-        val subject = ContextMenuPopupPositionProvider(position)
+        val expected = IntOffset(50, 0)
+        val subject =
+            ContextMenuPopupPositionProvider(position) { pos, menuBounds ->
+                assertThat(pos).isEqualTo(position)
+                assertThat(menuBounds.topLeft).isEqualTo(expected)
+                assertThat(menuBounds.size).isEqualTo(popupContentSize)
+            }
+
         val actual =
             subject.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
 
-        assertThat(actual).isEqualTo(IntOffset(50, 0))
+        assertThat(actual).isEqualTo(expected)
     }
 
     @Test
@@ -48,11 +55,18 @@ class ContextMenuPopupPositionProviderTest {
         val position = IntOffset(x = 40, y = 30) // 50, 50 when translated to window
         val popupContentSize = IntSize(width = 200, height = 10)
 
-        val subject = ContextMenuPopupPositionProvider(position)
+        val expected = IntOffset(0, 50)
+        val subject =
+            ContextMenuPopupPositionProvider(position) { pos, menuBounds ->
+                assertThat(pos).isEqualTo(position)
+                assertThat(menuBounds.topLeft).isEqualTo(expected)
+                assertThat(menuBounds.size).isEqualTo(popupContentSize)
+            }
+
         val actual =
             subject.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
 
-        assertThat(actual).isEqualTo(IntOffset(0, 50))
+        assertThat(actual).isEqualTo(expected)
     }
 
     @Test
@@ -63,11 +77,18 @@ class ContextMenuPopupPositionProviderTest {
         val position = IntOffset(x = 40, y = 30) // 50, 50 when translated to window
         val popupContentSize = IntSize(width = 10, height = 10)
 
-        val subject = ContextMenuPopupPositionProvider(position)
+        val expected = IntOffset(50, 50)
+        val subject =
+            ContextMenuPopupPositionProvider(position) { pos, menuBounds ->
+                assertThat(pos).isEqualTo(position)
+                assertThat(menuBounds.topLeft).isEqualTo(expected)
+                assertThat(menuBounds.size).isEqualTo(popupContentSize)
+            }
+
         val actual =
             subject.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
 
-        assertThat(actual).isEqualTo(IntOffset(50, 50))
+        assertThat(actual).isEqualTo(expected)
     }
 
     @Test
@@ -78,94 +99,62 @@ class ContextMenuPopupPositionProviderTest {
         val position = IntOffset(x = 40, y = 30) // 50, 50 when translated to window
         val popupContentSize = IntSize(width = 10, height = 10)
 
-        val subject = ContextMenuPopupPositionProvider(position)
+        val expected = IntOffset(40, 50)
+        val subject =
+            ContextMenuPopupPositionProvider(position) { pos, menuBounds ->
+                assertThat(pos).isEqualTo(position)
+                assertThat(menuBounds.topLeft).isEqualTo(expected)
+                assertThat(menuBounds.size).isEqualTo(popupContentSize)
+            }
+
         val actual =
             subject.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
 
-        assertThat(actual).isEqualTo(IntOffset(40, 50))
+        assertThat(actual).isEqualTo(expected)
     }
-    //endregion ContextMenuPopupPositionProvider Tests
 
-    //region alignPopupAxis Tests
+    // endregion ContextMenuPopupPositionProvider Tests
+
+    // region alignPopupAxis Tests
     @Test
-    fun alignPopupAxis_closeAffinity_popupLargerThanWindow() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 200,
-        closeAffinity = true,
-        expected = 0
-    )
+    fun alignPopupAxis_closeAffinity_popupLargerThanWindow() =
+        alignPopupAxisTest(position = 50, popupLength = 200, closeAffinity = true, expected = 0)
 
     @Test
-    fun alignPopupAxis_closeAffinity_popupFitsNeitherSide() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 75,
-        closeAffinity = true,
-        expected = 25
-    )
+    fun alignPopupAxis_closeAffinity_popupFitsNeitherSide() =
+        alignPopupAxisTest(position = 50, popupLength = 75, closeAffinity = true, expected = 25)
 
     @Test
-    fun alignPopupAxis_closeAffinity_popupFitsCloseSide() = alignPopupAxisTest(
-        position = 90,
-        popupLength = 30,
-        closeAffinity = true,
-        expected = 60
-    )
+    fun alignPopupAxis_closeAffinity_popupFitsCloseSide() =
+        alignPopupAxisTest(position = 90, popupLength = 30, closeAffinity = true, expected = 60)
 
     @Test
-    fun alignPopupAxis_closeAffinity_popupFitsFarSide() = alignPopupAxisTest(
-        position = 20,
-        popupLength = 30,
-        closeAffinity = true,
-        expected = 20
-    )
+    fun alignPopupAxis_closeAffinity_popupFitsFarSide() =
+        alignPopupAxisTest(position = 20, popupLength = 30, closeAffinity = true, expected = 20)
 
     @Test
-    fun alignPopupAxis_closeAffinity_popupFitsEitherSide() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 10,
-        closeAffinity = true,
-        expected = 50
-    )
+    fun alignPopupAxis_closeAffinity_popupFitsEitherSide() =
+        alignPopupAxisTest(position = 50, popupLength = 10, closeAffinity = true, expected = 50)
 
     @Test
-    fun alignPopupAxis_farAffinity_popupLargerThanWindow() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 200,
-        closeAffinity = false,
-        expected = -100
-    )
+    fun alignPopupAxis_farAffinity_popupLargerThanWindow() =
+        alignPopupAxisTest(position = 50, popupLength = 200, closeAffinity = false, expected = -100)
 
     @Test
-    fun alignPopupAxis_farAffinity_popupFitsNeitherSide() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 75,
-        closeAffinity = false,
-        expected = 0
-    )
+    fun alignPopupAxis_farAffinity_popupFitsNeitherSide() =
+        alignPopupAxisTest(position = 50, popupLength = 75, closeAffinity = false, expected = 0)
 
     @Test
-    fun alignPopupAxis_farAffinity_popupFitsCloseSide() = alignPopupAxisTest(
-        position = 90,
-        popupLength = 30,
-        closeAffinity = false,
-        expected = 60
-    )
+    fun alignPopupAxis_farAffinity_popupFitsCloseSide() =
+        alignPopupAxisTest(position = 90, popupLength = 30, closeAffinity = false, expected = 60)
 
     @Test
-    fun alignPopupAxis_farAffinity_popupFitsFarSide() = alignPopupAxisTest(
-        position = 20,
-        popupLength = 30,
-        closeAffinity = false,
-        expected = 20
-    )
+    fun alignPopupAxis_farAffinity_popupFitsFarSide() =
+        alignPopupAxisTest(position = 20, popupLength = 30, closeAffinity = false, expected = 20)
 
     @Test
-    fun alignPopupAxis_farAffinity_popupFitsEitherSide() = alignPopupAxisTest(
-        position = 50,
-        popupLength = 10,
-        closeAffinity = false,
-        expected = 40
-    )
+    fun alignPopupAxis_farAffinity_popupFitsEitherSide() =
+        alignPopupAxisTest(position = 50, popupLength = 10, closeAffinity = false, expected = 40)
 
     private fun alignPopupAxisTest(
         position: Int,
@@ -173,55 +162,60 @@ class ContextMenuPopupPositionProviderTest {
         closeAffinity: Boolean,
         expected: Int
     ) {
-        val actual = alignPopupAxis(
-            position = position,
-            popupLength = popupLength,
-            windowLength = 100,
-            closeAffinity = closeAffinity
-        )
+        val actual =
+            alignPopupAxis(
+                position = position,
+                popupLength = popupLength,
+                windowLength = 100,
+                closeAffinity = closeAffinity
+            )
         assertThat(actual).isEqualTo(expected)
     }
 
     @Test
     fun alignPopupAxis_popupBarelyFitsInAfterSpace() {
-        val actual = alignPopupAxis(
-            position = 74,
-            popupLength = 25,
-            windowLength = 100,
-        )
+        val actual =
+            alignPopupAxis(
+                position = 74,
+                popupLength = 25,
+                windowLength = 100,
+            )
         assertThat(actual).isEqualTo(74)
     }
 
     @Test
     fun alignPopupAxis_popupBarelyDoesNotFitInAfterSpace() {
-        val actual = alignPopupAxis(
-            position = 75,
-            popupLength = 25,
-            windowLength = 100,
-        )
+        val actual =
+            alignPopupAxis(
+                position = 75,
+                popupLength = 25,
+                windowLength = 100,
+            )
         assertThat(actual).isEqualTo(50)
     }
 
     @Test
     fun alignPopupAxis_popupBarelyFitsInBeforeSpace() {
-        val actual = alignPopupAxis(
-            position = 25,
-            popupLength = 25,
-            windowLength = 100,
-            closeAffinity = false
-        )
+        val actual =
+            alignPopupAxis(
+                position = 25,
+                popupLength = 25,
+                windowLength = 100,
+                closeAffinity = false
+            )
         assertThat(actual).isEqualTo(0)
     }
 
     @Test
     fun alignPopupAxis_popupBarelyDoesNotFitInBeforeSpace() {
-        val actual = alignPopupAxis(
-            position = 24,
-            popupLength = 25,
-            windowLength = 100,
-            closeAffinity = false
-        )
+        val actual =
+            alignPopupAxis(
+                position = 24,
+                popupLength = 25,
+                windowLength = 100,
+                closeAffinity = false
+            )
         assertThat(actual).isEqualTo(24)
     }
-    //endregion alignPopupAxis Tests
+    // endregion alignPopupAxis Tests
 }

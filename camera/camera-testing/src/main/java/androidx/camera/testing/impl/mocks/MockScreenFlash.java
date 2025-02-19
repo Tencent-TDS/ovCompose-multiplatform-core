@@ -20,12 +20,12 @@ import android.os.Looper;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCapture.ScreenFlash;
 import androidx.camera.core.ImageCapture.ScreenFlashListener;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * A mock implementations of {@link ScreenFlash} for testing purpose.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class MockScreenFlash implements ScreenFlash {
     /**
      * Represents {@link ImageCapture.ScreenFlash#apply} event.
@@ -69,22 +68,18 @@ public class MockScreenFlash implements ScreenFlash {
     private long mLastApplyExpirationTimeMillis;
 
     @GuardedBy("mLock")
-    @Nullable
-    private Looper mLastApplyThreadLooper;
+    private @Nullable Looper mLastApplyThreadLooper;
 
     @GuardedBy("mLock")
-    @Nullable
-    private ScreenFlashListener mLastApplyListener;
+    private @Nullable ScreenFlashListener mLastApplyListener;
 
     @GuardedBy("mLock")
-    @Nullable
-    private Looper mLastClearThreadLooper;
+    private @Nullable Looper mLastClearThreadLooper;
 
     /**
      * Returns a list of {@link ScreenFlashEvent} in the same order as invoked.
      */
-    @NonNull
-    public List<@ScreenFlashEvent Integer> getScreenFlashEvents() {
+    public @NonNull List<@ScreenFlashEvent Integer> getScreenFlashEvents() {
         synchronized (mLock) {
             return new ArrayList<>(mEventList);
         }
@@ -128,8 +123,7 @@ public class MockScreenFlash implements ScreenFlash {
      * {@link ScreenFlash#apply(long, ScreenFlashListener)} invocation, or null in case of no
      * invocation.
      */
-    @Nullable
-    public Looper getLastApplyThreadLooper() {
+    public @Nullable Looper getLastApplyThreadLooper() {
         synchronized (mLock) {
             return mLastApplyThreadLooper;
         }
@@ -140,8 +134,7 @@ public class MockScreenFlash implements ScreenFlash {
      * {@link ScreenFlash#apply(long, ScreenFlashListener)} invocation, or null in case of no
      * invocation.
      */
-    @Nullable
-    public ScreenFlashListener getLastApplyListener() {
+    public @Nullable ScreenFlashListener getLastApplyListener() {
         synchronized (mLock) {
             return mLastApplyListener;
         }
@@ -151,8 +144,7 @@ public class MockScreenFlash implements ScreenFlash {
      * Gets the {@link Looper} of calling thread for {@link ScreenFlash#clear()} invocation, or
      * null in case of no invocation.
      */
-    @Nullable
-    public Looper getLastClearThreadLooper() {
+    public @Nullable Looper getLastClearThreadLooper() {
         synchronized (mLock) {
             return mLastClearThreadLooper;
         }

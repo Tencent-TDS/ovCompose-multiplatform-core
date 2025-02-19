@@ -23,10 +23,11 @@ import android.annotation.SuppressLint;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.work.Data;
 import androidx.work.WorkInfo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,8 +72,7 @@ public class ParcelableWorkInfo implements Parcelable {
         mWorkInfo = new WorkInfo(id, state, tags, output, progress, runAttemptCount, generation);
     }
 
-    @NonNull
-    public WorkInfo getWorkInfo() {
+    public @NonNull WorkInfo getWorkInfo() {
         return mWorkInfo;
     }
 

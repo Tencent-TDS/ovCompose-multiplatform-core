@@ -16,7 +16,6 @@
 
 package androidx.camera.camera2.pipe.internal
 
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraBackend
 import androidx.camera.camera2.pipe.CameraBackendId
 import androidx.camera.camera2.pipe.CameraBackends
@@ -28,9 +27,9 @@ import androidx.camera.camera2.pipe.core.Log
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
 
 /** Provides utilities for querying cameras and accessing metadata about those cameras. */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @Singleton
 internal class CameraDevicesImpl @Inject constructor(private val cameraBackends: CameraBackends) :
     CameraDevices {
@@ -64,6 +63,9 @@ internal class CameraDevicesImpl @Inject constructor(private val cameraBackends:
     )
     override fun awaitMetadata(camera: CameraId): CameraMetadata =
         checkNotNull(awaitCameraMetadata(camera))
+
+    override fun cameraIdsFlow(cameraBackendId: CameraBackendId?): Flow<List<CameraId>> =
+        getCameraBackend(cameraBackendId).cameraIds
 
     override suspend fun getCameraIds(cameraBackendId: CameraBackendId?): List<CameraId>? {
         val cameraBackend = getCameraBackend(cameraBackendId)

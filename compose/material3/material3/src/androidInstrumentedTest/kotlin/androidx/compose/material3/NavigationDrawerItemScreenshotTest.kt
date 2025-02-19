@@ -40,6 +40,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.screenshot.AndroidXScreenshotTestRule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,11 +50,9 @@ import org.junit.runner.RunWith
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 class NavigationDrawerItemScreenshotTest {
-    @get:Rule
-    val composeTestRule = createComposeRule()
+    @get:Rule val composeTestRule = createComposeRule()
 
-    @get:Rule
-    val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL3)
+    @get:Rule val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_MATERIAL3)
 
     @Test
     fun lightTheme_defaultColors() {
@@ -75,6 +74,7 @@ class NavigationDrawerItemScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun lightTheme_defaultColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -113,6 +113,7 @@ class NavigationDrawerItemScreenshotTest {
     }
 
     @Test
+    @Ignore("b/355413615")
     fun darkTheme_defaultColors_pressed() {
         val interactionSource = MutableInteractionSource()
 
@@ -137,7 +138,7 @@ class NavigationDrawerItemScreenshotTest {
      *
      * @param scope [CoroutineScope] used to interact with [MutableInteractionSource]
      * @param interactionSource the [MutableInteractionSource] used for the first
-     * [NavigationDrawerItem]
+     *   [NavigationDrawerItem]
      * @param interaction the [Interaction] to assert for, or `null` if no [Interaction].
      * @param goldenIdentifier the identifier for the corresponding screenshot
      */
@@ -150,9 +151,7 @@ class NavigationDrawerItemScreenshotTest {
         if (interaction != null) {
             composeTestRule.runOnIdle {
                 // Start ripple
-                scope.launch {
-                    interactionSource.emit(interaction)
-                }
+                scope.launch { interactionSource.emit(interaction) }
             }
 
             composeTestRule.waitForIdle()
@@ -163,7 +162,8 @@ class NavigationDrawerItemScreenshotTest {
         }
 
         // Capture and compare screenshots
-        composeTestRule.onNodeWithTag(Tag)
+        composeTestRule
+            .onNodeWithTag(Tag)
             .captureToImage()
             .assertAgainstGolden(screenshotRule, goldenIdentifier)
     }

@@ -22,14 +22,14 @@ import static org.junit.Assert.assertEquals;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.media.MediaDescriptionCompat;
 
 import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 
 import org.junit.Test;
 
-/** Tests for {@link MediaDescriptionCompat}. */
+/** Tests for {@link android.support.v4.media.MediaDescriptionCompat}. */
+@SuppressWarnings("deprecation")
 @SmallTest
 public class MediaDescriptionCompatTest {
 
@@ -37,18 +37,21 @@ public class MediaDescriptionCompatTest {
     @Test
     public void roundTripViaFrameworkObject_returnsEqualMediaUriAndExtras() {
         Uri mediaUri = Uri.parse("androidx://media/uri");
-        MediaDescriptionCompat originalDescription = new MediaDescriptionCompat.Builder()
-                .setMediaUri(mediaUri)
-                .setExtras(createExtras())
-                .build();
+        android.support.v4.media.MediaDescriptionCompat originalDescription =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaUri(mediaUri)
+                        .setExtras(createExtras())
+                        .build();
 
-        MediaDescriptionCompat restoredDescription = MediaDescriptionCompat.fromMediaDescription(
-                originalDescription.getMediaDescription());
+        android.support.v4.media.MediaDescriptionCompat restoredDescription =
+                android.support.v4.media.MediaDescriptionCompat.fromMediaDescription(
+                        originalDescription.getMediaDescription());
 
         // Test second round-trip as MediaDescriptionCompat keeps an internal reference to a
         // previously restored platform instance.
-        MediaDescriptionCompat restoredDescription2 = MediaDescriptionCompat.fromMediaDescription(
-                restoredDescription.getMediaDescription());
+        android.support.v4.media.MediaDescriptionCompat restoredDescription2 =
+                android.support.v4.media.MediaDescriptionCompat.fromMediaDescription(
+                        restoredDescription.getMediaDescription());
 
         assertEquals(mediaUri, restoredDescription.getMediaUri());
         assertBundleEquals(createExtras(), restoredDescription.getExtras());
@@ -59,10 +62,11 @@ public class MediaDescriptionCompatTest {
     @SdkSuppress(minSdkVersion = 21)
     @Test
     public void getMediaDescription_withMediaUri_doesNotTouchExtras() {
-        MediaDescriptionCompat originalDescription = new MediaDescriptionCompat.Builder()
-                .setMediaUri(Uri.EMPTY)
-                .setExtras(createExtras())
-                .build();
+        android.support.v4.media.MediaDescriptionCompat originalDescription =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaUri(Uri.EMPTY)
+                        .setExtras(createExtras())
+                        .build();
         originalDescription.getMediaDescription();
         assertBundleEquals(createExtras(), originalDescription.getExtras());
     }

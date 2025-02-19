@@ -21,8 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
-import androidx.build.Publish
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,17 +30,17 @@ plugins {
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
-        applicationId "androidx.core.splashscreen.samples"
-        minSdkVersion 21
+        applicationId = "androidx.core.splashscreen.samples"
     }
-    namespace "androidx.core.splashscreen.sample"
+    namespace = "androidx.core.splashscreen.sample"
 }
 
 dependencies {
     implementation(project(":core:core-splashscreen"))
     implementation(project(":core:core-ktx"))
-    implementation(projectOrArtifact(":appcompat:appcompat"))
-    implementation("androidx.annotation:annotation:1.8.0")
-    implementation(projectOrArtifact(":interpolator:interpolator"))
+    implementation(project(":appcompat:appcompat"))
+    implementation("androidx.annotation:annotation:1.8.1")
+    implementation(project(":interpolator:interpolator"))
 }

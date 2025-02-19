@@ -1,15 +1,23 @@
 // Baseline format: 1.0
-InvalidNullConversion: androidx.compose.ui.input.pointer.SuspendingPointerInputFilterKt#pointerInput(androidx.compose.ui.Modifier, Object[], kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?>) parameter #1:
-    Attempted to change parameter from @Nullable to @NonNull: incompatible change for parameter keys in androidx.compose.ui.input.pointer.SuspendingPointerInputFilterKt.pointerInput(androidx.compose.ui.Modifier arg1, Object[] keys, kotlin.jvm.functions.Function2<? super androidx.compose.ui.input.pointer.PointerInputScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block)
+AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#getFocusability():
+    Added method androidx.compose.ui.focus.FocusTargetModifierNode.getFocusability()
+AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#requestFocus():
+    Added method androidx.compose.ui.focus.FocusTargetModifierNode.requestFocus()
+AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#requestFocus(int):
+    Added method androidx.compose.ui.focus.FocusTargetModifierNode.requestFocus(int)
+AddedAbstractMethod: androidx.compose.ui.focus.FocusTargetModifierNode#setFocusability(int):
+    Added method androidx.compose.ui.focus.FocusTargetModifierNode.setFocusability(int)
 
 
-RemovedClass: androidx.compose.ui.draganddrop.DragAndDropKt:
-    Removed class androidx.compose.ui.draganddrop.DragAndDropKt
+BecameUnchecked: androidx.compose.ui.platform.AbstractComposeView#showLayoutBounds:
+    Removed property AbstractComposeView.showLayoutBounds from compatibility checked API surface
 
 
-RemovedMethod: androidx.compose.ui.input.pointer.PointerEventKt#indexOfFirstPressed(int):
-    Removed method androidx.compose.ui.input.pointer.PointerEventKt.indexOfFirstPressed(int)
-RemovedMethod: androidx.compose.ui.input.pointer.PointerEventKt#indexOfLastPressed(int):
-    Removed method androidx.compose.ui.input.pointer.PointerEventKt.indexOfLastPressed(int)
-RemovedMethod: androidx.compose.ui.input.pointer.PointerEventKt#isPressed(int, int):
-    Removed method androidx.compose.ui.input.pointer.PointerEventKt.isPressed(int,int)
+RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionX():
+    Removed method androidx.compose.ui.graphics.TransformOrigin.getPivotFractionX()
+RemovedMethod: androidx.compose.ui.graphics.TransformOrigin#getPivotFractionY():
+    Removed method androidx.compose.ui.graphics.TransformOrigin.getPivotFractionY()
+RemovedMethod: androidx.compose.ui.layout.ScaleFactor#getScaleX():
+    Removed method androidx.compose.ui.layout.ScaleFactor.getScaleX()
+RemovedMethod: androidx.compose.ui.layout.ScaleFactor#getScaleY():
+    Removed method androidx.compose.ui.layout.ScaleFactor.getScaleY()
