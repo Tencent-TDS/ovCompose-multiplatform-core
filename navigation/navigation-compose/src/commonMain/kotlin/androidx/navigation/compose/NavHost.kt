@@ -490,7 +490,8 @@ internal fun NavHost(
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?,
     drawOnBottomEntryDuringAnimation:
-    (@Composable (isBackAnimation: Boolean, progress: Float) -> Unit)?
+    (@Composable (isBackAnimation: Boolean, progress: Float) -> Unit)?,
+    limitBackGestureSwipeEdge: Int?
 ) {
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -525,17 +526,20 @@ internal fun NavHost(
         }
         try {
             backEvent.collect {
-                if (currentBackStack.size > 1) {
+                val goodEdge =
+                    limitBackGestureSwipeEdge == null || it.swipeEdge == limitBackGestureSwipeEdge
+
+                if (currentBackStack.size > 1 && goodEdge) {
                     inPredictiveBack = true
                     progress = it.progress
                 }
             }
-            if (currentBackStack.size > 1) {
+            if (currentBackStack.size > 1 && inPredictiveBack) {
                 inPredictiveBack = false
                 composeNavigator.popBackStack(currentBackStackEntry!!, false)
             }
         } catch (e: CancellationException) {
-            if (currentBackStack.size > 1) {
+            if (currentBackStack.size > 1 && inPredictiveBack) {
                 inPredictiveBack = false
             }
         }

@@ -49,6 +49,7 @@ actual fun NavHost(
         popEnterTransition,
         popExitTransition,
         sizeTransform,
+        null,
         null
     )
 }

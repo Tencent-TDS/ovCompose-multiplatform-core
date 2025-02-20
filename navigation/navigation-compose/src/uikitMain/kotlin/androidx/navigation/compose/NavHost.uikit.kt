@@ -24,16 +24,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackEventCompat
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.internal.DefaultNavTransitions
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun NavHost(
     navController: NavHostController,
@@ -46,15 +51,13 @@ actual fun NavHost(
     popExitTransition: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition),
     sizeTransform: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?
 ) {
-    val iosBlackout = remember(
-        enterTransition, exitTransition, popEnterTransition, popExitTransition, sizeTransform
-    ) {
-        val isDefaultTransition = enterTransition == DefaultNavTransitions.enterTransition &&
-            exitTransition == DefaultNavTransitions.exitTransition &&
-            popEnterTransition == DefaultNavTransitions.popEnterTransition &&
-            popExitTransition == DefaultNavTransitions.popExitTransition &&
-            sizeTransform == DefaultNavTransitions.sizeTransform
+    val isDefaultTransition = enterTransition == DefaultNavTransitions.enterTransition &&
+        exitTransition == DefaultNavTransitions.exitTransition &&
+        popEnterTransition == DefaultNavTransitions.popEnterTransition &&
+        popExitTransition == DefaultNavTransitions.popExitTransition &&
+        sizeTransform == DefaultNavTransitions.sizeTransform
 
+    val iosBlackout = remember(isDefaultTransition) {
         if (isDefaultTransition) {
             @Composable { isBackAnimation: Boolean, progress: Float ->
                 val blackoutFraction = if (isBackAnimation) 1 - progress else progress
@@ -76,6 +79,18 @@ actual fun NavHost(
         }
     }
 
+    val layoutDirection = LocalLayoutDirection.current
+    val backEventEdge = remember(isDefaultTransition, layoutDirection) {
+        if (isDefaultTransition) {
+            when (layoutDirection) {
+                LayoutDirection.Ltr -> BackEventCompat.EDGE_LEFT
+                LayoutDirection.Rtl -> BackEventCompat.EDGE_RIGHT
+            }
+        } else {
+            null
+        }
+    }
+
     NavHost(
         navController,
         graph,
@@ -86,6 +101,7 @@ actual fun NavHost(
         popEnterTransition,
         popExitTransition,
         sizeTransform,
-        drawOnBottomEntryDuringAnimation = iosBlackout
+        drawOnBottomEntryDuringAnimation = iosBlackout,
+        limitBackGestureSwipeEdge = backEventEdge
     )
 }
