@@ -26,18 +26,18 @@ import androidx.compose.ui.input.key.type
 @OptIn(ExperimentalComposeUiApi::class)
 internal class DesktopBackGestureDispatcher: BackGestureDispatcher() {
     fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.type == KeyEventType.KeyUp && event.key == Key.Escape) {
-            onBack()
-            return true
+        if (event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+            return onBack()
         } else {
             return false
         }
     }
 
-    private fun onBack() {
+    private fun onBack(): Boolean {
         activeListener?.let {
             it.onStarted()
             it.onCompleted()
-        }
+            return true
+        } ?: return false
     }
 }
