@@ -48,32 +48,16 @@ internal fun Modifier.cupertinoTextFieldPointer(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = if (enabled) {
-    // TODO switch to ".updateSelectionTouchMode { state.isInTouchMode = it }" as in defaultTextFieldPointer
-    if (isInTouchMode) {
-        val longPressHandlerModifier = getLongPressHandlerModifier(state, offsetMapping, manager)
-        val tapHandlerModifier = getTapHandlerModifier(
-            interactionSource,
-            state,
-            focusRequester,
-            readOnly,
-            offsetMapping,
-            manager
-        )
+): Modifier {
+    val isFocused = state.hasFocus
+    return if (!isFocused) {
+        println("TextField not focused, using default modifier")
         this
-            .then(tapHandlerModifier)
-            .then(longPressHandlerModifier)
-            .pointerHoverIcon(textPointerIcon)
+            .then(defaultTextFieldPointer(manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping))
     } else {
+        println("TextField focused, disabling pointer modifier")
         this
-            .selectionGestureInput(
-                mouseSelectionObserver = manager.mouseSelectionObserver,
-                textDragObserver = manager.touchSelectionObserver,
-            )
-            .pointerHoverIcon(textPointerIcon)
     }
-} else {
-    this
 }
 
 @Composable

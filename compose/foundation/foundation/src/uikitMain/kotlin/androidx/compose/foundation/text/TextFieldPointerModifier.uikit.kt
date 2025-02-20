@@ -32,7 +32,7 @@ internal actual fun Modifier.textFieldPointer(
     focusRequester: FocusRequester,
     readOnly: Boolean,
     offsetMapping: OffsetMapping
-): Modifier = Modifier.defaultTextFieldPointer(
+): Modifier = Modifier.cupertinoTextFieldPointer(
     manager,
     enabled,
     interactionSource,
