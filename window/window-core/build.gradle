@@ -84,4 +84,5 @@ androidx {
     description = "WindowManager Core Library."
     legacyDisableKotlinStrictApiMode = true
     kotlinTarget = KotlinTarget.KOTLIN_1_9
+    samples(project(":window:window-core-samples"))
 }

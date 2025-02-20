@@ -1149,6 +1149,7 @@ includeProject(":window:integration-tests:macrobenchmark", [BuildType.MAIN, Buil
 includeProject(":window:sidecar:sidecar", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.WINDOW])
 includeProject(":window:window-java", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.WINDOW])
 includeProject(":window:window-core", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.INFRAROGUE, BuildType.KMP, BuildType.WINDOW])
+includeProject(":window:window-core-samples", "window/window-core/samples", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.INFRAROGUE, BuildType.KMP, BuildType.WINDOW])
 includeProject(":window:window-rxjava2", [BuildType.MAIN, BuildType.WINDOW])
 includeProject(":window:window-rxjava3", [BuildType.MAIN, BuildType.WINDOW])
 includeProject(":window:window-demos:demo", [BuildType.MAIN, BuildType.COMPOSE, BuildType.FLAN, BuildType.WINDOW])
