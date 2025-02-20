@@ -54,9 +54,9 @@ interface PlatformContext {
     val windowInfo: WindowInfo
 
     /**
-     * The value that will be provided to [LocalScreenReader] by default.
+     * The value that will be provided to [LocalPlatformScreenReader] by default.
      */
-    val screenReader: ScreenReader
+    val screenReader: PlatformScreenReader
 
     /**
      * Indicates if the compose view is positioned in a transparent window.
@@ -187,7 +187,7 @@ interface PlatformContext {
             }
             override val inputModeManager: InputModeManager = DefaultInputModeManager()
 
-            override val screenReader: ScreenReader = object : ScreenReader {
+            override val screenReader: PlatformScreenReader = object : PlatformScreenReader {
                 override val isActive: Boolean = false
             }
         }

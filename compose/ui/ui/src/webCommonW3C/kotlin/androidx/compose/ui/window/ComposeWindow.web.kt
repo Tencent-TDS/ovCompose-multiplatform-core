@@ -43,7 +43,6 @@ import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformDragAndDropManager
-import androidx.compose.ui.platform.ScreenReader
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.WindowInfoImpl
@@ -180,12 +179,8 @@ internal class ComposeWindow(
 
     private var keyboardModeState: KeyboardModeState = KeyboardModeState.Hardware
 
-    private val platformContext: PlatformContext = object : PlatformContext {
+    private val platformContext: PlatformContext = object : PlatformContext by PlatformContext.Empty {
         override val windowInfo get() = _windowInfo
-
-        override val screenReader: ScreenReader get() = object : ScreenReader {
-            override val isActive: Boolean = false
-        }
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 

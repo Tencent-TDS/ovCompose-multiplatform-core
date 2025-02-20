@@ -38,7 +38,7 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
-import androidx.compose.ui.platform.LocalScreenReader
+import androidx.compose.ui.platform.LocalPlatformScreenReader
 import androidx.compose.ui.util.trace
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
@@ -148,7 +148,7 @@ internal abstract class BaseComposeScene(
                     @Suppress("DEPRECATION")
                     LocalComposeScene provides this,
                     LocalComposeSceneContext provides composeSceneContext,
-                    LocalScreenReader provides composeSceneContext.platformContext.screenReader,
+                    LocalPlatformScreenReader provides composeSceneContext.platformContext.screenReader,
                     content = content
                 )
             }

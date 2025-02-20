@@ -16,12 +16,12 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.InternalComposeUiApi
 
 /**
  * Provides information about Screen Reader state
  */
-@ExperimentalComposeUiApi
-interface ScreenReader {
+@InternalComposeUiApi
+interface PlatformScreenReader {
     val isActive: Boolean
 }

@@ -49,10 +49,10 @@ import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.PlatformScreenReader
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.PlatformWindowContext
-import androidx.compose.ui.platform.ScreenReader
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
@@ -187,7 +187,7 @@ internal class ComposeSceneMediator(
 
     private var keyboardOverlapHeight by mutableStateOf(0.dp)
     private var animateKeyboardOffsetChanges by mutableStateOf(false)
-    private var screenReaderImpl = object : ScreenReader {
+    private var platformScreenReader = object : PlatformScreenReader {
         override var isActive by mutableStateOf(false)
     }
 
@@ -288,7 +288,7 @@ internal class ComposeSceneMediator(
                 down || up
             },
             onKeyboardPresses = ::onKeyboardPresses,
-            onScreenReaderActive = { screenReaderImpl.isActive = it }
+            onScreenReaderActive = { platformScreenReader.isActive = it }
         )
     }
 
@@ -580,7 +580,7 @@ internal class ComposeSceneMediator(
 
     private inner class PlatformContextImpl : PlatformContext {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
-        override val screenReader: ScreenReader get() = screenReaderImpl
+        override val screenReader: PlatformScreenReader get() = platformScreenReader
 
         override fun convertLocalToWindowPosition(localPosition: Offset): Offset =
             windowContext.convertLocalToWindowPosition(view, localPosition)
