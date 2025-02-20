@@ -14,8 +14,15 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -24,21 +31,13 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-BundleInsideHelper.forInsideAar(
-        project,
-        /* from = */ "com.google.protobuf",
-        /* to =   */ "androidx.health.platform.client.proto",
-        // proto-lite dependency includes .proto files, which are not used and would clash if
-        // users also use proto library directly
-        /* dropResourcesWithSuffix = */ ".proto"
-)
-
 dependencies {
+    api(libs.jspecify)
     api(libs.kotlinStdlib)
     // Add dependencies here
     api("androidx.activity:activity:1.2.0")
-    api("androidx.annotation:annotation:1.2.0")
-    bundleInside(project(":health:connect:connect-client-proto"))
+    api("androidx.annotation:annotation:1.8.1")
+    implementation(project(":health:connect:connect-client-proto"))
     implementation(libs.guavaListenableFuture)
     implementation(libs.guavaAndroid)
     implementation(libs.kotlinCoroutinesAndroid)
@@ -65,28 +64,29 @@ dependencies {
     androidTestImplementation(libs.kotlinTest)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
-
-    samples(project(":health:connect:connect-client-samples"))
+    testImplementation(libs.guavaTestlib)
 }
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
     buildFeatures {
         aidl = true
     }
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.health.connect.client"
+    namespace = "androidx.health.connect.client"
+    compileSdk = 35
 }
 
 androidx {
     name = "Health Connect Client"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "read or write user's health and fitness records."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    samples(project(":health:connect:connect-client-samples"))
 }

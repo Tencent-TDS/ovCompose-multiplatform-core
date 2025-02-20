@@ -20,16 +20,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.os.Parcel;
-import android.support.v4.media.MediaBrowserCompat.MediaItem;
-import android.support.v4.media.MediaDescriptionCompat;
 
 import androidx.test.filters.SmallTest;
 
 import org.junit.Test;
 
-/**
- * Test {@link MediaItem}.
- */
+/** Test {@link android.support.v4.media.MediaBrowserCompat.MediaItem}. */
+@SuppressWarnings("deprecation")
 public class MediaItemTest {
     private static final String DESCRIPTION = "test_description";
     private static final String MEDIA_ID = "test_media_id";
@@ -39,18 +36,23 @@ public class MediaItemTest {
     @Test
     @SmallTest
     public void testBrowsableMediaItem() {
-        MediaDescriptionCompat description =
-                new MediaDescriptionCompat.Builder()
+        android.support.v4.media.MediaDescriptionCompat description =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
                         .setDescription(DESCRIPTION)
                         .setMediaId(MEDIA_ID)
                         .setTitle(TITLE)
                         .setSubtitle(SUBTITLE)
                         .build();
-        MediaItem mediaItem = new MediaItem(description, MediaItem.FLAG_BROWSABLE);
+        android.support.v4.media.MediaBrowserCompat.MediaItem mediaItem =
+                new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                        description,
+                        android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_BROWSABLE);
 
         assertEquals(description.toString(), mediaItem.getDescription().toString());
         assertEquals(MEDIA_ID, mediaItem.getMediaId());
-        assertEquals(MediaItem.FLAG_BROWSABLE, mediaItem.getFlags());
+        assertEquals(
+                android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_BROWSABLE,
+                mediaItem.getFlags());
         assertTrue(mediaItem.isBrowsable());
         assertFalse(mediaItem.isPlayable());
         assertEquals(0, mediaItem.describeContents());
@@ -62,24 +64,32 @@ public class MediaItemTest {
         assertEquals(mediaItem.getFlags(), p.readInt());
         assertEquals(
                 description.toString(),
-                MediaDescriptionCompat.CREATOR.createFromParcel(p).toString());
+                android.support.v4.media.MediaDescriptionCompat.CREATOR
+                        .createFromParcel(p)
+                        .toString());
         p.recycle();
     }
 
     @Test
     @SmallTest
     public void testPlayableMediaItem() {
-        MediaDescriptionCompat description = new MediaDescriptionCompat.Builder()
-                .setDescription(DESCRIPTION)
-                .setMediaId(MEDIA_ID)
-                .setTitle(TITLE)
-                .setSubtitle(SUBTITLE)
-                .build();
-        MediaItem mediaItem = new MediaItem(description, MediaItem.FLAG_PLAYABLE);
+        android.support.v4.media.MediaDescriptionCompat description =
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setDescription(DESCRIPTION)
+                        .setMediaId(MEDIA_ID)
+                        .setTitle(TITLE)
+                        .setSubtitle(SUBTITLE)
+                        .build();
+        android.support.v4.media.MediaBrowserCompat.MediaItem mediaItem =
+                new android.support.v4.media.MediaBrowserCompat.MediaItem(
+                        description,
+                        android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE);
 
         assertEquals(description.toString(), mediaItem.getDescription().toString());
         assertEquals(MEDIA_ID, mediaItem.getMediaId());
-        assertEquals(MediaItem.FLAG_PLAYABLE, mediaItem.getFlags());
+        assertEquals(
+                android.support.v4.media.MediaBrowserCompat.MediaItem.FLAG_PLAYABLE,
+                mediaItem.getFlags());
         assertFalse(mediaItem.isBrowsable());
         assertTrue(mediaItem.isPlayable());
         assertEquals(0, mediaItem.describeContents());
@@ -91,7 +101,9 @@ public class MediaItemTest {
         assertEquals(mediaItem.getFlags(), p.readInt());
         assertEquals(
                 description.toString(),
-                MediaDescriptionCompat.CREATOR.createFromParcel(p).toString());
+                android.support.v4.media.MediaDescriptionCompat.CREATOR
+                        .createFromParcel(p)
+                        .toString());
         p.recycle();
     }
 }

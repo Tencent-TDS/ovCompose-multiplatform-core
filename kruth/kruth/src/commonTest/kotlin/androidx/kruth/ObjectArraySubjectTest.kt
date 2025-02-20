@@ -18,7 +18,6 @@ package androidx.kruth
 
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
-import kotlin.test.fail
 
 class ObjectArraySubjectTest {
 
@@ -48,9 +47,7 @@ class ObjectArraySubjectTest {
 
     @Test
     fun hasLengthFail() {
-        assertFailsWith<AssertionError> {
-            assertThat(arrayOf("A", 5L)).hasLength(1)
-        }
+        assertFailsWith<AssertionError> { assertThat(arrayOf("A", 5L)).hasLength(1) }
     }
 
     @Test
@@ -62,12 +59,7 @@ class ObjectArraySubjectTest {
 
     @Test
     fun hasLengthNegative() {
-        try {
-            assertThat(arrayOf(2, 5)).hasLength(-1)
-            fail("Should have failed")
-        } catch (expected: IllegalArgumentException) {
-            // no-op
-        }
+        assertFailsWith<IllegalArgumentException> { assertThat(arrayOf(2, 5)).hasLength(-1) }
     }
 
     @Test
@@ -78,9 +70,7 @@ class ObjectArraySubjectTest {
 
     @Test
     fun isEmptyFail() {
-        assertFailsWith<AssertionError> {
-            assertThat(arrayOf("A", 5L)).isEmpty()
-        }
+        assertFailsWith<AssertionError> { assertThat(arrayOf("A", 5L)).isEmpty() }
     }
 
     @Test
@@ -91,16 +81,12 @@ class ObjectArraySubjectTest {
 
     @Test
     fun isNotEmptyFail() {
-        assertFailsWith<AssertionError> {
-            assertThat(emptyArray<Any>()).isNotEmpty()
-        }
+        assertFailsWith<AssertionError> { assertThat(emptyArray<Any>()).isNotEmpty() }
     }
 
     @Test
     fun isEqualTo_fail_unequalOrdering() {
-        assertFailsWith<AssertionError> {
-            assertThat(arrayOf("A", 5L)).isEqualTo(arrayOf(5L, "A"))
-        }
+        assertFailsWith<AssertionError> { assertThat(arrayOf("A", 5L)).isEqualTo(arrayOf(5L, "A")) }
     }
 
     @Test
@@ -129,9 +115,7 @@ class ObjectArraySubjectTest {
 
     @Test
     fun isEqualTo_fail_notAnArray() {
-        assertFailsWith<AssertionError> {
-            assertThat(arrayOf("A", 5L)).isEqualTo(Any())
-        }
+        assertFailsWith<AssertionError> { assertThat(arrayOf("A", 5L)).isEqualTo(Any()) }
     }
 
     @Test
@@ -173,17 +157,13 @@ class ObjectArraySubjectTest {
     @Test
     fun isNotEqualTo_failSame() {
         val same = arrayOf("A", 5L)
-        assertFailsWith<AssertionError> {
-            assertThat(same).isNotEqualTo(same)
-        }
+        assertFailsWith<AssertionError> { assertThat(same).isNotEqualTo(same) }
     }
 
     @Test
     fun isNotEqualTo_failSameMultiDimensional() {
         val same = arrayOf(arrayOf("A"), arrayOf(5L))
-        assertFailsWith<AssertionError> {
-            assertThat(same).isNotEqualTo(same)
-        }
+        assertFailsWith<AssertionError> { assertThat(same).isNotEqualTo(same) }
     }
 
     @Test
@@ -206,16 +186,13 @@ class ObjectArraySubjectTest {
 
     @Test
     fun stringArrayIsEqualTo_fail_unequalLength() {
-        assertFailsWith<AssertionError> {
-            assertThat(arrayOf("A", "B")).isEqualTo(arrayOf("B"))
-        }
+        assertFailsWith<AssertionError> { assertThat(arrayOf("A", "B")).isEqualTo(arrayOf("B")) }
     }
 
     @Test
     fun stringArrayIsEqualTo_fail_unequalLengthMultiDimensional() {
         assertFailsWith<AssertionError> {
-            assertThat(arrayOf(arrayOf("A"), arrayOf("B")))
-                .isEqualTo(arrayOf(arrayOf("A")))
+            assertThat(arrayOf(arrayOf("A"), arrayOf("B"))).isEqualTo(arrayOf(arrayOf("A")))
         }
     }
 
@@ -237,8 +214,7 @@ class ObjectArraySubjectTest {
     @Test
     fun setArrayIsEqualTo_fail_unequalOrdering() {
         assertFailsWith<AssertionError> {
-            assertThat(arrayOf(setOf("A"), setOf("B")))
-                .isEqualTo(arrayOf(setOf("B"), setOf("A")))
+            assertThat(arrayOf(setOf("A"), setOf("B"))).isEqualTo(arrayOf(setOf("B"), setOf("A")))
         }
     }
 

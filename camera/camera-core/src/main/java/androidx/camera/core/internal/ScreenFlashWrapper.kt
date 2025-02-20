@@ -17,88 +17,73 @@
 package androidx.camera.core.internal
 
 import androidx.annotation.GuardedBy
-import androidx.annotation.RequiresApi
 import androidx.camera.core.ImageCapture.ScreenFlash
-import androidx.camera.core.ImageCapture.ScreenFlashUiCompleter
+import androidx.camera.core.ImageCapture.ScreenFlashListener
 import androidx.camera.core.Logger
 
 /**
- * Wrapper class around [ScreenFlash] to save the [ScreenFlashUiCompleter] passed to app.
+ * Wrapper class around [ScreenFlash] to save the [ScreenFlashListener] passed to app.
  *
  * This allows us to clean up properly in case a capture is cancelled earlier (e.g. ImageCapture is
  * unbound after [apply] is invoked but [clear] is not).
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-class ScreenFlashWrapper private constructor(
-    private val screenFlash: ScreenFlash?
-) : ScreenFlash {
+internal class ScreenFlashWrapper private constructor(private val screenFlash: ScreenFlash?) :
+    ScreenFlash {
     private val lock = Object()
 
-    @GuardedBy("lock")
-    private var isClearScreenFlashPending: Boolean = false
-    @GuardedBy("lock")
-    private var pendingCompleter: ScreenFlashUiCompleter? = null
+    @GuardedBy("lock") private var isClearScreenFlashPending: Boolean = false
+    @GuardedBy("lock") private var pendingListener: ScreenFlashListener? = null
 
     companion object {
         private const val TAG = "ScreenFlashWrapper"
 
-        @JvmStatic
-        fun from(screenFlash: ScreenFlash?) =
-            ScreenFlashWrapper(screenFlash)
+        @JvmStatic fun from(screenFlash: ScreenFlash?) = ScreenFlashWrapper(screenFlash)
     }
 
-    override fun apply(screenFlashUiCompleter: ScreenFlashUiCompleter) {
+    override fun apply(expirationTimeMillis: Long, screenFlashListener: ScreenFlashListener) {
         synchronized(lock) {
             isClearScreenFlashPending = true
-            pendingCompleter = screenFlashUiCompleter
+            pendingListener = screenFlashListener
         }
 
-        screenFlash?.apply(object : ScreenFlashUiCompleter {
-            override fun complete() {
-                synchronized(lock) {
-                    if (pendingCompleter == null) {
-                        Logger.w(TAG, "apply: pendingCompleter is null!")
-                    }
-                    completePendingScreenFlashUiCompleter()
+        screenFlash?.apply(expirationTimeMillis) {
+            synchronized(lock) {
+                if (pendingListener == null) {
+                    Logger.w(TAG, "apply: pendingListener is null!")
                 }
+                completePendingScreenFlashListener()
             }
-
-            override fun getExpirationTimeMillis() = screenFlashUiCompleter.expirationTimeMillis
-        }) ?: run {
-            Logger.e(TAG, "apply: screenFlash is null!")
-            // Complete immediately in case this error case is invoked by some bug
-            completePendingScreenFlashUiCompleter()
         }
+            ?: run {
+                Logger.e(TAG, "apply: screenFlash is null!")
+                // Complete immediately in case this error case is invoked by some bug
+                completePendingScreenFlashListener()
+            }
     }
 
     override fun clear() {
         completePendingScreenFlashClear()
     }
 
-    /**
-     * Gets the base [ScreenFlash] where the interface methods are delegated to.
-     */
+    /** Gets the base [ScreenFlash] where the interface methods are delegated to. */
     fun getBaseScreenFlash(): ScreenFlash? = screenFlash
 
-    /**
-     * Completes the pending [ScreenFlashUiCompleter], if any.
-     */
-    private fun completePendingScreenFlashUiCompleter() {
+    /** Completes the pending [ScreenFlashListener], if any. */
+    private fun completePendingScreenFlashListener() {
         synchronized(lock) {
-            pendingCompleter?.complete()
-            pendingCompleter = null
+            pendingListener?.onCompleted()
+            pendingListener = null
         }
     }
 
-    /**
-     * Completes pending [ScreenFlash.clear] invocation, if any.
-     */
+    /** Completes pending [ScreenFlash.clear] invocation, if any. */
     private fun completePendingScreenFlashClear() {
         synchronized(lock) {
             if (isClearScreenFlashPending) {
-                screenFlash?.clear() ?: run {
-                    Logger.e(TAG, "completePendingScreenFlashClear: screenFlash is null!")
-                }
+                screenFlash?.clear()
+                    ?: run {
+                        Logger.e(TAG, "completePendingScreenFlashClear: screenFlash is null!")
+                    }
             } else {
                 Logger.w(TAG, "completePendingScreenFlashClear: none pending!")
             }
@@ -106,11 +91,9 @@ class ScreenFlashWrapper private constructor(
         }
     }
 
-    /**
-     * Completes all pending operations.
-     */
+    /** Completes all pending operations. */
     fun completePendingTasks() {
-        completePendingScreenFlashUiCompleter()
+        completePendingScreenFlashListener()
         completePendingScreenFlashClear()
     }
 }

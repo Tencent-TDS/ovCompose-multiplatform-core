@@ -35,6 +35,7 @@ import androidx.test.espresso.IdlingResource
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -65,10 +66,12 @@ class TimeOutTest {
     fun restoreTimeOutPolicies() {
         IdlingRegistry.getInstance().unregister(InfiniteResource)
         IdlingPolicies.setIdlingResourceTimeout(
-            idlingResourcePolicy!!.idleTimeout, idlingResourcePolicy!!.idleTimeoutUnit
+            idlingResourcePolicy!!.idleTimeout,
+            idlingResourcePolicy!!.idleTimeoutUnit
         )
         IdlingPolicies.setMasterPolicyTimeout(
-            masterPolicy!!.idleTimeout, masterPolicy!!.idleTimeoutUnit
+            masterPolicy!!.idleTimeout,
+            masterPolicy!!.idleTimeoutUnit
         )
     }
 
@@ -77,9 +80,7 @@ class TimeOutTest {
         Box {
             val infiniteCounter = remember { mutableStateOf(0) }
             Text("Hello ${infiniteCounter.value}")
-            SideEffect {
-                infiniteCounter.value += 1
-            }
+            SideEffect { infiniteCounter.value += 1 }
         }
     }
 
@@ -88,9 +89,7 @@ class TimeOutTest {
         IdlingPolicies.setIdlingResourceTimeout(300, TimeUnit.MILLISECONDS)
 
         expectError<ComposeNotIdleException>(expectedMessage = idlingResourceTimeOut) {
-            setContent {
-                InfiniteRecompositionCase()
-            }
+            setContent { InfiniteRecompositionCase() }
         }
     }
 
@@ -99,9 +98,7 @@ class TimeOutTest {
         IdlingPolicies.setMasterPolicyTimeout(300, TimeUnit.MILLISECONDS)
 
         expectError<ComposeNotIdleException>(expectedMessage = globalTimeOut) {
-            setContent {
-                InfiniteRecompositionCase()
-            }
+            setContent { InfiniteRecompositionCase() }
         }
     }
 
@@ -135,9 +132,7 @@ class TimeOutTest {
         IdlingPolicies.setMasterPolicyTimeout(300, TimeUnit.MILLISECONDS)
         IdlingRegistry.getInstance().register(InfiniteResource)
 
-        expectError<AppNotIdleException> {
-            setContent { }
-        }
+        expectError<AppNotIdleException> { setContent {} }
     }
 
     @Test(timeout = 10_000)
@@ -146,6 +141,7 @@ class TimeOutTest {
         registerIdlingResource(
             object : androidx.compose.ui.test.IdlingResource {
                 override val isIdleNow: Boolean = false
+
                 override fun getDiagnosticMessageIfBusy(): String {
                     return "Never IDLE"
                 }
@@ -161,8 +157,8 @@ class TimeOutTest {
 
     /**
      * This test is here to guarantee that even if we crash on infinite recompositions during
-     * setContent, the composition is disposed and won't keep running in the background.
-     * This verifies that our tests run in isolation.
+     * setContent, the composition is disposed and won't keep running in the background. This
+     * verifies that our tests run in isolation.
      */
     @Test(timeout = 10_000)
     fun timeout_testIsolation_check() {
@@ -170,18 +166,19 @@ class TimeOutTest {
 
         // Test 1: set an infinite composition and expect it to crash
         expectError<ComposeNotIdleException> {
-            runComposeUiTest {
-                setContent {
-                    InfiniteRecompositionCase()
-                }
+            try {
+                runComposeUiTest { setContent { InfiniteRecompositionCase() } }
+            } catch (e: Throwable) {
+                // Since runComposeUiTest now calls kotlinx.coroutines.test.runTest,
+                // the outer exception is UncompletedCoroutinesError
+                assertEquals(e.javaClass.simpleName, "UncompletedCoroutinesError")
+                throw e.suppressed.first()
             }
         }
 
         // Test 2: normal composition, should not time out
         runComposeUiTest {
-            setContent {
-                Text("Hello")
-            }
+            setContent { Text("Hello") }
             // No timeout should happen this time
             onNodeWithText("Hello").assertExists()
         }

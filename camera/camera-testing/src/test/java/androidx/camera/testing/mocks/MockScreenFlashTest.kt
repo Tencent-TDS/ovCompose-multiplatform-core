@@ -18,11 +18,13 @@ package androidx.camera.testing.mocks
 
 import android.annotation.SuppressLint
 import android.os.Build
-import androidx.camera.core.ImageCapture.ScreenFlashUiCompleter
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCapture.ScreenFlashListener
 import androidx.camera.testing.impl.mocks.MockScreenFlash
 import androidx.camera.testing.impl.mocks.MockScreenFlash.APPLY
 import androidx.camera.testing.impl.mocks.MockScreenFlash.CLEAR
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.TimeUnit
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,14 +36,8 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class MockScreenFlashTest {
-    private val dummyCompleter = object : ScreenFlashUiCompleter {
-        override fun complete() {
-            // no-op
-        }
-
-        override fun getExpirationTimeMillis(): Long {
-            return 0
-        }
+    private val dummyListener = ScreenFlashListener {
+        // no-op
     }
 
     private lateinit var mMockScreenFlash: MockScreenFlash
@@ -54,29 +50,32 @@ class MockScreenFlashTest {
     @Test
     fun getScreenFlashEvents_invocationsRecordedExactlyInSameOrder() {
         mMockScreenFlash.clear()
-        mMockScreenFlash.apply(dummyCompleter)
+        mMockScreenFlash.apply(
+            System.currentTimeMillis() +
+                TimeUnit.SECONDS.toMillis(ImageCapture.SCREEN_FLASH_UI_APPLY_TIMEOUT_SECONDS),
+            dummyListener,
+        )
         mMockScreenFlash.clear()
 
-        assertThat(mMockScreenFlash.screenFlashEvents).isEqualTo(listOf(
-            CLEAR,
-            APPLY,
-            CLEAR,
-        ))
+        assertThat(mMockScreenFlash.screenFlashEvents)
+            .isEqualTo(
+                listOf(
+                    CLEAR,
+                    APPLY,
+                    CLEAR,
+                )
+            )
     }
 
     @Test
     fun awaitApply_listenerCompletedAutomaticallyByDefault() {
         var isCompleted = false
-        val completer = object : ScreenFlashUiCompleter {
-            override fun complete() {
-                isCompleted = true
-            }
-
-            override fun getExpirationTimeMillis(): Long {
-                return 0
-            }
-        }
-        mMockScreenFlash.apply(completer)
+        val listener = ScreenFlashListener { isCompleted = true }
+        mMockScreenFlash.apply(
+            System.currentTimeMillis() +
+                TimeUnit.SECONDS.toMillis(ImageCapture.SCREEN_FLASH_UI_APPLY_TIMEOUT_SECONDS),
+            listener,
+        )
 
         assertThat(isCompleted).isTrue()
     }
@@ -95,16 +94,21 @@ class MockScreenFlashTest {
     @SuppressLint("BanThreadSleep")
     @Test
     fun awaitClear_returnsTrueWhenClearInvokedLater() {
-        Thread({
-            try {
-                // ensure clearScreenFlashUi is not invoked immediately, but after some delay and
-                // from another thread
-                Thread.sleep(100)
-            } catch (e: InterruptedException) {
-                throw RuntimeException(e)
-            }
-            mMockScreenFlash.clear()
-        }, "test thread").start()
+        Thread(
+                {
+                    try {
+                        // ensure clearScreenFlashUi is not invoked immediately, but after some
+                        // delay and
+                        // from another thread
+                        Thread.sleep(100)
+                    } catch (e: InterruptedException) {
+                        throw RuntimeException(e)
+                    }
+                    mMockScreenFlash.clear()
+                },
+                "test thread"
+            )
+            .start()
 
         assertThat(mMockScreenFlash.awaitClear(3000)).isTrue()
     }

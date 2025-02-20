@@ -164,9 +164,33 @@ public class MySdkStubDelegate internal constructor(
     transactionCallback.onCancellable(cancellationSignal)
   }
 
+  public override
+      fun returnSharedUiInterface(transactionCallback: IMySharedUiInterfaceTransactionCallback) {
+    val job = coroutineScope.launch {
+      try {
+        val result = delegate.returnSharedUiInterface()
+        transactionCallback.onSuccess(IMySharedUiInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable(result.toCoreLibInfo(),
+            MySharedUiInterfaceStubDelegate(result, context)))
+      }
+      catch (t: Throwable) {
+        transactionCallback.onFailure(toThrowableParcel(t))
+      }
+    }
+    val cancellationSignal = TransportCancellationCallback() { job.cancel() }
+    transactionCallback.onCancellable(cancellationSignal)
+  }
+
   public override fun acceptUiInterfaceParam(input: IMyUiInterfaceCoreLibInfoAndBinderWrapper) {
     coroutineScope.launch {
       delegate.acceptUiInterfaceParam((input.binder as MyUiInterfaceStubDelegate).delegate)
+    }
+  }
+
+  public override
+      fun acceptSharedUiInterfaceParam(input: IMySharedUiInterfaceCoreLibInfoAndBinderWrapper) {
+    coroutineScope.launch {
+      delegate.acceptSharedUiInterfaceParam((input.binder as
+          MySharedUiInterfaceStubDelegate).delegate)
     }
   }
 

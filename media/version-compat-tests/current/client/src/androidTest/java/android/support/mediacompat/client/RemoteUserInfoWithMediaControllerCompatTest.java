@@ -35,12 +35,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaDescriptionCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -59,9 +53,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Test of {@link MediaSessionCompat#getCurrentControllerInfo()} with all
- * {@link MediaControllerCompat} methods.
+ * Test of {@link android.support.v4.media.session.MediaSessionCompat#getCurrentControllerInfo()}
+ * with all {@link android.support.v4.media.session.MediaControllerCompat} methods.
  */
+@SuppressWarnings("deprecation")
 @FlakyTest(bugId = 206969269)
 @RunWith(AndroidJUnit4.class)
 @LargeTest
@@ -74,8 +69,8 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
     private static final long TIMEOUT_MS = 1_000;
 
     private String mServiceVersion;
-    private MediaBrowserCompat mMediaBrowser;
-    private MediaControllerCompat mMediaController;
+    private android.support.v4.media.MediaBrowserCompat mMediaBrowser;
+    private android.support.v4.media.session.MediaControllerCompat mMediaController;
     private ControllerCallback mMediaControllerCallback;
 
     @SuppressWarnings("deprecation")
@@ -85,43 +80,54 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
         Log.d(TAG, "Service app version: " + mServiceVersion);
         Context context = getInstrumentation().getContext();
         CountDownLatch connectionLatch = new CountDownLatch(1);
-        AtomicReference<MediaSessionCompat.Token> tokenRef = new AtomicReference<>();
-        getInstrumentation().runOnMainSync(() -> {
-            if (Looper.getMainLooper() == null) {
-                Looper.prepareMainLooper();
-            }
+        AtomicReference<android.support.v4.media.session.MediaSessionCompat.Token> tokenRef =
+                new AtomicReference<>();
+        getInstrumentation()
+                .runOnMainSync(
+                        () -> {
+                            if (Looper.getMainLooper() == null) {
+                                Looper.prepareMainLooper();
+                            }
 
-            MediaBrowserCompat.ConnectionCallback connectionCallback =
-                    new MediaBrowserCompat.ConnectionCallback() {
-                @Override
-                public void onConnected() {
-                    tokenRef.set(mMediaBrowser.getSessionToken());
-                    connectionLatch.countDown();
-                }
+                            android.support.v4.media.MediaBrowserCompat.ConnectionCallback
+                                    connectionCallback =
+                                            new android.support.v4.media.MediaBrowserCompat
+                                                    .ConnectionCallback() {
+                                                @Override
+                                                public void onConnected() {
+                                                    tokenRef.set(mMediaBrowser.getSessionToken());
+                                                    connectionLatch.countDown();
+                                                }
 
-                @Override
-                public void onConnectionSuspended() {
-                    connectionLatch.countDown();
-                }
+                                                @Override
+                                                public void onConnectionSuspended() {
+                                                    connectionLatch.countDown();
+                                                }
 
-                @Override
-                public void onConnectionFailed() {
-                    connectionLatch.countDown();
-                }
-            };
-            Bundle rootHints = new Bundle();
-            rootHints.putString(ROOT_HINT_EXTRA_KEY_CALLER_PKG, context.getPackageName());
-            rootHints.putInt(ROOT_HINT_EXTRA_KEY_CALLER_UID, Process.myUid());
-            mMediaBrowser = new MediaBrowserCompat(getInstrumentation().getTargetContext(),
-                    TEST_BROWSER_SERVICE, connectionCallback, rootHints);
-            mMediaBrowser.connect();
-        });
+                                                @Override
+                                                public void onConnectionFailed() {
+                                                    connectionLatch.countDown();
+                                                }
+                                            };
+                            Bundle rootHints = new Bundle();
+                            rootHints.putString(
+                                    ROOT_HINT_EXTRA_KEY_CALLER_PKG, context.getPackageName());
+                            rootHints.putInt(ROOT_HINT_EXTRA_KEY_CALLER_UID, Process.myUid());
+                            mMediaBrowser =
+                                    new android.support.v4.media.MediaBrowserCompat(
+                                            getInstrumentation().getTargetContext(),
+                                            TEST_BROWSER_SERVICE,
+                                            connectionCallback,
+                                            rootHints);
+                            mMediaBrowser.connect();
+                        });
         assertTrue("Failed to connect to service",
                 connectionLatch.await(CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
-        MediaSessionCompat.Token token = tokenRef.get();
+        android.support.v4.media.session.MediaSessionCompat.Token token = tokenRef.get();
         assertNotNull(token);
-        mMediaController = new MediaControllerCompat(context, token);
+        mMediaController =
+                new android.support.v4.media.session.MediaControllerCompat(context, token);
         mMediaControllerCallback = new ControllerCallback();
         mMediaController.registerCallback(
                 mMediaControllerCallback,
@@ -260,8 +266,10 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
     @Test
     public void testSetRating() throws InterruptedException {
         mMediaControllerCallback.setExpectedCallbackMethodName("onSetRating");
-        mMediaController.getTransportControls().setRating(
-                RatingCompat.newHeartRating(/* hasHeart= */ true));
+        mMediaController
+                .getTransportControls()
+                .setRating(
+                        android.support.v4.media.RatingCompat.newHeartRating(/* hasHeart= */ true));
         mMediaControllerCallback.assertThatSessionHasReceivedExpectedCallback();
     }
 
@@ -282,16 +290,20 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
     @Test
     public void testSetRepeatMode() throws InterruptedException {
         mMediaControllerCallback.setExpectedCallbackMethodName("onSetRepeatMode");
-        mMediaController.getTransportControls().setRepeatMode(
-                PlaybackStateCompat.REPEAT_MODE_ONE);
+        mMediaController
+                .getTransportControls()
+                .setRepeatMode(
+                        android.support.v4.media.session.PlaybackStateCompat.REPEAT_MODE_ONE);
         mMediaControllerCallback.assertThatSessionHasReceivedExpectedCallback();
     }
 
     @Test
     public void testSetShuffleMode() throws InterruptedException {
         mMediaControllerCallback.setExpectedCallbackMethodName("onSetShuffleMode");
-        mMediaController.getTransportControls().setShuffleMode(
-                PlaybackStateCompat.SHUFFLE_MODE_GROUP);
+        mMediaController
+                .getTransportControls()
+                .setShuffleMode(
+                        android.support.v4.media.session.PlaybackStateCompat.SHUFFLE_MODE_GROUP);
         mMediaControllerCallback.assertThatSessionHasReceivedExpectedCallback();
     }
 
@@ -306,7 +318,9 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
     public void testAddQueueItem() throws InterruptedException {
         mMediaControllerCallback.setExpectedCallbackMethodName("onAddQueueItem");
         mMediaController.addQueueItem(
-                new MediaDescriptionCompat.Builder().setMediaId("anyMediaId").build());
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId("anyMediaId")
+                        .build());
         mMediaControllerCallback.assertThatSessionHasReceivedExpectedCallback();
     }
 
@@ -314,11 +328,14 @@ public class RemoteUserInfoWithMediaControllerCompatTest {
     public void testRemoveQueueItem() throws InterruptedException {
         mMediaControllerCallback.setExpectedCallbackMethodName("onRemoveQueueItem");
         mMediaController.removeQueueItem(
-                new MediaDescriptionCompat.Builder().setMediaId("anyMediaId").build());
+                new android.support.v4.media.MediaDescriptionCompat.Builder()
+                        .setMediaId("anyMediaId")
+                        .build());
         mMediaControllerCallback.assertThatSessionHasReceivedExpectedCallback();
     }
 
-    private class ControllerCallback extends MediaControllerCompat.Callback {
+    private class ControllerCallback
+            extends android.support.v4.media.session.MediaControllerCompat.Callback {
         private final CountDownLatch mCountDownLatch = new CountDownLatch(1);
         private volatile String mExpectedCallbackMethodName;
 

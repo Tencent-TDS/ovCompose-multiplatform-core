@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import com.android.build.api.artifact.SingleArtifact
 
 plugins {
@@ -25,12 +32,14 @@ plugins {
 // This project can be removed once b/239659205 has landed and use only the
 // profile-verification-sample project.
 android {
+    compileSdk = 35
+
     buildTypes {
         release {
             // Minification and shrinking are disabled to avoid r8 removing unused methods and
             // speed up build process.
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled = false
+            shrinkResources = false
         }
     }
 
@@ -50,7 +59,7 @@ android {
         }
     }
 
-    namespace "androidx.profileinstaller.integration.profileverification.target.no_initializer"
+    namespace = "androidx.profileinstaller.integration.profileverification.target.no_initializer"
 }
 
 dependencies {

@@ -29,6 +29,30 @@ public class MySdkClientProxy(
         }
     }
 
+    public override suspend fun getSharedUiInterface(): MySharedUiInterface =
+            suspendCancellableCoroutine {
+        var mCancellationSignal: ICancellationSignal? = null
+        val transactionCallback = object: IMySharedUiInterfaceTransactionCallback.Stub() {
+            override fun onCancellable(cancellationSignal: ICancellationSignal) {
+                if (it.isCancelled) {
+                    cancellationSignal.cancel()
+                }
+                mCancellationSignal = cancellationSignal
+            }
+            override fun onSuccess(result: IMySharedUiInterfaceCoreLibInfoAndBinderWrapper) {
+                it.resumeWith(Result.success(MySharedUiInterfaceClientProxy(result.binder,
+                        result.coreLibInfo)))
+            }
+            override fun onFailure(throwableParcel: PrivacySandboxThrowableParcel) {
+                it.resumeWithException(fromThrowableParcel(throwableParcel))
+            }
+        }
+        remote.getSharedUiInterface(transactionCallback)
+        it.invokeOnCancellation {
+            mCancellationSignal?.cancel()
+        }
+    }
+
     public override suspend fun getUiInterface(): MySecondInterface = suspendCancellableCoroutine {
         var mCancellationSignal: ICancellationSignal? = null
         val transactionCallback = object: IMySecondInterfaceTransactionCallback.Stub() {

@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -27,8 +36,7 @@ plugins {
 dependencies {
     androidTestImplementation(project(":room:room-common"))
     androidTestImplementation(project(":room:room-runtime"))
-    // depend on the shadowed version so that it tests with the shipped artifact
-    kspAndroidTest project(path: ":room:room-compiler", configuration: "shadowAndImplementation")
+    kspAndroidTest(project(":room:room-compiler"))
     androidTestImplementation(project(":room:room-rxjava2"))
     androidTestImplementation("androidx.arch.core:core-runtime:2.2.0")
     androidTestImplementation(projectOrArtifact(":benchmark:benchmark-junit4"))
@@ -43,9 +51,14 @@ dependencies {
 }
 
 android {
-    namespace "androidx.room.benchmark"
+    namespace = "androidx.room.benchmark"
 }
 
 androidx {
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.BENCHMARK
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+ksp {
+    useKsp2 = true
 }

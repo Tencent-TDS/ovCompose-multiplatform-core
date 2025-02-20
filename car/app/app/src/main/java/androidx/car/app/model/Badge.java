@@ -16,12 +16,12 @@
 
 package androidx.car.app.model;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
-import androidx.car.app.annotations.RequiresCarApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -35,14 +35,11 @@ import java.util.Objects;
 @CarProtocol
 @ExperimentalCarApi
 @KeepFields
-@RequiresCarApi(7)
 public class Badge {
 
     private final boolean mHasDot;
-    @Nullable
-    private final CarColor mBackgroundColor;
-    @Nullable
-    private final CarIcon mIcon;
+    private final @Nullable CarColor mBackgroundColor;
+    private final @Nullable CarIcon mIcon;
 
     /**
      * Returns whether the badge has a dot.
@@ -56,8 +53,7 @@ public class Badge {
     /**
      * Returns the dot background color.
      */
-    @Nullable
-    public CarColor getBackgroundColor() {
+    public @Nullable CarColor getBackgroundColor() {
         return mBackgroundColor;
     }
 
@@ -66,14 +62,12 @@ public class Badge {
      *
      * @see Builder#setIcon(CarIcon)
      */
-    @Nullable
-    public CarIcon getIcon() {
+    public @Nullable CarIcon getIcon() {
         return mIcon;
     }
 
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         return "[hasDot: " + mHasDot
                 + ", backgroundColor: " + mBackgroundColor
                 + ", icon: " + mIcon + "]";
@@ -115,16 +109,13 @@ public class Badge {
     /** A builder of {@link Badge}. */
     public static final class Builder {
         boolean mHasDot;
-        @Nullable
-        CarColor mBackgroundColor;
-        @Nullable
-        CarIcon mIcon;
+        @Nullable CarColor mBackgroundColor;
+        @Nullable CarIcon mIcon;
 
         /**
          * Enables a circular dot that denotes some sort of alert, notification, etc.
          */
-        @NonNull
-        public Builder setHasDot(boolean hasDot) {
+        public @NonNull Builder setHasDot(boolean hasDot) {
             mHasDot = hasDot;
             return this;
         }
@@ -132,8 +123,7 @@ public class Badge {
         /**
          * Sets the color of the dot to the given {@code backgroundColor}.
          */
-        @NonNull
-        public Builder setBackgroundColor(@NonNull CarColor backgroundColor) {
+        public @NonNull Builder setBackgroundColor(@NonNull CarColor backgroundColor) {
             mBackgroundColor = backgroundColor;
             return this;
         }
@@ -145,8 +135,7 @@ public class Badge {
          * example, a work profile icon badge is displayed with an app icon to indicate that
          * it is a work app.
          */
-        @NonNull
-        public Builder setIcon(@NonNull CarIcon icon) {
+        public @NonNull Builder setIcon(@NonNull CarIcon icon) {
             mIcon = icon;
             return this;
         }
@@ -156,8 +145,7 @@ public class Badge {
          *
          * @throws IllegalStateException if the badge doesn't have a dot or an icon.
          */
-        @NonNull
-        public Badge build() {
+        public @NonNull Badge build() {
             if (!mHasDot && mIcon == null) {
                 throw new IllegalStateException("A badge must have a dot or an icon set");
             }

@@ -30,7 +30,7 @@ public class RestingHeartRateRecord(
     override val zoneOffset: ZoneOffset?,
     /** Heart beats per minute. Required field. Validation range: 1-300. */
     public val beatsPerMinute: Long,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : InstantaneousRecord {
     init {
         requireNonNegative(value = beatsPerMinute, name = "beatsPerMinute")
@@ -56,6 +56,10 @@ public class RestingHeartRateRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "RestingHeartRateRecord(time=$time, zoneOffset=$zoneOffset, beatsPerMinute=$beatsPerMinute, metadata=$metadata)"
     }
 
     companion object {

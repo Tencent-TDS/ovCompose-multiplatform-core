@@ -1,4 +1,10 @@
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 
 /*
  * Copyright 2022 The Android Open Source Project
@@ -20,28 +26,15 @@ plugins {
     id("AndroidXPlugin")
     id("com.android.application")
     id("kotlin-android")
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 33
-        versionCode 1
-        versionName "1.0"
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    namespace "androidx.bluetooth.integration.testapp"
+    namespace = "androidx.bluetooth.integration.testapp"
 }
 
 dependencies {
@@ -64,7 +57,5 @@ dependencies {
     implementation(libs.material)
 
     implementation(libs.hiltAndroid)
-    kapt(libs.hiltCompiler)
-
-    kaptAndroidTest(libs.hiltCompiler)
+    ksp(libs.hiltCompiler)
 }

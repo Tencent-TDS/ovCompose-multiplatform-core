@@ -17,13 +17,11 @@
 package androidx.datastore.core
 
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
-import kotlin.jvm.JvmOverloads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
 public expect object DataStoreFactory {
 
-    @JvmOverloads // Generate constructors for default params for java users.
     public fun <T> create(
         storage: Storage<T>,
         corruptionHandler: ReplaceFileCorruptionHandler<T>? = null,

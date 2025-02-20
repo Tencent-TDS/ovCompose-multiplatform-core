@@ -33,7 +33,7 @@ public class TotalCaloriesBurnedRecord(
     override val endZoneOffset: ZoneOffset?,
     /** Energy in [Energy] unit. Required field. Valid range: 0-1000000 kcal. */
     public val energy: Energy,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : IntervalRecord {
 
     init {
@@ -70,6 +70,10 @@ public class TotalCaloriesBurnedRecord(
         result = 31 * result + (endZoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "TotalCaloriesBurnedRecord(startTime=$startTime, startZoneOffset=$startZoneOffset, endTime=$endTime, endZoneOffset=$endZoneOffset, energy=$energy, metadata=$metadata)"
     }
 
     companion object {

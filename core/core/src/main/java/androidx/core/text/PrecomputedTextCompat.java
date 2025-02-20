@@ -20,6 +20,7 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.annotation.SuppressLint;
 import android.os.Build;
+import android.os.Trace;
 import android.text.Layout;
 import android.text.PrecomputedText;
 import android.text.Spannable;
@@ -31,17 +32,16 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.MetricAffectingSpan;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
-import androidx.core.os.TraceCompat;
 import androidx.core.util.ObjectsCompat;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
@@ -206,7 +206,7 @@ public class PrecomputedTextCompat implements Spannable {
         }
 
         @RequiresApi(28)
-        public Params(@NonNull PrecomputedText.Params wrapped) {
+        public Params(PrecomputedText.@NonNull Params wrapped) {
             mPaint = wrapped.getTextPaint();
             mTextDir = wrapped.getTextDirection();
             mBreakStrategy = wrapped.getBreakStrategy();
@@ -387,7 +387,7 @@ public class PrecomputedTextCompat implements Spannable {
     private final @NonNull Params mParams;
 
     // The list of measured paragraph info.
-    private final @NonNull int[] mParagraphEnds;
+    private final int @NonNull [] mParagraphEnds;
 
     // null on API 27 or before. Non-null on API 29 or later
     private final @Nullable PrecomputedText mWrapped;
@@ -413,7 +413,7 @@ public class PrecomputedTextCompat implements Spannable {
         Preconditions.checkNotNull(params);
 
         try {
-            TraceCompat.beginSection("PrecomputedText");
+            Trace.beginSection("PrecomputedText");
 
             if (Build.VERSION.SDK_INT >= 29 && params.mWrapped != null) {
                 return new PrecomputedTextCompat(
@@ -461,13 +461,13 @@ public class PrecomputedTextCompat implements Spannable {
 
             return new PrecomputedTextCompat(text, params, result);
         } finally {
-            TraceCompat.endSection();
+            Trace.endSection();
         }
     }
 
     // Use PrecomputedText.create instead.
     private PrecomputedTextCompat(@NonNull CharSequence text, @NonNull Params params,
-            @NonNull int[] paraEnds) {
+            int @NonNull [] paraEnds) {
         mText = new SpannableString(text);
         mParams = params;
         mParagraphEnds = paraEnds;
@@ -545,8 +545,8 @@ public class PrecomputedTextCompat implements Spannable {
             private PrecomputedTextCompat.Params mParams;
             private CharSequence mText;
 
-            PrecomputedTextCallback(@NonNull final PrecomputedTextCompat.Params params,
-                    @NonNull final CharSequence cs) {
+            PrecomputedTextCallback(final PrecomputedTextCompat.@NonNull Params params,
+                    final @NonNull CharSequence cs) {
                 mParams = params;
                 mText = cs;
             }
@@ -557,8 +557,8 @@ public class PrecomputedTextCompat implements Spannable {
             }
         }
 
-        PrecomputedTextFutureTask(@NonNull final PrecomputedTextCompat.Params params,
-                @NonNull final CharSequence text) {
+        PrecomputedTextFutureTask(final PrecomputedTextCompat.@NonNull Params params,
+                final @NonNull CharSequence text) {
             super(new PrecomputedTextCallback(params, text));
         }
     }
@@ -624,7 +624,7 @@ public class PrecomputedTextCompat implements Spannable {
      */
     @UiThread
     public static Future<PrecomputedTextCompat> getTextFuture(
-            @NonNull final CharSequence charSequence, @NonNull PrecomputedTextCompat.Params params,
+            final @NonNull CharSequence charSequence, PrecomputedTextCompat.@NonNull Params params,
             @Nullable Executor executor) {
         PrecomputedTextFutureTask task = new PrecomputedTextFutureTask(params, charSequence);
         if (executor == null) {
@@ -732,9 +732,8 @@ public class PrecomputedTextCompat implements Spannable {
         return mText.subSequence(start, end);
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return mText.toString();
     }
 
@@ -744,7 +743,6 @@ public class PrecomputedTextCompat implements Spannable {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Spannable castToSpannable(PrecomputedText precomputedText) {
             return precomputedText;
         }

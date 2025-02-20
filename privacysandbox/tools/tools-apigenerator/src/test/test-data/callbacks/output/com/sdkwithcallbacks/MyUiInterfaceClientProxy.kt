@@ -2,10 +2,9 @@ package com.sdkwithcallbacks
 
 import android.content.Context
 import android.os.Bundle
-import android.os.IBinder
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient
+import androidx.privacysandbox.ui.core.SessionConstants
 import java.util.concurrent.Executor
 
 public class MyUiInterfaceClientProxy(
@@ -21,14 +20,14 @@ public class MyUiInterfaceClientProxy(
 
     public override fun openSession(
         context: Context,
-        windowInputToken: IBinder,
+        sessionConstants: SessionConstants,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,
         clientExecutor: Executor,
         client: SandboxedUiAdapter.SessionClient,
     ) {
-        sandboxedUiAdapter.openSession(context, windowInputToken, initialWidth, initialHeight,
+        sandboxedUiAdapter.openSession(context, sessionConstants, initialWidth, initialHeight,
                 isZOrderOnTop, clientExecutor, client)
     }
 }

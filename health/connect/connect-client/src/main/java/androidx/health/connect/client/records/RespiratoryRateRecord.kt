@@ -27,7 +27,7 @@ public class RespiratoryRateRecord(
     override val zoneOffset: ZoneOffset?,
     /** Respiratory rate in breaths per minute. Required field. Valid range: 0-1000. */
     public val rate: Double,
-    override val metadata: Metadata = Metadata.EMPTY,
+    override val metadata: Metadata,
 ) : InstantaneousRecord {
     init {
         requireNonNegative(value = rate, name = "rate")
@@ -53,5 +53,9 @@ public class RespiratoryRateRecord(
         result = 31 * result + (zoneOffset?.hashCode() ?: 0)
         result = 31 * result + metadata.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "RespiratoryRateRecord(time=$time, zoneOffset=$zoneOffset, rate=$rate, metadata=$metadata)"
     }
 }

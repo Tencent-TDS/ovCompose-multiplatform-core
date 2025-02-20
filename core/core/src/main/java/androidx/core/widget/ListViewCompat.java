@@ -18,11 +18,14 @@ package androidx.core.widget;
 
 import android.widget.ListView;
 
-import androidx.annotation.NonNull;
+import org.jspecify.annotations.NonNull;
 
 /**
- * Helper for accessing features in {@link ListView}
+ * Helper for accessing features in {@link ListView}.
+ *
+ * @deprecated Use {@link ListView} directly.
  */
+@Deprecated
 public final class ListViewCompat {
 
     /**
@@ -30,7 +33,10 @@ public final class ListViewCompat {
      *
      * @param listView the list to scroll
      * @param y the amount of pixels to scroll by vertically
+     * @deprecated Use {@link ListView#scrollListBy(int)} directly.
      */
+    @androidx.annotation.ReplaceWith(expression = "listView.scrollListBy(y)")
+    @Deprecated
     public static void scrollListBy(@NonNull ListView listView, int y) {
         // Call the framework version directly
         listView.scrollListBy(y);
@@ -45,7 +51,10 @@ public final class ListViewCompat {
      * @return true if the list can be scrolled in the specified direction,
      *         false otherwise.
      * @see #scrollListBy(ListView, int)
+     * @deprecated Use {@link ListView#canScrollList(int)} directly.
      */
+    @androidx.annotation.ReplaceWith(expression = "listView.canScrollList(direction)")
+    @Deprecated
     public static boolean canScrollList(@NonNull ListView listView, int direction) {
         // Call the framework version directly
         return listView.canScrollList(direction);
