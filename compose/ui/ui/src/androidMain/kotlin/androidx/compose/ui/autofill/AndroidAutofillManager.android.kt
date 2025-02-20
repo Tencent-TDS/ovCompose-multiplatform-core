@@ -108,14 +108,22 @@ internal class AndroidAutofillManager(
         // Check Input Text.
         val previousText = prevConfig?.getOrNull(SemanticsProperties.InputText)?.text
         val newText = config?.getOrNull(SemanticsProperties.InputText)?.text
-        if (!previousText.isNullOrEmpty() && previousText != newText && !newText.isNullOrEmpty()) {
-            val contentDataType = config.getOrNull(SemanticsProperties.ContentDataType)
-            if (contentDataType == ContentDataType.Text) {
-                platformAutofillManager.notifyValueChanged(
-                    view,
-                    semanticsId,
-                    AutofillApi26Helper.getAutofillTextValue(newText.toString())
-                )
+        if (previousText !== newText) {
+            when {
+                previousText == null ->
+                    platformAutofillManager.notifyViewVisibilityChanged(view, semanticsId, true)
+                newText == null ->
+                    platformAutofillManager.notifyViewVisibilityChanged(view, semanticsId, false)
+                else -> {
+                    val contentDataType = config.getOrNull(SemanticsProperties.ContentDataType)
+                    if (contentDataType == ContentDataType.Text) {
+                        platformAutofillManager.notifyValueChanged(
+                            view,
+                            semanticsId,
+                            AutofillApi26Helper.getAutofillTextValue(newText.toString())
+                        )
+                    }
+                }
             }
         }
 
