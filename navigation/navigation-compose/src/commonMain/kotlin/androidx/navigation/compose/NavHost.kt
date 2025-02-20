@@ -27,8 +27,6 @@ import androidx.compose.animation.core.SeekableTransitionState
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.rememberTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -443,7 +441,7 @@ public fun NavHost(
  * @param sizeTransform callback to define the size transform for destinations in this host
  */
 @Composable
-public fun NavHost(
+public expect fun NavHost(
     navController: NavHostController,
     graph: NavGraph,
     modifier: Modifier = Modifier,
@@ -468,6 +466,31 @@ public fun NavHost(
     (@JvmSuppressWildcards
     AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
         DefaultNavTransitions.sizeTransform
+)
+
+@Composable
+internal fun NavHost(
+    navController: NavHostController,
+    graph: NavGraph,
+    modifier: Modifier,
+    contentAlignment: Alignment,
+    enterTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition),
+    exitTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition),
+    popEnterTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition),
+    popExitTransition:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition),
+    sizeTransform:
+    (@JvmSuppressWildcards
+    AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?,
+    drawOnBottomEntryDuringAnimation:
+    (@Composable (isBackAnimation: Boolean, progress: Float) -> Unit)?
 ) {
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -685,6 +708,26 @@ public fun NavHost(
                     this,
                     currentEntry
                 )
+            }
+
+            if (currentEntry != null && drawOnBottomEntryDuringAnimation != null) {
+                val currentEntryId = currentEntry.id
+                val initialEntryId = transition.segment.initialState.id
+                val targetEntryId = transition.segment.targetState.id
+                if (
+                    zIndices.contains(currentEntryId) &&
+                    zIndices.contains(initialEntryId) &&
+                    zIndices.contains(targetEntryId)
+                ) {
+                    val currentEntryZ = zIndices[currentEntryId]
+                    val initialEntryZ = zIndices[initialEntryId]
+                    val targetEntryZ = zIndices[targetEntryId]
+                    val isDrawBehind = currentEntryZ < initialEntryZ || currentEntryZ < targetEntryZ
+                    if (isDrawBehind) {
+                        val isGoBack = currentEntryZ == targetEntryZ
+                        drawOnBottomEntryDuringAnimation(isGoBack, transitionState.fraction)
+                    }
+                }
             }
         }
         LaunchedEffect(transition.currentState, transition.targetState) {
