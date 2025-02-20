@@ -59,6 +59,7 @@ internal class UIKitComposeSceneLayer(
     focusStack: FocusStack?,
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
+    private val coroutineContext: CoroutineContext
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
@@ -96,8 +97,7 @@ internal class UIKitComposeSceneLayer(
     
     private fun createComposeScene(
         invalidate: () -> Unit,
-        platformContext: PlatformContext,
-        coroutineContext: CoroutineContext,
+        platformContext: PlatformContext
     ): ComposeScene =
         PlatformLayersComposeScene(
             density = initDensity, // We should use the local density already set for the current layer.
