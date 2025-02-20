@@ -329,7 +329,7 @@ internal class ComposeContainer(
         mediator.setKeyEventListeners(
             onPreviewKeyEvent = onPreviewKeyEvent,
             onKeyEvent = {
-                backGestureDispatcher.onKeyEvent(it) || onKeyEvent(it)
+                onKeyEvent(it) || backGestureDispatcher.onKeyEvent(it)
             }
         )
     }
