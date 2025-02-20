@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+@file:JvmName("NavHostKt")
+@file:JvmMultifileClass
+
 package androidx.navigation.compose
 
 import androidx.collection.mutableObjectFloatMapOf
@@ -56,6 +59,8 @@ import androidx.navigation.compose.internal.PredictiveBackHandler
 import androidx.navigation.createGraph
 import androidx.navigation.get
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
