@@ -14,10 +14,14 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.uikit
+package androidx.compose.ui.platform
 
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.ExperimentalComposeUiApi
 
-@InternalComposeUiApi
-val LocalScreenReaderActive = staticCompositionLocalOf { false }
+/**
+ * Provides information about Screen Reader state
+ */
+@ExperimentalComposeUiApi
+interface ScreenReader {
+    val isActive: Boolean
+}

@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.lifecycle.LifecycleOwner
 
 /**
@@ -26,3 +28,12 @@ import androidx.lifecycle.LifecycleOwner
     ReplaceWith("androidx.lifecycle.compose.LocalLifecycleOwner"),
 )
 actual val LocalLifecycleOwner get() = androidx.lifecycle.compose.LocalLifecycleOwner
+
+/**
+ * The CompositionLocal that provides information about Screen Reader state associated with current
+ * scene.
+ */
+@ExperimentalComposeUiApi
+val LocalScreenReader = staticCompositionLocalOf<ScreenReader> {
+    error("CompositionLocal LocalScreenReader not present")
+}

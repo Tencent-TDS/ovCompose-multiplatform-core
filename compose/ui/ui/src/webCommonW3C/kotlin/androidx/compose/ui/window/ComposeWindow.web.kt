@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.ScreenReader
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.WindowInfoImpl
@@ -73,7 +74,6 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoRenderDelegate
 import org.w3c.dom.AddEventListenerOptions
-import org.w3c.dom.DragEvent
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
@@ -182,6 +182,10 @@ internal class ComposeWindow(
 
     private val platformContext: PlatformContext = object : PlatformContext {
         override val windowInfo get() = _windowInfo
+
+        override val screenReader: ScreenReader get() = object : ScreenReader {
+            override val isActive: Boolean = false
+        }
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 

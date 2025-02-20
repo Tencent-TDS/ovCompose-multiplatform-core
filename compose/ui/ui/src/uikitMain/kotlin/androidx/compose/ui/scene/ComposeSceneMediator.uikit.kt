@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.platform.ScreenReader
 import androidx.compose.ui.platform.UIKitTextInputService
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
@@ -59,7 +60,6 @@ import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
-import androidx.compose.ui.uikit.LocalScreenReaderActive
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
@@ -187,7 +187,9 @@ internal class ComposeSceneMediator(
 
     private var keyboardOverlapHeight by mutableStateOf(0.dp)
     private var animateKeyboardOffsetChanges by mutableStateOf(false)
-    private var screenReaderActive by mutableStateOf(false)
+    private var screenReaderImpl = object : ScreenReader {
+        override var isActive by mutableStateOf(false)
+    }
 
     private val viewConfiguration: ViewConfiguration =
         object : ViewConfiguration by EmptyViewConfiguration {
@@ -286,7 +288,7 @@ internal class ComposeSceneMediator(
                 down || up
             },
             onKeyboardPresses = ::onKeyboardPresses,
-            onScreenReaderActive = { screenReaderActive = it }
+            onScreenReaderActive = { screenReaderImpl.isActive = it }
         )
     }
 
@@ -474,7 +476,6 @@ internal class ComposeSceneMediator(
             LocalKeyboardOverlapHeight provides keyboardOverlapHeight,
             LocalSafeArea provides safeArea,
             LocalLayoutMargins provides layoutMargins,
-            LocalScreenReaderActive provides screenReaderActive,
             content = content
         )
 
@@ -577,8 +578,9 @@ internal class ComposeSceneMediator(
             || backGestureDispatcher.onKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
 
-    private inner class PlatformContextImpl : PlatformContext by PlatformContext.Empty {
+    private inner class PlatformContextImpl : PlatformContext {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
+        override val screenReader: ScreenReader get() = screenReaderImpl
 
         override fun convertLocalToWindowPosition(localPosition: Offset): Offset =
             windowContext.convertLocalToWindowPosition(view, localPosition)
