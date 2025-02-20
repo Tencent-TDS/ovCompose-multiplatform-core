@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -26,7 +33,7 @@ dependencies {
     implementation(libs.kotlinStdlib)
     implementation(libs.kotlinCoroutinesCore)
 
-    implementation("androidx.annotation:annotation:1.7.0")
+    implementation("androidx.annotation:annotation:1.8.1")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testExtTruth)
@@ -39,14 +46,12 @@ dependencies {
 
 androidx {
     name = "Bluetooth"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "AndroidX Bluetooth Library"
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
-    namespace "androidx.bluetooth"
-    defaultConfig {
-        minSdkVersion 21
-    }
+    namespace = "androidx.bluetooth"
 }

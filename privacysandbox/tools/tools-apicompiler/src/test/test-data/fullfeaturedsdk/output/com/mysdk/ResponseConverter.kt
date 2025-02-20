@@ -14,7 +14,9 @@ public class ResponseConverter(
                 maybeOtherInterface = (parcelable.maybeOtherInterface as
                         MySecondInterfaceStubDelegate).delegate,
                 myUiInterface = (parcelable.myUiInterface.binder as
-                        MyUiInterfaceStubDelegate).delegate)
+                        MyUiInterfaceStubDelegate).delegate,
+                mySharedUiInterface = (parcelable.mySharedUiInterface.binder as
+                        MySharedUiInterfaceStubDelegate).delegate)
         return annotatedValue
     }
 
@@ -28,6 +30,9 @@ public class ResponseConverter(
         parcelable.myUiInterface =
                 IMyUiInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable(annotatedValue.myUiInterface.toCoreLibInfo(context),
                 MyUiInterfaceStubDelegate(annotatedValue.myUiInterface, context))
+        parcelable.mySharedUiInterface =
+                IMySharedUiInterfaceCoreLibInfoAndBinderWrapperConverter.toParcelable(annotatedValue.mySharedUiInterface.toCoreLibInfo(),
+                MySharedUiInterfaceStubDelegate(annotatedValue.mySharedUiInterface, context))
         return parcelable
     }
 }

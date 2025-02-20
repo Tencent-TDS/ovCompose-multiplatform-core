@@ -41,8 +41,6 @@ import android.util.SparseIntArray;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.constraintlayout.core.LinearSystem;
 import androidx.constraintlayout.core.Metrics;
 import androidx.constraintlayout.core.widgets.ConstraintAnchor;
@@ -51,6 +49,9 @@ import androidx.constraintlayout.core.widgets.ConstraintWidgetContainer;
 import androidx.constraintlayout.core.widgets.Guideline;
 import androidx.constraintlayout.core.widgets.Optimizer;
 import androidx.constraintlayout.core.widgets.analyzer.BasicMeasure;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -464,11 +465,11 @@ import java.util.HashMap;
  * <p>In addition to the intrinsic capabilities detailed previously,
  * you can also use special helper objects
  * in {@code ConstraintLayout} to help you with your layout. Currently, the
- * {@code Guideline}{@see Guideline} object allows you to create
- * Horizontal and Vertical guidelines which are positioned relative to the
- * {@code ConstraintLayout} container. Widgets can
- * then be positioned by constraining them to such guidelines. In <b>1.1</b>,
- * {@code Barrier} and {@code Group} were added too.</p>
+ * {@link Guideline} object allows you to create Horizontal and Vertical
+ * guidelines which are positioned relative to the {@code ConstraintLayout}
+ * container. Widgets can then be positioned by constraining them to such
+ * guidelines. In <b>1.1</b>, {@link Barrier} and {@link Group} were added too.
+ * </p>
  *
  * <h3 id="Optimizer">Optimizer (<i><b>in 1.1</b></i>)</h3>
  * <p>
@@ -1998,7 +1999,6 @@ public class ConstraintLayout extends ViewGroup {
      * </p>
      *
      * @param level optimization level
-     * @since 1.1
      */
     public void setOptimizationLevel(int level) {
         mOptimizationLevel = level;
@@ -2009,7 +2009,6 @@ public class ConstraintLayout extends ViewGroup {
      * Return the current optimization level for the layout resolution
      *
      * @return the current level
-     * @since 1.1
      */
     public int getOptimizationLevel() {
         return mLayoutWidget.getOptimizationLevel();
@@ -2514,7 +2513,7 @@ public class ConstraintLayout extends ViewGroup {
         // public int endMargin = UNSET;
 
         // boolean isRtl = false;
-        // int layoutDirection = ViewCompat.LAYOUT_DIRECTION_LTR;
+        // int layoutDirection = View.LAYOUT_DIRECTION_LTR;
 
         boolean mWidthSet = true; // need to be set to false when we reactivate this in 3.0
         boolean mHeightSet = true; // need to be set to false when we reactivate this in 3.0
@@ -2777,7 +2776,6 @@ public class ConstraintLayout extends ViewGroup {
          *
          * @param params the Layout Params to be copied
          */
-        @SuppressLint("ClassVerificationFailure")
         public LayoutParams(ViewGroup.LayoutParams params) {
             super(params);
 

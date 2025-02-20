@@ -35,7 +35,6 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.test.R;
 import androidx.recyclerview.test.RecyclerViewTestActivity;
@@ -46,6 +45,7 @@ import androidx.test.rule.ActivityTestRule;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
+import org.jspecify.annotations.NonNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,9 +77,9 @@ public class FocusSearchNavigationTest {
     @Parameterized.Parameters(name = "orientation:{0},layoutDir:{1}")
     public static List<Object[]> params() {
         return Arrays.asList(
-                new Object[]{VERTICAL, ViewCompat.LAYOUT_DIRECTION_LTR},
-                new Object[]{HORIZONTAL, ViewCompat.LAYOUT_DIRECTION_LTR},
-                new Object[]{HORIZONTAL, ViewCompat.LAYOUT_DIRECTION_RTL}
+                new Object[]{VERTICAL, View.LAYOUT_DIRECTION_LTR},
+                new Object[]{HORIZONTAL, View.LAYOUT_DIRECTION_LTR},
+                new Object[]{HORIZONTAL, View.LAYOUT_DIRECTION_RTL}
         );
     }
 
@@ -118,7 +118,7 @@ public class FocusSearchNavigationTest {
         waitForIdleSync();
         assertThat("Assumption check", mRecyclerView.getLayoutManager().getLayoutDirection(),
                 is(mLayoutDir));
-        assertThat("Assumption check", ViewCompat.getLayoutDirection(mRecyclerView),
+        assertThat("Assumption check", mRecyclerView.getLayoutDirection(),
                 is(mLayoutDir));
     }
 
@@ -272,7 +272,7 @@ public class FocusSearchNavigationTest {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        public void onBindViewHolder(RecyclerView.@NonNull ViewHolder holder, int position) {
             holder.itemView.setTag("pos " + position);
         }
 

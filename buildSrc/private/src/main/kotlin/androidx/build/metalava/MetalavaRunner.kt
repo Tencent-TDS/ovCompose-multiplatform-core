@@ -19,7 +19,6 @@ package androidx.build.metalava
 import androidx.build.Version
 import androidx.build.checkapi.ApiLocation
 import androidx.build.getLibraryByName
-import androidx.build.java.JavaCompileInputs
 import androidx.build.logging.TERMINAL_RED
 import androidx.build.logging.TERMINAL_RESET
 import java.io.ByteArrayOutputStream
@@ -48,16 +47,11 @@ fun runMetalavaWithArgs(
     val allArgs =
         args +
             listOf(
-                "--update-kotlin-nulls", // b/309149849: temporary feature flag
-                "--hide",
-                "HiddenSuperclass", // We allow having a hidden parent class
                 "--hide",
                 // Removing final from a method does not cause compatibility issues for AndroidX.
                 "RemovedFinalStrict",
                 "--error",
                 "UnresolvedImport",
-                "--delete-empty-removed-signatures",
-
                 "--kotlin-source",
                 kotlinSourceLevel.version,
 
@@ -67,6 +61,20 @@ fun runMetalavaWithArgs(
                 "androidx.annotation.RequiresOptIn",
                 "--suppress-compatibility-meta-annotation",
                 "kotlin.RequiresOptIn",
+
+                // Skip reading comments in Metalava for two reasons:
+                // - We prefer for developers to specify api information via annotations instead
+                //   of just javadoc comments (like @hide)
+                // - This allows us to improve cacheability of Metalava tasks
+                "--ignore-comments",
+                "--hide",
+                "DeprecationMismatch",
+                "--hide",
+                "DocumentExceptions",
+
+                // Don't track annotations that aren't needed for review or checking compat.
+                "--exclude-annotation",
+                "androidx.annotation.ReplaceWith",
             )
     val workQueue = workerExecutor.processIsolation()
     workQueue.submit(MetalavaWorkAction::class.java) { parameters ->
@@ -115,11 +123,7 @@ abstract class MetalavaWorkAction @Inject constructor(private val execOperations
 
 fun Project.getMetalavaClasspath(): FileCollection {
     val configuration =
-        configurations.findByName("metalava")
-            ?: configurations.create("metalava") {
-                it.dependencies.add(dependencies.create(getLibraryByName("metalava")))
-                it.isCanBeConsumed = false
-            }
+        configurations.detachedConfiguration(dependencies.create(getLibraryByName("metalava")))
     return project.files(configuration)
 }
 
@@ -164,7 +168,6 @@ fun getApiLintArgs(targetsJavaConsumers: Boolean): List<String> {
                     "MissingBuildMethod",
                     "SetterReturnsThis",
                     "OverlappingConstants",
-                    "IllegalStateException",
                     "ListenerLast",
                     "ExecutorRegistration",
                     "StreamFiles",
@@ -182,34 +185,44 @@ fun getApiLintArgs(targetsJavaConsumers: Boolean): List<String> {
                 )
                 .joinToString()
         )
-    if (targetsJavaConsumers) {
-        args.addAll(listOf("--error", "MissingJvmstatic", "--error", "ArrayReturn"))
-    } else {
-        args.addAll(listOf("--hide", "MissingJvmstatic", "--hide", "ArrayReturn"))
+    // Acronyms that can be used in their all-caps form. "SQ" is included to allow "SQLite".
+    val allowedAcronyms = listOf("SQL", "SQ", "URL", "EGL", "GL", "KHR")
+    for (acronym in allowedAcronyms) {
+        args.add("--api-lint-allowed-acronym")
+        args.add(acronym)
     }
+    val javaOnlyIssues = listOf("MissingJvmstatic", "ArrayReturn", "ValueClassDefinition")
+    val javaOnlyErrorLevel =
+        if (targetsJavaConsumers) {
+            "--error"
+        } else {
+            "--hide"
+        }
+    args.add(javaOnlyErrorLevel)
+    args.add(javaOnlyIssues.joinToString())
     return args
 }
 
 /** Returns the args needed to generate a version history JSON from the previous API files. */
 internal fun getGenerateApiLevelsArgs(
+    apiDir: File,
     apiFiles: List<File>,
     currentVersion: Version,
     outputLocation: File
 ): List<String> {
-    val versions = getVersionsForApiLevels(apiFiles) + currentVersion
-
-    val args =
-        listOf(
-            "--generate-api-version-history",
-            outputLocation.absolutePath,
-            "--api-version-names",
-            versions.joinToString(" ")
-        )
-
-    return if (apiFiles.isEmpty()) {
-        args
-    } else {
-        args + listOf("--api-version-signature-files", apiFiles.joinToString(":"))
+    return buildList {
+        add("--generate-api-version-history")
+        add(outputLocation.absolutePath)
+        add("--current-version")
+        add(currentVersion.toString())
+        if (apiFiles.isNotEmpty()) {
+            add("--api-version-signature-files")
+            add(apiFiles.joinToString(":"))
+            add("--api-version-signature-pattern")
+            // Select the version from the files. The `*` wildcard matches and ignores any
+            // pre-release suffix.
+            add("$apiDir/{version:major.minor.patch}*.txt")
+        }
     }
 }
 
@@ -231,9 +244,10 @@ sealed class ApiLintMode {
 /**
  * Generates all of the specified api files, as well as a version history JSON for the public API.
  */
-fun generateApi(
+internal fun generateApi(
     metalavaClasspath: FileCollection,
-    files: JavaCompileInputs,
+    projectXml: File,
+    sourcePaths: Collection<File>,
     apiLocation: ApiLocation,
     apiLintMode: ApiLintMode,
     includeRestrictToLibraryGroupApis: Boolean,
@@ -256,9 +270,8 @@ fun generateApi(
     generateApiConfigs.forEach { (generateApiMode, apiLintMode) ->
         generateApi(
             metalavaClasspath,
-            files.bootClasspath,
-            files.dependencyClasspath,
-            files.sourcePaths.files,
+            projectXml,
+            sourcePaths,
             apiLocation,
             generateApiMode,
             apiLintMode,
@@ -277,8 +290,7 @@ fun generateApi(
  */
 private fun generateApi(
     metalavaClasspath: FileCollection,
-    bootClasspath: FileCollection,
-    dependencyClasspath: FileCollection,
+    projectXml: File,
     sourcePaths: Collection<File>,
     outputLocation: ApiLocation,
     generateApiMode: GenerateApiMode,
@@ -291,8 +303,7 @@ private fun generateApi(
 ) {
     val args =
         getGenerateApiArgs(
-            bootClasspath,
-            dependencyClasspath,
+            projectXml,
             sourcePaths,
             outputLocation,
             generateApiMode,
@@ -308,8 +319,7 @@ private fun generateApi(
  * [GenerateApiMode.PublicApi].
  */
 fun getGenerateApiArgs(
-    bootClasspath: FileCollection,
-    dependencyClasspath: FileCollection,
+    projectXml: File,
     sourcePaths: Collection<File>,
     outputLocation: ApiLocation?,
     generateApiMode: GenerateApiMode,
@@ -320,13 +330,13 @@ fun getGenerateApiArgs(
     // generate public API txt
     val args =
         mutableListOf(
-            "--classpath",
-            (bootClasspath.files + dependencyClasspath.files).joinToString(File.pathSeparator),
             "--source-path",
             sourcePaths.filter { it.exists() }.joinToString(File.pathSeparator),
-            "--format=v4",
-            "--warnings-as-errors"
+            "--project",
+            projectXml.path
         )
+
+    args += listOf("--format=v4", "--warnings-as-errors")
 
     pathToManifest?.let { args += listOf("--manifest", pathToManifest) }
 
@@ -334,7 +344,6 @@ fun getGenerateApiArgs(
         when (generateApiMode) {
             is GenerateApiMode.PublicApi -> {
                 args += listOf("--api", outputLocation.publicApiFile.toString())
-                args += listOf("--removed-api", outputLocation.removedApiFile.toString())
                 // Generate API levels just for the public API
                 args += apiLevelsArgs
             }
@@ -396,8 +405,6 @@ fun getGenerateApiArgs(
             args.addAll(
                 listOf(
                     "--error",
-                    "DeprecationMismatch", // Enforce deprecation mismatch
-                    "--error",
                     "ReferencesDeprecated",
                     "--error-message:api-lint",
                     """
@@ -415,8 +422,6 @@ fun getGenerateApiArgs(
         is ApiLintMode.Skip -> {
             args.addAll(
                 listOf(
-                    "--hide",
-                    "DeprecationMismatch",
                     "--hide",
                     "UnhiddenSystemApi",
                     "--hide",

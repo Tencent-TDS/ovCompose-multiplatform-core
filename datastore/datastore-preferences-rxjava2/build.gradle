@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -27,13 +36,14 @@ android {
         test.java.srcDirs += "src/test-common/java"
         androidTest.java.srcDirs += "src/test-common/java"
     }
-    namespace "androidx.datastore.preferences.rxjava2"
+    namespace = "androidx.datastore.preferences.rxjava2"
 }
 
 dependencies {
+    api(libs.jspecify)
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesCore)
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(libs.rxjava2)
 
     api(project(":datastore:datastore"))
@@ -57,9 +67,9 @@ dependencies {
 
 androidx {
     name = "DataStore Preferences RxJava2"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android DataStore Core - contains wrappers for using DataStore using RxJava2"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = true
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

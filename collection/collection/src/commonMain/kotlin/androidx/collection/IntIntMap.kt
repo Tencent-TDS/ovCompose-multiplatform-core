@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-@file:Suppress(
-    "RedundantVisibilityModifier",
-    "NOTHING_TO_INLINE"
-)
+@file:Suppress("RedundantVisibilityModifier", "NOTHING_TO_INLINE")
+@file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
 import androidx.collection.internal.requirePrecondition
+import androidx.collection.internal.throwNoSuchElementException
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
 
@@ -40,43 +42,34 @@ import kotlin.jvm.JvmOverloads
 // Default empty map to avoid allocations
 private val EmptyIntIntMap = MutableIntIntMap(0)
 
-/**
- * Returns an empty, read-only [IntIntMap].
- */
+/** Returns an empty, read-only [IntIntMap]. */
 public fun emptyIntIntMap(): IntIntMap = EmptyIntIntMap
 
-/**
- * Returns a new [MutableIntIntMap].
- */
+/** Returns a new [MutableIntIntMap]. */
 public fun intIntMapOf(): IntIntMap = EmptyIntIntMap
 
-/**
- * Returns a new [IntIntMap] with [key1] associated with [value1].
- */
-public fun intIntMapOf(
-    key1: Int,
-    value1: Int
-): IntIntMap = MutableIntIntMap().also { map ->
-        map[key1] = value1
-    }
+/** Returns a new [IntIntMap] with [key1] associated with [value1]. */
+public fun intIntMapOf(key1: Int, value1: Int): IntIntMap =
+    MutableIntIntMap().also { map -> map[key1] = value1 }
 
 /**
- * Returns a new [IntIntMap] with [key1], and [key2]
- * associated with [value1], and [value2], respectively.
+ * Returns a new [IntIntMap] with [key1], and [key2] associated with [value1], and [value2],
+ * respectively.
  */
 public fun intIntMapOf(
     key1: Int,
     value1: Int,
     key2: Int,
     value2: Int,
-): IntIntMap = MutableIntIntMap().also { map ->
+): IntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
     }
 
 /**
- * Returns a new [IntIntMap] with [key1], [key2], and [key3]
- * associated with [value1], [value2], and [value3], respectively.
+ * Returns a new [IntIntMap] with [key1], [key2], and [key3] associated with [value1], [value2], and
+ * [value3], respectively.
  */
 public fun intIntMapOf(
     key1: Int,
@@ -85,15 +78,16 @@ public fun intIntMapOf(
     value2: Int,
     key3: Int,
     value3: Int,
-): IntIntMap = MutableIntIntMap().also { map ->
+): IntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
     }
 
 /**
- * Returns a new [IntIntMap] with [key1], [key2], [key3], and [key4]
- * associated with [value1], [value2], [value3], and [value4], respectively.
+ * Returns a new [IntIntMap] with [key1], [key2], [key3], and [key4] associated with [value1],
+ * [value2], [value3], and [value4], respectively.
  */
 public fun intIntMapOf(
     key1: Int,
@@ -104,7 +98,8 @@ public fun intIntMapOf(
     value3: Int,
     key4: Int,
     value4: Int,
-): IntIntMap = MutableIntIntMap().also { map ->
+): IntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
@@ -112,8 +107,8 @@ public fun intIntMapOf(
     }
 
 /**
- * Returns a new [IntIntMap] with [key1], [key2], [key3], [key4], and [key5]
- * associated with [value1], [value2], [value3], [value4], and [value5], respectively.
+ * Returns a new [IntIntMap] with [key1], [key2], [key3], [key4], and [key5] associated with
+ * [value1], [value2], [value3], [value4], and [value5], respectively.
  */
 public fun intIntMapOf(
     key1: Int,
@@ -126,7 +121,8 @@ public fun intIntMapOf(
     value4: Int,
     key5: Int,
     value5: Int,
-): IntIntMap = MutableIntIntMap().also { map ->
+): IntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
@@ -134,38 +130,31 @@ public fun intIntMapOf(
         map[key5] = value5
     }
 
-/**
- * Returns a new [MutableIntIntMap].
- */
+/** Returns a new [MutableIntIntMap]. */
 public fun mutableIntIntMapOf(): MutableIntIntMap = MutableIntIntMap()
 
-/**
- * Returns a new [MutableIntIntMap] with [key1] associated with [value1].
- */
-public fun mutableIntIntMapOf(
-    key1: Int,
-    value1: Int
-): MutableIntIntMap = MutableIntIntMap().also { map ->
-        map[key1] = value1
-    }
+/** Returns a new [MutableIntIntMap] with [key1] associated with [value1]. */
+public fun mutableIntIntMapOf(key1: Int, value1: Int): MutableIntIntMap =
+    MutableIntIntMap().also { map -> map[key1] = value1 }
 
 /**
- * Returns a new [MutableIntIntMap] with [key1], and [key2]
- * associated with [value1], and [value2], respectively.
+ * Returns a new [MutableIntIntMap] with [key1], and [key2] associated with [value1], and [value2],
+ * respectively.
  */
 public fun mutableIntIntMapOf(
     key1: Int,
     value1: Int,
     key2: Int,
     value2: Int,
-): MutableIntIntMap = MutableIntIntMap().also { map ->
+): MutableIntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
     }
 
 /**
- * Returns a new [MutableIntIntMap] with [key1], [key2], and [key3]
- * associated with [value1], [value2], and [value3], respectively.
+ * Returns a new [MutableIntIntMap] with [key1], [key2], and [key3] associated with [value1],
+ * [value2], and [value3], respectively.
  */
 public fun mutableIntIntMapOf(
     key1: Int,
@@ -174,15 +163,16 @@ public fun mutableIntIntMapOf(
     value2: Int,
     key3: Int,
     value3: Int,
-): MutableIntIntMap = MutableIntIntMap().also { map ->
+): MutableIntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
     }
 
 /**
- * Returns a new [MutableIntIntMap] with [key1], [key2], [key3], and [key4]
- * associated with [value1], [value2], [value3], and [value4], respectively.
+ * Returns a new [MutableIntIntMap] with [key1], [key2], [key3], and [key4] associated with
+ * [value1], [value2], [value3], and [value4], respectively.
  */
 public fun mutableIntIntMapOf(
     key1: Int,
@@ -193,7 +183,8 @@ public fun mutableIntIntMapOf(
     value3: Int,
     key4: Int,
     value4: Int,
-): MutableIntIntMap = MutableIntIntMap().also { map ->
+): MutableIntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
@@ -201,8 +192,8 @@ public fun mutableIntIntMapOf(
     }
 
 /**
- * Returns a new [MutableIntIntMap] with [key1], [key2], [key3], [key4], and [key5]
- * associated with [value1], [value2], [value3], [value4], and [value5], respectively.
+ * Returns a new [MutableIntIntMap] with [key1], [key2], [key3], [key4], and [key5] associated with
+ * [value1], [value2], [value3], [value4], and [value5], respectively.
  */
 public fun mutableIntIntMapOf(
     key1: Int,
@@ -215,7 +206,8 @@ public fun mutableIntIntMapOf(
     value4: Int,
     key5: Int,
     value5: Int,
-): MutableIntIntMap = MutableIntIntMap().also { map ->
+): MutableIntIntMap =
+    MutableIntIntMap().also { map ->
         map[key1] = value1
         map[key2] = value2
         map[key3] = value3
@@ -224,28 +216,57 @@ public fun mutableIntIntMapOf(
     }
 
 /**
- * [IntIntMap] is a container with a [Map]-like interface for
- * [Int] primitive keys and [Int] primitive values.
+ * Builds a new [IntIntMap] by populating a [MutableIntIntMap] using the given [builderAction].
  *
- * The underlying implementation is designed to avoid allocations from boxing,
- * and insertion, removal, retrieval, and iteration operations. Allocations
- * may still happen on insertion when the underlying storage needs to grow to
- * accommodate newly added entries to the table. In addition, this implementation
- * minimizes memory usage by avoiding the use of separate objects to hold
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutableIntIntMap] can be populated.
+ */
+public inline fun buildIntIntMap(
+    builderAction: MutableIntIntMap.() -> Unit,
+): IntIntMap {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableIntIntMap().apply(builderAction)
+}
+
+/**
+ * Builds a new [IntIntMap] by populating a [MutableIntIntMap] using the given [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of pairs added in the [builderAction].
+ * @param builderAction Lambda in which the [MutableIntIntMap] can be populated.
+ */
+public inline fun buildIntIntMap(
+    initialCapacity: Int,
+    builderAction: MutableIntIntMap.() -> Unit,
+): IntIntMap {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableIntIntMap(initialCapacity).apply(builderAction)
+}
+
+/**
+ * [IntIntMap] is a container with a [Map]-like interface for [Int] primitive keys and [Int]
+ * primitive values.
+ *
+ * The underlying implementation is designed to avoid allocations from boxing, and insertion,
+ * removal, retrieval, and iteration operations. Allocations may still happen on insertion when the
+ * underlying storage needs to grow to accommodate newly added entries to the table. In addition,
+ * this implementation minimizes memory usage by avoiding the use of separate objects to hold
  * key/value pairs.
  *
- * This implementation makes no guarantee as to the order of the keys and
- * values stored, nor does it make guarantees that the order remains constant
- * over time.
+ * This implementation makes no guarantee as to the order of the keys and values stored, nor does it
+ * make guarantees that the order remains constant over time.
  *
- * This implementation is not thread-safe: if multiple threads access this
- * container concurrently, and one or more threads modify the structure of
- * the map (insertion or removal for instance), the calling code must provide
- * the appropriate synchronization. Multiple threads are safe to read from this
- * map concurrently if no write is happening.
+ * This implementation is not thread-safe: if multiple threads access this container concurrently,
+ * and one or more threads modify the structure of the map (insertion or removal for instance), the
+ * calling code must provide the appropriate synchronization. Multiple threads are safe to read from
+ * this map concurrently if no write is happening.
  *
- * This implementation is read-only and only allows data to be queried. A
- * mutable implementation is provided by [MutableIntIntMap].
+ * This implementation is read-only and only allows data to be queried. A mutable implementation is
+ * provided by [MutableIntIntMap].
  *
  * @see [MutableIntIntMap]
  * @see [ScatterMap]
@@ -255,78 +276,59 @@ public sealed class IntIntMap {
     // The backing array for the metadata bytes contains
     // `capacity + 1 + ClonedMetadataCount` entries, including when
     // the table is empty (see [EmptyGroup]).
-    @PublishedApi
-    @JvmField
-    internal var metadata: LongArray = EmptyGroup
+    @PublishedApi @JvmField internal var metadata: LongArray = EmptyGroup
 
-    @PublishedApi
-    @JvmField
-    internal var keys: IntArray = EmptyIntArray
+    @PublishedApi @JvmField internal var keys: IntArray = EmptyIntArray
 
-    @PublishedApi
-    @JvmField
-    internal var values: IntArray = EmptyIntArray
+    @PublishedApi @JvmField internal var values: IntArray = EmptyIntArray
 
     // We use a backing field for capacity to avoid invokevirtual calls
     // every time we need to look at the capacity
-    @Suppress("PropertyName")
-    @JvmField
-    internal var _capacity: Int = 0
+    @Suppress("PropertyName") @JvmField internal var _capacity: Int = 0
 
     /**
-     * Returns the number of key-value pairs that can be stored in this map
-     * without requiring internal storage reallocation.
+     * Returns the number of key-value pairs that can be stored in this map without requiring
+     * internal storage reallocation.
      */
     public val capacity: Int
         get() = _capacity
 
     // We use a backing field for capacity to avoid invokevirtual calls
     // every time we need to look at the size
-    @Suppress("PropertyName")
-    @JvmField
-    internal var _size: Int = 0
+    @Suppress("PropertyName") @JvmField internal var _size: Int = 0
 
-    /**
-     * Returns the number of key-value pairs in this map.
-     */
+    /** Returns the number of key-value pairs in this map. */
     public val size: Int
         get() = _size
 
-    /**
-     * Returns `true` if this map has at least one entry.
-     */
+    /** Returns `true` if this map has at least one entry. */
     public fun any(): Boolean = _size != 0
 
-    /**
-     * Returns `true` if this map has no entries.
-     */
+    /** Returns `true` if this map has no entries. */
     public fun none(): Boolean = _size == 0
 
-    /**
-     * Indicates whether this map is empty.
-     */
+    /** Indicates whether this map is empty. */
     public fun isEmpty(): Boolean = _size == 0
 
-    /**
-     * Returns `true` if this map is not empty.
-     */
+    /** Returns `true` if this map is not empty. */
     public fun isNotEmpty(): Boolean = _size != 0
 
     /**
      * Returns the value corresponding to the given [key].
+     *
      * @throws NoSuchElementException if [key] is not in the map
      */
     public operator fun get(key: Int): Int {
         val index = findKeyIndex(key)
         if (index < 0) {
-            throw NoSuchElementException("Cannot find value for key $key")
+            throwNoSuchElementException("Cannot find value for key $key")
         }
         return values[index]
     }
 
     /**
-     * Returns the value to which the specified [key] is mapped,
-     * or [defaultValue] if this map contains no mapping for the key.
+     * Returns the value to which the specified [key] is mapped, or [defaultValue] if this map
+     * contains no mapping for the key.
      */
     public fun getOrDefault(key: Int, defaultValue: Int): Int {
         val index = findKeyIndex(key)
@@ -337,9 +339,8 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Returns the value for the given [key] if the value is present
-     * and not null. Otherwise, returns the result of the [defaultValue]
-     * function.
+     * Returns the value for the given [key] if the value is present and not null. Otherwise,
+     * returns the result of the [defaultValue] function.
      */
     public inline fun getOrElse(key: Int, defaultValue: () -> Int): Int {
         val index = findKeyIndex(key)
@@ -350,8 +351,8 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Iterates over every key/value pair stored in this map by invoking
-     * the specified [block] lambda.
+     * Iterates over every key/value pair stored in this map by invoking the specified [block]
+     * lambda.
      */
     @PublishedApi
     internal inline fun forEachIndexed(block: (index: Int) -> Unit) {
@@ -379,108 +380,71 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Iterates over every key/value pair stored in this map by invoking
-     * the specified [block] lambda.
+     * Iterates over every key/value pair stored in this map by invoking the specified [block]
+     * lambda.
      */
     public inline fun forEach(block: (key: Int, value: Int) -> Unit) {
         val k = keys
         val v = values
 
-        forEachIndexed { index ->
-            block(k[index], v[index])
-        }
+        forEachIndexed { index -> block(k[index], v[index]) }
     }
 
-    /**
-     * Iterates over every key stored in this map by invoking the specified
-     * [block] lambda.
-     */
+    /** Iterates over every key stored in this map by invoking the specified [block] lambda. */
     public inline fun forEachKey(block: (key: Int) -> Unit) {
         val k = keys
 
-        forEachIndexed { index ->
-            block(k[index])
-        }
+        forEachIndexed { index -> block(k[index]) }
     }
 
-    /**
-     * Iterates over every value stored in this map by invoking the specified
-     * [block] lambda.
-     */
+    /** Iterates over every value stored in this map by invoking the specified [block] lambda. */
     public inline fun forEachValue(block: (value: Int) -> Unit) {
         val v = values
 
-        forEachIndexed { index ->
-            block(v[index])
-        }
+        forEachIndexed { index -> block(v[index]) }
     }
 
-    /**
-     * Returns true if all entries match the given [predicate].
-     */
+    /** Returns true if all entries match the given [predicate]. */
     public inline fun all(predicate: (Int, Int) -> Boolean): Boolean {
-        forEach { key, value ->
-            if (!predicate(key, value)) return false
-        }
+        forEach { key, value -> if (!predicate(key, value)) return false }
         return true
     }
 
-    /**
-     * Returns true if at least one entry matches the given [predicate].
-     */
+    /** Returns true if at least one entry matches the given [predicate]. */
     public inline fun any(predicate: (Int, Int) -> Boolean): Boolean {
-        forEach { key, value ->
-            if (predicate(key, value)) return true
-        }
+        forEach { key, value -> if (predicate(key, value)) return true }
         return false
     }
 
-    /**
-     * Returns the number of entries in this map.
-     */
+    /** Returns the number of entries in this map. */
     public fun count(): Int = size
 
-    /**
-     * Returns the number of entries matching the given [predicate].
-     */
+    /** Returns the number of entries matching the given [predicate]. */
     public inline fun count(predicate: (Int, Int) -> Boolean): Int {
         var count = 0
-        forEach { key, value ->
-            if (predicate(key, value)) count++
-        }
+        forEach { key, value -> if (predicate(key, value)) count++ }
         return count
     }
 
-    /**
-     * Returns true if the specified [key] is present in this hash map, false
-     * otherwise.
-     */
-    public operator fun contains(key: Int): Boolean = findKeyIndex(key) >= 0
+    /** Returns true if the specified [key] is present in this map, false otherwise. */
+    public inline operator fun contains(key: Int): Boolean = containsKey(key)
 
-    /**
-     * Returns true if the specified [key] is present in this hash map, false
-     * otherwise.
-     */
+    /** Returns true if the specified [key] is present in this map, false otherwise. */
     public fun containsKey(key: Int): Boolean = findKeyIndex(key) >= 0
 
-    /**
-     * Returns true if the specified [value] is present in this hash map, false
-     * otherwise.
-     */
+    /** Returns true if the specified [value] is present in this map, false otherwise. */
     public fun containsValue(value: Int): Boolean {
-        forEachValue { v ->
-            if (value == v) return true
-        }
+        forEachValue { v -> if (value == v) return true }
         return false
     }
 
     /**
-     * Creates a String from the entries, separated by [separator] and using [prefix] before
-     * and [postfix] after, if supplied.
+     * Creates a String from the entries, separated by [separator] and using [prefix] before and
+     * [postfix] after, if supplied.
      *
-     * When a non-negative value of [limit] is provided, a maximum of [limit] items are used
-     * to generate the string. If the collection holds more than [limit] items, the string
-     * is terminated with [truncated].
+     * When a non-negative value of [limit] is provided, a maximum of [limit] items are used to
+     * generate the string. If the collection holds more than [limit] items, the string is
+     * terminated with [truncated].
      */
     @JvmOverloads
     public fun joinToString(
@@ -509,12 +473,12 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Creates a String from the entries, separated by [separator] and using [prefix] before
-     * and [postfix] after, if supplied. Each entry is created with [transform].
+     * Creates a String from the entries, separated by [separator] and using [prefix] before and
+     * [postfix] after, if supplied. Each entry is created with [transform].
      *
-     * When a non-negative value of [limit] is provided, a maximum of [limit] items are used
-     * to generate the string. If the collection holds more than [limit] items, the string
-     * is terminated with [truncated].
+     * When a non-negative value of [limit] is provided, a maximum of [limit] items are used to
+     * generate the string. If the collection holds more than [limit] items, the string is
+     * terminated with [truncated].
      */
     @JvmOverloads
     public inline fun joinToString(
@@ -542,22 +506,20 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Returns the hash code value for this map. The hash code the sum of the hash
-     * codes of each key/value pair.
+     * Returns the hash code value for this map. The hash code the sum of the hash codes of each
+     * key/value pair.
      */
     public override fun hashCode(): Int {
         var hash = 0
 
-        forEach { key, value ->
-            hash += key.hashCode() xor value.hashCode()
-        }
+        forEach { key, value -> hash += key.hashCode() xor value.hashCode() }
 
         return hash
     }
 
     /**
-     * Compares the specified object [other] with this hash map for equality.
-     * The two objects are considered equal if [other]:
+     * Compares the specified object [other] with this hash map for equality. The two objects are
+     * considered equal if [other]:
      * - Is a [IntIntMap]
      * - Has the same [size] as this map
      * - Contains key/value pairs equal to this map's pair
@@ -575,7 +537,8 @@ public sealed class IntIntMap {
         }
 
         forEach { key, value ->
-            if (value != other[key]) {
+            val index = other.findKeyIndex(key)
+            if (index < 0 || value != other.values[index]) {
                 return false
             }
         }
@@ -584,10 +547,9 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Returns a string representation of this map. The map is denoted in the
-     * string by the `{}`. Each key/value pair present in the map is represented
-     * inside '{}` by a substring of the form `key=value`, and pairs are
-     * separated by `, `.
+     * Returns a string representation of this map. The map is denoted in the string by the `{}`.
+     * Each key/value pair present in the map is represented inside '{}` by a substring of the form
+     * `key=value`, and pairs are separated by `, `.
      */
     public override fun toString(): String {
         if (isEmpty()) {
@@ -610,8 +572,8 @@ public sealed class IntIntMap {
     }
 
     /**
-     * Scans the hash table to find the index in the backing arrays of the
-     * specified [key]. Returns -1 if the key is not present.
+     * Scans the hash table to find the index in the backing arrays of the specified [key]. Returns
+     * -1 if the key is not present.
      */
     @PublishedApi
     internal fun findKeyIndex(key: Int): Int {
@@ -646,37 +608,30 @@ public sealed class IntIntMap {
 }
 
 /**
- * [MutableIntIntMap] is a container with a [MutableMap]-like interface for
- * [Int] primitive keys and [Int] primitive values.
+ * [MutableIntIntMap] is a container with a [MutableMap]-like interface for [Int] primitive keys and
+ * [Int] primitive values.
  *
- * The underlying implementation is designed to avoid allocations from boxing,
- * and insertion, removal, retrieval, and iteration operations. Allocations
- * may still happen on insertion when the underlying storage needs to grow to
- * accommodate newly added entries to the table. In addition, this implementation
- * minimizes memory usage by avoiding the use of separate objects to hold
+ * The underlying implementation is designed to avoid allocations from boxing, and insertion,
+ * removal, retrieval, and iteration operations. Allocations may still happen on insertion when the
+ * underlying storage needs to grow to accommodate newly added entries to the table. In addition,
+ * this implementation minimizes memory usage by avoiding the use of separate objects to hold
  * key/value pairs.
  *
- * This implementation makes no guarantee as to the order of the keys and
- * values stored, nor does it make guarantees that the order remains constant
- * over time.
+ * This implementation makes no guarantee as to the order of the keys and values stored, nor does it
+ * make guarantees that the order remains constant over time.
  *
- * This implementation is not thread-safe: if multiple threads access this
- * container concurrently, and one or more threads modify the structure of
- * the map (insertion or removal for instance), the calling code must provide
- * the appropriate synchronization. Multiple threads are safe to read from this
- * map concurrently if no write is happening.
+ * This implementation is not thread-safe: if multiple threads access this container concurrently,
+ * and one or more threads modify the structure of the map (insertion or removal for instance), the
+ * calling code must provide the appropriate synchronization. Multiple threads are safe to read from
+ * this map concurrently if no write is happening.
  *
+ * @param initialCapacity The initial desired capacity for this container. the container will honor
+ *   this value by guaranteeing its internal structures can hold that many entries without requiring
+ *   any allocations. The initial capacity can be set to 0.
  * @constructor Creates a new [MutableIntIntMap]
- * @param initialCapacity The initial desired capacity for this container.
- * the container will honor this value by guaranteeing its internal structures
- * can hold that many entries without requiring any allocations. The initial
- * capacity can be set to 0.
- *
  * @see MutableScatterMap
  */
-public class MutableIntIntMap(
-    initialCapacity: Int = DefaultScatterCapacity
-) : IntIntMap() {
+public class MutableIntIntMap(initialCapacity: Int = DefaultScatterCapacity) : IntIntMap() {
     // Number of entries we can add before we need to grow
     private var growthLimit = 0
 
@@ -686,13 +641,14 @@ public class MutableIntIntMap(
     }
 
     private fun initializeStorage(initialCapacity: Int) {
-        val newCapacity = if (initialCapacity > 0) {
-            // Since we use longs for storage, our capacity is never < 7, enforce
-            // it here. We do have a special case for 0 to create small empty maps
-            maxOf(7, normalizeCapacity(initialCapacity))
-        } else {
-            0
-        }
+        val newCapacity =
+            if (initialCapacity > 0) {
+                // Since we use longs for storage, our capacity is never < 7, enforce
+                // it here. We do have a special case for 0 to create small empty maps
+                maxOf(7, normalizeCapacity(initialCapacity))
+            } else {
+                0
+            }
         _capacity = newCapacity
         initializeMetadata(newCapacity)
         keys = IntArray(newCapacity)
@@ -700,15 +656,14 @@ public class MutableIntIntMap(
     }
 
     private fun initializeMetadata(capacity: Int) {
-        metadata = if (capacity == 0) {
-            EmptyGroup
-        } else {
-            // Round up to the next multiple of 8 and find how many longs we need
-            val size = (((capacity + 1 + ClonedMetadataCount) + 7) and 0x7.inv()) shr 3
-            LongArray(size).apply {
-                fill(AllEmpty)
+        metadata =
+            if (capacity == 0) {
+                EmptyGroup
+            } else {
+                // Round up to the next multiple of 8 and find how many longs we need
+                val size = (((capacity + 1 + ClonedMetadataCount) + 7) and 0x7.inv()) shr 3
+                LongArray(size).apply { fill(AllEmpty) }
             }
-        }
         writeRawMetadata(metadata, capacity, Sentinel)
         initializeGrowth()
     }
@@ -718,9 +673,8 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Returns the value to which the specified [key] is mapped,
-     * if the value is present in the map and not `null`. Otherwise,
-     * calls `defaultValue()` and puts the result in the map associated
+     * Returns the value to which the specified [key] is mapped, if the value is present in the map
+     * and not `null`. Otherwise, calls `defaultValue()` and puts the result in the map associated
      * with [key].
      */
     public inline fun getOrPut(key: Int, defaultValue: () -> Int): Int {
@@ -735,11 +689,10 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Creates a new mapping from [key] to [value] in this map. If [key] is
-     * already present in the map, the association is modified and the previously
-     * associated value is replaced with [value]. If [key] is not present, a new
-     * entry is added to the map, which may require to grow the underlying storage
-     * and cause allocations.
+     * Creates a new mapping from [key] to [value] in this map. If [key] is already present in the
+     * map, the association is modified and the previously associated value is replaced with
+     * [value]. If [key] is not present, a new entry is added to the map, which may require to grow
+     * the underlying storage and cause allocations.
      */
     public operator fun set(key: Int, value: Int) {
         var index = findInsertIndex(key)
@@ -749,23 +702,21 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Creates a new mapping from [key] to [value] in this map. If [key] is
-     * already present in the map, the association is modified and the previously
-     * associated value is replaced with [value]. If [key] is not present, a new
-     * entry is added to the map, which may require to grow the underlying storage
-     * and cause allocations. Return the previous value associated with the [key],
-     * or `null` if the key was not present in the map.
+     * Creates a new mapping from [key] to [value] in this map. If [key] is already present in the
+     * map, the association is modified and the previously associated value is replaced with
+     * [value]. If [key] is not present, a new entry is added to the map, which may require to grow
+     * the underlying storage and cause allocations. Return the previous value associated with the
+     * [key], or `null` if the key was not present in the map.
      */
     public fun put(key: Int, value: Int) {
         set(key, value)
     }
 
     /**
-     * Creates a new mapping from [key] to [value] in this map. If [key] is
-     * already present in the map, the association is modified and the previously
-     * associated value is replaced with [value]. If [key] is not present, a new
-     * entry is added to the map, which may require to grow the underlying storage
-     * and cause allocations.
+     * Creates a new mapping from [key] to [value] in this map. If [key] is already present in the
+     * map, the association is modified and the previously associated value is replaced with
+     * [value]. If [key] is not present, a new entry is added to the map, which may require to grow
+     * the underlying storage and cause allocations.
      *
      * @return value previously associated with [key] or [default] if key was not present.
      */
@@ -783,23 +734,15 @@ public class MutableIntIntMap(
         return previous
     }
 
-    /**
-     * Puts all the key/value mappings in the [from] map into this map.
-     */
+    /** Puts all the key/value mappings in the [from] map into this map. */
     public fun putAll(from: IntIntMap) {
-        from.forEach { key, value ->
-            this[key] = value
-        }
+        from.forEach { key, value -> this[key] = value }
     }
 
-    /**
-     * Puts all the key/value mappings in the [from] map into this map.
-     */
+    /** Puts all the key/value mappings in the [from] map into this map. */
     public inline operator fun plusAssign(from: IntIntMap): Unit = putAll(from)
 
-    /**
-     * Removes the specified [key] and its associated value from the map.
-     */
+    /** Removes the specified [key] and its associated value from the map. */
     public fun remove(key: Int) {
         val index = findKeyIndex(key)
         if (index >= 0) {
@@ -808,8 +751,8 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Removes the specified [key] and its associated value from the map if the
-     * associated value equals [value]. Returns whether the removal happened.
+     * Removes the specified [key] and its associated value from the map if the associated value
+     * equals [value]. Returns whether the removal happened.
      */
     public fun remove(key: Int, value: Int): Boolean {
         val index = findKeyIndex(key)
@@ -822,9 +765,7 @@ public class MutableIntIntMap(
         return false
     }
 
-    /**
-     * Removes any mapping for which the specified [predicate] returns true.
-     */
+    /** Removes any mapping for which the specified [predicate] returns true. */
     public inline fun removeIf(predicate: (Int, Int) -> Boolean) {
         forEachIndexed { index ->
             if (predicate(keys[index], values[index])) {
@@ -833,38 +774,26 @@ public class MutableIntIntMap(
         }
     }
 
-    /**
-     * Removes the specified [key] and its associated value from the map.
-     */
+    /** Removes the specified [key] and its associated value from the map. */
     public inline operator fun minusAssign(key: Int) {
         remove(key)
     }
 
-    /**
-     * Removes the specified [keys] and their associated value from the map.
-     */
+    /** Removes the specified [keys] and their associated value from the map. */
     public inline operator fun minusAssign(@Suppress("ArrayReturn") keys: IntArray) {
         for (key in keys) {
             remove(key)
         }
     }
 
-    /**
-     * Removes the specified [keys] and their associated value from the map.
-     */
+    /** Removes the specified [keys] and their associated value from the map. */
     public inline operator fun minusAssign(keys: IntSet) {
-        keys.forEach { key ->
-            remove(key)
-        }
+        keys.forEach { key -> remove(key) }
     }
 
-    /**
-     * Removes the specified [keys] and their associated value from the map.
-     */
+    /** Removes the specified [keys] and their associated value from the map. */
     public inline operator fun minusAssign(keys: IntList) {
-        keys.forEach { key ->
-            remove(key)
-        }
+        keys.forEach { key -> remove(key) }
     }
 
     @PublishedApi
@@ -876,9 +805,7 @@ public class MutableIntIntMap(
         writeMetadata(metadata, _capacity, index, Deleted)
     }
 
-    /**
-     * Removes all mappings from this map.
-     */
+    /** Removes all mappings from this map. */
     public fun clear() {
         _size = 0
         if (metadata !== EmptyGroup) {
@@ -889,11 +816,10 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Scans the hash table to find the index at which we can store a value
-     * for the give [key]. If the key already exists in the table, its index
-     * will be returned, otherwise the index of an empty slot will be returned.
-     * Calling this function may cause the internal storage to be reallocated
-     * if the table is full.
+     * Scans the hash table to find the index at which we can store a value for the give [key]. If
+     * the key already exists in the table, its index will be returned, otherwise the index of an
+     * empty slot will be returned. Calling this function may cause the internal storage to be
+     * reallocated if the table is full.
      */
     private fun findInsertIndex(key: Int): Int {
         val hash = hash(key)
@@ -937,8 +863,8 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Finds the first empty or deleted slot in the table in which we can
-     * store a value without resizing the internal storage.
+     * Finds the first empty or deleted slot in the table in which we can store a value without
+     * resizing the internal storage.
      */
     private fun findFirstAvailableSlot(hash1: Int): Int {
         val probeMask = _capacity
@@ -957,11 +883,11 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Trims this [MutableIntIntMap]'s storage so it is sized appropriately
-     * to hold the current mappings.
+     * Trims this [MutableIntIntMap]'s storage so it is sized appropriately to hold the current
+     * mappings.
      *
-     * Returns the number of empty entries removed from this map's storage.
-     * Returns be 0 if no trimming is necessary or possible.
+     * Returns the number of empty entries removed from this map's storage. Returns be 0 if no
+     * trimming is necessary or possible.
      */
     public fun trim(): Int {
         val previousCapacity = _capacity
@@ -974,13 +900,12 @@ public class MutableIntIntMap(
     }
 
     /**
-     * Grow internal storage if necessary. This function can instead opt to
-     * remove deleted entries from the table to avoid an expensive reallocation
-     * of the underlying storage. This "rehash in place" occurs when the
-     * current size is <= 25/32 of the table capacity. The choice of 25/32 is
+     * Grow internal storage if necessary. This function can instead opt to remove deleted entries
+     * from the table to avoid an expensive reallocation of the underlying storage. This "rehash in
+     * place" occurs when the current size is <= 25/32 of the table capacity. The choice of 25/32 is
      * detailed in the implementation of abseil's `raw_hash_set`.
      */
-    private fun adjustStorage() {
+    internal fun adjustStorage() { // Internal to prevent inlining
         if (_capacity > GroupWidth && _size.toULong() * 32UL <= _capacity.toULong() * 25UL) {
             dropDeletes()
         } else {
@@ -988,7 +913,8 @@ public class MutableIntIntMap(
         }
     }
 
-    private fun dropDeletes() {
+    // Internal to prevent inlining
+    internal fun dropDeletes() {
         val metadata = metadata
         val capacity = _capacity
         val keys = keys
@@ -997,7 +923,6 @@ public class MutableIntIntMap(
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -1005,7 +930,6 @@ public class MutableIntIntMap(
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -1052,25 +976,19 @@ public class MutableIntIntMap(
 
                 values[targetIndex] = values[index]
                 values[index] = 0
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                keys[swapIndex] = keys[targetIndex]
+                val oldKey = keys[targetIndex]
                 keys[targetIndex] = keys[index]
-                keys[index] = keys[swapIndex]
+                keys[index] = oldKey
 
-                values[swapIndex] = values[targetIndex]
+                val oldValue = values[targetIndex]
                 values[targetIndex] = values[index]
-                values[index] = values[swapIndex]
+                values[index] = oldValue
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location
@@ -1086,7 +1004,8 @@ public class MutableIntIntMap(
         initializeGrowth()
     }
 
-    private fun resizeStorage(newCapacity: Int) {
+    // Internal to prevent inlining
+    internal fun resizeStorage(newCapacity: Int) {
         val previousMetadata = metadata
         val previousKeys = keys
         val previousValues = values
@@ -1110,21 +1029,5 @@ public class MutableIntIntMap(
                 newValues[index] = previousValues[i]
             }
         }
-    }
-
-    /**
-     * Writes the "H2" part of an entry into the metadata array at the specified
-     * [index]. The index must be a valid index. This function ensures the
-     * metadata is also written in the clone area at the end.
-     */
-    private inline fun writeMetadata(index: Int, value: Long) {
-        val m = metadata
-        writeRawMetadata(m, index, value)
-
-        // Mirroring
-        val c = _capacity
-        val cloneIndex = ((index - ClonedMetadataCount) and c) +
-            (ClonedMetadataCount and c)
-        writeRawMetadata(m, cloneIndex, value)
     }
 }

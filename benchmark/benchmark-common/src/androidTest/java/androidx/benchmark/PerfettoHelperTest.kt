@@ -26,6 +26,7 @@ import androidx.test.filters.SdkSuppress
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.After
 import org.junit.Assume
@@ -40,7 +41,7 @@ class PerfettoHelperTest {
     @Before
     @After
     fun cleanup() {
-        PerfettoHelper.stopAllPerfettoProcesses()
+        PerfettoHelper.cleanupPerfettoState()
     }
 
     private fun validateStopAllPerfettoProcesses(unbundled: Boolean) {
@@ -64,7 +65,7 @@ class PerfettoHelperTest {
         assertTrue(capture.isRunning())
 
         // kill all...
-        PerfettoHelper.stopAllPerfettoProcesses()
+        PerfettoHelper.cleanupPerfettoState()
 
         // should be none again
         assertEquals(expected = listOf(), actual = getPerfettoPids())
@@ -81,5 +82,21 @@ class PerfettoHelperTest {
         Assume.assumeTrue(PerfettoHelper.isAbiSupported())
 
         validateStopAllPerfettoProcesses(unbundled = true)
+    }
+
+    @Test
+    fun parserPerfettoCommand() {
+        val pid = 8092
+        val exitCode = 0
+        val output =
+            """
+            $pid
+            EXITCODE=$exitCode
+        """
+                .trimIndent()
+        val parseResult = PerfettoHelper.parsePerfettoCommandOutput(output)
+        assertNotNull(parseResult)
+        assertEquals(parseResult.first, exitCode)
+        assertEquals(parseResult.second, pid)
     }
 }

@@ -18,164 +18,323 @@ package androidx.privacysandbox.ui.integration.testsdkprovider
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
-import android.os.IBinder
 import android.os.Looper
-import android.provider.Settings
-import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebView
-import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.integration.testaidl.ISdkApi
+import android.os.Process
+import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat
+import androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter
+import androidx.privacysandbox.ui.core.ExperimentalFeatures
+import androidx.privacysandbox.ui.integration.mediateesdkprovider.IMediateeSdkApiFactory
+import androidx.privacysandbox.ui.integration.sdkproviderutils.NativeAdGenerator
+import androidx.privacysandbox.ui.integration.sdkproviderutils.PlayerViewProvider
+import androidx.privacysandbox.ui.integration.sdkproviderutils.PlayerViewabilityHandler
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.BackNavigation
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.ScreenOrientation
+import androidx.privacysandbox.ui.integration.sdkproviderutils.TestAdapters
+import androidx.privacysandbox.ui.integration.sdkproviderutils.ViewabilityHandler
+import androidx.privacysandbox.ui.integration.sdkproviderutils.fullscreen.FullscreenAd
+import androidx.privacysandbox.ui.integration.testaidl.IMediateeSdkApi
+import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.privacysandbox.ui.provider.toCoreLibInfo
-import java.util.concurrent.Executor
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
-class SdkApi(sdkContext: Context) : ISdkApi.Stub() {
-    private var mContext: Context? = null
+@SuppressLint("NullAnnotationGroup")
+@OptIn(ExperimentalFeatures.SharedUiPresentationApi::class)
+class SdkApi(private val sdkContext: Context) : ISdkApi {
+    private val testAdapters = TestAdapters(sdkContext)
     private val handler = Handler(Looper.getMainLooper())
-    private lateinit var bannerAd: BannerAd
+    private val nativeAdGenerator = NativeAdGenerator(sdkContext, MediationOption.NON_MEDIATED)
 
-    init {
-        mContext = sdkContext
+    override suspend fun loadAd(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean
+    ): Bundle {
+        when (mediationOption) {
+            MediationOption.NON_MEDIATED -> {
+                return when (adFormat) {
+                    AdFormat.BANNER_AD -> loadBannerAd(adType, waitInsideOnDraw, drawViewability)
+                    AdFormat.NATIVE_AD -> loadNativeAd(adType)
+                    else -> Bundle()
+                }
+            }
+            MediationOption.SDK_RUNTIME_MEDIATEE,
+            MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY,
+            MediationOption.IN_APP_MEDIATEE,
+            MediationOption.REFRESHABLE_MEDIATION ->
+                return loadMediatedTestAd(
+                    adFormat,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewability
+                )
+            else -> return Bundle()
+        }
     }
 
-    override fun loadAd(isWebView: Boolean, text: String, withSlowDraw: Boolean): Bundle {
-        bannerAd = BannerAd(isWebView, withSlowDraw, text)
-        return bannerAd.toCoreLibInfo(mContext!!)
-    }
+    /**
+     * Runnable that updates a [DelegatingSandboxedUiAdapter]'s delegate between different mediatees
+     * every [UPDATE_DELEGATE_INTERVAL] ms.
+     */
+    @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
+    inner class UpdateDelegateTask(
+        private val adapter: DelegatingSandboxedUiAdapter,
+        private var mediationOption: Int,
+        private val drawViewability: Boolean,
+        private val numberOfRefreshes: Int
+    ) : Runnable {
 
-    override fun requestResize(width: Int, height: Int) {
-        bannerAd.requestResize(width, height)
-    }
+        private var refreshCount = 0
 
-    private fun isAirplaneModeOn(): Boolean {
-        return Settings.Global.getInt(
-            mContext?.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
-    }
-
-    private inner class BannerAd(
-        private val isWebView: Boolean,
-        private val withSlowDraw: Boolean,
-        private val text: String
-    ) :
-        SandboxedUiAdapter {
-        lateinit var sessionClientExecutor: Executor
-        lateinit var sessionClient: SandboxedUiAdapter.SessionClient
-        override fun openSession(
-            context: Context,
-            windowInputToken: IBinder,
-            initialWidth: Int,
-            initialHeight: Int,
-            isZOrderOnTop: Boolean,
-            clientExecutor: Executor,
-            client: SandboxedUiAdapter.SessionClient,
-        ) {
-            sessionClientExecutor = clientExecutor
-            sessionClient = client
-            handler.post(Runnable lambda@{
-                Log.d(TAG, "Session requested")
-                lateinit var adView: View
-                if (isWebView) {
-                    // To test error cases.
-                    if (isAirplaneModeOn()) {
-                        clientExecutor.execute {
-                            client.onSessionError(
-                                Throwable("Cannot load WebView in airplane mode.")
-                            )
-                        }
-                        return@lambda
-                    }
-                    val webView = WebView(context)
-                    webView.loadUrl(AD_URL)
-                    webView.layoutParams = ViewGroup.LayoutParams(
-                        initialWidth, initialHeight
+        override fun run() {
+            val coroutineScope = MainScope()
+            coroutineScope.launch {
+                val adapterBundle =
+                    maybeGetMediateeBundle(
+                        AdFormat.BANNER_AD,
+                        mediationOption,
+                        AdType.BASIC_NON_WEBVIEW,
+                        waitInsideOnDraw = false,
+                        drawViewability
                     )
-                    adView = webView
-                } else {
-                    adView = TestView(context, withSlowDraw, text)
+                adapter.updateDelegate(adapterBundle)
+                mediationOption =
+                    if (mediationOption == MediationOption.IN_APP_MEDIATEE) {
+                        MediationOption.SDK_RUNTIME_MEDIATEE
+                    } else {
+                        MediationOption.IN_APP_MEDIATEE
+                    }
+                if (refreshCount++ < numberOfRefreshes) {
+                    handler.postDelayed(this@UpdateDelegateTask, UPDATE_DELEGATE_INTERVAL)
                 }
-                clientExecutor.execute {
-                    client.onSessionOpened(BannerAdSession(adView))
-                }
-            })
-        }
-
-        fun requestResize(width: Int, height: Int) {
-            sessionClientExecutor.execute {
-                sessionClient.onResizeRequested(width, height)
-            }
-        }
-
-        private inner class BannerAdSession(private val adView: View) : SandboxedUiAdapter.Session {
-            override val view: View
-                get() = adView
-
-            override fun notifyResized(width: Int, height: Int) {
-                Log.i(TAG, "Resized $width $height")
-                view.layoutParams.width = width
-                view.layoutParams.height = height
-            }
-
-            override fun notifyZOrderChanged(isZOrderOnTop: Boolean) {
-                Log.i(TAG, "Z order changed")
-            }
-
-            override fun notifyConfigurationChanged(configuration: Configuration) {
-                Log.i(TAG, "Configuration change")
-            }
-
-            override fun close() {
-                Log.i(TAG, "Closing session")
             }
         }
     }
 
-    private inner class TestView(
-        context: Context,
-        private val withSlowDraw: Boolean,
-        private val text: String
-    ) : View(context) {
+    private fun loadBannerAd(
+        @AdType adType: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean,
+    ): Bundle {
+        val adapter: AbstractSandboxedUiAdapter =
+            when (adType) {
+                AdType.BASIC_NON_WEBVIEW -> {
+                    loadNonWebViewBannerAd("Simple Ad", waitInsideOnDraw)
+                }
+                AdType.BASIC_WEBVIEW -> {
+                    loadWebViewBannerAd()
+                }
+                AdType.WEBVIEW_FROM_LOCAL_ASSETS -> {
+                    loadWebViewBannerAdFromLocalAssets()
+                }
+                AdType.NON_WEBVIEW_VIDEO -> loadVideoAd()
+                else -> {
+                    loadNonWebViewBannerAd("Ad type not present", waitInsideOnDraw)
+                }
+            }.also { ViewabilityHandler.addObserverFactoryToAdapter(it, drawViewability) }
+        return adapter.toCoreLibInfo(sdkContext)
+    }
 
-        @SuppressLint("BanThreadSleep")
-        override fun onDraw(canvas: Canvas) {
-            // We are adding sleep to test the synchronization of the app and the sandbox view's
-            // size changes.
-            if (withSlowDraw)
-                Thread.sleep(500)
-            super.onDraw(canvas)
+    private fun loadNativeAd(@AdType adType: Int): Bundle {
+        return nativeAdGenerator.generateAdBundleWithAssets(adType)
+    }
 
-            val paint = Paint()
-            paint.textSize = 50F
-            canvas.drawColor(
-                Color.rgb((0..255).random(), (0..255).random(), (0..255).random())
+    override fun launchFullscreenAd(
+        launcherInfo: Bundle,
+        @ScreenOrientation screenOrientation: Int,
+        @BackNavigation backButtonNavigation: Int
+    ) {
+        val coroutineScope = MainScope()
+        coroutineScope.launch {
+            FullscreenAd(sdkContext).show(launcherInfo, screenOrientation, backButtonNavigation)
+        }
+    }
+
+    @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
+    private fun startDelegatingAdUpdateHandler(
+        adapter: DelegatingSandboxedUiAdapter,
+        drawViewability: Boolean
+    ) {
+        // This task will recursively post itself to the handler [numberOfRefreshes] times to allow
+        // us to test several ad refreshes.
+        handler.postDelayed(
+            UpdateDelegateTask(
+                adapter,
+                MediationOption.SDK_RUNTIME_MEDIATEE,
+                drawViewability,
+                numberOfRefreshes = 5
+            ),
+            UPDATE_DELEGATE_INTERVAL,
+        )
+        // post two tasks to the handler to simulate race conditions
+        handler.postDelayed(
+            UpdateDelegateTask(
+                adapter,
+                MediationOption.IN_APP_MEDIATEE,
+                drawViewability,
+                numberOfRefreshes = 0
+            ),
+            UPDATE_DELEGATE_INTERVAL
+        )
+    }
+
+    /** Kill sandbox process */
+    override fun triggerProcessDeath() {
+        Process.killProcess(Process.myPid())
+    }
+
+    private fun loadWebViewBannerAd(): AbstractSandboxedUiAdapter {
+        return testAdapters.WebViewBannerAd()
+    }
+
+    private fun loadWebViewBannerAdFromLocalAssets(): AbstractSandboxedUiAdapter {
+        return testAdapters.WebViewAdFromLocalAssets()
+    }
+
+    private fun loadNonWebViewBannerAd(
+        text: String,
+        waitInsideOnDraw: Boolean
+    ): AbstractSandboxedUiAdapter {
+        return testAdapters.TestBannerAd(text, waitInsideOnDraw)
+    }
+
+    private fun loadVideoAd(): AbstractSandboxedUiAdapter {
+        val playerViewProvider = PlayerViewProvider()
+        val adapter = testAdapters.VideoBannerAd(playerViewProvider)
+        PlayerViewabilityHandler.addObserverFactoryToAdapter(adapter, playerViewProvider)
+        return adapter
+    }
+
+    @OptIn(ExperimentalFeatures.DelegatingAdapterApi::class)
+    private suspend fun loadMediatedTestAd(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean
+    ): Bundle {
+        val mediateeBundle =
+            maybeGetMediateeBundle(
+                adFormat,
+                adType,
+                mediationOption,
+                waitInsideOnDraw,
+                drawViewability
             )
 
-            canvas.drawText(text, 75F, 75F, paint)
+        if (adFormat == AdFormat.BANNER_AD) {
+            if (mediationOption == MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY) {
+                return testAdapters.OverlaidAd(mediateeBundle).toCoreLibInfo(sdkContext)
+            }
 
-            setOnClickListener {
-                Log.i(TAG, "Click on ad detected")
-                val visitUrl = Intent(Intent.ACTION_VIEW)
-                visitUrl.data = Uri.parse(AD_URL)
-                visitUrl.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                mContext!!.startActivity(visitUrl)
+            if (mediationOption == MediationOption.REFRESHABLE_MEDIATION) {
+                val delegatingAdapter = DelegatingSandboxedUiAdapter(mediateeBundle)
+                startDelegatingAdUpdateHandler(delegatingAdapter, drawViewability)
+                return delegatingAdapter.toCoreLibInfo(sdkContext)
             }
         }
+        return mediateeBundle
+    }
 
-        override fun onConfigurationChanged(newConfig: Configuration?) {
-            Log.i(TAG, "View notification - configuration of the app has changed")
+    override fun requestResize(width: Int, height: Int) {}
+
+    private suspend fun maybeGetMediateeBundle(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean
+    ): Bundle {
+        when (mediationOption) {
+            MediationOption.SDK_RUNTIME_MEDIATEE,
+            MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY,
+            MediationOption.REFRESHABLE_MEDIATION -> {
+                val sandboxedMediateeApi =
+                    maybeGetSandboxedMediateeSdkApi()
+                        ?: return loadFallbackAd(adFormat, adType, waitInsideOnDraw)
+                return sandboxedMediateeApi.loadAd(
+                    adFormat,
+                    adType,
+                    waitInsideOnDraw,
+                    drawViewability
+                )
+            }
+            MediationOption.IN_APP_MEDIATEE -> {
+                val appOwnedMediateeApi =
+                    maybeGetAppOwnedMediateeSdkApi()
+                        ?: return loadFallbackAd(adFormat, adType, waitInsideOnDraw)
+                return appOwnedMediateeApi.loadAd(
+                    adFormat,
+                    adType,
+                    waitInsideOnDraw,
+                    drawViewability
+                )
+            }
+            else -> return loadFallbackAd(adFormat, adType, waitInsideOnDraw)
         }
+    }
+
+    private fun loadFallbackAd(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        withSlowDraw: Boolean
+    ): Bundle =
+        when (adFormat) {
+            AdFormat.BANNER_AD ->
+                testAdapters
+                    .TestBannerAd(MEDIATED_SDK_NOT_LOADED_MESSAGE, withSlowDraw)
+                    .toCoreLibInfo(sdkContext)
+            AdFormat.NATIVE_AD ->
+                nativeAdGenerator.generateAdBundleWithAssets(
+                    adType,
+                    MEDIATED_SDK_NOT_LOADED_MESSAGE
+                )
+            else -> Bundle()
+        }
+
+    private fun maybeGetAppOwnedMediateeSdkApi(): IMediateeSdkApi? {
+        val sdkSandboxControllerCompat = SdkSandboxControllerCompat.from(sdkContext)
+        val appOwnedSdkSandboxInterfaces =
+            sdkSandboxControllerCompat.getAppOwnedSdkSandboxInterfaces()
+        appOwnedSdkSandboxInterfaces.forEach { appOwnedSdkSandboxInterfaceCompat ->
+            if (appOwnedSdkSandboxInterfaceCompat.getName() == MEDIATEE_SDK) {
+                return IMediateeSdkApi.Stub.asInterface(
+                    appOwnedSdkSandboxInterfaceCompat.getInterface()
+                )
+            }
+        }
+        return null
+    }
+
+    private fun maybeGetSandboxedMediateeSdkApi():
+        androidx.privacysandbox.ui.integration.mediateesdkprovider.IMediateeSdkApi? {
+        val sdkSandboxControllerCompat = SdkSandboxControllerCompat.from(sdkContext)
+        val sandboxedSdks = sdkSandboxControllerCompat.getSandboxedSdks()
+        sandboxedSdks.forEach { sandboxedSdkCompat ->
+            if (sandboxedSdkCompat.getSdkInfo()?.name == MEDIATEE_SDK) {
+                return IMediateeSdkApiFactory.wrapToIMediateeSdkApi(
+                    checkNotNull(sandboxedSdkCompat.getInterface()) {
+                        "Cannot find Mediatee Sdk Service!"
+                    }
+                )
+            }
+        }
+        return null
     }
 
     companion object {
-        private const val TAG = "TestSandboxSdk"
-        private const val AD_URL = "https://www.google.com/"
+        private const val MEDIATEE_SDK =
+            "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
+        private const val MEDIATED_SDK_NOT_LOADED_MESSAGE =
+            "Mediated SDK is not loaded, this is a mediator Ad!"
+        private const val UPDATE_DELEGATE_INTERVAL: Long = 5000L
     }
 }

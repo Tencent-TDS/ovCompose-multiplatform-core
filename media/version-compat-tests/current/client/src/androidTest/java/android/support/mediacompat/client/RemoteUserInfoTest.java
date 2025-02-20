@@ -19,16 +19,14 @@ package android.support.mediacompat.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import androidx.media.MediaSessionManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/**
- * Test of {@link MediaSessionManager.RemoteUserInfo} methods.
- */
+/** Test of {@link androidx.media.MediaSessionManager.RemoteUserInfo} methods. */
+@SuppressWarnings("deprecation")
 @RunWith(AndroidJUnit4.class)
 @SmallTest
 public class RemoteUserInfoTest {
@@ -37,8 +35,9 @@ public class RemoteUserInfoTest {
         String testPackageName = "com.media.test";
         int testPid = 1000;
         int testUid = 2000;
-        MediaSessionManager.RemoteUserInfo remoteUserInfo =
-                new MediaSessionManager.RemoteUserInfo(testPackageName, testPid, testUid);
+        androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo =
+                new androidx.media.MediaSessionManager.RemoteUserInfo(
+                        testPackageName, testPid, testUid);
         assertEquals(testPackageName, remoteUserInfo.getPackageName());
         assertEquals(testPid, remoteUserInfo.getPid());
         assertEquals(testUid, remoteUserInfo.getUid());
@@ -47,8 +46,8 @@ public class RemoteUserInfoTest {
     @Test
     public void testConstructor_withNullPackageName_throwsNPE() {
         try {
-            MediaSessionManager.RemoteUserInfo remoteUserInfo =
-                    new MediaSessionManager.RemoteUserInfo(null, 1000, 2000);
+            androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo =
+                    new androidx.media.MediaSessionManager.RemoteUserInfo(null, 1000, 2000);
             fail("null package name shouldn't be allowed");
         } catch (NullPointerException e) {
             // expected
@@ -60,8 +59,8 @@ public class RemoteUserInfoTest {
     @Test
     public void testConstructor_withEmptyPackageName_throwsIAE() {
         try {
-            MediaSessionManager.RemoteUserInfo remoteUserInfo =
-                    new MediaSessionManager.RemoteUserInfo("", 1000, 2000);
+            androidx.media.MediaSessionManager.RemoteUserInfo remoteUserInfo =
+                    new androidx.media.MediaSessionManager.RemoteUserInfo("", 1000, 2000);
             fail("empty package name shouldn't be allowed");
         } catch (IllegalArgumentException e) {
             // expected

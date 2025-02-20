@@ -16,13 +16,13 @@
 
 package androidx.camera.testing.impl;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraInfoUnavailableException;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.impl.CameraRepository;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +30,6 @@ import java.util.List;
 /**
  * Utility class to check whether or not specified cameras are available.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class CameraAvailabilityUtil {
     /**
      * Checks whether this repository supports at least one camera that meets the requirements

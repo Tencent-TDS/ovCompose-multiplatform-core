@@ -11,11 +11,11 @@ package androidx.lifecycle {
   }
 
   public final class CoroutineLiveDataKt {
-    method @RequiresApi(android.os.Build.VERSION_CODES.O) public static <T> androidx.lifecycle.LiveData<T> liveData(java.time.Duration timeout, optional kotlin.coroutines.CoroutineContext context, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block);
-    method @RequiresApi(android.os.Build.VERSION_CODES.O) public static <T> androidx.lifecycle.LiveData<T> liveData(java.time.Duration timeout, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block);
-    method public static <T> androidx.lifecycle.LiveData<T> liveData(optional kotlin.coroutines.CoroutineContext context, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block);
-    method public static <T> androidx.lifecycle.LiveData<T> liveData(optional kotlin.coroutines.CoroutineContext context, optional long timeoutInMs, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block);
-    method public static <T> androidx.lifecycle.LiveData<T> liveData(kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,?> block);
+    method @RequiresApi(android.os.Build.VERSION_CODES.O) public static <T> androidx.lifecycle.LiveData<T> liveData(java.time.Duration timeout, optional kotlin.coroutines.CoroutineContext context, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
+    method @RequiresApi(android.os.Build.VERSION_CODES.O) public static <T> androidx.lifecycle.LiveData<T> liveData(java.time.Duration timeout, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
+    method public static <T> androidx.lifecycle.LiveData<T> liveData(optional kotlin.coroutines.CoroutineContext context, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
+    method public static <T> androidx.lifecycle.LiveData<T> liveData(optional kotlin.coroutines.CoroutineContext context, optional long timeoutInMs, kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
+    method public static <T> androidx.lifecycle.LiveData<T> liveData(kotlin.jvm.functions.Function2<? super androidx.lifecycle.LiveDataScope<T>,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block);
   }
 
   public final class FlowLiveDataConversions {
@@ -33,7 +33,7 @@ package androidx.lifecycle {
     property public abstract T? latestValue;
   }
 
-  public class MediatorLiveData<T> extends androidx.lifecycle.MutableLiveData<T> {
+  public class MediatorLiveData<T> extends androidx.lifecycle.MutableLiveData<T!> {
     ctor public MediatorLiveData();
     ctor public MediatorLiveData(T!);
     method @MainThread public <S> void addSource(androidx.lifecycle.LiveData<S!>, androidx.lifecycle.Observer<? super S!>);
