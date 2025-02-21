@@ -16,8 +16,6 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.uri.Uri
-import androidx.core.uri.UriUtils
 import androidx.navigation.serialization.generateRoutePattern
 import androidx.savedstate.SavedState
 import androidx.savedstate.read
@@ -106,8 +104,7 @@ internal constructor(
             if (result.range.first > appendPos) {
                 uriRegex.append(Regex.escape(uri.substring(appendPos, result.range.first)))
             }
-            // allows for empty path arguments
-            uriRegex.append("([^/]*?|)")
+            uriRegex.append(PATH_REGEX)
             appendPos = result.range.last + 1
             result = result.next()
         }
@@ -117,7 +114,7 @@ internal constructor(
         }
     }
 
-    internal fun matches(uri: Uri): Boolean {
+    internal fun matches(uri: NavUri): Boolean {
         return matches(NavDeepLinkRequest(uri, null, null))
     }
 
@@ -130,7 +127,7 @@ internal constructor(
         } else matchMimeType(deepLinkRequest.mimeType)
     }
 
-    private fun matchUri(uri: Uri?): Boolean {
+    private fun matchUri(uri: NavUri?): Boolean {
         // If the null status of both are not the same return false.
         return if (uri == null == (pathPattern != null)) {
             false
@@ -178,7 +175,7 @@ internal constructor(
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun getMatchingArguments(
-        deepLink: Uri,
+        deepLink: NavUri,
         arguments: Map<String, NavArgument?>
     ): SavedState? {
         // first check overall uri pattern for quick return if general pattern does not match
@@ -206,7 +203,7 @@ internal constructor(
      * returns empty SavedState if this Deeplink's path pattern does not match with the uri.
      */
     internal fun getMatchingPathAndQueryArgs(
-        deepLink: Uri?,
+        deepLink: NavUri?,
         arguments: Map<String, NavArgument?>
     ): SavedState {
         val savedState = savedState()
@@ -229,7 +226,7 @@ internal constructor(
         val result = fragPattern?.matchEntire(fragment.toString()) ?: return
 
         this.fragArgs.mapIndexed { index, argumentName ->
-            val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
+            val value = result.groups[index + 1]?.value?.let { NavUriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
                 parseArgument(savedState, argumentName, value, argument)
@@ -246,7 +243,7 @@ internal constructor(
         arguments: Map<String, NavArgument?>
     ): Boolean {
         this.pathArgs.mapIndexed { index, argumentName ->
-            val value = result.groups[index + 1]?.value?.let { UriUtils.decode(it) }.orEmpty()
+            val value = result.groups[index + 1]?.value?.let { NavUriUtils.decode(it) }.orEmpty()
             val argument = arguments[argumentName]
             try {
                 parseArgument(savedState, argumentName, value, argument)
@@ -262,7 +259,7 @@ internal constructor(
     }
 
     private fun getMatchingQueryArguments(
-        deepLink: Uri,
+        deepLink: NavUri,
         savedState: SavedState,
         arguments: Map<String, NavArgument?>
     ): Boolean {
@@ -356,11 +353,11 @@ internal constructor(
         return true
     }
 
-    internal fun calculateMatchingPathSegments(requestedLink: Uri?): Int {
+    internal fun calculateMatchingPathSegments(requestedLink: NavUri?): Int {
         if (requestedLink == null || uriPattern == null) return 0
 
         val requestedPathSegments = requestedLink.getPathSegments()
-        val uriPathSegments = UriUtils.parse(uriPattern).getPathSegments()
+        val uriPathSegments = NavUriUtils.parse(uriPattern).getPathSegments()
 
         val matches = requestedPathSegments.intersect(uriPathSegments)
         return matches.size
@@ -714,6 +711,10 @@ internal constructor(
     private companion object {
         private val SCHEME_PATTERN = Regex("^[a-zA-Z]+[+\\w\\-.]*:")
         private val FILL_IN_PATTERN = Regex("\\{(.+?)\\}")
+        private val SCHEME_REGEX = Regex("http[s]?://")
+        private val WILDCARD_REGEX = Regex(".*")
+        // allows for empty path arguments i.e. empty strings ""
+        private val PATH_REGEX = Regex("([^/]*?|)")
         private val QUERY_PATTERN = Regex("^[^?#]+\\?([^#]*).*")
 
         // TODO: Use [RegexOption.DOT_MATCHES_ALL] once available in common
@@ -727,13 +728,13 @@ internal constructor(
         val uriRegex = StringBuilder("^")
         // append scheme pattern
         if (!SCHEME_PATTERN.containsMatchIn(uriPattern)) {
-            uriRegex.append("http[s]?://")
+            uriRegex.append(SCHEME_REGEX)
         }
         // extract beginning of uriPattern until it hits either a query(?), a framgment(#), or
         // end of uriPattern
         Regex("(\\?|#|$)").find(uriPattern)?.let {
             buildRegex(uriPattern.substring(0, it.range.first), pathArgs, uriRegex)
-            isExactDeepLink = !uriRegex.contains(".*") && !uriRegex.contains("([^/]+?)")
+            isExactDeepLink = !uriRegex.contains(WILDCARD_REGEX) && !uriRegex.contains(PATH_REGEX)
             // Match either the end of string if all params are optional or match the
             // question mark (or pound symbol) and 0 or more characters after it
             uriRegex.append("($|(\\?(.)*)|(#(.)*))")
@@ -746,7 +747,7 @@ internal constructor(
     private fun parseQuery(): MutableMap<String, ParamQuery> {
         val paramArgMap = mutableMapOf<String, ParamQuery>()
         if (!isParameterizedQuery) return paramArgMap
-        val uri = UriUtils.parse(uriPattern!!)
+        val uri = NavUriUtils.parse(uriPattern!!)
 
         for (paramName in uri.getQueryParameterNames()) {
             val argRegex = StringBuilder()
@@ -789,10 +790,10 @@ internal constructor(
     }
 
     private fun parseFragment(): Pair<MutableList<String>, String>? {
-        if (uriPattern == null || UriUtils.parse(uriPattern).getFragment() == null) return null
+        if (uriPattern == null || NavUriUtils.parse(uriPattern).getFragment() == null) return null
 
         val fragArgs = mutableListOf<String>()
-        val fragment = UriUtils.parse(uriPattern).getFragment()
+        val fragment = NavUriUtils.parse(uriPattern).getFragment()
         val fragRegex = StringBuilder()
         buildRegex(fragment!!, fragArgs, fragRegex)
         return fragArgs to fragRegex.toString()

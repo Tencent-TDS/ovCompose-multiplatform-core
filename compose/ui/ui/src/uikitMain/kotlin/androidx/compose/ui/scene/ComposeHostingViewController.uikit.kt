@@ -21,8 +21,11 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.SystemTheme
 import androidx.compose.ui.backhandler.LocalBackGestureDispatcher
 import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
@@ -47,6 +50,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.util.fastForEachReversed
 import androidx.compose.ui.viewinterop.UIKitInteropAction
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
+import androidx.compose.ui.window.ApplicationActiveStateListener
 import androidx.compose.ui.window.ComposeView
 import androidx.compose.ui.window.DisplayLinkListener
 import androidx.compose.ui.window.FocusStack
@@ -68,6 +72,7 @@ import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
+import platform.UIKit.UIAccessibilityIsReduceMotionEnabled
 import platform.UIKit.UIApplication
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
@@ -84,7 +89,7 @@ import platform.darwin.dispatch_get_main_queue
 internal class ComposeHostingViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val coroutineContext: CoroutineContext = Dispatchers.Main
+    coroutineContext: CoroutineContext = Dispatchers.Main
 ) : CMPViewController(nibName = null, bundle = null) {
     private val lifecycleOwner = ViewControllerBasedLifecycleOwner()
     private val hapticFeedback = CupertinoHapticFeedback()
@@ -115,6 +120,13 @@ internal class ComposeHostingViewController(
     private val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
     private val layoutDirection get() = getLayoutDirection()
     private var hasViewAppeared: Boolean = false
+    private val motionDurationScale = MotionDurationScaleImpl()
+    private val applicationActiveStateListener = ApplicationActiveStateListener {
+        if (it) {
+            updateMotionSpeed()
+        }
+    }
+    private val composeCoroutineContext: CoroutineContext = coroutineContext + motionDurationScale
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = rootView.density,
@@ -208,6 +220,7 @@ internal class ComposeHostingViewController(
         updateInterfaceOrientationState()
 
         windowContext.setWindowContainer(windowContainer)
+        updateMotionSpeed()
     }
 
     private fun updateInterfaceOrientationState() {
@@ -300,7 +313,9 @@ internal class ComposeHostingViewController(
         transitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
         val displayLinkListener = DisplayLinkListener()
-        val sizeTransitionScope = CoroutineScope(coroutineContext + displayLinkListener.frameClock)
+        val sizeTransitionScope = CoroutineScope(
+            composeCoroutineContext + displayLinkListener.frameClock
+        )
         val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
         displayLinkListener.start()
 
@@ -341,6 +356,7 @@ internal class ComposeHostingViewController(
                     focusStack = if (focusable) focusStack else null,
                     windowContext = windowContext,
                     compositionContext = compositionContext,
+                    coroutineContext = composeCoroutineContext
                 )
 
                 attachLayer(layer)
@@ -352,12 +368,11 @@ internal class ComposeHostingViewController(
 
     private fun createComposeScene(
         invalidate: () -> Unit,
-        platformContext: PlatformContext,
-        coroutineContext: CoroutineContext,
+        platformContext: PlatformContext
     ): ComposeScene = PlatformLayersComposeScene(
         density = view.density,
         layoutDirection = layoutDirection,
-        coroutineContext = coroutineContext,
+        coroutineContext = composeCoroutineContext,
         composeSceneContext = createComposeSceneContext(
             platformContext = platformContext
         ),
@@ -376,7 +391,7 @@ internal class ComposeHostingViewController(
         onFocusBehavior = configuration.onFocusBehavior,
         focusStack = focusStack,
         windowContext = windowContext,
-        coroutineContext = coroutineContext,
+        coroutineContext = composeCoroutineContext,
         redrawer = rootMetalView.redrawer,
         composeSceneFactory = ::createComposeScene,
         backGestureDispatcher = backGestureDispatcher
@@ -409,6 +424,7 @@ internal class ComposeHostingViewController(
         lifecycleOwner.dispose()
         mediator?.dispose()
         rootView.dispose()
+        applicationActiveStateListener.dispose()
         mediator = null
 
         layers.dispose(hasViewAppeared)
@@ -446,6 +462,16 @@ internal class ComposeHostingViewController(
             view.bounds.asDpRect().toRect().roundToIntRect()
         }
     }
+
+    private fun updateMotionSpeed() {
+        motionDurationScale.scaleFactor = if (UIAccessibilityIsReduceMotionEnabled()) {
+            // 0f would cause motion to finish in the next frame callback.
+            // See [MotionDurationScale.scaleFactor] for more details.
+            0f
+        } else {
+            1f / (view.window?.layer?.speed?.takeIf { it > 0 } ?: 1f)
+        }
+    }
 }
 
 private fun UIUserInterfaceStyle.asComposeSystemTheme(): SystemTheme {
@@ -461,3 +487,7 @@ private fun getLayoutDirection() =
         UIUserInterfaceLayoutDirection.UIUserInterfaceLayoutDirectionRightToLeft -> LayoutDirection.Rtl
         else -> LayoutDirection.Ltr
     }
+
+private class MotionDurationScaleImpl: MotionDurationScale {
+    override var scaleFactor by mutableStateOf(1f)
+}

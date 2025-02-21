@@ -22,8 +22,6 @@ package androidx.navigation
 import androidx.annotation.CallSuper
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.core.uri.Uri
-import androidx.core.uri.UriUtils
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleObserver
@@ -1104,18 +1102,18 @@ public actual open class NavController {
     }
 
     @MainThread
-    public actual open fun navigate(deepLink: Uri) {
+    public actual open fun navigate(deepLink: NavUri) {
         navigate(NavDeepLinkRequest(deepLink, null, null))
     }
 
     @MainThread
-    public actual open fun navigate(deepLink: Uri, navOptions: NavOptions?) {
+    public actual open fun navigate(deepLink: NavUri, navOptions: NavOptions?) {
         navigate(NavDeepLinkRequest(deepLink, null, null), navOptions, null)
     }
 
     @MainThread
     public actual open fun navigate(
-        deepLink: Uri,
+        deepLink: NavUri,
         navOptions: NavOptions?,
         navigatorExtras: Navigator.Extras?
     ) {
@@ -1545,7 +1543,7 @@ public actual open class NavController {
         navigatorExtras: Navigator.Extras?
     ) {
         navigate(
-            request = NavDeepLinkRequest.Builder.fromUri(UriUtils.parse(createRoute(route)))
+            request = NavDeepLinkRequest.Builder.fromUri(NavUriUtils.parse(createRoute(route)))
                 .build(),
             navOptions = navOptions,
             navigatorExtras = navigatorExtras

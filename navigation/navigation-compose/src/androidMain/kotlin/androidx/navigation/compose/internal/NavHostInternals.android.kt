@@ -31,3 +31,5 @@ internal actual fun PredictiveBackHandler(
     enabled: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 ) = PredictiveBackHandler(enabled, onBack)
+
+internal actual typealias DefaultNavTransitions = StandardDefaultNavTransitions
