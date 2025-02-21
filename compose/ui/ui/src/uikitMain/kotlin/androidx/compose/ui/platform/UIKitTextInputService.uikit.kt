@@ -438,11 +438,14 @@ internal class UIKitTextInputService(
             viewConfiguration = viewConfiguration
         ).also {
             it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.5))
-            it.setTintColor(UIColor.yellowColor)
+            it.setTintColor(UIColor.yellowColor) // forward colors here
             it.onKeyboardPresses = onKeyboardPresses
+            it.clipsToBounds = true
             rootView.addSubview(it)
             // Resizing should be done later
             // TODO: Check selection container
+            val success = it.becomeFirstResponder()
+            println("becomeFirstResponder: $success")
         }
     }
 
@@ -621,7 +624,6 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
         override fun markedTextRange(): IntRange? {
-            // Checked
             val composition = getState()?.composition
             return if (composition != null) {
                 composition.start until composition.end
