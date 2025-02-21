@@ -48,8 +48,6 @@ import platform.UIKit.UIScrollView
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.setState
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
 
 /**
  * A reason for why touches are sent to Compose
@@ -420,8 +418,12 @@ internal class UserInputView(
                     point = convertPoint(point, toView = interopView),
                     withEvent = withEvent
                 )
-            } ?: super.hitTest(point, withEvent)?.takeIf {
-                it is IntermediateTextInputUIView
+            } ?: subviews.firstNotNullOfOrNull { it ->
+                (it as? IntermediateTextInputUIView)?.let {
+                    val inputPoint = convertPoint(point, toView = it)
+
+                    it.hitTest(inputPoint, withEvent)
+                }
             } ?: this
         } else {
             null

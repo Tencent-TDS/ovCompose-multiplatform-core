@@ -98,7 +98,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             snapshotFlow {
                 val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
                 val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
-                val nodeCoords = layoutState.coreNodeCoordinates ?: return@snapshotFlow null
+                val nodeCoords = layoutState.decoratorNodeCoordinates ?: return@snapshotFlow null
 
                 TextGeometry(
                     focusRect = focusedRectInRoot(

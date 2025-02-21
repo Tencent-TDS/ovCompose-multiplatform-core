@@ -41,18 +41,14 @@ import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
-import androidx.compose.ui.unit.toDpSize
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
-import androidx.compose.ui.window.UserInputView
 import kotlin.math.absoluteValue
 import kotlin.math.min
 import kotlinx.coroutines.MainScope
@@ -256,7 +252,7 @@ internal class UIKitTextInputService(
 
         val matrix = Matrix()
         textFieldToRootTransform(matrix)
-        val textFieldFrame = matrix.map(innerTextFieldBounds)
+        val textFieldFrame = matrix.map(decorationBoxBounds)
         val contentFrame = matrix.map(
             Rect(
                 offset = Offset.Zero,
@@ -427,7 +423,7 @@ internal class UIKitTextInputService(
     }
 
     override val status: TextToolbarStatus
-        get() = if (textUIView?.isTextMenuShown() == true)
+        get() = if (textUIView?.isFirstResponder() == true)
             TextToolbarStatus.Shown
         else
             TextToolbarStatus.Hidden

@@ -38,8 +38,12 @@ import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
+import platform.CoreGraphics.CGRectContainsPoint
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectNull
 import platform.CoreGraphics.CGRectZero
@@ -57,6 +61,8 @@ import platform.UIKit.UIEvent
 import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
+import platform.UIKit.UIMenuAutoFill
+import platform.UIKit.UIMenuBuilderProtocol
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIResponder
@@ -102,7 +108,7 @@ internal class IntermediateTextInputUIView(
         set(value) {
             field = value
             if (value == null) {
-                hideEditMenu()
+                resignFirstResponder()
             }
         }
 
@@ -177,8 +183,12 @@ internal class IntermediateTextInputUIView(
         return if (input == null) {
             null
         } else {
-            super.hitTest(point, withEvent)
+            super.hitTest(point, withEvent) ?: innerHitTest(point, withEvent)
         }
+    }
+
+    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+        return (super.pointInside(point, withEvent) || innerPointInside(point, withEvent))
     }
 
     /**
@@ -544,6 +554,13 @@ internal class IntermediateTextInputUIView(
         //todo may be useful
     }
 
+    override fun buildMenuWithBuilder(builder: UIMenuBuilderProtocol) {
+        if (available(OS.Ios to OSVersion(major = 17))) {
+            builder.removeMenuForIdentifier(UIMenuAutoFill)
+        }
+        super.buildMenuWithBuilder(builder)
+    }
+
     /**
      * Call when something changes in text data
      */
@@ -614,6 +631,34 @@ internal class IntermediateTextInputUIView(
 }
 
 private class IntermediateTextPosition(val position: Long = 0) : UITextPosition()
+
+private fun UIView.innerHitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+    if (!CGRectContainsPoint(bounds, point)) {
+        return null
+    }
+    subviews.forEach { subview ->
+        subview as UIView
+        val subviewPoint = this.convertPoint(point, toView = subview)
+        subview.innerHitTest(subviewPoint, withEvent)?.let {
+            return it
+        }
+    }
+    return this
+}
+
+private fun UIView.innerPointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
+    if (CGRectContainsPoint(bounds, point)) {
+        return true
+    }
+    subviews.forEach { subview ->
+        subview as UIView
+        val subviewPoint = this.convertPoint(point, toView = subview)
+        if (subview.innerPointInside(subviewPoint, withEvent)) {
+            return true
+        }
+    }
+    return false
+}
 
 private class IntermediateTextSelectionRect(
     private var _rect: CValue<CGRect>,
