@@ -16,20 +16,4 @@
 
 package androidx.navigation.compose.internal
 
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.runtime.Composable
-import kotlinx.coroutines.flow.Flow
-
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-59355
-internal actual typealias LocalViewModelStoreOwner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-59355
-internal actual typealias BackEventCompat = androidx.activity.BackEventCompat
-
-@Composable
-internal actual fun PredictiveBackHandler(
-    enabled: Boolean,
-    onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
-) = PredictiveBackHandler(enabled, onBack)
-
 internal actual typealias DefaultNavTransitions = StandardDefaultNavTransitions
