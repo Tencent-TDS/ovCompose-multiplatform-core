@@ -178,6 +178,7 @@ internal class UIKitTextInputService(
         _tempCurrentInputSession = null
         currentImeOptions = null
         currentImeActionHandler = null
+        textLayoutResult = null
         hideSoftwareKeyboard()
 
         textUIView?.inputTraits = EmptyInputTraits
