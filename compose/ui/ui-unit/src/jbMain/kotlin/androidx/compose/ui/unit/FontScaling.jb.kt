@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.internal.JvmDefaultWithCompatibility
 @Immutable
 @JvmDefaultWithCompatibility
 actual interface FontScaling {
+
     /** Current user preference for the scaling factor for fonts. */
     @Stable actual val fontScale: Float
 
@@ -58,8 +59,8 @@ actual interface FontScaling {
             return Dp(value * fontScale)
         }
 
-        val converter = FontScaleConverterFactory.forScale(fontScale) ?:
-            return  Dp(value * fontScale)
+        val converter = FontScaleConverterFactory.forScale(fontScale)
+            ?: return Dp(value * fontScale)
 
         return Dp(converter.convertSpToDp(value))
     }
