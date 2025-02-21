@@ -36,13 +36,17 @@ private enum class InternalType {
     INT_NULLABLE,
     BOOL,
     BOOL_NULLABLE,
+    DOUBLE,
+    DOUBLE_NULLABLE,
     FLOAT,
     FLOAT_NULLABLE,
     LONG,
     LONG_NULLABLE,
     STRING,
+    STRING_NULLABLE,
     INT_ARRAY,
     BOOL_ARRAY,
+    DOUBLE_ARRAY,
     FLOAT_ARRAY,
     LONG_ARRAY,
     ARRAY,
@@ -67,13 +71,17 @@ internal fun SerialDescriptor.getNavType(): NavType<*> {
             InternalType.INT_NULLABLE -> InternalNavType.IntNullableType
             InternalType.BOOL -> NavType.BoolType
             InternalType.BOOL_NULLABLE -> InternalNavType.BoolNullableType
+            InternalType.DOUBLE -> InternalNavType.DoubleType
+            InternalType.DOUBLE_NULLABLE -> InternalNavType.DoubleNullableType
             InternalType.FLOAT -> NavType.FloatType
             InternalType.FLOAT_NULLABLE -> InternalNavType.FloatNullableType
             InternalType.LONG -> NavType.LongType
             InternalType.LONG_NULLABLE -> InternalNavType.LongNullableType
-            InternalType.STRING -> NavType.StringType
+            InternalType.STRING -> InternalNavType.StringNonNullableType
+            InternalType.STRING_NULLABLE -> NavType.StringType
             InternalType.INT_ARRAY -> NavType.IntArrayType
             InternalType.BOOL_ARRAY -> NavType.BoolArrayType
+            InternalType.DOUBLE_ARRAY -> InternalNavType.DoubleArrayType
             InternalType.FLOAT_ARRAY -> NavType.FloatArrayType
             InternalType.LONG_ARRAY -> NavType.LongArrayType
             InternalType.ARRAY -> {
@@ -131,8 +139,10 @@ private fun SerialDescriptor.toInternalType(): InternalType {
             if (isNullable) InternalType.FLOAT_NULLABLE else InternalType.FLOAT
         serialName == "kotlin.Long" ->
             if (isNullable) InternalType.LONG_NULLABLE else InternalType.LONG
-        serialName == "kotlin.String" -> InternalType.STRING
+        serialName == "kotlin.String" ->
+            if (isNullable) InternalType.STRING_NULLABLE else InternalType.STRING
         serialName == "kotlin.IntArray" -> InternalType.INT_ARRAY
+        serialName == "kotlin.DoubleArray" -> InternalType.DOUBLE_ARRAY
         serialName == "kotlin.BooleanArray" -> InternalType.BOOL_ARRAY
         serialName == "kotlin.FloatArray" -> InternalType.FLOAT_ARRAY
         serialName == "kotlin.LongArray" -> InternalType.LONG_ARRAY

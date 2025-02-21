@@ -168,9 +168,7 @@ class NavDestinationTest {
             }
         assertThat(expected.message)
             .isEqualTo(
-                "Deep link android-app://androidx.navigation/route can't be used to " +
-                    "open destination NavDestination(0xa2bd82dc).\n" +
-                    "Following required arguments are missing: [intArg]"
+                "Cannot set route \"route\" for destination NavDestination(0x0). Following required arguments are missing: [intArg]"
             )
     }
 
@@ -324,6 +322,25 @@ class NavDestinationTest {
                     "\$DeepLink (Kotlin reflection is not available)]. DeepLink contains unknown " +
                     "argument [arg]. Ensure deeplink arguments matches the destination's route " +
                     "from KClass"
+            )
+    }
+
+    @Test
+    fun navDestinationUnknownArgumentNavType() {
+        @Serializable class CustomType
+        @Serializable class TestClass(val arg: CustomType)
+
+        val exception =
+            assertFailsWith<IllegalArgumentException> {
+                NavDestinationBuilder(NoOpNavigator(), TestClass::class, emptyMap()).build()
+            }
+        assertThat(exception.message)
+            .isEqualTo(
+                "Route androidx.navigation.NavDestinationTest" +
+                    ".navDestinationUnknownArgumentNavType.TestClass could not find " +
+                    "any NavType for argument arg of type androidx.navigation" +
+                    ".NavDestinationTest.navDestinationUnknownArgumentNavType" +
+                    ".CustomType - typeMap received was {}"
             )
     }
 }
