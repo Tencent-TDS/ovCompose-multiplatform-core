@@ -76,32 +76,24 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     coroutineScope {
         launch {
             state.collectImeNotifications { _, newValue, _ ->
-                val newTextFieldValue = TextFieldValue(newValue.text.toString(), newValue.selection, newValue.composition)
-                updateSelectionState(newTextFieldValue)
+                updateTextFieldValue(newValue.toTextFieldValue())
             }
         }
 
-        launch {
-            snapshotFlow {
-                val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
-                val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
-                focusedRectInRoot(
-                    layoutResult = layoutResult,
-                    layoutCoordinates = layoutCoords,
-                    focusOffset = state.visualText.selection.max,
-                    sizeForDefaultText = {
-                        layoutResult.layoutInput.let {
-                            computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
-                        }
+        val focusedRectInRootFlow = snapshotFlow {
+            val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
+            val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
+            focusedRectInRoot(
+                layoutResult = layoutResult,
+                layoutCoordinates = layoutCoords,
+                focusOffset = state.visualText.selection.max,
+                sizeForDefaultText = {
+                    layoutResult.layoutInput.let {
+                        computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
                     }
-
-                )
-            }.collect { rect ->
-                if (rect != null) {
-                    notifyFocusedRect(rect)
                 }
-            }
-        }
+            )
+        }.filterNotNull()
 
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
@@ -111,6 +103,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
                 onImeAction = onImeAction,
                 editProcessor = editProcessor,
                 textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
+                focusedRectInRoot = focusedRectInRootFlow,
             )
         )
     }
@@ -127,4 +120,5 @@ private data class SkikoPlatformTextInputMethodRequest(
     override val onImeAction: ((ImeAction) -> Unit)?,
     override val editProcessor: EditProcessor?,
     override val textLayoutResult: Flow<TextLayoutResult>,
+    override val focusedRectInRoot: Flow<Rect>
 ): PlatformTextInputMethodRequest

@@ -91,7 +91,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -636,8 +635,8 @@ internal class ComposeSceneMediator(
                 }
             }
 
-        override fun updateSelectionState(newState: TextFieldValue) {
-            textInputService.updateState(oldValue = null, newValue = newState)
+        override fun updateTextFieldValue(newValue: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newValue)
         }
     }
 }
