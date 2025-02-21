@@ -18,7 +18,7 @@ package androidx.navigation
 
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
+import androidx.savedstate.SavedState
 import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
@@ -38,6 +38,8 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import kotlin.experimental.and
 import kotlin.experimental.or
 import kotlin.random.Random
@@ -47,11 +49,11 @@ public actual class NavBackStackEntry
 private constructor(
     @set:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual var destination: NavDestination,
-    private val immutableArgs: Bundle? = null,
+    private val immutableArgs: SavedState? = null,
     private var hostLifecycleState: Lifecycle.State = Lifecycle.State.CREATED,
     private val viewModelStoreProvider: NavViewModelStoreProvider? = null,
     public actual val id: String = randomId(),
-    private val savedState: Bundle? = null
+    private val savedState: SavedState? = null
 ) : LifecycleOwner,
     ViewModelStoreOwner,
     HasDefaultViewModelProviderFactory,
@@ -60,7 +62,7 @@ private constructor(
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     actual constructor(
         entry: NavBackStackEntry,
-        arguments: Bundle?
+        arguments: SavedState?
     ) : this(
         entry.destination,
         arguments,
@@ -77,11 +79,11 @@ private constructor(
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         public fun create(
             destination: NavDestination,
-            arguments: Bundle? = null,
+            arguments: SavedState? = null,
             hostLifecycleState: Lifecycle.State = Lifecycle.State.CREATED,
             viewModelStoreProvider: NavViewModelStoreProvider? = null,
             id: String = randomUUID(),
-            savedState: Bundle? = null
+            savedState: SavedState? = null
         ): NavBackStackEntry = NavBackStackEntry(
             destination = destination,
             immutableArgs = arguments,
@@ -99,12 +101,12 @@ private constructor(
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private var savedStateRegistryAttached = false
 
-    public actual val arguments: Bundle?
+    public actual val arguments: SavedState?
         get() =
             if (immutableArgs == null) {
                 null
             } else {
-                Bundle(immutableArgs)
+                savedState { putAll(immutableArgs) }
             }
 
     @get:MainThread
@@ -194,7 +196,7 @@ private constructor(
         get() = savedStateRegistryController.savedStateRegistry
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public actual fun saveState(outBundle: Bundle) {
+    public actual fun saveState(outBundle: SavedState) {
         savedStateRegistryController.performSave(outBundle)
     }
 
@@ -206,16 +208,18 @@ private constructor(
             lifecycle == other.lifecycle &&
             savedStateRegistry == other.savedStateRegistry &&
             (immutableArgs == other.immutableArgs ||
-                immutableArgs?.keySet()?.all {
-                    immutableArgs.get(it) == other.immutableArgs?.get(it)
-                } == true)
+                (immutableArgs != null &&
+                    other.immutableArgs != null &&
+                    immutableArgs.read { contentDeepEquals(other.immutableArgs) } == true
+                    )
+                )
     }
 
     @Suppress("DEPRECATION")
     override fun hashCode(): Int {
         var result = id.hashCode()
         result = 31 * result + destination.hashCode()
-        immutableArgs?.keySet()?.forEach { result = 31 * result + immutableArgs.get(it).hashCode() }
+        immutableArgs?.read { result = 31 * result + contentDeepHashCode() }
         result = 31 * result + lifecycle.hashCode()
         result = 31 * result + savedStateRegistry.hashCode()
         return result

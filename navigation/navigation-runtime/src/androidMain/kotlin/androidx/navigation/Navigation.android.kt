@@ -16,18 +16,12 @@
 package androidx.navigation
 
 import android.app.Activity
-import android.os.Bundle
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.core.app.ActivityCompat
+import androidx.savedstate.SavedState
 import java.lang.ref.WeakReference
 
-/**
- * Entry point for navigation operations.
- *
- * This class provides utilities for finding a relevant [NavController] instance from various common
- * places in your application, or for performing navigation in response to UI events.
- */
 public actual object Navigation {
     /**
      * Find a [NavController] given the id of a View and its containing [Activity]. This is a
@@ -83,7 +77,7 @@ public actual object Navigation {
     @JvmOverloads
     public fun createNavigateOnClickListener(
         @IdRes resId: Int,
-        args: Bundle? = null
+        args: SavedState? = null
     ): View.OnClickListener {
         return View.OnClickListener { view -> findNavController(view).navigate(resId, args) }
     }

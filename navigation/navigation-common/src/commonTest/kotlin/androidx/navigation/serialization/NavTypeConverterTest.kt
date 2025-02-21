@@ -164,6 +164,40 @@ class NavTypeConverterTest {
     }
 
     @Test
+    fun matchDoubleArray() {
+        val descriptor = serializer<DoubleArray>().descriptor
+        val kType = typeOf<DoubleArray>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
+    fun matchDoubleArrayNullable() {
+        val descriptor = serializer<DoubleArray?>().descriptor
+        val kType = typeOf<DoubleArray?>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+
+        val nonNullable = serializer<DoubleArray>().descriptor
+        assertThat(nonNullable.matchKType(kType)).isFalse()
+    }
+
+    @Test
+    fun matchDoubleList() {
+        val descriptor = serializer<List<Double>>().descriptor
+        val kType = typeOf<List<Double>>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
+    fun matchDoubleListNullable() {
+        val descriptor = serializer<List<Double>?>().descriptor
+        val kType = typeOf<List<Double>?>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+
+        val nonNullable = serializer<List<Double>>().descriptor
+        assertThat(nonNullable.matchKType(kType)).isFalse()
+    }
+
+    @Test
     fun matchFloatArray() {
         val descriptor = serializer<FloatArray>().descriptor
         val kType = typeOf<FloatArray>()

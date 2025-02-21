@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.navigation
+package androidx.navigation.internal
 
-import kotlinx.atomicfu.atomic
-
-internal actual class AtomicInt actual constructor(initialValue: Int) {
-    private val delegate = atomic(initialValue)
-    actual fun incrementAndGet(): Int = delegate.incrementAndGet()
-    actual fun decrementAndGet(): Int = delegate.decrementAndGet()
-    actual fun get(): Int = delegate.value
-}
+internal expect fun identityHashCode(instance: Any?): Int

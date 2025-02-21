@@ -454,6 +454,62 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
+    fun convertToDoubleArray() {
+        @Serializable class TestClass(val arg: DoubleArray)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleArrayNullable() {
+        @Serializable class TestClass(val arg: DoubleArray?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleList() {
+        @Serializable class TestClass(val arg: List<Double>)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleListNullable() {
+        @Serializable class TestClass(val arg: List<Double>?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
     fun convertToStringArray() {
         @Serializable class TestClass(val arg: Array<String>)
 
@@ -482,22 +538,22 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
-    fun convertToStringList() {
-        @Serializable class TestClass(val arg: List<String>)
+    fun convertToStringNullableArrayNullable() {
+        @Serializable class TestClass(val arg: Array<String?>?)
 
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
             navArgument("arg") {
-                type = NavType.StringListType
-                nullable = false
+                type = InternalNavType.StringNullableArrayType
+                nullable = true
             }
         assertThat(converted).containsExactlyInOrder(expected)
         assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
     }
 
     @Test
-    fun convertArrayListToStringList() {
-        @Serializable class TestClass(val arg: ArrayList<String>)
+    fun convertToStringList() {
+        @Serializable class TestClass(val arg: List<String>)
 
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
@@ -518,6 +574,46 @@ class NavArgumentGeneratorTest {
             navArgument("arg") {
                 type = NavType.StringListType
                 nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToStringNullableList() {
+        @Serializable class TestClass(val arg: List<String?>)
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.StringNullableListType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToStringNullableListNullable() {
+        @Serializable class TestClass(val arg: List<String?>?)
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.StringNullableListType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertArrayListToStringList() {
+        @Serializable class TestClass(val arg: ArrayList<String>)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = NavType.StringListType
+                nullable = false
             }
         assertThat(converted).containsExactlyInOrder(expected)
         assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
@@ -999,49 +1095,65 @@ class NavArgumentGeneratorTest {
     // and hashcode which will need to be public api.
     private fun assertThat(actual: List<NamedNavArgument>) = actual
 
-    @Serializable
-    enum class TestEnum {
-        TEST
-    }
-}
-
-internal fun List<NamedNavArgument>.containsExactlyInOrder(
-    vararg expectedArgs: NamedNavArgument
-) {
-    if (expectedArgs.size != this.size) {
-        fail("expected list has size ${expectedArgs.size} and actual list has size $size}")
-    }
-    for (i in indices) {
-        val actual = this[i]
-        val expected = expectedArgs[i]
-        if (expected.name != actual.name) {
-            fail("expected name ${expected.name}, was actually ${actual.name}")
+    private fun List<NamedNavArgument>.containsExactlyInOrder(
+        vararg expectedArgs: NamedNavArgument
+    ) {
+        if (expectedArgs.size != this.size) {
+            fail("expected list has size ${expectedArgs.size} and actual list has size $size}")
         }
+        for (i in indices) {
+            val actual = this[i]
+            val expected = expectedArgs[i]
+            if (expected.name != actual.name) {
+                fail("expected name ${expected.name}, was actually ${actual.name}")
+            }
 
-        if (!expected.argument.isEqual(actual.argument)) {
-            fail(
-                """expected ${expected.name} to be:
+            if (!expected.argument.isEqual(actual.argument)) {
+                fail(
+                    """expected ${expected.name} to be:
                 |   ${expected.argument}
                 |   but was:
                 |   ${actual.argument}
                 """
-                    .trimMargin()
-            )
+                        .trimMargin()
+                )
+            }
+        }
+    }
+
+    private fun NavArgument.isEqual(other: NavArgument): Boolean {
+        if (this === other) return true
+        if (javaClass != other.javaClass) return false
+        if (isNullable != other.isNullable) return false
+        if (isDefaultValuePresent != other.isDefaultValuePresent) return false
+        if (isDefaultValueUnknown != other.isDefaultValueUnknown) return false
+        if (type != other.type) return false
+        // In context of serialization, we can only tell if defaultValue is present but don't know
+        // actual value, so we cannot compare it to the generated defaultValue. But if
+        // there is no defaultValue, we expect them both to be null.
+        return if (!isDefaultValuePresent) {
+            defaultValue == null && other.defaultValue == null
+        } else true
+    }
+
+    enum class TestEnum {
+        TEST
+    }
+
+    @SerialName("MyCustomSerialName")
+    enum class TestEnumCustomSerialName {
+        TEST
+    }
+
+    @Serializable
+    private class EnumWrapper {
+        enum class NestedEnum {
+            ONE,
+            TWO
         }
     }
 }
 
-internal fun NavArgument.isEqual(other: NavArgument): Boolean {
-    if (this === other) return true
-    if (this::class != other::class) return false
-    if (isNullable != other.isNullable) return false
-    if (isDefaultValuePresent != other.isDefaultValuePresent) return false
-    if (isDefaultValueUnknown != other.isDefaultValueUnknown) return false
-    if (type != other.type) return false
-    // In context of serialization, we can only tell if defaultValue is present but don't know
-    // actual value, so we cannot compare it to the generated defaultValue. But if
-    // there is no defaultValue, we expect them both to be null.
-    return if (!isDefaultValuePresent) {
-        defaultValue == null && other.defaultValue == null
-    } else true
+enum class TestTopLevelEnum {
+    TEST
 }

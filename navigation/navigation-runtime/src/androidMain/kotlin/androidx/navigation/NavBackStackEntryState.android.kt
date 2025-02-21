@@ -17,23 +17,23 @@ package androidx.navigation
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.lifecycle.Lifecycle
+import androidx.savedstate.SavedState
 
 @SuppressLint("BanParcelableUsage")
 internal class NavBackStackEntryState : Parcelable {
     val id: String
     val destinationId: Int
-    val args: Bundle?
-    val savedState: Bundle
+    val args: SavedState?
+    val savedState: SavedState
 
     constructor(entry: NavBackStackEntry) {
         id = entry.id
         destinationId = entry.destination.id
         args = entry.arguments
-        savedState = Bundle()
+        savedState = SavedState()
         entry.saveState(savedState)
     }
 

@@ -16,7 +16,6 @@
 
 package androidx.navigation
 
-/** @see NavController.enableDeepLinkSaveState */
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION)
 @RequiresOptIn(level = RequiresOptIn.Level.WARNING)

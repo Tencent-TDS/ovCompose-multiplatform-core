@@ -16,10 +16,11 @@
 
 package androidx.navigation.serialization
 
-import androidx.core.bundle.Bundle
-import androidx.core.bundle.bundleOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavType
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -29,25 +30,27 @@ import kotlinx.serialization.modules.EmptySerializersModule
 import kotlinx.serialization.modules.SerializersModule
 
 /**
- * Decoder to deserialize a bundle of argument back into an object instance of type [T]
+ * Decoder to deserialize a SavedState of argument back into an object instance of type [T]
  *
  * This decoder iterates through every class field (argument) in [T], retrieves the value for that
- * argument from the bundle (or fallback to default value), then use the retrieved values to
+ * argument from the SavedState (or fallback to default value), then use the retrieved values to
  * re-create the object instance.
  */
 @OptIn(ExperimentalSerializationApi::class)
 internal class RouteDecoder : AbstractDecoder {
 
-    // Bundle as argument source
-    constructor(bundle: Bundle, typeMap: Map<String, NavType<*>>) {
-        val store = BundleArgStore(bundle, typeMap)
-        decoder = Decoder(store)
+    private val store: ArgStore
+    private var elementIndex: Int = -1
+    private var elementName: String = ""
+
+    // SavedState as argument source
+    constructor(bundle: SavedState, typeMap: Map<String, NavType<*>>) {
+        this.store = SavedStateArgStore(bundle, typeMap)
     }
 
     // SavedStateHandle as argument source
     constructor(handle: SavedStateHandle, typeMap: Map<String, NavType<*>>) {
-        val store = SavedStateArgStore(handle, typeMap)
-        decoder = Decoder(store)
+        this.store = SavedStateHandleArgStore(handle, typeMap)
     }
 
     private val decoder: Decoder
@@ -161,28 +164,30 @@ private abstract class ArgStore {
     abstract fun contains(key: String): Boolean
 }
 
-private class SavedStateArgStore(
+private class SavedStateHandleArgStore(
     private val handle: SavedStateHandle,
     private val typeMap: Map<String, NavType<*>>
 ) : ArgStore() {
     override fun get(key: String): Any? {
         val arg: Any? = handle[key]
-        val bundle = bundleOf(key to arg)
+        val savedState = savedState(mapOf(key to arg))
         return checkNotNull(typeMap[key]) { "Failed to find type for $key when decoding $handle" }[
-            bundle, key]
+            savedState, key]
     }
 
     override fun contains(key: String) = handle.contains(key)
 }
 
-private class BundleArgStore(
-    private val bundle: Bundle,
+private class SavedStateArgStore(
+    private val savedState: SavedState,
     private val typeMap: Map<String, NavType<*>>
 ) : ArgStore() {
     override fun get(key: String): Any? {
         val navType = typeMap[key]
-        return navType?.get(bundle, key)
+        return navType?.get(savedState, key)
     }
 
-    override fun contains(key: String) = bundle.containsKey(key)
+    override fun contains(key: String): Boolean {
+        return savedState.read { contains(key) }
+    }
 }

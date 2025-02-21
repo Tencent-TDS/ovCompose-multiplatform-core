@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
+@file:JvmName("NavDeepLinkDslBuilderKt")
+@file:JvmMultifileClass
+
 package androidx.navigation
 
-import androidx.annotation.RestrictTo
 import androidx.navigation.serialization.generateRoutePattern
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
+import kotlin.jvm.JvmOverloads
+import kotlin.jvm.JvmSuppressWildcards
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.serialization.InternalSerializationApi
@@ -50,16 +56,30 @@ public fun navDeepLink(deepLinkBuilder: NavDeepLinkDslBuilder.() -> Unit): NavDe
  */
 public inline fun <reified T : Any> navDeepLink(
     basePath: String,
-    typeMap: Map<KType, NavType<*>> = emptyMap(),
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     noinline deepLinkBuilder: NavDeepLinkDslBuilder.() -> Unit = {}
-): NavDeepLink = navDeepLink(basePath, T::class, typeMap, deepLinkBuilder)
+): NavDeepLink = navDeepLink(T::class, basePath, typeMap, deepLinkBuilder)
 
-// public delegation for reified version to call internal build()
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+/**
+ * Construct a new [NavDeepLink]
+ *
+ * Extracts deeplink arguments from [T] and appends it to the [basePath]. The base path & generated
+ * arguments form the final uri pattern for the deeplink.
+ *
+ * See docs on the safe args version of [NavDeepLink.Builder.setUriPattern] for the final
+ * uriPattern's generation logic.
+ *
+ * @param route The deepLink [KClass] to extract arguments from
+ * @param basePath The base uri path to append arguments onto
+ * @param typeMap map of destination arguments' kotlin type [KType] to its respective custom
+ *   [NavType]. May be empty if [route] does not use custom NavTypes.
+ * @param deepLinkBuilder the builder used to construct the deeplink
+ */
+@JvmOverloads
 public fun <T : Any> navDeepLink(
-    basePath: String,
     route: KClass<T>,
-    typeMap: Map<KType, NavType<*>>,
+    basePath: String,
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>> = emptyMap(),
     deepLinkBuilder: NavDeepLinkDslBuilder.() -> Unit
 ): NavDeepLink = NavDeepLinkDslBuilder(basePath, route, typeMap).apply(deepLinkBuilder).build()
 
@@ -71,7 +91,7 @@ public class NavDeepLinkDslBuilder {
     private var route: KClass<*>? = null
     private var typeMap: Map<KType, NavType<*>> = emptyMap()
 
-    constructor()
+    public constructor()
 
     /**
      * DSl for constructing a new [NavDeepLink] with a route
@@ -91,7 +111,7 @@ public class NavDeepLinkDslBuilder {
     internal constructor(
         basePath: String,
         route: KClass<*>,
-        typeMap: Map<KType, NavType<*>>
+        typeMap: Map<KType, @JvmSuppressWildcards NavType<*>>
     ) {
         require(basePath.isNotEmpty()) {
             "The basePath for NavDeepLink from KClass cannot be empty"

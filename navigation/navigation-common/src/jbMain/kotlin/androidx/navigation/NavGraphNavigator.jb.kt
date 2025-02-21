@@ -16,7 +16,9 @@
 
 package androidx.navigation
 
-import androidx.core.bundle.Bundle
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import kotlinx.coroutines.flow.StateFlow
 
 public actual open class NavGraphNavigator actual constructor(
@@ -30,7 +32,7 @@ public actual open class NavGraphNavigator actual constructor(
         return NavGraph(this)
     }
 
-    override fun navigate(
+    actual override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
@@ -65,14 +67,32 @@ public actual open class NavGraphNavigator actual constructor(
                 "navigation destination $dest is not a direct child of this NavGraph"
             )
         }
-        if (startRoute != null && startRoute != startDestination.route) {
-            val matchingArgs = startDestination.matchDeepLink(startRoute)?.matchingArgs
-            if (matchingArgs != null && !matchingArgs.isEmpty()) {
-                val bundle = Bundle()
-                // we need to add args from startRoute, but it should not override existing args
-                bundle.putAll(matchingArgs)
-                args?.let { bundle.putAll(it) }
-                args = bundle
+        if (startRoute != null) {
+            // If startRoute contains only placeholders, we fallback to default arg values.
+            // This is to maintain existing behavior of using default value for startDestination
+            // while also adding support for args declared in startRoute.
+            if (startRoute != startDestination.route) {
+                val matchingArgs = startDestination.matchRoute(startRoute)?.matchingArgs
+                if (matchingArgs != null && !matchingArgs.read { isEmpty() }) {
+                    args = savedState {
+                        // we need to add args from startRoute,
+                        // but it should not override existing args
+                        putAll(matchingArgs)
+                        args?.let { putAll(it) }
+                    }
+                }
+            }
+            // by this point, the bundle should contain all arguments that don't have
+            // default values (regardless of whether the actual default value is known or not).
+            if (startDestination.arguments.isNotEmpty()) {
+                val missingRequiredArgs =
+                    startDestination.arguments.missingRequiredArguments { key ->
+                        if (args == null) true else !args.read { contains(key) }
+                    }
+                require(missingRequiredArgs.isEmpty()) {
+                    "Cannot navigate to startDestination $startDestination. " +
+                        "Missing required arguments [$missingRequiredArgs]"
+                }
             }
         }
 

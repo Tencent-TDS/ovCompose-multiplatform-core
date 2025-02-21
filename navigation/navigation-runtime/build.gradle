@@ -50,16 +50,15 @@ androidXMultiplatform {
     sourceSets {
         commonMain {
             dependencies {
-                api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
-                implementation "org.jetbrains.compose.collection-internal:collection:1.7.1"
-                api project(":core:core-bundle")
-                api project(":core:core-uri")
-                api "org.jetbrains.androidx.lifecycle:lifecycle-common:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-runtime:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.4"
+                api project(":annotation:annotation")
+                api project(":collection:collection")
+                api "org.jetbrains.androidx.core:core-uri:1.1.0-alpha02"
+                api project(":lifecycle:lifecycle-common")
+                api project(":lifecycle:lifecycle-runtime")
+                api project(":lifecycle:lifecycle-viewmodel")
+                api project(":lifecycle:lifecycle-viewmodel-savedstate")
+                api project(":savedstate:savedstate")
                 api project(":navigation:navigation-common")
-                api "org.jetbrains.androidx.savedstate:savedstate:1.2.2"
 
                 api(libs.kotlinStdlib)
                 implementation(libs.kotlinSerializationCore)
@@ -127,13 +126,16 @@ androidXMultiplatform {
             dependsOn(jbTest)
         }
 
+        nativeMain.dependsOn(nonJvmMain)
+        nativeTest.dependsOn(nonJvmTest)
+
         webMain.dependsOn(nonJvmMain)
         webTest.dependsOn(nonJvmTest)
 
         targets.all { target ->
             if (target.platformType == KotlinPlatformType.native) {
-                target.compilations["main"].defaultSourceSet.dependsOn(nonJvmMain)
-                target.compilations["test"].defaultSourceSet.dependsOn(nonJvmTest)
+                target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
             } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
                 target.compilations["main"].defaultSourceSet.dependsOn(webMain)
                 target.compilations["test"].defaultSourceSet.dependsOn(webTest)

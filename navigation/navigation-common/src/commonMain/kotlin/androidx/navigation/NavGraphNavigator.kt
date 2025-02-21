@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,27 +18,34 @@ package androidx.navigation
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * A Navigator built specifically for [NavGraph] elements. Handles navigating to the
- * correct destination when the NavGraph is the target of navigation actions.
+ * A Navigator built specifically for [NavGraph] elements. Handles navigating to the correct
+ * destination when the NavGraph is the target of navigation actions.
  *
- * Construct a Navigator capable of routing incoming navigation requests to the proper
- * destination within a [NavGraph].
+ * Construct a Navigator capable of routing incoming navigation requests to the proper destination
+ * within a [NavGraph].
  *
- * @param navigatorProvider NavigatorProvider used to retrieve the correct
- * [Navigator] to navigate to the start destination
+ * @param navigatorProvider NavigatorProvider used to retrieve the correct [Navigator] to navigate
+ *   to the start destination
  */
-public expect open class NavGraphNavigator(
-    navigatorProvider: NavigatorProvider
-) : Navigator<NavGraph> {
+public expect open class NavGraphNavigator(navigatorProvider: NavigatorProvider) :
+    Navigator<NavGraph> {
 
-    /**
-     * Gets the backstack of [NavBackStackEntry] associated with this Navigator
-     */
+    /** Gets the backstack of [NavBackStackEntry] associated with this Navigator */
     public val backStack: StateFlow<List<NavBackStackEntry>>
 
     /**
      * Creates a new [NavGraph] associated with this navigator.
+     *
      * @return The created [NavGraph].
      */
     override fun createDestination(): NavGraph
+
+    /**
+     * @throws IllegalArgumentException if given destination is not a child of the current navgraph
+     */
+    override fun navigate(
+        entries: List<NavBackStackEntry>,
+        navOptions: NavOptions?,
+        navigatorExtras: Extras?
+    )
 }
