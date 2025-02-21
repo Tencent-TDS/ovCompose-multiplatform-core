@@ -57,27 +57,28 @@ actual fun NavHost(
         popExitTransition == DefaultNavTransitions.popExitTransition &&
         sizeTransform == DefaultNavTransitions.sizeTransform
 
-    val iosBlackout = remember(isDefaultTransition) {
-        if (isDefaultTransition) {
-            @Composable { isBackAnimation: Boolean, progress: Float ->
-                val blackoutFraction = if (isBackAnimation) 1 - progress else progress
-                Box(
-                    modifier = Modifier
-                        .layout { m, c ->
-                            val placeable = m.measure(
-                                Constraints.fixed(c.maxWidth, c.maxHeight)
-                            )
-                            layout(c.minWidth, c.minHeight) { placeable.place(0, 0) }
-                        }
-                        .drawBehind {
-                            drawRect(Color.Black, alpha = 0.106f * blackoutFraction)
-                        }
-                )
+    val iosBlackout: (@Composable (isBackAnimation: Boolean, progress: Float) -> Unit)? =
+        remember(isDefaultTransition) {
+            if (isDefaultTransition) {
+                return@remember { isBackAnimation: Boolean, progress: Float ->
+                    val blackoutFraction = if (isBackAnimation) 1 - progress else progress
+                    Box(
+                        modifier = Modifier
+                            .layout { m, c ->
+                                val placeable = m.measure(
+                                    Constraints.fixed(c.maxWidth, c.maxHeight)
+                                )
+                                layout(c.minWidth, c.minHeight) { placeable.place(0, 0) }
+                            }
+                            .drawBehind {
+                                drawRect(Color.Black, alpha = 0.106f * blackoutFraction)
+                            }
+                    )
+                }
+            } else {
+                return@remember null
             }
-        } else {
-            null
         }
-    }
 
     val layoutDirection = LocalLayoutDirection.current
     val backEventEdge = remember(isDefaultTransition, layoutDirection) {
