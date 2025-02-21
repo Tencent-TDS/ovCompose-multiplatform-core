@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpRect
 
@@ -71,9 +72,9 @@ internal interface IOSSkikoInput {
      * If the text-range object is nil, it indicates that there is no current selection.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
      */
-    fun getSelectedTextRange(): IntRange?
+    fun getSelectedTextRange(): TextRange?
 
-    fun setSelectedTextRange(range: IntRange?)
+    fun setSelectedTextRange(range: TextRange?)
 
     fun selectAll()
 
@@ -83,7 +84,7 @@ internal interface IOSSkikoInput {
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    fun textInRange(range: IntRange): String
+    fun textInRange(range: TextRange): String
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -91,7 +92,7 @@ internal interface IOSSkikoInput {
      * @param range A range of text in a document.
      * @param text A string to replace the text in range.
      */
-    fun replaceRange(range: IntRange, text: String)
+    fun replaceRange(range: TextRange, text: String)
 
     /**
      * Inserts the provided text and marks it to indicate that it is part of an active input session.
@@ -102,7 +103,7 @@ internal interface IOSSkikoInput {
      * @param selectedRange A range within markedText that indicates the current selection.
      * This range is always relative to markedText.
      */
-    fun setMarkedText(markedText: String?, selectedRange: IntRange)
+    fun setMarkedText(markedText: String?, selectedRange: TextRange)
 
     /**
      * The range of currently marked text in a document.
@@ -112,7 +113,7 @@ internal interface IOSSkikoInput {
      * The current selection, which can be a caret or an extended range, always occurs within the marked text.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
      */
-    fun markedTextRange(): IntRange?
+    fun markedTextRange(): TextRange?
 
     /**
      * Unmarks the currently marked text.
@@ -127,23 +128,25 @@ internal interface IOSSkikoInput {
      */
     fun positionFromPosition(position: Long, offset: Long): Long
 
+    fun verticalPositionFromPosition(position: Long, verticalOffset: Long): Long
+
     fun currentFocusedDpRect(): DpRect?
 
     fun caretDpRectForPosition(position: Long): DpRect?
 
-    fun selectionRectsForRange(range: IntRange): List<TextSelectionRect>
+    fun selectionRectsForRange(range: TextRange): List<TextSelectionRect>
 
     fun closestPositionToPoint(point: DpOffset): Long?
 
-    fun closestPositionToPoint(point: DpOffset, withinRange: IntRange): Long?
+    fun closestPositionToPoint(point: DpOffset, withinRange: TextRange): Long?
 
-    fun characterRangeAtPoint(point: DpOffset): IntRange?
+    fun characterRangeAtPoint(point: DpOffset): TextRange?
 
-    fun positionWithinRange(range: IntRange, atCharacterOffset: Long): Long?
+    fun positionWithinRange(range: TextRange, atCharacterOffset: Long): Long?
 
-    fun positionWithinRange(range: IntRange, farthestIndirection: String): Long?
+    fun positionWithinRange(range: TextRange, farthestIndirection: String): Long?
     
-    fun characterRangeByExtendingPosition(position: Long, direction: String): IntRange?
+    fun characterRangeByExtendingPosition(position: Long, direction: String): TextRange?
 
     fun baseWritingDirectionForPosition(position: Long, inDirection: String): String?
 

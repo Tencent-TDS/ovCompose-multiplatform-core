@@ -16,20 +16,17 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
 import androidx.compose.ui.platform.TextActions
 import androidx.compose.ui.platform.TextSelectionRect
 import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.asCGRect
-import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.util.fastMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
@@ -48,12 +45,10 @@ import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectNull
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSComparisonResult
-import platform.Foundation.NSDictionary
 import platform.Foundation.NSOrderedAscending
 import platform.Foundation.NSOrderedDescending
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSRange
-import platform.Foundation.dictionary
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
@@ -65,7 +60,6 @@ import platform.UIKit.UIMenuAutoFill
 import platform.UIKit.UIMenuBuilderProtocol
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
-import platform.UIKit.UIResponder
 import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
 import platform.UIKit.UITextAutocorrectionType
@@ -86,7 +80,6 @@ import platform.UIKit.UITextRange
 import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UITextWritingDirection
-import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addInteraction
 import platform.UIKit.removeInteraction
@@ -233,7 +226,7 @@ internal class IntermediateTextInputUIView(
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    override fun textInRange(range: UITextRange): String? = input?.textInRange(range.toIntRange())
+    override fun textInRange(range: UITextRange): String? = input?.textInRange(range.toTextRange())
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -242,11 +235,11 @@ internal class IntermediateTextInputUIView(
      * @param withText A string to replace the text in range.
      */
     override fun replaceRange(range: UITextRange, withText: String) {
-        input?.replaceRange(range.toIntRange(), withText)
+        input?.replaceRange(range.toTextRange(), withText)
     }
 
     override fun setSelectedTextRange(selectedTextRange: UITextRange?) {
-        input?.setSelectedTextRange(selectedTextRange?.toIntRange())
+        input?.setSelectedTextRange(selectedTextRange?.toTextRange())
     }
 
     /**
@@ -295,7 +288,7 @@ internal class IntermediateTextInputUIView(
         val (locationRelative, lengthRelative) = selectedRange.useContents {
             location.toInt() to length.toInt()
         }
-        val relativeTextRange = locationRelative until locationRelative + lengthRelative
+        val relativeTextRange = TextRange(locationRelative, locationRelative + lengthRelative)
 
         // Due to iOS specifics, [setMarkedText] can be called several times in a row. Batching
         // helps to avoid text input problems, when Composables use parameters set during
@@ -357,13 +350,19 @@ internal class IntermediateTextInputUIView(
         offset: NSInteger
     ): UITextPosition? {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
-        val endOfDocument = input?.endOfDocument()
-        return if (endOfDocument != null) {
-            val result = input?.positionFromPosition(position = p, offset = offset)
-            IntermediateTextPosition(result ?: (p + offset).coerceIn(0, endOfDocument))
-        } else {
-            null
-        }
+        val input = input ?: return null
+        val result = input.positionFromPosition(position = p, offset = offset)
+        return IntermediateTextPosition(result)
+    }
+
+    private fun positionFromPositionVertical(
+        position: UITextPosition,
+        offset: NSInteger
+    ): UITextPosition? {
+        val p = (position as? IntermediateTextPosition)?.position ?: return null
+        val input = input ?: return null
+        val result = input.verticalPositionFromPosition(position = p, verticalOffset = offset)
+        return IntermediateTextPosition(result)
     }
 
     override fun positionFromPosition(
@@ -373,11 +372,11 @@ internal class IntermediateTextInputUIView(
     ): UITextPosition? {
         // TODO: Handle directions
         return when (inDirection) {
-            UITextLayoutDirectionLeft, UITextLayoutDirectionUp -> {
-                positionFromPosition(position, -offset)
-            }
-
-            else -> positionFromPosition(position, offset)
+            UITextLayoutDirectionLeft -> positionFromPosition(position, -offset)
+            UITextLayoutDirectionRight -> positionFromPosition(position, offset)
+            UITextLayoutDirectionDown -> positionFromPositionVertical(position, offset)
+            UITextLayoutDirectionUp -> positionFromPositionVertical(position, -offset)
+            else -> null
         }
     }
 
@@ -434,10 +433,14 @@ internal class IntermediateTextInputUIView(
         position: UITextPosition,
         inDirection: UITextLayoutDirection
     ): UITextRange? {
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
+        val oldPosition = position as? IntermediateTextPosition ?: return null
+        val newPosition = positionFromPosition(oldPosition, inDirection = inDirection, offset = 1)
+            as? IntermediateTextPosition ?: return null
+        return if (newPosition.position < oldPosition.position) {
+            IntermediateTextRange(newPosition, oldPosition)
+        } else {
+            IntermediateTextRange(oldPosition, newPosition)
         }
-        return null // TODO characterRangeByExtendingPosition
     }
 
     override fun baseWritingDirectionForPosition(
@@ -470,8 +473,7 @@ internal class IntermediateTextInputUIView(
         val fallbackList = listOf<UITextSelectionRect>() // can't be empty?
         val start = (range.start as? IntermediateTextPosition)?.position ?: return fallbackList
         val end = (range.end as? IntermediateTextPosition)?.position ?: return fallbackList
-
-        val rects = input?.selectionRectsForRange(IntRange(start.toInt(), end.toInt()))
+        val rects = input?.selectionRectsForRange(TextRange(start.toInt(), end.toInt()))
             ?: return fallbackList
 
         return rects.fastMap { IntermediateTextSelectionRect(it) }
@@ -490,7 +492,7 @@ internal class IntermediateTextInputUIView(
         val intWithinRange = IntermediateTextRange(
             withinRange.start as IntermediateTextPosition,
             withinRange.end as IntermediateTextPosition
-        ).toIntRange() // TODO: ensure to use it in new methods
+        ).toTextRange() // TODO: ensure to use it in new methods
         val closestPosition = input?.closestPositionToPoint(
             point.useContents { DpOffset(x.dp, y.dp) },
             intWithinRange
@@ -501,7 +503,7 @@ internal class IntermediateTextInputUIView(
     override fun characterRangeAtPoint(point: CValue<CGPoint>): UITextRange? {
         val characterRange =
             input?.characterRangeAtPoint(point.useContents { DpOffset(x.dp, y.dp) }) ?: return null
-        return IntermediateTextRange(characterRange.start, characterRange.endInclusive)
+        return IntermediateTextRange(characterRange.start, characterRange.end)
     }
 
 //    override fun textStylingAtPosition(
@@ -698,14 +700,14 @@ private class IntermediateTextRange(
     override fun end(): UITextPosition = _end
 }
 
-private fun UITextRange.toIntRange(): IntRange {
+private fun UITextRange.toTextRange(): TextRange {
     val start = (start() as IntermediateTextPosition).position.toInt()
     val end = (end() as IntermediateTextPosition).position.toInt()
-    return IntRange(start, end)
+    return TextRange(start, end)
 }
 
-private fun IntRange.toUITextRange(): UITextRange =
-    IntermediateTextRange(start = start, end = endInclusive + 1)
+private fun TextRange.toUITextRange(): UITextRange =
+    IntermediateTextRange(start = start, end = end)
 
 private fun NSWritingDirection.directionToStr() =
     when (this) {
