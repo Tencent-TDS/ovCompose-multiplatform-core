@@ -43,11 +43,14 @@ Reloaded before every execution run.
     };
 
     function loadWasmModule() {
-      // return new Promise();
       return new Promise((resolve, reject) => {
         setTimeout(() => {
-          resolve('skiko.wasm is probably loaded by now');
-        }, 5000);
+          if (typeof onWasmReady === 'function') {
+            onWasmReady(() => { resolve('skiko.wasm is ready') });
+          } else {
+            loadWasmModule().then(resolve);
+          }
+        }, 100);
       });
     }
 
