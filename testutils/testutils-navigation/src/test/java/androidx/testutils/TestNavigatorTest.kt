@@ -16,10 +16,10 @@
 
 package androidx.testutils
 
-import android.os.Bundle
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.kruth.assertWithMessage
 import androidx.navigation.testing.TestNavigatorState
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.savedstate.savedState
+import kotlin.test.Test
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,7 +42,7 @@ class TestNavigatorTest {
         val state = TestNavigatorState()
         testNavigator.onAttach(state)
         val destination = testNavigator.createDestination()
-        val args = Bundle()
+        val args = savedState()
         testNavigator.navigate(listOf(state.createBackStackEntry(destination, args)), null, null)
         assertWithMessage("TestNavigator back stack size is 1 after navigate")
             .that(testNavigator.backStack.size)
@@ -51,7 +51,7 @@ class TestNavigatorTest {
         assertWithMessage("last() returns last destination navigated to")
             .that(current.destination)
             .isEqualTo(destination)
-        assertWithMessage("last() returns a non-null arguments Bundle when arguments are set")
+        assertWithMessage("last() returns a non-null arguments SavedState when arguments are set")
             .that(current.arguments)
             .isNotNull()
     }

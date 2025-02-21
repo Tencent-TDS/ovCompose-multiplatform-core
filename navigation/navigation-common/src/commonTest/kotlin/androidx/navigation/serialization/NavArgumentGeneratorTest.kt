@@ -16,13 +16,14 @@
 
 package androidx.navigation.serialization
 
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavArgument
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.savedstate.SavedState
+import kotlin.jvm.JvmInline
 import kotlin.reflect.typeOf
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -624,13 +625,13 @@ class NavArgumentGeneratorTest {
         @Serializable class TestClass(val arg: Array<TestEnum>)
         val navType =
             object : CollectionNavType<Array<TestEnum>>(false) {
-                override fun put(bundle: Bundle, key: String, value: Array<TestEnum>) {}
+                override fun put(bundle: SavedState, key: String, value: Array<TestEnum>) {}
 
                 override fun serializeAsValues(value: Array<TestEnum>) = emptyList<String>()
 
                 override fun emptyCollection(): Array<TestEnum> = emptyArray()
 
-                override fun get(bundle: Bundle, key: String) = null
+                override fun get(bundle: SavedState, key: String) = null
 
                 override fun parseValue(value: String) = emptyArray<TestEnum>()
             }
@@ -644,6 +645,39 @@ class NavArgumentGeneratorTest {
             }
         assertThat(converted).containsExactlyInOrder(expected)
         assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertValueClass() {
+        // test value class as destination route
+        val converted = serializer<TestValueClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = NavType.IntType
+                nullable = false
+                unknownDefaultValuePresent = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+
+        // test value class as route arg
+        @Serializable class TestClass(val arg: TestValueClass)
+        val navType =
+            object : NavType<TestValueClass>(false) {
+                override fun put(bundle: SavedState, key: String, value: TestValueClass) {}
+
+                override fun get(bundle: SavedState, key: String): TestValueClass? = null
+
+                override fun parseValue(value: String): TestValueClass = TestValueClass(0)
+            }
+        val converted2 =
+            serializer<TestClass>().generateNavArguments(mapOf(typeOf<TestValueClass>() to navType))
+        val expected2 =
+            navArgument("arg") {
+                type = navType
+                nullable = false
+                unknownDefaultValuePresent = false
+            }
+        assertThat(converted2).containsExactlyInOrder(expected2)
     }
 
     @Test
@@ -711,9 +745,9 @@ class NavArgumentGeneratorTest {
 
         val CustomNavType =
             object : NavType<ArrayList<String>>(false) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -736,9 +770,9 @@ class NavArgumentGeneratorTest {
 
         val CustomNavType =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -761,9 +795,9 @@ class NavArgumentGeneratorTest {
             object : NavType<ArrayList<String>>(false) {
                 override val name = "customNavType"
 
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -827,18 +861,18 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -876,18 +910,18 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -923,9 +957,9 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<List<String>>>(false) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<List<String>>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<List<String>>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<List<String>> =
+                override fun get(bundle: SavedState, key: String): ArrayList<List<String>> =
                     arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<List<String>> = arrayListOf()
@@ -949,9 +983,9 @@ class NavArgumentGeneratorTest {
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -979,9 +1013,9 @@ class NavArgumentGeneratorTest {
     fun convertPrioritizesProvidedNavType() {
         val CustomIntNavType =
             object : NavType<Int>(true) {
-                override fun put(bundle: Bundle, key: String, value: Int) {}
+                override fun put(bundle: SavedState, key: String, value: Int) {}
 
-                override fun get(bundle: Bundle, key: String): Int = 0
+                override fun get(bundle: SavedState, key: String): Int = 0
 
                 override fun parseValue(value: String): Int = 0
             }
@@ -1123,7 +1157,7 @@ class NavArgumentGeneratorTest {
 
     private fun NavArgument.isEqual(other: NavArgument): Boolean {
         if (this === other) return true
-        if (javaClass != other.javaClass) return false
+        if (this::class != other::class) return false
         if (isNullable != other.isNullable) return false
         if (isDefaultValuePresent != other.isDefaultValuePresent) return false
         if (isDefaultValueUnknown != other.isDefaultValueUnknown) return false

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 import androidx.navigation.compose.DialogNavigator.Destination
 
-public actual class DialogNavigator
-actual constructor() : Navigator<Destination>(NAME) {
+public actual class DialogNavigator actual constructor(): Navigator<Destination>(NAME) {
     internal actual val backStack
         get() = state.backStack
 
@@ -37,7 +36,7 @@ actual constructor() : Navigator<Destination>(NAME) {
         popBackStack(backStackEntry, false)
     }
 
-    override fun navigate(
+    actual override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
@@ -49,7 +48,7 @@ actual constructor() : Navigator<Destination>(NAME) {
         return Destination(this) {}
     }
 
-    override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
+    actual override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         state.popWithTransition(popUpTo, savedState)
         // When popping, the incoming dialog is marked transitioning to hold it in
         // STARTED. With pop complete, we can remove it from transition so it can move to RESUMED.
@@ -64,7 +63,8 @@ actual constructor() : Navigator<Destination>(NAME) {
         state.markTransitionComplete(entry)
     }
 
-    public actual class Destination actual constructor(
+    public actual class Destination
+    actual constructor(
         navigator: DialogNavigator,
         internal actual val dialogProperties: DialogProperties,
         internal actual val content: @Composable (NavBackStackEntry) -> Unit

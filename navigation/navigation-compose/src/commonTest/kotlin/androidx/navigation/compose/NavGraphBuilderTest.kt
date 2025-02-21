@@ -17,7 +17,6 @@
 package androidx.navigation.compose
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.core.bundle.Bundle
 import androidx.core.uri.UriUtils
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
@@ -32,6 +31,8 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import androidx.navigation.serialization.generateHashCode
 import androidx.navigation.testing.TestNavHostController
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 import kotlin.test.Test
@@ -116,7 +117,7 @@ class NavGraphBuilderTest {
 
         runOnUiThread {
             navController.navigate("$secondRoute/$arg")
-            assertThat(navController.currentBackStackEntry!!.arguments!!.getString(key))
+            assertThat(navController.currentBackStackEntry!!.arguments!!.read { getString(key) })
                 .isEqualTo(arg)
         }
     }
@@ -141,7 +142,7 @@ class NavGraphBuilderTest {
 
         runOnUiThread {
             navController.navigate(secondRoute)
-            assertThat(navController.currentBackStackEntry!!.arguments!!.getString(key))
+            assertThat(navController.currentBackStackEntry!!.arguments!!.read { getString(key) })
                 .isEqualTo(defaultArg)
         }
     }
@@ -213,7 +214,7 @@ class NavGraphBuilderTest {
 
         runOnUiThread {
             navController.navigate(secondRoute)
-            assertThat(navController.currentBackStackEntry!!.arguments!!.getString(key))
+            assertThat(navController.currentBackStackEntry!!.arguments!!.read { getString(key) })
                 .isEqualTo(defaultArg)
         }
     }
@@ -239,13 +240,14 @@ class NavGraphBuilderTest {
 
     @Test
     fun testNavigationNestedKClassStart() = runComposeUiTestOnUiThread {
+        @Serializable class TestOuterClass
         lateinit var navController: TestNavHostController
         setContentWithLifecycleOwner {
             navController = TestNavHostController()
             navController.navigatorProvider.addNavigator(ComposeNavigator())
 
-            NavHost(navController, startDestination = TestClassArg::class) {
-                navigation<TestClassArg>(startDestination = TestClass::class) {
+            NavHost(navController, startDestination = TestOuterClass::class) {
+                navigation<TestOuterClass>(startDestination = TestClass::class) {
                     composable<TestClass> {}
                 }
             }
@@ -254,7 +256,7 @@ class NavGraphBuilderTest {
         runOnUiThread {
             assertThat(navController.currentDestination?.route).isEqualTo(TEST_CLASS_ROUTE)
             assertWithMessage("Destination should be added to the graph")
-                .that(TestClassArg::class in navController.graph)
+                .that(TestOuterClass::class in navController.graph)
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route).isEqualTo(TEST_CLASS_ROUTE)
         }
@@ -326,7 +328,7 @@ class NavGraphBuilderTest {
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route)
                 .isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 
@@ -337,7 +339,7 @@ class NavGraphBuilderTest {
             navController = TestNavHostController()
             navController.navigatorProvider.addNavigator(ComposeNavigator())
 
-            NavHost(navController, startDestination = TestClassArg::class) {
+            NavHost(navController, startDestination = TestClassArg(1)) {
                 navigation<TestClassArg>(startDestination = TestClass()) {
                     composable<TestClass> {}
                 }
@@ -374,7 +376,7 @@ class NavGraphBuilderTest {
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route)
                 .isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 
@@ -424,9 +426,9 @@ class NavGraphBuilderTest {
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route)
                 .isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getBoolean("graphArg"))
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getBoolean("graphArg") })
                 .isEqualTo(false)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 
@@ -481,7 +483,7 @@ class NavGraphBuilderTest {
             val nestedGraph = navController.graph.findNode<NestedGraph>() as NavGraph
             assertThat(nestedGraph.findStartDestination().route).isEqualTo(TEST_CLASS_ARG_ROUTE)
             assertThat(navController.currentDestination?.route).isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 
@@ -732,7 +734,7 @@ class NavGraphBuilderTest {
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route)
                 .isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 
@@ -758,7 +760,7 @@ class NavGraphBuilderTest {
                 .isTrue()
             assertThat(navController.graph.findStartDestination().route)
                 .isEqualTo(TEST_CLASS_ARG_ROUTE)
-            assertThat(navController.currentBackStackEntry?.arguments?.getInt("arg")).isEqualTo(15)
+            assertThat(navController.currentBackStackEntry?.arguments?.read { getInt("arg") }).isEqualTo(15)
         }
     }
 }
@@ -777,9 +779,9 @@ internal const val TEST_CLASS_ARG_ROUTE = "androidx.navigation.compose.TestClass
 
 internal val customNavType =
     object : NavType<CustomType>(false) {
-        override fun put(bundle: Bundle, key: String, value: CustomType) {}
+        override fun put(bundle: SavedState, key: String, value: CustomType) {}
 
-        override fun get(bundle: Bundle, key: String): CustomType? = null
+        override fun get(bundle: SavedState, key: String): CustomType? = null
 
         override fun parseValue(value: String): CustomType = CustomType()
 

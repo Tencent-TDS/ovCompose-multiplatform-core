@@ -26,7 +26,7 @@ import kotlin.jvm.JvmName
 import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 
-public actual open class NavigatorProvider {
+public actual open class NavigatorProvider actual constructor() {
     private val _typeNavigators = mutableMapOf<KClass<*>, Navigator<out NavDestination>>()
     private val _namedNavigators = mutableMapOf<String, Navigator<out NavDestination>>()
 

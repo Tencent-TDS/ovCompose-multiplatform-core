@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,26 +30,36 @@ import kotlin.jvm.JvmSuppressWildcards
 internal actual class ComposeNavGraphNavigator actual constructor(
     navigatorProvider: NavigatorProvider
 ) : NavGraphNavigator(navigatorProvider) {
-    override fun createDestination(): NavGraph {
+    actual override fun createDestination(): NavGraph {
         return ComposeNavGraph(this)
     }
 
     internal actual class ComposeNavGraph actual constructor(
         navGraphNavigator: Navigator<out NavGraph>
     ) : NavGraph(navGraphNavigator) {
-        internal actual var enterTransition: (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = null
+        internal actual var enterTransition:
+            (@JvmSuppressWildcards
+            AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? =
+            null
 
-        internal actual var exitTransition: (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = null
+        internal actual var exitTransition:
+            (@JvmSuppressWildcards
+            AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? =
+            null
 
-        internal actual var popEnterTransition: (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? = null
+        internal actual var popEnterTransition:
+            (@JvmSuppressWildcards
+            AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? =
+            null
 
-        internal actual var popExitTransition: (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? = null
+        internal actual var popExitTransition:
+            (@JvmSuppressWildcards
+            AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition?)? =
+            null
 
-        internal actual var sizeTransform: (@JvmSuppressWildcards
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? = null
+        internal actual var sizeTransform:
+            (@JvmSuppressWildcards
+            AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? =
+            null
     }
 }

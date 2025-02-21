@@ -16,7 +16,6 @@
 
 package androidx.navigation
 
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.navigation.testing.TestNavigatorState
