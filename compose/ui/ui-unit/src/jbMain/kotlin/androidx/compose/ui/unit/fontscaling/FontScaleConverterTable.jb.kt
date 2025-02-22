@@ -15,6 +15,7 @@
  */
 package androidx.compose.ui.unit.fontscaling
 
+import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.lerp
 import kotlin.math.absoluteValue
 import kotlin.math.sign
@@ -143,7 +144,7 @@ private fun lerpInv(a: Float, b: Float, value: Float): Float {
  * @param valueMax maximum of range to map `value` to.
  * @param value to map to the range [`valueMin`, `valueMax`]. Note, can be outside this range,
  *   resulting in a clamped value.
- * @return the mapped value, constrained to [`rangeMin`, `rangeMax`.
+ * @return the mapped value, constrained to [`rangeMin`, `rangeMax`].
  */
 internal fun constrainedMap(
     rangeMin: Float,
@@ -155,6 +156,6 @@ internal fun constrainedMap(
     return lerp(
         rangeMin,
         rangeMax,
-        maxOf(0f, minOf(1f, lerpInv(valueMin, valueMax, value)))
+        lerpInv(valueMin, valueMax, value).fastCoerceIn(0f, 1f)
     )
 }

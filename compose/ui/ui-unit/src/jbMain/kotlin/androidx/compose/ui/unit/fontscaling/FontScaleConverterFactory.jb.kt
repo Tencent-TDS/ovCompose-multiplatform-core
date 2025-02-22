@@ -20,14 +20,20 @@ import androidx.compose.ui.unit.NonLinearFontSizeAnchors
 import androidx.compose.ui.unit.defaultFontScaleConverters
 import androidx.compose.ui.unit.isNonLinearFontScalingActive
 import androidx.compose.ui.util.lerp
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 
 internal object FontScaleConverterFactory {
 
     private const val ScaleKeyMultiplier = 100f
 
+    private val lookupTablesWriteLock = reentrantLock()
+
     private val lookupTables = SparseArrayCompat<FontScaleConverter>().apply {
-        defaultFontScaleConverters().forEach { (scale, converter) ->
-            put(getKey(scale), converter)
+        lookupTablesWriteLock.withLock {
+            defaultFontScaleConverters().forEach { (scale, converter) ->
+                put(getKey(scale), converter)
+            }
         }
     }
 
@@ -113,6 +119,8 @@ internal object FontScaleConverterFactory {
     }
 
     private fun put(scaleKey: Float, fontScaleConverter: FontScaleConverter) {
-        lookupTables.put(getKey(scaleKey), fontScaleConverter)
+        lookupTablesWriteLock.withLock {
+            lookupTables.put(getKey(scaleKey), fontScaleConverter)
+        }
     }
 }

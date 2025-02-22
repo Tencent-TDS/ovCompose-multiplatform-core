@@ -89,7 +89,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
             }
 
-            jbMain.dependsOn(commonMain)
+            jbMain {
+                dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
+            }
             desktopMain.dependsOn(jbMain)
             jsNativeMain.dependsOn(jbMain)
             jsMain.dependsOn(jsNativeMain)
