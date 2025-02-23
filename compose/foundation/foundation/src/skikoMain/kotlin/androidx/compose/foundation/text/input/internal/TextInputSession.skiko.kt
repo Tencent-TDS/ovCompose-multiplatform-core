@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.input.TextFieldCharSequence
 import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
