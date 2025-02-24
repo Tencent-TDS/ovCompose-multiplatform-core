@@ -47,24 +47,17 @@ import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.unit.width
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
-import kotlinx.cinterop.readValue
-import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
-import platform.UIKit.NSStringFromCGPoint
-import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIColor
 import platform.UIKit.UIPress
-import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.reloadInputViews
-import platform.darwin.dispatch_async
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -213,7 +206,6 @@ internal class UIKitTextInputService(
             updateView()
             textUIView?.reloadInputViews()
         }
-        attachIfNeeded()
     }
 
     fun onPreviewKeyEvent(event: KeyEvent): Boolean {
@@ -404,24 +396,6 @@ internal class UIKitTextInputService(
         else
             TextToolbarStatus.Hidden
 
-    private fun attachIfNeeded() {
-        if  (textUIView == null) {
-            attachIntermediateTextInputView()
-
-            showSoftwareKeyboard()
-            onInputStarted()
-
-            textUIView?.setNeedsLayout()
-            textUIView?.setNeedsDisplay()
-
-            mainScope.launch {
-                textUIView?.setNeedsLayout()
-                textUIView?.setNeedsDisplay()
-                textUIView?.layoutIfNeeded()
-            }
-        }
-    }
-
     private fun attachIntermediateTextInputView() {
         detachIntermediateTextInputView()
 
@@ -437,7 +411,6 @@ internal class UIKitTextInputService(
             it.clipsToBounds = true
             it.input = createSkikoInput()
             it.inputTraits = getUITextInputTraits(currentImeOptions)
-
 
             // Resizing should be done later
             // TODO: Check selection container
@@ -564,11 +537,11 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @return A substring of a document that falls within the specified range.
          */
-        override fun textInRange(range: TextRange): String {
+        override fun textInRange(range: TextRange): String? {
             if (isIncorrect(range)) {
-                return ""
+                return null
             }
-            val text = getState()?.text ?: return ""
+            val text = getState()?.text ?: return null
             return text.substring(range.start, range.end)
         }
 
@@ -628,14 +601,15 @@ internal class UIKitTextInputService(
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun positionFromPosition(position: Int, offset: Int): Int {
-            val text = getState()?.text ?: return 0
+        override fun positionFromPosition(position: Int, offset: Int): Int? {
+            val text = getState()?.text ?: return null
 
-            if (position + offset >= text.length) {
-                return text.length
+            val newPosition = position + offset
+            if (newPosition == text.length || newPosition == 0) {
+                return newPosition
             }
-            if (position + offset <= 0) {
-                return 0
+            if (newPosition < 0 || newPosition > text.length) {
+                return null
             }
             var resultPosition = position
             val iterator = BreakIterator.makeCharacterInstance()
@@ -662,9 +636,9 @@ internal class UIKitTextInputService(
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int {
-            val text = getState()?.text ?: return 0
-            val layoutResult = textLayoutResult ?: return 0
+        override fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int? {
+            val text = getState()?.text ?: return null
+            val layoutResult = textLayoutResult ?: return null
 
             val line = layoutResult.getLineForOffset(position)
             val lineStartOffset = layoutResult.getLineStart(line)

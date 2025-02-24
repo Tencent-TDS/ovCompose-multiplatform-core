@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.TextSelectionRect
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
+import androidx.compose.ui.uikit.utils.CMPTextInputStringTokenizer
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,7 @@ import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import org.jetbrains.skia.BreakIterator
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
@@ -54,8 +56,6 @@ import platform.Foundation.NSOrderedAscending
 import platform.Foundation.NSOrderedDescending
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSRange
-import platform.UIKit.NSStringFromCGPoint
-import platform.UIKit.NSStringFromUIEdgeInsets
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
@@ -68,13 +68,15 @@ import platform.UIKit.UIMenuAutoFill
 import platform.UIKit.UIMenuBuilderProtocol
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
+import platform.UIKit.UIResponder
 import platform.UIKit.UIReturnKeyType
 import platform.UIKit.UITextAutocapitalizationType
 import platform.UIKit.UITextAutocorrectionType
 import platform.UIKit.UITextContentType
+import platform.UIKit.UITextDirection
+import platform.UIKit.UITextGranularity
 import platform.UIKit.UITextInputDelegateProtocol
 import platform.UIKit.UITextInputProtocol
-import platform.UIKit.UITextInputStringTokenizer
 import platform.UIKit.UITextInputTokenizerProtocol
 import platform.UIKit.UITextInteraction
 import platform.UIKit.UITextInteractionMode
@@ -87,6 +89,7 @@ import platform.UIKit.UITextPosition
 import platform.UIKit.UITextRange
 import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
+import platform.UIKit.UITextStorageDirectionForward
 import platform.UIKit.UITextWritingDirection
 import platform.UIKit.UIView
 import platform.UIKit.addInteraction
@@ -246,7 +249,9 @@ internal class IntermediateTextInputUIView(
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    override fun textInRange(range: UITextRange): String? = input?.textInRange(range.toTextRange())
+    override fun textInRange(range: UITextRange): String? {
+        return input?.textInRange(range.toTextRange())
+    }
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -351,8 +356,8 @@ internal class IntermediateTextInputUIView(
         fromPosition: UITextPosition,
         toPosition: UITextPosition
     ): UITextRange? {
-        val from = (fromPosition as? IntermediateTextPosition)?.position ?: 0
-        val to = (toPosition as? IntermediateTextPosition)?.position ?: 0
+        val from = (fromPosition as? IntermediateTextPosition)?.position ?: return null
+        val to = (toPosition as? IntermediateTextPosition)?.position ?: return null
         return IntermediateTextRange(
             IntermediateTextPosition(minOf(from, to)),
             IntermediateTextPosition(maxOf(from, to))
@@ -371,8 +376,9 @@ internal class IntermediateTextInputUIView(
     ): UITextPosition? {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
         val input = input ?: return null
-        val result = input.positionFromPosition(position = p, offset = offset.toInt())
-        return IntermediateTextPosition(result)
+        return input.positionFromPosition(position = p, offset = offset.toInt())?.let {
+            IntermediateTextPosition(it)
+        }
     }
 
     private fun positionFromPositionVertical(
@@ -381,8 +387,8 @@ internal class IntermediateTextInputUIView(
     ): UITextPosition? {
         val p = (position as? IntermediateTextPosition)?.position ?: return null
         val input = input ?: return null
-        val result = input.verticalPositionFromPosition(position = p, verticalOffset = offset.toInt())
-        return IntermediateTextPosition(result)
+        return input.verticalPositionFromPosition(position = p, verticalOffset = offset.toInt())
+            ?.let { IntermediateTextPosition(it) }
     }
 
     override fun positionFromPosition(
@@ -390,7 +396,6 @@ internal class IntermediateTextInputUIView(
         inDirection: UITextLayoutDirection,
         offset: NSInteger
     ): UITextPosition? {
-
         return when (inDirection) {
             UITextLayoutDirectionLeft -> positionFromPosition(position, -offset)
             UITextLayoutDirectionRight -> positionFromPosition(position, offset)
@@ -407,8 +412,8 @@ internal class IntermediateTextInputUIView(
         position: UITextPosition,
         toPosition: UITextPosition
     ): NSComparisonResult {
-        val from = (position as? IntermediateTextPosition)?.position ?: 0
-        val to = (toPosition as? IntermediateTextPosition)?.position ?: 0
+        val from = (position as? IntermediateTextPosition)?.position ?: return NSOrderedSame
+        val to = (toPosition as? IntermediateTextPosition)?.position ?: return NSOrderedSame
         val result = if (from < to) {
             NSOrderedAscending
         } else if (from > to) {
@@ -497,6 +502,14 @@ internal class IntermediateTextInputUIView(
         )
         val rects = input?.selectionRectsForRange(textRange) ?: return fallbackList
 
+// TODO: Translate selection to cursor.
+//        notificationsEnabled = false
+//        println(">>> Set selection - ${textRange}")
+//        if (input?.getSelectedTextRange() != textRange) {
+//            input?.setSelectedTextRange(textRange)
+//        }
+//        notificationsEnabled = true
+//        println(">>> Set selection - done")
         return rects.fastMap { IntermediateTextSelectionRect(it) }
     }
 
@@ -640,7 +653,9 @@ internal class IntermediateTextInputUIView(
 
     fun isTextMenuShown() = isEditMenuShown
 
-    private val _tokenizer = UITextInputStringTokenizer(textInput = this)
+    private val _tokenizer = IntermediateTextTokenizer(textInput = this) {
+        input?.let { it.textInRange(TextRange(0, it.endOfDocument())) }
+    }
     override fun tokenizer(): UITextInputTokenizerProtocol = _tokenizer
 
     fun resetOnKeyboardPressesCallback() {
@@ -749,3 +764,98 @@ private fun UITextLayoutDirection.directionToStr() =
         UITextLayoutDirectionDown -> "Down"
         else -> "Unknown"
     }
+
+internal class IntermediateTextTokenizer(
+    textInput: UIResponder,
+    val getString: () -> String?
+): CMPTextInputStringTokenizer(textInput) {
+    override fun positionFromPosition(
+        position: UITextPosition,
+        toBoundary: UITextGranularity,
+        inDirection: UITextDirection
+    ): UITextPosition? {
+        val textPosition = position as? IntermediateTextPosition ?: return null
+        val isForward = inDirection == UITextStorageDirectionForward ||
+            inDirection == UITextLayoutDirectionRight ||
+            inDirection == UITextLayoutDirectionDown
+
+        val iterator = when (toBoundary) {
+            UITextGranularity.UITextGranularityCharacter -> BreakIterator.makeCharacterInstance()
+            UITextGranularity.UITextGranularityWord -> BreakIterator.makeWordInstance()
+            UITextGranularity.UITextGranularitySentence -> BreakIterator.makeSentenceInstance()
+            UITextGranularity.UITextGranularityLine -> BreakIterator.makeLineInstance()
+            UITextGranularity.UITextGranularityParagraph ->
+                return positionFromPositionToParagraphBoundary(position, isForward)
+
+            else -> return super.positionFromPosition(position, toBoundary, inDirection)
+        }
+
+        val string = getString() ?: ""
+        iterator.setText(string)
+
+        val iteratorResult = if (isForward) {
+            if (textPosition.position >= string.length - 1) {
+                string.length - 1
+            } else {
+                iterator.following(textPosition.position)
+            }
+        } else {
+            if (textPosition.position <= 0) {
+                0
+            } else {
+                iterator.preceding(textPosition.position)
+            }
+        }
+
+        return IntermediateTextPosition(iteratorResult)
+    }
+
+    override fun isPositionAtBoundary(
+        position: UITextPosition,
+        atBoundary: UITextGranularity,
+        inDirection: UITextDirection
+    ): Boolean {
+        val textPosition = position as? IntermediateTextPosition ?: return false
+
+        val iterator = when (atBoundary) {
+            UITextGranularity.UITextGranularityCharacter -> BreakIterator.makeCharacterInstance()
+            UITextGranularity.UITextGranularityWord -> BreakIterator.makeWordInstance()
+            UITextGranularity.UITextGranularitySentence -> BreakIterator.makeSentenceInstance()
+            UITextGranularity.UITextGranularityLine -> BreakIterator.makeLineInstance()
+            UITextGranularity.UITextGranularityParagraph ->
+                // TODO: Properly implement Paragraph boundary check, or write comment why false value is optimal one here.
+                return false
+
+            else -> return super.isPositionAtBoundary(position, atBoundary, inDirection)
+        }
+
+        iterator.setText(getString() ?: "")
+        return iterator.isBoundary(textPosition.position)
+    }
+
+    private fun positionFromPositionToParagraphBoundary(
+        position: UITextPosition,
+        isForward: Boolean
+    ): UITextPosition? {
+        val textPosition = position as? IntermediateTextPosition ?: return null
+        val newlineCharacters: Set<Char> = setOf('\n', '\r', '\u2029')
+
+        val string = getString() ?: ""
+        var location = textPosition.position
+        while (isForward && location < string.length || !isForward && location > 0) {
+            if (isForward) {
+                if (string[location] in newlineCharacters) {
+                    break
+                }
+                location++
+            } else {
+                if (string[location] in newlineCharacters) {
+                    location++
+                    break
+                }
+                location--
+            }
+        }
+        return IntermediateTextPosition(location)
+    }
+}

@@ -84,7 +84,7 @@ internal interface IOSSkikoInput {
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    fun textInRange(range: TextRange): String
+    fun textInRange(range: TextRange): String?
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -126,9 +126,9 @@ internal interface IOSSkikoInput {
      * Returns the text position at a specified offset from another text position.
      * Returned value must be in range between 0 and length of text (inclusive).
      */
-    fun positionFromPosition(position: Int, offset: Int): Int
+    fun positionFromPosition(position: Int, offset: Int): Int?
 
-    fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int
+    fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int?
 
     fun currentFocusedDpRect(): DpRect?
 

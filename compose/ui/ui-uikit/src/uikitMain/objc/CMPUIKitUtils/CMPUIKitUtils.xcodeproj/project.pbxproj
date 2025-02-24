@@ -16,6 +16,7 @@
 		997DFCFD2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCFC2B18E5D3000B56B5 /* CMPUIKitUtilsTestApp.swift */; };
 		99D97A882BF73A9B0035552B /* CMPEditMenuView.m in Sources */ = {isa = PBXBuildFile; fileRef = 99D97A872BF73A9B0035552B /* CMPEditMenuView.m */; };
 		99DCAB0E2BD00F5C002E6AC7 /* CMPTextLoupeSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 99DCAB0D2BD00F5C002E6AC7 /* CMPTextLoupeSession.m */; };
+		99FB5CAF2D6CD64C00A75666 /* CMPTextInputStringTokenizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 99FB5CAE2D6CD64C00A75666 /* CMPTextInputStringTokenizer.m */; };
 		EA4B52962C2EDEF200FBB55C /* CMPGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */; };
 		EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */ = {isa = PBXBuildFile; fileRef = EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */; };
 		EA82F4F92B86144E00465418 /* CMPOSLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = EA82F4F82B86144E00465418 /* CMPOSLogger.m */; };
@@ -76,6 +77,8 @@
 		99D97A872BF73A9B0035552B /* CMPEditMenuView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPEditMenuView.m; sourceTree = "<group>"; };
 		99DCAB0C2BD00F5C002E6AC7 /* CMPTextLoupeSession.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPTextLoupeSession.h; sourceTree = "<group>"; };
 		99DCAB0D2BD00F5C002E6AC7 /* CMPTextLoupeSession.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPTextLoupeSession.m; sourceTree = "<group>"; };
+		99FB5CAD2D6CD64C00A75666 /* CMPTextInputStringTokenizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPTextInputStringTokenizer.h; sourceTree = "<group>"; };
+		99FB5CAE2D6CD64C00A75666 /* CMPTextInputStringTokenizer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPTextInputStringTokenizer.m; sourceTree = "<group>"; };
 		EA4B52942C2EDEF200FBB55C /* CMPGestureRecognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPGestureRecognizer.h; sourceTree = "<group>"; };
 		EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPGestureRecognizer.m; sourceTree = "<group>"; };
 		EA70A7E62B27106100300068 /* CMPAccessibilityElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CMPAccessibilityElement.h; sourceTree = "<group>"; };
@@ -135,6 +138,8 @@
 				EA82F4F82B86144E00465418 /* CMPOSLogger.m */,
 				EA82F4FA2B86184F00465418 /* CMPOSLoggerInterval.h */,
 				EA82F4FB2B86184F00465418 /* CMPOSLoggerInterval.m */,
+				99FB5CAD2D6CD64C00A75666 /* CMPTextInputStringTokenizer.h */,
+				99FB5CAE2D6CD64C00A75666 /* CMPTextInputStringTokenizer.m */,
 				EABD91292BC02B5F00455279 /* CMPInteropWrappingView.h */,
 				EABD912A2BC02B5F00455279 /* CMPInteropWrappingView.m */,
 				99DCAB0C2BD00F5C002E6AC7 /* CMPTextLoupeSession.h */,
@@ -326,6 +331,7 @@
 				997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */,
 				EAB33E182C12E746002CFF44 /* CMPMetalDrawablesHandler.m in Sources */,
 				99D97A882BF73A9B0035552B /* CMPEditMenuView.m in Sources */,
+				99FB5CAF2D6CD64C00A75666 /* CMPTextInputStringTokenizer.m in Sources */,
 				EABD912B2BC02B5F00455279 /* CMPInteropWrappingView.m in Sources */,
 				EADD02902C9846D9003F66E8 /* CMPDragInteractionProxy.m in Sources */,
 				EA82F4F92B86144E00465418 /* CMPOSLogger.m in Sources */,
