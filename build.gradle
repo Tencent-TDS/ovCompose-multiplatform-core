@@ -45,4 +45,8 @@ allprojects {
     this.tasks.configureEach {
         if (it.name == "kotlinStoreYarnLock") it.enabled = false
     }
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
 }
