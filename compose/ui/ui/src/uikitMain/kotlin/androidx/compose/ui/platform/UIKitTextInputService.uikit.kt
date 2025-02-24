@@ -143,7 +143,8 @@ internal class UIKitTextInputService(
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
-
+        attachIntermediateTextInputView()
+        showSoftwareKeyboard()
     }
 
     fun startInput(
@@ -159,7 +160,6 @@ internal class UIKitTextInputService(
         currentImeActionHandler = onImeActionPerformed
 
         attachIntermediateTextInputView()
-
         showSoftwareKeyboard()
     }
 
