@@ -232,12 +232,13 @@ public fun <T : Any> SinglePaneNavDisplay(
             contentAlignment = contentAlignment,
             contentKey = { it.last() }
         ) { innerStack ->
-            val lastKey = innerStack.last()
-            val lastEntry = entries.findLast { entry -> entry.key == lastKey }
-            lastEntry?.let { entry ->
-                CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
-                    entry.content.invoke(lastKey)
+            // popped entries will be remembered and retrieved so it can animate out properly
+            val currEntry =
+                remember((innerStack.last())) {
+                    entries.findLast { entry -> entry.key == innerStack.last() }
                 }
+            CompositionLocalProvider(LocalNavAnimatedContentScope provides this) {
+                currEntry!!.content.invoke(currEntry.key)
             }
         }
     }

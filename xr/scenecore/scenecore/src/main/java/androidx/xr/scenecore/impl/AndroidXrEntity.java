@@ -18,6 +18,7 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.xr.extensions.Consumer;
 import androidx.xr.extensions.XrExtensions;
 import androidx.xr.extensions.node.InputEvent;
@@ -74,7 +75,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     }
 
     @Override
-    public void setPose(Pose pose) {
+    public void setPose(@NonNull Pose pose) {
         // TODO: b/321268237 - Minimize the number of node transactions
         super.setPose(pose);
 
@@ -96,7 +97,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     }
 
     @Override
-    public void setScale(Vector3 scale) {
+    public void setScale(@NonNull Vector3 scale) {
         super.setScale(scale);
         try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
             transaction.setScale(mNode, scale.getX(), scale.getY(), scale.getZ()).apply();
@@ -162,7 +163,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     }
 
     @Override
-    public void setSize(Dimensions dimensions) {
+    public void setSize(@NonNull Dimensions dimensions) {
         // TODO: b/326479171: Uncomment when extensions implement setSize.
         // try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
         //   transaction.setSize(mNode, dimensions.width, dimensions.height,
@@ -199,7 +200,8 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     }
 
     @Override
-    public void addInputEventListener(Executor executor, InputEventListener eventListener) {
+    public void addInputEventListener(
+            @NonNull Executor executor, @NonNull InputEventListener eventListener) {
         maybeSetupInputListeners();
         mInputEventListenerMap.put(eventListener, executor == null ? mExecutor : executor);
     }
@@ -281,7 +283,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     }
 
     @Override
-    public void removeInputEventListener(InputEventListener consumer) {
+    public void removeInputEventListener(@NonNull InputEventListener consumer) {
         mInputEventListenerMap.remove(consumer);
         maybeStopListeningForInput();
     }

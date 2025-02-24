@@ -95,6 +95,7 @@ public class GltfModel internal constructor(public val model: RtGltfModel) : Mod
          */
         @MainThread
         @JvmStatic
+        @Suppress("AsyncSuffixFuture")
         public fun create(session: Session, name: String): ListenableFuture<GltfModel> {
             return GltfModel.createAsync(session.platformAdapter, name)
         }

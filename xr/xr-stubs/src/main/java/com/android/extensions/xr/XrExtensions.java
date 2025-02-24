@@ -96,24 +96,6 @@ public class XrExtensions {
     }
 
     /**
-     * Views a 3D asset.
-     *
-     * @param activity The activity which relinquishes control in order to display the model..
-     * @param gltfModel The model to display.
-     * @return A {@link java.util.concurrent.CompletableFuture CompletableFuture} that notifies the
-     *     caller when the session has completed.
-     * @deprecated JXR Core doesn't need this anymore as it does the same with Split Engine.
-     */
-    @Deprecated
-    public java.util.concurrent.CompletableFuture<
-                    com.android.extensions.xr.XrExtensions.SceneViewerResult>
-            displayGltfModel(
-                    android.app.Activity activity,
-                    com.android.extensions.xr.asset.GltfModelToken gltfModel) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
      * Loads and caches the environment in the SpaceFlinger.
      *
      * @param asset The input stream data of the EXR or JPEG environment.
@@ -223,32 +205,6 @@ public class XrExtensions {
      * @param sceneNode the node to show as the presentation of the {@code activity}.
      * @param windowNode a leash node to allow the app to control the position and size of the
      *     activity's main window.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void attachSpatialScene(
-            android.app.Activity activity,
-            com.android.extensions.xr.node.Node sceneNode,
-            com.android.extensions.xr.node.Node windowNode) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Attaches the given {@code sceneNode} as the presentation for the given {@code activity} in
-     * the space, and asks the system to attach the 2D content of the {@code activity} into the
-     * given {@code windowNode}.
-     *
-     * <p>The {@code sceneNode} will only be visible if the {@code activity} is visible as in a
-     * lifecycle state between {@link android.app.Activity#onStart() Activity#onStart()} and {@link
-     * android.app.Activity#onStop() Activity#onStop()} and is SPATIAL_UI_CAPABLE too.
-     *
-     * <p>One activity can only attach one scene node. When a new scene node is attached for the
-     * same {@code activity}, the previous one will be detached.
-     *
-     * @param activity the owner activity of the {@code sceneNode}.
-     * @param sceneNode the node to show as the presentation of the {@code activity}.
-     * @param windowNode a leash node to allow the app to control the position and size of the
-     *     activity's main window.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -281,21 +237,6 @@ public class XrExtensions {
      * detach the scene node that was attached for itself.
      *
      * @param activity the owner activity of the {@code sceneNode}.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void detachSpatialScene(android.app.Activity activity) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Detaches the {@code sceneNode} that was previously attached for the {@code activity} via
-     * {@link #attachSpatialScene}.
-     *
-     * <p>When an {@link android.app.Activity Activity} is destroyed, it must call this method to
-     * detach the scene node that was attached for itself.
-     *
-     * @param activity the owner activity of the {@code sceneNode}.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -313,19 +254,6 @@ public class XrExtensions {
             com.android.extensions.xr.function.Consumer<com.android.extensions.xr.XrExtensionResult>
                     callback,
             java.util.concurrent.Executor executor) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Resizes the main window of the given activity to the requested size.
-     *
-     * @param activity the activity whose main window should be resized.
-     * @param width the new main window width in pixels.
-     * @param height the new main window height in pixels.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void setMainWindowSize(android.app.Activity activity, int width, int height) {
         throw new RuntimeException("Stub!");
     }
 
@@ -384,25 +312,6 @@ public class XrExtensions {
      *
      * @param activity the activity that provides the environment node to attach.
      * @param environmentNode the environment node provided by the activity to be attached.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void attachSpatialEnvironment(
-            android.app.Activity activity, com.android.extensions.xr.node.Node environmentNode) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Attaches an environment node for a given activity to make it visible.
-     *
-     * <p>SysUI will attach the environment node to the task node when the activity gains the
-     * APP_ENVIRONMENTS_CAPABLE capability.
-     *
-     * <p>This method can be called multiple times, SysUI will attach the new environment node and
-     * detach the old environment node if it exists.
-     *
-     * @param activity the activity that provides the environment node to attach.
-     * @param environmentNode the environment node provided by the activity to be attached.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -434,21 +343,6 @@ public class XrExtensions {
      *
      * @param activity the activity with which SysUI will detach and clean up the environment node
      *     tree.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void detachSpatialEnvironment(android.app.Activity activity) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Detaches the environment node and its sub tree for a given activity to make it invisible.
-     *
-     * <p>This method will detach and cleanup the environment node and its subtree passed from the
-     * activity.
-     *
-     * @param activity the activity with which SysUI will detach and clean up the environment node
-     *     tree.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -464,32 +358,6 @@ public class XrExtensions {
     public void detachSpatialEnvironment(
             android.app.Activity activity,
             com.android.extensions.xr.function.Consumer<com.android.extensions.xr.XrExtensionResult>
-                    callback,
-            java.util.concurrent.Executor executor) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Sets a callback to receive {@link com.android.extensions.xr.space.SpatialStateEvent
-     * SpatialStateEvent} for the given {@code activity}.
-     *
-     * <p>One activity can only set one callback. When a new callback is set for the same {@code
-     * activity}, the previous one will be cleared.
-     *
-     * <p>The callback will be triggered immediately with the current state when it is set, for each
-     * of the possible events.
-     *
-     * @param activity the activity for the {@code callback} to listen to.
-     * @param callback the callback to set.
-     * @param executor the executor that the callback will be called on.
-     * @see #clearSpatialStateCallback
-     * @deprecated Use registerSpatialStateCallback instead.
-     */
-    @Deprecated
-    public void setSpatialStateCallbackDeprecated(
-            android.app.Activity activity,
-            com.android.extensions.xr.function.Consumer<
-                            com.android.extensions.xr.space.SpatialStateEvent>
                     callback,
             java.util.concurrent.Executor executor) {
         throw new RuntimeException("Stub!");
@@ -563,49 +431,6 @@ public class XrExtensions {
     public com.android.extensions.xr.space.ActivityPanel createActivityPanel(
             android.app.Activity host,
             com.android.extensions.xr.space.ActivityPanelLaunchParameters launchParameters) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Synchronously checks if an activity can be the host to embed an {@link
-     * com.android.extensions.xr.space.ActivityPanel ActivityPanel}.
-     *
-     * <p>Activity inside an {@link com.android.extensions.xr.space.ActivityPanel ActivityPanel}
-     * cannot be the host.
-     *
-     * @param activity the activity to check.
-     * @see #createActivityPanel
-     * @return true if the embedding is allowed.
-     * @deprecated Use {@link getSpatialState} instead. When embedding is possible, SpatialState's
-     *     {@link com.android.extensions.xr.space.SpatialCapabilities SpatialCapabilities} has
-     *     {@code SPATIAL_ACTIVITY_EMBEDDING_CAPABLE}.
-     */
-    @Deprecated
-    public boolean canEmbedActivityPanel(android.app.Activity activity) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Requests to put an activity in full space mode when it has focus.
-     *
-     * @param activity the activity that requires to enter full space mode.
-     * @return true when the request was sent (when the activity has focus).
-     * @deprecated Use requestFullSpaceMode with 3 arguments.
-     */
-    @Deprecated
-    public boolean requestFullSpaceMode(android.app.Activity activity) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Requests to put an activity in home space mode when it has focus.
-     *
-     * @param activity the activity that requires to enter home space mode.
-     * @return true when the request was sent (when the activity has focus).
-     * @deprecated Use requestFullSpaceMode with 3 arguments.
-     */
-    @Deprecated
-    public boolean requestHomeSpaceMode(android.app.Activity activity) {
         throw new RuntimeException("Stub!");
     }
 
@@ -687,32 +512,6 @@ public class XrExtensions {
      */
     public android.os.Bundle setFullSpaceStartModeWithEnvironmentInherited(
             android.os.Bundle bundle) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Sets panel curvature radius to the given {@link android.os.Bundle Bundle}.
-     *
-     * <p>The {@link android.os.Bundle Bundle} then could be used to launch an {@link
-     * android.app.Activity Activity} with requesting to a custom curvature radius for the main
-     * panel through {@link android.app.Activity#startActivity Activity#startActivity}. If there's a
-     * bundle used for customizing how the {@link android.app.Activity Activity} should be started
-     * by {@link ActivityOptions.toBundle} or {@link
-     * androidx.core.app.ActivityOptionsCompat.toBundle}, it's suggested to use the bundle to call
-     * this method.
-     *
-     * <p>The curvature radius must be used together with {@link
-     * #setFullSpaceModeWithEnvironmentInherited(android.os.Bundle)}. Otherwise, it will be ignored.
-     *
-     * @param bundle the input bundle to set with the inherit full space mode environment flag.
-     * @param panelCurvatureRadius the panel curvature radius. It is measured in "radius * 1 /
-     *     curvature". A value of 0.0f means the panel is flat.
-     * @return the input {@code bundle} with the inherit full space mode flag set.
-     * @deprecated Use Split Engine to create a curved panel.
-     */
-    @Deprecated
-    public android.os.Bundle setMainPanelCurvatureRadius(
-            android.os.Bundle bundle, float panelCurvatureRadius) {
         throw new RuntimeException("Stub!");
     }
 
@@ -810,23 +609,6 @@ public class XrExtensions {
     }
 
     /**
-     * Sets a preferred main panel aspect ratio for home space mode.
-     *
-     * <p>The ratio is only applied to the activity. If the activity launches another activity in
-     * the same task, the ratio is not applied to the new activity. Also, while the activity is in
-     * full space mode, the preference is temporarily removed.
-     *
-     * @param activity the activity to set the preference.
-     * @param preferredRatio the aspect ratio determined by taking the panel's width over its
-     *     height. A value <= 0.0f means there are no preferences.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    public void setPreferredAspectRatio(android.app.Activity activity, float preferredRatio) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
      * Sets a preferred main panel aspect ratio for an activity that is not SPATIAL_UI_CAPABLE.
      *
      * <p>The ratio is only applied to the activity. If the activity launches another activity in
@@ -855,43 +637,6 @@ public class XrExtensions {
             android.app.Activity activity,
             float preferredRatio,
             com.android.extensions.xr.function.Consumer<com.android.extensions.xr.XrExtensionResult>
-                    callback,
-            java.util.concurrent.Executor executor) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Gets the spatial capabilities of the activity.
-     *
-     * @param activity the activity to get the capabilities.
-     * @param callback the callback to run. If the activity is not found in SysUI, the callback runs
-     *     with a null SpatialCapabilities.
-     * @param executor the executor that the callback will be called on.
-     * @deprecated Use getSpatialState synchronous getter.
-     */
-    @Deprecated
-    public void getSpatialCapabilities(
-            android.app.Activity activity,
-            com.android.extensions.xr.function.Consumer<
-                            com.android.extensions.xr.space.SpatialCapabilities>
-                    callback,
-            java.util.concurrent.Executor executor) {
-        throw new RuntimeException("Stub!");
-    }
-
-    /**
-     * Gets the bounds of the activity.
-     *
-     * @param activity the activity to get the bounds.
-     * @param callback the callback to run. If the activity is not found in SysUI, the callback runs
-     *     with a null Bounds.
-     * @param executor the executor that the callback will be called on.
-     * @deprecated Use getSpatialState synchronous getter.
-     */
-    @Deprecated
-    public void getBounds(
-            android.app.Activity activity,
-            com.android.extensions.xr.function.Consumer<com.android.extensions.xr.space.Bounds>
                     callback,
             java.util.concurrent.Executor executor) {
         throw new RuntimeException("Stub!");

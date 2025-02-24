@@ -22,10 +22,8 @@ import androidx.xr.runtime.math.Pose
 /**
  * Represents the current state of a [Hand] instance.
  *
- * @property isActive the value describing if the hand is active.
- * @property handJoints the list of poses of the hand joints. According to
- *   https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrHandJointEXT.html, the hand joints
- *   should match the order defined in the same page as the enum values.
+ * According to https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrHandJointEXT.html, the hand
+ * joints should match the order defined in the same page as the enum values.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class HandState(

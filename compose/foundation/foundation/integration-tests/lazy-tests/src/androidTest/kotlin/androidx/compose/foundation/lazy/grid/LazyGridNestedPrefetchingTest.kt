@@ -375,7 +375,7 @@ class LazyGridNestedPrefetchingTest(val config: Config) :
 
         override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) {
             repeat(nestedPrefetchItemCount) { i ->
-                schedulePrefetch(firstVisibleItemIndex + i, childConstraints)
+                schedulePremeasure(firstVisibleItemIndex + i, childConstraints)
             }
         }
     }

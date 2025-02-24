@@ -23,7 +23,10 @@
             android:exported="true">
             <property
                 android:name="android.app.appfunctions"
-                android:value="app_function.xml" />
+                android:value="app_functions.xml" />
+            <property
+                android:name="android.app.appfunctions.schema"
+                android:value="app_functions_schema.xml" />
             <!--TODO: Renable this after resolve test conflict -->
             <intent-filter>
                 <action android:name="android.app.appfunctions.AppFunctionService"/>

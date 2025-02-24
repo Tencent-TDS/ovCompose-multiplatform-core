@@ -343,7 +343,10 @@ internal sealed class CoreEntity(public val entity: Entity) : SubspaceLayoutCoor
                     initialOffset.rotation.inverse * corePose.rotation,
                 )
 
-            if (node.onPoseChange(PoseChangeEvent(corePose, scaleWithDistance, size))) {
+            if (
+                node.onPoseChange?.invoke(PoseChangeEvent(corePose, scaleWithDistance, size)) ==
+                    true
+            ) {
                 // We're done, the user app will handle the event.
                 return
             }
@@ -404,12 +407,17 @@ internal sealed class CoreEntity(public val entity: Entity) : SubspaceLayoutCoor
         /** Whether the resizableComponent is attached to the entity. */
         private var isAttached: Boolean = false
 
+        /** Whether the resizableComponent should maintain the aspect ratio of the entity. */
+        private var maintainAspectRatio: Boolean = false
+
         private val component: ResizableComponent by lazy {
             ResizableComponent.create(session).apply {
                 addResizeListener(
                     LocalExecutor,
                     object : ResizeListener {
                         override fun onResizeStart(entity: Entity, originalSize: Dimensions) {
+                            component.fixedAspectRatio =
+                                if (maintainAspectRatio) getAspectRatioY() else 0.0f
                             resizeListener(originalSize)
                         }
 
@@ -479,7 +487,7 @@ internal sealed class CoreEntity(public val entity: Entity) : SubspaceLayoutCoor
             component.minimumSize = node.minimumSize.toDimensionsInMeters()
             component.maximumSize = node.maximumSize.toDimensionsInMeters()
 
-            component.fixedAspectRatio = if (node.maintainAspectRatio) getAspectRatioY() else 0.0f
+            maintainAspectRatio = node.maintainAspectRatio
         }
 
         /** Returns 0.0f if the aspect ratio of x to y is not well defined. */
@@ -500,8 +508,8 @@ internal sealed class CoreEntity(public val entity: Entity) : SubspaceLayoutCoor
         }
 
         /**
-         * Called every time there is an onResizeEnd event in SceneCore, if this CoreEntity is
-         * resizable.
+         * Called every time there is an onResizeStart or onResizeEnd event in SceneCore, if this
+         * CoreEntity is resizable.
          */
         private fun resizeListener(newSize: Dimensions) {
             val node = resizableNode ?: return

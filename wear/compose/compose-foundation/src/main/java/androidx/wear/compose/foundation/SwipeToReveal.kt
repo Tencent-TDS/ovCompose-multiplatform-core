@@ -20,6 +20,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -27,6 +28,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -50,13 +53,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -221,7 +228,7 @@ public value class RevealActionType private constructor(public val value: Int) {
 @SuppressWarnings("PrimitiveInCollection")
 public fun createRevealAnchors(
     coveredAnchor: Float = 0f,
-    revealingAnchor: Float = SwipeToRevealDefaults.revealingRatio,
+    revealingAnchor: Float = SwipeToRevealDefaults.RevealingRatio,
     revealedAnchor: Float = 1f,
     revealDirection: RevealDirection = RevealDirection.RightToLeft
 ): Map<RevealValue, Float> {
@@ -419,10 +426,10 @@ internal constructor(
 @Composable
 public fun rememberRevealState(
     initialValue: RevealValue = RevealValue.Covered,
-    animationSpec: AnimationSpec<Float> = SwipeToRevealDefaults.animationSpec,
+    animationSpec: AnimationSpec<Float> = SwipeToRevealDefaults.AnimationSpec,
     confirmValueChange: (RevealValue) -> Boolean = { true },
     positionalThreshold: (totalDistance: Float) -> Float =
-        SwipeToRevealDefaults.positionalThreshold,
+        SwipeToRevealDefaults.PositionalThreshold,
     anchors: Map<RevealValue, Float> = createRevealAnchors(),
 ): RevealState {
     val coroutineScope = rememberCoroutineScope()
@@ -477,6 +484,11 @@ public fun rememberRevealState(
  *   recommend triggering the action when it is clicked.
  * @param undoAction The optional undo action that will be applied to the component once the the
  *   [RevealState.currentValue] becomes [RevealValue.RightRevealed].
+ * @param gestureInclusion Provides fine-grained control so that touch gestures can be excluded when
+ *   they start in a certain region. An instance of [GestureInclusion] can be passed in here which
+ *   will determine via [GestureInclusion.allowGesture] whether the gesture should proceed or not.
+ *   By default, [gestureInclusion] allows gestures everywhere except a zone on the left edge, which
+ *   is used for swipe-to-dismiss (see [SwipeToRevealDefaults.ignoreLeftEdge]).
  * @param content The content that will be initially displayed over the other actions provided.
  */
 @Composable
@@ -487,12 +499,15 @@ public fun SwipeToReveal(
     state: RevealState = rememberRevealState(),
     secondaryAction: (@Composable () -> Unit)? = null,
     undoAction: (@Composable () -> Unit)? = null,
+    gestureInclusion: GestureInclusion = SwipeToRevealDefaults.ignoreLeftEdge(),
     content: @Composable () -> Unit
 ) {
     // A no-op NestedScrollConnection which does not consume scroll/fling events
     val noOpNestedScrollConnection = remember { object : NestedScrollConnection {} }
 
     var globalPosition by remember { mutableStateOf<LayoutCoordinates?>(null) }
+
+    var allowSwipe by remember { mutableStateOf(true) }
 
     CustomTouchSlopProvider(
         newTouchSlop = LocalViewConfiguration.current.touchSlop * CustomTouchSlopMultiplier
@@ -503,11 +518,21 @@ public fun SwipeToReveal(
                     .onGloballyPositioned { layoutCoordinates ->
                         globalPosition = layoutCoordinates
                     }
+                    .pointerInput(globalPosition) {
+                        awaitEachGesture {
+                            allowSwipe = true
+                            val firstDown = awaitFirstDown(false, PointerEventPass.Initial)
+                            globalPosition?.let {
+                                allowSwipe = gestureInclusion.allowGesture(firstDown.position, it)
+                            }
+                        }
+                    }
                     .swipeableV2(
                         state = state.swipeableState,
                         orientation = Orientation.Horizontal,
                         enabled =
-                            state.currentValue != RevealValue.LeftRevealed &&
+                            allowSwipe &&
+                                state.currentValue != RevealValue.LeftRevealed &&
                                 state.currentValue != RevealValue.RightRevealed,
                     )
                     .swipeAnchors(
@@ -665,14 +690,14 @@ public fun SwipeToReveal(
                                     if (
                                         secondaryAction != null && secondaryActionWeight.value > 0
                                     ) {
-                                        Spacer(Modifier.size(SwipeToRevealDefaults.padding))
+                                        Spacer(Modifier.size(SwipeToRevealDefaults.Padding))
                                         ActionSlot(
                                             weight = secondaryActionWeight.value,
                                             opacity = secondaryActionAlpha,
                                             content = secondaryAction,
                                         )
                                     }
-                                    Spacer(Modifier.size(SwipeToRevealDefaults.padding))
+                                    Spacer(Modifier.size(SwipeToRevealDefaults.Padding))
                                     ActionSlot(
                                         content = primaryAction,
                                         opacity = primaryActionAlpha
@@ -682,7 +707,7 @@ public fun SwipeToReveal(
                                         content = primaryAction,
                                         opacity = primaryActionAlpha
                                     )
-                                    Spacer(Modifier.size(SwipeToRevealDefaults.padding))
+                                    Spacer(Modifier.size(SwipeToRevealDefaults.Padding))
                                     // weight cannot be 0 so remove the composable when weight
                                     // becomes 0
                                     if (
@@ -693,7 +718,7 @@ public fun SwipeToReveal(
                                             opacity = secondaryActionAlpha,
                                             content = secondaryAction,
                                         )
-                                        Spacer(Modifier.size(SwipeToRevealDefaults.padding))
+                                        Spacer(Modifier.size(SwipeToRevealDefaults.Padding))
                                     }
                                 }
                             }
@@ -727,29 +752,72 @@ public fun SwipeToReveal(
 }
 
 /** An internal object containing some defaults used across the Swipe to reveal component. */
-internal object SwipeToRevealDefaults {
+public object SwipeToRevealDefaults {
     /** Default animation spec used when moving between states. */
-    internal val animationSpec = SwipeableV2Defaults.AnimationSpec
+    internal val AnimationSpec: AnimationSpec<Float> =
+        tween(durationMillis = RAPID_ANIMATION, easing = FastOutSlowInEasing)
 
     /** Default padding space between action slots. */
-    internal val padding = 2.dp
+    internal val Padding = 2.dp
 
     /**
      * Default ratio of the content displayed when in [RevealValue.RightRevealing] state, i.e. all
      * the actions are revealed and the top content is not being swiped. For example, a value of 0.7
      * means that 70% of the width is used to place the actions.
      */
-    internal const val revealingRatio = 0.7f
+    public val RevealingRatio: Float = 0.7f
 
     /**
      * Default position threshold that needs to be swiped in order to transition to the next state.
-     * Used in conjunction with [revealingRatio]; for example, a threshold of 0.5 with a revealing
+     * Used in conjunction with [RevealingRatio]; for example, a threshold of 0.5 with a revealing
      * ratio of 0.7 means that the user needs to swipe at least 35% (0.5 * 0.7) of the component
      * width to go from [RevealValue.Covered] to [RevealValue.RightRevealing] and at least 85%
      * (0.7 + 0.5 * (1 - 0.7)) of the component width to go from [RevealValue.RightRevealing] to
      * [RevealValue.RightRevealed].
      */
-    internal val positionalThreshold = { totalDistance: Float -> totalDistance * 0.5f }
+    public val PositionalThreshold: (totalDistance: Float) -> Float = { totalDistance: Float ->
+        totalDistance * 0.5f
+    }
+
+    /**
+     * The default value used to configure the size of the left edge zone in a [SwipeToReveal]. The
+     * left edge zone in this case refers to the leftmost edge of the screen, in this region it is
+     * common to disable scrolling in order for swipe-to-dismiss handlers to take over.
+     */
+    public val LeftEdgeZoneFraction: Float = 0.15f
+
+    /**
+     * The default behaviour for when [SwipeToReveal] should consume gestures. In this
+     * implementation of [GestureInclusion], swipe events that originate in the left edge of the
+     * screen (as determined by [LeftEdgeZoneFraction]) will be ignored. This allows
+     * swipe-to-dismiss handlers (if present) to handle the gesture in this region.
+     *
+     * @param edgeZoneFraction The fraction of the screen width from the left edge where gestures
+     *   should be ignored. Defaults to [LeftEdgeZoneFraction].
+     */
+    public fun ignoreLeftEdge(edgeZoneFraction: Float = LeftEdgeZoneFraction): GestureInclusion =
+        object : GestureInclusion {
+            override fun allowGesture(
+                offset: Offset,
+                layoutCoordinates: LayoutCoordinates
+            ): Boolean {
+                val screenOffset = layoutCoordinates.localToScreen(offset)
+                val screenWidth = layoutCoordinates.findRootCoordinates().size.width
+                return screenOffset.x > screenWidth * edgeZoneFraction
+            }
+        }
+
+    /**
+     * A behaviour for [SwipeToReveal] to consume all gestures. In this implementation of
+     * [GestureInclusion], no swipe events will be ignored.
+     */
+    public fun allowAllGestures(): GestureInclusion =
+        object : GestureInclusion {
+            override fun allowGesture(
+                offset: Offset,
+                layoutCoordinates: LayoutCoordinates
+            ): Boolean = true
+        }
 }
 
 @Composable

@@ -113,7 +113,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeNoException
-import org.junit.Assume.assumeNotNull
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
@@ -891,36 +890,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     }
 
     @Test
-    fun takePicture_withBufferFormatRaw10() = runBlocking {
-        // RAW10 does not work in redmi 8
-        assumeFalse(Build.DEVICE.equals("olive", ignoreCase = true)) // Redmi 8
-        val cameraCharacteristics = CameraUtil.getCameraCharacteristics(BACK_LENS_FACING)
-        val map = cameraCharacteristics!!.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
-        val resolutions = map!!.getOutputSizes(ImageFormat.RAW10)
-
-        // Ignore this tests on devices that do not support RAW10 image format.
-        assumeNotNull(resolutions)
-        assumeTrue(resolutions!!.isNotEmpty())
-        assumeTrue(isRawSupported(cameraCharacteristics))
-
-        val useCase = ImageCapture.Builder().setBufferFormat(ImageFormat.RAW10).build()
-
-        withContext(Dispatchers.Main) {
-            cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
-        }
-
-        val callback = FakeOnImageCapturedCallback(captureCount = 1)
-
-        useCase.takePicture(mainExecutor, callback)
-
-        // Wait for the signal that the image has been captured.
-        callback.awaitCapturesAndAssert(capturedImagesCount = 1)
-
-        val imageProperties = callback.results.first().properties
-        assertThat(imageProperties.format).isEqualTo(ImageFormat.RAW10)
-    }
-
-    @Test
     fun takePicture_OnImageCaptureCallback_startedBeforeSuccess() = runBlocking {
         // Arrange.
         var captured = false
@@ -986,15 +955,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         // Assert.
         val result = semaphore.tryAcquire(3, TimeUnit.SECONDS)
         assertThat(result).isTrue()
-    }
-
-    private fun isRawSupported(cameraCharacteristics: CameraCharacteristics): Boolean {
-        val capabilities =
-            cameraCharacteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
-                ?: IntArray(0)
-        return capabilities.any { capability ->
-            CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_RAW == capability
-        }
     }
 
     @SdkSuppress(minSdkVersion = 28)
@@ -2224,15 +2184,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         return ImageCapture.Builder().setTargetRotation(surfaceRotation).useCaseConfig
     }
 
-    @Suppress("DEPRECATION")
-    private fun createDefaultPictureFolderIfNotExist() {
-        val pictureFolder =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        if (!pictureFolder.exists()) {
-            pictureFolder.mkdir()
-        }
-    }
-
     /**
      * See ImageCaptureRotationOptionQuirk. Some real devices or emulator do not support the capture
      * rotation option correctly. The capture rotation option setting can't be correctly applied to
@@ -2307,5 +2258,14 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         timeMillis: Long = TimeUnit.SECONDS.toMillis(5)
     ): T? {
         return withTimeoutOrNull(timeMillis) { await() }
+    }
+}
+
+@Suppress("DEPRECATION")
+fun createDefaultPictureFolderIfNotExist() {
+    val pictureFolder =
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    if (!pictureFolder.exists()) {
+        pictureFolder.mkdir()
     }
 }

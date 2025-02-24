@@ -16,6 +16,7 @@
 
 package androidx.xr.compose.subspace.node
 
+import androidx.compose.runtime.CompositionLocalMap
 import androidx.xr.compose.subspace.layout.CoreEntity
 import androidx.xr.compose.subspace.layout.MeasurePolicy
 import androidx.xr.compose.subspace.layout.SubspaceModifier
@@ -38,6 +39,9 @@ internal interface ComposeSubspaceNode {
 
     /** An optional name for this node, useful for debugging and identification purposes. */
     public var name: String?
+
+    /** A snapshot of the current composition local map when this node is created. */
+    public var compositionLocalMap: CompositionLocalMap
 
     public companion object {
         /**
@@ -82,5 +86,10 @@ internal interface ComposeSubspaceNode {
          * @param name the name to be assigned.
          */
         public val SetName: ComposeSubspaceNode.(String) -> Unit = { this.name = it }
+
+        /** Sets a snapshot of the current composition local map when this node is created. */
+        public val SetCompositionLocalMap: ComposeSubspaceNode.(CompositionLocalMap) -> Unit = {
+            this.compositionLocalMap = it
+        }
     }
 }

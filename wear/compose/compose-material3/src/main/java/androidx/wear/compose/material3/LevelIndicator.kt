@@ -41,7 +41,7 @@ import kotlin.math.sin
  * @param colors [LevelIndicatorColors] that will be used to resolve the indicator and track colors
  *   for this [LevelIndicator] in different states
  * @param strokeWidth The stroke width for the indicator and track strokes
- * @param sweepAngle The angle covered by the curved LevelIndicator
+ * @param sweepAngle The angle covered by the curved LevelIndicator, in degrees
  * @param reverseDirection Reverses direction of PositionIndicator if true
  */
 @Composable
@@ -88,7 +88,7 @@ public fun LevelIndicator(
  * @param colors [LevelIndicatorColors] that will be used to resolve the indicator and track colors
  *   for this [LevelIndicator] in different states
  * @param strokeWidth The stroke width for the indicator and track strokes
- * @param sweepAngle The angle covered by the curved LevelIndicator
+ * @param sweepAngle The angle covered by the curved LevelIndicator, in degrees
  * @param reverseDirection Reverses direction of PositionIndicator if true
  */
 @Composable
@@ -129,7 +129,7 @@ public fun StepperLevelIndicator(
  * @param colors [LevelIndicatorColors] that will be used to resolve the indicator and track colors
  *   for this [LevelIndicator] in different states
  * @param strokeWidth The stroke width for the indicator and track strokes
- * @param sweepAngle The angle covered by the curved LevelIndicator
+ * @param sweepAngle The angle covered by the curved LevelIndicator, in degrees
  * @param reverseDirection Reverses direction of PositionIndicator if true
  */
 @Composable
@@ -192,7 +192,7 @@ public object LevelIndicatorDefaults {
      * The sweep angle for the curved [LevelIndicator], measured up to the centers of the stroke
      * caps. The default value of 72 degrees equates to 20% of the circumference, i.e. 360/5.
      */
-    public const val SweepAngle: Float = 72f
+    public val SweepAngle: Float = 72f
 
     /** The default stroke width for the indicator and track strokes */
     public val StrokeWidth: Dp = 6.dp

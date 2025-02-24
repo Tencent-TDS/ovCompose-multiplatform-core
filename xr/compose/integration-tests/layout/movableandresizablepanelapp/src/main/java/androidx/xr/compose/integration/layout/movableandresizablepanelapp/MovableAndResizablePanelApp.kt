@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package androidx.xr.compose.integration.layout.movableandresizablepanelapp
 
 import android.content.Intent
@@ -68,17 +69,17 @@ class MovableAndResizablePanelApp : ComponentActivity() {
         // DynamicValue goes from 1 to 101, then back to 1, then it repeats.
         var dynamicValue by remember { mutableIntStateOf(1) }
         // TODO(b/352419050): Update test app to use built in animation.
-
-        fixedRateTimer(period = 3000, daemon = true) {
-            counter += 1
-            dynamicValue =
-                if (counter / 100 % 2 == 0) {
-                    1 + (counter % 100)
-                } else {
-                    101 - (counter % 100)
-                }
+        remember {
+            fixedRateTimer(period = 3000, daemon = true) {
+                counter += 1
+                dynamicValue =
+                    if (counter / 100 % 2 == 0) {
+                        1 + (counter % 100)
+                    } else {
+                        101 - (counter % 100)
+                    }
+            }
         }
-
         val panelWidth = (dynamicValue * 40).dp
         SpatialColumn(name = "PanelGridColumn") {
             SpatialRow(

@@ -293,5 +293,63 @@ package androidx.xr.runtime.math {
     property public androidx.xr.runtime.math.Vector3 Zero;
   }
 
+  public final class Vector4 {
+    ctor public Vector4();
+    ctor public Vector4(androidx.xr.runtime.math.Vector4 other);
+    ctor public Vector4(optional float x);
+    ctor public Vector4(optional float x, optional float y);
+    ctor public Vector4(optional float x, optional float y, optional float z);
+    ctor public Vector4(optional float x, optional float y, optional float z, optional float w);
+    method public static androidx.xr.runtime.math.Vector4 abs(androidx.xr.runtime.math.Vector4 vector);
+    method public static float angleBetween(androidx.xr.runtime.math.Vector4 vector1, androidx.xr.runtime.math.Vector4 vector2);
+    method public androidx.xr.runtime.math.Vector4 clamp(androidx.xr.runtime.math.Vector4 min, androidx.xr.runtime.math.Vector4 max);
+    method public androidx.xr.runtime.math.Vector4 copy();
+    method public androidx.xr.runtime.math.Vector4 copy(optional float x);
+    method public androidx.xr.runtime.math.Vector4 copy(optional float x, optional float y);
+    method public androidx.xr.runtime.math.Vector4 copy(optional float x, optional float y, optional float z);
+    method public androidx.xr.runtime.math.Vector4 copy(optional float x, optional float y, optional float z, optional float w);
+    method public static float distance(androidx.xr.runtime.math.Vector4 vector1, androidx.xr.runtime.math.Vector4 vector2);
+    method public operator androidx.xr.runtime.math.Vector4 div(androidx.xr.runtime.math.Vector4 other);
+    method public operator androidx.xr.runtime.math.Vector4 div(float c);
+    method public infix float dot(androidx.xr.runtime.math.Vector4 other);
+    method public static androidx.xr.runtime.math.Vector4 fromValue(float value);
+    method public inline float getLength();
+    method public inline float getLengthSquared();
+    method public float getW();
+    method public float getX();
+    method public float getY();
+    method public float getZ();
+    method public static androidx.xr.runtime.math.Vector4 lerp(androidx.xr.runtime.math.Vector4 start, androidx.xr.runtime.math.Vector4 end, float ratio);
+    method public static androidx.xr.runtime.math.Vector4 max(androidx.xr.runtime.math.Vector4 a, androidx.xr.runtime.math.Vector4 b);
+    method public static androidx.xr.runtime.math.Vector4 min(androidx.xr.runtime.math.Vector4 a, androidx.xr.runtime.math.Vector4 b);
+    method public operator androidx.xr.runtime.math.Vector4 minus(androidx.xr.runtime.math.Vector4 other);
+    method public operator androidx.xr.runtime.math.Vector4 plus(androidx.xr.runtime.math.Vector4 other);
+    method public operator androidx.xr.runtime.math.Vector4 times(androidx.xr.runtime.math.Vector4 other);
+    method public operator androidx.xr.runtime.math.Vector4 times(float c);
+    method public androidx.xr.runtime.math.Vector4 toNormalized();
+    method public operator androidx.xr.runtime.math.Vector4 unaryMinus();
+    property public inline float length;
+    property public inline float lengthSquared;
+    property public float w;
+    property public float x;
+    property public float y;
+    property public float z;
+    field public static final androidx.xr.runtime.math.Vector4.Companion Companion;
+    field public static final androidx.xr.runtime.math.Vector4 One;
+    field public static final androidx.xr.runtime.math.Vector4 Zero;
+  }
+
+  public static final class Vector4.Companion {
+    method public androidx.xr.runtime.math.Vector4 abs(androidx.xr.runtime.math.Vector4 vector);
+    method public float angleBetween(androidx.xr.runtime.math.Vector4 vector1, androidx.xr.runtime.math.Vector4 vector2);
+    method public float distance(androidx.xr.runtime.math.Vector4 vector1, androidx.xr.runtime.math.Vector4 vector2);
+    method public androidx.xr.runtime.math.Vector4 fromValue(float value);
+    method public androidx.xr.runtime.math.Vector4 lerp(androidx.xr.runtime.math.Vector4 start, androidx.xr.runtime.math.Vector4 end, float ratio);
+    method public androidx.xr.runtime.math.Vector4 max(androidx.xr.runtime.math.Vector4 a, androidx.xr.runtime.math.Vector4 b);
+    method public androidx.xr.runtime.math.Vector4 min(androidx.xr.runtime.math.Vector4 a, androidx.xr.runtime.math.Vector4 b);
+    property public androidx.xr.runtime.math.Vector4 One;
+    property public androidx.xr.runtime.math.Vector4 Zero;
+  }
+
 }
 

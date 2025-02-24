@@ -59,7 +59,7 @@ data class DocumentPropertyAnnotation(
          *   params do not mention an explicit name.
          */
         fun parse(
-            annotationParams: Map<String?, Any?>,
+            annotationParams: Map<String, Any?>,
             defaultName: String
         ): DocumentPropertyAnnotation {
             val name = annotationParams["name"] as? String
@@ -85,5 +85,5 @@ data class DocumentPropertyAnnotation(
         get() = Kind.DOCUMENT_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mGenericDocumentType
+        helper.genericDocumentType
 }

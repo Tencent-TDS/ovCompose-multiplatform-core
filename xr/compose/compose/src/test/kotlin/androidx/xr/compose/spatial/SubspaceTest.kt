@@ -140,4 +140,9 @@ class SubspaceTest {
         composeTestRule.onSubspaceNodeWithTag("panel").assertExists()
         assertThat(SceneManager.getSceneCount()).isEqualTo(1)
     }
+
+    @Test
+    fun subspace_shouldNotFailInSubspace() {
+        composeTestRule.setContent { TestSetup { Subspace { Subspace {} } } }
+    }
 }

@@ -66,13 +66,15 @@ public object OrbiterDefaults {
 /**
  * Settings for an Orbiter.
  *
- * @property shouldRenderInNonSpatial controls whether the orbiter content should be rendered in the
- *   normal flow in non-spatial environments. If `true`, the content is rendered normally;
- *   otherwise, it's removed from the flow.
+ * @property shouldRenderInNonSpatial In a non-spatial environment, if `true` the orbiter content is
+ *   rendered as if the orbiter wrapper was not present and removed from the flow otherwise. In
+ *   spatial environments, this flag is ignored.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class OrbiterSettings(
-    @get:JvmName("shouldRenderInNonSpatial") public val shouldRenderInNonSpatial: Boolean = true
+    @get:Suppress("GetterSetterNames")
+    @get:JvmName("shouldRenderInNonSpatial")
+    public val shouldRenderInNonSpatial: Boolean = true
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -98,6 +100,14 @@ public class OrbiterSettings(
 
 /**
  * A composable that creates an orbiter along the top or bottom edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Top] or [OrbiterEdge.Bottom].
  * @param offset The offset of the orbiter based on the outer edge of the orbiter.
@@ -139,6 +149,14 @@ public fun Orbiter(
 
 /**
  * A composable that creates an orbiter along the top or bottom edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Top] or [OrbiterEdge.Bottom].
  * @param offset The offset of the orbiter based on the inner or outer edge of the orbiter. Use
@@ -184,6 +202,14 @@ public fun Orbiter(
 /**
  * A composable that creates an orbiter along the start or end edges of a view.
  *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
+ *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Start] or [OrbiterEdge.End].
  * @param offset The offset of the orbiter based on the outer edge of the orbiter.
  * @param alignment The alignment of the orbiter. Use [Alignment.CenterVertically] or
@@ -224,6 +250,14 @@ public fun Orbiter(
 
 /**
  * A composable that creates an orbiter along the start or end edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Start] or [OrbiterEdge.End].
  * @param offset The offset of the orbiter based on the inner or outer edge of the orbiter. Use

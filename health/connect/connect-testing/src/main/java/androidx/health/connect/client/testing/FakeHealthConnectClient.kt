@@ -164,7 +164,7 @@ public class FakeHealthConnectClient(
             val updatedRecord =
                 toRecord(record.toProto().toBuilder().setUpdateTimeMillis(clock.millis()).build())
             idsToRecords[recordId] = updatedRecord
-            removeUpsertion(recordId)
+            removeUpsertionChange(recordId)
             addUpsertionChange(updatedRecord)
         }
     }
@@ -181,18 +181,23 @@ public class FakeHealthConnectClient(
         recordIdsList
             .filter { idsToRecords[it]?.packageName == packageName }
             .forEach { recordId ->
-                idsToRecords[recordId]?.let { deletedIdsToRecords[recordId] = it }
+                idsToRecords[recordId]?.let {
+                    deletedIdsToRecords[recordId] = it
+                    removeUpsertionChange(recordId)
+                    addDeletionChange(recordId)
+                }
                 idsToRecords.remove(recordId)
-                removeUpsertion(recordId)
-                addDeletionChange(recordId)
             }
         clientRecordIdsList
             .filter { idsToRecords[it.toRecordId(packageName)]?.packageName == packageName }
             .forEach {
                 val recordId = it.toRecordId(packageName)
-                idsToRecords[recordId]?.let { deletedIdsToRecords[recordId] = it }
+                idsToRecords[recordId]?.let {
+                    deletedIdsToRecords[recordId] = it
+                    removeUpsertionChange(recordId)
+                    addDeletionChange(recordId)
+                }
                 idsToRecords.remove(recordId)
-                addDeletionChange(recordId)
             }
     }
 
@@ -204,18 +209,16 @@ public class FakeHealthConnectClient(
         overrides.deleteRecords?.next(Unit)
 
         // Fake implementation
-        val recordIdsToRemove =
-            idsToRecords
-                .filterValues { record ->
-                    record::class == recordType && record.isWithin(timeRangeFilter, clock)
-                }
-                .keys
-        for (recordId in recordIdsToRemove) {
-            idsToRecords[recordId]?.let { deletedIdsToRecords[recordId] = it }
-            idsToRecords.remove(recordId)
-            removeUpsertion(recordId)
-            addDeletionChange(recordId)
-        }
+        idsToRecords
+            .filterValues { record ->
+                record::class == recordType && record.isWithin(timeRangeFilter, clock)
+            }
+            .forEach { recordId, record ->
+                deletedIdsToRecords[recordId] = record
+                idsToRecords.remove(recordId)
+                removeUpsertionChange(recordId)
+                addDeletionChange(recordId)
+            }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -427,7 +430,7 @@ public class FakeHealthConnectClient(
         timeToChanges[++timeToChangesLastKey] = UpsertionChange(updatedRecord)
     }
 
-    private fun removeUpsertion(recordId: String) {
+    private fun removeUpsertionChange(recordId: String) {
         timeToChanges
             .filterValues { it is UpsertionChange && it.record.metadata.id == recordId }
             .keys

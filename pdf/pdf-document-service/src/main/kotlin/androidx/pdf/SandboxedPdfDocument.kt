@@ -28,6 +28,7 @@ import android.util.Size
 import android.util.SparseArray
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
+import androidx.annotation.WorkerThread
 import androidx.pdf.PdfDocument.BitmapSource
 import androidx.pdf.PdfDocument.PdfPageContent
 import androidx.pdf.content.PageMatchBounds
@@ -141,6 +142,7 @@ public class SandboxedPdfDocument(
 
     override fun getPageBitmapSource(pageNumber: Int): BitmapSource = PageBitmapSource(pageNumber)
 
+    @WorkerThread
     override fun close() {
         connection.disconnect()
 
@@ -186,8 +188,14 @@ public class SandboxedPdfDocument(
             }
         }
 
+        @WorkerThread
         override fun close() {
-            runBlocking { withDocument { it.releasePage(pageNumber) } }
+            if (connection.isConnected) {
+                runBlocking { withDocument { it.releasePage(pageNumber) } }
+            }
+
+            // TODO(b/397324529): Enqueue releasePage requests and execute when connection is
+            //  re-established
         }
     }
 

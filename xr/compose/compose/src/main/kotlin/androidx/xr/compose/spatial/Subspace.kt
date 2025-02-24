@@ -19,12 +19,14 @@ package androidx.xr.compose.spatial
 import androidx.activity.ComponentActivity
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposableOpenTarget
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
+import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +52,7 @@ import androidx.xr.compose.subspace.SpatialBoxScope
 import androidx.xr.compose.subspace.SubspaceComposable
 import androidx.xr.compose.subspace.layout.CoreContentlessEntity
 import androidx.xr.compose.subspace.layout.SubspaceLayout
+import androidx.xr.compose.subspace.node.SubspaceNodeApplier
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.runtime.math.Pose
@@ -75,17 +78,23 @@ private val LocalIsInApplicationSubspace: ProvidableCompositionLocal<Boolean> =
  * @param content The 3D content to render within this Subspace.
  */
 @Composable
+@ComposableOpenTarget(index = -1)
+@Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Subspace(content: @Composable @SubspaceComposable SpatialBoxScope.() -> Unit) {
     val activity = LocalContext.current.getActivity()
 
-    // TODO(b/369446163) Test the case where a NestedSubspace could be created outside of a Panel.
-    if (LocalSpatialCapabilities.current.isSpatialUiEnabled && activity is ComponentActivity) {
-        if (LocalIsInApplicationSubspace.current) {
-            NestedSubspace(activity, content)
-        } else {
-            ApplicationSubspace(activity, content)
-        }
+    // If spatial UI capabilities are not enabled, do nothing
+    if (!LocalSpatialCapabilities.current.isSpatialUiEnabled || activity !is ComponentActivity)
+        return
+
+    if (currentComposer.applier is SubspaceNodeApplier) {
+        // We are already in a Subspace, so we can just render the content directly
+        SpatialBox(content = content)
+    } else if (LocalIsInApplicationSubspace.current) {
+        NestedSubspace(activity, content)
+    } else {
+        ApplicationSubspace(activity, content)
     }
 }
 

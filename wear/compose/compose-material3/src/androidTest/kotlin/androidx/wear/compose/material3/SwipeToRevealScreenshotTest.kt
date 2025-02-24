@@ -38,8 +38,8 @@ import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.screenshot.AndroidXScreenshotTestRule
 import androidx.wear.compose.foundation.RevealActionType
-import androidx.wear.compose.foundation.RevealDirection
 import androidx.wear.compose.foundation.RevealValue
+import androidx.wear.compose.foundation.rememberRevealState
 import androidx.wear.compose.materialcore.screenWidthDp
 import com.google.testing.junit.testparameterinjector.TestParameter
 import com.google.testing.junit.testparameterinjector.TestParameterInjector
@@ -64,7 +64,11 @@ class SwipeToRevealScreenshotTest {
             Box(modifier = Modifier.fillMaxSize()) {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
-                    revealState = rememberRevealState(initialValue = RevealValue.RightRevealing),
+                    revealState =
+                        rememberRevealState(
+                            initialValue = RevealValue.RightRevealing,
+                            anchors = SwipeToRevealDefaults.anchors()
+                        ),
                     actions = {
                         primaryAction(
                             {},
@@ -90,7 +94,10 @@ class SwipeToRevealScreenshotTest {
                     revealState =
                         rememberRevealState(
                             initialValue = RevealValue.RightRevealing,
-                            anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth
+                            anchors =
+                                SwipeToRevealDefaults.anchors(
+                                    anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                                )
                         ),
                     actions = {
                         primaryAction(
@@ -118,7 +125,11 @@ class SwipeToRevealScreenshotTest {
             Box(modifier = Modifier.fillMaxSize()) {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
-                    revealState = rememberRevealState(initialValue = RevealValue.RightRevealed),
+                    revealState =
+                        rememberRevealState(
+                            initialValue = RevealValue.RightRevealed,
+                            anchors = SwipeToRevealDefaults.anchors()
+                        ),
                     actions = {
                         primaryAction(
                             {}, /* Empty for testing */
@@ -140,7 +151,11 @@ class SwipeToRevealScreenshotTest {
             Box(modifier = Modifier.fillMaxSize()) {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
-                    revealState = rememberRevealState(initialValue = RevealValue.RightRevealed),
+                    revealState =
+                        rememberRevealState(
+                            initialValue = RevealValue.RightRevealed,
+                            anchors = SwipeToRevealDefaults.anchors()
+                        ),
                     actions = {
                         primaryAction(
                             {}, /* Empty for testing */
@@ -170,9 +185,11 @@ class SwipeToRevealScreenshotTest {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
                     revealState =
-                        rememberRevealState(initialValue = RevealValue.RightRevealed).apply {
-                            lastActionType = RevealActionType.SecondaryAction
-                        },
+                        rememberRevealState(
+                                initialValue = RevealValue.RightRevealed,
+                                anchors = SwipeToRevealDefaults.anchors()
+                            )
+                            .apply { lastActionType = RevealActionType.SecondaryAction },
                     actions = {
                         primaryAction(
                             {}, /* Empty for testing */
@@ -200,9 +217,11 @@ class SwipeToRevealScreenshotTest {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
                     revealState =
-                        rememberRevealState(initialValue = RevealValue.RightRevealed).apply {
-                            lastActionType = RevealActionType.SecondaryAction
-                        },
+                        rememberRevealState(
+                                initialValue = RevealValue.RightRevealed,
+                                anchors = SwipeToRevealDefaults.anchors()
+                            )
+                            .apply { lastActionType = RevealActionType.SecondaryAction },
                     actions = {
                         primaryAction(
                             {}, /* Empty for testing */
@@ -258,7 +277,11 @@ class SwipeToRevealScreenshotTest {
             Box(modifier = Modifier.fillMaxSize()) {
                 SwipeToReveal(
                     modifier = Modifier.testTag(TEST_TAG),
-                    revealState = rememberRevealState(initialValue = RevealValue.RightRevealing),
+                    revealState =
+                        rememberRevealState(
+                            initialValue = RevealValue.RightRevealing,
+                            anchors = SwipeToRevealDefaults.anchors()
+                        ),
                     actionButtonHeight = SwipeToRevealDefaults.LargeActionButtonHeight,
                     actions = {
                         primaryAction(
@@ -287,7 +310,10 @@ class SwipeToRevealScreenshotTest {
                     revealState =
                         rememberRevealState(
                             initialValue = RevealValue.RightRevealing,
-                            anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth
+                            anchors =
+                                SwipeToRevealDefaults.anchors(
+                                    anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                                )
                         ),
                     actionButtonHeight = SwipeToRevealDefaults.LargeActionButtonHeight,
                     actions = {
@@ -319,8 +345,10 @@ class SwipeToRevealScreenshotTest {
                     revealState =
                         rememberRevealState(
                             initialValue = RevealValue.LeftRevealing,
-                            anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
-                            revealDirection = RevealDirection.Both
+                            anchors =
+                                SwipeToRevealDefaults.bidirectionalAnchors(
+                                    anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                                )
                         ),
                     actions = {
                         primaryAction(

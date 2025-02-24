@@ -20,9 +20,11 @@ import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ComposeNode
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.currentComposer
 import androidx.xr.compose.platform.LocalCoreEntity
 import androidx.xr.compose.subspace.SubspaceComposable
 import androidx.xr.compose.subspace.node.ComposeSubspaceNode
+import androidx.xr.compose.subspace.node.ComposeSubspaceNode.Companion.SetCompositionLocalMap
 import androidx.xr.compose.subspace.node.ComposeSubspaceNode.Companion.SetCoreEntity
 import androidx.xr.compose.subspace.node.ComposeSubspaceNode.Companion.SetMeasurePolicy
 import androidx.xr.compose.subspace.node.ComposeSubspaceNode.Companion.SetModifier
@@ -50,9 +52,11 @@ public fun SubspaceLayout(
     name: String = defaultSubspaceLayoutName(),
     measurePolicy: MeasurePolicy,
 ) {
+    val compositionLocalMap = currentComposer.currentCompositionLocalMap
     ComposeNode<ComposeSubspaceNode, SubspaceNodeApplier>(
         factory = ComposeSubspaceNode.Constructor,
         update = {
+            set(compositionLocalMap, SetCompositionLocalMap)
             set(measurePolicy, SetMeasurePolicy)
             set(modifier, SetModifier)
             set(name, SetName)
@@ -85,9 +89,11 @@ public fun SubspaceLayout(
     val coreEntity = rememberCoreContentlessEntity {
         ContentlessEntity.create(session = this, name = name)
     }
+    val compositionLocalMap = currentComposer.currentCompositionLocalMap
     ComposeNode<ComposeSubspaceNode, SubspaceNodeApplier>(
         factory = ComposeSubspaceNode.Constructor,
         update = {
+            set(compositionLocalMap, SetCompositionLocalMap)
             set(measurePolicy, SetMeasurePolicy)
             set(coreEntity, SetCoreEntity)
             // TODO(b/390674036) Remove call-order dependency between SetCoreEntity and SetModifier
@@ -124,9 +130,11 @@ internal fun SubspaceLayout(
     coreEntity: CoreEntity? = null,
     measurePolicy: MeasurePolicy,
 ) {
+    val compositionLocalMap = currentComposer.currentCompositionLocalMap
     ComposeNode<ComposeSubspaceNode, SubspaceNodeApplier>(
         factory = ComposeSubspaceNode.Constructor,
         update = {
+            set(compositionLocalMap, SetCompositionLocalMap)
             set(measurePolicy, SetMeasurePolicy)
             set(coreEntity, SetCoreEntity)
             // TODO(b/390674036) Remove call-order dependency between SetCoreEntity and SetModifier
@@ -165,9 +173,11 @@ internal fun SubspaceLayout(
     },
     measurePolicy: MeasurePolicy,
 ) {
+    val compositionLocalMap = currentComposer.currentCompositionLocalMap
     ComposeNode<ComposeSubspaceNode, SubspaceNodeApplier>(
         factory = ComposeSubspaceNode.Constructor,
         update = {
+            set(compositionLocalMap, SetCompositionLocalMap)
             set(measurePolicy, SetMeasurePolicy)
             set(coreEntity, SetCoreEntity)
             // TODO(b/390674036) Remove call-order dependency between SetCoreEntity and SetModifier

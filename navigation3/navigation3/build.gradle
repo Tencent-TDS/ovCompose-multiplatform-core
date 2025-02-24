@@ -112,7 +112,7 @@ android {
 
 androidx {
     name = "Androidx Navigation 3"
-    type = SoftwareType.SNAPSHOT_ONLY_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2024"
     description = "Provides the building blocks for a Compose first Navigation solution that " +
             "easily supports extensions."

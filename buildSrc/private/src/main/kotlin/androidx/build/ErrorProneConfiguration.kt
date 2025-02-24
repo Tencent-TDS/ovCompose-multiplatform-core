@@ -77,7 +77,7 @@ fun Project.configureErrorProneForAndroid() {
                             .named("compile${variant.name.camelCase()}JavaWithJavac"),
                     taskSuffix = variant.name.camelCase(),
                 ) { javaCompile ->
-                    @Suppress("UnstableApiUsage")
+                    @Suppress("UnstableApiUsage") // JavaCompilation b/397707182
                     val annotationArgs = variant.javaCompilation.annotationProcessor.arguments
                     javaCompile.options.compilerArgumentProviders.add(
                         CommandLineArgumentProviderAdapter(annotationArgs)

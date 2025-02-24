@@ -21,7 +21,6 @@ import android.graphics.PointF
 import android.os.Parcel
 import android.os.Parcelable
 import androidx.annotation.VisibleForTesting
-import androidx.core.os.ParcelCompat
 import androidx.pdf.PdfDocument
 import androidx.pdf.content.PageSelection
 
@@ -37,21 +36,9 @@ internal constructor(
     constructor(
         parcel: Parcel
     ) : this(
-        textSelectionFromParcel(parcel, TextSelection::class.java.classLoader),
-        requireNotNull(
-            ParcelCompat.readParcelable(
-                parcel,
-                UiSelectionBoundary::class.java.classLoader,
-                UiSelectionBoundary::class.java
-            )
-        ),
-        requireNotNull(
-            ParcelCompat.readParcelable(
-                parcel,
-                UiSelectionBoundary::class.java.classLoader,
-                UiSelectionBoundary::class.java
-            )
-        ),
+        selection = textSelectionFromParcel(parcel, TextSelection::class.java.classLoader),
+        startBoundary = UiSelectionBoundary(parcel),
+        endBoundary = UiSelectionBoundary(parcel),
     )
 
     override fun describeContents(): Int = 0

@@ -17,8 +17,6 @@
 package androidx.tracing.driver
 
 import androidx.collection.mutableScatterMapOf
-import perfetto.protos.MutableProcessDescriptor
-import perfetto.protos.MutableTrackDescriptor
 
 /** Represents a track for a process in a perfetto trace. */
 public open class ProcessTrack(
@@ -28,19 +26,22 @@ public open class ProcessTrack(
     internal val id: Int,
     /** The name of the process. */
     internal val name: String,
-) : EventTrack(context = context, uuid = monotonicId()) {
+) : SliceTrack(context = context, uuid = monotonicId()) {
     internal val packetLock = Any()
     internal val threads = mutableScatterMapOf<String, ThreadTrack>()
     internal val counters = mutableScatterMapOf<String, CounterTrack>()
 
     init {
-        emitPacket(immediateDispatch = true) { packet ->
-            synchronized(packetLock) {
-                packet.setPreamble(
-                    this,
-                    MutableTrackDescriptor(
-                        uuid = uuid,
-                        process = MutableProcessDescriptor(id, process_name = name)
+        synchronized(packetLock) {
+            emitTraceEvent(immediateDispatch = true) { event ->
+                event.setPreamble(
+                    TrackDescriptor(
+                        name,
+                        uuid,
+                        parentUuid = INVALID_LONG,
+                        type = TRACK_DESCRIPTOR_TYPE_PROCESS,
+                        pid = id,
+                        tid = INVALID_INT,
                     )
                 )
             }
@@ -50,9 +51,7 @@ public open class ProcessTrack(
     public override fun beginSection(name: String, flowIds: List<Long>) {
         if (context.isEnabled) {
             synchronized(packetLock) {
-                emitPacket { packet ->
-                    packet.setBeginSectionWithFlows(uuid, sequenceId, name, flowIds)
-                }
+                emitTraceEvent { event -> event.setBeginSectionWithFlows(uuid, name, flowIds) }
             }
         }
     }
@@ -60,24 +59,20 @@ public open class ProcessTrack(
     public override fun beginSection(name: String) {
         if (context.isEnabled) {
             synchronized(packetLock) {
-                emitPacket { packet -> packet.setBeginSection(uuid, sequenceId, name) }
+                emitTraceEvent { event -> event.setBeginSection(uuid, name) }
             }
         }
     }
 
     public override fun endSection() {
         if (context.isEnabled) {
-            synchronized(packetLock) {
-                emitPacket { packet -> packet.setEndSection(uuid, sequenceId) }
-            }
+            synchronized(packetLock) { emitTraceEvent { event -> event.setEndSection(uuid) } }
         }
     }
 
-    public override fun instant() {
+    public override fun instant(name: String) {
         if (context.isEnabled) {
-            synchronized(packetLock) {
-                emitPacket { packet -> packet.setInstantEvent(uuid, sequenceId) }
-            }
+            synchronized(packetLock) { emitTraceEvent { event -> event.setInstant(uuid, name) } }
         }
     }
 

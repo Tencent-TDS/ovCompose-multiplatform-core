@@ -439,7 +439,7 @@ class TransformingLazyColumnTest {
             state = rememberTransformingLazyColumnState()
             TransformingLazyColumn(
                 state = state,
-                modifier = Modifier.testTag(lazyListTag),
+                modifier = Modifier.testTag(lazyListTag).size(itemSizeDp * 2),
                 userScrollEnabled = userScrollEnabled
             ) {
                 items(100) {

@@ -70,5 +70,5 @@ data class EmbeddingPropertyAnnotation(
         get() = Kind.EMBEDDING_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mEmbeddingType
+        helper.embeddingType
 }

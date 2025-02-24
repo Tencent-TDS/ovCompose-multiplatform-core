@@ -55,6 +55,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -121,12 +122,12 @@ class HealthConnectClientUpsideDownImplTest {
     @After
     fun tearDown() = runTest {
         for (recordType in SDK_TO_PLATFORM_RECORD_CLASS.keys) {
-            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
         }
 
         if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13) {
             for (recordType in SDK_TO_PLATFORM_RECORD_CLASS_EXT_13.keys) {
-                healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+                healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
             }
         }
     }
@@ -218,7 +219,9 @@ class HealthConnectClientUpsideDownImplTest {
 
         val initialRecords =
             healthConnectClient
-                .readRecords(ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none()))
+                .readRecords(
+                    ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.after(Instant.EPOCH))
+                )
                 .records
 
         healthConnectClient.deleteRecords(
@@ -229,7 +232,9 @@ class HealthConnectClientUpsideDownImplTest {
 
         assertThat(
                 healthConnectClient
-                    .readRecords(ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none()))
+                    .readRecords(
+                        ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.after(Instant.EPOCH))
+                    )
                     .records
             )
             .containsExactly(initialRecords[0])
@@ -262,7 +267,9 @@ class HealthConnectClientUpsideDownImplTest {
 
         val initialRecords =
             healthConnectClient
-                .readRecords(ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none()))
+                .readRecords(
+                    ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.after(Instant.EPOCH))
+                )
                 .records
 
         healthConnectClient.deleteRecords(
@@ -272,7 +279,9 @@ class HealthConnectClientUpsideDownImplTest {
 
         assertThat(
                 healthConnectClient
-                    .readRecords(ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none()))
+                    .readRecords(
+                        ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.after(Instant.EPOCH))
+                    )
                     .records
             )
             .containsExactly(initialRecords[1])
@@ -432,7 +441,7 @@ class HealthConnectClientUpsideDownImplTest {
                         WeightRecord.WEIGHT_MAX,
                         WheelchairPushesRecord.COUNT_TOTAL,
                     ),
-                    TimeRangeFilter.none()
+                    TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -454,7 +463,7 @@ class HealthConnectClientUpsideDownImplTest {
             assertThrows(UnsupportedOperationException::class.java) {
                 runBlocking {
                     healthConnectClient.aggregate(
-                        AggregateRequest(setOf(metric), TimeRangeFilter.none())
+                        AggregateRequest(setOf(metric), TimeRangeFilter.after(Instant.EPOCH))
                     )
                 }
             }
@@ -464,7 +473,7 @@ class HealthConnectClientUpsideDownImplTest {
                     healthConnectClient.aggregateGroupByDuration(
                         AggregateGroupByDurationRequest(
                             setOf(metric),
-                            TimeRangeFilter.none(),
+                            TimeRangeFilter.after(Instant.EPOCH),
                             Duration.ofDays(1)
                         )
                     )
@@ -476,7 +485,9 @@ class HealthConnectClientUpsideDownImplTest {
                     healthConnectClient.aggregateGroupByPeriod(
                         AggregateGroupByPeriodRequest(
                             setOf(metric),
-                            TimeRangeFilter.none(),
+                            TimeRangeFilter.after(
+                                LocalDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
+                            ),
                             Period.ofDays(1)
                         )
                     )
@@ -522,7 +533,7 @@ class HealthConnectClientUpsideDownImplTest {
                         BloodPressureRecord.SYSTOLIC_MIN,
                         NutritionRecord.TRANS_FAT_TOTAL
                     ),
-                    TimeRangeFilter.none()
+                    TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 

@@ -22,6 +22,7 @@ import android.annotation.SuppressLint;
 import android.content.res.Resources;
 import android.util.TypedValue;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.xr.extensions.XrExtensions;
 import androidx.xr.extensions.node.Node;
@@ -110,7 +111,7 @@ abstract class BasePanelEntity extends AndroidXrEntity implements PanelEntity {
     }
 
     @Override
-    public void setSize(Dimensions dimensions) {
+    public void setSize(@NonNull Dimensions dimensions) {
         // TODO(b/352630025): remove this method.
         setPixelDimensions(new PixelDimensions((int) dimensions.width, (int) dimensions.height));
     }

@@ -157,6 +157,20 @@ package androidx.wear.compose.foundation {
   @androidx.compose.foundation.layout.LayoutScopeMarker public final class CurvedScope {
   }
 
+  public final class CurvedSemanticsKt {
+    method public static androidx.wear.compose.foundation.CurvedModifier semantics(androidx.wear.compose.foundation.CurvedModifier, kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.CurvedSemanticsScope,kotlin.Unit> properties);
+  }
+
+  public final class CurvedSemanticsScope {
+    ctor public CurvedSemanticsScope();
+    method public String? getContentDescription();
+    method public float getTraversalIndex();
+    method public void setContentDescription(String?);
+    method public void setTraversalIndex(float);
+    property public String? contentDescription;
+    property public float traversalIndex;
+  }
+
   public final class CurvedSizeKt {
     method public static androidx.wear.compose.foundation.CurvedModifier angularSize(androidx.wear.compose.foundation.CurvedModifier, float sweepDegrees);
     method public static androidx.wear.compose.foundation.CurvedModifier angularSizeDp(androidx.wear.compose.foundation.CurvedModifier, float angularWidth);
@@ -373,8 +387,20 @@ package androidx.wear.compose.foundation {
     enum_constant public static final androidx.wear.compose.foundation.SwipeToDismissValue Dismissed;
   }
 
+  public final class SwipeToRevealDefaults {
+    method public androidx.wear.compose.foundation.GestureInclusion allowAllGestures();
+    method public float getLeftEdgeZoneFraction();
+    method public kotlin.jvm.functions.Function1<java.lang.Float,java.lang.Float> getPositionalThreshold();
+    method public float getRevealingRatio();
+    method public androidx.wear.compose.foundation.GestureInclusion ignoreLeftEdge(optional float edgeZoneFraction);
+    property public float LeftEdgeZoneFraction;
+    property public kotlin.jvm.functions.Function1<java.lang.Float,java.lang.Float> PositionalThreshold;
+    property public float RevealingRatio;
+    field public static final androidx.wear.compose.foundation.SwipeToRevealDefaults INSTANCE;
+  }
+
   public final class SwipeToRevealKt {
-    method @androidx.compose.runtime.Composable public static void SwipeToReveal(kotlin.jvm.functions.Function0<kotlin.Unit> primaryAction, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> onFullSwipe, optional androidx.wear.compose.foundation.RevealState state, optional kotlin.jvm.functions.Function0<kotlin.Unit>? secondaryAction, optional kotlin.jvm.functions.Function0<kotlin.Unit>? undoAction, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void SwipeToReveal(kotlin.jvm.functions.Function0<kotlin.Unit> primaryAction, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> onFullSwipe, optional androidx.wear.compose.foundation.RevealState state, optional kotlin.jvm.functions.Function0<kotlin.Unit>? secondaryAction, optional kotlin.jvm.functions.Function0<kotlin.Unit>? undoAction, optional androidx.wear.compose.foundation.GestureInclusion gestureInclusion, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method public static java.util.Map<androidx.wear.compose.foundation.RevealValue,java.lang.Float> createRevealAnchors(optional float coveredAnchor, optional float revealingAnchor, optional float revealedAnchor, optional int revealDirection);
     method @androidx.compose.runtime.Composable public static androidx.wear.compose.foundation.RevealState rememberRevealState(optional int initialValue, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> animationSpec, optional kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.RevealValue,java.lang.Boolean> confirmValueChange, optional kotlin.jvm.functions.Function1<? super java.lang.Float,java.lang.Float> positionalThreshold, optional java.util.Map<androidx.wear.compose.foundation.RevealValue,java.lang.Float> anchors);
   }
@@ -554,8 +580,7 @@ package androidx.wear.compose.foundation.lazy {
   }
 
   public final class TransformingLazyColumnKt {
-    method @androidx.compose.runtime.Composable public static void TransformingLazyColumn(androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.foundation.lazy.TransformingLazyColumnState state, optional androidx.compose.foundation.layout.Arrangement.Vertical verticalArrangement, optional androidx.compose.ui.Alignment.Horizontal horizontalAlignment, optional androidx.compose.foundation.gestures.FlingBehavior flingBehavior, optional boolean userScrollEnabled, optional androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior? rotaryScrollableBehavior, optional androidx.compose.foundation.OverscrollEffect? overscrollEffect, kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope,kotlin.Unit> content);
-    method @androidx.compose.runtime.Composable public static void TransformingLazyColumn(optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.foundation.lazy.TransformingLazyColumnState state, optional androidx.compose.foundation.layout.Arrangement.Vertical verticalArrangement, optional androidx.compose.ui.Alignment.Horizontal horizontalAlignment, optional androidx.compose.foundation.gestures.FlingBehavior flingBehavior, optional boolean userScrollEnabled, optional androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior? rotaryScrollableBehavior, optional androidx.compose.foundation.OverscrollEffect? overscrollEffect, kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope,kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void TransformingLazyColumn(optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.foundation.lazy.TransformingLazyColumnState state, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.layout.Arrangement.Vertical verticalArrangement, optional androidx.compose.ui.Alignment.Horizontal horizontalAlignment, optional androidx.compose.foundation.gestures.FlingBehavior flingBehavior, optional boolean userScrollEnabled, optional androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior? rotaryScrollableBehavior, optional androidx.compose.foundation.OverscrollEffect? overscrollEffect, kotlin.jvm.functions.Function1<? super androidx.wear.compose.foundation.lazy.TransformingLazyColumnScope,kotlin.Unit> content);
     method public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope?> getLocalTransformingLazyColumnItemScope();
     property public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope?> LocalTransformingLazyColumnItemScope;
   }
@@ -629,10 +654,10 @@ package androidx.wear.compose.foundation.lazy {
 package androidx.wear.compose.foundation.pager {
 
   public final class PagerDefaults {
-    method public androidx.wear.compose.foundation.GestureInclusion disableLeftEdgeOnFirstPage(androidx.wear.compose.foundation.pager.PagerState pagerState, optional float edgeZoneFraction);
     method public int getBeyondViewportPageCount();
     method public float getLeftEdgeZoneFraction();
     method public androidx.compose.animation.core.AnimationSpec<java.lang.Float> getSnapAnimationSpec();
+    method public androidx.wear.compose.foundation.GestureInclusion ignoreLeftEdgeOnFirstPage(androidx.wear.compose.foundation.pager.PagerState pagerState, optional float edgeZoneFraction);
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.gestures.TargetedFlingBehavior snapFlingBehavior(androidx.wear.compose.foundation.pager.PagerState state, optional int maxFlingPages, optional androidx.compose.animation.core.DecayAnimationSpec<java.lang.Float> decayAnimationSpec, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> snapAnimationSpec, optional @FloatRange(from=0.0, to=1.0) float snapPositionalThreshold);
     property public int BeyondViewportPageCount;
     property public float LeftEdgeZoneFraction;

@@ -37,6 +37,8 @@ import androidx.wear.protolayout.ModifiersBuilders.ElementMetadata
 import androidx.wear.protolayout.ModifiersBuilders.Modifiers
 import androidx.wear.protolayout.ModifiersBuilders.Semantics
 import androidx.wear.protolayout.TypeBuilders.StringProp
+import androidx.wear.protolayout.expression.AppDataKey
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicColor
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.protolayout.expression.PlatformEventKeys
 import androidx.wear.protolayout.expression.PlatformHealthSources
@@ -253,6 +255,43 @@ class FiltersTest {
 
         assert(hasColor(Color.BLUE).matches(testBox))
         assert(hasColor(Color.GREEN).not().matches(testBox))
+    }
+
+    @Test
+    fun hasDynamicColor_onBackground() {
+        val stateKey = AppDataKey<DynamicColor>("color")
+        val testBox =
+            Box.Builder()
+                .setModifiers(
+                    Modifiers.Builder()
+                        .setBackground(
+                            Background.Builder()
+                                .setColor(
+                                    ColorProp.Builder(Color.BLUE)
+                                        .setDynamicValue(DynamicColor.from(stateKey))
+                                        .build()
+                                )
+                                .build()
+                        )
+                        .build()
+                )
+                .build()
+
+        assert(hasColor(Color.BLUE).matches(testBox))
+        assert(
+            hasColor(Color.MAGENTA)
+                .matches(
+                    testBox,
+                    TestContext(dynamicDataMapOf(stateKey mapTo Color.valueOf(Color.MAGENTA)))
+                )
+        )
+        assert(
+            hasColor(Color.CYAN)
+                .matches(
+                    testBox,
+                    TestContext(dynamicDataMapOf(stateKey mapTo Color.valueOf(Color.CYAN)))
+                )
+        )
     }
 
     @Test

@@ -70,12 +70,14 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
     }
 
     /** Returns the identity pose since we assume the activity space is the world space root. */
+    @NonNull
     @Override
     public Pose getActivitySpacePose() {
 
         return new Pose();
     }
 
+    @NonNull
     @Override
     public Vector3 getActivitySpaceScale() {
         return new Vector3(1.0f, 1.0f, 1.0f);
@@ -87,7 +89,7 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
     }
 
     @Override
-    public void setScale(Vector3 scale) {
+    public void setScale(@NonNull Vector3 scale) {
         // TODO(b/349391097): make this behavior consistent with AnchorEntityImpl
         Log.e(TAG, "Cannot set scale for the ActivitySpace.");
     }

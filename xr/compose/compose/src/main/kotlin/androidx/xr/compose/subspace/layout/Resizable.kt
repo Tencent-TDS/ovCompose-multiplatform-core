@@ -18,23 +18,24 @@ package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
 import androidx.compose.ui.unit.Dp
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.DpVolumeSize
 import androidx.xr.compose.unit.IntVolumeSize
 
 /**
- * Resize a subspace element (i.e. currently only affects Jetpack XR Entity Panels/Volumes) in
- * space.
+ * When the resizable modifier is present and enabled, draggable UI controls will be shown that
+ * allow the user to resize the element in 3D space. This feature is only available for
+ * [SpatialPanels] at the moment.
  *
- * @param enabled - true if this composable should be resizable.
- * @param minimumSize - the smallest allowed dimensions for this composable.
- * @param maximumSize - the largest allowed dimensions for this composable.
- * @param maintainAspectRatio - true if the new size should maintain the same aspect ratio as the
+ * @param enabled true if this composable should be resizable.
+ * @param minimumSize the smallest allowed dimensions for this composable.
+ * @param maximumSize the largest allowed dimensions for this composable.
+ * @param maintainAspectRatio true if the new size should maintain the same aspect ratio as the
  *   existing size.
- * @param onSizeChange - a callback to process the size change during resizing. This will only be
- *   called if [enabled] is true. If the callback returns false the default behavior of resizing
- *   this composable will be executed. If it returns true, it is the responsibility of the callback
- *   to process the event.
+ * @param onSizeChange a callback to process the size change in pixels during resizing. This will
+ *   only be called if [enabled] is true. If the callback returns false the default behavior of
+ *   resizing this composable will be executed. If it returns true, it is the responsibility of the
+ *   callback to process the event.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SubspaceModifier.resizable(
@@ -54,7 +55,7 @@ private class ResizableElement(
     private val maximumSize: DpVolumeSize,
     private val maintainAspectRatio: Boolean,
     private val onSizeChange: (IntVolumeSize) -> Boolean,
-) : SubspaceModifierElement<ResizableNode>() {
+) : SubspaceModifierNodeElement<ResizableNode>() {
 
     init {
         // TODO(b/345303299): Decide on implementation for min/max size bound checking against

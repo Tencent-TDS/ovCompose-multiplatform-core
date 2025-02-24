@@ -122,7 +122,7 @@ class PanelShadowRenderer {
     }
 
     void hidePlane() {
-        if (!mIsVisible) {
+        if (!mIsVisible || mPanelShadowNode == null) {
             return;
         }
         try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {

@@ -34,29 +34,40 @@ import kotlinx.coroutines.Job
 import okio.BufferedSink
 import okio.appendingSink
 import okio.buffer
-import perfetto.protos.MutableTracePacket
 
 /** The trace sink that writes to a new file per trace session. */
 @SuppressWarnings("StreamFiles") // Accepts a BufferedSink instead.
 public class AndroidTraceSink(
     context: Context,
+    sequenceId: Int,
     private val bufferedSink: BufferedSink,
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) : TraceSink() {
 
     public constructor(
-        context: Context
-    ) : this(context = context, traceFile = context.noBackupFilesDir.perfettoTraceFile())
+        context: Context,
+        sequenceId: Int,
+    ) : this(
+        context = context,
+        sequenceId = sequenceId,
+        traceFile = context.noBackupFilesDir.perfettoTraceFile()
+    )
 
     @SuppressWarnings("StreamFiles") // Accepting a BufferedSink instead.
     public constructor(
         context: Context,
+        sequenceId: Int,
         traceFile: File,
-    ) : this(context = context, bufferedSink = traceFile.appendingSink().buffer())
+    ) : this(
+        context = context,
+        sequenceId = sequenceId,
+        bufferedSink = traceFile.appendingSink().buffer()
+    )
 
     // Hold on to the application context.
     @Suppress("UNUSED") private val context = context.applicationContext
-    private val protoWriter: ProtoWriter = ProtoWriter(bufferedSink)
+    private val wireTraceEventSerializer =
+        WireTraceEventSerializer(sequenceId, ProtoWriter(bufferedSink))
 
     // There are 2 distinct mechanisms for thread safety here, and they are not necessarily in sync.
     // The Queue by itself is thread-safe, but after we drain the queue we mark drainRequested
@@ -112,8 +123,8 @@ public class AndroidTraceSink(
         while (queue.isNotEmpty()) {
             val pooledPacketArray = queue.removeFirstOrNull()
             if (pooledPacketArray != null) {
-                pooledPacketArray.forEach {
-                    MutableTracePacket.ADAPTER.encodeWithTag(protoWriter, 1, it)
+                pooledPacketArray.forEach { event ->
+                    wireTraceEventSerializer.writeTraceEvent(event)
                 }
                 pooledPacketArray.recycle()
             }

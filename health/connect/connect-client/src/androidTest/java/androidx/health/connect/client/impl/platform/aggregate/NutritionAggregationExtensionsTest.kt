@@ -41,6 +41,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -75,14 +76,17 @@ class NutritionAggregationExtensionsTest {
 
     @After
     fun tearDown() = runTest {
-        healthConnectClient.deleteRecords(NutritionRecord::class, TimeRangeFilter.none())
+        healthConnectClient.deleteRecords(
+            NutritionRecord::class,
+            TimeRangeFilter.after(Instant.EPOCH)
+        )
     }
 
     @Test
     fun aggregateNutritionTransFatTotal_noData() = runTest {
         val aggregationResult =
             healthConnectClient.aggregateNutritionTransFatTotal(
-                AggregateRequest(emptySet(), TimeRangeFilter.none(), emptySet())
+                AggregateRequest(emptySet(), TimeRangeFilter.after(Instant.EPOCH), emptySet())
             )
 
         assertThat(NutritionRecord.TRANS_FAT_TOTAL in aggregationResult).isFalse()
@@ -138,7 +142,7 @@ class NutritionAggregationExtensionsTest {
 
         val aggregationResult =
             healthConnectClient.aggregateNutritionTransFatTotal(
-                AggregateRequest(emptySet(), TimeRangeFilter.none(), emptySet())
+                AggregateRequest(emptySet(), TimeRangeFilter.after(Instant.EPOCH), emptySet())
             )
 
         assertThat(aggregationResult[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(Mass.grams(1.7))
@@ -593,7 +597,7 @@ class NutritionAggregationExtensionsTest {
             healthConnectClient.aggregateNutritionTransFatTotal(
                 AggregateRequest(
                     emptySet(),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     setOf(DataOrigin(context.packageName))
                 )
             )
@@ -680,7 +684,7 @@ class NutritionAggregationExtensionsTest {
             healthConnectClient.aggregateNutritionTransFatTotal(
                 AggregateRequest(
                     emptySet(),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     setOf(DataOrigin("some random package name"))
                 )
             )

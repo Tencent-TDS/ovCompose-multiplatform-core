@@ -30,7 +30,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
 import org.gradle.api.provider.Provider
 
-@Suppress("UnstableApiUsage") // ApkOutputProviders
+@Suppress("UnstableApiUsage") // ApkOutputProviders b/397701480
 internal fun Project.registerCopyPrivacySandboxMainAppApksTask(
     variant: Variant,
     outputProviders: ApkOutputProviders,
@@ -46,7 +46,7 @@ internal fun Project.registerCopyPrivacySandboxMainAppApksTask(
         deviceSpec = mainSandboxDeviceSpec(variant.minSdk.apiLevel)
     )
 
-@Suppress("UnstableApiUsage") // ApkOutputProviders
+@Suppress("UnstableApiUsage") // ApkOutputProviders b/397701480
 internal fun Project.registerCopyPrivacySandboxCompatAppApksTask(
     variant: Variant,
     outputProviders: ApkOutputProviders,
@@ -78,7 +78,7 @@ internal fun Project.registerCopyAppApkFromArtifactsTask(
         AffectedModuleDetector.configureTaskGuard(task)
     }
 
-@Suppress("UnstableApiUsage") // ApkOutputProviders
+@Suppress("UnstableApiUsage") // ApkOutputProviders b/397701480
 private fun Project.registerCopyApksFromOutputProviderTask(
     taskName: String,
     variant: Variant,
@@ -113,7 +113,7 @@ private fun Project.registerCopyApksFromOutputProviderTask(
     return copyApksTask
 }
 
-@Suppress("UnstableApiUsage") // DeviceSpec
+@Suppress("UnstableApiUsage") // DeviceSpec b/397703661
 private fun mainSandboxDeviceSpec(minApiLevel: Int): DeviceSpec =
     DeviceSpec.Builder()
         .setApiLevel(max(minApiLevel, PRIVACY_SANDBOX_MIN_API_LEVEL))
@@ -121,7 +121,7 @@ private fun mainSandboxDeviceSpec(minApiLevel: Int): DeviceSpec =
         .setAbis(SUPPORTED_BUILD_ABIS) // To pass filters in defaultConfig.ndk.abiFilters
         .build()
 
-@Suppress("UnstableApiUsage") // DeviceSpec
+@Suppress("UnstableApiUsage") // DeviceSpec b/397703661
 private fun compatSandboxDeviceSpec(minApiLevel: Int): DeviceSpec =
     DeviceSpec.Builder()
         .setApiLevel(minApiLevel)

@@ -34,6 +34,7 @@ import androidx.camera.camera2.pipe.CameraGraph.OperatingMode
 import androidx.camera.camera2.pipe.CameraGraph.RepeatingRequestRequirementsBeforeCapture.CompletionBehavior.AT_LEAST
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsLowLightBoost
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraStream
 import androidx.camera.camera2.pipe.InputStream
@@ -134,6 +135,7 @@ constructor(
     private val cameraConfig: CameraConfig,
     private val builder: UseCaseCameraComponent.Builder,
     private val zslControl: ZslControl,
+    private val lowLightBoostControl: LowLightBoostControl,
     @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN") // Java version required for Dagger
     private val controls: java.util.Set<UseCaseCameraControl>,
     private val camera2CameraControl: Camera2CameraControl,
@@ -144,8 +146,8 @@ constructor(
     private val cameraInfoInternal: Provider<CameraInfoInternal>,
     private val templateParamsOverride: TemplateParamsOverride,
     private val encoderProfilesProvider: EncoderProfilesProvider,
+    private val cameraProperties: CameraProperties,
     context: Context,
-    cameraProperties: CameraProperties,
     displayInfoManager: DisplayInfoManager,
 ) {
     private val lock = Any()
@@ -234,6 +236,7 @@ constructor(
             if (attachedUseCases.addAll(useCases)) {
                 if (!addOrRemoveRepeatingUseCase(getRunningUseCases())) {
                     updateZslDisabledByUseCaseConfigStatus()
+                    updateLowLightBoostDisabledByUseCaseSessionConfigStatus()
                     refreshAttachedUseCases(attachedUseCases)
                 }
             }
@@ -284,8 +287,10 @@ constructor(
 
                 if (attachedUseCases.isEmpty()) {
                     zslControl.setZslDisabledByUserCaseConfig(false)
+                    lowLightBoostControl.setLowLightBoostDisabledByUseCaseSessionConfig(false)
                 } else {
                     updateZslDisabledByUseCaseConfigStatus()
+                    updateLowLightBoostDisabledByUseCaseSessionConfigStatus()
                 }
                 refreshAttachedUseCases(attachedUseCases)
             }
@@ -855,6 +860,35 @@ constructor(
         val disableZsl = attachedUseCases.any { it.currentConfig.isZslDisabled(false) }
         zslControl.setZslDisabledByUserCaseConfig(disableZsl)
     }
+
+    private fun updateLowLightBoostDisabledByUseCaseSessionConfigStatus() {
+        if (!cameraProperties.metadata.supportsLowLightBoost) {
+            return
+        }
+
+        // Low-light boost should be disabled when expected frame rate range exceeds 30.
+        if (attachedUseCases.getSessionConfig().expectedFrameRateRange.upper > 30) {
+            lowLightBoostControl.setLowLightBoostDisabledByUseCaseSessionConfig(true)
+            return
+        }
+
+        // HDR 10-bit can be supported since API level 33
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return
+        }
+
+        // Low-light boost should be disabled when dynamic range setting is not 8-bit.
+        val attachedSurfaceInfoList = attachedUseCases.getAttachedSurfaceInfoList()
+        if (getRequiredMaxBitDepth(attachedSurfaceInfoList) != DynamicRange.BIT_DEPTH_8_BIT) {
+            lowLightBoostControl.setLowLightBoostDisabledByUseCaseSessionConfig(true)
+            return
+        }
+
+        lowLightBoostControl.setLowLightBoostDisabledByUseCaseSessionConfig(false)
+    }
+
+    private fun Collection<UseCase>.getSessionConfig(): SessionConfig =
+        ValidatingBuilder().apply { forEach { useCase -> add(useCase.sessionConfig) } }.build()
 
     /**
      * This interface defines a listener that is notified when the set of running UseCases changes.

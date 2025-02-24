@@ -43,6 +43,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -91,7 +92,7 @@ class SeriesRecordAggregationExtensionsTest {
     @After
     fun tearDown() = runTest {
         for (recordType in SERIES_AGGREGATION_FALLBACK_RECORD_TYPES) {
-            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
         }
     }
 
@@ -129,7 +130,7 @@ class SeriesRecordAggregationExtensionsTest {
                             CyclingPedalingCadenceRecord.RPM_MAX,
                             CyclingPedalingCadenceRecord.RPM_MIN
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -398,7 +399,7 @@ class SeriesRecordAggregationExtensionsTest {
                 AggregateRequest(
                     metrics =
                         setOf(SpeedRecord.SPEED_AVG, SpeedRecord.SPEED_MAX, SpeedRecord.SPEED_MIN),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -435,7 +436,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -455,7 +456,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -512,7 +513,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -567,7 +568,7 @@ class SeriesRecordAggregationExtensionsTest {
                         setOf(
                             StepsCadenceRecord.RATE_MAX,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -840,7 +841,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN
                         ),
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         emptySet()
                     )
                 )
@@ -859,7 +860,7 @@ class SeriesRecordAggregationExtensionsTest {
                             HeartRateRecord.BPM_MAX,
                             HeartRateRecord.BPM_MIN
                         ),
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         emptySet()
                     )
                 )

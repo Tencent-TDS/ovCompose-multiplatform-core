@@ -18,6 +18,9 @@ package androidx.pdf
 
 import android.content.pm.ActivityInfo
 import android.os.Build
+import android.view.InputDevice
+import android.view.MotionEvent
+import android.view.WindowInsets
 import androidx.annotation.RequiresExtension
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
@@ -25,19 +28,26 @@ import androidx.lifecycle.Lifecycle
 import androidx.pdf.FragmentUtils.scenarioLoadDocument
 import androidx.pdf.TestUtils.waitFor
 import androidx.pdf.view.PdfView
+import androidx.pdf.view.search.PdfSearchView
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
-import androidx.test.espresso.action.ViewActions.longClick
+import androidx.test.espresso.action.GeneralClickAction
+import androidx.test.espresso.action.GeneralLocation
+import androidx.test.espresso.action.Press
+import androidx.test.espresso.action.Tap
+import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertNull
+import junit.framework.TestCase.assertTrue
 import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -99,12 +109,11 @@ internal class SearchInteractionTest {
         onView(withId(R.id.searchQueryBox)).perform(typeText(SEARCH_QUERY))
         onView(isRoot()).perform(waitFor(50))
         onView(withId(R.id.matchStatusTextView)).check(matches(isDisplayed()))
-        // TODO: Spacing between current page and total pages is locale specific. Needs to be
-        //  uniform
-        // onView(withId(R.id.matchStatusTextView)).check(matches(withText("1 / 24")))
+        val expectedText = pdfView?.context?.getString(R.string.message_match_status, 1, 24)
+        onView(withId(R.id.matchStatusTextView)).check(matches(withText(expectedText)))
 
         // Start selection on PdfView
-        onView(isRoot()).perform(longClick())
+        longClickAtCenter()
         assertNotNull(pdfView?.currentSelection)
 
         // assert search is not displayed
@@ -124,7 +133,7 @@ internal class SearchInteractionTest {
         }
 
         // Start selection on PdfView
-        onView(isRoot()).perform(longClick())
+        longClickAtCenter()
         assertNotNull(pdfView?.currentSelection)
 
         // Enable search on document
@@ -137,9 +146,52 @@ internal class SearchInteractionTest {
         onView(withId(R.id.searchQueryBox)).perform(typeText(SEARCH_QUERY))
         onView(isRoot()).perform(waitFor(50))
         onView(withId(R.id.matchStatusTextView)).check(matches(isDisplayed()))
-        // TODO: Spacing between current page and total pages is locale specific. Needs to be
-        //  uniform
-        // onView(withId(R.id.matchStatusTextView)).check(matches(withText("1 / 24")))
+        val expectedText = pdfView?.context?.getString(R.string.message_match_status, 1, 24)
+        onView(withId(R.id.matchStatusTextView)).check(matches(withText(expectedText)))
+    }
+
+    @Test
+    fun test_pdfViewerFragment_searchFocusCleared_onSingleTap() {
+        onView(withId(androidx.pdf.viewer.fragment.R.id.pdfView)).check(matches(isDisplayed()))
+        var pdfSearchView: PdfSearchView? = null
+
+        scenario.onFragment { fragment ->
+            pdfSearchView =
+                fragment.view?.findViewById<PdfSearchView>(
+                    androidx.pdf.viewer.fragment.R.id.pdfSearchView
+                )
+            fragment.isTextSearchActive = true
+        }
+
+        pdfSearchView?.let {
+            // assert search view is focused when user starts searching
+            assertTrue(it.hasFocus())
+
+            // Single tap on PdfView(anywhere on the content)
+            onView(isRoot()).perform(click())
+
+            // search focus on search is cleared
+            assertFalse(it.hasFocus())
+            // assert soft input mode is also hidden
+            assertFalse(it.rootWindowInsets.isVisible(WindowInsets.Type.ime()))
+        }
+    }
+
+    private fun longClickAtCenter() {
+        onView(isRoot())
+            .perform(
+                GeneralClickAction(
+                    Tap.LONG,
+                    { view ->
+                        GeneralLocation.CENTER.calculateCoordinates(view)
+                            .map { it + 20f }
+                            .toFloatArray()
+                    },
+                    Press.THUMB,
+                    InputDevice.SOURCE_UNKNOWN,
+                    MotionEvent.BUTTON_PRIMARY
+                )
+            )
     }
 
     companion object {

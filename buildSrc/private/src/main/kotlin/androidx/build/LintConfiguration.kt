@@ -18,6 +18,7 @@ package androidx.build
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import com.android.build.api.dsl.Lint
 import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
+import com.android.build.api.variant.LintLifecycleExtension
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
 import com.android.build.gradle.api.KotlinMultiplatformAndroidPlugin
@@ -73,11 +74,11 @@ fun Project.configureLint() {
 
 /** Android Lint configuration entry point for Android projects. */
 private fun Project.configureAndroidProjectForLint(isLibrary: Boolean) =
-    androidExtension.finalizeDsl { extension ->
+    extensions.findByType(LintLifecycleExtension::class.java)!!.finalizeDsl { lint ->
         // The lintAnalyze task is used by `androidx-studio-integration-lint.sh`.
         tasks.register("lintAnalyze") { task -> task.enabled = false }
 
-        configureLint(extension.lint, isLibrary)
+        configureLint(lint, isLibrary)
     }
 
 private fun Project.configureAndroidMultiplatformProjectForLint(

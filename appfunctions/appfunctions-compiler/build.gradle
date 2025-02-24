@@ -36,8 +36,9 @@ androidx.configureAarAsJarForConfiguration("implementation")
 
 dependencies {
     api(libs.kotlinStdlib)
+    api(libs.kspApi)
+
     implementation("androidx.annotation:annotation:1.7.0")
-    implementation(libs.kspApi)
     implementation(libs.kotlinPoet)
     implementation(libs.kotlinReflect, {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib"
@@ -48,11 +49,11 @@ dependencies {
 
     testImplementationAarAsJar(project(":appfunctions:appfunctions-common"))
     testImplementationAarAsJar(project(":appfunctions:appfunctions-runtime"))
-    testImplementation(SdkHelperKt.getSdkDependency(project))
-    testImplementation(libs.googleCompileTesting)
     testImplementation(project(":room:room-compiler-processing-testing"))
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+
+    testRuntimeOnly(SdkHelperKt.getSdkDependency(project))
 }
 
 def testGeneratedSourcesPath = "${layout.buildDirectory.get().asFile}/testGeneratedSources"

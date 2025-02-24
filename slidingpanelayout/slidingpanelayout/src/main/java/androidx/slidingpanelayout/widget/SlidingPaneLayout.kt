@@ -39,12 +39,14 @@ import android.view.ViewGroup.getChildMeasureSpec
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.animation.Interpolator
+import android.widget.Button
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.annotation.Px
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.Insets
@@ -73,6 +75,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapNotNull
@@ -90,6 +93,9 @@ private const val ACCESSIBILITY_CLASS_NAME = "androidx.slidingpanelayout.widget.
 
 /** The virtual view id of the draggable handler. */
 private const val DIVIDER_VIRTUAL_VIEW_ID = 0
+
+/** The timeout used to debounce the accessibility events. */
+private const val ACCESSIBILITY_EVENT_TIMEOUT_MS = 200L
 
 private val edgeSizeUsingSystemGestureInsets = Build.VERSION.SDK_INT >= 29
 
@@ -409,8 +415,28 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
     private var accessibilityProvider: AccessibilityProvider? = null
     private var dividerHasA11yHover = false
 
+    @VisibleForTesting internal var isAccessibilityEnabledForTesting = false
+
     // Cached reflected method used by findViewByAccessibilityIdTraversal
     private var getAccessibilityViewIdMethod: Method? = null
+
+    private var pendingA11yDividerPositionUpdates = false
+
+    private val a11yDividerPositionUpdateRunnable =
+        java.lang.Runnable {
+            if (dividerAtLeftEdge or dividerAtRightEdge) {
+                sendAccessibilityEventForDivider(
+                    eventType = AccessibilityEvent.TYPE_ANNOUNCEMENT,
+                    contentDescription = getDividerContentDescription()
+                )
+            }
+
+            sendAccessibilityEventForDivider(
+                eventType = AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
+                contentChangeType = AccessibilityEvent.CONTENT_CHANGE_TYPE_SUBTREE
+            )
+            pendingA11yDividerPositionUpdates = false
+        }
 
     /**
      * Set a [Drawable] to display when [isUserResizingEnabled] is `true` and multiple panes are
@@ -520,6 +546,24 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                         rightChild.spLayoutParams.leftMargin) / 2
                 }
             }
+
+    private val dividerAtLeftEdge: Boolean
+        get() {
+            // We didn't call coerceIn to avoid IllegalArgumentException when
+            // paddingLeft + paddingRight >= width.
+            val paneSpacing =
+                paneSpacing.coerceAtMost(width - paddingLeft - paddingRight).coerceAtLeast(0)
+            return visualDividerPosition <= paddingLeft + paneSpacing / 2
+        }
+
+    private val dividerAtRightEdge: Boolean
+        get() {
+            // We didn't call coerceIn to avoid IllegalArgumentException when
+            // paddingLeft + paddingRight >= width.
+            val paneSpacing =
+                paneSpacing.coerceAtMost(width - paddingLeft - paddingRight).coerceAtLeast(0)
+            return visualDividerPosition >= width - paddingRight - (paneSpacing + 1) / 2
+        }
 
     private fun createUserResizingDividerDrawableState(viewState: IntArray): IntArray {
         if (android.R.attr.state_pressed !in viewState && !isDividerDragging) {
@@ -1272,6 +1316,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             updateGestureExclusion(visualDividerPosition)
             // Force the divider to update and draw
             invalidate()
+            if (accessibilityManager.isEnabled || isAccessibilityEnabledForTesting) {
+                sendDividerPositionUpdateA11yEvents()
+            }
         } else {
             updateGestureExclusion(-1)
         }
@@ -2091,18 +2138,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             val node = AccessibilityNodeInfoCompat.obtain()
             node.isEnabled = true
             node.isImportantForAccessibility = true
-            node.className = ACCESSIBILITY_CLASS_NAME
+            // Divider handle is reported as a button for A11y purpose.
+            node.className = Button::class.java.name
             node.packageName = context.packageName
+            // Focusable so that voice access can find this node.
+            node.isFocusable = true
             node.setSource(this@SlidingPaneLayout, DIVIDER_VIRTUAL_VIEW_ID)
             node.setParent(this@SlidingPaneLayout)
 
-            node.contentDescription = context.getString(R.string.draggable_divider_handler)
-            node.isScrollable = true
+            node.contentDescription = getDividerContentDescription()
 
-            val paneSpacing =
-                paneSpacing.coerceAtMost(width - paddingLeft - paddingRight).coerceAtLeast(0)
-
-            if (visualDividerPosition > paddingLeft + paneSpacing / 2) {
+            if (!dividerAtLeftEdge) {
                 node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
                 if (isLayoutRtl) {
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
@@ -2110,12 +2156,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     // In LTR layout, scroll backward goes to left
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
                 }
-            } else {
-                node.stateDescription =
-                    context.getString(R.string.draggable_divider_handler_state_left_edge)
             }
 
-            if (visualDividerPosition < width - paddingRight - (paneSpacing + 1) / 2) {
+            if (!dividerAtRightEdge) {
                 node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
                 if (isLayoutRtl) {
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
@@ -2123,9 +2166,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     // In LTR layout, scroll forward goes to right
                     node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
                 }
-            } else {
-                node.stateDescription =
-                    context.getString(R.string.draggable_divider_handler_state_right_edge)
             }
 
             if (onUserResizingDividerClickListener != null) {
@@ -2187,7 +2227,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                                     SPLIT_DIVIDER_ACCESSIBILITY_RESIZE_RIGHT
                                 }
                         )
-                        invalidateA11yForDivider()
                         return true
                     }
                     AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD,
@@ -2202,7 +2241,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                                 SPLIT_DIVIDER_ACCESSIBILITY_RESIZE_RIGHT
                             }
                         userResizeBehavior.onAccessibilityResize(this@SlidingPaneLayout, direction)
-                        invalidateA11yForDivider()
                         return true
                     }
                 }
@@ -2281,16 +2319,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         return null
     }
 
-    private fun sendAccessibilityEventForDivider(eventType: Int) {
+    private fun sendAccessibilityEventForDivider(
+        eventType: Int,
+        contentDescription: String? = null,
+        contentChangeType: Int = AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED
+    ) {
         parent?.requestSendAccessibilityEvent(
             this,
             @Suppress("DEPRECATION")
             AccessibilityEvent.obtain().apply {
                 this.eventType = eventType
+                this.contentChangeTypes = contentChangeType
 
                 this.isEnabled = true
-                this.isScrollable = true
-                this.className = ACCESSIBILITY_CLASS_NAME
+                this.className = Button::class.java.name
+                this.contentDescription = contentDescription
                 AccessibilityRecordCompat.setSource(
                     this,
                     this@SlidingPaneLayout,
@@ -2301,8 +2344,28 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         )
     }
 
-    private fun invalidateA11yForDivider() {
-        sendAccessibilityEventForDivider(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)
+    private fun sendDividerPositionUpdateA11yEvents() {
+        // Debounce the Accessibility event, so that we don't send too many updates when divider
+        // is being dragged or animated.
+        if (pendingA11yDividerPositionUpdates) {
+            return
+        }
+        pendingA11yDividerPositionUpdates = true
+        this.postDelayed(a11yDividerPositionUpdateRunnable, ACCESSIBILITY_EVENT_TIMEOUT_MS)
+    }
+
+    private fun getDividerContentDescription(): String {
+        return if (dividerAtLeftEdge) {
+            context.getString(R.string.draggable_divider_handler_state_left_edge) +
+                ", " +
+                context.getString(R.string.draggable_divider_handler)
+        } else if (dividerAtRightEdge) {
+            context.getString(R.string.draggable_divider_handler_state_right_edge) +
+                ", " +
+                context.getString(R.string.draggable_divider_handler)
+        } else {
+            context.getString(R.string.draggable_divider_handler)
+        }
     }
 
     /** Listener to whether the SlidingPaneLayout is slideable or is a fixed width. */
@@ -2709,10 +2772,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             }
             drawableStateChanged()
             invalidate()
-            // Notify the Accessibility that divider has been dragged.
-            if (accessibilityManager.isEnabled) {
-                invalidateA11yForDivider()
-            }
         }
 
         override fun onDividerClicked() {

@@ -16,6 +16,7 @@
 
 package androidx.xr.scenecore.impl;
 
+import androidx.annotation.NonNull;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.PerceptionSpaceActivityPose;
@@ -37,11 +38,13 @@ final class PerceptionSpaceActivityPoseImpl extends BaseActivityPose
         return mOpenXrActivityPoseHelper.getPoseInActivitySpace(new Pose());
     }
 
+    @NonNull
     @Override
     public Pose getActivitySpacePose() {
         return mOpenXrActivityPoseHelper.getActivitySpacePose(new Pose());
     }
 
+    @NonNull
     @Override
     public Vector3 getActivitySpaceScale() {
         // This ActivityPose is assumed to always have a scale of 1.0f in the OpenXR reference

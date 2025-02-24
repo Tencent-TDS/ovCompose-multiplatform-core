@@ -278,23 +278,21 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
                 ) {
                     platformResponse.toSdkResponse(request.metrics)
                 } else {
-                    // Handle bug in the Platform for versions of module before SDK extensions 10
+                    // Handle bug in the Platform for versions of module before SDK extensions 10,
+                    // where bucket endTime < bucket startTime (b/298290400)
                     val requestTimeRangeFilter =
                         request.timeRangeFilter.toPlatformLocalTimeRangeFilter()
                     val bucketStartTime =
-                        requestTimeRangeFilter.startTime!!.plus(
+                        requestTimeRangeFilter.startTime!! +
                             request.timeRangeSlicer.multipliedBy(index)
-                        )
-                    val bucketEndTime = bucketStartTime.plus(request.timeRangeSlicer)
                     platformResponse.toSdkResponse(
                         metrics = request.metrics,
                         bucketStartTime = bucketStartTime,
                         bucketEndTime =
-                            if (requestTimeRangeFilter.endTime!!.isBefore(bucketEndTime)) {
+                            minOf(
+                                bucketStartTime + request.timeRangeSlicer,
                                 requestTimeRangeFilter.endTime!!
-                            } else {
-                                bucketEndTime
-                            }
+                            )
                     )
                 }
             }

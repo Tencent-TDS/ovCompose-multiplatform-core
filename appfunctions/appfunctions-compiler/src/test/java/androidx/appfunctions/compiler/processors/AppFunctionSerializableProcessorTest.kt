@@ -37,7 +37,6 @@ class AppFunctionSerializableProcessorTest {
 
     // TODO(b/392587953): break down test by parameter types (e.g. EntityWithPrimitive,
     //  EntityWithNullablePrimitive) when all types are supported.
-    // TODO(b/392587953): test recursive type properties
     @Test
     fun testProcessor_validProperties_success() {
         val report =
@@ -68,6 +67,41 @@ class AppFunctionSerializableProcessorTest {
     }
 
     @Test
+    fun testProcessor_validInheritedProperties_success() {
+        val report =
+            compilationTestHelper.compileAll(sourceFileNames = listOf("DerivedSerializable.KT"))
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$DerivedSerializableFactory.kt",
+            goldenFileName = "\$DerivedSerializableFactory.KT"
+        )
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$StringBaseSerializableFactory.kt",
+            goldenFileName = "\$StringBaseSerializableFactory.KT"
+        )
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$LongBaseSerializableFactory.kt",
+            goldenFileName = "\$LongBaseSerializableFactory.KT"
+        )
+    }
+
+    @Test
+    fun testProcessor_badlyInheritedProperties_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("SubClassRenamedPropertySerializable.KT")
+            )
+
+        compilationTestHelper.assertErrorWithMessage(
+            report,
+            "App parameters in @AppFunctionSerializable supertypes must be present in subtype"
+        )
+    }
+
+    @Test
     fun testProcessor_differentPackageSerializableProperty_success() {
         val report =
             compilationTestHelper.compileAll(
@@ -82,6 +116,23 @@ class AppFunctionSerializableProcessorTest {
             report = report,
             expectGeneratedSourceFileName = "\$EntityWithDiffPackageSerializablePropertyFactory.kt",
             goldenFileName = "\$EntityWithDiffPackageSerializablePropertyFactory.KT"
+        )
+    }
+
+    @Test
+    fun testProcessor_recursiveSerializable_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames =
+                    listOf(
+                        "RecursiveSerializable.KT",
+                    )
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$RecursiveSerializableFactory.kt",
+            goldenFileName = "\$RecursiveSerializableFactory.KT"
         )
     }
 

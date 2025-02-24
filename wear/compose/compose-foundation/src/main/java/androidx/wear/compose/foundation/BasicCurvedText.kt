@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalFontFamilyResolver
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -127,7 +126,7 @@ internal class CurvedTextChild(
     private lateinit var placeable: Placeable
 
     @Composable
-    override fun SubComposition() {
+    override fun SubComposition(semanticProperties: CurvedSemanticProperties) {
         actualStyle = DefaultCurvedTextStyles + style()
         // Avoid recreating the delegate if possible, as it's expensive
         delegate = remember { CurvedTextDelegate() }
@@ -138,8 +137,11 @@ internal class CurvedTextChild(
             actualStyle.fontSynthesis
         )
 
+        val mergedSemantics =
+            CurvedSemanticProperties(contentDescription = text).merge(semanticProperties)
+
         // Empty compose-ui node to attach a11y info.
-        Box(Modifier.semantics { contentDescription = text })
+        Box(Modifier.semantics { with(mergedSemantics) { applySemantics() } })
     }
 
     override fun CurvedMeasureScope.initializeMeasure(measurables: Iterator<Measurable>) {

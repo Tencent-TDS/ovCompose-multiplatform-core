@@ -684,7 +684,12 @@ public open class PdfViewerFragment constructor() : Fragment() {
         paginatedView?.selectionModel = updatedSelectionModel
 
         selectionActionMode =
-            SelectionActionMode(requireActivity(), paginatedView!!, updatedSelectionModel)
+            SelectionActionMode(
+                requireActivity(),
+                paginatedView!!,
+                zoomView!!,
+                updatedSelectionModel
+            )
         selectionHandles =
             PdfSelectionHandles(
                 updatedSelectionModel,

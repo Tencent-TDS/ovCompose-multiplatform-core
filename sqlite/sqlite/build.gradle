@@ -83,7 +83,7 @@ androidXMultiplatform {
 }
 
 android {
-    namespace "androidx.sqlite.db"
+    namespace = "androidx.sqlite.db"
 }
 
 androidx {

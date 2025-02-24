@@ -25,8 +25,6 @@ import okio.Closeable
  */
 public open class TraceContext
 internal constructor(
-    @JvmField // optimize away accessors used for event critical path
-    internal val sequenceId: Int,
     /** The sink all the trace events are written to. */
     public val sink: TraceSink,
     /** Is tracing enabled ? */
@@ -37,11 +35,7 @@ internal constructor(
     internal val isDebug: Boolean,
 ) : Closeable {
 
-    public constructor(
-        sequenceId: Int,
-        sink: TraceSink,
-        isEnabled: Boolean
-    ) : this(sequenceId, sink, isEnabled, isDebug = false)
+    public constructor(sink: TraceSink, isEnabled: Boolean) : this(sink, isEnabled, isDebug = false)
 
     internal val processTrackLock = Any()
     internal val processes = mutableIntObjectMapOf<ProcessTrack>()
@@ -116,12 +110,7 @@ internal constructor(
 
 private const val EMPTY_TRACE_CONTEXT_SEQUENCE_ID = -1
 
-internal object EmptyTraceContext :
-    TraceContext(
-        sequenceId = EMPTY_TRACE_CONTEXT_SEQUENCE_ID,
-        sink = EmptyTraceSink(),
-        isEnabled = false
-    ) {
+internal object EmptyTraceContext : TraceContext(sink = EmptyTraceSink(), isEnabled = false) {
     internal val process = EmptyProcessTrack(this)
     internal val thread = EmptyThreadTrack(process)
     internal val counter = EmptyCounterTrack(process)

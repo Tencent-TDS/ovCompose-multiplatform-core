@@ -30,7 +30,7 @@ import androidx.xr.compose.subspace.layout.Placeable
 import androidx.xr.compose.subspace.layout.SpatialAlignment
 import androidx.xr.compose.subspace.layout.SubspaceLayout
 import androidx.xr.compose.subspace.layout.SubspaceModifier
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.runtime.math.Pose
@@ -147,7 +147,7 @@ internal object SpatialBoxScopeInstance : SpatialBoxScope {
 }
 
 private class LayoutAlignElement(val alignment: SpatialAlignment) :
-    SubspaceModifierElement<LayoutAlignNode>() {
+    SubspaceModifierNodeElement<LayoutAlignNode>() {
     override fun create(): LayoutAlignNode = LayoutAlignNode(alignment)
 
     override fun update(node: LayoutAlignNode) {

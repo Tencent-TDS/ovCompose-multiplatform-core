@@ -16,9 +16,9 @@
 
 package androidx.xr.compose.subspace.node
 
+import androidx.xr.compose.subspace.layout.LayoutMeasureScope
 import androidx.xr.compose.subspace.layout.Measurable
 import androidx.xr.compose.subspace.layout.MeasureResult
-import androidx.xr.compose.subspace.layout.MeasureScope
 import androidx.xr.compose.subspace.layout.ParentLayoutParamsAdjustable
 import androidx.xr.compose.subspace.layout.Placeable
 import androidx.xr.compose.subspace.layout.SubspaceLayoutCoordinates
@@ -39,12 +39,13 @@ import androidx.xr.runtime.math.Pose
  */
 internal class SubspaceLayoutModifierNodeCoordinator(
     private val layoutModifierNode: SubspaceLayoutModifierNode
-) : SubspaceLayoutCoordinates, Measurable {
+) : SubspaceLayoutCoordinates, Measurable, Placeable() {
 
     private val baseNode: SubspaceModifier.Node
         get() = layoutModifierNode as SubspaceModifier.Node
 
-    internal var layoutNode: SubspaceLayoutNode? = null
+    internal val layoutNode: SubspaceLayoutNode?
+        get() = baseNode.layoutNode
 
     internal val parent: SubspaceLayoutModifierNodeCoordinator?
         get() =
@@ -100,31 +101,19 @@ internal class SubspaceLayoutModifierNodeCoordinator(
 
     /** The size of this layout in the local coordinates space. */
     override val size: IntVolumeSize
-        get() =
-            IntVolumeSize(
-                width = placeable.measuredWidth,
-                height = placeable.measuredHeight,
-                depth = placeable.measuredDepth,
-            )
+        get() = IntVolumeSize(width = measuredWidth, height = measuredHeight, depth = measuredDepth)
 
     private var measureResult: MeasureResult? = null
     private var layoutPose: Pose? = null
 
-    /**
-     * The [Placeable] representing the placed content of this modifier. It handles placing child
-     * content based on the layout pose.
-     */
-    public var placeable: Placeable =
-        object : Placeable() {
-            public override fun placeAt(pose: Pose) {
-                layoutPose = pose
-                measureResult?.placeChildren(
-                    object : PlacementScope() {
-                        public override val coordinates = this@SubspaceLayoutModifierNodeCoordinator
-                    }
-                )
+    public override fun placeAt(pose: Pose) {
+        layoutPose = pose
+        measureResult?.placeChildren(
+            object : PlacementScope() {
+                public override val coordinates = this@SubspaceLayoutModifierNodeCoordinator
             }
-        }
+        )
+    }
 
     /**
      * Measures the wrapped content within the given [constraints].
@@ -137,15 +126,16 @@ internal class SubspaceLayoutModifierNodeCoordinator(
         with(layoutModifierNode) {
             val measurable: Measurable = child ?: layoutNode!!.measurableLayout
             val measureResult: MeasureResult =
-                object : MeasureScope {}.measure(measurable, constraints).also {
+                LayoutMeasureScope(layoutNode!!).measure(measurable, constraints).also {
                     this@SubspaceLayoutModifierNodeCoordinator.measureResult = it
                 }
-            return placeable.apply {
-                measuredWidth = measureResult.width
-                measuredHeight = measureResult.height
-                measuredDepth = measureResult.depth
-            }
+
+            measuredWidth = measureResult.width
+            measuredHeight = measureResult.height
+            measuredDepth = measureResult.depth
         }
+
+        return this
     }
 
     /**

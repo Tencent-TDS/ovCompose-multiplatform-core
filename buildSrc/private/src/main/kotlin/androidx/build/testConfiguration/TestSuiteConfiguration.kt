@@ -210,7 +210,7 @@ fun Project.addAppApkToTestConfigGeneration(androidXExtension: AndroidXExtension
     extensions.findByType(ApplicationAndroidComponentsExtension::class.java)?.apply {
         onVariants(selector().withBuildType("debug")) { variant ->
             if (isPrivacySandboxEnabled()) {
-                @Suppress("UnstableApiUsage") // variant.outputProviders
+                @Suppress("UnstableApiUsage") // variant.outputProviders b/397701480
                 addAppApksToPrivacySandboxTestConfigsGeneration(
                     testVariantName = "${variant.name}AndroidTest",
                     variant,
@@ -239,7 +239,7 @@ fun Project.addAppApkToTestConfigGeneration(androidXExtension: AndroidXExtension
     extensions.findByType(TestAndroidComponentsExtension::class.java)?.apply {
         onVariants(selector().all()) { variant ->
             if (isPrivacySandboxEnabled()) {
-                @Suppress("UnstableApiUsage") // variant.outputProviders
+                @Suppress("UnstableApiUsage") // variant.outputProviders b/397701480
                 addAppApksToPrivacySandboxTestConfigsGeneration(
                     testVariantName = variant.name,
                     variant,
@@ -345,7 +345,7 @@ private fun Project.addAppApkFromArtifactsToTestConfigGeneration(
 
 // TODO(b/347956800): Call from createTestConfigurationGenerationTask() after b/378674313
 // TODO(b/347956800): Use tasks providers directly instead of tasks.named after b/378674313
-@Suppress("UnstableApiUsage") // ApkOutputProviders
+@Suppress("UnstableApiUsage") // ApkOutputProviders b/397701480
 private fun Project.addAppApksToPrivacySandboxTestConfigsGeneration(
     testVariantName: String,
     variant: Variant,
@@ -515,7 +515,6 @@ private fun Project.createOrUpdateMediaTestConfigurationGenerationTask(
     }
 }
 
-@Suppress("UnstableApiUsage") // HasDeviceTests is @Incubating b/372495504
 fun Project.configureTestConfigGeneration(
     commonExtension: CommonExtension<*, *, *, *, *, *>,
     projectIsolationEnabled: Boolean,
@@ -570,7 +569,8 @@ fun Project.configureTestConfigGeneration(
     }
 }
 
-@Suppress("UnstableApiUsage") // HasDeviceTests is @Incubating b/372495504
+// KotlinMultiplatformAndroidComponentsExtension is @Incubating b/393137152
+@Suppress("UnstableApiUsage")
 fun Project.configureTestConfigGeneration(
     kotlinMultiplatformAndroidTarget: KotlinMultiplatformAndroidLibraryTarget,
     componentsExtension: KotlinMultiplatformAndroidComponentsExtension,

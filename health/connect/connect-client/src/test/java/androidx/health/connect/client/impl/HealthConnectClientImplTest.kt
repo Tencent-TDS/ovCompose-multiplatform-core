@@ -99,7 +99,7 @@ private val API_METHOD_LIST =
         { insertRecords(listOf()) },
         { updateRecords(listOf()) },
         { deleteRecords(ActiveCaloriesBurnedRecord::class, listOf(), listOf()) },
-        { deleteRecords(ActiveCaloriesBurnedRecord::class, TimeRangeFilter.none()) },
+        { deleteRecords(ActiveCaloriesBurnedRecord::class, TimeRangeFilter.after(Instant.EPOCH)) },
         { readRecord(StepsRecord::class, "uid") },
         {
             readRecords(
@@ -112,15 +112,23 @@ private val API_METHOD_LIST =
                 )
             )
         },
-        { aggregate(AggregateRequest(setOf(), TimeRangeFilter.none())) },
+        { aggregate(AggregateRequest(setOf(), TimeRangeFilter.after(Instant.EPOCH))) },
         {
             aggregateGroupByDuration(
-                AggregateGroupByDurationRequest(setOf(), TimeRangeFilter.none(), Duration.ZERO)
+                AggregateGroupByDurationRequest(
+                    setOf(),
+                    TimeRangeFilter.after(Instant.EPOCH),
+                    Duration.ZERO
+                )
             )
         },
         {
             aggregateGroupByPeriod(
-                AggregateGroupByPeriodRequest(setOf(), TimeRangeFilter.none(), Period.ZERO)
+                AggregateGroupByPeriodRequest(
+                    setOf(),
+                    TimeRangeFilter.after(LocalDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)),
+                    Period.ZERO
+                )
             )
         },
         { getChanges("token") },

@@ -38,8 +38,8 @@ package androidx.wear.compose.material3 {
   }
 
   @RequiresApi(31) public final class AnimatedTextDefaults {
-    property public static int CacheSize;
-    field public static final int CacheSize = 5; // 0x5
+    method public int getCacheSize();
+    property public int CacheSize;
     field public static final androidx.wear.compose.material3.AnimatedTextDefaults INSTANCE;
   }
 
@@ -410,15 +410,15 @@ package androidx.wear.compose.material3 {
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.ConfirmationDialogColors failureColors();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.ConfirmationDialogColors failureColors(optional long iconColor, optional long iconContainerColor, optional long textColor);
     method @androidx.compose.runtime.Composable public androidx.wear.compose.foundation.CurvedTextStyle getCurvedTextStyle();
+    method public long getDurationMillis();
     method public float getIconSize();
     method public float getSmallIconSize();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.ConfirmationDialogColors successColors();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.ConfirmationDialogColors successColors(optional long iconColor, optional long iconContainerColor, optional long textColor);
-    property public static long DurationMillis;
+    property public long DurationMillis;
     property public float IconSize;
     property public float SmallIconSize;
     property @androidx.compose.runtime.Composable public androidx.wear.compose.foundation.CurvedTextStyle curvedTextStyle;
-    field public static final long DurationMillis = 4000L; // 0xfa0L
     field public static final androidx.wear.compose.material3.ConfirmationDialogDefaults INSTANCE;
   }
 
@@ -441,11 +441,11 @@ package androidx.wear.compose.material3 {
 
   public final class CurvedTextDefaults {
     method @androidx.compose.runtime.Composable public long backgroundColor();
-    property public static float ScrollableContentMaxSweepAngle;
-    property public static float StaticContentMaxSweepAngle;
+    method public float getScrollableContentMaxSweepAngle();
+    method public float getStaticContentMaxSweepAngle();
+    property public float ScrollableContentMaxSweepAngle;
+    property public float StaticContentMaxSweepAngle;
     field public static final androidx.wear.compose.material3.CurvedTextDefaults INSTANCE;
-    field public static final float ScrollableContentMaxSweepAngle = 70.0f;
-    field public static final float StaticContentMaxSweepAngle = 120.0f;
   }
 
   public final class CurvedTextKt {
@@ -536,6 +536,16 @@ package androidx.wear.compose.material3 {
     property public float Large;
     property public float Medium;
     property public float Small;
+  }
+
+  public final class FadingExpandingLabelDefaults {
+    method @androidx.compose.runtime.Composable public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> getAnimationSpec();
+    property @androidx.compose.runtime.Composable public androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> animationSpec;
+    field public static final androidx.wear.compose.material3.FadingExpandingLabelDefaults INSTANCE;
+  }
+
+  public final class FadingExpandingLabelKt {
+    method @androidx.compose.runtime.Composable public static void FadingExpandingLabel(String text, optional androidx.compose.ui.Modifier modifier, optional long color, optional long fontSize, optional androidx.compose.ui.text.font.FontStyle? fontStyle, optional androidx.compose.ui.text.font.FontWeight? fontWeight, optional androidx.compose.ui.text.font.FontFamily? fontFamily, optional long letterSpacing, optional androidx.compose.ui.text.style.TextDecoration? textDecoration, optional androidx.compose.ui.text.style.TextAlign? textAlign, optional long lineHeight, optional boolean softWrap, optional int maxLines, optional int minLines, optional androidx.compose.ui.text.TextStyle textStyle, optional androidx.compose.animation.core.FiniteAnimationSpec<java.lang.Float> animationSpec);
   }
 
   @androidx.compose.runtime.Immutable public final class IconButtonColors {
@@ -706,10 +716,10 @@ package androidx.wear.compose.material3 {
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.LevelIndicatorColors colors();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.LevelIndicatorColors colors(optional long indicatorColor, optional long trackColor, optional long disabledIndicatorColor, optional long disabledTrackColor);
     method public float getStrokeWidth();
+    method public float getSweepAngle();
     property public float StrokeWidth;
-    property public static float SweepAngle;
+    property public float SweepAngle;
     field public static final androidx.wear.compose.material3.LevelIndicatorDefaults INSTANCE;
-    field public static final float SweepAngle = 72.0f;
   }
 
   public final class LevelIndicatorKt {
@@ -798,13 +808,13 @@ package androidx.wear.compose.material3 {
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.OpenOnPhoneDialogColors colors();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.OpenOnPhoneDialogColors colors(optional long iconColor, optional long iconContainerColor, optional long progressIndicatorColor, optional long progressTrackColor, optional long textColor);
     method @androidx.compose.runtime.Composable public androidx.wear.compose.foundation.CurvedTextStyle getCurvedTextStyle();
+    method public long getDurationMillis();
     method @androidx.compose.runtime.Composable public String getIconContentDescription();
     method @androidx.compose.runtime.Composable public String getText();
-    property public static long DurationMillis;
+    property public long DurationMillis;
     property @androidx.compose.runtime.Composable public androidx.wear.compose.foundation.CurvedTextStyle curvedTextStyle;
     property @androidx.compose.runtime.Composable public String iconContentDescription;
     property @androidx.compose.runtime.Composable public String text;
-    field public static final long DurationMillis = 4000L; // 0xfa0L
     field public static final androidx.wear.compose.material3.OpenOnPhoneDialogDefaults INSTANCE;
   }
 
@@ -1358,6 +1368,8 @@ package androidx.wear.compose.material3 {
   }
 
   public final class SwipeToRevealDefaults {
+    method @androidx.compose.runtime.Composable public java.util.Map<androidx.wear.compose.foundation.RevealValue,java.lang.Float> anchors(optional float anchorWidth, optional boolean useAnchoredActions);
+    method @androidx.compose.runtime.Composable public java.util.Map<androidx.wear.compose.foundation.RevealValue,java.lang.Float> bidirectionalAnchors(optional float anchorWidth, optional boolean useAnchoredActions);
     method public float getDoubleActionAnchorWidth();
     method public float getLargeActionButtonHeight();
     method public float getSingleActionAnchorWidth();
@@ -1370,8 +1382,7 @@ package androidx.wear.compose.material3 {
   }
 
   public final class SwipeToRevealKt {
-    method @androidx.compose.runtime.Composable public static void SwipeToReveal(kotlin.jvm.functions.Function1<? super androidx.wear.compose.material3.SwipeToRevealScope,kotlin.Unit> actions, optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.foundation.RevealState revealState, optional float actionButtonHeight, kotlin.jvm.functions.Function0<kotlin.Unit> content);
-    method @androidx.compose.runtime.Composable public static androidx.wear.compose.foundation.RevealState rememberRevealState(optional int initialValue, optional float anchorWidth, optional boolean useAnchoredActions, optional int revealDirection);
+    method @androidx.compose.runtime.Composable public static void SwipeToReveal(kotlin.jvm.functions.Function1<? super androidx.wear.compose.material3.SwipeToRevealScope,kotlin.Unit> actions, optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.foundation.RevealState revealState, optional float actionButtonHeight, optional androidx.wear.compose.foundation.GestureInclusion gestureInclusion, kotlin.jvm.functions.Function0<kotlin.Unit> content);
   }
 
   public final class SwipeToRevealScope {
@@ -1535,13 +1546,13 @@ package androidx.wear.compose.material3 {
   }
 
   public final class TextConfigurationDefaults {
+    method public int getMaxLines();
     method public int getOverflow();
     method public androidx.compose.ui.text.style.TextAlign? getTextAlign();
-    property public static int MaxLines;
+    property public int MaxLines;
     property public int Overflow;
     property public androidx.compose.ui.text.style.TextAlign? TextAlign;
     field public static final androidx.wear.compose.material3.TextConfigurationDefaults INSTANCE;
-    field public static final int MaxLines = 2147483647; // 0x7fffffff
   }
 
   public final class TextKt {
@@ -1671,17 +1682,17 @@ package androidx.wear.compose.material3 {
   public final class TimeTextDefaults {
     method @androidx.compose.runtime.Composable public long backgroundColor();
     method public androidx.compose.foundation.layout.PaddingValues getContentPadding();
+    method public float getMaxSweepAngle();
+    method public String getTimeFormat12Hours();
+    method public String getTimeFormat24Hours();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.material3.TimeSource rememberTimeSource(String timeFormat);
     method @androidx.compose.runtime.Composable public String timeFormat();
     method @androidx.compose.runtime.Composable public androidx.wear.compose.foundation.CurvedTextStyle timeTextStyle(optional long background, optional long color, optional long fontSize);
     property public androidx.compose.foundation.layout.PaddingValues ContentPadding;
-    property public static float MaxSweepAngle;
-    property public static String TimeFormat12Hours;
-    property public static String TimeFormat24Hours;
+    property public float MaxSweepAngle;
+    property public String TimeFormat12Hours;
+    property public String TimeFormat24Hours;
     field public static final androidx.wear.compose.material3.TimeTextDefaults INSTANCE;
-    field public static final float MaxSweepAngle = 70.0f;
-    field public static final String TimeFormat12Hours = "h:mm";
-    field public static final String TimeFormat24Hours = "HH:mm";
   }
 
   public final class TimeTextKt {
@@ -1766,10 +1777,6 @@ package androidx.wear.compose.material3.lazy {
     method @androidx.compose.runtime.Composable public static androidx.compose.ui.Modifier scrollTransform(androidx.compose.ui.Modifier, androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope scope);
     method @androidx.compose.runtime.Composable public static androidx.compose.ui.Modifier scrollTransform(androidx.compose.ui.Modifier, androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope scope, androidx.compose.ui.graphics.Shape shape, androidx.compose.ui.graphics.painter.Painter painter, optional androidx.compose.foundation.BorderStroke? border);
     method @androidx.compose.runtime.Composable public static androidx.compose.ui.Modifier scrollTransform(androidx.compose.ui.Modifier, androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope scope, long backgroundColor, optional androidx.compose.ui.graphics.Shape shape);
-  }
-
-  public final class TargetMorphingHeightKt {
-    method public static androidx.compose.ui.Modifier targetMorphingHeight(androidx.compose.ui.Modifier, androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope scope);
   }
 
   public interface TransformationSpec {

@@ -64,14 +64,14 @@ import androidx.wear.compose.foundation.edgeSwipeToDismiss
  *   will be displayed as a foreground after the swipe animation ends (as is common when
  *   [SwipeToDismissBox] is used for the navigation). This allows remembered state to be correctly
  *   moved between background and foreground.
+ * @param contentKey Optional [key] which identifies the content currently composed in the [content]
+ *   block when isBackground == false. See [backgroundKey].
+ * @param hasBackground Optional [Boolean] used to indicate if the content has no background, in
+ *   which case the swipe gesture is disabled (since there is no parent destination).
  * @param content Slot for content, with the isBackground parameter enabling content to be displayed
  *   behind the foreground content - the background is normally hidden, is shown behind a scrim
  *   during the swipe gesture, and is shown without scrim once the finger passes the
  *   swipe-to-dismiss threshold.
- * @Param contentKey Optional [key] which identifies the content currently composed in the [content]
- *   block when isBackground == false. See [backgroundKey].
- * @Param hasBackground Optional [Boolean] used to indicate if the content has no background, in
- *   which case the swipe gesture is disabled (since there is no parent destination).
  */
 @Composable
 public fun SwipeToDismissBox(
@@ -125,14 +125,14 @@ public fun SwipeToDismissBox(
  *   will be displayed as a foreground after the swipe animation ends (as is common when
  *   [SwipeToDismissBox] is used for the navigation). This allows remembered state to be correctly
  *   moved between background and foreground.
+ * @param contentKey Optional [key] which identifies the content currently composed in the [content]
+ *   block when isBackground == false. See [backgroundKey].
+ * @param hasBackground Optional [Boolean] used to indicate if the content has no background, in
+ *   which case the swipe gesture is disabled (since there is no parent destination).
  * @param content Slot for content, with the isBackground parameter enabling content to be displayed
  *   behind the foreground content - the background is normally hidden, is shown behind a scrim
  *   during the swipe gesture, and is shown without scrim once the finger passes the
  *   swipe-to-dismiss threshold.
- * @Param contentKey Optional [key] which identifies the content currently composed in the [content]
- *   block when isBackground == false. See [backgroundKey].
- * @Param hasBackground Optional [Boolean] used to indicate if the content has no background, in
- *   which case the swipe gesture is disabled (since there is no parent destination).
  */
 @Suppress("DEPRECATION")
 @Deprecated(
@@ -200,14 +200,14 @@ public fun SwipeToDismissBox(
  *   will be displayed as a foreground after the swipe animation ends (as is common when
  *   [SwipeToDismissBox] is used for the navigation). This allows remembered state to be correctly
  *   moved between background and foreground.
+ * @param contentKey Optional [key] which identifies the content currently composed in the [content]
+ *   block when isBackground == false. See [backgroundKey].
+ * @param hasBackground Optional [Boolean] used to indicate if the content has no background, in
+ *   which case the swipe gesture is disabled (since there is no parent destination).
  * @param content Slot for content, with the isBackground parameter enabling content to be displayed
  *   behind the foreground content - the background is normally hidden, is shown behind a scrim
  *   during the swipe gesture, and is shown without scrim once the finger passes the
  *   swipe-to-dismiss threshold.
- * @Param contentKey Optional [key] which identifies the content currently composed in the [content]
- *   block when isBackground == false. See [backgroundKey].
- * @Param hasBackground Optional [Boolean] used to indicate if the content has no background, in
- *   which case the swipe gesture is disabled (since there is no parent destination).
  */
 @Composable
 public fun SwipeToDismissBox(
@@ -266,14 +266,14 @@ public fun SwipeToDismissBox(
  *   will be displayed as a foreground after the swipe animation ends (as is common when
  *   [SwipeToDismissBox] is used for the navigation). This allows remembered state to be correctly
  *   moved between background and foreground.
+ * @param contentKey Optional [key] which identifies the content currently composed in the [content]
+ *   block when isBackground == false. See [backgroundKey].
+ * @param hasBackground Optional [Boolean] used to indicate if the content has no background, in
+ *   which case the swipe gesture is disabled (since there is no parent destination).
  * @param content Slot for content, with the isBackground parameter enabling content to be displayed
  *   behind the foreground content - the background is normally hidden, is shown behind a scrim
  *   during the swipe gesture, and is shown without scrim once the finger passes the
  *   swipe-to-dismiss threshold.
- * @Param contentKey Optional [key] which identifies the content currently composed in the [content]
- *   block when isBackground == false. See [backgroundKey].
- * @Param hasBackground Optional [Boolean] used to indicate if the content has no background, in
- *   which case the swipe gesture is disabled (since there is no parent destination).
  */
 @Suppress("DEPRECATION")
 @Deprecated(

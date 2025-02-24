@@ -19,6 +19,7 @@ package androidx.xr.scenecore.impl;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
+import androidx.annotation.NonNull;
 import androidx.xr.extensions.node.InputEvent;
 import androidx.xr.extensions.node.Node;
 import androidx.xr.extensions.node.Vec3;
@@ -53,7 +54,7 @@ public class PointerCaptureComponentImplTest {
         public JxrPlatformAdapter.InputEvent lastEvent = null;
 
         @Override
-        public void onInputEvent(JxrPlatformAdapter.InputEvent event) {
+        public void onInputEvent(@NonNull JxrPlatformAdapter.InputEvent event) {
             lastEvent = event;
         }
     }

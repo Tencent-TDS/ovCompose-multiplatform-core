@@ -23,6 +23,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.ActivityPanelEntity
+import androidx.xr.scenecore.Dimensions
+import androidx.xr.scenecore.MovableComponent
 import androidx.xr.scenecore.Session
 import androidx.xr.scenecore.SpatialCapabilities
 import androidx.xr.scenecore.getSpatialCapabilities
@@ -46,8 +48,22 @@ class ActivityPanelHostActivity : AppCompatActivity() {
             val intent = Intent(this, CounterActivity::class.java)
             activityPanelEntity.launchActivity(intent)
             activityPanelEntity.setPose(Pose(Vector3(0.5f, 0.5f, 0.0f)))
+            val movableComponent = MovableComponent.create(session)
+            movableComponent.size = getSizeInLocalSpace(activityPanelEntity)
+            @Suppress("UNUSED_VARIABLE")
+            val unused = activityPanelEntity.addComponent(movableComponent)
         }
         setContentView(CommonTestView(this))
+    }
+
+    private fun getSizeInLocalSpace(activityPanelEntity: ActivityPanelEntity): Dimensions {
+        val scaledSize = activityPanelEntity.getSize()
+        val worldSpaceScale = activityPanelEntity.getWorldSpaceScale()
+        return Dimensions(
+            scaledSize.width / worldSpaceScale,
+            scaledSize.height / worldSpaceScale,
+            scaledSize.depth / worldSpaceScale,
+        )
     }
 
     override fun onDestroy() {

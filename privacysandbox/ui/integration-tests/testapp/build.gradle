@@ -72,4 +72,7 @@ dependencies {
     implementation(project(":privacysandbox:ui:integration-tests:testsdkproviderwrapper"))
     implementation(project(":privacysandbox:ui:ui-client"))
     implementation(project(":privacysandbox:ui:ui-provider"))
+    implementation(libs.media3Ui)
+    implementation(libs.media3Common)
+    implementation(libs.media3Exoplayer)
 }

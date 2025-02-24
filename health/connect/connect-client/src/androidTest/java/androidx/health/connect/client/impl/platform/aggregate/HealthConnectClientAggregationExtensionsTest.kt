@@ -47,6 +47,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.fold
@@ -99,12 +100,12 @@ class HealthConnectClientAggregationExtensionsTest {
     @After
     fun tearDown() = runTest {
         for (recordType in SDK_TO_PLATFORM_RECORD_CLASS.keys) {
-            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
         }
 
         if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13) {
             for (recordType in SDK_TO_PLATFORM_RECORD_CLASS_EXT_13.keys) {
-                healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+                healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
             }
         }
     }
@@ -187,7 +188,7 @@ class HealthConnectClientAggregationExtensionsTest {
             healthConnectClient.aggregateFallback(
                 AggregateRequest(
                     metrics = AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10 + NutritionRecord.CALCIUM_TOTAL,
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -222,7 +223,7 @@ class HealthConnectClientAggregationExtensionsTest {
             healthConnectClient.aggregateFallback(
                 AggregateRequest(
                     metrics = AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10,
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -240,7 +241,11 @@ class HealthConnectClientAggregationExtensionsTest {
         val count =
             healthConnectClient
                 .readRecordsFlow(
-                    ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none(), emptySet())
+                    ReadRecordsRequest(
+                        StepsRecord::class,
+                        TimeRangeFilter.after(Instant.EPOCH),
+                        emptySet()
+                    )
                 )
                 .fold(0) { currentCount, records -> currentCount + records.size }
 
@@ -279,7 +284,7 @@ class HealthConnectClientAggregationExtensionsTest {
                 .readRecordsFlow(
                     ReadRecordsRequest(
                         StepsRecord::class,
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         setOf(DataOrigin(context.packageName))
                     )
                 )
@@ -297,7 +302,7 @@ class HealthConnectClientAggregationExtensionsTest {
                 .readRecordsFlow(
                     ReadRecordsRequest(
                         StepsRecord::class,
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         setOf(DataOrigin("some random package name"))
                     )
                 )

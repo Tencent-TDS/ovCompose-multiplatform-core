@@ -278,6 +278,53 @@ public class ComplicationDataSourceUpdateRequesterTest {
     }
 
     @Test
+    public fun filterRequests_filtersOutNonMatchingComponents() {
+        fun fakeRequest(id: Int) = ComplicationRequest(id, ComplicationType.SHORT_TEXT, false)
+        val requests =
+            ArrayList<Pair<ComponentName, ComplicationRequest>>().apply {
+                add(Pair(ComponentName("a", "b"), fakeRequest(1)))
+                add(Pair(providerComponent, fakeRequest(3)))
+                add(Pair(providerComponent, fakeRequest(4)))
+            }
+        val expectedResult =
+            requests.filter { it.first == providerComponent }.map { it.second }.toSet()
+
+        assertThat(
+                ComplicationDataSourceUpdateRequester.filterRequests(
+                    providerComponent,
+                    arrayOf(1, 3, 4).toIntArray(),
+                    requests
+                )
+            )
+            .isEqualTo(expectedResult)
+    }
+
+    @Test
+    public fun filterRequests_filtersOutNonMatchingInstanceIds() {
+        fun fakeRequest(id: Int) = ComplicationRequest(id, ComplicationType.SHORT_TEXT, false)
+        val requests =
+            ArrayList<Pair<ComponentName, ComplicationRequest>>().apply {
+                add(Pair(providerComponent, fakeRequest(2)))
+                add(Pair(providerComponent, fakeRequest(3)))
+                add(Pair(providerComponent, fakeRequest(4)))
+            }
+        val expectedResult =
+            requests
+                .filter { it.second.complicationInstanceId in arrayOf(3, 4) }
+                .map { it.second }
+                .toSet()
+
+        assertThat(
+                ComplicationDataSourceUpdateRequester.filterRequests(
+                    providerComponent,
+                    arrayOf(3, 4).toIntArray(),
+                    requests
+                )
+            )
+            .isEqualTo(expectedResult)
+    }
+
+    @Test
     @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public fun requestUpdate_androidT_sendsBroadcast() {

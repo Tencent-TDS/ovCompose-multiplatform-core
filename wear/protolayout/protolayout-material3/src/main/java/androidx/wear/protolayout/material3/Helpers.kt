@@ -165,10 +165,11 @@ internal fun MaterialScope.componentContainer(
     width: ContainerDimension,
     height: ContainerDimension,
     backgroundContent: (MaterialScope.() -> LayoutElement)?,
+    useOverlayOnBackground: Boolean = true,
     contentPadding: Padding,
     metadataTag: String?,
     content: (MaterialScope.() -> LayoutElement)?,
-    useOverlayOnBackground: Boolean = true
+    horizontalAlignment: Int = HORIZONTAL_ALIGN_CENTER
 ): LayoutElement {
     val mod =
         LayoutModifier.semanticsRole(SEMANTICS_ROLE_BUTTON) then
@@ -179,9 +180,11 @@ internal fun MaterialScope.componentContainer(
             }
 
     val container =
-        Box.Builder().setHeight(height).setWidth(width).apply {
-            content?.let { addContent(content()) }
-        }
+        Box.Builder()
+            .setHeight(height)
+            .setHorizontalAlignment(horizontalAlignment)
+            .setWidth(width)
+            .apply { content?.let { addContent(content()) } }
 
     if (backgroundContent == null) {
         container.setModifiers(mod.padding(contentPadding).toProtoLayoutModifiers())

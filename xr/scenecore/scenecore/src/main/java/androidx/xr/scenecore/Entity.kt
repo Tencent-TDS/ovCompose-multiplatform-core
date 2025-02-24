@@ -34,6 +34,7 @@ import androidx.xr.runtime.Session as PerceptionSession
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity as RtEntity
+import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity as RtPanelEntity
 import java.time.Duration
 import java.util.UUID
@@ -679,10 +680,27 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
     public fun stopAnimation() {
         rtEntity.stopAnimation()
     }
+
+    /**
+     * Sets a material override for a mesh in the glTF model.
+     *
+     * This method must be called from the main thread.
+     * https://developer.android.com/guide/components/processes-and-threads
+     *
+     * If the material is not created or the mesh name is not found in the glTF model, this method
+     * will throw an IllegalStateException.
+     *
+     * @param material The material to use for the mesh.
+     * @param meshName The name of the mesh to use the material for.
+     */
+    @MainThread
+    public fun setMaterialOverride(material: MaterialResource, meshName: String) {
+        rtEntity.setMaterialOverride(material, meshName)
+    }
 }
 
 /**
- * StereoSurfaceEntity is a concrete implementation of Entity that hosts a StereoSurface Canvas. The
+ * SurfaceEntity is a concrete implementation of Entity that hosts a StereoSurface Canvas. The
  * entity creates and owns an Android Surface into which the application can render stereo image
  * content. This Surface is then texture mapped to the canvas, and if a stereoscopic StereoMode is
  * specified, then the User will see left and right eye content mapped to the appropriate display.
@@ -698,14 +716,14 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
  *   entity.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class StereoSurfaceEntity
+public class SurfaceEntity
 private constructor(
-    rtEntity: JxrPlatformAdapter.StereoSurfaceEntity,
+    rtEntity: JxrPlatformAdapter.SurfaceEntity,
     entityManager: EntityManager,
     canvasShape: CanvasShape,
-) : BaseEntity<JxrPlatformAdapter.StereoSurfaceEntity>(rtEntity, entityManager) {
+) : BaseEntity<JxrPlatformAdapter.SurfaceEntity>(rtEntity, entityManager) {
 
-    /** Represents the shape of the StereoSurface Canvas that backs a StereoSurfaceEntity. */
+    /** Represents the shape of the Canvas that backs a SurfaceEntity. */
     public abstract class CanvasShape private constructor() {
         public open val dimensions: Dimensions = Dimensions(0.0f, 0.0f, 0.0f)
 
@@ -765,15 +783,14 @@ private constructor(
     public companion object {
         private fun getRtStereoMode(stereoMode: Int): Int {
             return when (stereoMode) {
-                StereoMode.MONO -> JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.MONO
-                StereoMode.TOP_BOTTOM ->
-                    JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.TOP_BOTTOM
-                else -> JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE
+                StereoMode.MONO -> JxrPlatformAdapter.SurfaceEntity.StereoMode.MONO
+                StereoMode.TOP_BOTTOM -> JxrPlatformAdapter.SurfaceEntity.StereoMode.TOP_BOTTOM
+                else -> JxrPlatformAdapter.SurfaceEntity.StereoMode.SIDE_BY_SIDE
             }
         }
 
         /**
-         * Factory method for StereoSurfaceEntity.
+         * Factory method for SurfaceEntity.
          *
          * @param adapter JxrPlatformAdapter to use.
          * @param entityManager A SceneCore EntityManager
@@ -787,26 +804,24 @@ private constructor(
             stereoMode: Int = StereoMode.SIDE_BY_SIDE,
             pose: Pose = Pose.Identity,
             canvasShape: CanvasShape = CanvasShape.Quad(1.0f, 1.0f),
-        ): StereoSurfaceEntity {
+        ): SurfaceEntity {
             val rtCanvasShape =
                 when (canvasShape) {
                     is CanvasShape.Quad ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Quad(
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(
                             canvasShape.width,
-                            canvasShape.height,
+                            canvasShape.height
                         )
                     is CanvasShape.Vr360Sphere ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Vr360Sphere(
-                            canvasShape.radius
-                        )
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(canvasShape.radius)
                     is CanvasShape.Vr180Hemisphere ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Vr180Hemisphere(
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(
                             canvasShape.radius
                         )
                     else -> throw IllegalArgumentException("Unsupported canvas shape: $canvasShape")
                 }
-            return StereoSurfaceEntity(
-                adapter.createStereoSurfaceEntity(
+            return SurfaceEntity(
+                adapter.createSurfaceEntity(
                     getRtStereoMode(stereoMode),
                     rtCanvasShape,
                     pose,
@@ -818,26 +833,27 @@ private constructor(
         }
 
         /**
-         * Public factory function for a StereoSurfaceEntity.
+         * Public factory function for a SurfaceEntity.
          *
          * This method must be called from the main thread.
          * https://developer.android.com/guide/components/processes-and-threads
          *
-         * @param session Session to create the StereoSurfaceEntity in.
+         * @param session Session to create the SurfaceEntity in.
          * @param stereoMode Stereo mode for the surface.
          * @param pose Pose of this entity relative to its parent, default value is Identity.
          * @param canvasShape The [CanvasShape] which describes the spatialized shape of the canvas.
-         * @return a StereoSurfaceEntity instance
+         * @return a SurfaceEntity instance
          */
         @MainThread
         @JvmOverloads
+        @JvmStatic
         public fun create(
             session: Session,
-            stereoMode: Int = StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE,
+            stereoMode: Int = SurfaceEntity.StereoMode.SIDE_BY_SIDE,
             pose: Pose = Pose.Identity,
             canvasShape: CanvasShape = CanvasShape.Quad(1.0f, 1.0f),
-        ): StereoSurfaceEntity =
-            StereoSurfaceEntity.create(
+        ): SurfaceEntity =
+            SurfaceEntity.create(
                 session.platformAdapter,
                 session.entityManager,
                 stereoMode,
@@ -881,16 +897,11 @@ private constructor(
             val rtCanvasShape =
                 when (value) {
                     is CanvasShape.Quad ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Quad(
-                            value.width,
-                            value.height
-                        )
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(value.width, value.height)
                     is CanvasShape.Vr360Sphere ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Vr360Sphere(value.radius)
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(value.radius)
                     is CanvasShape.Vr180Hemisphere ->
-                        JxrPlatformAdapter.StereoSurfaceEntity.CanvasShape.Vr180Hemisphere(
-                            value.radius
-                        )
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(value.radius)
                     else -> throw IllegalArgumentException("Unsupported canvas shape: $value")
                 }
             rtEntity.setCanvasShape(rtCanvasShape)

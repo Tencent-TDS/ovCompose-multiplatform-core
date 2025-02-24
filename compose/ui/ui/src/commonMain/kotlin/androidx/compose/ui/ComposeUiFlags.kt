@@ -78,7 +78,7 @@ object ComposeUiFlags {
      * With this flag on, the new semantic version of Autofill APIs will be enabled. Turning this
      * flag off will disable the new Semantic Autofill APIs, and the new refactored semantics.
      */
-    @Suppress("MutableBareField") @JvmField var isSemanticAutofillEnabled: Boolean = false
+    @Suppress("MutableBareField") @JvmField var isSemanticAutofillEnabled: Boolean = true
 
     /**
      * This enables fixes for View focus. The changes are large enough to require a flag to allow

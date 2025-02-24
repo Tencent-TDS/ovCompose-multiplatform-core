@@ -16,12 +16,15 @@
 
 package androidx.xr.scenecore.impl;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Binder;
 import android.util.Log;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.View;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.NonNull;
 import androidx.xr.extensions.XrExtensions;
@@ -58,6 +61,20 @@ final class PanelEntityImpl extends BasePanelEntity implements PanelEntity {
                 new SurfaceControlViewHost(
                         context, Objects.requireNonNull(context.getDisplay()), new Binder());
         surfaceControlViewHost.setView(view, surfaceDimensionsPx.width, surfaceDimensionsPx.height);
+        OnBackInvokedCallback onBackInvokedCallback =
+                new OnBackInvokedCallback() {
+                    @Override
+                    public void onBackInvoked() {
+                        if (view.getContext() instanceof Activity) {
+                            ((Activity) view.getContext()).onBackPressed();
+                        }
+                    }
+                };
+        OnBackInvokedDispatcher backDispatcher = view.findOnBackInvokedDispatcher();
+        if (backDispatcher != null) {
+            backDispatcher.registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT, onBackInvokedCallback);
+        }
 
         SurfacePackage surfacePackage =
                 Objects.requireNonNull(surfaceControlViewHost.getSurfacePackage());

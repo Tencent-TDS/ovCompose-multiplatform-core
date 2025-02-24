@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -68,11 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.ButtonDefaults.buttonColors
 import androidx.wear.compose.material3.ButtonDefaults.filledTonalButtonColors
 import androidx.wear.compose.material3.internal.Icons
-import androidx.wear.compose.material3.internal.Strings.Companion.DatePickerDay
-import androidx.wear.compose.material3.internal.Strings.Companion.DatePickerMonth
-import androidx.wear.compose.material3.internal.Strings.Companion.DatePickerYear
-import androidx.wear.compose.material3.internal.Strings.Companion.PickerConfirmButtonContentDescription
-import androidx.wear.compose.material3.internal.Strings.Companion.PickerNextButtonContentDescription
+import androidx.wear.compose.material3.internal.Strings
 import androidx.wear.compose.material3.internal.getString
 import androidx.wear.compose.material3.tokens.DatePickerTokens
 import androidx.wear.compose.materialcore.isLargeScreen
@@ -161,9 +158,10 @@ public fun DatePicker(
 
     val focusRequesterConfirmButton = remember { FocusRequester() }
 
-    val yearString = getString(DatePickerYear)
-    val monthString = getString(DatePickerMonth)
-    val dayString = getString(DatePickerDay)
+    val instructionHeadingString = getString(Strings.DatePickerHeading)
+    val yearString = getString(Strings.DatePickerYear)
+    val monthString = getString(Strings.DatePickerMonth)
+    val dayString = getString(Strings.DatePickerDay)
 
     LaunchedEffect(
         datePickerState.isMinYearSelected,
@@ -260,7 +258,12 @@ public fun DatePicker(
                     DatePickerOption.Year -> yearString
                     else -> ""
                 }
-            } ?: ""
+            } ?: if (touchExplorationServicesEnabled) instructionHeadingString else ""
+
+        // Allow more room for the initial instruction heading under TalkBck
+        val maxTextLines = if (selectedIndex == null) 2 else 1
+        val textPaddingPercentage = 24f
+
         val headingAnimationSpec: FiniteAnimationSpec<Float> =
             MaterialTheme.motionScheme.defaultEffectsSpec()
         Column(
@@ -280,12 +283,17 @@ public fun DatePicker(
                 }
             ) { targetText ->
                 Text(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier =
+                        Modifier.padding(
+                                horizontal =
+                                    PaddingDefaults.horizontalContentPadding(textPaddingPercentage)
+                            )
+                            .fillMaxWidth(),
                     text = targetText,
                     color = colors.pickerLabelColor,
                     textAlign = TextAlign.Center,
                     style = labelTextStyle,
-                    maxLines = 1,
+                    maxLines = maxTextLines,
                 )
             }
             Spacer(Modifier.height(if (isLargeScreen) 6.dp else 4.dp))
@@ -506,10 +514,10 @@ public fun DatePicker(
                         },
                     contentDescription =
                         if (showConfirm) {
-                            getString(PickerConfirmButtonContentDescription)
+                            getString(Strings.PickerConfirmButtonContentDescription)
                         } else {
                             // If none is selected, return the 'next' content description.
-                            getString(PickerNextButtonContentDescription)
+                            getString(Strings.PickerNextButtonContentDescription)
                         },
                     modifier = Modifier.size(24.dp).wrapContentSize(align = Alignment.Center),
                 )

@@ -21,7 +21,7 @@ import androidx.annotation.RestrictTo
 
 /** Factory for creating instances of Runtime. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public interface RuntimeFactory {
+public fun interface RuntimeFactory {
     /** Creates a [Runtime] instance */
     public fun createRuntime(activity: Activity): Runtime
 }

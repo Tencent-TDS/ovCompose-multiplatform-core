@@ -334,7 +334,7 @@ data class DocumentClassCreationInfo(
         ): String {
             return gettersAndFields
                 .stream()
-                .map(AnnotatedGetterOrField::getJvmName)
+                .map(AnnotatedGetterOrField::jvmName)
                 .collect(Collectors.joining(", "))
         }
     }

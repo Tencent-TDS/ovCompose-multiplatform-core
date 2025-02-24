@@ -76,8 +76,8 @@ internal fun CurvedModifier.wrap(child: CurvedChild) =
  */
 internal open class BaseCurvedChildWrapper(val wrapped: CurvedChild) : CurvedChild() {
     @Composable
-    override fun SubComposition() {
-        wrapped.SubComposition()
+    override fun SubComposition(semanticProperties: CurvedSemanticProperties) {
+        wrapped.SubComposition(semanticProperties)
     }
 
     override fun CurvedMeasureScope.initializeMeasure(measurables: Iterator<Measurable>) =

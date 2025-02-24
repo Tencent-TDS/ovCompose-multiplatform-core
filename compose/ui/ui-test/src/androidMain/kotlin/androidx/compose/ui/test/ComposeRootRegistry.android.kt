@@ -133,7 +133,7 @@ internal class ComposeRootRegistry {
         }
     }
 
-    inline fun <R> withRegistry(block: () -> R): R {
+    fun <R> withRegistry(block: () -> R): R {
         try {
             setupRegistry()
             return block()

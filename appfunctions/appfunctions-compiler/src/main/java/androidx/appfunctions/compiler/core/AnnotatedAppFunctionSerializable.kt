@@ -23,6 +23,7 @@ import androidx.appfunctions.compiler.core.AppFunctionTypeReference.Companion.is
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
@@ -39,44 +40,105 @@ data class AnnotatedAppFunctionSerializable(val appFunctionSerializableClass: KS
      * 2. **Property Parameters:** Only properties (declared with `val`) can be passed as parameters
      *    to the primary constructor.
      * 3. **Supported Types:** All properties must be of one of the supported types.
+     * 4. **Super Type Parameters:** All parameters in the primary constructor of a super type must
+     *    be present in the primary constructor of the subtype.
      *
      * @throws ProcessingException if the class does not adhere to the requirements
      */
     fun validate(): AnnotatedAppFunctionSerializable {
-        val primaryConstructor = appFunctionSerializableClass.primaryConstructor
-        if (primaryConstructor == null || primaryConstructor.parameters.isEmpty()) {
+        val validatedPrimaryConstructor =
+            appFunctionSerializableClass.validateSerializablePrimaryConstructor()
+        val superTypesWithSerializableAnnotation =
+            appFunctionSerializableClass.superTypes
+                .map { it.resolve().declaration as KSClassDeclaration }
+                .filter {
+                    it.annotations.findAnnotation(
+                        IntrospectionHelper.AppFunctionSerializableAnnotation.CLASS_NAME
+                    ) != null
+                }
+                .map { it }
+                .toSet()
+        val parametersToValidate =
+            validatedPrimaryConstructor.parameters.associateBy { it.name.toString() }.toMutableMap()
+
+        validateParameters(parametersToValidate, superTypesWithSerializableAnnotation)
+
+        return this
+    }
+
+    private fun validateParameters(
+        parametersToValidate: MutableMap<String, KSValueParameter>,
+        superTypesWithSerializableAnnotation: Set<KSClassDeclaration>
+    ) {
+        for (serializableSuperType in superTypesWithSerializableAnnotation) {
+            val superTypePrimaryConstructor =
+                serializableSuperType.validateSerializablePrimaryConstructor()
+
+            for (superTypeParameter in superTypePrimaryConstructor.parameters) {
+                // Parameter has now been visited
+                val parameterInSuperType =
+                    parametersToValidate.remove(superTypeParameter.name.toString())
+                if (parameterInSuperType == null) {
+                    throw ProcessingException(
+                        "App parameters in @AppFunctionSerializable " +
+                            "supertypes must be present in subtype",
+                        superTypeParameter
+                    )
+                }
+                validateSerializableParameter(parameterInSuperType)
+            }
+        }
+
+        // Validate the remaining parameters
+        if (parametersToValidate.isNotEmpty()) {
+            for ((_, parameterToValidate) in parametersToValidate) {
+                validateSerializableParameter(parameterToValidate)
+            }
+        }
+    }
+
+    private fun KSClassDeclaration.validateSerializablePrimaryConstructor(): KSFunctionDeclaration {
+        if (primaryConstructor == null) {
             throw ProcessingException(
-                "Classes annotated with AppFunctionSerializable must have a primary constructor with one or more properties.",
-                appFunctionSerializableClass
+                "Classes annotated with AppFunctionSerializable must have a primary constructor.",
+                this
+            )
+        }
+        val primaryConstructorDeclaration = checkNotNull(primaryConstructor)
+        if (primaryConstructorDeclaration.parameters.isEmpty()) {
+            throw ProcessingException(
+                "Classes annotated with AppFunctionSerializable must not have an empty " +
+                    "primary constructor.",
+                this
             )
         }
 
-        if (primaryConstructor.getVisibility() != Visibility.PUBLIC) {
+        if (primaryConstructorDeclaration.getVisibility() != Visibility.PUBLIC) {
             throw ProcessingException(
                 "The primary constructor of @AppFunctionSerializable must be public.",
                 appFunctionSerializableClass
             )
         }
+        return primaryConstructorDeclaration
+    }
 
-        for (ksValueParameter in primaryConstructor.parameters) {
-            if (!ksValueParameter.isVal) {
-                throw ProcessingException(
-                    "All parameters in @AppFunctionSerializable primary constructor must have getters",
-                    ksValueParameter
-                )
-            }
-
-            if (!isSupportedType(ksValueParameter.type)) {
-                throw ProcessingException(
-                    "AppFunctionSerializable properties must be one of the following types:\n" +
-                        SUPPORTED_TYPES_STRING +
-                        ", an @AppFunctionSerializable or a list of @AppFunctionSerializable\nbut found " +
-                        ksValueParameter.type.toTypeName(),
-                    ksValueParameter
-                )
-            }
+    private fun validateSerializableParameter(ksValueParameter: KSValueParameter) {
+        if (!ksValueParameter.isVal) {
+            throw ProcessingException(
+                "All parameters in @AppFunctionSerializable primary constructor must have getters",
+                ksValueParameter
+            )
         }
-        return this
+
+        if (!isSupportedType(ksValueParameter.type)) {
+            throw ProcessingException(
+                "AppFunctionSerializable properties must be one of the following types:\n" +
+                    SUPPORTED_TYPES_STRING +
+                    ", an @AppFunctionSerializable or a list of @AppFunctionSerializable\nbut found " +
+                    ksValueParameter.type.toTypeName(),
+                ksValueParameter
+            )
+        }
     }
 
     /** Returns the annotated class's properties as defined in its primary constructor. */

@@ -25,6 +25,7 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.tokens.ButtonGroupSmallTokens
+import androidx.compose.material3.tokens.ConnectedButtonGroupSmallTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.material3.tokens.ShapeTokens
 import androidx.compose.runtime.Composable
@@ -49,7 +50,6 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMapIndexed
@@ -192,55 +192,50 @@ object ButtonGroupDefaults {
         Arrangement.spacedBy(ButtonGroupSmallTokens.BetweenSpace)
 
     /** The default spacing used between children for connected button group */
-    // TODO replace with token value
-    val ConnectedSpaceBetween: Dp = 2.dp
+    val ConnectedSpaceBetween: Dp = ConnectedButtonGroupSmallTokens.BetweenSpace
 
     /** Default shape for the leading button in a connected button group */
     val connectedLeadingButtonShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topStart = ShapeDefaults.CornerFull,
                 bottomStart = ShapeDefaults.CornerFull,
-                topEnd = ShapeDefaults.CornerSmall,
-                bottomEnd = ShapeDefaults.CornerSmall
+                topEnd = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize,
+                bottomEnd = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize
             )
 
     /** Default shape for the pressed state for the leading button in a connected button group. */
     val connectedLeadingButtonPressShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topStart = ShapeDefaults.CornerFull,
                 bottomStart = ShapeDefaults.CornerFull,
-                topEnd = ShapeDefaults.CornerExtraSmall,
-                bottomEnd = ShapeDefaults.CornerExtraSmall
+                topEnd = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize,
+                bottomEnd = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize
             )
 
     /** Default shape for the trailing button in a connected button group */
     val connectedTrailingButtonShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topEnd = ShapeDefaults.CornerFull,
                 bottomEnd = ShapeDefaults.CornerFull,
-                topStart = ShapeDefaults.CornerSmall,
-                bottomStart = ShapeDefaults.CornerSmall
+                topStart = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize,
+                bottomStart = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize
             )
 
     /** Default shape for the pressed state for the trailing button in a connected button group. */
     val connectedTrailingButtonPressShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topEnd = ShapeDefaults.CornerFull,
                 bottomEnd = ShapeDefaults.CornerFull,
-                topStart = ShapeDefaults.CornerExtraSmall,
-                bottomStart = ShapeDefaults.CornerExtraSmall
+                topStart = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize,
+                bottomStart = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize
             )
 
     /** Default shape for the checked state for the buttons in a connected button group */
@@ -249,9 +244,7 @@ object ButtonGroupDefaults {
     /** Default shape for the pressed state for the middle buttons in a connected button group. */
     val connectedMiddleButtonPressShape: Shape
         @Composable
-        get() =
-            // TODO replace with token value
-            RoundedCornerShape(ShapeDefaults.CornerExtraSmall)
+        get() = RoundedCornerShape(ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize)
 
     /** Defaults button shapes for the start button in a [ConnectedButtonGroup] */
     @Composable

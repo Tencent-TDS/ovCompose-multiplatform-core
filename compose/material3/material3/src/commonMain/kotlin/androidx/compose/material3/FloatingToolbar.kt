@@ -639,8 +639,8 @@ sealed interface FloatingToolbarScrollBehavior : NestedScrollConnection {
  * @param flingAnimationSpec an [DecayAnimationSpec] that defines how to fling the floating toolbar
  *   when the user flings the toolbar itself, or the content below it
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private class ExitAlwaysFloatingToolbarScrollBehavior(
+@ExperimentalMaterial3ExpressiveApi
+class ExitAlwaysFloatingToolbarScrollBehavior(
     override val exitDirection: FloatingToolbarExitDirection,
     override val state: FloatingToolbarState,
     override val snapAnimationSpec: AnimationSpec<Float>,

@@ -111,7 +111,7 @@ constructor(
 }
 
 /** Represents the persistent storage format of [AppFunctionMetadata]. */
-@Document
+@Document(name = "AppFunctionStaticMetadata")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public data class AppFunctionMetadataDocument(
     @Document.Namespace public val namespace: String = APP_FUNCTION_NAMESPACE,
@@ -123,7 +123,7 @@ public data class AppFunctionMetadataDocument(
      * This represents the initial configuration and might not represent the current enabled state,
      * as it could be modified at runtime.
      */
-    @Document.BooleanProperty public val isEnabledByDefault: Boolean,
+    @Document.BooleanProperty(name = "enabledByDefault") public val isEnabledByDefault: Boolean,
     /** The predefined schema of the AppFunction. */
     @Document.DocumentProperty public val schema: AppFunctionSchemaMetadataDocument?,
     /** The parameters of the AppFunction. */

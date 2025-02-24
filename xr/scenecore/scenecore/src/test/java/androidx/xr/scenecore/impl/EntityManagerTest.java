@@ -36,12 +36,16 @@ import androidx.xr.extensions.node.Node;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPanelEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
 import androidx.xr.scenecore.JxrPlatformAdapter.AnchorEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource;
+import androidx.xr.scenecore.JxrPlatformAdapter.HeadActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.PerceptionSpaceActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
@@ -55,6 +59,7 @@ import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,7 +90,7 @@ public class EntityManagerTest {
     private Node mContentLessEntityNode;
     private Node mGltfEntityNode;
     private Activity mActivity;
-    private JxrPlatformAdapterAxr mRuntime;
+    private JxrPlatformAdapterAxr mPlatformAdapterAxr;
     private ActivitySpaceImpl mActivitySpace;
 
     @Before
@@ -97,7 +102,7 @@ public class EntityManagerTest {
         when(mPerceptionLibrary.initSession(eq(mActivity), anyInt(), eq(mFakeExecutor)))
                 .thenReturn(immediateFuture(mSession));
         when(mPerceptionLibrary.getActivity()).thenReturn(mActivity);
-        mRuntime =
+        mPlatformAdapterAxr =
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
@@ -121,6 +126,12 @@ public class EntityManagerTest {
 
         // By default, set the activity space to the root of the underlying OpenXR reference space.
         mActivitySpace.setOpenXrReferenceSpacePose(Matrix4.Identity);
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mPlatformAdapterAxr.dispose();
     }
 
     @Test
@@ -226,6 +237,35 @@ public class EntityManagerTest {
     }
 
     @Test
+    public void getAllSystemSpaceActivityPoses_returnsAllSystemSpaceActivityPoses()
+            throws Exception {
+        assertThat(mEntityManager.getAllSystemSpaceActivityPoses().size()).isAtLeast(4);
+        assertThat(mEntityManager.getAllSystemSpaceActivityPoses())
+                .containsAtLeast(
+                        mPlatformAdapterAxr.getActivitySpace(),
+                        mPlatformAdapterAxr.getPerceptionSpaceActivityPose());
+    }
+
+    @Test
+    public void getSystemSpaceActivityPoseOfType_returnsSystemSpaceActivityPoseOfType()
+            throws Exception {
+        assertThat(mEntityManager.getSystemSpaceActivityPoseOfType(ActivitySpace.class).get(0))
+                .isInstanceOf(ActivitySpaceImpl.class);
+        assertThat(
+                        mEntityManager
+                                .getSystemSpaceActivityPoseOfType(PerceptionSpaceActivityPose.class)
+                                .get(0))
+                .isInstanceOf(PerceptionSpaceActivityPoseImpl.class);
+        assertThat(mEntityManager.getSystemSpaceActivityPoseOfType(HeadActivityPose.class).get(0))
+                .isInstanceOf(HeadActivityPoseImpl.class);
+        assertThat(
+                        mEntityManager
+                                .getSystemSpaceActivityPoseOfType(CameraViewActivityPose.class)
+                                .get(0))
+                .isInstanceOf(CameraViewActivityPoseImpl.class);
+    }
+
+    @Test
     public void clearEntityManager_removesAllEntityFromEntityManager() throws Exception {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
@@ -245,11 +285,12 @@ public class EntityManagerTest {
         mEntityManager.clear();
 
         assertThat(mEntityManager.getAllEntities()).isEmpty();
+        assertThat(mEntityManager.getAllSystemSpaceActivityPoses()).isEmpty();
     }
 
     private GltfEntity createGltfEntity() throws Exception {
         ListenableFuture<GltfModelResource> modelFuture =
-                mRuntime.loadGltfByAssetName("FakeAsset.glb");
+                mPlatformAdapterAxr.loadGltfByAssetName("FakeAsset.glb");
         assertThat(modelFuture).isNotNull();
         GltfModelResource model = modelFuture.get();
         GltfEntityImpl gltfEntity =
@@ -285,7 +326,8 @@ public class EntityManagerTest {
 
     private Entity createContentlessEntity() {
         Entity contentlessEntity =
-                mRuntime.createEntity(new Pose(), "testContentLess", mRuntime.getActivitySpace());
+                mPlatformAdapterAxr.createEntity(
+                        new Pose(), "testContentLess", mPlatformAdapterAxr.getActivitySpace());
         mContentLessEntityNode = ((AndroidXrEntity) contentlessEntity).getNode();
         mEntityManager.setEntityForNode(mContentLessEntityNode, contentlessEntity);
         return contentlessEntity;
@@ -310,7 +352,7 @@ public class EntityManagerTest {
     }
 
     private ActivityPanelEntity createActivityPanelEntity() {
-        return mRuntime.createActivityPanelEntity(
+        return mPlatformAdapterAxr.createActivityPanelEntity(
                 new Pose(),
                 new PixelDimensions(VGA_WIDTH, VGA_HEIGHT),
                 "test",

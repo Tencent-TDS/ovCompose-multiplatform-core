@@ -58,5 +58,5 @@ data class BytesPropertyAnnotation(
         get() = Kind.BYTES_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mBytePrimitiveArrayType
+        helper.bytePrimitiveArrayType
 }

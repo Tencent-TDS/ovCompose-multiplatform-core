@@ -18,6 +18,7 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.extensions.XrExtensions;
 import androidx.xr.extensions.node.Node;
@@ -126,6 +127,7 @@ abstract class SystemSpaceEntityImpl extends AndroidXrEntity
                         executor);
     }
 
+    @NonNull
     @Override
     public Vector3 getWorldSpaceScale() {
         return mWorldSpaceScale;

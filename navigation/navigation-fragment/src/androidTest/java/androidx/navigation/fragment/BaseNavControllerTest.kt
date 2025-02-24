@@ -210,7 +210,7 @@ abstract class BaseNavControllerTest<A : BaseNavigationActivity>(
     ) {
         val deepLinkUri = Uri.parse("http://www.example.com/$fullPath")
         val intent =
-            Intent(Intent.ACTION_VIEW, deepLinkUri)
+            Intent(null, deepLinkUri)
                 .setComponent(ComponentName(instrumentation.context, activityClass))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         val activity = launchActivity(intent)

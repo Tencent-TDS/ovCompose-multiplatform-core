@@ -16,11 +16,10 @@
 
 package androidx.wear.compose.material3
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,18 +46,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.foundation.GestureInclusion
 import androidx.wear.compose.foundation.RevealActionType
 import androidx.wear.compose.foundation.RevealDirection
+import androidx.wear.compose.foundation.RevealDirection.Companion.Both
+import androidx.wear.compose.foundation.RevealDirection.Companion.RightToLeft
 import androidx.wear.compose.foundation.RevealState
 import androidx.wear.compose.foundation.RevealValue
 import androidx.wear.compose.foundation.SwipeToReveal
+import androidx.wear.compose.foundation.SwipeToRevealDefaults.allowAllGestures
+import androidx.wear.compose.foundation.SwipeToRevealDefaults.ignoreLeftEdge
 import androidx.wear.compose.foundation.createRevealAnchors
+import androidx.wear.compose.foundation.rememberRevealState
 import androidx.wear.compose.material3.ButtonDefaults.buttonColors
 import androidx.wear.compose.material3.tokens.SwipeToRevealTokens
 import androidx.wear.compose.materialcore.screenWidthDp
@@ -92,6 +98,10 @@ import kotlinx.coroutines.launch
  * fully swiped or bounces back to its initial state.
  *
  * @sample androidx.wear.compose.material3.samples.SwipeToRevealNonAnchoredSample
+ *
+ * Example of [SwipeToReveal] with a [TransformingLazyColumn]
+ *
+ * @sample androidx.wear.compose.material3.samples.SwipeToRevealWithTransformingLazyColumnSample
  * @param actions Actions of the [SwipeToReveal] composable, such as
  *   [SwipeToRevealScope.primaryAction]. [actions] should always include exactly one
  *   [SwipeToRevealScope.primaryAction]. [SwipeToRevealScope.secondaryAction],
@@ -102,6 +112,13 @@ import kotlinx.coroutines.launch
  * @param actionButtonHeight Desired height of the revealed action buttons. In case the content is a
  *   Button composable, it's suggested to use [SwipeToRevealDefaults.SmallActionButtonHeight], and
  *   for a Card composable, it's suggested to use [SwipeToRevealDefaults.LargeActionButtonHeight].
+ * @param gestureInclusion Provides fine-grained control so that touch gestures can be excluded when
+ *   they start in a certain region. An instance of [GestureInclusion] can be passed in here which
+ *   will determine via [GestureInclusion.allowGesture] whether the gesture should proceed or not.
+ *   By default, [gestureInclusion] allows gestures everywhere for when [revealState] contains
+ *   anchors for both directions (see [allowAllGestures]). If it doesn't, then it allows gestures
+ *   everywhere, except a zone on the left edge, which is used for swipe-to-dismiss (see
+ *   [ignoreLeftEdge]).
  * @param content The content that will be initially displayed over the other actions provided.
  * @see [androidx.wear.compose.foundation.SwipeToReveal]
  */
@@ -109,8 +126,14 @@ import kotlinx.coroutines.launch
 public fun SwipeToReveal(
     actions: SwipeToRevealScope.() -> Unit,
     modifier: Modifier = Modifier,
-    revealState: RevealState = rememberRevealState(),
+    revealState: RevealState = rememberRevealState(anchors = SwipeToRevealDefaults.anchors()),
     actionButtonHeight: Dp = SwipeToRevealDefaults.SmallActionButtonHeight,
+    gestureInclusion: GestureInclusion =
+        if (revealState.hasBidirectionalAnchors()) {
+            allowAllGestures()
+        } else {
+            ignoreLeftEdge()
+        },
     content: @Composable () -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -198,6 +221,7 @@ public fun SwipeToReveal(
             primaryAction.onClick()
         },
         state = revealState,
+        gestureInclusion = gestureInclusion,
         content = content,
     )
 
@@ -210,6 +234,9 @@ public fun SwipeToReveal(
         }
     }
 }
+
+internal fun RevealState.hasBidirectionalAnchors(): Boolean =
+    this.swipeAnchors.keys.contains(RevealValue.LeftRevealed)
 
 /**
  * Scope for the actions of a [SwipeToReveal] composable. Used to define the primary, secondary,
@@ -315,39 +342,6 @@ public class SwipeToRevealScope {
     internal var undoSecondaryAction: SwipeToRevealAction? = null
 }
 
-/**
- * Creates a reveal state with Material3 specs.
- *
- * @param initialValue The initial value of the [RevealValue] for the [SwipeToReveal] composable.
- * @param anchorWidth Fraction of the screen revealed items should be displayed in. Ignored if
- *   [useAnchoredActions] is set to false, as the items won't be anchored to the screen. For a
- *   single action SwipeToReveal component, this should be
- *   [SwipeToRevealDefaults.SingleActionAnchorWidth], and for a double action SwipeToReveal,
- *   [SwipeToRevealDefaults.DoubleActionAnchorWidth] to be able to display both action buttons.
- * @param useAnchoredActions Whether the actions should stay revealed, or bounce back to hidden when
- *   the user stops swiping. This is relevant for SwipeToReveal components with a single action. If
- *   the developer wants a swipe to clear behaviour, this should be set to false.
- * @param revealDirection Direction of the swipe to reveal the actions.
- */
-@Composable
-public fun rememberRevealState(
-    initialValue: RevealValue = RevealValue.Covered,
-    anchorWidth: Dp = SwipeToRevealDefaults.SingleActionAnchorWidth,
-    useAnchoredActions: Boolean = true,
-    revealDirection: RevealDirection = RevealDirection.RightToLeft,
-): RevealState {
-    val anchorFraction = anchorWidth.value / screenWidthDp()
-    return androidx.wear.compose.foundation.rememberRevealState(
-        initialValue = initialValue,
-        animationSpec = tween(durationMillis = RAPID_ANIMATION, easing = FastOutSlowInEasing),
-        anchors =
-            createRevealAnchors(
-                revealingAnchor = if (useAnchoredActions) anchorFraction else 0f,
-                revealDirection = revealDirection,
-            ),
-    )
-}
-
 public object SwipeToRevealDefaults {
 
     /** Width that's required to display both actions in a [SwipeToReveal] composable. */
@@ -363,6 +357,69 @@ public object SwipeToRevealDefaults {
     public val LargeActionButtonHeight: Dp = 84.dp
 
     internal val IconSize = 26.dp
+
+    /**
+     * Creates the recommended anchors to support right-to-left swiping to reveal additional action
+     * buttons.
+     *
+     * @param anchorWidth Absolute width, in dp, of the screen revealed items should be displayed
+     *   in. Ignored if [useAnchoredActions] is set to false, as the items won't be anchored to the
+     *   screen. For a single action SwipeToReveal component, this should be
+     *   [SwipeToRevealDefaults.SingleActionAnchorWidth], and for a double action SwipeToReveal,
+     *   [SwipeToRevealDefaults.DoubleActionAnchorWidth] to be able to display both action buttons.
+     * @param useAnchoredActions Whether the actions should stay revealed, or bounce back to hidden
+     *   when the user stops swiping. This is relevant for SwipeToReveal components with a single
+     *   action. If the developer wants a swipe to clear behaviour, this should be set to false.
+     */
+    @SuppressLint("PrimitiveInCollection")
+    @Composable
+    public fun anchors(
+        anchorWidth: Dp = SingleActionAnchorWidth,
+        useAnchoredActions: Boolean = true,
+    ): Map<RevealValue, Float> =
+        createAnchors(anchorWidth = anchorWidth, useAnchoredActions = useAnchoredActions)
+
+    /**
+     * Creates anchors that allow the user to swipe either left-to-right or right-to-left to reveal
+     * or execute the actions. This should not be used if the component is part of an activity, as
+     * the gesture might conflict with the swipe-to-dismiss gesture. This is only supported for rare
+     * cases where the current screen does not support swipe to dismiss.
+     *
+     * @param anchorWidth Absolute width, in dp, of the screen revealed items should be displayed
+     *   in. Ignored if [useAnchoredActions] is set to false, as the items won't be anchored to the
+     *   screen. For a single action SwipeToReveal component, this should be
+     *   [SwipeToRevealDefaults.SingleActionAnchorWidth], and for a double action SwipeToReveal,
+     *   [SwipeToRevealDefaults.DoubleActionAnchorWidth] to be able to display both action buttons.
+     * @param useAnchoredActions Whether the actions should stay revealed, or bounce back to hidden
+     *   when the user stops swiping. This is relevant for SwipeToReveal components with a single
+     *   action. If the developer wants a swipe to clear behaviour, this should be set to false.
+     */
+    @SuppressLint("PrimitiveInCollection")
+    @Composable
+    public fun bidirectionalAnchors(
+        anchorWidth: Dp = SingleActionAnchorWidth,
+        useAnchoredActions: Boolean = true,
+    ): Map<RevealValue, Float> =
+        createAnchors(
+            anchorWidth = anchorWidth,
+            useAnchoredActions = useAnchoredActions,
+            revealDirection = Both
+        )
+
+    @SuppressLint("PrimitiveInCollection")
+    @Composable
+    internal fun createAnchors(
+        anchorWidth: Dp = SingleActionAnchorWidth,
+        useAnchoredActions: Boolean = true,
+        revealDirection: RevealDirection = RightToLeft,
+    ): Map<RevealValue, Float> {
+        val screenWidthDp = LocalConfiguration.current.screenWidthDp
+        val anchorFraction = anchorWidth.value / screenWidthDp
+        return createRevealAnchors(
+            revealingAnchor = if (useAnchoredActions) anchorFraction else 0f,
+            revealDirection = revealDirection,
+        )
+    }
 }
 
 @Composable

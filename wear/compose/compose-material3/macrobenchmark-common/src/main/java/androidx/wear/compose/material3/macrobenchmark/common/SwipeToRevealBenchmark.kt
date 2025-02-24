@@ -32,12 +32,12 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
+import androidx.wear.compose.foundation.rememberRevealState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.SwipeToReveal
 import androidx.wear.compose.material3.SwipeToRevealDefaults
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.rememberRevealState
 
 object SwipeToRevealBenchmark : MacrobenchmarkScreen {
     override val content: @Composable (BoxScope.() -> Unit)
@@ -47,7 +47,10 @@ object SwipeToRevealBenchmark : MacrobenchmarkScreen {
                 // Use the double action anchor width when revealing two actions
                 revealState =
                     rememberRevealState(
-                        anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                        anchors =
+                            SwipeToRevealDefaults.anchors(
+                                anchorWidth = SwipeToRevealDefaults.DoubleActionAnchorWidth,
+                            )
                     ),
                 actions = {
                     primaryAction(

@@ -20,7 +20,7 @@ import androidx.annotation.RestrictTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.xr.compose.subspace.node.SubspaceLayoutModifierNode
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.compose.unit.constrainDepth
 import androidx.xr.compose.unit.constrainHeight
@@ -105,7 +105,7 @@ private class SubspacePaddingElement(
     public val bottom: Dp,
     public val front: Dp,
     public val back: Dp,
-) : SubspaceModifierElement<PaddingNode>() {
+) : SubspaceModifierNodeElement<PaddingNode>() {
 
     init {
         require(

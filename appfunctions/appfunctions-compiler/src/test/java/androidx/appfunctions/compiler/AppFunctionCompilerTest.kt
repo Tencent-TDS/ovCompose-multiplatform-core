@@ -267,7 +267,8 @@ class AppFunctionCompilerTest {
     fun testRecursiveSerializableInputFunctions_genAppFunctionInventoryImplAndIndexXml_success() {
         val report =
             compilationTestHelper.compileAll(
-                sourceFileNames = listOf("RecursiveSerializableInputFunctions.KT"),
+                sourceFileNames =
+                    listOf("RecursiveSerializableInputFunctions.KT", "RecursiveSerializable.KT"),
                 processorOptions = mapOf("appfunctions:aggregateAppFunctions" to "true"),
             )
 

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package androidx.xr.compose.integration.subspacecomposableapp
 
 import android.annotation.SuppressLint
@@ -124,12 +125,12 @@ class SubspaceComposableApp : ComponentActivity() {
             PageContent(PageRoutes.HOME, { Icon(Icons.Filled.Home, contentDescription = "HOME") }),
             PageContent(
                 PageRoutes.PANELS,
-                { Icon(Icons.Filled.AccountBox, contentDescription = "PANELS") }
+                { Icon(Icons.Filled.AccountBox, contentDescription = "PANELS") },
             ),
             PageContent(
                 PageRoutes.ARROWS,
-                { Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "ARROWS") }
-            )
+                { Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = "ARROWS") },
+            ),
         )
 
     @Composable

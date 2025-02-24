@@ -384,4 +384,106 @@ final class RuntimeUtils {
             }
         }
     }
+
+    /**
+     * Converts from JXR Core's TextureSampler to Impress' API bindings TextureSampler.
+     *
+     * @param sampler a {@link androidx.xr.scenecore.TextureSampler} instance to be converted.
+     */
+    static com.google.ar.imp.apibindings.TextureSampler getTextureSampler(
+            @NonNull androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler sampler) {
+        return new com.google.ar.imp.apibindings.TextureSampler.Builder()
+                .setMinFilter(getMinFilter(sampler.getMinFilter()))
+                .setMagFilter(getMagFilter(sampler.getMagFilter()))
+                .setWrapModeS(getWrapMode(sampler.getWrapModeS()))
+                .setWrapModeT(getWrapMode(sampler.getWrapModeT()))
+                .setWrapModeR(getWrapMode(sampler.getWrapModeR()))
+                .setCompareMode(getCompareModeValue(sampler.getCompareMode()))
+                .setCompareFunc(getCompareFuncValue(sampler.getCompareFunc()))
+                .setAnisotropyLog2(sampler.getAnisotropyLog2())
+                .build();
+    }
+
+    private static com.google.ar.imp.apibindings.TextureSampler.WrapMode getWrapMode(
+            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.WrapMode int wrapMode) {
+        switch (wrapMode) {
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CLAMP_TO_EDGE:
+                return com.google.ar.imp.apibindings.TextureSampler.WrapMode.CLAMP_TO_EDGE;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.REPEAT:
+                return com.google.ar.imp.apibindings.TextureSampler.WrapMode.REPEAT;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MIRRORED_REPEAT:
+                return com.google.ar.imp.apibindings.TextureSampler.WrapMode.MIRRORED_REPEAT;
+            default:
+                throw new IllegalArgumentException("Unknown WrapMode value: " + wrapMode);
+        }
+    }
+
+    private static com.google.ar.imp.apibindings.TextureSampler.MinFilter getMinFilter(
+            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MinFilter int minFilter) {
+        switch (minFilter) {
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter.NEAREST;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST_MIPMAP_NEAREST:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter
+                        .NEAREST_MIPMAP_NEAREST;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR_MIPMAP_NEAREST:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR_MIPMAP_NEAREST;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST_MIPMAP_LINEAR:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter.NEAREST_MIPMAP_LINEAR;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR_MIPMAP_LINEAR:
+                return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR_MIPMAP_LINEAR;
+            default:
+                throw new IllegalArgumentException("Unknown MinFilter value: " + minFilter);
+        }
+    }
+
+    private static com.google.ar.imp.apibindings.TextureSampler.MagFilter getMagFilter(
+            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MagFilter int magFilter) {
+        switch (magFilter) {
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MAG_NEAREST:
+                return com.google.ar.imp.apibindings.TextureSampler.MagFilter.NEAREST;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MAG_LINEAR:
+                return com.google.ar.imp.apibindings.TextureSampler.MagFilter.LINEAR;
+            default:
+                throw new IllegalArgumentException("Unknown MagFilter value: " + magFilter);
+        }
+    }
+
+    private static com.google.ar.imp.apibindings.TextureSampler.CompareMode getCompareModeValue(
+            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CompareMode int compareMode) {
+        switch (compareMode) {
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NONE:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareMode.NONE;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.COMPARE_TO_TEXTURE:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareMode.COMPARE_TO_TEXTURE;
+            default:
+                throw new IllegalArgumentException("Unknown CompareMode value: " + compareMode);
+        }
+    }
+
+    private static com.google.ar.imp.apibindings.TextureSampler.CompareFunc getCompareFuncValue(
+            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CompareFunc int compareFunc) {
+        switch (compareFunc) {
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LE:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.LE;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.GE:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.GE;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.L:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.L;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.G:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.G;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.E:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.E;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NE:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.NE;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.A:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.A;
+            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.N:
+                return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.N;
+            default:
+                throw new IllegalArgumentException("Unknown CompareFunc value: " + compareFunc);
+        }
+    }
 }

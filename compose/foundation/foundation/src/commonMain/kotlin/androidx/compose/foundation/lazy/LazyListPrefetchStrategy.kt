@@ -201,6 +201,6 @@ private class DefaultLazyListPrefetchStrategy(private val nestedPrefetchItemCoun
     }
 
     override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) {
-        repeat(nestedPrefetchItemCount) { i -> schedulePrefetch(firstVisibleItemIndex + i) }
+        repeat(nestedPrefetchItemCount) { i -> schedulePrecomposition(firstVisibleItemIndex + i) }
     }
 }

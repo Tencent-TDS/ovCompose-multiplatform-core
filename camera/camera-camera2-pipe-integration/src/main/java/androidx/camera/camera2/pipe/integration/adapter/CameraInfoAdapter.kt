@@ -28,9 +28,12 @@ import android.view.Surface
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.isHardwareLevelLegacy
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.maxTorchStrengthLevel
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsHighSpeedVideo
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsLogicalMultiCamera
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsLowLightBoost
 import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsPrivateReprocessing
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.supportsTorchStrength
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.UnsafeWrapper
 import androidx.camera.camera2.pipe.core.Log
@@ -71,6 +74,7 @@ import androidx.camera.core.impl.Quirks
 import androidx.camera.core.impl.Timebase
 import androidx.camera.core.impl.utils.CameraOrientationUtil
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import java.util.concurrent.Executor
 import javax.inject.Inject
 import kotlin.reflect.KClass
@@ -177,6 +181,23 @@ constructor(
     override fun getZoomState(): LiveData<ZoomState> = cameraControlStateAdapter.zoomStateLiveData
 
     override fun getTorchState(): LiveData<Int> = cameraControlStateAdapter.torchStateLiveData
+
+    override fun isTorchStrengthSupported(): Boolean =
+        cameraProperties.metadata.supportsTorchStrength
+
+    override fun getMaxTorchStrengthLevel(): Int =
+        if (isTorchStrengthSupported) cameraProperties.metadata.maxTorchStrengthLevel
+        else CameraInfo.TORCH_STRENGTH_LEVEL_UNSUPPORTED
+
+    override fun getTorchStrengthLevel(): LiveData<Int> =
+        if (isTorchStrengthSupported) cameraControlStateAdapter.torchStrengthLiveData
+        else MutableLiveData(CameraInfo.TORCH_STRENGTH_LEVEL_UNSUPPORTED)
+
+    override fun isLowLightBoostSupported(): Boolean =
+        cameraProperties.metadata.supportsLowLightBoost
+
+    override fun getLowLightBoostState(): LiveData<Int> =
+        cameraControlStateAdapter.lowLightBoostState
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun getExposureState(): ExposureState = cameraControlStateAdapter.exposureState

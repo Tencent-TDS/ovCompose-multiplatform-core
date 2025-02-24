@@ -20,8 +20,8 @@ import androidx.compose.material3.ExperimentalMaterial3ComponentOverrideApi
 import androidx.compose.material3.LocalNavigationBarComponentOverride
 import androidx.compose.material3.LocalNavigationRailComponentOverride
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
-import androidx.compose.material3.adaptive.layout.LocalAnimatedPaneOverride
-import androidx.compose.material3.adaptive.layout.LocalThreePaneScaffoldOverride
+import androidx.compose.material3.adaptive.layout.LocalAnimatedPaneComponentOverride
+import androidx.compose.material3.adaptive.layout.LocalThreePaneScaffoldComponentOverride
 import androidx.compose.material3.adaptive.navigationsuite.LocalNavigationSuiteScaffoldComponentOverride
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -78,8 +78,11 @@ public fun EnableXrComponentOverrides(
                     )
                 }
                 if (context.shouldOverrideComponent(XrComponentOverride.ThreePaneScaffold)) {
-                    add(LocalThreePaneScaffoldOverride provides XrThreePaneScaffoldOverride)
-                    add(LocalAnimatedPaneOverride provides XrAnimatedPaneOverride)
+                    add(
+                        LocalThreePaneScaffoldComponentOverride provides
+                            XrThreePaneScaffoldComponentOverride
+                    )
+                    add(LocalAnimatedPaneComponentOverride provides XrAnimatedPaneComponentOverride)
                 }
             }
         }

@@ -261,6 +261,7 @@ public fun MaterialScope.button(
         height = height,
         backgroundContent = backgroundContent,
         contentPadding = contentPadding,
+        horizontalAlignment = horizontalAlignment,
         content = {
             buildContentForPillShapeButton(
                 label =
@@ -299,7 +300,6 @@ public fun MaterialScope.button(
                     },
                 horizontalAlignment = horizontalAlignment,
                 style = style,
-                width = width,
             )
         }
     )
@@ -360,13 +360,20 @@ public fun MaterialScope.avatarButton(
     style: AvatarButtonStyle = defaultAvatarButtonStyle(),
     @HorizontalAlignment horizontalAlignment: Int = HORIZONTAL_ALIGN_START,
     contentPadding: Padding = style.innerVerticalPadding
-): LayoutElement =
-    buttonContainer(
+): LayoutElement {
+    val correctHorizontalAlignment =
+        if (horizontalAlignment == HORIZONTAL_ALIGN_CENTER) {
+            HORIZONTAL_ALIGN_START
+        } else {
+            horizontalAlignment
+        }
+    return buttonContainer(
         onClick = onClick,
         modifier = modifier.background(color = colors.containerColor, corner = shape),
         width = expand(),
         height = height,
         contentPadding = contentPadding,
+        horizontalAlignment = correctHorizontalAlignment,
         content = {
             buildContentForAvatarButton(
                 label =
@@ -407,17 +414,13 @@ public fun MaterialScope.avatarButton(
                                 )
                         )
                         .avatarContent(),
-                horizontalAlignment =
-                    if (horizontalAlignment == HORIZONTAL_ALIGN_CENTER) {
-                        HORIZONTAL_ALIGN_START
-                    } else {
-                        horizontalAlignment
-                    },
+                horizontalAlignment = correctHorizontalAlignment,
                 style = style,
                 height = height
             )
         }
     )
+}
 
 /**
  * ProtoLayout Material3 clickable image button that doesn't offer additional slots, only image (for
@@ -529,6 +532,7 @@ public fun MaterialScope.compactButton(
                 contentPadding = contentPadding,
                 backgroundContent = null,
                 metadataTag = null,
+                horizontalAlignment = horizontalAlignment,
                 content = {
                     buildContentForCompactButton(
                         label =
@@ -590,17 +594,21 @@ public fun MaterialScope.compactButton(
  *   description using [contentDescription]. If [LayoutModifier.background] modifier is used and the
  *   the background image is also specified, the image will be laid out on top of this color. In
  *   case of the fully opaque background image, then the background color will not be shown.
- * @param backgroundContent The background object to be used behind the content in the button. It is
- *   recommended to use the default styling that is automatically provided by only calling
- *   [backgroundImage] with the content. It can be combined with the specified
- *   [LayoutModifier.background] behind it.
+ * @param content The inner content to be put inside of this button.
  * @param width The width of this button. It's highly recommended to set this to [expand] or
  *   [weight]
  * @param height The height of this button. It's highly recommended to set this to [expand] or
  *   [weight]
+ * @param backgroundContent The background object to be used behind the content in the button. It is
+ *   recommended to use the default styling that is automatically provided by only calling
+ *   [backgroundImage] with the content. It can be combined with the specified
+ *   [LayoutModifier.background] behind it.
+ * @param useOverlayOnBackground Whether to add color overlay on top of the background content or
+ *   not.
  * @param contentPadding The inner padding used to prevent inner content from being too close to the
  *   button's edge. It's highly recommended to keep the default.
- * @param content The inner content to be put inside of this button.
+ * @param horizontalAlignment The horizontal placement of the [content]. Defaults to
+ *   [HORIZONTAL_ALIGN_CENTER].
  */
 internal fun MaterialScope.buttonContainer(
     onClick: Clickable,
@@ -619,8 +627,9 @@ internal fun MaterialScope.buttonContainer(
             wrapWithMinTapTargetDimension()
         },
     backgroundContent: (MaterialScope.() -> LayoutElement)? = null,
+    useOverlayOnBackground: Boolean = true,
     contentPadding: Padding = DEFAULT_CONTENT_PADDING,
-    useOverlayOnBackground: Boolean = true
+    horizontalAlignment: Int = HORIZONTAL_ALIGN_CENTER
 ): LayoutElement =
     componentContainer(
         onClick = onClick,
@@ -628,8 +637,9 @@ internal fun MaterialScope.buttonContainer(
         width = width,
         height = height,
         backgroundContent = backgroundContent,
+        useOverlayOnBackground = useOverlayOnBackground,
         contentPadding = contentPadding,
         metadataTag = METADATA_TAG_BUTTON,
         content = content,
-        useOverlayOnBackground = useOverlayOnBackground
+        horizontalAlignment = horizontalAlignment
     )

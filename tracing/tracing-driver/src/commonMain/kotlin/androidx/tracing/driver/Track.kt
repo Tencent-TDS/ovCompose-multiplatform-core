@@ -16,7 +16,7 @@
 
 package androidx.tracing.driver
 
-import perfetto.protos.MutableTracePacket
+import androidx.annotation.RestrictTo
 
 /** Entities that we can attach traces to. */
 public abstract class Track(
@@ -27,7 +27,6 @@ public abstract class Track(
     @JvmField // avoid getter generation
     internal val uuid: Long
 ) {
-    @JvmField internal val sequenceId = context.sequenceId
     /**
      * Any time we emit trace packets relevant to this process. We need to make sure the necessary
      * preamble packets that describe the process and threads are also emitted. This is used to make
@@ -50,9 +49,9 @@ public abstract class Track(
     }
 
     /** Emit is internal, but it must be sure to only access */
-    internal inline fun emitPacket(
+    internal inline fun emitTraceEvent(
         immediateDispatch: Boolean = false,
-        block: (MutableTracePacket) -> Unit
+        block: (TraceEvent) -> Unit
     ) {
         currentPacketArray.apply {
             block(packets[fillCount])
@@ -65,5 +64,19 @@ public abstract class Track(
                 currentPacketArraySize = currentPacketArray.packets.size
             }
         }
+    }
+
+    /** Test API for benchmarking */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun enqueueSingleUnmodifiedEvent() {
+        emitTraceEvent(immediateDispatch = true) {
+            // noop
+        }
+    }
+
+    /** Test API for benchmarking */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun resetFillCount() {
+        currentPacketArray.fillCount = 0
     }
 }

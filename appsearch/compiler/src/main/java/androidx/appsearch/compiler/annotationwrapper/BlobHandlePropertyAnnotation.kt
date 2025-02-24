@@ -63,5 +63,5 @@ data class BlobHandlePropertyAnnotation(
         get() = Kind.BLOB_HANDLE_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mBlobHandleType
+        helper.blobHandleType
 }

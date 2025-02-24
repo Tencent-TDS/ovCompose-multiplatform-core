@@ -32,20 +32,22 @@ plugins {
 dependencies {
     api(libs.kotlinStdlib)
     // Public dependencies
-    api("androidx.appsearch:appsearch:1.1.0-alpha07")
+    implementation("androidx.appsearch:appsearch:1.1.0-beta01")
 
     // Internal dependencies
     implementation("androidx.annotation:annotation:1.8.1")
-    implementation("androidx.core:core:1.1.0")
 
     // Compile only dependencies
     compileOnly(project(":appfunctions:appfunctions-stubs"))
 
     // Test dependencies
-    androidTestImplementation(libs.testCore)
-    androidTestImplementation(libs.testRules)
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+
+    // Test dependencies
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.testRunner)
     androidTestCompileOnly(project(":appfunctions:appfunctions-stubs"))
 }
 

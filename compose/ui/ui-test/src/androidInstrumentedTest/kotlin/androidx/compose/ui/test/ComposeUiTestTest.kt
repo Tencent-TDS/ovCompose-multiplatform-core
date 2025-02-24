@@ -36,7 +36,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.MonotonicFrameClock
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,16 +51,7 @@ import androidx.test.espresso.IdlingPolicy
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
-import kotlin.coroutines.AbstractCoroutineContextElement
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.coroutineContext
 import kotlin.math.roundToInt
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -212,64 +202,4 @@ class ComposeUiTestTest {
     @Test
     fun getActivityTest() =
         runAndroidComposeUiTest<ComponentActivity> { assertThat(activity).isNotNull() }
-
-    @Test
-    fun runTestContextMustHaveMonotonicFrameClock() = runComposeUiTest {
-        val frameClock = coroutineContext[MonotonicFrameClock.Key]
-        assertThat(frameClock).isNotNull()
-    }
-
-    @Test
-    fun runTestAndCompositionUseDifferentSchedulers() = runComposeUiTest {
-        var number by mutableStateOf(10)
-        setContent { Text("$number", modifier = Modifier.testTag("test")) }
-        number++
-
-        mainClock.autoAdvance = false
-        val currentCompositionTime = mainClock.currentTime
-
-        // Using at least 2 frames delay to "wait" for UI coroutines:
-        delay(32)
-        // delay skipping in test body should not affect Composition - no exception expected:
-        // Only the original thread that created a view hierarchy can touch its views.
-
-        onNodeWithTag("test").assertTextEquals("10")
-        // mainClock.currentTime is not expected to change after delay
-        // when the schedulers are different
-        assertThat(mainClock.currentTime).isEqualTo(currentCompositionTime)
-
-        mainClock.advanceTimeBy(21, ignoreFrameDuration = true)
-        onNodeWithTag("test").assertTextEquals("11")
-        assertThat(mainClock.currentTime).isEqualTo(currentCompositionTime + 21)
-    }
-
-    @Test
-    fun shouldKeepCustomCoroutineContextElements() =
-        runComposeUiTest(runTestContext = MyCustomElement("testElement")) {
-            val frameClock = coroutineContext[MonotonicFrameClock.Key]
-            assertThat(frameClock).isNotNull()
-            assertThat(coroutineContext[MyCustomElement.Key]!!.value).isEqualTo("testElement")
-        }
-
-    @Test
-    fun defaultRunTestDispatcherIsStandardDispatcher() = runComposeUiTest {
-        var i = 0
-        CoroutineScope(coroutineContext).launch { i = 10 }
-        assertThat(i).isEqualTo(0)
-        yield()
-        assertThat(i).isEqualTo(10)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun canOverrideRunTestDispatcher() =
-        runComposeUiTest(runTestContext = UnconfinedTestDispatcher()) {
-            var i = 0
-            CoroutineScope(coroutineContext).launch { i = 10 }
-            assertThat(i).isEqualTo(10)
-        }
-
-    class MyCustomElement(val value: String) : AbstractCoroutineContextElement(MyCustomElement) {
-        companion object Key : CoroutineContext.Key<MyCustomElement>
-    }
 }

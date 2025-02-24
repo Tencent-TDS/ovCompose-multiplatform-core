@@ -22,6 +22,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.util.Pair;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.extensions.Consumer;
 import androidx.xr.extensions.XrExtensions;
@@ -114,7 +115,7 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
-    public boolean onAttach(Entity entity) {
+    public boolean onAttach(@NonNull Entity entity) {
         if (mEntity != null) {
             Log.e(TAG, "Already attached to entity " + mEntity);
             return false;
@@ -160,7 +161,7 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
-    public void onDetach(Entity entity) {
+    public void onDetach(@NonNull Entity entity) {
         ReformOptions reformOptions = ((AndroidXrEntity) entity).getReformOptions();
         reformOptions.setEnabledReform(
                 reformOptions.getEnabledReform() & ~ReformOptions.ALLOW_MOVE);
@@ -182,7 +183,7 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
-    public void setSize(Dimensions dimensions) {
+    public void setSize(@NonNull Dimensions dimensions) {
         mCurrentSize = dimensions;
         if (mEntity == null) {
             Log.i(TAG, "setSize called before component is attached to an Entity.");
@@ -216,7 +217,8 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
-    public void addMoveEventListener(Executor executor, MoveEventListener moveEventListener) {
+    public void addMoveEventListener(
+            @NonNull Executor executor, @NonNull MoveEventListener moveEventListener) {
         if (mReformEventConsumer != null) {
             ((AndroidXrEntity) mEntity).removeReformEventConsumer(mReformEventConsumer);
         }
@@ -306,7 +308,7 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
-    public void removeMoveEventListener(MoveEventListener moveEventListener) {
+    public void removeMoveEventListener(@NonNull MoveEventListener moveEventListener) {
         mMoveEventListenersMap.remove(moveEventListener);
     }
 

@@ -29,13 +29,12 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.RevealDirection
+import androidx.wear.compose.foundation.rememberRevealState
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.SwipeToReveal
 import androidx.wear.compose.material3.SwipeToRevealDefaults
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.rememberRevealState
 
 @Composable
 fun SwipeToRevealSingleButtonWithAnchoring() {
@@ -44,11 +43,7 @@ fun SwipeToRevealSingleButtonWithAnchoring() {
         contentAlignment = Alignment.Center
     ) {
         SwipeToReveal(
-            revealState =
-                rememberRevealState(
-                    revealDirection = RevealDirection.RightToLeft,
-                    anchorWidth = SwipeToRevealDefaults.SingleActionAnchorWidth,
-                ),
+            revealState = rememberRevealState(anchors = SwipeToRevealDefaults.anchors()),
             actions = {
                 primaryAction(
                     onClick = { /* This block is called when the primary action is executed. */ },
@@ -91,8 +86,10 @@ fun SwipeToRevealBothDirectionsNonAnchoring() {
         SwipeToReveal(
             revealState =
                 rememberRevealState(
-                    revealDirection = RevealDirection.Both,
-                    useAnchoredActions = false,
+                    anchors =
+                        SwipeToRevealDefaults.bidirectionalAnchors(
+                            useAnchoredActions = false,
+                        )
                 ),
             actions = {
                 primaryAction(

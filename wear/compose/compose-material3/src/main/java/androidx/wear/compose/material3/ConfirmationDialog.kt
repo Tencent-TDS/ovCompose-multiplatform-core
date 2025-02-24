@@ -680,7 +680,7 @@ public object ConfirmationDialogDefaults {
      * Default timeout for the [ConfirmationDialog] dialog, in milliseconds. The actual timeout used
      * will be adjusted for accessibility, taking into account the contents displayed.
      */
-    public const val DurationMillis: Long = 4000L
+    public val DurationMillis: Long = 4000L
 
     /** Default icon size for the [ConfirmationDialog] with curved content */
     public val IconSize: Dp = 52.dp

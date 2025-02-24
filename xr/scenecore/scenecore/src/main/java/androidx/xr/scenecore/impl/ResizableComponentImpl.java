@@ -18,6 +18,7 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.xr.extensions.Consumer;
 import androidx.xr.extensions.XrExtensions;
 import androidx.xr.extensions.node.NodeTransaction;
@@ -67,7 +68,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public boolean onAttach(Entity entity) {
+    public boolean onAttach(@NonNull Entity entity) {
         if (mEntity != null) {
             Log.e(TAG, "Already attached to entity " + mEntity);
             return false;
@@ -99,7 +100,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public void onDetach(Entity entity) {
+    public void onDetach(@NonNull Entity entity) {
         ReformOptions reformOptions = ((AndroidXrEntity) entity).getReformOptions();
         reformOptions.setEnabledReform(
                 reformOptions.getEnabledReform() & ~ReformOptions.ALLOW_RESIZE);
@@ -111,7 +112,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public void setSize(Dimensions size) {
+    public void setSize(@NonNull Dimensions size) {
         // TODO: b/350821054 - Implement synchronization policy around Entity/Component updates.
         mCurrentSize = size;
         if (mEntity == null) {
@@ -124,7 +125,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public void setMinimumSize(Dimensions minSize) {
+    public void setMinimumSize(@NonNull Dimensions minSize) {
         mMinSize = minSize;
         if (mEntity == null) {
             Log.e(TAG, "This component isn't attached to an entity.");
@@ -136,7 +137,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public void setMaximumSize(Dimensions maxSize) {
+    public void setMaximumSize(@NonNull Dimensions maxSize) {
         mMaxSize = maxSize;
         if (mEntity == null) {
             Log.e(TAG, "This component isn't attached to an entity.");
@@ -183,7 +184,7 @@ class ResizableComponentImpl implements ResizableComponent {
 
     @Override
     public void addResizeEventListener(
-            Executor resizeExecutor, ResizeEventListener resizeEventListener) {
+            @NonNull Executor resizeExecutor, @NonNull ResizeEventListener resizeEventListener) {
         mResizeEventListenerMap.put(resizeEventListener, resizeExecutor);
         if (mReformEventConsumer != null) {
             return;
@@ -244,7 +245,7 @@ class ResizableComponentImpl implements ResizableComponent {
     }
 
     @Override
-    public void removeResizeEventListener(ResizeEventListener resizeEventListener) {
+    public void removeResizeEventListener(@NonNull ResizeEventListener resizeEventListener) {
         mResizeEventListenerMap.remove(resizeEventListener);
         if (mResizeEventListenerMap.isEmpty()) {
             ((AndroidXrEntity) mEntity).removeReformEventConsumer(mReformEventConsumer);

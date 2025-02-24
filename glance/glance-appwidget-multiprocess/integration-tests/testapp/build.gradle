@@ -31,6 +31,6 @@ dependencies {
 }
 
 android {
-    namespace "androidx.glance.appwidget.multiprocess.testapp"
-    compileSdk 35
+    namespace = "androidx.glance.appwidget.multiprocess.testapp"
+    compileSdk = 35
 }

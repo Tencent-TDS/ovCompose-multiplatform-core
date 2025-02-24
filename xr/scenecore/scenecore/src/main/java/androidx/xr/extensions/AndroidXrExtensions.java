@@ -39,12 +39,9 @@ import androidx.xr.extensions.node.ReformOptions;
 import androidx.xr.extensions.node.Vec3;
 import androidx.xr.extensions.space.ActivityPanel;
 import androidx.xr.extensions.space.ActivityPanelLaunchParameters;
-import androidx.xr.extensions.space.Bounds;
 import androidx.xr.extensions.space.HitTestResult;
 import androidx.xr.extensions.space.SpaceTypeConverter;
-import androidx.xr.extensions.space.SpatialCapabilities;
 import androidx.xr.extensions.space.SpatialState;
-import androidx.xr.extensions.space.SpatialStateEvent;
 import androidx.xr.extensions.splitengine.SplitEngineBridge;
 import androidx.xr.extensions.splitengine.SplitEngineTypeConverter;
 import androidx.xr.extensions.subspace.Subspace;
@@ -134,15 +131,6 @@ class AndroidXrExtensions implements XrExtensions {
 
     @Override
     @Deprecated
-    public @NonNull CompletableFuture</* @Nullable */ SceneViewerResult> displayGltfModel(
-            Activity activity, GltfModelToken gltfModel) {
-        return mExtensions
-                .displayGltfModel(activity, TokenConverter.toFramework(gltfModel))
-                .thenApply(result -> (result == null) ? null : new SceneViewerResult());
-    }
-
-    @Override
-    @Deprecated
     public @NonNull CompletableFuture</* @Nullable */ EnvironmentToken> loadEnvironment(
             InputStream asset, int regionSizeBytes, int regionOffsetBytes, String url) {
         // This method has been deprecated on the platform side. Hard  code width and height to 256.
@@ -190,16 +178,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public void attachSpatialScene(
-            @NonNull Activity activity, @NonNull Node sceneNode, @NonNull Node windowNode) {
-        mExtensions.attachSpatialScene(
-                activity,
-                NodeTypeConverter.toFramework(sceneNode),
-                NodeTypeConverter.toFramework(windowNode));
-    }
-
-    @Override
     public void attachSpatialScene(
             @NonNull Activity activity,
             @NonNull Node sceneNode,
@@ -215,12 +193,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public void detachSpatialScene(@NonNull Activity activity) {
-        mExtensions.detachSpatialScene(activity);
-    }
-
-    @Override
     public void detachSpatialScene(
             @NonNull Activity activity,
             @NonNull Consumer<XrExtensionResult> callback,
@@ -229,12 +201,6 @@ class AndroidXrExtensions implements XrExtensions {
                 activity,
                 createPlatformConsumer(callback, result -> new XrExtensionResultImpl(result)),
                 executor);
-    }
-
-    @Override
-    @Deprecated
-    public void setMainWindowSize(@NonNull Activity activity, int width, int height) {
-        mExtensions.setMainWindowSize(activity, width, height);
     }
 
     @Override
@@ -259,14 +225,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public void attachSpatialEnvironment(
-            @NonNull Activity activity, @NonNull Node environmentNode) {
-        mExtensions.attachSpatialEnvironment(
-                activity, NodeTypeConverter.toFramework(environmentNode));
-    }
-
-    @Override
     public void attachSpatialEnvironment(
             @NonNull Activity activity,
             @NonNull Node environmentNode,
@@ -280,12 +238,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public void detachSpatialEnvironment(@NonNull Activity activity) {
-        mExtensions.detachSpatialEnvironment(activity);
-    }
-
-    @Override
     public void detachSpatialEnvironment(
             @NonNull Activity activity,
             @NonNull Consumer<XrExtensionResult> callback,
@@ -293,18 +245,6 @@ class AndroidXrExtensions implements XrExtensions {
         mExtensions.detachSpatialEnvironment(
                 activity,
                 createPlatformConsumer(callback, result -> new XrExtensionResultImpl(result)),
-                executor);
-    }
-
-    @Override
-    @Deprecated
-    public void setSpatialStateCallback(
-            @NonNull Activity activity,
-            @NonNull Consumer<SpatialStateEvent> callback,
-            @NonNull Executor executor) {
-        mExtensions.setSpatialStateCallbackDeprecated(
-                activity,
-                createPlatformConsumer(callback, event -> SpaceTypeConverter.toLibrary(event)),
                 executor);
     }
 
@@ -333,25 +273,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public boolean canEmbedActivityPanel(@NonNull Activity activity) {
-        // TODO(coderleon): update the doc when we support spatial task fragment.
-        return mExtensions.canEmbedActivityPanel(activity);
-    }
-
-    @Override
-    @Deprecated
-    public boolean requestFullSpaceMode(@NonNull Activity activity) {
-        return mExtensions.requestFullSpaceMode(activity);
-    }
-
-    @Override
-    @Deprecated
-    public boolean requestHomeSpaceMode(@NonNull Activity activity) {
-        return mExtensions.requestHomeSpaceMode(activity);
-    }
-
-    @Override
     public void requestFullSpaceMode(
             @NonNull Activity activity,
             boolean requestEnter,
@@ -372,13 +293,6 @@ class AndroidXrExtensions implements XrExtensions {
     @Override
     public @NonNull Bundle setFullSpaceModeWithEnvironmentInherited(@NonNull Bundle bundle) {
         return mExtensions.setFullSpaceStartModeWithEnvironmentInherited(bundle);
-    }
-
-    @Override
-    @Deprecated
-    public @NonNull Bundle setMainPanelCurvatureRadius(
-            @NonNull Bundle bundle, float panelCurvatureRadius) {
-        return mExtensions.setMainPanelCurvatureRadius(bundle, panelCurvatureRadius);
     }
 
     @Override
@@ -432,12 +346,6 @@ class AndroidXrExtensions implements XrExtensions {
     }
 
     @Override
-    @Deprecated
-    public void setPreferredAspectRatio(@NonNull Activity activity, float preferredRatio) {
-        mExtensions.setPreferredAspectRatio(activity, preferredRatio);
-    }
-
-    @Override
     public void setPreferredAspectRatio(
             @NonNull Activity activity,
             float preferredRatio,
@@ -447,31 +355,6 @@ class AndroidXrExtensions implements XrExtensions {
                 activity,
                 preferredRatio,
                 createPlatformConsumer(callback, result -> new XrExtensionResultImpl(result)),
-                executor);
-    }
-
-    @Override
-    @Deprecated
-    public void getSpatialCapabilities(
-            @NonNull Activity activity,
-            @NonNull Consumer<SpatialCapabilities> callback,
-            @NonNull Executor executor) {
-        mExtensions.getSpatialCapabilities(
-                activity,
-                createPlatformConsumer(
-                        callback, capabilities -> SpaceTypeConverter.toLibrary(capabilities)),
-                executor);
-    }
-
-    @Override
-    @Deprecated
-    public void getBounds(
-            @NonNull Activity activity,
-            @NonNull Consumer<Bounds> callback,
-            @NonNull Executor executor) {
-        mExtensions.getBounds(
-                activity,
-                createPlatformConsumer(callback, bounds -> SpaceTypeConverter.toLibrary(bounds)),
                 executor);
     }
 
