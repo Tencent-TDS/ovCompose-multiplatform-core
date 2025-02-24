@@ -136,6 +136,16 @@ public fun SpatialPanel(
  * </activity>
  * ```
  *
+ * To disable Title Bars in the activity add the following to Activity#onCreate:
+ * ```
+ * requestWindowFeature(Window.FEATURE_NO_TITLE)
+ * ```
+ *
+ * Or disable Title Bars in the theme by setting:
+ * ```
+ * <item name="windowNoTitle">true</item>
+ * ```
+ *
  * @param modifier SubspaceModifier to apply to the MainPanel.
  * @param shape The shape of this Spatial Panel.
  */
@@ -164,6 +174,16 @@ public fun MainPanel(
 
 /**
  * Creates a [SpatialPanel] and launches an Activity within it.
+ *
+ * To disable Title Bars in the activity add the following to Activity#onCreate:
+ * ```
+ * requestWindowFeature(Window.FEATURE_NO_TITLE)
+ * ```
+ *
+ * Or disable Title Bars in the theme by setting:
+ * ```
+ * <item name="windowNoTitle">true</item>
+ * ```
  *
  * @param intent The intent of an Activity to launch within this panel.
  * @param modifier SubspaceModifiers to apply to the SpatialPanel.
@@ -246,6 +266,7 @@ public fun SpatialPanel(
  * Private [SpatialPanel] implementation that reports its created PanelEntity.
  *
  * @param modifier SubspaceModifiers.
+ * @param name A name for the SpatialPanel, useful for debugging.
  * @param view content view to render inside the SpatialPanel
  * @param shape The shape of this Spatial Panel.
  * @param onCorePanelEntityCreated callback to consume the [CorePanelEntity] when it is created
@@ -253,7 +274,7 @@ public fun SpatialPanel(
 @Composable
 @SubspaceComposable
 private fun SpatialPanel(
-    modifier: SubspaceModifier = SubspaceModifier,
+    modifier: SubspaceModifier,
     name: String,
     view: View,
     shape: SpatialShape,

@@ -17,9 +17,8 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.xr.compose.subspace.node.LayoutCoordinatesAwareModifierNode
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 
 /**
  * Invoke [onGloballyPositioned] with the [SubspaceLayoutCoordinates] of the element when the global
@@ -40,7 +39,7 @@ public fun SubspaceModifier.onGloballyPositioned(
 
 private class OnGloballyPositionedVolumeElement(
     public val onGloballyPositioned: (SubspaceLayoutCoordinates) -> Unit
-) : SubspaceModifierElement<OnGloballyPositionedNode>() {
+) : SubspaceModifierNodeElement<OnGloballyPositionedNode>() {
     override fun create(): OnGloballyPositionedNode {
         return OnGloballyPositionedNode(onGloballyPositioned)
     }

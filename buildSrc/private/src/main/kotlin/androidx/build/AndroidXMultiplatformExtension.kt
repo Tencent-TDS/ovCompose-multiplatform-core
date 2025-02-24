@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("UnstableApiUsage")
+@file:Suppress("UnstableApiUsage") // b/393137152
 
 package androidx.build
 

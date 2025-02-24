@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -62,10 +63,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.xr.compose.integration.common.AnotherActivity
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
+import androidx.xr.compose.platform.LocalSpatialConfiguration
 import androidx.xr.compose.spatial.EdgeOffset.Companion.inner
 import androidx.xr.compose.spatial.Orbiter
 import androidx.xr.compose.spatial.OrbiterEdge
-import androidx.xr.compose.spatial.OrbiterEdge.Companion.Top
 import androidx.xr.compose.spatial.OrbiterSettings
 import androidx.xr.compose.spatial.SpatialDialog
 import androidx.xr.compose.spatial.Subspace
@@ -92,7 +93,6 @@ import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
-import androidx.xr.scenecore.Session
 import java.time.Clock
 import kotlin.math.cos
 import kotlin.math.sin
@@ -139,13 +139,13 @@ class SpatialComposeAppActivity : ComponentActivity() {
             ) {
                 Text("Panel Center - main task window")
                 val isSpatialUiEnabled = LocalSpatialCapabilities.current.isSpatialUiEnabled
-                val session = Session.create(this@SpatialComposeAppActivity)
+                val config = LocalSpatialConfiguration.current
                 Button(
                     onClick = {
                         if (isSpatialUiEnabled) {
-                            session.spatialEnvironment.requestHomeSpaceMode()
+                            config.requestHomeSpaceMode()
                         } else {
-                            session.spatialEnvironment.requestFullSpaceMode()
+                            config.requestFullSpaceMode()
                         }
                     }
                 ) {
@@ -161,14 +161,6 @@ class SpatialComposeAppActivity : ComponentActivity() {
         val sidePanelModifier = SubspaceModifier.fillMaxWidth().height(200.dp)
         val curveRadius = 1025.dp
         SpatialColumn(name = "PanelGridColumn") {
-            Orbiter(
-                position = Top,
-                offset = inner(8.dp),
-                shape = SpatialRoundedCornerShape(CornerSize(16.dp)),
-            ) {
-                Surface { Text(text = "Subspace Compose App", modifier = Modifier.padding(8.dp)) }
-            }
-
             SpatialRow(
                 modifier = SubspaceModifier.width(2000.dp).height(1200.dp),
                 alignment = SpatialAlignment.BottomCenter,
@@ -179,6 +171,19 @@ class SpatialComposeAppActivity : ComponentActivity() {
                     modifier = SubspaceModifier.width(200.dp).fillMaxHeight(),
                     name = "LeftColumn",
                 ) {
+                    Orbiter(
+                        position = OrbiterEdge.Start,
+                        offset = inner(8.dp),
+                        shape = SpatialRoundedCornerShape(CornerSize(16.dp)),
+                    ) {
+                        Surface {
+                            Text(
+                                text = "Subspace Orbiter",
+                                modifier = Modifier.width(80.dp).padding(8.dp)
+                            )
+                        }
+                    }
+
                     AppPanel(modifier = sidePanelModifier, text = "Panel Top Left")
                     SpatialLayoutSpacer(modifier = SubspaceModifier.height(20.dp))
                     ViewBasedAppPanel(

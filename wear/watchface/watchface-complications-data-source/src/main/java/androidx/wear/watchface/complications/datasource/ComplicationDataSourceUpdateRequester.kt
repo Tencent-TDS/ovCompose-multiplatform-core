@@ -33,8 +33,8 @@ import androidx.wear.watchface.complications.data.NoDataComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService.Companion.ACTION_WEAR_SDK_COMPLICATION_UPDATE_REQUEST
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceService.ComplicationDataRequester
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester.Companion.UPDATE_REQUEST_RECEIVER_PACKAGE
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester.Companion.filterRequests
 import com.google.wear.Sdk
-import com.google.wear.services.complications.ActiveComplicationConfig
 import com.google.wear.services.complications.ComplicationData as WearSdkComplicationData
 import com.google.wear.services.complications.ComplicationsManager
 import kotlin.coroutines.Continuation
@@ -102,6 +102,27 @@ public interface ComplicationDataSourceUpdateRequester {
             complicationDataSourceComponent: ComponentName
         ): ComplicationDataSourceUpdateRequester =
             ComplicationDataSourceUpdateRequesterImpl(context, complicationDataSourceComponent)
+
+        /**
+         * Filters [requests] if they aren't keyed by [requesterComponent] or if their
+         * `complicationInstanceId` is not present in [instanceIds].
+         *
+         * If [instanceIds] is empty, only the [requesterComponent] will be checked.
+         */
+        internal fun filterRequests(
+            requesterComponent: ComponentName,
+            instanceIds: IntArray,
+            requests: List<Pair<ComponentName, ComplicationRequest>>
+        ): Set<ComplicationRequest> {
+            fun isRequestedInstance(id: Int): Boolean = instanceIds.isEmpty() || id in instanceIds
+            return requests
+                .filter { (component, request) ->
+                    component == requesterComponent &&
+                        isRequestedInstance(request.complicationInstanceId)
+                }
+                .map { it.second }
+                .toSet()
+        }
 
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         public const val ACTION_REQUEST_UPDATE: String =
@@ -198,27 +219,34 @@ private class ComplicationDataSourceUpdateRequesterImpl(
         val ioDispatcher = Dispatchers.IO
         CoroutineScope(ioDispatcher).launch {
             val executor = ioDispatcher.asExecutor()
-            val activeConfigs = callWearSdk { outcomeReceiver ->
-                complicationsManager.getActiveComplicationConfigsAsync(executor, outcomeReceiver)
-            }
             val updateConfigSet =
-                if (complicationInstanceIds.isEmpty()) {
-                    activeConfigs
-                } else {
-                    activeConfigs.filter { it.config.id in complicationInstanceIds }
-                }
+                filterRequests(
+                    complicationDataSourceComponent,
+                    complicationInstanceIds,
+                    callWearSdk { outcomeReceiver ->
+                            complicationsManager.getActiveComplicationConfigsAsync(
+                                executor,
+                                outcomeReceiver
+                            )
+                        }
+                        .filter { it.config.providerComponent != null }
+                        .map {
+                            it.config.providerComponent!! to
+                                ComplicationRequest(
+                                    it.config.id,
+                                    ComplicationType.fromWireType(it.config.dataType),
+                                    immediateResponseRequired = false,
+                                    isForSafeWatchFace = it.targetWatchFaceSafety
+                                )
+                        }
+                )
 
             val deferredDataPairs = bindDataSource { dataSource ->
-                updateConfigSet.map { config ->
+                updateConfigSet.map { request ->
                     asyncSuspendCancellable { continuation ->
                         dataSource.onComplicationRequest(
-                            ComplicationRequest(
-                                config.config.id,
-                                ComplicationType.fromWireType(config.config.dataType),
-                                immediateResponseRequired = false,
-                                isForSafeWatchFace = config.targetWatchFaceSafety
-                            ),
-                            WearSdkComplicationRequestListener(config, continuation)
+                            request,
+                            WearSdkComplicationRequestListener(request, continuation)
                         )
                     }
                 }
@@ -300,9 +328,13 @@ internal constructor(
     val continuation: Continuation<Pair<Int, WearSdkComplicationData>>
 ) : ComplicationDataSourceService.ComplicationRequestListener {
     internal constructor(
-        config: ActiveComplicationConfig,
+        request: ComplicationRequest,
         continuation: Continuation<Pair<Int, WearSdkComplicationData>>
-    ) : this(config.config.id, config.config.dataType, continuation)
+    ) : this(
+        request.complicationInstanceId,
+        request.complicationType.toWireComplicationType(),
+        continuation
+    )
 
     override fun onComplicationData(complicationData: ComplicationData?) {
         // The result will be null when there is no update required.

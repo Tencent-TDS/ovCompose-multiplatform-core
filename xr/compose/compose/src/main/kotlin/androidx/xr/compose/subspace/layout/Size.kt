@@ -21,7 +21,7 @@ import androidx.annotation.RestrictTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.xr.compose.subspace.node.SubspaceLayoutModifierNode
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.DpVolumeSize
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.compose.unit.constrain
@@ -214,7 +214,7 @@ private class FillElement(
     private val direction: Direction,
     private val fraction: Float,
     private val inspectorName: String,
-) : SubspaceModifierElement<FillNode>() {
+) : SubspaceModifierNodeElement<FillNode>() {
     override fun create(): FillNode = FillNode(direction = direction, fraction = fraction)
 
     override fun update(node: FillNode) {
@@ -343,7 +343,7 @@ private class SizeElement(
     private val minDepth: Dp = Dp.Unspecified,
     private val maxDepth: Dp = Dp.Unspecified,
     private val enforceIncoming: Boolean,
-) : SubspaceModifierElement<SizeNode>() {
+) : SubspaceModifierNodeElement<SizeNode>() {
     override fun create(): SizeNode =
         SizeNode(
             minWidth = minWidth,

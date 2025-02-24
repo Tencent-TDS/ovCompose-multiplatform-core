@@ -58,8 +58,8 @@ class ViewModelStoreNavLocalProviderTest {
                 viewModel2.myArg = entry2Arg
             }
         composeTestRule.setContent {
-            savedStateWrapper.ProvideToBackStack(backStack = listOf(entry1, entry2)) {
-                viewModelWrapper.ProvideToBackStack(backStack = listOf(entry1, entry2)) {
+            savedStateWrapper.ProvideToBackStack(backStack = listOf(entry1.key, entry2.key)) {
+                viewModelWrapper.ProvideToBackStack(backStack = listOf(entry1.key, entry2.key)) {
                     savedStateWrapper.ProvideToEntry(
                         NavEntry(entry1.key) { viewModelWrapper.ProvideToEntry(entry1) }
                     )
@@ -92,7 +92,7 @@ class ViewModelStoreNavLocalProviderTest {
             }
         try {
             composeTestRule.setContent {
-                viewModelWrapper.ProvideToBackStack(backStack = listOf(entry1)) {
+                viewModelWrapper.ProvideToBackStack(backStack = listOf(entry1.key)) {
                     viewModelWrapper.ProvideToEntry(entry1)
                 }
             }

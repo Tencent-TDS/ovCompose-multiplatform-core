@@ -40,6 +40,7 @@ import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
+import androidx.annotation.NonNull;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.xr.extensions.node.Mat4f;
 import androidx.xr.extensions.node.Node;
@@ -2478,7 +2479,7 @@ public class MovableComponentImplTest {
         MoveEvent mLastMoveEvent = null;
 
         @Override
-        public void onMoveEvent(MoveEvent event) {
+        public void onMoveEvent(@NonNull MoveEvent event) {
             mLastMoveEvent = event;
             mCallCount++;
         }

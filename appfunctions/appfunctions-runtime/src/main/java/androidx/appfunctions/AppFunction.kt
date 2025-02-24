@@ -62,7 +62,8 @@ package androidx.appfunctions
  *
  * @see AppFunctionConfiguration.Builder.addEnclosingClassFactory
  */
-@Retention(AnnotationRetention.SOURCE)
+// Use BINARY here so that the annotation is kept around at the aggregation stage.
+@Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION)
 public annotation class AppFunction(
     /**

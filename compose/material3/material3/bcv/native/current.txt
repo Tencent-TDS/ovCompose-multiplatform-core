@@ -109,6 +109,10 @@ abstract interface androidx.compose.material3.pulltorefresh/PullToRefreshState {
     abstract suspend fun snapTo(kotlin/Float) // androidx.compose.material3.pulltorefresh/PullToRefreshState.snapTo|snapTo(kotlin.Float){}[0]
 }
 
+abstract interface androidx.compose.material3/BasicAlertDialogOverride { // androidx.compose.material3/BasicAlertDialogOverride|null[0]
+    abstract fun (androidx.compose.material3/BasicAlertDialogOverrideScope).BasicAlertDialog() // androidx.compose.material3/BasicAlertDialogOverride.BasicAlertDialog|BasicAlertDialog@androidx.compose.material3.BasicAlertDialogOverrideScope(){}[0]
+}
+
 abstract interface androidx.compose.material3/BottomAppBarScrollBehavior { // androidx.compose.material3/BottomAppBarScrollBehavior|null[0]
     abstract val flingAnimationSpec // androidx.compose.material3/BottomAppBarScrollBehavior.flingAnimationSpec|{}flingAnimationSpec[0]
         abstract fun <get-flingAnimationSpec>(): androidx.compose.animation.core/DecayAnimationSpec<kotlin/Float>? // androidx.compose.material3/BottomAppBarScrollBehavior.flingAnimationSpec.<get-flingAnimationSpec>|<get-flingAnimationSpec>(){}[0]
@@ -430,6 +434,17 @@ final class androidx.compose.material3.carousel/CarouselState : androidx.compose
         final val Saver // androidx.compose.material3.carousel/CarouselState.Companion.Saver|{}Saver[0]
             final fun <get-Saver>(): androidx.compose.runtime.saveable/Saver<androidx.compose.material3.carousel/CarouselState, *> // androidx.compose.material3.carousel/CarouselState.Companion.Saver.<get-Saver>|<get-Saver>(){}[0]
     }
+}
+
+final class androidx.compose.material3/BasicAlertDialogOverrideScope { // androidx.compose.material3/BasicAlertDialogOverrideScope|null[0]
+    final val content // androidx.compose.material3/BasicAlertDialogOverrideScope.content|{}content[0]
+        final fun <get-content>(): kotlin/Function0<kotlin/Unit> // androidx.compose.material3/BasicAlertDialogOverrideScope.content.<get-content>|<get-content>(){}[0]
+    final val modifier // androidx.compose.material3/BasicAlertDialogOverrideScope.modifier|{}modifier[0]
+        final fun <get-modifier>(): androidx.compose.ui/Modifier // androidx.compose.material3/BasicAlertDialogOverrideScope.modifier.<get-modifier>|<get-modifier>(){}[0]
+    final val onDismissRequest // androidx.compose.material3/BasicAlertDialogOverrideScope.onDismissRequest|{}onDismissRequest[0]
+        final fun <get-onDismissRequest>(): kotlin/Function0<kotlin/Unit> // androidx.compose.material3/BasicAlertDialogOverrideScope.onDismissRequest.<get-onDismissRequest>|<get-onDismissRequest>(){}[0]
+    final val properties // androidx.compose.material3/BasicAlertDialogOverrideScope.properties|{}properties[0]
+        final fun <get-properties>(): androidx.compose.ui.window/DialogProperties // androidx.compose.material3/BasicAlertDialogOverrideScope.properties.<get-properties>|<get-properties>(){}[0]
 }
 
 final class androidx.compose.material3/BottomSheetScaffoldState { // androidx.compose.material3/BottomSheetScaffoldState|null[0]
@@ -794,6 +809,23 @@ final class androidx.compose.material3/DrawerState { // androidx.compose.materia
     final object Companion { // androidx.compose.material3/DrawerState.Companion|null[0]
         final fun Saver(kotlin/Function1<androidx.compose.material3/DrawerValue, kotlin/Boolean>): androidx.compose.runtime.saveable/Saver<androidx.compose.material3/DrawerState, androidx.compose.material3/DrawerValue> // androidx.compose.material3/DrawerState.Companion.Saver|Saver(kotlin.Function1<androidx.compose.material3.DrawerValue,kotlin.Boolean>){}[0]
     }
+}
+
+final class androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior : androidx.compose.material3/FloatingToolbarScrollBehavior { // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior|null[0]
+    constructor <init>(androidx.compose.material3/FloatingToolbarExitDirection, androidx.compose.material3/FloatingToolbarState, androidx.compose.animation.core/AnimationSpec<kotlin/Float>, androidx.compose.animation.core/DecayAnimationSpec<kotlin/Float>) // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.<init>|<init>(androidx.compose.material3.FloatingToolbarExitDirection;androidx.compose.material3.FloatingToolbarState;androidx.compose.animation.core.AnimationSpec<kotlin.Float>;androidx.compose.animation.core.DecayAnimationSpec<kotlin.Float>){}[0]
+
+    final val exitDirection // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.exitDirection|{}exitDirection[0]
+        final fun <get-exitDirection>(): androidx.compose.material3/FloatingToolbarExitDirection // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.exitDirection.<get-exitDirection>|<get-exitDirection>(){}[0]
+    final val flingAnimationSpec // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.flingAnimationSpec|{}flingAnimationSpec[0]
+        final fun <get-flingAnimationSpec>(): androidx.compose.animation.core/DecayAnimationSpec<kotlin/Float> // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.flingAnimationSpec.<get-flingAnimationSpec>|<get-flingAnimationSpec>(){}[0]
+    final val snapAnimationSpec // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.snapAnimationSpec|{}snapAnimationSpec[0]
+        final fun <get-snapAnimationSpec>(): androidx.compose.animation.core/AnimationSpec<kotlin/Float> // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.snapAnimationSpec.<get-snapAnimationSpec>|<get-snapAnimationSpec>(){}[0]
+    final val state // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.state|{}state[0]
+        final fun <get-state>(): androidx.compose.material3/FloatingToolbarState // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.state.<get-state>|<get-state>(){}[0]
+
+    final fun (androidx.compose.ui/Modifier).floatingScrollBehavior(): androidx.compose.ui/Modifier // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.floatingScrollBehavior|floatingScrollBehavior@androidx.compose.ui.Modifier(){}[0]
+    final fun onPostScroll(androidx.compose.ui.geometry/Offset, androidx.compose.ui.geometry/Offset, androidx.compose.ui.input.nestedscroll/NestedScrollSource): androidx.compose.ui.geometry/Offset // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.onPostScroll|onPostScroll(androidx.compose.ui.geometry.Offset;androidx.compose.ui.geometry.Offset;androidx.compose.ui.input.nestedscroll.NestedScrollSource){}[0]
+    final suspend fun onPostFling(androidx.compose.ui.unit/Velocity, androidx.compose.ui.unit/Velocity): androidx.compose.ui.unit/Velocity // androidx.compose.material3/ExitAlwaysFloatingToolbarScrollBehavior.onPostFling|onPostFling(androidx.compose.ui.unit.Velocity;androidx.compose.ui.unit.Velocity){}[0]
 }
 
 final class androidx.compose.material3/FloatingToolbarColors { // androidx.compose.material3/FloatingToolbarColors|null[0]
@@ -2272,6 +2304,10 @@ final object androidx.compose.material3/DateRangePickerDefaults { // androidx.co
     final fun DateRangePickerTitle(androidx.compose.material3/DisplayMode, androidx.compose.ui/Modifier = ..., androidx.compose.ui.graphics/Color = ...) // androidx.compose.material3/DateRangePickerDefaults.DateRangePickerTitle|DateRangePickerTitle(androidx.compose.material3.DisplayMode;androidx.compose.ui.Modifier;androidx.compose.ui.graphics.Color){}[0]
 }
 
+final object androidx.compose.material3/DefaultBasicAlertDialogOverride : androidx.compose.material3/BasicAlertDialogOverride { // androidx.compose.material3/DefaultBasicAlertDialogOverride|null[0]
+    final fun (androidx.compose.material3/BasicAlertDialogOverrideScope).BasicAlertDialog() // androidx.compose.material3/DefaultBasicAlertDialogOverride.BasicAlertDialog|BasicAlertDialog@androidx.compose.material3.BasicAlertDialogOverrideScope(){}[0]
+}
+
 final object androidx.compose.material3/DefaultNavigationBarComponentOverride : androidx.compose.material3/NavigationBarComponentOverride { // androidx.compose.material3/DefaultNavigationBarComponentOverride|null[0]
     final fun (androidx.compose.material3/NavigationBarComponentOverrideContext).NavigationBar() // androidx.compose.material3/DefaultNavigationBarComponentOverride.NavigationBar|NavigationBar@androidx.compose.material3.NavigationBarComponentOverrideContext(){}[0]
 }
@@ -3180,6 +3216,8 @@ final object androidx.compose.material3/WideNavigationRailItemDefaults { // andr
 
 final val androidx.compose.material3/LocalAbsoluteTonalElevation // androidx.compose.material3/LocalAbsoluteTonalElevation|{}LocalAbsoluteTonalElevation[0]
     final fun <get-LocalAbsoluteTonalElevation>(): androidx.compose.runtime/ProvidableCompositionLocal<androidx.compose.ui.unit/Dp> // androidx.compose.material3/LocalAbsoluteTonalElevation.<get-LocalAbsoluteTonalElevation>|<get-LocalAbsoluteTonalElevation>(){}[0]
+final val androidx.compose.material3/LocalBasicAlertDialogOverride // androidx.compose.material3/LocalBasicAlertDialogOverride|{}LocalBasicAlertDialogOverride[0]
+    final fun <get-LocalBasicAlertDialogOverride>(): androidx.compose.runtime/ProvidableCompositionLocal<androidx.compose.material3/BasicAlertDialogOverride> // androidx.compose.material3/LocalBasicAlertDialogOverride.<get-LocalBasicAlertDialogOverride>|<get-LocalBasicAlertDialogOverride>(){}[0]
 final val androidx.compose.material3/LocalContentColor // androidx.compose.material3/LocalContentColor|{}LocalContentColor[0]
     final fun <get-LocalContentColor>(): androidx.compose.runtime/ProvidableCompositionLocal<androidx.compose.ui.graphics/Color> // androidx.compose.material3/LocalContentColor.<get-LocalContentColor>|<get-LocalContentColor>(){}[0]
 final val androidx.compose.material3/LocalMinimumInteractiveComponentEnforcement // androidx.compose.material3/LocalMinimumInteractiveComponentEnforcement|{}LocalMinimumInteractiveComponentEnforcement[0]

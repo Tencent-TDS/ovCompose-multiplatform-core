@@ -17,6 +17,7 @@
 
 package androidx.wear.protolayout.testing
 
+import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.annotation.Dimension
 import androidx.annotation.Dimension.Companion.DP
@@ -150,7 +151,14 @@ public fun hasImage(protolayoutResId: String): LayoutElementMatcher =
  * Returns a [LayoutElementMatcher] which checks whether the element is drawn with the given color.
  */
 public fun hasColor(@ColorInt argb: Int): LayoutElementMatcher =
-    LayoutElementMatcher("Element has color $argb ") { element -> element.color?.argb == argb }
+    LayoutElementMatcher("Element has color $argb ") { element, context ->
+        val dynamicValue: Color? = element.color?.dynamicValue?.evaluate(context.dynamicData)
+        if (dynamicValue != null) {
+            dynamicValue.toArgb() == argb
+        } else {
+            element.color?.argb == argb
+        }
+    }
 
 /** Returns a [LayoutElementMatcher] which checks whether the element has the given width value. */
 public fun hasWidth(width: ContainerDimension): LayoutElementMatcher =

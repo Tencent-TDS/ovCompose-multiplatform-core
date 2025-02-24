@@ -44,7 +44,7 @@ public class `$AllPrimitiveInputFunctions_AppFunctionInvoker` : AppFunctionInvok
     functionIdentifier: String,
     parameters: Map<String, Any?>,
   ): Any? {
-    val result = when (functionIdentifier) {
+    val result: Any? = when (functionIdentifier) {
       "com.testdata.AllPrimitiveInputFunctions#simpleFunctionInt" -> {
         ConfigurableAppFunctionFactory<AllPrimitiveInputFunctions>(
           appFunctionContext.context

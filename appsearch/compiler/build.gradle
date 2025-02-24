@@ -46,8 +46,6 @@ dependencies {
     implementation(libs.kotlinMetadataJvm)
     implementation(libs.kotlinStdlib)
 
-    annotationProcessor(libs.autoValue)
-
     // For testing, add in the compiled classes from appsearch to get access to annotations.
     testImplementationAarAsJar(project(":appsearch:appsearch"))
     testImplementation(libs.googleCompileTesting)

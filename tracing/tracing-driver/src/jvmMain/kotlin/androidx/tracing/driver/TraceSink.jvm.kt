@@ -34,16 +34,17 @@ import kotlinx.coroutines.Job
 import okio.BufferedSink
 import okio.appendingSink
 import okio.buffer
-import perfetto.protos.MutableTracePacket
 
 /** The trace sink that writes to a new file per trace session. */
 public class JvmTraceSink(
+    sequenceId: Int,
     @Suppress("UNUSED") private val baseDir: File,
     private val coroutineContext: CoroutineContext = Dispatchers.IO
 ) : TraceSink(), Closeable {
     internal val traceFile = baseDir.perfettoTraceFile()
     private val bufferedSink: BufferedSink = traceFile.appendingSink().buffer()
-    private val protoWriter: ProtoWriter = ProtoWriter(bufferedSink)
+    private val wireTraceEventSerializer =
+        WireTraceEventSerializer(sequenceId, ProtoWriter(bufferedSink))
 
     // There are 2 distinct mechanisms for thread safety here, and they are not necessarily in sync.
     // The Queue by itself is thread-safe, but after we drain the queue we mark drainRequested
@@ -99,8 +100,8 @@ public class JvmTraceSink(
         while (queue.isNotEmpty()) {
             val pooledPacketArray = queue.removeFirstOrNull()
             if (pooledPacketArray != null) {
-                pooledPacketArray.forEach {
-                    MutableTracePacket.ADAPTER.encodeWithTag(protoWriter, 1, it)
+                pooledPacketArray.forEach { event ->
+                    wireTraceEventSerializer.writeTraceEvent(event)
                 }
                 pooledPacketArray.recycle()
             }

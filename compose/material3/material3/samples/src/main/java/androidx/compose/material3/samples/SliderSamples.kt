@@ -67,8 +67,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -83,11 +81,7 @@ fun SliderSample() {
     var sliderPosition by remember { mutableStateOf(0f) }
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(text = "%.2f".format(sliderPosition))
-        Slider(
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
-            value = sliderPosition,
-            onValueChange = { sliderPosition = it }
-        )
+        Slider(value = sliderPosition, onValueChange = { sliderPosition = it })
     }
 }
 
@@ -103,9 +97,7 @@ fun LegacySliderSample() {
         Text(text = "%.2f".format(sliderPosition))
         Slider(
             interactionSource = interactionSource,
-            modifier =
-                Modifier.semantics { contentDescription = "Localized Description" }
-                    .requiredSizeIn(minWidth = thumbSize.width, minHeight = trackHeight),
+            modifier = Modifier.requiredSizeIn(minWidth = thumbSize.width, minHeight = trackHeight),
             value = sliderPosition,
             onValueChange = { sliderPosition = it },
             thumb = {
@@ -140,7 +132,6 @@ fun StepsSliderSample() {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(text = sliderPosition.roundToInt().toString())
         Slider(
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
             value = sliderPosition,
             onValueChange = { sliderPosition = it },
             valueRange = 0f..100f,
@@ -164,7 +155,6 @@ fun SliderWithCustomThumbSample() {
     val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Slider(
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
             value = sliderPosition,
             onValueChange = { sliderPosition = it },
             valueRange = 0f..100f,
@@ -214,7 +204,6 @@ fun SliderWithCustomTrackAndThumbSample() {
         Text(text = "%.2f".format(sliderState.value))
         Slider(
             state = sliderState,
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
             interactionSource = interactionSource,
             thumb = {
                 SliderDefaults.Thumb(interactionSource = interactionSource, colors = colors)
@@ -245,7 +234,6 @@ fun SliderWithTrackIconsSample() {
         Text(text = "%.2f".format(sliderState.value))
         Slider(
             state = sliderState,
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
             interactionSource = interactionSource,
             track = {
                 val iconSize = DpSize(20.dp, 20.dp)
@@ -356,10 +344,7 @@ fun VerticalSliderSample() {
         Spacer(Modifier.height(16.dp))
         VerticalSlider(
             state = sliderState,
-            modifier =
-                Modifier.height(300.dp).align(Alignment.CenterHorizontally).semantics {
-                    contentDescription = "Localized Description"
-                },
+            modifier = Modifier.height(300.dp).align(Alignment.CenterHorizontally),
             interactionSource = interactionSource,
             track = {
                 SliderDefaults.Track(
@@ -393,10 +378,7 @@ fun RangeSliderSample() {
         val rangeStart = "%.2f".format(rangeSliderState.activeRangeStart)
         val rangeEnd = "%.2f".format(rangeSliderState.activeRangeEnd)
         Text(text = "$rangeStart .. $rangeEnd")
-        RangeSlider(
-            state = rangeSliderState,
-            modifier = Modifier.semantics { contentDescription = "Localized Description" }
-        )
+        RangeSlider(state = rangeSliderState)
     }
 }
 
@@ -427,9 +409,7 @@ fun LegacyRangeSliderSample() {
             state = rangeSliderState,
             startInteractionSource = startInteractionSource,
             endInteractionSource = endInteractionSource,
-            modifier =
-                Modifier.semantics { contentDescription = "Localized Description" }
-                    .requiredSizeIn(minWidth = thumbSize.width, minHeight = trackHeight),
+            modifier = Modifier.requiredSizeIn(minWidth = thumbSize.width, minHeight = trackHeight),
             startThumb = {
                 val modifier =
                     Modifier.size(thumbSize)
@@ -490,10 +470,7 @@ fun StepRangeSliderSample() {
         val rangeStart = rangeSliderState.activeRangeStart.roundToInt()
         val rangeEnd = rangeSliderState.activeRangeEnd.roundToInt()
         Text(text = "$rangeStart .. $rangeEnd")
-        RangeSlider(
-            state = rangeSliderState,
-            modifier = Modifier.semantics { contentDescription = "Localized Description" }
-        )
+        RangeSlider(state = rangeSliderState)
     }
 }
 
@@ -521,7 +498,6 @@ fun RangeSliderWithCustomComponents() {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         RangeSlider(
             state = rangeSliderState,
-            modifier = Modifier.semantics { contentDescription = "Localized Description" },
             startInteractionSource = startInteractionSource,
             endInteractionSource = endInteractionSource,
             startThumb = {

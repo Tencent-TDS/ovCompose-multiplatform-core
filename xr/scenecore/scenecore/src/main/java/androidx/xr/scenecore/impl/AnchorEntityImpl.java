@@ -23,6 +23,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.xr.extensions.XrExtensions;
@@ -571,18 +572,19 @@ class AnchorEntityImpl extends SystemSpaceEntityImpl implements AnchorEntity {
         return mAnchor.getAnchorId();
     }
 
+    @NonNull
     @Override
     public Pose getPose() {
         throw new UnsupportedOperationException("Cannot get 'pose' on an AnchorEntity.");
     }
 
     @Override
-    public void setPose(Pose pose) {
+    public void setPose(@NonNull Pose pose) {
         throw new UnsupportedOperationException("Cannot set 'pose' on an AnchorEntity.");
     }
 
     @Override
-    public void setScale(Vector3 scale) {
+    public void setScale(@NonNull Vector3 scale) {
         // TODO(b/349391097): make this behavior consistent with ActivitySpaceImpl
         throw new UnsupportedOperationException("Cannot set 'scale' on an AnchorEntity.");
     }
@@ -609,6 +611,7 @@ class AnchorEntityImpl extends SystemSpaceEntityImpl implements AnchorEntity {
     }
 
     // TODO: b/360168321 Use the OpenXrPosableHelper when retrieving the pose in world space.
+    @NonNull
     @Override
     public Pose getActivitySpacePose() {
         if (mOpenXrActivityPoseHelper == null) {
@@ -618,6 +621,7 @@ class AnchorEntityImpl extends SystemSpaceEntityImpl implements AnchorEntity {
         return mOpenXrActivityPoseHelper.getActivitySpacePose(getPoseInOpenXrReferenceSpace());
     }
 
+    @NonNull
     @Override
     public Vector3 getActivitySpaceScale() {
         return mOpenXrActivityPoseHelper.getActivitySpaceScale(getWorldSpaceScale());

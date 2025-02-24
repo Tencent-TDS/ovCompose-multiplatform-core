@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -43,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.LocalReduceMotion
@@ -59,7 +57,6 @@ import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.scrollTransform
-import androidx.wear.compose.material3.lazy.targetMorphingHeight
 import kotlin.random.Random
 import kotlinx.coroutines.launch
 
@@ -223,77 +220,6 @@ fun TransformingLazyColumnScalingMorphingEffectSample() {
                                 )
                                 .padding(10.dp)
                     )
-                }
-            }
-        }
-    }
-}
-
-@Sampled
-@Preview
-@Composable
-fun TransformingLazyColumnTargetMorphingHeightSample() {
-    data class MenuItem(val title: String, val price: Float)
-
-    val drinks =
-        listOf(
-            MenuItem("Cappuccino", 2.5f),
-            MenuItem("Late", 3f),
-            MenuItem("Flat White", 3.2f),
-            MenuItem("Americano", 1.5f),
-            MenuItem("Black tea", 2f),
-            MenuItem("London fog", 2.6f),
-        )
-    val state = rememberTransformingLazyColumnState()
-    val coroutineScope = rememberCoroutineScope()
-    AppScaffold {
-        ScreenScaffold(
-            state,
-            contentPadding = PaddingValues(horizontal = 10.dp),
-            edgeButton = {
-                EdgeButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            // Scroll to the first non-header item.
-                            state.scrollToItem(1)
-                        }
-                    }
-                ) {
-                    Text("To top")
-                }
-            }
-        ) { contentPadding ->
-            TransformingLazyColumn(
-                state = state,
-                contentPadding = contentPadding,
-                modifier = Modifier.background(MaterialTheme.colorScheme.background),
-            ) {
-                item(contentType = "header") {
-                    // No modifier is applied - no Material 3 Motion transformations.
-                    ListHeader { Text("Drinks", style = MaterialTheme.typography.labelLarge) }
-                }
-                items(drinks, key = { it.title }) { notification ->
-                    Column(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                // Apply Material 3 Motion effect.
-                                .scrollTransform(
-                                    this@items,
-                                    backgroundColor = Color.DarkGray,
-                                    shape = RoundedCornerShape(20.dp),
-                                )
-                                .padding(horizontal = 10.dp)
-                    ) {
-                        Text(
-                            notification.title,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.labelLarge,
-                            // Morphing is focusing on the title.
-                            modifier = Modifier.targetMorphingHeight(this@items)
-                        )
-                        // Price is revealed after the morph.
-                        Text("$${notification.price}")
-                    }
                 }
             }
         }

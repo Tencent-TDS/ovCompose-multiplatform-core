@@ -455,10 +455,8 @@ object TestCasesGenerator {
                             .addContent(
                                 button(
                                     onClick = clickable,
-                                    labelContent = { text("Primary label".layoutString) },
-                                    secondaryLabelContent = {
-                                        text("Secondary label".layoutString)
-                                    },
+                                    labelContent = { text("Primary".layoutString) },
+                                    secondaryLabelContent = { text("Secondary".layoutString) },
                                     iconContent = { icon(ICON_ID) },
                                     width = expand()
                                 )

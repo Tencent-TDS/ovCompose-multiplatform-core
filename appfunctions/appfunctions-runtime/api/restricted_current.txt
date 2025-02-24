@@ -1,7 +1,7 @@
 // Signature format: 4.0
 package androidx.appfunctions {
 
-  @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.SOURCE) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.FUNCTION) public @interface AppFunction {
+  @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.FUNCTION) public @interface AppFunction {
     method public abstract boolean isEnabled() default true;
     property public abstract boolean isEnabled;
   }

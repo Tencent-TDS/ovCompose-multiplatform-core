@@ -19,6 +19,7 @@ package androidx.xr.arcore.apps.whitebox.persistentanchors
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -31,8 +32,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -74,8 +73,9 @@ class PersistentAnchorsActivity : ComponentActivity() {
     private lateinit var sessionHelper: SessionLifecycleHelper
     private lateinit var jxrCoreSession: JxrCoreSession
     private lateinit var movableEntity: Entity
-    private val movableEntityOffset = Pose(Vector3(0f, 0f, -2.0f))
+    private val movableEntityOffset = Pose(Vector3(0f, 1f, -2.0f))
     private val uuids = MutableStateFlow<List<UUID>>(emptyList())
+    private var anchorOffset = MutableStateFlow<Float>(0f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -174,9 +174,12 @@ class PersistentAnchorsActivity : ComponentActivity() {
     }
 
     private fun addAnchor() {
+        // We need to use a small offset to avoid overlapping with
+        // the target panel and future anchors.
+        anchorOffset.value += 0.25f
         val anchorPose =
             jxrCoreSession.activitySpace.transformPoseTo(
-                movableEntity.getPose(),
+                movableEntity.getPose().translate(Vector3(anchorOffset.value, 0f, 0f)),
                 jxrCoreSession.perceptionSpace,
             )
         try {
@@ -184,6 +187,7 @@ class PersistentAnchorsActivity : ComponentActivity() {
                 is AnchorCreateSuccess -> createAnchorPanel(anchorResult.anchor)
                 is AnchorCreateResourcesExhausted -> {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
+                    Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
                 }
             }
         } catch (e: IllegalStateException) {
@@ -269,6 +273,7 @@ class PersistentAnchorsActivity : ComponentActivity() {
                 }
                 is AnchorCreateResourcesExhausted -> {
                     Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
+                    Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
                 }
             }
         } catch (e: IllegalStateException) {

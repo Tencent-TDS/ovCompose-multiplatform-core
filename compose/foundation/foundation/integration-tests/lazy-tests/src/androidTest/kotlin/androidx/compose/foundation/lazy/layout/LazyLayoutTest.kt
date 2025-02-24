@@ -238,7 +238,7 @@ class LazyLayoutTest {
         rule.runOnIdle {
             assertThat(measureCount).isEqualTo(0)
 
-            prefetchState.schedulePrefetch(0, constraints)
+            prefetchState.schedulePremeasure(0, constraints)
 
             scheduler.executeActiveRequests()
             assertThat(measureCount).isEqualTo(1)
@@ -287,7 +287,7 @@ class LazyLayoutTest {
         rule.runOnIdle {
             assertThat(measureCount).isEqualTo(0)
             var callbackCalled = 0
-            prefetchState.schedulePrefetch(0, constraints) {
+            prefetchState.schedulePremeasure(0, constraints) {
                 callbackCalled++
                 repeat(placeablesCount) {
                     assertThat(getSize(it).width).isEqualTo(50)
@@ -331,7 +331,7 @@ class LazyLayoutTest {
         rule.runOnIdle {
             assertThat(measureCount).isEqualTo(0)
 
-            prefetchState.schedulePrefetch(0, constraints)
+            prefetchState.schedulePremeasure(0, constraints)
 
             scheduler.executeActiveRequests()
             assertThat(measureCount).isEqualTo(1)
@@ -367,7 +367,7 @@ class LazyLayoutTest {
         }
 
         rule.runOnIdle {
-            val handle = prefetchState.schedulePrefetch(0, Constraints.fixed(50, 50))
+            val handle = prefetchState.schedulePremeasure(0, Constraints.fixed(50, 50))
             scheduler.executeActiveRequests()
             assertThat(composed).isTrue()
             handle.cancel()
@@ -387,7 +387,7 @@ class LazyLayoutTest {
             LazyLayout(itemProvider, prefetchState = prefetchState) { layout(100, 100) {} }
         }
 
-        rule.runOnIdle { prefetchState.schedulePrefetch(0, Constraints.fixed(50, 50)) }
+        rule.runOnIdle { prefetchState.schedulePremeasure(0, Constraints.fixed(50, 50)) }
 
         assertThat(executor.requests).hasSize(1)
 

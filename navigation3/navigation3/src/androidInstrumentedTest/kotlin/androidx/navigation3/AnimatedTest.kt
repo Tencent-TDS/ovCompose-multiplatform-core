@@ -23,10 +23,17 @@ import androidx.compose.animation.SharedTransitionScope.SharedContentState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.isDisplayed
@@ -718,6 +725,105 @@ class AnimatedTest {
         assertThat(backStack).containsExactly(first, second)
         composeTestRule.onNodeWithText(first).assertDoesNotExist()
         composeTestRule.onNodeWithText(second).assertIsDisplayed()
+    }
+
+    @Test
+    fun testPoppedEntryIsAnimated() {
+        lateinit var backstack: MutableList<Any>
+        composeTestRule.setContent {
+            backstack = remember { mutableStateListOf(first, second) }
+            SinglePaneNavDisplay(backstack) {
+                when (it) {
+                    first ->
+                        NavEntry(
+                            first,
+                        ) {
+                            Text(first)
+                        }
+                    second ->
+                        NavEntry(
+                            second,
+                        ) {
+                            Box(Modifier.fillMaxSize().background(Color.Red)) { Text(second) }
+                        }
+                    else -> error("Invalid key passed")
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(second).assertIsDisplayed()
+        assertThat(backstack).containsExactly(first, second)
+
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.runOnIdle { backstack.removeAt(1) }
+
+        // advance by a duration that is much shorter than the default duration
+        // to ensure that the custom animation is used and has completed after this
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        composeTestRule.onNodeWithText(second).assertIsDisplayed()
+    }
+
+    @Test
+    fun testPoppedEntryIsWrapped() {
+        lateinit var backstack: MutableList<Any>
+        val LocalHasProvidedToEntry = compositionLocalOf { false }
+        val provider =
+            object : NavLocalProvider {
+                @Composable
+                override fun ProvideToBackStack(
+                    backStack: List<Any>,
+                    content: @Composable () -> Unit
+                ) {
+                    CompositionLocalProvider(LocalHasProvidedToEntry provides false) {
+                        content.invoke()
+                    }
+                }
+
+                @Composable
+                override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
+                    CompositionLocalProvider(LocalHasProvidedToEntry provides true) {
+                        entry.content.invoke(entry.key)
+                    }
+                }
+            }
+        var secondEntryIsWrapped = false
+        composeTestRule.setContent {
+            backstack = remember { mutableStateListOf(first, second) }
+            SinglePaneNavDisplay(backstack, localProviders = listOf(provider)) {
+                when (it) {
+                    first ->
+                        NavEntry(
+                            first,
+                        ) {
+                            Text(first)
+                        }
+                    second ->
+                        NavEntry(
+                            second,
+                        ) {
+                            secondEntryIsWrapped = LocalHasProvidedToEntry.current
+                            Box(Modifier.fillMaxSize().background(Color.Red)) { Text(second) }
+                        }
+                    else -> error("Invalid key passed")
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(second).assertIsDisplayed()
+        assertThat(backstack).containsExactly(first, second)
+
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.runOnIdle { backstack.removeAt(1) }
+
+        // advance by a duration that is much shorter than the default duration
+        // to ensure that the custom animation is used and has completed after this
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertTrue(secondEntryIsWrapped)
     }
 
     @Test

@@ -58,5 +58,5 @@ data class BooleanPropertyAnnotation(
         get() = Kind.BOOLEAN_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mBooleanPrimitiveType
+        helper.booleanPrimitiveType
 }

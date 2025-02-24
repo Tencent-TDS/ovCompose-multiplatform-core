@@ -25,6 +25,7 @@ import androidx.xr.scenecore.AnchorEntity
 import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
+import androidx.xr.scenecore.PermissionHelper
 import androidx.xr.scenecore.PlaneSemantic
 import androidx.xr.scenecore.PlaneType
 import androidx.xr.scenecore.Session
@@ -40,7 +41,15 @@ class AnchorTestActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.anchortest_activity)
-
+        if (
+            !PermissionHelper.hasPermission(this, PermissionHelper.SCENE_UNDERSTANDING_PERMISSION)
+        ) {
+            PermissionHelper.requestPermission(
+                this,
+                PermissionHelper.SCENE_UNDERSTANDING_PERMISSION,
+                PermissionHelper.SCENE_UNDERSTANDING_PERMISSION_CODE,
+            )
+        }
         // Create a transform widget model and assign it to an Anchor
         val transformWidgetModelFuture = GltfModel.create(session, "models/xyzArrows.glb")
         transformWidgetModelFuture.addListener(

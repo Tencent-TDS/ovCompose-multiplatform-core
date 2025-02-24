@@ -30,8 +30,12 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.util.fastIsFinite
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
@@ -112,7 +116,7 @@ public fun CurvedLayout(
                 with(curvedRowChild) { draw() }
                 drawContent()
             },
-        content = { curvedRowChild.SubComposition() }
+        content = { curvedRowChild.SubComposition(CurvedSemanticProperties()) }
     ) { measurables, constraints ->
         require(constraints.hasBoundedHeight || constraints.hasBoundedWidth) {
             "either height or width should be bounded"
@@ -261,6 +265,35 @@ internal class CurvedMeasureScope(
     val radius: Float
 ) : Density by subDensity
 
+internal class CurvedSemanticProperties(
+    val contentDescription: String? = null,
+    val traversalIndex: Float = Float.NaN
+) {
+    fun copy(
+        contentDescription: String? = this.contentDescription,
+        traversalIndex: Float = this.traversalIndex
+    ) = CurvedSemanticProperties(contentDescription, traversalIndex)
+
+    fun merge(other: CurvedSemanticProperties) =
+        copy(
+            other.contentDescription ?: contentDescription,
+            if (other.traversalIndex.fastIsFinite()) other.traversalIndex else traversalIndex
+        )
+
+    internal fun hasInfo() = contentDescription != null || traversalIndex.fastIsFinite()
+
+    fun SemanticsPropertyReceiver.applySemantics() {
+        this@CurvedSemanticProperties.contentDescription?.let { contentDescription = it }
+        this@CurvedSemanticProperties.traversalIndex.let {
+            if (it.fastIsFinite()) traversalIndex = it
+        }
+    }
+
+    companion object {
+        val Empty = CurvedSemanticProperties()
+    }
+}
+
 /**
  * Base class for children of a [CurvedLayout].
  *
@@ -301,8 +334,11 @@ internal abstract class CurvedChild() {
      * Compose the content. This may generate some compose-ui nodes, but has to match
      * initializeMeasure's matching behavior (initializeMeasure should return the index parameter +
      * the number of nodes generated, and ideally check that they are the right measurable(s))
+     *
+     * @param semanticProperties semanticProperties computed so far, on the way through the
+     *   modifiers to the actual curved node.
      */
-    @Composable open fun SubComposition() {}
+    @Composable open fun SubComposition(semanticProperties: CurvedSemanticProperties) {}
 
     /**
      * Initialize the Child to do a measure pass.

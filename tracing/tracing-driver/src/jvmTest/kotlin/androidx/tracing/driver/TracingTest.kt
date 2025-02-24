@@ -25,14 +25,36 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import perfetto.protos.MutableTracePacket
+import perfetto.protos.MutableTrackDescriptor
+import perfetto.protos.MutableTrackEvent
 
 class TestSink : TraceSink() {
     internal val packets = mutableListOf<MutableTracePacket>()
 
     override fun enqueue(pooledPacketArray: PooledTracePacketArray) {
-        pooledPacketArray.forEach {
-            // Lol, deep copy!
-            packets += MutableTracePacket.ADAPTER.decode(it.encode())
+        pooledPacketArray.forEach { it ->
+            packets.add(
+                MutableTracePacket(
+                        timestamp = INVALID_LONG,
+                        trusted_packet_sequence_id = 1 // arbitrary value
+                    )
+                    .apply {
+                        track_event = MutableTrackEvent(track_uuid = INVALID_LONG)
+                        // slightly abuse this function by passing in freshly allocated objects each
+                        // time so this test can keep ref to all packets created, and doesn't need
+                        // to bother with proto serialization,
+                        WireTraceEventSerializer.updateScratchPacketFromTraceEvent(
+                            event = it,
+                            scratchTracePacket = this,
+                            // this is mostly dropped and not used, but we don't care about extra
+                            // allocations during this test
+                            scratchTrackDescriptor = MutableTrackDescriptor(),
+                            // this is sometimes not used, but we don't care about extra
+                            // allocations during this test
+                            scratchTrackEvent = MutableTrackEvent(track_uuid = INVALID_LONG)
+                        )
+                    }
+            )
         }
     }
 
@@ -47,7 +69,7 @@ class TestSink : TraceSink() {
 
 class TracingTest {
     private val sink = TestSink()
-    private val context: TraceContext = TraceContext(sequenceId = 1, sink = sink, isEnabled = true)
+    private val context: TraceContext = TraceContext(sink = sink, isEnabled = true)
 
     @Test
     internal fun testProcessTrackEvents() {

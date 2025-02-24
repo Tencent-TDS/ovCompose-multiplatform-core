@@ -103,7 +103,7 @@ android {
 
 androidx {
     name = "Androidx Lifecycle Navigation3 ViewModel"
-    type = SoftwareType.SNAPSHOT_ONLY_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2024"
     description = "Provides the ViewModel wrapper for nav3."
     doNotDocumentReason = "Not published to maven"

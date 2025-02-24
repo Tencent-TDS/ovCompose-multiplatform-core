@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,15 +35,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.LocalTransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
-import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material.Text
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -147,15 +153,29 @@ fun TransformingLazyColumnLettersSample() {
 @Composable
 fun TransformingLazyColumnRectangularBoxesSample() {
     TransformingLazyColumn {
-        items(count = 10) {
+        items(count = 100) {
             Text(
                 "Item $it",
                 modifier =
-                    Modifier.background(Color.Gray).padding(10.dp).transformedHeight {
-                        originalHeight,
-                        _ ->
-                        originalHeight / 2
-                    }
+                    Modifier.transformedHeight { originalHeight, _ -> originalHeight / 2 }
+                        .graphicsLayer {
+                            clip = true
+                            shape =
+                                object : Shape {
+                                    override fun createOutline(
+                                        size: Size,
+                                        layoutDirection: LayoutDirection,
+                                        density: Density
+                                    ): Outline =
+                                        RectangleShape.createOutline(
+                                            size.copy(height = size.height / 2),
+                                            layoutDirection,
+                                            density
+                                        )
+                                }
+                        }
+                        .background(Color.Gray)
+                        .padding(10.dp)
             )
         }
     }
@@ -218,19 +238,26 @@ fun TransformingLazyColumnImplicitSample() {
 }
 
 @Sampled
+@Preview
 @Composable
-fun UsingListAnchorItemPositionInCompositionSample() {
+fun UsingListAnchorItemPositionSample() {
     val columnState = rememberTransformingLazyColumnState()
-    val isAtCenter by remember {
-        derivedStateOf {
-            columnState.anchorItemIndex == 0 && columnState.anchorItemScrollOffset == 0
+
+    TransformingLazyColumn(modifier = Modifier.background(Color.Black), state = columnState) {
+        items(count = 100) {
+            Text(
+                "Item $it",
+                modifier =
+                    Modifier.drawBehind {
+                            val isCentered =
+                                it == columnState.anchorItemIndex &&
+                                    abs(columnState.anchorItemScrollOffset) < size.height
+                            drawRect(if (isCentered) Color.Green else Color.Red)
+                        }
+                        .padding(5.dp)
+            )
         }
     }
 
-    @Composable
-    fun ScrollToTopButton(@Suppress("UNUSED_PARAMETER") columnState: TransformingLazyColumnState) {}
-
-    if (!isAtCenter) {
-        ScrollToTopButton(columnState)
-    }
+    LaunchedEffect(columnState) { println("Anchor item index: ${columnState.anchorItemIndex}") }
 }

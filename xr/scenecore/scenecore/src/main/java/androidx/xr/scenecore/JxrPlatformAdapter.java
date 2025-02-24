@@ -35,6 +35,7 @@ import androidx.xr.arcore.Anchor;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
+import androidx.xr.runtime.math.Vector4;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -115,6 +116,55 @@ public interface JxrPlatformAdapter {
     ListenableFuture<ExrImageResource> loadExrImageByAssetName(@NonNull String assetName);
 
     /**
+     * Loads a texture resource for the given asset name or URL. The future returned by this method
+     * will fire listeners on the UI thread if Runnable::run is supplied.
+     */
+    @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
+    @Nullable
+    ListenableFuture<TextureResource> loadTexture(
+            @NonNull String assetName, @NonNull TextureSampler sampler);
+
+    /** Borrows the reflection texture from the currently set environment IBL. */
+    @Nullable
+    TextureResource borrowReflectionTexture();
+
+    /** Destroys the given texture resource. */
+    void destroyTexture(@NonNull TextureResource texture);
+
+    /**
+     * Creates a water material by querying it from the system's built-in materials. The future
+     * returned by this method will fire listeners on the UI thread if Runnable::run is supplied.
+     */
+    @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
+    @Nullable
+    ListenableFuture<MaterialResource> createWaterMaterial(boolean transparent);
+
+    /** Destroys the given water material resource. */
+    void destroyWaterMaterial(@NonNull MaterialResource material);
+
+    /** Sets the reflection cube texture for the water material. */
+    void setReflectionCube(
+            @NonNull MaterialResource material, @NonNull TextureResource reflectionCube);
+
+    /** Sets the normal map texture for the water material. */
+    void setNormalMap(@NonNull MaterialResource material, @NonNull TextureResource normalMap);
+
+    /** Sets the normal tiling for the water material. */
+    void setNormalTiling(@NonNull MaterialResource material, float normalTiling);
+
+    /** Sets the normal speed for the water material. */
+    void setNormalSpeed(@NonNull MaterialResource material, float normalSpeed);
+
+    /** Sets the alpha step of the U coordinate for the water material. */
+    void setAlphaStepU(@NonNull MaterialResource material, @NonNull Vector4 alphaStepU);
+
+    /** Sets the alpha step of the V coordinate for the water material. */
+    void setAlphaStepV(@NonNull MaterialResource material, @NonNull Vector4 alphaStepV);
+
+    /** Sets the alpha step multiplier for the water material. */
+    void setAlphaStepMultiplier(@NonNull MaterialResource material, float alphaStepMultiplier);
+
+    /**
      * A factory function to create a SceneCore GltfEntity. The parent may be the activity space or
      * GltfEntity in the scene.
      */
@@ -127,9 +177,9 @@ public interface JxrPlatformAdapter {
     /** A factory function for an Entity which displays drawable surfaces. */
     @SuppressWarnings("LambdaLast")
     @NonNull
-    StereoSurfaceEntity createStereoSurfaceEntity(
-            @StereoSurfaceEntity.StereoMode int stereoMode,
-            @NonNull StereoSurfaceEntity.CanvasShape canvasShape,
+    SurfaceEntity createSurfaceEntity(
+            @SurfaceEntity.StereoMode int stereoMode,
+            @NonNull SurfaceEntity.CanvasShape canvasShape,
             @NonNull Pose pose,
             @NonNull Entity parentEntity);
 
@@ -671,6 +721,12 @@ public interface JxrPlatformAdapter {
 
     /** Interface for a glTF resource. This can be used for creating glTF entities. */
     interface GltfModelResource extends Resource {}
+
+    /** Interface for a texture resource. This can be used alongside materials. */
+    interface TextureResource extends Resource {}
+
+    /** Interface for a material resource. This can be used to override materials on meshes. */
+    interface MaterialResource extends Resource {}
 
     /** Interface for Input listener. */
     @SuppressWarnings("AndroidJdkLibsChecker")
@@ -1251,6 +1307,14 @@ public interface JxrPlatformAdapter {
         /** Returns the current animation state of the glTF entity. */
         @AnimationState
         int getAnimationState();
+
+        /**
+         * Sets a material override for a mesh in the glTF model.
+         *
+         * @param material The material to use for the mesh.
+         * @param meshName The name of the mesh to use the material for.
+         */
+        void setMaterialOverride(@NonNull MaterialResource material, @NonNull String meshName);
     }
 
     /** Interface for a SceneCore Panel entity */
@@ -1321,7 +1385,7 @@ public interface JxrPlatformAdapter {
     }
 
     /** Interface for a surface which images can be rendered into. */
-    interface StereoSurfaceEntity extends Entity {
+    interface SurfaceEntity extends Entity {
 
         /** Represents the shape of the spatial canvas which the surface is texture mapped to. */
         public static interface CanvasShape {
@@ -2241,6 +2305,249 @@ public interface JxrPlatformAdapter {
 
         /** The sound source is an ambisonics sound field. */
         public static final int SOURCE_TYPE_SOUND_FIELD = 2;
+    }
+
+    /**
+     * TextureSampler class used to define the way a texture gets sampled. The fields of this
+     * sampler are based on the public Filament TextureSampler class but may diverge over time.
+     * https://github.com/google/filament/blob/main/android/filament-android/src/main/java/com/google/android/filament/TextureSampler.java
+     */
+    final class TextureSampler {
+        /** Wrap mode S for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.WrapMode
+        public int wrapModeS;
+
+        /** Wrap mode T for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.WrapMode
+        public int wrapModeT;
+
+        /** Wrap mode R for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.WrapMode
+        public int wrapModeR;
+
+        /** Min filter for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.MinFilter
+        public int minFilter;
+
+        /** Mag filter for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.MagFilter
+        public int magFilter;
+
+        /** Compare mode for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.CompareMode
+        public int compareMode;
+
+        /** Compare function for the texture sampler. */
+        @SuppressWarnings("MutableBareField")
+        @TextureSampler.CompareFunc
+        public int compareFunc;
+
+        public int anisotropyLog2;
+
+        public TextureSampler(
+                @TextureSampler.WrapMode int wrapModeS,
+                @TextureSampler.WrapMode int wrapModeT,
+                @TextureSampler.WrapMode int wrapModeR,
+                @TextureSampler.MinFilter int minFilter,
+                @TextureSampler.MagFilter int magFilter,
+                @TextureSampler.CompareMode int compareMode,
+                @TextureSampler.CompareFunc int compareFunc,
+                int anisotropyLog2) {
+            this.wrapModeS = wrapModeS;
+            this.wrapModeT = wrapModeT;
+            this.wrapModeR = wrapModeR;
+            this.minFilter = minFilter;
+            this.magFilter = magFilter;
+            this.compareMode = compareMode;
+            this.compareFunc = compareFunc;
+            this.anisotropyLog2 = anisotropyLog2;
+        }
+
+        /** Returns the wrap mode S for the texture sampler. */
+        @TextureSampler.WrapMode
+        public int getWrapModeS() {
+            return this.wrapModeS;
+        }
+
+        /** Returns the wrap mode T for the texture sampler. */
+        @TextureSampler.WrapMode
+        public int getWrapModeT() {
+            return this.wrapModeT;
+        }
+
+        /** Returns the wrap mode R for the texture sampler. */
+        @TextureSampler.WrapMode
+        public int getWrapModeR() {
+            return this.wrapModeR;
+        }
+
+        /** Returns the min filter for the texture sampler. */
+        @TextureSampler.MinFilter
+        public int getMinFilter() {
+            return this.minFilter;
+        }
+
+        /** Returns the mag filter for the texture sampler. */
+        @TextureSampler.MagFilter
+        public int getMagFilter() {
+            return this.magFilter;
+        }
+
+        /** Returns the compare mode for the texture sampler. */
+        @TextureSampler.CompareMode
+        public int getCompareMode() {
+            return this.compareMode;
+        }
+
+        /** Returns the compare function for the texture sampler. */
+        @TextureSampler.CompareFunc
+        public int getCompareFunc() {
+            return this.compareFunc;
+        }
+
+        /** Returns the anisotropy log 2 for the texture sampler. */
+        public int getAnisotropyLog2() {
+            return this.anisotropyLog2;
+        }
+
+        /**
+         * Defines how texture coordinates outside the range [0, 1] are handled. Although these
+         * values are based on the public Filament values, they may diverge over time.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(
+                value = {
+                    CLAMP_TO_EDGE,
+                    REPEAT,
+                    MIRRORED_REPEAT,
+                })
+        public @interface WrapMode {}
+
+        /** The edge of the texture extends to infinity. */
+        public static final int CLAMP_TO_EDGE = 0;
+
+        /** The texture infinitely repeats in the wrap direction. */
+        public static final int REPEAT = 1;
+
+        /** The texture infinitely repeats and mirrors in the wrap direction. */
+        public static final int MIRRORED_REPEAT = 2;
+
+        /**
+         * Specifies how the texture is sampled when it's minified (appears smaller than its
+         * original size). Although these values are based on the public Filament values, they may
+         * diverge over time.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(
+                value = {
+                    NEAREST,
+                    LINEAR,
+                    NEAREST_MIPMAP_NEAREST,
+                    LINEAR_MIPMAP_NEAREST,
+                    NEAREST_MIPMAP_LINEAR,
+                    LINEAR_MIPMAP_LINEAR,
+                })
+        public @interface MinFilter {}
+
+        /** No filtering. Nearest neighbor is used. */
+        public static final int NEAREST = 0;
+
+        /** Box filtering. Weighted average of 4 neighbors is used. */
+        public static final int LINEAR = 1;
+
+        /** Mip-mapping is activated. But no filtering occurs. */
+        public static final int NEAREST_MIPMAP_NEAREST = 2;
+
+        /** Box filtering within a mip-map level. */
+        public static final int LINEAR_MIPMAP_NEAREST = 3;
+
+        /** Mip-map levels are interpolated, but no other filtering occurs. */
+        public static final int NEAREST_MIPMAP_LINEAR = 4;
+
+        /** Both interpolated Mip-mapping and linear filtering are used. */
+        public static final int LINEAR_MIPMAP_LINEAR = 5;
+
+        /**
+         * Specifies how the texture is sampled when it's magnified (appears larger than its
+         * original size). Although these values are based on the public Filament values, they may
+         * diverge over time.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(
+                value = {
+                    MAG_NEAREST,
+                    MAG_LINEAR,
+                })
+        public @interface MagFilter {}
+
+        /** No filtering. Nearest neighbor is used. */
+        public static final int MAG_NEAREST = 0;
+
+        /** Box filtering. Weighted average of 4 neighbors is used. */
+        public static final int MAG_LINEAR = 1;
+
+        /**
+         * Used for depth texture comparisons, determining how the sampled depth value is compared
+         * to a reference depth. Although these values are based on the public Filament values, they
+         * may diverge over time.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(
+                value = {
+                    NONE,
+                    COMPARE_TO_TEXTURE,
+                })
+        public @interface CompareMode {}
+
+        public static final int NONE = 0;
+
+        public static final int COMPARE_TO_TEXTURE = 1;
+
+        /**
+         * Comparison functions for the depth sampler. Although these values are based on the public
+         * Filament values, they may diverge over time.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef(
+                value = {
+                    LE, GE, L, G, E, NE, A, N,
+                })
+        public @interface CompareFunc {}
+
+        /** Less or equal */
+        public static final int LE = 0;
+
+        /** Greater or equal */
+        public static final int GE = 1;
+
+        /** Strictly less than */
+        public static final int L = 2;
+
+        /** Strictly greater than */
+        public static final int G = 3;
+
+        /** Equal */
+        public static final int E = 4;
+
+        /** Not equal */
+        public static final int NE = 5;
+
+        /** Always. Depth testing is deactivated. */
+        public static final int A = 6;
+
+        /** Never. The depth test always fails. */
+        public static final int N = 7;
     }
 
     /** Returns a [SoundPoolExtensionsWrapper] instance. */

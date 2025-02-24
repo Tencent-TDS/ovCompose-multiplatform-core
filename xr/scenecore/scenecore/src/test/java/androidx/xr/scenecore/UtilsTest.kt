@@ -28,6 +28,7 @@ import androidx.xr.scenecore.JxrPlatformAdapter.MoveEvent as RuntimeMoveEvent
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions as RuntimePixelDimensions
 import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent as RuntimeResizeEvent
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities as RuntimeSpatialCapabilities
+import androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler as RuntimeTextureSampler
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertFailsWith
 import org.junit.Test
@@ -559,5 +560,31 @@ class UtilsTest {
         val rtPlacementSet = emptySet<AnchorPlacement>().toRtAnchorPlacement(mockRuntime)
 
         assertThat(rtPlacementSet).isEmpty()
+    }
+
+    @Test
+    fun intToTextureSampler_convertsCorrectly() {
+        val sampler: TextureSampler =
+            TextureSampler(
+                TextureSampler.MinFilter.NEAREST,
+                TextureSampler.MagFilter.LINEAR,
+                TextureSampler.WrapMode.CLAMP_TO_EDGE,
+                TextureSampler.WrapMode.REPEAT,
+                TextureSampler.WrapMode.MIRRORED_REPEAT,
+                TextureSampler.CompareMode.NONE,
+                TextureSampler.CompareFunc.LE,
+                2,
+            )
+
+        val rtSampler: RuntimeTextureSampler = sampler.toRtTextureSampler()
+
+        assertThat(rtSampler.wrapModeS).isEqualTo(JxrPlatformAdapter.TextureSampler.CLAMP_TO_EDGE)
+        assertThat(rtSampler.wrapModeT).isEqualTo(JxrPlatformAdapter.TextureSampler.REPEAT)
+        assertThat(rtSampler.wrapModeR).isEqualTo(JxrPlatformAdapter.TextureSampler.MIRRORED_REPEAT)
+        assertThat(rtSampler.minFilter).isEqualTo(JxrPlatformAdapter.TextureSampler.NEAREST)
+        assertThat(rtSampler.magFilter).isEqualTo(JxrPlatformAdapter.TextureSampler.MAG_LINEAR)
+        assertThat(rtSampler.compareMode).isEqualTo(JxrPlatformAdapter.TextureSampler.NONE)
+        assertThat(rtSampler.compareFunc).isEqualTo(JxrPlatformAdapter.TextureSampler.LE)
+        assertThat(rtSampler.anisotropyLog2).isEqualTo(2)
     }
 }

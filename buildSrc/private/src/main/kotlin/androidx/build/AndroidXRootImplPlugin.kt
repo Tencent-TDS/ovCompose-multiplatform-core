@@ -49,7 +49,7 @@ import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 
 abstract class AndroidXRootImplPlugin : Plugin<Project> {
     @get:Inject abstract val registry: BuildEventsListenerRegistry
-    @Suppress("UnstableApiUsage") @get:Inject abstract val buildFeatures: BuildFeatures
+    @get:Inject abstract val buildFeatures: BuildFeatures
 
     override fun apply(project: Project) {
         if (!project.isRoot) {

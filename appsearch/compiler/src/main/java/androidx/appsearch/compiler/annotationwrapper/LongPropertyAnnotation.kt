@@ -94,5 +94,5 @@ data class LongPropertyAnnotation(
         get() = Kind.LONG_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mLongPrimitiveType
+        helper.longPrimitiveType
 }

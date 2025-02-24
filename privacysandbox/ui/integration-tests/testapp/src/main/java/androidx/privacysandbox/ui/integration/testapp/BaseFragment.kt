@@ -34,6 +34,7 @@ import androidx.privacysandbox.ui.client.view.SandboxedSdkViewEventListener
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import androidx.privacysandbox.ui.integration.testapp.util.AdHolder
 import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApi
 import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApiFactory
 import kotlinx.coroutines.CoroutineScope
@@ -118,6 +119,28 @@ abstract class BaseFragment : Fragment() {
         drawViewabilityLayer: Boolean
     ) {}
 
+    fun loadAd(
+        adHolder: AdHolder,
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        drawViewabilityLayer: Boolean,
+        waitInsideOnDraw: Boolean = false
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val sdkBundle =
+                sdkApi.loadAd(
+                    adFormat,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewabilityLayer
+                )
+            adHolder.populateAd(sdkBundle, adFormat)
+        }
+    }
+
+    // TODO(b/369355774): replace with loadAd on all supported fragments
     fun loadBannerAd(
         @AdType adType: Int,
         @MediationOption mediationOption: Int,

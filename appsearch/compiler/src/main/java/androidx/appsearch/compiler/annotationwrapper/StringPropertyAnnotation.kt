@@ -102,5 +102,5 @@ data class StringPropertyAnnotation(
         get() = Kind.STRING_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mStringType
+        helper.stringType
 }

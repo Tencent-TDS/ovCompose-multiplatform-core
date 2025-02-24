@@ -37,6 +37,7 @@ import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,6 +79,12 @@ public class MainPanelEntityImplTest {
                         /* useSplitEngine= */ false);
 
         mMainPanelEntity = (MainPanelEntityImpl) mTestRuntime.getMainPanelEntity();
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mTestRuntime.dispose();
     }
 
     @Test

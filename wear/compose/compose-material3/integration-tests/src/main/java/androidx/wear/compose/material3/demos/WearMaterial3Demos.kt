@@ -30,6 +30,7 @@ import androidx.wear.compose.material3.samples.ButtonGroupThreeButtonsSample
 import androidx.wear.compose.material3.samples.EdgeButtonListSample
 import androidx.wear.compose.material3.samples.EdgeButtonSample
 import androidx.wear.compose.material3.samples.EdgeSwipeForSwipeToDismiss
+import androidx.wear.compose.material3.samples.FadingExpandingLabelButtonSample
 import androidx.wear.compose.material3.samples.LevelIndicatorSample
 import androidx.wear.compose.material3.samples.ListHeaderSample
 import androidx.wear.compose.material3.samples.SimpleSwipeToDismissBox
@@ -37,9 +38,9 @@ import androidx.wear.compose.material3.samples.StatefulSwipeToDismissBox
 import androidx.wear.compose.material3.samples.SwipeToRevealNonAnchoredSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSample
 import androidx.wear.compose.material3.samples.SwipeToRevealSingleActionCardSample
+import androidx.wear.compose.material3.samples.SwipeToRevealWithTransformingLazyColumnSample
 import androidx.wear.compose.material3.samples.TransformingLazyColumnScalingMorphingEffectSample
 import androidx.wear.compose.material3.samples.TransformingLazyColumnScrollingSample
-import androidx.wear.compose.material3.samples.TransformingLazyColumnTargetMorphingHeightSample
 
 val WearMaterial3Demos =
     Material3DemoCategory(
@@ -63,6 +64,10 @@ val WearMaterial3Demos =
                         ComposableDemo("Button (Image Background)") { ButtonBackgroundImageDemo() },
                         ComposableDemo("Button Stack") { ButtonStackDemo() },
                         ComposableDemo("Button Merge") { ButtonMergeDemo() },
+                        ComposableDemo("Button Update Animation") { ButtonUpdateAnimationDemo() },
+                        ComposableDemo("Fading Expending Label") {
+                            FadingExpandingLabelButtonSample()
+                        },
                     )
                 ),
                 ComposableDemo("Color Scheme") { ColorSchemeDemos() },
@@ -165,12 +170,20 @@ val WearMaterial3Demos =
                         ComposableDemo("Single action with Card") {
                             ScalingLazyDemo { item { SwipeToRevealSingleActionCardSample() } }
                         },
-                        ComposableDemo("In a list") { SwipeToRevealInList() },
+                        ComposableDemo("In ScalingLazyColumn") {
+                            SwipeToRevealInScalingLazyColumn()
+                        },
+                        ComposableDemo("In TransformingLazyColumn") {
+                            SwipeToRevealWithTransformingLazyColumnSample()
+                        },
                         ComposableDemo("Non-anchoring") {
                             ScalingLazyDemo { item { SwipeToRevealNonAnchoredSample() } }
                         },
                         ComposableDemo("Long labels") { SwipeToRevealWithLongLabels() },
                         ComposableDemo("Custom Icons") { SwipeToRevealWithCustomIcons() },
+                        ComposableDemo("With edgeSwipeToDismiss") { params ->
+                            SwipeToRevealWithEdgeSwipeToDismiss(params.swipeToDismissBoxState)
+                        },
                     )
                 ),
                 Material3DemoCategory(
@@ -200,9 +213,6 @@ val WearMaterial3Demos =
                         },
                         ComposableDemo("Scaling Morphing Effect Sample") {
                             TransformingLazyColumnScalingMorphingEffectSample()
-                        },
-                        ComposableDemo("Target Morphing Height Sample") {
-                            TransformingLazyColumnTargetMorphingHeightSample()
                         },
                         ComposableDemo("TLC Buttons") { TransformingLazyColumnButtons() },
                         ComposableDemo("TLC Cards") { TransformingLazyColumnCards() },

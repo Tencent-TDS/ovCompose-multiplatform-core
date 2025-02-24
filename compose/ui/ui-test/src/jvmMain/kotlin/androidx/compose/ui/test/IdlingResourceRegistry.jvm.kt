@@ -143,7 +143,7 @@ internal constructor(private val pollScopeOverride: CoroutineScope?) : IdlingRes
         return replace("\n(?=.)".toRegex(), "\n$prefix")
     }
 
-    inline fun <R> withRegistry(block: () -> R): R {
+    fun <R> withRegistry(block: () -> R): R {
         try {
             return block()
         } finally {

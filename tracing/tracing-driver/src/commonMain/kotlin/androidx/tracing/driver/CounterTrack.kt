@@ -16,9 +16,6 @@
 
 package androidx.tracing.driver
 
-import perfetto.protos.MutableCounterDescriptor
-import perfetto.protos.MutableTrackDescriptor
-
 /** Represents a Perfetto Counter track. */
 public open class CounterTrack(
     /** The name of the counter track */
@@ -30,14 +27,15 @@ public open class CounterTrack(
 
     init {
         synchronized(packetLock) {
-            emitPacket(immediateDispatch = true) { packet ->
-                packet.setPreamble(
-                    this,
-                    MutableTrackDescriptor(
+            emitTraceEvent(immediateDispatch = true) { event ->
+                event.setPreamble(
+                    TrackDescriptor(
                         name = name,
                         uuid = uuid,
-                        parent_uuid = parent.uuid,
-                        counter = MutableCounterDescriptor()
+                        parentUuid = parent.uuid,
+                        type = TRACK_DESCRIPTOR_TYPE_COUNTER,
+                        pid = INVALID_INT,
+                        tid = INVALID_INT
                     )
                 )
             }
@@ -47,7 +45,7 @@ public open class CounterTrack(
     public fun setCounter(value: Long) {
         if (context.isEnabled) {
             synchronized(packetLock) {
-                emitPacket { packet -> packet.setLongCounter(uuid, sequenceId, value) }
+                emitTraceEvent { packet -> packet.setCounterLong(uuid, value) }
             }
         }
     }
@@ -55,7 +53,7 @@ public open class CounterTrack(
     public fun setCounter(value: Double) {
         if (context.isEnabled) {
             synchronized(packetLock) {
-                emitPacket { packet -> packet.setDoubleCounter(uuid, sequenceId, value) }
+                emitTraceEvent { packet -> packet.setCounterDouble(uuid, value) }
             }
         }
     }

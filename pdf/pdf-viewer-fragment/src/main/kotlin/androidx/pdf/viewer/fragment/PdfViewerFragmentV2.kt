@@ -197,6 +197,7 @@ public open class PdfViewerFragmentV2 : Fragment() {
                 object : ToolboxGestureDelegate {
                     override fun onSingleTap() {
                         documentViewModel.updateToolboxState(isToolboxActive = !isToolboxVisible)
+                        pdfSearchView.clearFocus()
                     }
 
                     override fun onScroll(position: Int) {

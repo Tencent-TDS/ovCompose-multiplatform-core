@@ -39,7 +39,7 @@ class TracingDemoTest {
     // Tracks the number of batches completed
     internal var count = 0L
     internal val driver: TraceDriver =
-        TraceDriver(sequenceId = 1, sink = JvmTraceSink(File("/tmp")), isEnabled = true)
+        TraceDriver(sink = JvmTraceSink(sequenceId = 1, File("/tmp")), isEnabled = true)
 
     @Test
     internal fun testTracingEndToEnd() = runBlocking {

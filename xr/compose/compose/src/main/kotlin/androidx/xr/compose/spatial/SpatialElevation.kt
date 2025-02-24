@@ -46,6 +46,8 @@ import androidx.xr.compose.platform.LocalSpatialCapabilities
  *
  * In non-spatial environments, the content is rendered normally without elevation.
  *
+ * Empty composables cannot be placed in a SpatialElevation. This includes Popups and Dialogs.
+ *
  * @param spatialElevationLevel the desired elevation level for the panel in spatial environments.
  * @param content the composable content to be displayed within the elevated panel.
  */

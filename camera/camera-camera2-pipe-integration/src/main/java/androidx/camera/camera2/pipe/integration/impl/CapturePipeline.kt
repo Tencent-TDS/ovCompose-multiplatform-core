@@ -65,6 +65,7 @@ import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
 import androidx.camera.camera2.pipe.integration.impl.CapturePipelineImpl.PipelineTask.MAIN_CAPTURE
 import androidx.camera.camera2.pipe.integration.impl.CapturePipelineImpl.PipelineTask.POST_CAPTURE
 import androidx.camera.camera2.pipe.integration.impl.CapturePipelineImpl.PipelineTask.PRE_CAPTURE
+import androidx.camera.camera2.pipe.integration.impl.TorchControl.TorchMode
 import androidx.camera.core.ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
 import androidx.camera.core.ImageCapture.CaptureMode
 import androidx.camera.core.ImageCapture.ERROR_CAMERA_CLOSED
@@ -401,7 +402,7 @@ constructor(
             preCapture = {
                 if (torchOnRequired) {
                     debug { "CapturePipeline#torchApplyCapture: Setting torch" }
-                    torchControl.setTorchAsync(true).join()
+                    torchControl.setTorchAsync(TorchMode.USED_AS_FLASH).join()
                     debug { "CapturePipeline#torchApplyCapture: Setting torch done" }
                 }
 
@@ -449,7 +450,7 @@ constructor(
             postCapture = {
                 if (torchOnRequired) {
                     debug { "CapturePipeline#torchApplyCapture: Unsetting torch" }
-                    @Suppress("DeferredResultUnused") torchControl.setTorchAsync(false)
+                    @Suppress("DeferredResultUnused") torchControl.setTorchAsync(TorchMode.OFF)
                     debug { "CapturePipeline#torchApplyCapture: Unsetting torch done" }
                 }
                 if (triggerAePreCapture) {

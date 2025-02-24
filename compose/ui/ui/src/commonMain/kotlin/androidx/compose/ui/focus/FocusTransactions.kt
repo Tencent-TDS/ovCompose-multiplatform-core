@@ -115,7 +115,10 @@ private fun FocusTargetNode.performRequestFocusOptimized(): Boolean {
             // The focus request was redirected or cancelled in a previous focus change callback
             return false
         }
-        it.dispatchFocusCallbacks(Inactive, ActiveParent)
+        it.dispatchFocusCallbacks(
+            previousState = if (it === previousActiveNode) Active else Inactive,
+            newState = ActiveParent
+        )
     }
 
     // Check if focus was cleared or redirected in a previous focus change callback

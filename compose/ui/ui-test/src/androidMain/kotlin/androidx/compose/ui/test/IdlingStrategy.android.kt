@@ -52,5 +52,5 @@ internal interface IdlingStrategy {
     /**
      * Runs the [block] while giving implementations the option to perform setup and tear down work.
      */
-    suspend fun <R> withStrategy(block: suspend () -> R): R = block()
+    fun <R> withStrategy(block: () -> R): R = block()
 }

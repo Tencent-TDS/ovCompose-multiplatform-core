@@ -18,6 +18,7 @@ package androidx.xr.arcore.apps.whitebox.helloar.rendering
 
 import android.app.Activity
 import android.util.Log
+import android.widget.Toast
 import androidx.xr.arcore.Anchor
 import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
@@ -120,6 +121,12 @@ internal class AnchorRenderer(
                                                     activity::class.simpleName,
                                                     "Failed to create anchor: anchor resources exhausted.",
                                                 )
+                                                Toast.makeText(
+                                                        activity,
+                                                        "Anchor limit has been reached.",
+                                                        Toast.LENGTH_LONG,
+                                                    )
+                                                    .show()
                                             }
                                         }
                                     } catch (e: IllegalStateException) {

@@ -133,16 +133,7 @@ constructor(
         @JvmStatic
         fun after(startTime: LocalDateTime) =
             TimeRangeFilter(startTime = null, endTime = null, localStartTime = startTime)
-
-        /**
-         * Default [TimeRangeFilter] where neither start nor end time is specified, no [Record]s
-         * will be filtered.
-         */
-        @JvmStatic internal fun none(): TimeRangeFilter = TimeRangeFilter()
     }
-
-    internal fun isOpenEnded(): Boolean =
-        (localStartTime == null || localEndTime == null) && (startTime == null || endTime == null)
 
     internal fun isBasedOnLocalTime(): Boolean {
         return localStartTime != null || localEndTime != null

@@ -23,7 +23,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
-import androidx.compose.material3.adaptive.layout.DefaultAnimatedPaneOverride.AnimatedPane
+import androidx.compose.material3.adaptive.layout.DefaultAnimatedPaneComponentOverride.AnimatedPane
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
@@ -37,13 +37,14 @@ import androidx.compose.ui.unit.IntRect
  * Interface that allows libraries to override the behavior of [AnimatedPane].
  *
  * To override this component, implement the member function of this interface, then provide the
- * implementation to [AnimatedPaneOverride] in the Compose hierarchy.
+ * implementation to [AnimatedPaneComponentOverride] in the Compose hierarchy.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-interface AnimatedPaneOverride {
+interface AnimatedPaneComponentOverride {
     /** Behavior function that is called by the [AnimatedPane] composable. */
-    @Composable fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideContext<S, T>.AnimatedPane()
+    @Composable
+    fun <S, T : PaneScaffoldValue<S>> AnimatedPaneComponentOverrideContext<S, T>.AnimatedPane()
 }
 
 /**
@@ -58,7 +59,7 @@ interface AnimatedPaneOverride {
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-class AnimatedPaneOverrideContext<S, T : PaneScaffoldValue<S>>
+class AnimatedPaneComponentOverrideContext<S, T : PaneScaffoldValue<S>>
 internal constructor(
     val scope: ExtendedPaneScaffoldPaneScope<S, T>,
     val modifier: Modifier,
@@ -68,13 +69,13 @@ internal constructor(
     val content: (@Composable AnimatedPaneScope.() -> Unit),
 )
 
-/** CompositionLocal containing the currently-selected [AnimatedPaneOverride]. */
+/** CompositionLocal containing the currently-selected [AnimatedPaneComponentOverride]. */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
 @get:ExperimentalMaterial3AdaptiveComponentOverrideApi
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-val LocalAnimatedPaneOverride: ProvidableCompositionLocal<AnimatedPaneOverride> =
+val LocalAnimatedPaneComponentOverride: ProvidableCompositionLocal<AnimatedPaneComponentOverride> =
     compositionLocalOf {
-        DefaultAnimatedPaneOverride
+        DefaultAnimatedPaneComponentOverride
     }
 
 /**
@@ -105,8 +106,8 @@ fun <S, T : PaneScaffoldValue<S>> ExtendedPaneScaffoldPaneScope<S, T>.AnimatedPa
     boundsAnimationSpec: FiniteAnimationSpec<IntRect> = PaneMotionDefaults.AnimationSpec,
     content: (@Composable AnimatedPaneScope.() -> Unit),
 ) {
-    with(LocalAnimatedPaneOverride.current) {
-        AnimatedPaneOverrideContext(
+    with(LocalAnimatedPaneComponentOverride.current) {
+        AnimatedPaneComponentOverrideContext(
                 scope = this@AnimatedPane,
                 modifier = modifier,
                 enterTransition = enterTransition,
@@ -135,15 +136,16 @@ sealed interface AnimatedPaneScope : AnimatedVisibilityScope {
 }
 
 /**
- * [AnimatedPaneOverride] used when no override is specified.
+ * [AnimatedPaneComponentOverride] used when no override is specified.
  *
  * This override provides the default behavior of the [AnimatedPane] component.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-private object DefaultAnimatedPaneOverride : AnimatedPaneOverride {
+private object DefaultAnimatedPaneComponentOverride : AnimatedPaneComponentOverride {
     @Composable
-    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideContext<S, T>.AnimatedPane() {
+    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneComponentOverrideContext<S, T>
+        .AnimatedPane() {
         with(scope) {
             val animatingBounds = paneMotion == PaneMotion.AnimateBounds
             val motionProgress = { motionProgress }

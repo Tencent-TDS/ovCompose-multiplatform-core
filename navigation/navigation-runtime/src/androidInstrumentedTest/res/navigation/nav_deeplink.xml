@@ -18,25 +18,19 @@
             xmlns:app="http://schemas.android.com/apk/res-auto"
             android:id="@+id/nav_root"
             android:label=""
-            app:startDestination="@+id/first_test">
+            app:startDestination="@+id/start">
+
+    <test android:id="@+id/start"/>
 
     <test android:id="@+id/first_test">
-        <deepLink app:uri="android-app://androidx.navigation.test/test"
-            app:action="test.action" app:mimeType="*/*"/>
+        <deepLink app:mimeType="*/*"/>
     </test>
 
     <test android:id="@+id/second_test">
-        <deepLink app:uri="android-app://androidx.navigation.test/test"
-            app:action="test.action" app:mimeType="image/*"/>
+        <deepLink app:mimeType="image/*"/>
     </test>
 
     <test android:id="@+id/third_test">
-        <deepLink app:uri="android-app://androidx.navigation.test/test"
-            app:action="test.action" app:mimeType="*/test"/>
-    </test>
-
-    <test android:id="@+id/forth_test">
-        <deepLink app:uri="android-app://androidx.navigation.test/test"
-            app:action="test.action" app:mimeType="type/test"/>
+        <deepLink app:mimeType="*/test"/>
     </test>
 </navigation>

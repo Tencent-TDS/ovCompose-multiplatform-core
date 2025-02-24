@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
@@ -138,27 +139,27 @@ class DarwinBenchmarkPlugin : Plugin<Project> {
         extension: DarwinBenchmarkPluginExtension
     ): Provider<Directory> {
         val distProvider = project.distributionDirectory()
-        val benchmarksDirProvider =
-            distProvider.flatMap { distDir ->
-                extension.xcodeProjectName.map { projectName ->
-                    val projectPath = project.path.replace(":", "/")
-                    val benchmarksDirectory = File(distDir, DARWIN_BENCHMARKS_DIR)
-                    File(benchmarksDirectory, "$projectPath/$projectName")
-                }
+        return distProvider.flatMap { distDir ->
+            extension.xcodeProjectName.map { projectName ->
+                distDir
+                    .dir(DARWIN_BENCHMARKS_DIR)
+                    .dir(project.path.replace(":", "/"))
+                    .dir(projectName)
             }
-        return project.layout.dir(benchmarksDirProvider)
+        }
     }
 
-    private fun Project.distributionDirectory(): Provider<File> {
+    private fun Project.distributionDirectory(): Provider<Directory> {
         // We want to write metrics to library metrics specific location
         // Context: b/257326666
-        return providers.environmentVariable(DIST_DIR).map { value ->
-            val parent =
-                value.ifBlank {
-                    @Suppress("DEPRECATION") // b/290811136
-                    project.buildDir.absolutePath
+        return providers.environmentVariable(DIST_DIR).flatMap { value ->
+            val parent: DirectoryProperty =
+                if (value.isBlank()) {
+                    project.layout.buildDirectory
+                } else {
+                    project.objects.directoryProperty().also { it.set(File(value)) }
                 }
-            File(parent, LIBRARY_METRICS)
+            parent.dir(LIBRARY_METRICS)
         }
     }
 

@@ -612,9 +612,9 @@ public class AppSearchCompilerTest {
 
         assertThat(compilation).hadErrorContaining(
                 "Field 'wrapped' cannot be read: it is private and has no suitable getters "
-                        + "[public] boolean isWrapped() "
+                        + "[public] boolean wrapped() "
                         + "OR [public] boolean getWrapped() "
-                        + "OR [public] boolean wrapped()");
+                        + "OR [public] boolean isWrapped()");
     }
 
     @Test

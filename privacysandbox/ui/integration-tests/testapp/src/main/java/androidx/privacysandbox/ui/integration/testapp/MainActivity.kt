@@ -216,7 +216,12 @@ class MainActivity : AppCompatActivity() {
                     applicationContext,
                     resources.getStringArray(R.array.ad_format_menu_array)
                 ) { position: Int ->
-                    isSupportedOptionsCombination(position)
+                    val isSupported = isSupportedOptionsCombination(position, mediationOption)
+                    when (position) {
+                        AdFormat.BANNER_AD -> isSupported
+                        AdFormat.NATIVE_AD -> isSupported && supportsNativeAd(currentFragment)
+                        else -> false
+                    }
                 }
             onItemSelectedListener = OnItemSelectedListener()
         }
@@ -229,8 +234,8 @@ class MainActivity : AppCompatActivity() {
                 DisabledItemsArrayAdapter(
                     applicationContext,
                     resources.getStringArray(R.array.mediation_dropdown_menu_array)
-                ) { _: Int ->
-                    isSupportedOptionsCombination(adFormat)
+                ) { position: Int ->
+                    isSupportedOptionsCombination(adFormat, position)
                 }
             onItemSelectedListener = OnItemSelectedListener()
         }
@@ -243,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                     applicationContext,
                     resources.getStringArray(R.array.ad_type_dropdown_menu_array)
                 ) { _: Int ->
-                    isSupportedOptionsCombination(adFormat)
+                    isSupportedOptionsCombination(adFormat, mediationOption)
                 }
             onItemSelectedListener = OnItemSelectedListener()
         }
@@ -348,20 +353,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun isSupportedOptionsCombination(
         @AdFormat adFormat: Int,
+        @MediationOption mediationOption: Int
     ): Boolean {
         when (adFormat) {
             AdFormat.BANNER_AD -> return true
-            AdFormat.NATIVE_AD -> return false
+            AdFormat.NATIVE_AD -> {
+                when (mediationOption) {
+                    MediationOption.NON_MEDIATED,
+                    MediationOption.IN_APP_MEDIATEE,
+                    MediationOption.SDK_RUNTIME_MEDIATEE -> return true
+                    MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY,
+                    MediationOption.REFRESHABLE_MEDIATION -> return false
+                }
+            }
         }
         return false
     }
 
+    // TODO(b/3300859): remove once all non-fullscreen fragments are supported for native.
+    private fun supportsNativeAd(fragment: BaseFragment): Boolean = fragment is ResizeFragment
+
     private fun updateDrawerOptions() {
         setAllControlsEnabled(true)
         if (adFormat == AdFormat.NATIVE_AD) {
-            runOnUiThread { navigationView.menu.forEach { it.isEnabled = false } }
+            runOnUiThread {
+                navigationView.menu.findItem(R.id.item_scroll).isEnabled = false
+                navigationView.menu.findItem(R.id.item_pooling_container).isEnabled = false
+            }
             viewabilityToggleButton.isEnabled = false
-            zOrderToggleButton.isEnabled = false
             composeToggleButton.isEnabled = false
         }
     }
@@ -377,7 +396,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun switchContentFragment(fragment: BaseFragment, title: CharSequence?): Boolean {
-        setAllControlsEnabled(true)
+        updateDrawerOptions()
         drawerLayout.closeDrawers()
         supportFragmentManager
             .beginTransaction()

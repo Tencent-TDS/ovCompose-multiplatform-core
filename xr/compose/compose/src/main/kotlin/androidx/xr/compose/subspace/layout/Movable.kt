@@ -17,12 +17,15 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.runtime.math.Pose
 
 /**
- * Moves a subspace element (i.e. currently only affects Jetpack XR Entity Panels/Volumes) in space.
+ * When the movable modifier is present and enabled, draggable UI controls will be shown that allow
+ * the user to move the element in 3D space. This feature is only available for [SpatialPanels] at
+ * the moment.
+ *
  * The order of the [SubspaceModifier]s is important. Please take note of this when using movable.
  * If you have the following modifier chain: SubspaceModifier.offset().size().movable(), the
  * modifiers will work as expected. If instead you have this modifier chain:
@@ -30,33 +33,37 @@ import androidx.xr.runtime.math.Pose
  * when using the movable modifier. In general, the offset modifier should be specified before the
  * size modifier, and the movable modifier should be specified last.
  *
- * @param enabled - true if this composable should be movable.
- * @param stickyPose - if enabled, the user specified position will be retained when the modifier is
+ * @param enabled true if this composable should be movable.
+ * @param stickyPose if enabled, the user specified position will be retained when the modifier is
  *   disabled or removed.
- * @param scaleWithDistance - true if this composable should scale in size when moved in depth. When
+ * @param scaleWithDistance true if this composable should scale in size when moved in depth. When
  *   this scaleWithDistance is enabled, the subspace element moved will grow or shrink. It will also
  *   maintain any explicit scale that it had before movement.
- * @param onPoseChange - a callback to process the pose change during movement, with translation in
+ * @param onPoseChange a callback to process the pose change during movement, with translation in
  *   pixels. This will only be called if [enabled] is true. If the callback returns false the
  *   default behavior of moving this composable's subspace hierarchy will be executed. If it returns
- *   true, it is the responsibility of the callback to process the event. [PoseChangeEvent.pose]
- *   represents the new pose of the composable in the subspace with respect to its parent, with its
- *   translation being expressed in pixels.[PoseChangeEvent.scale] is how large the panel should be
- *   scaled as a result of its motion. This value will change with the panel's depth when
- *   'scaleWithDistance' is set, otherwise it will be locked in at 1.0 or at the value specified by
- *   the scale modifier. [PoseChangeEvent.size] is the IntVolumeSize value that will include the
- *   width, height and depth of the composable; that factors in shrinking or stretching due to
- *   [PoseChangeEvent.scale]
+ *   true, it is the responsibility of the callback to process the event.
+ * @see [PoseChangeEvent]
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SubspaceModifier.movable(
     enabled: Boolean = true,
     stickyPose: Boolean = false,
     scaleWithDistance: Boolean = true,
-    onPoseChange: (PoseChangeEvent) -> Boolean = { false },
+    onPoseChange: ((PoseChangeEvent) -> Boolean)? = null,
 ): SubspaceModifier =
     this.then(MovableElement(enabled, onPoseChange, stickyPose, scaleWithDistance))
 
+/**
+ * An event representing a change in pose, scale, and size.
+ *
+ * @property pose The new pose of the composable in the subspace, relative to its parent, with its
+ *   translation being expressed in pixels.
+ * @property scale The scale of the composable as a result of its motion. This value will change
+ *   with the composable's depth when scaleWithDistance is true on the modifier.
+ * @property size The [IntVolumeSize] value that includes the width, height and depth of the
+ *   composable, factoring in shrinking or stretching due to [scale].
+ */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class PoseChangeEvent(
     public var pose: Pose = Pose.Identity,
@@ -88,10 +95,10 @@ public class PoseChangeEvent(
 
 private class MovableElement(
     private val enabled: Boolean,
-    private val onPoseChange: (PoseChangeEvent) -> Boolean,
+    private val onPoseChange: ((PoseChangeEvent) -> Boolean)?,
     private val stickyPose: Boolean,
     private val scaleWithDistance: Boolean,
-) : SubspaceModifierElement<MovableNode>() {
+) : SubspaceModifierNodeElement<MovableNode>() {
 
     override fun create(): MovableNode =
         MovableNode(
@@ -133,7 +140,7 @@ internal class MovableNode(
     public var enabled: Boolean,
     public var stickyPose: Boolean,
     public var scaleWithDistance: Boolean,
-    public var onPoseChange: (PoseChangeEvent) -> Boolean,
+    public var onPoseChange: ((PoseChangeEvent) -> Boolean)?,
 ) : SubspaceModifier.Node(), CoreEntityNode {
     override fun modifyCoreEntity(coreEntity: CoreEntity) {
         coreEntity.movable?.updateState(this)

@@ -27,7 +27,7 @@ internal constructor(
      *
      * This is an Array to simplify data access.
      */
-    @JvmField internal val packets: Array<MutableTracePacket>,
+    @JvmField internal val packets: Array<TraceEvent>,
 
     /**
      * Number of items present in [packets] with valid data - all others vhave been reset with
@@ -36,7 +36,7 @@ internal constructor(
     // @Suppress("MutableBareField") // internal, on critical tracing path
     @JvmField internal var fillCount: Int,
 ) : Poolable<PooledTracePacketArray>(owner) {
-    internal inline fun forEach(block: (packet: MutableTracePacket) -> Unit) {
+    internal inline fun forEach(block: (packet: TraceEvent) -> Unit) {
         repeat(fillCount) { block(packets[it]) }
     }
 

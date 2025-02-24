@@ -7,4 +7,6 @@
     <string name="single_pdf_string">Single Pdf</string>
     <string name="styled_pdf_fragment_name">StyledPdfFragment</string>
     <string name="xml_styled_pdf_fragment_name">XmlStyledPdfFragment</string>
+    <string name="page_object_pdf_string">PageObject Pdf</string>
+    <string name="save_pdf_string">Save Pdf</string>
 </resources>

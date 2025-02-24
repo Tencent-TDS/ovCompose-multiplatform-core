@@ -19,7 +19,7 @@ package androidx.xr.compose.subspace.layout
 import androidx.annotation.RestrictTo
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.testTag
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.subspace.node.SubspaceSemanticsModifierNode
 
 /**
@@ -30,7 +30,7 @@ import androidx.xr.compose.subspace.node.SubspaceSemanticsModifierNode
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SubspaceModifier.testTag(tag: String): SubspaceModifier = this then TestTagElement(tag)
 
-private class TestTagElement(private val tag: String) : SubspaceModifierElement<TestTagNode>() {
+private class TestTagElement(private val tag: String) : SubspaceModifierNodeElement<TestTagNode>() {
     override fun create(): TestTagNode {
         return TestTagNode(tag)
     }

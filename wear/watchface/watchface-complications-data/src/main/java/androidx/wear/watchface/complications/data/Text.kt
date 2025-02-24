@@ -565,6 +565,8 @@ internal fun WireComplicationText.toApiComplicationText(
 /** Converts a [TimeZone] into an equivalent [java.util.TimeZone]. */
 internal fun TimeZone.asJavaTimeZone(): java.util.TimeZone = java.util.TimeZone.getTimeZone(this.id)
 
+internal fun java.util.TimeZone.asIcuTimeZone(): TimeZone = TimeZone.getTimeZone(this.id)
+
 /** [ComplicationText] implementation that delegates to a [WireTimeDependentText] instance. */
 private class DelegatingTimeDependentText(private val delegate: WireTimeDependentText) :
     ComplicationText {
@@ -645,7 +647,7 @@ internal fun ComplicationText.asWearSdkComplicationText(): WearSdkComplicationTe
                     setStyle((wireFormat.timeDependentText as TimeFormatText).style)
                     setFormat((wireFormat.timeDependentText as TimeFormatText).formatString)
                     setTimeZone(
-                        (wireFormat.timeDependentText as TimeFormatText).timeZone as TimeZone?
+                        (wireFormat.timeDependentText as TimeFormatText).timeZone?.asIcuTimeZone()
                     )
                 }
                 .build()

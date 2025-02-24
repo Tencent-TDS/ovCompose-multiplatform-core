@@ -355,7 +355,7 @@ public object OpenOnPhoneDialogDefaults {
         )
 
     /** Default timeout for the [OpenOnPhoneDialog] dialog, in milliseconds. */
-    public const val DurationMillis: Long = 4000L
+    public val DurationMillis: Long = 4000L
 
     private val ColorScheme.defaultOpenOnPhoneDialogColors: OpenOnPhoneDialogColors
         get() {

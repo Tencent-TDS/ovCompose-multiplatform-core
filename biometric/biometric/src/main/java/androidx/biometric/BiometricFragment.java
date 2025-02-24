@@ -292,7 +292,7 @@ public class BiometricFragment extends Fragment {
         // TODO(b/349214064): When removing BiometricFragment, leverage the client's lifecycle
         //  observer to cancel authentication when the client enters the background.
         if (mViewModel.isPromptShowing() && !mViewModel.isConfirmingDeviceCredential()
-                && !isChangingConfigurations()) {
+                && isPermanentRemoving()) {
             cancelAuthentication(BiometricFragment.CANCELED_FROM_INTERNAL);
         }
     }
@@ -1099,14 +1099,15 @@ public class BiometricFragment extends Fragment {
     }
 
     /**
-     * Checks if the client activity is currently changing configurations (e.g. rotating screen
-     * orientation).
+     * Checks if the client activity is being destroyed and will not be recreated.  This is
+     * distinct from a configuration change (like screen rotation), where the activity is
+     * destroyed but immediately recreated.
      *
-     * @return Whether the client activity is changing configurations.
+     * @return {@code true} if the activity is being permanently destroyed; {@code false} otherwise.
      */
-    private boolean isChangingConfigurations() {
+    private boolean isPermanentRemoving() {
         final FragmentActivity activity = getActivity();
-        return activity != null && activity.isChangingConfigurations();
+        return isRemoving() && (activity == null || !activity.isChangingConfigurations());
     }
 
     /**

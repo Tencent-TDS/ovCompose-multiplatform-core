@@ -20,7 +20,6 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -66,11 +65,7 @@ public fun Modifier.scrollTransform(
     if (LocalReduceMotion.current) this
     else
         with(scope) {
-            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-            val spec =
-                remember(scope) {
-                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
-                }
+            val spec = remember(scope) { TransformingLazyColumnScrollTransformBehavior { null } }
             val painter =
                 remember(scope, backgroundColor, shape) {
                     ScalingMorphingBackgroundPainter(
@@ -83,8 +78,7 @@ public fun Modifier.scrollTransform(
                     }
                 }
             this@scrollTransform then
-                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                    .paint(painter)
+                Modifier.paint(painter)
                     .transformedHeight { height, scrollProgress ->
                         with(spec) {
                             scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
@@ -121,11 +115,7 @@ public fun Modifier.scrollTransform(
     if (LocalReduceMotion.current) this
     else
         with(scope) {
-            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-            val spec =
-                remember(scope) {
-                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
-                }
+            val spec = remember(scope) { TransformingLazyColumnScrollTransformBehavior { null } }
             val morphingPainter =
                 remember(scope, painter, shape, border) {
                     ScalingMorphingBackgroundPainter(spec, shape, border, painter) {
@@ -133,8 +123,7 @@ public fun Modifier.scrollTransform(
                     }
                 }
             this@scrollTransform then
-                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                    .paint(morphingPainter)
+                Modifier.paint(morphingPainter)
                     .transformedHeight { height, scrollProgress ->
                         with(spec) {
                             scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
@@ -170,15 +159,10 @@ public fun Modifier.scrollTransform(
     if (LocalReduceMotion.current) this
     else
         with(scope) {
-            var minMorphingHeight by remember(scope) { mutableStateOf<Float?>(null) }
-            val spec =
-                remember(scope) {
-                    TransformingLazyColumnScrollTransformBehavior { minMorphingHeight }
-                }
+            val spec = remember(scope) { TransformingLazyColumnScrollTransformBehavior { null } }
 
             this@scrollTransform then
-                TargetMorphingHeightConsumerModifierElement { minMorphingHeight = it?.toFloat() }
-                    .transformedHeight { height, scrollProgress ->
+                Modifier.transformedHeight { height, scrollProgress ->
                         with(spec) {
                             scrollProgress.placementHeight(height.toFloat()).fastRoundToInt()
                         }

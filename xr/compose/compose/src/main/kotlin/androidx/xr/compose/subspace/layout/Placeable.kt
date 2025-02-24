@@ -29,12 +29,15 @@ import androidx.xr.runtime.math.Pose
 public abstract class Placeable {
     /** The measured width of the layout, in pixels. */
     public var measuredWidth: Int = 0
+        protected set
 
     /** The measured height of the layout, in pixels. */
     public var measuredHeight: Int = 0
+        protected set
 
     /** The measured depth of the layout, in pixels. */
     public var measuredDepth: Int = 0
+        protected set
 
     /** Positions the [Placeable] at [position] in its parent's coordinate system. */
     protected abstract fun placeAt(pose: Pose)

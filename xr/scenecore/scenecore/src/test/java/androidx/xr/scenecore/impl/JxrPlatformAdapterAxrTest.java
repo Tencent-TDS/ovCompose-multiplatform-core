@@ -41,6 +41,7 @@ import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Display;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
@@ -71,6 +72,7 @@ import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent;
 import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
 import androidx.xr.scenecore.JxrPlatformAdapter.InteractableComponent;
 import androidx.xr.scenecore.JxrPlatformAdapter.LoggingEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
 import androidx.xr.scenecore.JxrPlatformAdapter.MovableComponent;
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
@@ -80,7 +82,8 @@ import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
 import androidx.xr.scenecore.JxrPlatformAdapter.ResizableComponent;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment;
-import androidx.xr.scenecore.JxrPlatformAdapter.StereoSurfaceEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource;
 import androidx.xr.scenecore.impl.perception.Anchor;
 import androidx.xr.scenecore.impl.perception.Fov;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
@@ -148,6 +151,7 @@ public final class JxrPlatformAdapterAxrTest {
     private ActivityController<Activity> mActivityController;
     private Activity mActivity;
     private JxrPlatformAdapter mRealityCoreRuntime;
+    private JxrPlatformAdapterAxr mRealityCoreRuntimeWithSplitEngine;
 
     @Rule
     public GrantPermissionRule mGrantPermissionRule =
@@ -179,6 +183,44 @@ public final class JxrPlatformAdapterAxrTest {
     public void tearDown() {
         // Dispose the runtime between test cases to clean up lingering references.
         mRealityCoreRuntime.dispose();
+        mRealityCoreRuntime = null;
+
+        if (mRealityCoreRuntimeWithSplitEngine != null) {
+            mRealityCoreRuntimeWithSplitEngine.dispose();
+            mRealityCoreRuntimeWithSplitEngine = null;
+        }
+    }
+
+    void createRuntimeWithSplitEngine() {
+        if (mRealityCoreRuntimeWithSplitEngine != null) {
+            return;
+        }
+
+        FakeNode rootNode = (FakeNode) mFakeExtensions.createNode();
+        FakeNode taskWindowLeashNode = (FakeNode) mFakeExtensions.createNode();
+        // This is a little unrealistic because it's going to return the same subspace for all the
+        // entities created in this test. In practice this is an implementation detail that's
+        // irrelevant
+        // to the JxrPlatformAdapterAxr.
+        when(mSplitEngineSubspaceManager.createSubspace(anyString(), anyInt()))
+                .thenReturn(mExpectedSubspace);
+
+        mRealityCoreRuntimeWithSplitEngine =
+                JxrPlatformAdapterAxr.create(
+                        mActivity,
+                        mFakeExecutor,
+                        mFakeExtensions,
+                        mFakeImpressApi,
+                        new EntityManager(),
+                        mPerceptionLibrary,
+                        mSplitEngineSubspaceManager,
+                        mSplitEngineRenderer,
+                        rootNode,
+                        taskWindowLeashNode,
+                        /* useSplitEngine= */ true);
+
+        mRealityCoreRuntimeWithSplitEngine.setSplitEngineSubspaceManager(
+                mSplitEngineSubspaceManager);
     }
 
     GltfEntity createGltfEntity() throws Exception {
@@ -199,38 +241,51 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     GltfEntity createGltfEntitySplitEngine(Pose pose) throws Exception {
-        FakeNode rootNode = (FakeNode) mFakeExtensions.createNode();
-        FakeNode taskWindowLeashNode = (FakeNode) mFakeExtensions.createNode();
-
-        when(mSplitEngineSubspaceManager.createSubspace(anyString(), anyInt()))
-                .thenReturn(mExpectedSubspace);
-
-        JxrPlatformAdapterAxr realityCoreRuntimeWithSplitEngine =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mFakeExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        rootNode,
-                        taskWindowLeashNode,
-                        /* useSplitEngine= */ true);
-
-        realityCoreRuntimeWithSplitEngine.setSplitEngineSubspaceManager(
-                mSplitEngineSubspaceManager);
+        createRuntimeWithSplitEngine();
 
         ListenableFuture<GltfModelResource> modelFuture =
-                realityCoreRuntimeWithSplitEngine.loadGltfByAssetNameSplitEngine("FakeAsset.glb");
+                mRealityCoreRuntimeWithSplitEngine.loadGltfByAssetNameSplitEngine("FakeAsset.glb");
         assertThat(modelFuture).isNotNull();
         // This resolves the transformation of the Future from a SplitEngine token to the JXR
         // GltfModelResource.  This is a hidden detail from the API surface's perspective.
         mFakeExecutor.runAll();
         GltfModelResource model = modelFuture.get();
-        return realityCoreRuntimeWithSplitEngine.createGltfEntity(
-                pose, model, mRealityCoreRuntime.getActivitySpaceRootImpl());
+        return mRealityCoreRuntimeWithSplitEngine.createGltfEntity(
+                pose, model, mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
+    }
+
+    TextureResource loadTextureSplitEngine() throws Exception {
+        createRuntimeWithSplitEngine();
+
+        JxrPlatformAdapter.TextureSampler sampler =
+                new JxrPlatformAdapter.TextureSampler(
+                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
+                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
+                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
+                        JxrPlatformAdapterAxr.TextureSampler.LINEAR,
+                        JxrPlatformAdapterAxr.TextureSampler.MAG_LINEAR,
+                        JxrPlatformAdapterAxr.TextureSampler.NONE,
+                        JxrPlatformAdapterAxr.TextureSampler.N,
+                        0);
+        ListenableFuture<TextureResource> textureFuture =
+                mRealityCoreRuntimeWithSplitEngine.loadTexture("FakeTexture.png", sampler);
+        assertThat(textureFuture).isNotNull();
+        // This resolves the transformation of the Future from a SplitEngine token to the JXR
+        // Texture.  This is a hidden detail from the API surface's perspective.
+        mFakeExecutor.runAll();
+        return textureFuture.get();
+    }
+
+    MaterialResource createWaterMaterialSplitEngine() throws Exception {
+        createRuntimeWithSplitEngine();
+
+        ListenableFuture<MaterialResource> materialFuture =
+                mRealityCoreRuntimeWithSplitEngine.createWaterMaterial(/* transparent= */ false);
+        assertThat(materialFuture).isNotNull();
+        // This resolves the transformation of the Future from a SplitEngine token to the JXR
+        // Texture.  This is a hidden detail from the API surface's perspective.
+        mFakeExecutor.runAll();
+        return materialFuture.get();
     }
 
     private PanelEntity createPanelEntity() {
@@ -348,18 +403,6 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void onSpatialStateChanged_setsSpatialCapabilities() {
-        mRealityCoreRuntime =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mFakeExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        /* useSplitEngine= */ false);
-
         FakeSpatialState spatialState = new FakeSpatialState();
         spatialState.setSpatialCapabilities(
                 new androidx.xr.extensions.space.SpatialCapabilities() {
@@ -525,36 +568,12 @@ public final class JxrPlatformAdapterAxrTest {
         mFakeExtensions.fakeSpatialState.setPassthroughVisibility(
                 new FakePassthroughVisibilityState(PassthroughVisibilityState.APP, 0.5f));
 
-        JxrPlatformAdapter newRealityCoreRuntime =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mFakeExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        /* useSplitEngine= */ false);
-
-        SpatialEnvironment newEnvironment = newRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment newEnvironment = mRealityCoreRuntime.getSpatialEnvironment();
         assertThat(newEnvironment.getCurrentPassthroughOpacity()).isEqualTo(0.5f);
     }
 
     @Test
     public void onSpatialStateChanged_firesSpatialCapabilitiesChangedListener() {
-        mRealityCoreRuntime =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mFakeExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        /* useSplitEngine= */ false);
-
         @SuppressWarnings(value = "unchecked")
         Consumer<SpatialCapabilities> listener1 =
                 (Consumer<SpatialCapabilities>) mock(Consumer.class);
@@ -2241,163 +2260,122 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     @Test
-    public void createStereoSurface_returnsStereoSurface() {
-        // Not a great test, since it returns the (non-SplitEngine) StereoSurfaceEntityImpl
-        // and that throws this from its Ctor.
-        // TODO: b/366588688 - Properly test this path once SplitEngine is fully enabled.
+    public void createStereoSurface_throwsWhenSplitEngineDisabled() {
+        // Recall mRealityCoreRuntime is created with SplitEngine disabled
         assertThrows(
                 UnsupportedOperationException.class,
                 () ->
-                        mRealityCoreRuntime.createStereoSurfaceEntity(
-                                StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE,
-                                new StereoSurfaceEntity.CanvasShape.Quad(1.0f, 1.0f),
+                        mRealityCoreRuntime.createSurfaceEntity(
+                                SurfaceEntity.StereoMode.SIDE_BY_SIDE,
+                                new SurfaceEntity.CanvasShape.Quad(1.0f, 1.0f),
                                 new Pose(),
                                 mRealityCoreRuntime.getActivitySpaceRootImpl()));
     }
 
     @Test
-    public void createStereoSurfaceEntity_returnsStereoSurfaceWhenSplitEngineEnabled() {
-        // create a "test" runtime with SplitEngine enabled
-        FakeNode rootNode = (FakeNode) mFakeExtensions.createNode();
-        FakeNode taskWindowLeashNode = (FakeNode) mFakeExtensions.createNode();
-
-        // This is a little unrealistic because it's going to return the same subspace for all the
-        // entities created in this test. In practice this is an implementation detail that's
-        // irrelevant
-        // to the JxrPlatformAdapterAxr.
-        when(mSplitEngineSubspaceManager.createSubspace(anyString(), anyInt()))
-                .thenReturn(mExpectedSubspace);
-
-        JxrPlatformAdapterAxr runtime =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mFakeExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        rootNode,
-                        taskWindowLeashNode,
-                        /* useSplitEngine= */ true);
-
-        runtime.setSplitEngineSubspaceManager(mSplitEngineSubspaceManager);
+    public void createSurfaceEntity_returnsStereoSurfaceWhenSplitEngineEnabled() {
+        createRuntimeWithSplitEngine();
 
         final float kTestWidth = 14.0f;
         final float kTestHeight = 28.0f;
         final float kTestSphereRadius = 7.0f;
         final float kTestHemisphereRadius = 11.0f;
 
-        StereoSurfaceEntity stereoSurfaceEntityQuad =
-                runtime.createStereoSurfaceEntity(
-                        StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE,
-                        new StereoSurfaceEntity.CanvasShape.Quad(kTestWidth, kTestHeight),
+        SurfaceEntity surfaceEntityQuad =
+                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                        SurfaceEntity.StereoMode.SIDE_BY_SIDE,
+                        new SurfaceEntity.CanvasShape.Quad(kTestWidth, kTestHeight),
                         new Pose(),
-                        runtime.getActivitySpaceRootImpl());
+                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
 
-        assertThat(stereoSurfaceEntityQuad).isNotNull();
-        assertThat(stereoSurfaceEntityQuad).isInstanceOf(StereoSurfaceEntitySplitEngineImpl.class);
+        assertThat(surfaceEntityQuad).isNotNull();
+        assertThat(surfaceEntityQuad).isInstanceOf(SurfaceEntityImpl.class);
         FakeImpressApi.StereoSurfaceEntityData quadData =
-                mFakeImpressApi.mStereoSurfaceEntities.get(
-                        ((StereoSurfaceEntitySplitEngineImpl) stereoSurfaceEntityQuad)
-                                .getEntityImpressNode());
+                mFakeImpressApi
+                        .getStereoSurfaceEntities()
+                        .get(((SurfaceEntityImpl) surfaceEntityQuad).getEntityImpressNode());
 
-        StereoSurfaceEntity stereoSurfaceEntitySphere =
-                runtime.createStereoSurfaceEntity(
-                        StereoSurfaceEntity.StereoMode.TOP_BOTTOM,
-                        new StereoSurfaceEntity.CanvasShape.Vr360Sphere(kTestSphereRadius),
+        SurfaceEntity surfaceEntitySphere =
+                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                        SurfaceEntity.StereoMode.TOP_BOTTOM,
+                        new SurfaceEntity.CanvasShape.Vr360Sphere(kTestSphereRadius),
                         new Pose(),
-                        runtime.getActivitySpaceRootImpl());
+                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
 
-        assertThat(stereoSurfaceEntitySphere).isNotNull();
-        assertThat(stereoSurfaceEntitySphere)
-                .isInstanceOf(StereoSurfaceEntitySplitEngineImpl.class);
+        assertThat(surfaceEntitySphere).isNotNull();
+        assertThat(surfaceEntitySphere).isInstanceOf(SurfaceEntityImpl.class);
         FakeImpressApi.StereoSurfaceEntityData sphereData =
-                mFakeImpressApi.mStereoSurfaceEntities.get(
-                        ((StereoSurfaceEntitySplitEngineImpl) stereoSurfaceEntitySphere)
-                                .getEntityImpressNode());
+                mFakeImpressApi
+                        .getStereoSurfaceEntities()
+                        .get(((SurfaceEntityImpl) surfaceEntitySphere).getEntityImpressNode());
 
-        StereoSurfaceEntity stereoSurfaceEntityHemisphere =
-                runtime.createStereoSurfaceEntity(
-                        StereoSurfaceEntity.StereoMode.MONO,
-                        new StereoSurfaceEntity.CanvasShape.Vr180Hemisphere(kTestHemisphereRadius),
+        SurfaceEntity surfaceEntityHemisphere =
+                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                        SurfaceEntity.StereoMode.MONO,
+                        new SurfaceEntity.CanvasShape.Vr180Hemisphere(kTestHemisphereRadius),
                         new Pose(),
-                        runtime.getActivitySpaceRootImpl());
+                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
 
-        assertThat(stereoSurfaceEntityHemisphere).isNotNull();
-        assertThat(stereoSurfaceEntityHemisphere)
-                .isInstanceOf(StereoSurfaceEntitySplitEngineImpl.class);
+        assertThat(surfaceEntityHemisphere).isNotNull();
+        assertThat(surfaceEntityHemisphere).isInstanceOf(SurfaceEntityImpl.class);
         FakeImpressApi.StereoSurfaceEntityData hemisphereData =
-                mFakeImpressApi.mStereoSurfaceEntities.get(
-                        ((StereoSurfaceEntitySplitEngineImpl) stereoSurfaceEntityHemisphere)
-                                .getEntityImpressNode());
+                mFakeImpressApi
+                        .getStereoSurfaceEntities()
+                        .get(((SurfaceEntityImpl) surfaceEntityHemisphere).getEntityImpressNode());
 
-        assertThat(mFakeImpressApi.mStereoSurfaceEntities).hasSize(3);
+        assertThat(mFakeImpressApi.getStereoSurfaceEntities()).hasSize(3);
 
-        // TODO: b/366588688 - Move these into tests for StereoSurfaceEntitySplitEngineImpl
-        assertThat(quadData.stereoMode).isEqualTo(StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE);
-        assertThat(quadData.canvasShape)
+        // TODO: b/366588688 - Move these into tests for SurfaceEntityImpl
+        assertThat(quadData.getStereoMode()).isEqualTo(SurfaceEntity.StereoMode.SIDE_BY_SIDE);
+        assertThat(quadData.getCanvasShape())
                 .isEqualTo(FakeImpressApi.StereoSurfaceEntityData.CanvasShape.QUAD);
-        assertThat(sphereData.stereoMode).isEqualTo(StereoSurfaceEntity.StereoMode.TOP_BOTTOM);
-        assertThat(sphereData.canvasShape)
+        assertThat(sphereData.getStereoMode()).isEqualTo(SurfaceEntity.StereoMode.TOP_BOTTOM);
+        assertThat(sphereData.getCanvasShape())
                 .isEqualTo(FakeImpressApi.StereoSurfaceEntityData.CanvasShape.VR_360_SPHERE);
-        assertThat(hemisphereData.stereoMode).isEqualTo(StereoSurfaceEntity.StereoMode.MONO);
-        assertThat(hemisphereData.canvasShape)
+        assertThat(hemisphereData.getStereoMode()).isEqualTo(SurfaceEntity.StereoMode.MONO);
+        assertThat(hemisphereData.getCanvasShape())
                 .isEqualTo(FakeImpressApi.StereoSurfaceEntityData.CanvasShape.VR_180_HEMISPHERE);
 
-        assertThat(quadData.width).isEqualTo(kTestWidth);
-        assertThat(quadData.height).isEqualTo(kTestHeight);
-        Dimensions quadDimensions = stereoSurfaceEntityQuad.getDimensions();
+        assertThat(quadData.getWidth()).isEqualTo(kTestWidth);
+        assertThat(quadData.getHeight()).isEqualTo(kTestHeight);
+        Dimensions quadDimensions = surfaceEntityQuad.getDimensions();
         assertThat(quadDimensions.width).isEqualTo(kTestWidth);
         assertThat(quadDimensions.height).isEqualTo(kTestHeight);
         assertThat(quadDimensions.depth).isEqualTo(0.0f);
 
-        assertThat(sphereData.radius).isEqualTo(kTestSphereRadius);
-        Dimensions sphereDimensions = stereoSurfaceEntitySphere.getDimensions();
+        assertThat(sphereData.getRadius()).isEqualTo(kTestSphereRadius);
+        Dimensions sphereDimensions = surfaceEntitySphere.getDimensions();
         assertThat(sphereDimensions.width).isEqualTo(kTestSphereRadius * 2.0f);
         assertThat(sphereDimensions.height).isEqualTo(kTestSphereRadius * 2.0f);
         assertThat(sphereDimensions.depth).isEqualTo(kTestSphereRadius * 2.0f);
 
-        assertThat(hemisphereData.radius).isEqualTo(kTestHemisphereRadius);
-        Dimensions hemisphereDimensions = stereoSurfaceEntityHemisphere.getDimensions();
+        assertThat(hemisphereData.getRadius()).isEqualTo(kTestHemisphereRadius);
+        Dimensions hemisphereDimensions = surfaceEntityHemisphere.getDimensions();
         assertThat(hemisphereDimensions.width).isEqualTo(kTestHemisphereRadius * 2.0f);
         assertThat(hemisphereDimensions.height).isEqualTo(kTestHemisphereRadius * 2.0f);
         assertThat(hemisphereDimensions.depth).isEqualTo(kTestHemisphereRadius);
 
-        assertThat(quadData.surface).isEqualTo(stereoSurfaceEntityQuad.getSurface());
-        assertThat(sphereData.surface).isEqualTo(stereoSurfaceEntitySphere.getSurface());
-        assertThat(hemisphereData.surface).isEqualTo(stereoSurfaceEntityHemisphere.getSurface());
+        assertThat(quadData.getSurface()).isEqualTo(surfaceEntityQuad.getSurface());
+        assertThat(sphereData.getSurface()).isEqualTo(surfaceEntitySphere.getSurface());
+        assertThat(hemisphereData.getSurface()).isEqualTo(surfaceEntityHemisphere.getSurface());
 
         // Check that calls to set the CanvasShape and StereoMode after construction call through
         // Change the Quad to a Sphere
-        stereoSurfaceEntityQuad.setCanvasShape(
-                new StereoSurfaceEntity.CanvasShape.Vr360Sphere(kTestSphereRadius));
+        surfaceEntityQuad.setCanvasShape(
+                new SurfaceEntity.CanvasShape.Vr360Sphere(kTestSphereRadius));
         // change the StereoMode to Top/Bottom from Side/Side
-        stereoSurfaceEntityQuad.setStereoMode(StereoSurfaceEntity.StereoMode.TOP_BOTTOM);
+        surfaceEntityQuad.setStereoMode(SurfaceEntity.StereoMode.TOP_BOTTOM);
         quadData =
-                mFakeImpressApi.mStereoSurfaceEntities.get(
-                        ((StereoSurfaceEntitySplitEngineImpl) stereoSurfaceEntityQuad)
-                                .getEntityImpressNode());
-        assertThat(quadData.canvasShape)
+                mFakeImpressApi
+                        .getStereoSurfaceEntities()
+                        .get(((SurfaceEntityImpl) surfaceEntityQuad).getEntityImpressNode());
+        assertThat(quadData.getCanvasShape())
                 .isEqualTo(FakeImpressApi.StereoSurfaceEntityData.CanvasShape.VR_360_SPHERE);
-        assertThat(quadData.stereoMode).isEqualTo(StereoSurfaceEntity.StereoMode.TOP_BOTTOM);
-    }
+        assertThat(quadData.getStereoMode()).isEqualTo(SurfaceEntity.StereoMode.TOP_BOTTOM);
 
-    @Test
-    public void getSurfaceFromStereoSurface_returnsSurface() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> mFakeImpressApi.getSurfaceFromStereoSurface(1));
-    }
-
-    @Test
-    public void setStereoModeForStereoSurface_callsExtensions() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () ->
-                        mFakeImpressApi.setStereoModeForStereoSurface(
-                                1, StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE));
+        Surface surface = surfaceEntityQuad.getSurface();
+        assertThat(surface).isNotNull();
+        assertThat(surface).isEqualTo(quadData.getSurface());
     }
 
     @Test
@@ -2421,6 +2399,8 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(((AndroidXrEntity) runtime.getActivitySpace()).getNode()).isEqualTo(rootNode);
         assertThat(((AndroidXrEntity) runtime.getMainPanelEntity()).getNode())
                 .isEqualTo(taskWindowLeashNode);
+
+        runtime.dispose();
     }
 
     @Test
@@ -2435,6 +2415,57 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(mFakeExtensions.getSpatialStateCallback()).isNull();
         assertThat(mFakeExtensions.getFakeNodeForMainWindow()).isNull();
         assertThat(mFakeExtensions.getFakeTaskNode()).isNull();
+    }
+
+    @Test
+    public void loadTexture_returnsTexture() throws Exception {
+        assertThat(loadTextureSplitEngine()).isNotNull();
+    }
+
+    @Test
+    public void destroyTexture_removesTexture() throws Exception {
+        TextureResourceImpl texture = (TextureResourceImpl) loadTextureSplitEngine();
+        int initialTextureCount = mFakeImpressApi.getTextureImages().size();
+
+        mFakeImpressApi.destroyNativeObject(texture.getTextureToken());
+
+        int finalTextureCount = mFakeImpressApi.getTextureImages().size();
+        assertThat(finalTextureCount).isEqualTo(initialTextureCount - 1);
+    }
+
+    @Test
+    public void createWaterMaterial_returnsWaterMaterial() throws Exception {
+        assertThat(createWaterMaterialSplitEngine()).isNotNull();
+    }
+
+    @Test
+    public void destroyWaterMaterial_removesWaterMaterial() throws Exception {
+        MaterialResourceImpl material = (MaterialResourceImpl) createWaterMaterialSplitEngine();
+        int initialMaterialCount = mFakeImpressApi.getMaterials().size();
+
+        mFakeImpressApi.destroyNativeObject(material.getMaterialToken());
+
+        int finalMaterialCount = mFakeImpressApi.getMaterials().size();
+        assertThat(finalMaterialCount).isEqualTo(initialMaterialCount - 1);
+    }
+
+    @Test
+    public void setMaterialOverrideGltfEntity_materialOverridesMesh() throws Exception {
+        GltfEntity gltfEntitySplitEngine = createGltfEntitySplitEngine();
+        MaterialResource material = (MaterialResource) createWaterMaterialSplitEngine();
+
+        gltfEntitySplitEngine.setMaterialOverride(material, "fake_mesh_name");
+
+        assertThat(
+                        mFakeImpressApi.getImpressNodes().keySet().stream()
+                                .filter(
+                                        node ->
+                                                node.materialOverride != null
+                                                        && node.materialOverride.type
+                                                                == FakeImpressApi.MaterialData.Type
+                                                                        .WATER)
+                                .toArray())
+                .hasLength(1);
     }
 
     interface FakeComponent extends Component {}

@@ -52,13 +52,13 @@ android {
     namespace = "androidx.xr.runtime.openxr"
     sourceSets.main {
         resources.srcDirs += "src/main/resources"
-        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/android")
+        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/native/android")
     }
     defaultConfig {
         consumerProguardFiles 'proguard-rules.pro'
     }
     sourceSets.androidTest {
-        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/androidTest")
+        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/native/androidTest")
     }
 }
 

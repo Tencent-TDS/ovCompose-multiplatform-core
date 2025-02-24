@@ -190,7 +190,7 @@ internal constructor(
      * If you need to use it in the composition then consider wrapping the calculation into a
      * derived state in order to only have recompositions when the derived value changes:
      *
-     * @sample androidx.wear.compose.foundation.samples.UsingListAnchorItemPositionInCompositionSample
+     * @sample androidx.wear.compose.foundation.samples.UsingListAnchorItemPositionSample
      */
     public var anchorItemIndex: Int by mutableIntStateOf(initialAnchorItemIndex)
         private set

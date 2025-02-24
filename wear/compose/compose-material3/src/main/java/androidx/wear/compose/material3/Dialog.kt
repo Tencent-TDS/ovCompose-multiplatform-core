@@ -40,13 +40,20 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.wear.compose.foundation.LocalReduceMotion
+import androidx.wear.compose.foundation.SwipeToDismissBoxState
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material3.MotionScheme.Companion.standard
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 /**
  * A base dialog component used by [AlertDialog] and [ConfirmationDialog] variations. This dialog
@@ -75,6 +82,8 @@ public fun Dialog(
     content: @Composable () -> Unit,
 ) {
     val showState by rememberUpdatedState(visible)
+    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+
     // Transitions for dialog animation.
     var transitionState = remember { mutableStateOf(MutableTransitionState(DialogVisibility.Hide)) }
     val shouldShow by remember {
@@ -91,18 +100,30 @@ public fun Dialog(
 
     val isReduceMotionEnabled = LocalReduceMotion.current
 
+    val screenWidthPx =
+        with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+
     if (!isReduceMotionEnabled) {
         LaunchedEffect(Unit) {
+            launch {
+                snapshotFlow { swipeToDismissBoxState.offset }
+                    .filter { !it.isNaN() }
+                    .collectLatest {
+                        val scale = lerp(BackgroundMinScale, BackgroundMaxScale, it / screenWidthPx)
+                        if (transitionState.value.currentState == DialogVisibility.Display) {
+                            scaffoldState.parentScale.floatValue = scale
+                            backgroundAnimatable.snapTo(scale)
+                        }
+                    }
+            }
+
             snapshotFlow { showState }
                 .collectLatest {
-                    if (it) {
-                        backgroundAnimatable.animateTo(0.85f, backgroundAnimationSpec) {
-                            scaffoldState.parentScale.floatValue = value
-                        }
-                    } else {
-                        backgroundAnimatable.animateTo(1f, backgroundAnimationSpec) {
-                            scaffoldState.parentScale.floatValue = value
-                        }
+                    backgroundAnimatable.animateTo(
+                        if (it) BackgroundMinScale else BackgroundMaxScale,
+                        backgroundAnimationSpec
+                    ) {
+                        scaffoldState.parentScale.floatValue = value
                     }
                 }
         }
@@ -113,6 +134,7 @@ public fun Dialog(
             DialogContentWrapper(
                 shouldShow,
                 content,
+                swipeToDismissBoxState,
                 modifier,
                 transition,
                 onDismissRequest,
@@ -138,6 +160,7 @@ public fun Dialog(
                 DialogContentWrapper(
                         shouldShow,
                         content,
+                        swipeToDismissBoxState,
                         modifier,
                         transition,
                         onDismissRequest,
@@ -170,6 +193,7 @@ public fun Dialog(
 private fun DialogContentWrapper(
     shouldShow: Boolean,
     content: @Composable () -> Unit,
+    swipeToDismissBoxState: SwipeToDismissBoxState,
     modifier: Modifier,
     transition: Transition<DialogVisibility>,
     onDismissRequest: () -> Unit,
@@ -178,8 +202,6 @@ private fun DialogContentWrapper(
     val forceHide = mutableStateOf(false)
     return if (shouldShow) {
         {
-            val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-
             val contentAlpha by animateContentAlpha(transition)
             val scale by animateDialogScale(transition)
 
@@ -267,3 +289,6 @@ private enum class DialogVisibility {
     Hide,
     Display
 }
+
+private const val BackgroundMinScale = 0.85f
+private const val BackgroundMaxScale = 1f

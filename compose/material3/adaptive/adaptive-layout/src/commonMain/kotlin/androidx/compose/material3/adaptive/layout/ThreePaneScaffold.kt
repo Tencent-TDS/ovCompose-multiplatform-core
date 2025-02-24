@@ -60,12 +60,12 @@ import kotlin.math.min
  * Interface that allows libraries to override the behavior of [ThreePaneScaffold].
  *
  * To override this component, implement the member function of this interface, then provide the
- * implementation to [LocalThreePaneScaffoldOverride] in the Compose hierarchy.
+ * implementation to [LocalThreePaneScaffoldComponentOverride] in the Compose hierarchy.
  */
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-interface ThreePaneScaffoldOverride {
+interface ThreePaneScaffoldComponentOverride {
     /** Behavior function that is called by the [ThreePaneScaffold] composable. */
-    @Composable fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold()
+    @Composable fun ThreePaneScaffoldComponentOverrideContext.ThreePaneScaffold()
 }
 
 /**
@@ -87,7 +87,7 @@ interface ThreePaneScaffoldOverride {
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-class ThreePaneScaffoldOverrideContext
+class ThreePaneScaffoldComponentOverrideContext
 internal constructor(
     val modifier: Modifier,
     val scaffoldDirective: PaneScaffoldDirective,
@@ -101,13 +101,14 @@ internal constructor(
     internal val motionDataProvider: ThreePaneScaffoldMotionDataProvider
 )
 
-/** CompositionLocal containing the currently-selected [ThreePaneScaffoldOverride]. */
+/** CompositionLocal containing the currently-selected [ThreePaneScaffoldComponentOverride]. */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
 @get:ExperimentalMaterial3AdaptiveComponentOverrideApi
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-val LocalThreePaneScaffoldOverride: ProvidableCompositionLocal<ThreePaneScaffoldOverride> =
+val LocalThreePaneScaffoldComponentOverride:
+    ProvidableCompositionLocal<ThreePaneScaffoldComponentOverride> =
     compositionLocalOf {
-        DefaultThreePaneScaffoldOverride
+        DefaultThreePaneScaffoldComponentOverride
     }
 
 /**
@@ -207,8 +208,8 @@ internal fun ThreePaneScaffold(
             remember(currentTransition, this) {
                 ThreePaneScaffoldScopeImpl(transitionScope, this, stateHolder)
             }
-        with(LocalThreePaneScaffoldOverride.current) {
-            ThreePaneScaffoldOverrideContext(
+        with(LocalThreePaneScaffoldComponentOverride.current) {
+            ThreePaneScaffoldComponentOverrideContext(
                     modifier = modifier,
                     scaffoldDirective = scaffoldDirective,
                     scaffoldState = scaffoldState,
@@ -257,15 +258,15 @@ internal fun ThreePaneScaffold(
 }
 
 /**
- * [ThreePaneScaffoldOverride] used when no override is specified.
+ * [ThreePaneScaffoldComponentOverride] used when no override is specified.
  *
  * This override provides the default behavior of the [ThreePaneScaffold] component.
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-private object DefaultThreePaneScaffoldOverride : ThreePaneScaffoldOverride {
+private object DefaultThreePaneScaffoldComponentOverride : ThreePaneScaffoldComponentOverride {
     @Composable
-    override fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold() {
+    override fun ThreePaneScaffoldComponentOverrideContext.ThreePaneScaffold() {
         val layoutDirection = LocalLayoutDirection.current
         val ltrPaneOrder =
             remember(paneOrder, layoutDirection) { paneOrder.toLtrOrder(layoutDirection) }

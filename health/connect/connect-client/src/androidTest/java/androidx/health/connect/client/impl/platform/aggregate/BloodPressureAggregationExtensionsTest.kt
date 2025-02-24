@@ -41,6 +41,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -77,7 +78,10 @@ class BloodPressureAggregationExtensionsTest {
 
     @After
     fun tearDown() = runTest {
-        healthConnectClient.deleteRecords(BloodPressureRecord::class, TimeRangeFilter.none())
+        healthConnectClient.deleteRecords(
+            BloodPressureRecord::class,
+            TimeRangeFilter.after(Instant.EPOCH)
+        )
     }
 
     @Test
@@ -96,7 +100,7 @@ class BloodPressureAggregationExtensionsTest {
         assertThrows(IllegalStateException::class.java) {
             runBlocking {
                 healthConnectClient.aggregateBloodPressure(
-                    AggregateRequest(metrics, TimeRangeFilter.none(), emptySet())
+                    AggregateRequest(metrics, TimeRangeFilter.after(Instant.EPOCH), emptySet())
                 )
             }
         }
@@ -116,7 +120,7 @@ class BloodPressureAggregationExtensionsTest {
 
         val aggregationResult =
             healthConnectClient.aggregateBloodPressure(
-                AggregateRequest(metrics, TimeRangeFilter.none(), emptySet())
+                AggregateRequest(metrics, TimeRangeFilter.after(Instant.EPOCH), emptySet())
             )
 
         metrics.forEach { assertThat(it in aggregationResult).isFalse() }
@@ -169,7 +173,7 @@ class BloodPressureAggregationExtensionsTest {
             healthConnectClient.aggregateBloodPressure(
                 AggregateRequest(
                     setOf(BloodPressureRecord.SYSTOLIC_MAX),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     emptySet()
                 )
             )
@@ -211,7 +215,7 @@ class BloodPressureAggregationExtensionsTest {
                         BloodPressureRecord.SYSTOLIC_MAX,
                         BloodPressureRecord.SYSTOLIC_MIN,
                     ),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     emptySet()
                 )
             )
@@ -256,7 +260,7 @@ class BloodPressureAggregationExtensionsTest {
                         BloodPressureRecord.SYSTOLIC_MAX,
                         BloodPressureRecord.SYSTOLIC_MIN,
                     ),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     emptySet()
                 )
             )
@@ -319,7 +323,7 @@ class BloodPressureAggregationExtensionsTest {
 
         val aggregationResult =
             healthConnectClient.aggregateBloodPressure(
-                AggregateRequest(emptySet(), TimeRangeFilter.none(), emptySet())
+                AggregateRequest(emptySet(), TimeRangeFilter.after(Instant.EPOCH), emptySet())
             )
 
         setOf(
@@ -517,7 +521,7 @@ class BloodPressureAggregationExtensionsTest {
             healthConnectClient.aggregateBloodPressure(
                 AggregateRequest(
                     setOf(BloodPressureRecord.SYSTOLIC_AVG),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     setOf(DataOrigin(context.packageName))
                 )
             )
@@ -572,7 +576,7 @@ class BloodPressureAggregationExtensionsTest {
             healthConnectClient.aggregateBloodPressure(
                 AggregateRequest(
                     setOf(BloodPressureRecord.SYSTOLIC_AVG),
-                    TimeRangeFilter.none(),
+                    TimeRangeFilter.after(Instant.EPOCH),
                     setOf(DataOrigin("some random package name"))
                 )
             )

@@ -43,6 +43,8 @@ import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -64,16 +66,14 @@ public class ActivityPanelEntityImplTest {
             Mockito.mock(SplitEngineSubspaceManager.class);
     private final ImpSplitEngineRenderer mSplitEngineRenderer =
             Mockito.mock(ImpSplitEngineRenderer.class);
+    private JxrPlatformAdapter mFakeRuntime;
 
-    private ActivityPanelEntity createActivityPanelEntity() {
-        return createActivityPanelEntity(mWindowBoundsPx);
-    }
-
-    private ActivityPanelEntity createActivityPanelEntity(PixelDimensions windowBoundsPx) {
+    @Before
+    public void setUp() {
         when(mPerceptionLibrary.initSession(eq(mHostActivity), anyInt(), eq(mFakeExecutor)))
                 .thenReturn(immediateFuture(Mockito.mock(Session.class)));
 
-        JxrPlatformAdapter fakeRuntime =
+        mFakeRuntime =
                 JxrPlatformAdapterAxr.create(
                         mHostActivity,
                         mFakeExecutor,
@@ -84,14 +84,27 @@ public class ActivityPanelEntityImplTest {
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
                         /* useSplitEngine= */ false);
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mFakeRuntime.dispose();
+    }
+
+    private ActivityPanelEntity createActivityPanelEntity() {
+        return createActivityPanelEntity(mWindowBoundsPx);
+    }
+
+    private ActivityPanelEntity createActivityPanelEntity(PixelDimensions windowBoundsPx) {
         Pose mPose = new Pose();
 
-        return fakeRuntime.createActivityPanelEntity(
+        return mFakeRuntime.createActivityPanelEntity(
                 mPose,
                 windowBoundsPx,
                 "test",
                 mHostActivity,
-                fakeRuntime.getActivitySpaceRootImpl());
+                mFakeRuntime.getActivitySpaceRootImpl());
     }
 
     @Test

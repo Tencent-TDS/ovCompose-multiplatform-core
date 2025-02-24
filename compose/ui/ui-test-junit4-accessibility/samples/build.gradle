@@ -45,7 +45,7 @@ dependencies {
 
 android {
     compileSdk = 35
-    namespace "androidx.compose.ui.test.junit4.accessibility.samples"
+    namespace = "androidx.compose.ui.test.junit4.accessibility.samples"
 }
 
 androidx {

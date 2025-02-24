@@ -244,7 +244,7 @@ private fun PagerScaffoldImpl(
  *   of [GestureInclusion] can be passed in here which will determine via
  *   [GestureInclusion.allowGesture] whether the gesture should proceed or not. By default,
  *   [gestureInclusion] allows gestures everywhere except a zone on the left edge of the first page,
- *   which is used for swipe-to-dismiss (see [PagerDefaults.disableLeftEdgeOnFirstPage]).
+ *   which is used for swipe-to-dismiss (see [PagerDefaults.ignoreLeftEdgeOnFirstPage]).
  * @param reverseLayout reverse the direction of scrolling and layout.
  * @param key a stable and unique key representing the item. When you specify the key the scroll
  *   position will be maintained based on the key, which means if you add/remove items before the
@@ -263,7 +263,7 @@ internal fun AnimatedHorizontalPager(
     beyondViewportPageCount: Int = PagerDefaults.BeyondViewportPageCount,
     flingBehavior: TargetedFlingBehavior = snapWithSpringBehavior(state = state),
     userScrollEnabled: Boolean = true,
-    gestureInclusion: GestureInclusion = PagerDefaults.disableLeftEdgeOnFirstPage(state),
+    gestureInclusion: GestureInclusion = PagerDefaults.ignoreLeftEdgeOnFirstPage(state),
     reverseLayout: Boolean = false,
     key: ((index: Int) -> Any)? = null,
     rotaryScrollableBehavior: RotaryScrollableBehavior?,

@@ -20,9 +20,9 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.PaneScaffoldParentData
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldComponentOverride
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldComponentOverrideContext
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldHorizontalOrder
-import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldOverride
-import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldOverrideContext
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldRole
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -142,7 +142,7 @@ private fun Panel(
 }
 
 /**
- * [ThreePaneScaffoldOverride] that uses the XR-specific [ThreePaneScaffold].
+ * [ThreePaneScaffoldComponentOverride] that uses the XR-specific [ThreePaneScaffold].
  *
  * Note that when using this override, any madifiers passed in to the 2D composable are ignored.
  */
@@ -151,9 +151,9 @@ private fun Panel(
     ExperimentalMaterial3AdaptiveApi::class,
     ExperimentalMaterial3AdaptiveComponentOverrideApi::class
 )
-internal object XrThreePaneScaffoldOverride : ThreePaneScaffoldOverride {
+internal object XrThreePaneScaffoldComponentOverride : ThreePaneScaffoldComponentOverride {
     @Composable
-    override fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold() {
+    override fun ThreePaneScaffoldComponentOverrideContext.ThreePaneScaffold() {
         ThreePaneScaffold(
             modifier = SubspaceModifier,
             scaffoldDirective = scaffoldDirective.copy(maxHorizontalPartitions = 3),

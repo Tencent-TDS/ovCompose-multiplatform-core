@@ -161,16 +161,6 @@ public class FakeXrExtensions implements XrExtensions {
         throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @NonNull
-    @Deprecated
-    public Bundle setMainPanelCurvatureRadius(@NonNull Bundle bundle, float panelCurvatureRadius) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
-    }
-
     @Override
     @NonNull
     public Config getConfig() {
@@ -180,15 +170,6 @@ public class FakeXrExtensions implements XrExtensions {
     @NonNull
     public SpaceMode getSpaceMode() {
         return mSpaceMode;
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void setMainWindowSize(@NonNull Activity activity, int width, int height) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -220,20 +201,6 @@ public class FakeXrExtensions implements XrExtensions {
         return mMainWindowHeight;
     }
 
-    @Override
-    public void getBounds(
-            @NonNull Activity activity,
-            @NonNull Consumer<Bounds> callback,
-            @NonNull Executor executor) {
-        callback.accept(
-                (mSpaceMode == SpaceMode.FULL_SPACE
-                        ? new Bounds(
-                                Float.POSITIVE_INFINITY,
-                                Float.POSITIVE_INFINITY,
-                                Float.POSITIVE_INFINITY)
-                        : new Bounds(1f, 1f, 1f)));
-    }
-
     private SpatialCapabilities getCapabilities(boolean allowAll) {
         return new SpatialCapabilities() {
             @Override
@@ -244,35 +211,9 @@ public class FakeXrExtensions implements XrExtensions {
     }
 
     @Override
-    public void getSpatialCapabilities(
-            @NonNull Activity activity,
-            @NonNull Consumer<SpatialCapabilities> callback,
-            @NonNull Executor executor) {
-        callback.accept(fakeSpatialState.getSpatialCapabilities());
-    }
-
-    @Override
     @NonNull
     public SpatialState getSpatialState(@NonNull Activity activity) {
         return fakeSpatialState;
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public boolean canEmbedActivityPanel(@NonNull Activity activity) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public boolean requestFullSpaceMode(@NonNull Activity activity) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -294,27 +235,6 @@ public class FakeXrExtensions implements XrExtensions {
         mSpaceMode = requestEnter ? SpaceMode.FULL_SPACE : SpaceMode.HOME_SPACE;
 
         executor.execute(() -> callback.accept(createAsyncResult()));
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public boolean requestHomeSpaceMode(@NonNull Activity activity) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void setSpatialStateCallback(
-            @NonNull Activity activity,
-            @NonNull Consumer<androidx.xr.extensions.space.SpatialStateEvent> callback,
-            @NonNull Executor executor) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -357,16 +277,6 @@ public class FakeXrExtensions implements XrExtensions {
         };
     }
 
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void attachSpatialScene(
-            @NonNull Activity activity, @NonNull Node sceneNode, @NonNull Node windowNode) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
-    }
-
     @Override
     public void attachSpatialScene(
             @NonNull Activity activity,
@@ -381,15 +291,6 @@ public class FakeXrExtensions implements XrExtensions {
         mFakeNodeForMainWindow.mName = "nodeForMainWindow";
 
         executor.execute(() -> callback.accept(createAsyncResult()));
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void detachSpatialScene(@NonNull Activity activity) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -408,16 +309,6 @@ public class FakeXrExtensions implements XrExtensions {
         return mFakeTaskNode;
     }
 
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void attachSpatialEnvironment(
-            @NonNull Activity activity, @NonNull Node environmentNode) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
-    }
-
     @Override
     public void attachSpatialEnvironment(
             @NonNull Activity activity,
@@ -428,15 +319,6 @@ public class FakeXrExtensions implements XrExtensions {
         mFakeEnvironmentNode.mName = "environmentNode";
 
         executor.execute(() -> callback.accept(createAsyncResult()));
-    }
-
-    /**
-     * @deprecated This method is no longer supported.
-     */
-    @Override
-    @Deprecated
-    public void detachSpatialEnvironment(@NonNull Activity activity) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -467,20 +349,6 @@ public class FakeXrExtensions implements XrExtensions {
         FakeGltfModelToken modelToken = new FakeGltfModelToken(url);
         createdGltfModelTokens.add(modelToken);
         return CompletableFuture.completedFuture(modelToken);
-    }
-
-    /**
-     * Suppressed to allow CompletableFuture.
-     *
-     * @deprecated This method is no longer supported.
-     */
-    @SuppressWarnings("AndroidJdkLibsChecker")
-    @Override
-    @NonNull
-    @Deprecated
-    public CompletableFuture</* @Nullable */ SceneViewerResult> displayGltfModel(
-            Activity activity, androidx.xr.extensions.asset.GltfModelToken gltfModel) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     /**
@@ -648,11 +516,6 @@ public class FakeXrExtensions implements XrExtensions {
     @NonNull
     public Bundle setFullSpaceModeWithEnvironmentInherited(@NonNull Bundle bundle) {
         return bundle;
-    }
-
-    @Override
-    public void setPreferredAspectRatio(@NonNull Activity activity, float preferredRatio) {
-        throw new UnsupportedOperationException(NOT_IMPLEMENTED_IN_FAKE);
     }
 
     @Override
@@ -1478,6 +1341,7 @@ public class FakeXrExtensions implements XrExtensions {
         }
 
         @Override
+        @SuppressWarnings("GetterSetterNames")
         public boolean getForceShowResizeOverlay() {
             return mForceShowResizeOverlay;
         }

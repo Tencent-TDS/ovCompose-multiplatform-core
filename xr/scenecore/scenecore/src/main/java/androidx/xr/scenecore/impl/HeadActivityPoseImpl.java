@@ -16,6 +16,7 @@
 
 package androidx.xr.scenecore.impl;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
@@ -47,11 +48,13 @@ class HeadActivityPoseImpl extends BaseActivityPose implements HeadActivityPose 
         return mOpenXrActivityPoseHelper.getPoseInActivitySpace(getPoseInOpenXrReferenceSpace());
     }
 
+    @NonNull
     @Override
     public Pose getActivitySpacePose() {
         return mOpenXrActivityPoseHelper.getActivitySpacePose(getPoseInOpenXrReferenceSpace());
     }
 
+    @NonNull
     @Override
     public Vector3 getActivitySpaceScale() {
         // This WorldPose is assumed to always have a scale of 1.0f in the OpenXR reference space.

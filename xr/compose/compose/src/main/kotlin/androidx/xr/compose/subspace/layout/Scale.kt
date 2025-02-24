@@ -17,7 +17,7 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 
 /**
  * Scale the contents of the composable by the scale factor along horizontal, vertical, and depth
@@ -30,7 +30,7 @@ import androidx.xr.compose.subspace.node.SubspaceModifierElement
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SubspaceModifier.scale(scale: Float): SubspaceModifier = this.then(ScaleElement(scale))
 
-private class ScaleElement(private val scale: Float) : SubspaceModifierElement<ScaleNode>() {
+private class ScaleElement(private val scale: Float) : SubspaceModifierNodeElement<ScaleNode>() {
 
     init {
         require(scale > 0.0f) { "scale values must be > 0.0f" }

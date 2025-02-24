@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toCollection;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.extensions.node.Node;
+import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("BanConcurrentHashMap")
 final class EntityManager {
     private final Map<Node, Entity> mNodeEntityMap = new ConcurrentHashMap<>();
+    private final List<ActivityPose> mSystemSpaces = new ArrayList<>();
 
     /**
      * Returns the {@link Entity} associated with the given {@link Node}.
@@ -82,8 +84,35 @@ final class EntityManager {
         mNodeEntityMap.remove(node);
     }
 
+    /** Adds a system space activity pose to the EntityManager. */
+    void addSystemSpaceActivityPose(@NonNull ActivityPose systemSpaceActivityPose) {
+        mSystemSpaces.add(systemSpaceActivityPose);
+    }
+
+    /** Returns a collection of all system space activity poses. */
+    List<ActivityPose> getAllSystemSpaceActivityPoses() {
+        return mSystemSpaces;
+    }
+
+    /**
+     * Returns a list of all {@link ActivityPose}s of type {@code T} (including subtypes of {@code
+     * T}).
+     *
+     * @param systemSpaceActivityPoseClass the type of {@link ActivityPose} to return.
+     * @return a list of all {@link ActivityPose}s of type {@code T} (including subtypes of {@code
+     *     T}).
+     */
+    <T extends ActivityPose> List<T> getSystemSpaceActivityPoseOfType(
+            @NonNull Class<T> systemSpaceActivityPoseClass) {
+        return mSystemSpaces.stream()
+                .filter(systemSpaceActivityPoseClass::isInstance)
+                .map(systemSpaceActivityPoseClass::cast)
+                .collect(toCollection(ArrayList::new));
+    }
+
     /** Clears the EntityManager. */
     void clear() {
         mNodeEntityMap.clear();
+        mSystemSpaces.clear();
     }
 }

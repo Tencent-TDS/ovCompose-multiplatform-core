@@ -88,7 +88,7 @@ class SubspaceModifierNodeChainTest {
         this.then(CountElement(count))
 
     private inner class CountElement(private val count: Int) :
-        SubspaceModifierElement<CountNode>() {
+        SubspaceModifierNodeElement<CountNode>() {
 
         override fun create(): CountNode = CountNode(count)
 

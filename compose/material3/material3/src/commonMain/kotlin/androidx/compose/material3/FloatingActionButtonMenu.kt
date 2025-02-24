@@ -64,6 +64,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -283,12 +284,20 @@ fun FloatingActionButtonMenuScope.FloatingActionButtonMenuItem(
     val alphaSpring: FiniteAnimationSpec<Float> = MotionSchemeKeyTokens.FastEffects.value()
     val coroutineScope = rememberCoroutineScope()
 
+    var isVisible by remember { mutableStateOf(false) }
+    val hideSemantics =
+        if (isVisible) {
+            Modifier
+        } else {
+            Modifier.clearAndSetSemantics {}
+        }
+
     // Disable min interactive component size because it interferes with the item expand
     // animation and we know we are meeting the size requirements below.
     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
         Surface(
             modifier =
-                modifier.layout { measurable, constraints ->
+                modifier.then(hideSemantics).layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints)
 
                     layout(placeable.width, placeable.height) {
@@ -309,7 +318,7 @@ fun FloatingActionButtonMenuScope.FloatingActionButtonMenuItem(
                                 }
                             } ?: Animatable(target, Float.VectorConverter)
                         alphaAnim = tempAlphaAnim
-
+                        isVisible = tempAlphaAnim.value != 0f
                         placeable.placeWithLayer(0, 0) { alpha = tempAlphaAnim.value }
                     }
                 },

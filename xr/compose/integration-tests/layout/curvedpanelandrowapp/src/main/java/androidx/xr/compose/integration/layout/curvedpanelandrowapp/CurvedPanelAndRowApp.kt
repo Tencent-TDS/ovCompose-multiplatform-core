@@ -84,6 +84,7 @@ class CurvedPanelAndRowApp : ComponentActivity() {
         isDebugInspectorInfoEnabled = true
     }
 
+    @SubspaceComposable
     @Composable
     fun PanelGrid() {
         var curvePercent by remember { mutableFloatStateOf(0.625f) }

@@ -68,5 +68,5 @@ public interface SubspaceSemanticsInfo {
 
     /** The components attached to this node by SubspaceLayoutNode update. */
     public val components: List<Component>?
-        get() = semanticsEntity?.getComponents()
+        @Suppress("NullableCollection") get() = semanticsEntity?.getComponents()
 }

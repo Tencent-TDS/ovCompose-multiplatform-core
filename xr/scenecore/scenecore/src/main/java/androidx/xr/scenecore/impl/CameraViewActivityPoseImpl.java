@@ -18,6 +18,7 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
@@ -55,11 +56,13 @@ final class CameraViewActivityPoseImpl extends BaseActivityPose implements Camer
         return mOpenXrActivityPoseHelper.getPoseInActivitySpace(getPoseInOpenXrReferenceSpace());
     }
 
+    @NonNull
     @Override
     public Pose getActivitySpacePose() {
         return mOpenXrActivityPoseHelper.getActivitySpacePose(getPoseInOpenXrReferenceSpace());
     }
 
+    @NonNull
     @Override
     public Vector3 getActivitySpaceScale() {
         // This WorldPose is assumed to always have a scale of 1.0f in the OpenXR reference space.
@@ -104,6 +107,7 @@ final class CameraViewActivityPoseImpl extends BaseActivityPose implements Camer
         return mCameraType;
     }
 
+    @NonNull
     @Override
     public Fov getFov() {
         ViewProjection viewProjection = getViewProjection();

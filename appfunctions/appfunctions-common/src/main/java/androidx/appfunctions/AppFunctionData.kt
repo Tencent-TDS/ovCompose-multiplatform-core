@@ -22,7 +22,6 @@ import android.os.Bundle
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
-import kotlin.collections.isEmpty
 
 /**
  * A data class to contain information to be communicated between AppFunctions apps and agents.

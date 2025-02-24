@@ -173,10 +173,8 @@ internal class SubspaceModifierNodeChain(private val subspaceLayoutNode: Subspac
         element: SubspaceModifier,
         parent: SubspaceModifier.Node,
     ): SubspaceModifier.Node {
-        val node = (element as SubspaceModifierElement<*>).create()
-        if (node is SubspaceLayoutModifierNode) {
-            node.coordinator?.layoutNode = subspaceLayoutNode
-        }
+        val node = (element as SubspaceModifierNodeElement<*>).create()
+        node.layoutNode = subspaceLayoutNode
         return insertChild(node, parent)
     }
 
@@ -199,7 +197,7 @@ internal class SubspaceModifierNodeChain(private val subspaceLayoutNode: Subspac
     }
 
     private fun updateNode(node: SubspaceModifier.Node, modifier: SubspaceModifier) {
-        (modifier as SubspaceModifierElement<*>).updateUnsafe(node)
+        (modifier as SubspaceModifierNodeElement<*>).updateUnsafe(node)
     }
 
     private fun removeNode(node: SubspaceModifier.Node): SubspaceModifier.Node {
@@ -221,7 +219,7 @@ internal class SubspaceModifierNodeChain(private val subspaceLayoutNode: Subspac
     }
 }
 
-private fun <T : SubspaceModifier.Node> SubspaceModifierElement<T>.updateUnsafe(
+private fun <T : SubspaceModifier.Node> SubspaceModifierNodeElement<T>.updateUnsafe(
     node: SubspaceModifier.Node
 ) {
     @Suppress("UNCHECKED_CAST") update(node as T)
@@ -239,7 +237,7 @@ private fun SubspaceModifier.fillVector(
                 stack.add(next.inner)
                 stack.add(next.outer)
             }
-            is SubspaceModifierElement<*> -> result.add(next as SubspaceModifier)
+            is SubspaceModifierNodeElement<*> -> result.add(next as SubspaceModifier)
 
             // some other [androidx.compose.ui.node.Modifier] implementation that we don't know
             // about...

@@ -22,8 +22,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -108,5 +111,28 @@ class BasicCurvedTextTest {
         val width2 = rule.onNodeWithTag(TAG2).fetchSemanticsNode().size.width
         // We added 0.5 em spacing, it should be much bigger
         assert(width2 > 1.4f * width1)
+    }
+
+    @Test
+    fun semantics_set_correctly() {
+        rule.setContent {
+            CurvedLayout(modifier = Modifier.size(200.dp)) {
+                basicCurvedText(
+                    "base",
+                    CurvedModifier.semantics {
+                        contentDescription = "desc"
+                        traversalIndex = 3.14f
+                    }
+                )
+            }
+        }
+
+        rule.onNodeWithContentDescription("base").assertDoesNotExist()
+        val traversalIndex =
+            rule
+                .onNodeWithContentDescription("desc")
+                .fetchSemanticsNode()
+                .config[SemanticsProperties.TraversalIndex]
+        assertEquals(3.14f, traversalIndex)
     }
 }

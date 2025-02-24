@@ -58,5 +58,5 @@ data class DoublePropertyAnnotation(
         get() = Kind.DOUBLE_PROPERTY
 
     override fun getUnderlyingTypeWithinGenericDoc(helper: IntrospectionHelper): TypeMirror =
-        helper.mDoublePrimitiveType
+        helper.doublePrimitiveType
 }

@@ -543,7 +543,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         if (changed) {
             val localScrollPositionToRestore = scrollPositionToRestore
             if (awaitingFirstLayout && localScrollPositionToRestore != null) {
-                var newZoom = (zoomToRestore ?: zoom) * (width.toFloat() / (oldWidth ?: width))
+                var newZoom = (zoomToRestore ?: zoom)
                 newZoom = MathUtils.clamp(newZoom, minZoom, maxZoom)
                 this.zoom = newZoom
                 scrollToRestoredPosition(localScrollPositionToRestore, zoom)
@@ -1179,7 +1179,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
 
             // Else, center the context menu in view
             val centerX = (pdfView.x + pdfView.width / 2).roundToInt()
-            val centerY = (pdfView.x + pdfView.height / 2).roundToInt()
+            val centerY = (pdfView.y + pdfView.height / 2).roundToInt()
             outRect.set(centerX, centerY, centerX + 1, centerY + 1)
         }
     }

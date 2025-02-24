@@ -218,7 +218,7 @@ class AppFunctionInvokerProcessor(private val codeGenerator: CodeGenerator) : Sy
             .returns(Any::class.asTypeName().copy(nullable = true))
             .addCode(
                 buildCodeBlock {
-                    addStatement("val result = when (${functionIdentifierSpec.name}) {")
+                    addStatement("val result: Any? = when (${functionIdentifierSpec.name}) {")
                     indent()
                     for (appFunction in annotatedAppFunctions.appFunctionDeclarations) {
                         appendInvocationBranchStatement(

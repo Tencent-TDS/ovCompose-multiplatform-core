@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.util.lerp
+import androidx.wear.compose.foundation.LocalReduceMotion
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -106,10 +107,12 @@ public fun AnimatedText(
 ) {
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
+    val isReduceMotionEnabled = LocalReduceMotion.current
     val animatedTextState =
         remember(fontRegistry, layoutDirection, density) {
             AnimatedTextState(fontRegistry, layoutDirection, density)
         }
+
     // Update before composing Canvas to make sure size gets updated
     animatedTextState.updateText(text)
     Canvas(
@@ -117,11 +120,15 @@ public fun AnimatedText(
             apply { this.text = AnnotatedString(text) }
         }
     ) {
-        animatedTextState.draw(
-            drawContext.canvas.nativeCanvas,
-            contentAlignment,
-            progressFraction()
-        )
+        // Update text if ReduceMotion is enabled to make sure the new text value is used
+        if (isReduceMotionEnabled) {
+            animatedTextState.updateText(text)
+        }
+
+        // If ReduceMotion is enabled, show static text with the end font configuration.
+        val fraction = if (isReduceMotionEnabled) 1f else progressFraction()
+
+        animatedTextState.draw(drawContext.canvas.nativeCanvas, contentAlignment, fraction)
     }
 }
 
@@ -388,7 +395,7 @@ public class AnimatedTextFontRegistry(
 @RequiresApi(31)
 public object AnimatedTextDefaults {
     /** Default font cache size to be used in AnimatedTextFontRegistry. */
-    public const val CacheSize: Int = 5
+    public val CacheSize: Int = 5
 
     /**
      * Default step size used to snap progress fractions. Progress fractions will be rounded down to
@@ -396,7 +403,7 @@ public object AnimatedTextDefaults {
      *
      * 0.016f is chosen to divide a 1 second animation into 60 animation steps.
      */
-    internal const val FractionStep = 0.016f
+    internal val FractionStep = 0.016f
 }
 
 /**

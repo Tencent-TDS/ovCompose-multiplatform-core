@@ -125,10 +125,10 @@ public object TimeTextDefaults {
     private val Padding = PaddingDefaults.edgePadding
 
     /** Default format for 24h clock. */
-    public const val TimeFormat24Hours: String = "HH:mm"
+    public val TimeFormat24Hours: String = "HH:mm"
 
     /** Default format for 12h clock. */
-    public const val TimeFormat12Hours: String = "h:mm"
+    public val TimeFormat12Hours: String = "h:mm"
 
     /**
      * The default maximum sweep angle in degrees used by [TimeText].
@@ -136,7 +136,7 @@ public object TimeTextDefaults {
      * This is calculated by keeping the length of the corresponding chord on the circle to be
      * approximately 57% of the screen width.
      */
-    public const val MaxSweepAngle: Float = 70f
+    public val MaxSweepAngle: Float = 70f
 
     /** The default content padding used by [TimeText]. */
     public val ContentPadding: PaddingValues = PaddingValues(top = Padding)

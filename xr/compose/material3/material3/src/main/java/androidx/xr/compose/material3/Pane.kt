@@ -19,8 +19,8 @@ package androidx.xr.compose.material3
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
-import androidx.compose.material3.adaptive.layout.AnimatedPaneOverride
-import androidx.compose.material3.adaptive.layout.AnimatedPaneOverrideContext
+import androidx.compose.material3.adaptive.layout.AnimatedPaneComponentOverride
+import androidx.compose.material3.adaptive.layout.AnimatedPaneComponentOverrideContext
 import androidx.compose.material3.adaptive.layout.AnimatedPaneScope
 import androidx.compose.material3.adaptive.layout.ExtendedPaneScaffoldPaneScope
 import androidx.compose.material3.adaptive.layout.PaneScaffoldValue
@@ -49,9 +49,10 @@ private fun <S, T : PaneScaffoldValue<S>> Pane(
     ExperimentalMaterial3AdaptiveApi::class
 )
 @ExperimentalMaterial3XrApi
-internal object XrAnimatedPaneOverride : AnimatedPaneOverride {
+internal object XrAnimatedPaneComponentOverride : AnimatedPaneComponentOverride {
     @Composable
-    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideContext<S, T>.AnimatedPane() {
+    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneComponentOverrideContext<S, T>
+        .AnimatedPane() {
         Pane(scope, modifier, content)
     }
 }

@@ -160,4 +160,4 @@ internal fun AnimatedIndicator(
 
 internal val LocalScaffoldState = compositionLocalOf { ScaffoldState(appScaffoldPresent = false) }
 
-private const val IDLE_DELAY = 2500L
+private const val IDLE_DELAY = 2000L

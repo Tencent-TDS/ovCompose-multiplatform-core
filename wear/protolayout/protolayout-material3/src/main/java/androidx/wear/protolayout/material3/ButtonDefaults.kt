@@ -94,12 +94,10 @@ public object ButtonDefaults {
         icon: LayoutElement?,
         @HorizontalAlignment horizontalAlignment: Int,
         style: ButtonStyle,
-        width: ContainerDimension,
     ): LayoutElement {
-        val labels: Column.Builder =
-            Column.Builder().setWidth(expand()).setHorizontalAlignment(horizontalAlignment)
+        val labels: Column.Builder = Column.Builder().setHorizontalAlignment(horizontalAlignment)
 
-        val row: Row.Builder = Row.Builder().setWidth(width)
+        val row: Row.Builder = Row.Builder()
 
         ContainerWithSpacersBuilder<LayoutElement>(labels::addContent, label)
             .addElement(secondaryLabel, horizontalSpacer(style.labelsSpaceDp))

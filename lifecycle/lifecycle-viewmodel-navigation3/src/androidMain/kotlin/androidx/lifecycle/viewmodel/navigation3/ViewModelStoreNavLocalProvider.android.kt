@@ -17,11 +17,11 @@
 package androidx.lifecycle.viewmodel.navigation3
 
 import androidx.activity.compose.LocalActivity
-import androidx.collection.MutableObjectIntMap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.Lifecycle
@@ -57,32 +57,41 @@ public object ViewModelStoreNavLocalProvider : NavLocalProvider {
         entryViewModelStoreProvider.ownerInBackStack.clear()
         entryViewModelStoreProvider.ownerInBackStack.addAll(backStack)
         val localInfo = remember { ViewModelStoreNavLocalInfo() }
-        DisposableEffect(key1 = backStack) {
-            localInfo.refCount.clear()
-            onDispose {}
-        }
+        DisposableEffect(key1 = backStack) { onDispose { localInfo.refCount.clear() } }
 
         val activity = LocalActivity.current
-        backStack.forEach { key ->
+        backStack.forEachIndexed { index, key ->
+            // We update here as part of composition to ensure the value is available to
+            // ProvideToEntry
+            localInfo.refCount.getOrPut(key) { LinkedHashSet<Int>() }.add(getIdForKey(key, index))
             DisposableEffect(key1 = key) {
-                localInfo.refCount[key] = localInfo.refCount.getOrDefault(key, 0).plus(1)
+                localInfo.refCount
+                    .getOrPut(key) { LinkedHashSet<Int>() }
+                    .add(getIdForKey(key, index))
                 onDispose {
-                    localInfo.refCount[key] =
-                        localInfo.refCount
-                            .getOrElse(key) {
-                                error(
-                                    "Attempting to incorrectly dispose of backstack state in " +
-                                        "ViewModelStoreNavLocalProvider"
-                                )
+                    // If the backStack count is less than the refCount for the key, remove the
+                    // state since that means we removed a key from the backstack, and set the
+                    // refCount to the backstack count.
+                    val backstackCount = backStack.count { it == key }
+                    val lastKeyCount = localInfo.refCount[key]?.size ?: 0
+                    if (backstackCount < lastKeyCount) {
+                        // The set of the ids associated with this key
+                        @Suppress("PrimitiveInCollection") // The order of the element matters
+                        val idsSet = localInfo.refCount[key]!!
+                        val id = idsSet.last()
+                        idsSet.remove(id)
+                        if (!localInfo.idsInComposition.contains(id)) {
+                            if (activity?.isChangingConfigurations != true) {
+                                entryViewModelStoreProvider
+                                    .removeViewModelStoreOwnerForKey(id)
+                                    ?.clear()
                             }
-                            .minus(1)
-                    if (localInfo.refCount[key] <= 0) {
-                        // This ensures we always keep viewModels on config changes.
-                        if (activity?.isChangingConfigurations != true) {
-                            entryViewModelStoreProvider
-                                .removeViewModelStoreOwnerForKey(key)
-                                ?.clear()
                         }
+                    }
+
+                    // If the refCount is 0, remove the key from the refCount.
+                    if (localInfo.refCount[key]?.isEmpty() == true) {
+                        localInfo.refCount.remove(key)
                     }
                 }
             }
@@ -97,34 +106,48 @@ public object ViewModelStoreNavLocalProvider : NavLocalProvider {
     override fun <T : Any> ProvideToEntry(entry: NavEntry<T>) {
         val key = entry.key
         val entryViewModelStoreProvider = viewModel { EntryViewModel() }
-        val viewModelStore = entryViewModelStoreProvider.viewModelStoreForKey(key)
 
         val activity = LocalActivity.current
         val localInfo = LocalViewModelStoreNavLocalInfo.current
+        // Tracks whether the key is changed
+        var keyChanged = false
+        var id: Int =
+            rememberSaveable(key) {
+                keyChanged = true
+                localInfo.refCount[key]!!.last()
+            }
+        id =
+            rememberSaveable(localInfo.refCount[key]?.size) {
+                // if the key changed, use the current id
+                // If the key was not changed, and the current id is not in composition or on the
+                // back stack then update the id with the last item from the backstack with the
+                // associated key. This ensures that we can handle duplicates, both consecutive and
+                // non-consecutive
+                if (
+                    !keyChanged &&
+                        (!localInfo.idsInComposition.contains(id) ||
+                            localInfo.refCount[key]?.contains(id) == true)
+                ) {
+                    localInfo.refCount[key]!!.last()
+                } else {
+                    id
+                }
+            }
+        keyChanged = false
+
+        val viewModelStore = entryViewModelStoreProvider.viewModelStoreForKey(id)
 
         DisposableEffect(key1 = key) {
-            localInfo.refCount[key] = localInfo.refCount.getOrDefault(key, 0).plus(1)
+            localInfo.idsInComposition.add(id)
             onDispose {
-                // We need to check to make sure that the refcount has been cleared here because
-                // when we are using animations, if the entire back stack is changed, we will
-                // execute the onDispose above that clears all of the counts before we finish the
-                // transition and run this onDispose so our count will already be gone and we
-                // should just remove the state.
-                if (!localInfo.refCount.contains(key) || localInfo.refCount[key] == 0) {
-                    // This ensures we always keep viewModels on config changes.
+                if (localInfo.idsInComposition.remove(id) && !localInfo.refCount.contains(key)) {
                     if (activity?.isChangingConfigurations != true) {
-                        entryViewModelStoreProvider.removeViewModelStoreOwnerForKey(key)?.clear()
+                        entryViewModelStoreProvider.removeViewModelStoreOwnerForKey(id)?.clear()
                     }
-                } else {
-                    localInfo.refCount[key] =
-                        localInfo.refCount
-                            .getOrElse(key) {
-                                error(
-                                    "Attempting to incorrectly dispose of state associated with " +
-                                        "key $key in ViewModelStoreNavLocalProvider."
-                                )
-                            }
-                            .minus(1)
+                    // If the refCount is 0, remove the key from the refCount.
+                    if (localInfo.refCount[key]?.isEmpty() == true) {
+                        localInfo.refCount.remove(key)
+                    }
                 }
             }
         }
@@ -187,5 +210,9 @@ internal val LocalViewModelStoreNavLocalInfo =
     }
 
 internal class ViewModelStoreNavLocalInfo {
-    internal val refCount: MutableObjectIntMap<Any> = MutableObjectIntMap()
+    internal val refCount: MutableMap<Any, LinkedHashSet<Int>> = mutableMapOf()
+    @Suppress("PrimitiveInCollection") // The order of the element matters
+    internal val idsInComposition: LinkedHashSet<Int> = LinkedHashSet<Int>()
 }
+
+internal fun getIdForKey(key: Any, count: Int): Int = 31 * key.hashCode() + count

@@ -64,5 +64,9 @@ public sealed interface ExecuteAppFunctionResponse {
     public class Error(
         /** The [AppFunctionException] when the function execution failed. */
         public val error: AppFunctionException,
-    ) : ExecuteAppFunctionResponse
+    ) : ExecuteAppFunctionResponse {
+        override fun toString(): String {
+            return "AppFunctionResponse.Error(error=$error)"
+        }
+    }
 }
