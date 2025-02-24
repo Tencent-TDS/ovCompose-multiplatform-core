@@ -234,4 +234,22 @@ id _editInteraction;
     return self.targetRect;
 }
 
+- (UITextPosition *)positionWithinRange:(UITextRange *)range atCharacterOffset:(NSInteger)offset {
+   return [self positionWithinRangeAtCharacterOffset:range atCharacterOffset:offset];
+}
+
+- (UITextPosition *)positionWithinRange:(UITextRange *)range farthestInDirection:(UITextLayoutDirection)direction {
+   return [self positionWithinRangeFarthestInDirection:range farthestInDirection:direction];
+}
+
+- (nullable UITextPosition *)positionWithinRangeFarthestInDirection:(UITextRange *)range
+                                               farthestInDirection:(UITextLayoutDirection)direction {
+   CMP_ABSTRACT_FUNCTION_CALLED
+}
+
+- (nullable UITextPosition *)positionWithinRangeAtCharacterOffset:(UITextRange *)range
+                                               atCharacterOffset:(NSInteger)offset {
+   CMP_ABSTRACT_FUNCTION_CALLED
+}
+
 @end

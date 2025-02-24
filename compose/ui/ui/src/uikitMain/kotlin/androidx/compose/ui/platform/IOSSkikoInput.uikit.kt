@@ -63,7 +63,7 @@ internal interface IOSSkikoInput {
      * The text position for the end of a document.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
      */
-    fun endOfDocument(): Long
+    fun endOfDocument(): Int
 
     /**
      * The range of selected text in a document.
@@ -126,29 +126,29 @@ internal interface IOSSkikoInput {
      * Returns the text position at a specified offset from another text position.
      * Returned value must be in range between 0 and length of text (inclusive).
      */
-    fun positionFromPosition(position: Long, offset: Long): Long
+    fun positionFromPosition(position: Int, offset: Int): Int
 
-    fun verticalPositionFromPosition(position: Long, verticalOffset: Long): Long
+    fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int
 
     fun currentFocusedDpRect(): DpRect?
 
-    fun caretDpRectForPosition(position: Long): DpRect?
+    fun caretDpRectForPosition(position: Int): DpRect?
 
     fun selectionRectsForRange(range: TextRange): List<TextSelectionRect>
 
-    fun closestPositionToPoint(point: DpOffset): Long?
+    fun closestPositionToPoint(point: DpOffset): Int?
 
-    fun closestPositionToPoint(point: DpOffset, withinRange: TextRange): Long?
+    fun closestPositionToPoint(point: DpOffset, withinRange: TextRange): Int?
 
     fun characterRangeAtPoint(point: DpOffset): TextRange?
 
-    fun positionWithinRange(range: TextRange, atCharacterOffset: Long): Long?
+    fun positionWithinRange(range: TextRange, atCharacterOffset: Int): Int?
 
-    fun positionWithinRange(range: TextRange, farthestIndirection: String): Long?
+    fun positionWithinRange(range: TextRange, farthestIndirection: String): Int?
     
-    fun characterRangeByExtendingPosition(position: Long, direction: String): TextRange?
+    fun characterRangeByExtendingPosition(position: Int, direction: String): TextRange?
 
-    fun baseWritingDirectionForPosition(position: Long, inDirection: String): String?
+    fun baseWritingDirectionForPosition(position: Int, inDirection: String): String?
 
-    fun offset(fromPosition: Long, toPosition: Long): Long
+    fun offset(fromPosition: Int, toPosition: Int): Int
 }

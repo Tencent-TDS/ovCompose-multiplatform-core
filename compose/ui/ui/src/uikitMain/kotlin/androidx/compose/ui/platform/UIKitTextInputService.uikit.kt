@@ -47,18 +47,24 @@ import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.unit.width
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.readValue
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.UIKit.NSStringFromCGPoint
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIColor
 import platform.UIKit.UIPress
+import platform.UIKit.UIScrollView
 import platform.UIKit.UIView
 import platform.UIKit.reloadInputViews
+import platform.darwin.dispatch_async
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -137,12 +143,7 @@ internal class UIKitTextInputService(
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
-        attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
-        showSoftwareKeyboard()
-        onInputStarted()
     }
 
     fun startInput(
@@ -158,8 +159,6 @@ internal class UIKitTextInputService(
         currentImeActionHandler = onImeActionPerformed
 
         attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
         showSoftwareKeyboard()
     }
@@ -214,6 +213,7 @@ internal class UIKitTextInputService(
             updateView()
             textUIView?.reloadInputViews()
         }
+        attachIfNeeded()
     }
 
     fun onPreviewKeyEvent(event: KeyEvent): Boolean {
@@ -259,13 +259,6 @@ internal class UIKitTextInputService(
             size = contentFrame.size
         ).toDpRect(rootView.density)
 
-        println(
-            ">> Frame: ${NSStringFromCGRect(frame.asCGRect())} | Bounds: ${
-                NSStringFromCGRect(
-                    bounds.asCGRect()
-                )
-            }"
-        )
         notifyGeometryChange(frame, bounds)
     }
 
@@ -411,21 +404,45 @@ internal class UIKitTextInputService(
         else
             TextToolbarStatus.Hidden
 
+    private fun attachIfNeeded() {
+        if  (textUIView == null) {
+            attachIntermediateTextInputView()
+
+            showSoftwareKeyboard()
+            onInputStarted()
+
+            textUIView?.setNeedsLayout()
+            textUIView?.setNeedsDisplay()
+
+            mainScope.launch {
+                textUIView?.setNeedsLayout()
+                textUIView?.setNeedsDisplay()
+                textUIView?.layoutIfNeeded()
+            }
+        }
+    }
+
     private fun attachIntermediateTextInputView() {
         detachIntermediateTextInputView()
 
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
-            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.5))
+            rootView.addSubview(it)
+            rootView.setFrame(it.bounds)
+
+            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.3))
             it.setTintColor(UIColor.yellowColor) // forward colors here
             it.onKeyboardPresses = onKeyboardPresses
             it.clipsToBounds = true
-            rootView.addSubview(it)
+            it.input = createSkikoInput()
+            it.inputTraits = getUITextInputTraits(currentImeOptions)
+
+
             // Resizing should be done later
             // TODO: Check selection container
+            it.resignFirstResponder()
             val success = it.becomeFirstResponder()
-            println("becomeFirstResponder: $success")
         }
     }
 
@@ -510,7 +527,7 @@ internal class UIKitTextInputService(
          * The text position for the end of a document.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
          */
-        override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
+        override fun endOfDocument(): Int = getState()?.text?.length ?: 0
 
         /**
          * The range of selected text in a document.
@@ -530,14 +547,14 @@ internal class UIKitTextInputService(
                 )
             } else {
                 sendEditCommand(
-                    SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
+                    SetSelectionCommand(endOfDocument(), endOfDocument())
                 )
             }
         }
 
         override fun selectAll() {
             sendEditCommand(
-                SetSelectionCommand(0, endOfDocument().toInt())
+                SetSelectionCommand(0, endOfDocument())
             )
         }
 
@@ -611,20 +628,20 @@ internal class UIKitTextInputService(
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun positionFromPosition(position: Long, offset: Long): Long {
+        override fun positionFromPosition(position: Int, offset: Int): Int {
             val text = getState()?.text ?: return 0
 
-            if (position + offset >= text.lastIndex + 1) {
-                return (text.lastIndex + 1).toLong()
+            if (position + offset >= text.length) {
+                return text.length
             }
             if (position + offset <= 0) {
                 return 0
             }
-            var resultPosition = position.toInt()
+            var resultPosition = position
             val iterator = BreakIterator.makeCharacterInstance()
             iterator.setText(text)
 
-            repeat(offset.absoluteValue.toInt()) {
+            repeat(offset.absoluteValue) {
                 val iteratorResult = if (offset > 0) {
                     iterator.following(resultPosition)
                 } else {
@@ -632,36 +649,35 @@ internal class UIKitTextInputService(
                 }
 
                 if (iteratorResult == BreakIterator.DONE) {
-                    return resultPosition.toLong()
+                    return resultPosition
                 } else {
                     resultPosition = iteratorResult
                 }
             }
 
-            return resultPosition.toLong()
+            return resultPosition
         }
 
         /**
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun verticalPositionFromPosition(position: Long, verticalOffset: Long): Long {
+        override fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int {
             val text = getState()?.text ?: return 0
             val layoutResult = textLayoutResult ?: return 0
 
-            val line = layoutResult.getLineForOffset(position.toInt())
+            val line = layoutResult.getLineForOffset(position)
             val lineStartOffset = layoutResult.getLineStart(line)
             val offsetInLine = position - lineStartOffset
-
             val targetLine = line + verticalOffset
             return when {
                 targetLine < 0 -> 0
-                targetLine >= layoutResult.lineCount -> text.length.toLong()
+                targetLine >= layoutResult.lineCount -> text.length
                 else -> {
-                    val targetLineLength = layoutResult.getLineEnd(targetLine.toInt())
-                    val lineStart = layoutResult.getLineStart(targetLine.toInt())
+                    val targetLineEnd = layoutResult.getLineEnd(targetLine)
+                    val lineStart = layoutResult.getLineStart(targetLine)
                     positionFromPosition(
-                        lineStart.toLong(), min(offsetInLine, targetLineLength.toLong())
+                        lineStart, min(offsetInLine, targetLineEnd - lineStart)
                     )
                 }
             }
@@ -669,7 +685,7 @@ internal class UIKitTextInputService(
 
         override fun currentFocusedDpRect(): DpRect? = getFocusedRect()?.toDpRect(rootView.density)
 
-        override fun caretDpRectForPosition(position: Long): DpRect? {
+        override fun caretDpRectForPosition(position: Int): DpRect? {
             val text = getState()?.text ?: return null
             if (position < 0 || position > text.length) {
                 return null
@@ -678,7 +694,7 @@ internal class UIKitTextInputService(
             if (position > currentTextLayoutResult.multiParagraph.intrinsics.annotatedString.length) {
                 return null
             }
-            val rect = currentTextLayoutResult.getCursorRect(position.toInt())
+            val rect = currentTextLayoutResult.getCursorRect(position)
             return rect.toDpRect(rootView.density)
         }
 
@@ -757,16 +773,15 @@ internal class UIKitTextInputService(
             }
         }
 
-        override fun closestPositionToPoint(point: DpOffset): Long? {
+        override fun closestPositionToPoint(point: DpOffset): Int? {
             return textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
-                ?.toLong()
         }
 
-        override fun closestPositionToPoint(point: DpOffset, withinRange: TextRange): Long? {
+        override fun closestPositionToPoint(point: DpOffset, withinRange: TextRange): Int? {
             val pointOffset =
                 textLayoutResult?.getOffsetForPosition(point.toOffset(rootView.density))
                     ?: return null
-            return pointOffset.coerceIn(withinRange.start, withinRange.end).toLong()
+            return pointOffset.coerceIn(withinRange.start, withinRange.end)
         }
 
         override fun characterRangeAtPoint(point: DpOffset): TextRange? {
@@ -776,26 +791,26 @@ internal class UIKitTextInputService(
             return textLayoutResult?.getWordBoundary(pointOffset)
         }
 
-        override fun positionWithinRange(range: TextRange, atCharacterOffset: Long): Long? {
+        override fun positionWithinRange(range: TextRange, atCharacterOffset: Int): Int? {
             TODO("Not yet implemented")
         }
 
-        override fun positionWithinRange(range: TextRange, farthestIndirection: String): Long? {
+        override fun positionWithinRange(range: TextRange, farthestIndirection: String): Int? {
             TODO("Not yet implemented")
         }
 
         override fun characterRangeByExtendingPosition(
-            position: Long,
+            position: Int,
             direction: String
         ): TextRange? {
             TODO("Not yet implemented")
         }
 
-        override fun baseWritingDirectionForPosition(position: Long, inDirection: String): String? {
+        override fun baseWritingDirectionForPosition(position: Int, inDirection: String): String? {
             TODO("Not yet implemented")
         }
 
-        override fun offset(fromPosition: Long, toPosition: Long): Long {
+        override fun offset(fromPosition: Int, toPosition: Int): Int {
             TODO("Not yet implemented")
         }
 
