@@ -18,12 +18,12 @@ package androidx.compose.ui.window
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.SessionMutex
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 internal class WebTextInputSession(
@@ -38,7 +38,12 @@ internal class WebTextInputSession(
             // This session has no data, just init/dispose tasks.
             sessionInitializer = { null }
         ) {
-            (suspendCancellableCoroutine<Nothing> { continuation ->
+            launch {
+                request.focusedRectInRoot.collect {
+                    webTextInputService.notifyFocusedRect(it)
+                }
+            }
+            suspendCancellableCoroutine<Nothing> { continuation ->
                 webTextInputService.startInput(
                     value = request.state,
                     imeOptions = request.imeOptions,
@@ -49,16 +54,11 @@ internal class WebTextInputSession(
                 continuation.invokeOnCancellation {
                     webTextInputService.stopInput()
                 }
-            })
+            }
         }
 
     @ExperimentalComposeUiApi
-    override fun updateSelectionState(newState: TextFieldValue) {
-        webTextInputService.updateState(oldValue = null, newState)
-    }
-
-    @ExperimentalComposeUiApi
-    override fun notifyFocusedRect(rect: Rect) {
-        webTextInputService.notifyFocusedRect(rect)
+    override fun updateTextFieldValue(newValue: TextFieldValue) {
+        webTextInputService.updateState(oldValue = null, newValue)
     }
 }
