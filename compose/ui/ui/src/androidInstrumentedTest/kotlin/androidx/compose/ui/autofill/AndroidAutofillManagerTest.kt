@@ -211,6 +211,81 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
+    fun autofillManager_doNotCallCommit_partialRemoval() {
+        var revealFirstUsername by mutableStateOf(true)
+
+        rule.setTestContent {
+            Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+            if (revealFirstUsername) {
+                Box(
+                    Modifier.semantics {
+                            contentType = ContentType.Username
+                            testTag = "username"
+                        }
+                        .size(height, width)
+                )
+            }
+        }
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
+        rule.runOnIdle { revealFirstUsername = false }
+
+        // `commit` should not be called unless all autofill-able components leave the screen.
+        rule.runOnIdle { verify(am, times(0)).commit() }
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(semanticsId),
+                isVisible = eq(false)
+            )
+    }
+
+    @Test
+    fun autofillManager_doNotCallCommit_partialAddition() {
+        var revealFirstUsername by mutableStateOf(false)
+
+        rule.setTestContent {
+            Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+            if (revealFirstUsername) {
+                Box(
+                    Modifier.semantics {
+                            contentType = ContentType.Username
+                            testTag = "username"
+                        }
+                        .size(height, width)
+                )
+            }
+        }
+        rule.runOnIdle { revealFirstUsername = true }
+
+        // `commit` should not be called unless all autofill-able components leave the screen.
+        rule.waitForIdle()
+        verify(am, times(0)).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(true)
+            )
+    }
+
+    @Test
+    fun autofillManager_doNotCallCommit_noAutofillableComponents() {
+        var revealFirstUsername by mutableStateOf(true)
+
+        rule.setTestContent {
+            if (revealFirstUsername) {
+                Box(Modifier.size(height, width))
+            }
+        }
+
+        rule.runOnIdle { revealFirstUsername = false }
+
+        // `commit` should not be called unless there were previously autofillable components
+        // onscreen.
+        rule.runOnIdle { verify(am, times(0)).commit() }
+    }
+
+    @Test
     fun autofillManager_callCommit_nodesDisappeared() {
         var revealFirstUsername by mutableStateOf(true)
 
@@ -229,7 +304,7 @@ class AndroidAutofillManagerTest {
 
         rule.runOnIdle { revealFirstUsername = false }
 
-        // `commit` should be called when an autofill-able component leaves the screen.
+        // `commit` should be called when all autofill-able components leaves the screen.
         rule.waitForIdle()
         verify(am, times(1)).commit()
         verify(am)
