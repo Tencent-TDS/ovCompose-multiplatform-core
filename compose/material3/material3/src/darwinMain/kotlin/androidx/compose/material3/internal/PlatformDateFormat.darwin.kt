@@ -60,8 +60,11 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
         }.stringFromDate(nsDate)
     }
 
-    actual fun parse(date: String, pattern: String, locale: CalendarLocale): CalendarDate? {
-        // TODO https://youtrack.jetbrains.com/issue/CMP-7146/Properly-use-locale-in-CalendarModel.parse-implementations
+    actual fun parse(
+        date: String,
+        pattern: String
+    ): CalendarDate? {
+
         val nsDate = NSDateFormatter().apply {
             setTimeZone(TimeZone.UTC.toNSTimeZone())
             setDateFormat(pattern)
@@ -102,9 +105,10 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
     //
     // 'j' template requests the preferred hour format for the locale.
     // 'a' is a pattern for AM\PM symbol. Presence of this symbol means that locale has 12h format.
+    @Suppress("SIGNED_CONSTANT_CONVERTED_TO_UNSIGNED")
     actual fun is24HourFormat(): Boolean {
         return NSDateFormatter
-            .dateFormatFromTemplate("j", 0UL, locale)
+            .dateFormatFromTemplate("j", 0, locale)
             ?.contains('a') == false
     }
 }

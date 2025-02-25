@@ -33,7 +33,6 @@ internal fun Translations.fr() = mapOf(
     Strings.MenuCollapsed to "Réduit",
     Strings.ToggleDropdownMenu to "Activer/désactiver le menu déroulant",
     Strings.SnackbarDismiss to "Fermer",
-    Strings.SnackbarPaneTitle to "Alerte",
     Strings.SearchBarSearch to "Rechercher",
     Strings.SuggestionsAvailable to "Suggestions ci-dessous",
     Strings.DatePickerTitle to "Sélectionner une date",
@@ -86,8 +85,6 @@ internal fun Translations.fr() = mapOf(
     Strings.TimePickerHour to "Heure",
     Strings.TimePickerMinuteTextField to "en minutes",
     Strings.TimePickerHourTextField to "en heures",
-    Strings.CloseRail to "Fermer le rail",
-    Strings.WideNavigationRailPaneTitle to "Rail de navigation",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -104,7 +101,6 @@ internal fun Translations.frCA() = mapOf(
     Strings.MenuCollapsed to "Réduit",
     Strings.ToggleDropdownMenu to "Ouvrir ou fermer le menu déroulant",
     Strings.SnackbarDismiss to "Fermer",
-    Strings.SnackbarPaneTitle to "Alerte",
     Strings.SearchBarSearch to "Recherche",
     Strings.SuggestionsAvailable to "Suggestions ci-dessous",
     Strings.DatePickerTitle to "Sélectionner une date",
@@ -157,6 +153,4 @@ internal fun Translations.frCA() = mapOf(
     Strings.TimePickerHour to "Heure",
     Strings.TimePickerMinuteTextField to "pour les minutes",
     Strings.TimePickerHourTextField to "pour l\'heure",
-    Strings.CloseRail to "Fermer le rail",
-    Strings.WideNavigationRailPaneTitle to "Rail de navigation",
 )

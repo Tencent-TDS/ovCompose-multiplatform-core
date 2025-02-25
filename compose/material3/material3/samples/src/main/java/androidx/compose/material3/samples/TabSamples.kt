@@ -36,8 +36,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LeadingIconTab
@@ -230,16 +228,12 @@ fun LeadingIconTabs() {
             "Tab 3 with lots of text" to Icons.Filled.Favorite
         )
     Column {
-        PrimaryTabRow(selectedTabIndex = state) {
+        PrimaryScrollableTabRow(selectedTabIndex = state) {
             titlesAndIcons.forEachIndexed { index, (title, icon) ->
                 LeadingIconTab(
                     selected = state == index,
                     onClick = { state = index },
-                    text = {
-                        BadgedBox(badge = { Badge(modifier = Modifier) { Text("999+") } }) {
-                            Text(title)
-                        }
-                    },
+                    text = { Text(title) },
                     icon = { Icon(icon, contentDescription = null) }
                 )
             }

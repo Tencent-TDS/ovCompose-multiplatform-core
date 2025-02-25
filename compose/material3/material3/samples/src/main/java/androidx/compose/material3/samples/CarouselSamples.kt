@@ -238,13 +238,13 @@ fun FadingHorizontalMultiBrowseCarouselSample() {
                                     0f,
                                     1f,
                                     max(
-                                        size.width - (carouselItemDrawInfo.maxSize) +
-                                            carouselItemDrawInfo.size,
+                                        size.width - (carouselItemInfo.maxSize) +
+                                            carouselItemInfo.size,
                                         0f
                                     ) / size.width
                                 )
                             // Translate the chip to be pinned to the left side of the item's mask
-                            translationX = carouselItemDrawInfo.maskRect.left + 8.dp.toPx()
+                            translationX = carouselItemInfo.maskRect.left + 8.dp.toPx()
                         },
                     leadingIcon = {
                         Icon(

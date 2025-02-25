@@ -16,7 +16,6 @@
 package androidx.compose.material3
 
 import android.os.Build
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -113,7 +112,7 @@ class BadgeTest {
                 shape = shape,
                 shapeColor = errorColor,
                 backgroundColor = Color.White,
-                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
+                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
             )
     }
 
@@ -133,7 +132,6 @@ class BadgeTest {
     }
 
     @Test
-    @SdkSuppress(maxSdkVersion = 34) // b/384973010: Failing on SDK 35
     fun badgeBox_shortContent_position() {
         rule.setMaterialContent(lightColorScheme()) {
             BadgedBox(badge = { Badge { Text("8") } }) {
@@ -208,13 +206,7 @@ class BadgeTest {
         val badgeTag = "badgeTag"
 
         rule.setMaterialContent(lightColorScheme()) {
-            Box(
-                modifier =
-                    Modifier.background(Color.Blue)
-                        .badgeBounds()
-                        .size(50.dp)
-                        .testTag(greatGrandParentTag)
-            ) {
+            Box(modifier = Modifier.size(50.dp).testTag(greatGrandParentTag)) {
                 Box {
                     BadgedBox(
                         badge = { Badge(modifier = Modifier.testTag(badgeTag)) { Text("999+") } }

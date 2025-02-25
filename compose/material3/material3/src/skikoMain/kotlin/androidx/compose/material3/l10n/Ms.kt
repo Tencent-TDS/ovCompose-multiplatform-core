@@ -33,7 +33,6 @@ internal fun Translations.ms() = mapOf(
     Strings.MenuCollapsed to "Dikuncupkan",
     Strings.ToggleDropdownMenu to "Togol menu lungsur",
     Strings.SnackbarDismiss to "Ketepikan",
-    Strings.SnackbarPaneTitle to "Makluman",
     Strings.SearchBarSearch to "Carian",
     Strings.SuggestionsAvailable to "Cadangan di bawah",
     Strings.DatePickerTitle to "Pilih tarikh",
@@ -86,6 +85,4 @@ internal fun Translations.ms() = mapOf(
     Strings.TimePickerHour to "Jam",
     Strings.TimePickerMinuteTextField to "selama # minit",
     Strings.TimePickerHourTextField to "selama # jam",
-    Strings.CloseRail to "Tutup rel",
-    Strings.WideNavigationRailPaneTitle to "Rel navigasi",
 )

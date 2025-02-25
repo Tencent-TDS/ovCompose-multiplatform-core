@@ -17,9 +17,7 @@
 package androidx.compose.material3.internal
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.ExperimentalComposeUiApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 internal actual class BackEventCompat(
     actual val touchX: Float,
@@ -33,19 +31,15 @@ internal actual class BackEventCompat(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal actual fun BackHandler(enabled: Boolean, onBack: () -> Unit) {
-    androidx.compose.ui.backhandler.BackHandler(enabled, onBack)
+    // TODO: Implement BackHandler
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal actual fun PredictiveBackHandler(
     enabled: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
 ) {
-    androidx.compose.ui.backhandler.PredictiveBackHandler(enabled) { progress ->
-        onBack(progress.map { BackEventCompat(it.touchX, it.touchY, it.progress, it.swipeEdge) })
-    }
+    // TODO: Implement PredictiveBackHandler
 }

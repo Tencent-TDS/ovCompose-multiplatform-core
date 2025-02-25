@@ -27,8 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -61,7 +59,7 @@ import androidx.compose.ui.unit.dp
 @Sampled
 @Composable
 fun SearchBarSample() {
-    val textFieldState = rememberTextFieldState()
+    var text by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().semantics { isTraversalGroup = true }) {
@@ -69,7 +67,8 @@ fun SearchBarSample() {
             modifier = Modifier.align(Alignment.TopCenter).semantics { traversalIndex = 0f },
             inputField = {
                 SearchBarDefaults.InputField(
-                    state = textFieldState,
+                    query = text,
+                    onQueryChange = { text = it },
                     onSearch = { expanded = false },
                     expanded = expanded,
                     onExpandedChange = { expanded = it },
@@ -91,7 +90,7 @@ fun SearchBarSample() {
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier =
                             Modifier.clickable {
-                                    textFieldState.setTextAndPlaceCursorAtEnd(resultText)
+                                    text = resultText
                                     expanded = false
                                 }
                                 .fillMaxWidth()
@@ -122,7 +121,7 @@ fun SearchBarSample() {
 @Sampled
 @Composable
 fun DockedSearchBarSample() {
-    val textFieldState = rememberTextFieldState()
+    var text by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().semantics { isTraversalGroup = true }) {
@@ -133,7 +132,8 @@ fun DockedSearchBarSample() {
                 },
             inputField = {
                 SearchBarDefaults.InputField(
-                    state = textFieldState,
+                    query = text,
+                    onQueryChange = { text = it },
                     onSearch = { expanded = false },
                     expanded = expanded,
                     onExpandedChange = { expanded = it },
@@ -155,7 +155,7 @@ fun DockedSearchBarSample() {
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                         modifier =
                             Modifier.clickable {
-                                    textFieldState.setTextAndPlaceCursorAtEnd(resultText)
+                                    text = resultText
                                     expanded = false
                                 }
                                 .fillMaxWidth()
