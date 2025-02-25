@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
+@file:JvmName("ActualJvm_jvmKt")
+@file:JvmMultifileClass
+
 package androidx.compose.runtime
 
-@JsFun("(obj, index) => obj[index]")
-private external fun dynamicGetInt(obj: JsAny, index: String): Int?
-
-@JsFun("(obj) => typeof obj")
-private external fun jsTypeOf(a: JsAny?): String
+@InternalComposeApi
+@Deprecated(
+    level = DeprecationLevel.HIDDEN,
+    message = "Made internal. It wasn't supposed to be public"
+)
+fun identityHashCode(instance: Any?): Int =
+    androidx.compose.runtime.internal.identityHashCode(instance)
