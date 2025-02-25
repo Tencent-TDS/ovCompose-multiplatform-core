@@ -17,7 +17,7 @@ public final class androidx/compose/runtime/ActualDesktop_desktopKt {
 }
 
 public final class androidx/compose/runtime/ActualJvm_jvmKt {
-	public static final fun identityHashCode (Ljava/lang/Object;)I
+	public static final synthetic fun identityHashCode (Ljava/lang/Object;)I
 	public static final synthetic fun synchronized (Landroidx/compose/runtime/SynchronizedObject;Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
 
 package androidx.compose.runtime
 
-import kotlin.DeprecationLevel.*
-
-@PublishedApi
-@JvmName("synchronized")
+@InternalComposeApi
 @Deprecated(
-    level = HIDDEN,
-    message = "not expected to be referenced directly as the old version had to be inlined"
+    level = DeprecationLevel.HIDDEN,
+    message = "Made internal. It wasn't supposed to be public"
 )
-internal inline fun <R> oldSynchronized(lock: SynchronizedObject, block: () -> R): R =
-    androidx.compose.runtime.platform.synchronized(lock, block)
+fun identityHashCode(instance: Any?): Int  =
+    androidx.compose.runtime.internal.identityHashCode(instance)

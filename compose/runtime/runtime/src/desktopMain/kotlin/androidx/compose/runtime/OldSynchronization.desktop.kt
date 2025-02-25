@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-@file:JvmName("ActualJvm_jvmKt")
-@file:JvmMultifileClass
+@file:JvmName("SynchronizationKt")
 
 package androidx.compose.runtime
 
-import androidx.compose.runtime.platform.SynchronizedObject
-import kotlin.DeprecationLevel.HIDDEN
+internal class SynchronizedObject
 
 @PublishedApi
 @JvmName("synchronized")
 @Deprecated(
-    level = HIDDEN,
+    level = DeprecationLevel.HIDDEN,
     message = "not expected to be referenced directly as the old version had to be inlined"
 )
-internal inline fun <R> oldSynchronized(lock: SynchronizedObject, block: () -> R): R =
+internal inline fun <R> oldSynchronized2(lock: SynchronizedObject, block: () -> R): R =
     androidx.compose.runtime.platform.synchronized(lock, block)
