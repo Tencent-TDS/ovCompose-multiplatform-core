@@ -218,6 +218,90 @@ class NavGraphAndroidTest {
     }
 
     @Test
+    fun matchDeepLinkSharedActionBestMatch() {
+        val navigatorProvider = NavigatorProvider().apply { addNavigator(NavGraphNavigator(this)) }
+        val graph =
+            navigatorProvider.getNavigator(NavGraphNavigator::class.java).createDestination()
+
+        val testAction = "test.action"
+        val navDeepLink1 = navDeepLink {
+            action = testAction
+            uriPattern = "www.example.com/{id}"
+        }
+        val navDeepLink2 = navDeepLink {
+            action = testAction
+            uriPattern = "www.differentUrl.com"
+        }
+        graph.addDeepLink(navDeepLink1)
+        graph.addDeepLink(navDeepLink2)
+        graph.addArgument("id", intArgument(defaultValue = -1))
+
+        val intArg = 2
+        val deepLinkRequest =
+            NavDeepLinkRequest(Uri.parse("https://www.example.com/$intArg"), testAction, null)
+        val match = graph.matchDeepLink(deepLinkRequest)
+
+        assertWithMessage("Deep link should match").that(match).isNotNull()
+        assertThat(match?.matchingArgs).isNotNull()
+        assertThat(match?.matchingArgs?.getInt("id")).isEqualTo(intArg)
+    }
+
+    @Test
+    fun matchDeepLinkSharedActionBestMatchPathOverQuery() {
+        val navigatorProvider = NavigatorProvider().apply { addNavigator(NavGraphNavigator(this)) }
+        val graph =
+            navigatorProvider.getNavigator(NavGraphNavigator::class.java).createDestination()
+
+        val navDeepLink1 = navDeepLink { uriPattern = "www.example.com/path/token={id}" }
+        val navDeepLink2 = navDeepLink { uriPattern = "www.example.com/path?token={id}" }
+        graph.addDeepLink(navDeepLink1)
+        graph.addDeepLink(navDeepLink2)
+        graph.addArgument("id", intArgument(defaultValue = -1))
+
+        val intArg = 2
+        val deepLinkRequest =
+            NavDeepLinkRequest(Uri.parse("https://www.example.com/path/token=$intArg"), null, null)
+        val match = graph.matchDeepLink(deepLinkRequest)
+
+        assertWithMessage("Deep link should match").that(match).isNotNull()
+        assertThat(match?.matchingArgs).isNotNull()
+        assertThat(match?.matchingArgs?.getInt("id")).isEqualTo(intArg)
+    }
+
+    @Test
+    fun matchDeepLinkSharedActionBestMatchPathWildCard() {
+        val navigatorProvider = NavigatorProvider().apply { addNavigator(NavGraphNavigator(this)) }
+        val graph =
+            navigatorProvider.getNavigator(NavGraphNavigator::class.java).createDestination()
+
+        val testAction = "test.action"
+        val navDeepLink1 = navDeepLink {
+            action = testAction
+            uriPattern = "www.example.com/path?token={id}"
+        }
+        val navDeepLink2 = navDeepLink {
+            action = testAction
+            uriPattern = "www.example.com/path/.*token={id}"
+        }
+        graph.addDeepLink(navDeepLink1)
+        graph.addDeepLink(navDeepLink2)
+        graph.addArgument("id", intArgument(defaultValue = -1))
+
+        val intArg = 2
+        val deepLinkRequest =
+            NavDeepLinkRequest(
+                Uri.parse("https://www.example.com/path/wildCard?token=$intArg"),
+                testAction,
+                null
+            )
+        val match = graph.matchDeepLink(deepLinkRequest)
+
+        assertWithMessage("Deep link should match").that(match).isNotNull()
+        assertThat(match?.matchingArgs).isNotNull()
+        assertThat(match?.matchingArgs?.getInt("id")).isEqualTo(intArg)
+    }
+
+    @Test
     fun toStringStartDestIdOnly() {
         val navigatorProvider =
             NavigatorProvider().apply {
