@@ -345,6 +345,7 @@ internal class RootNodeOwner(
 
         override val sharedDrawScope = LayoutNodeDrawScope()
         override val layoutNodes: MutableIntObjectMap<LayoutNode> = mutableIntObjectMapOf()
+        val layoutNodes2: MutableIntObjectMap<LayoutNode> = mutableIntObjectMapOf()
         override val rootForTest get() = this@RootNodeOwner.rootForTest
         override val hapticFeedBack = DefaultHapticFeedback()
         override val inputModeManager get() = platformContext.inputModeManager
@@ -396,14 +397,14 @@ internal class RootNodeOwner(
         }
 
         override fun onPreAttach(node: LayoutNode) {
-            layoutNodes[node.semanticsId] = node
+//            layoutNodes2[node.semanticsId] = node
         }
 
         override fun onPostAttach(node: LayoutNode) {
         }
 
         override fun onDetach(node: LayoutNode) {
-            layoutNodes.remove(node.semanticsId)
+//            layoutNodes2.remove(node.semanticsId)
             measureAndLayoutDelegate.onNodeDetached(node)
             snapshotObserver.clear(node)
             needClearObservations = true
