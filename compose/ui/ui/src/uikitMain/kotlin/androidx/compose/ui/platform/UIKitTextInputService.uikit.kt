@@ -48,12 +48,15 @@ import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.FocusStack
+import androidx.compose.ui.window.IntermediateTextScrollView
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.readValue
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIColor
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
@@ -77,11 +80,10 @@ internal class UIKitTextInputService(
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
+    private var scrollView = IntermediateTextScrollView()
     private var textLayoutResult: TextLayoutResult? = null
         set(value) {
-            textUIView?.selectionWillChange()
             field = value
-            textUIView?.selectionDidChange()
         }
 
     /**
@@ -258,9 +260,8 @@ internal class UIKitTextInputService(
         this.textLayoutResult = textLayoutResult
     }
 
-    fun notifyGeometryChange(frame: DpRect, bounds: DpRect) {
-        textUIView?.notifyGeometryChanged(frame.asCGRect(), bounds.asCGRect())
-    }
+    fun notifyGeometryChange(frame: DpRect, bounds: DpRect) =
+        scrollView.setFrame(frame.asCGRect(), bounds.asCGRect())
 
     override fun notifyFocusedRect(rect: Rect) {
         currentInput?.let { input ->
@@ -363,7 +364,7 @@ internal class UIKitTextInputService(
     ) {
         if (textUIView == null) {
             // If showMenu() is called and textUIView is not created,
-            // then it means that showMenu() called in SelectionContainer without any textfields,
+            // then it means that showMenu() called in SelectionContainer without any text fields,
             // and IntermediateTextInputView must be created to show an editing menu
             attachIntermediateTextInputView()
             updateView()
@@ -402,13 +403,16 @@ internal class UIKitTextInputService(
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
-            rootView.addSubview(it)
+            rootView.addSubview(scrollView)
+            scrollView.layer.setBorderColor(UIColor.orangeColor.CGColor)
+            scrollView.layer.borderWidth = 2.0
+            scrollView.textUIView = it
             rootView.setFrame(it.bounds)
 
-            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.3))
+            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.2))
             it.setTintColor(UIColor.yellowColor) // forward colors here
             it.onKeyboardPresses = onKeyboardPresses
-            it.clipsToBounds = true
+            it.clipsToBounds = false
             it.input = createSkikoInput()
             it.inputTraits = getUITextInputTraits(currentImeOptions)
 
@@ -425,9 +429,12 @@ internal class UIKitTextInputService(
             view.inputTraits = EmptyInputTraits
             view.resetOnKeyboardPressesCallback()
             mainScope.launch {
-                view.removeFromSuperview()
+                if (scrollView.textUIView == view) {
+                    scrollView.textUIView = null
+                }
             }
         }
+        scrollView.setFrame(CGRectZero.readValue())
         textUIView = null
     }
 
@@ -674,7 +681,9 @@ internal class UIKitTextInputService(
 
         override fun selectionRectsForRange(range: TextRange): List<TextSelectionRect> {
             val emptyList = emptyList<TextSelectionRect>()
-            if (isIncorrect(range)) { return emptyList }
+            if (isIncorrect(range)) {
+                return emptyList
+            }
             val currentTextLayoutResult = textLayoutResult ?: return emptyList
             if (range.end > currentTextLayoutResult.multiParagraph.intrinsics.annotatedString.length) {
                 return emptyList()
@@ -683,68 +692,35 @@ internal class UIKitTextInputService(
             val startHandleRect = currentTextLayoutResult.getCursorRect(range.start)
             val endHandleRect = currentTextLayoutResult.getCursorRect(range.end)
 
-            val oneLineSelection = startHandleRect.bottom == endHandleRect.bottom
+            val firstLineRect = TextSelectionRect(
+                dpRect = Rect(
+                    left = startHandleRect.left,
+                    top = startHandleRect.top,
+                    right = startHandleRect.left + 1,
+                    bottom = startHandleRect.bottom
+                )
+                    .toDpRect(rootView.density),
+                writingDirection = TextDirection.Content,
+                containsStart = true,
+                containsEnd = false,
+                isVertical = false
+            )
 
-            if (oneLineSelection) {
-                val resultRect = TextSelectionRect(
-                    dpRect = Rect(
-                        startHandleRect.left,
-                        startHandleRect.top,
-                        endHandleRect.right,
-                        endHandleRect.bottom
-                    )
-                        .toDpRect(rootView.density),
-                    writingDirection = TextDirection.Content,
-                    containsStart = true,
-                    containsEnd = true,
-                    isVertical = false
+            val endLineRect = TextSelectionRect(
+                dpRect = Rect(
+                    left = endHandleRect.right - 1,
+                    top = endHandleRect.top,
+                    right = endHandleRect.right,
+                    bottom = endHandleRect.bottom
                 )
-                return listOf(resultRect)
-            } else {
-                val startLineNumber = currentTextLayoutResult.getLineForOffset(range.start)
-                val startLineRight = currentTextLayoutResult.getLineRight(startLineNumber)
-                val firstLineRect = TextSelectionRect(
-                    dpRect = Rect(
-                        startHandleRect.left,
-                        startHandleRect.top,
-                        startLineRight,
-                        startHandleRect.bottom
-                    )
-                        .toDpRect(rootView.density),
-                    writingDirection = TextDirection.Content,
-                    containsStart = true,
-                    containsEnd = false,
-                    isVertical = false
-                )
+                    .toDpRect(rootView.density),
+                writingDirection = TextDirection.Content,
+                containsStart = false,
+                containsEnd = true,
+                isVertical = false
+            )
 
-                val endLineNumber = currentTextLayoutResult.getLineForOffset(range.end)
-                val endLineLeft = currentTextLayoutResult.getLineLeft(endLineNumber)
-                val endLineRect = TextSelectionRect(
-                    dpRect = Rect(endLineLeft, endHandleRect.top, endHandleRect.right, endHandleRect.bottom)
-                        .toDpRect(rootView.density),
-                    writingDirection = TextDirection.Content,
-                    containsStart = false,
-                    containsEnd = true,
-                    isVertical = false
-                )
-
-                val lineStart = currentTextLayoutResult.getLineLeft(startLineNumber)
-                val lineEnd = currentTextLayoutResult.getLineRight(endLineNumber)
-                val middleRect = TextSelectionRect(
-                    dpRect = Rect(lineStart, startHandleRect.bottom, lineEnd, endHandleRect.top)
-                        .toDpRect(rootView.density),
-                    writingDirection = TextDirection.Content,
-                    containsStart = false,
-                    containsEnd = false,
-                    isVertical = false
-                )
-
-                return listOf(
-                    firstLineRect,
-                    middleRect,
-                    endLineRect
-                )
-            }
+            return listOf(firstLineRect, endLineRect)
         }
 
         override fun closestPositionToPoint(point: DpOffset): Int? {

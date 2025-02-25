@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastMap
+import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
@@ -44,6 +45,7 @@ import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectContainsPoint
+import platform.CoreGraphics.CGRectEqualToRect
 import platform.CoreGraphics.CGRectGetHeight
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
@@ -70,6 +72,7 @@ import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
 import platform.UIKit.UIResponder
 import platform.UIKit.UIReturnKeyType
+import platform.UIKit.UIScrollView
 import platform.UIKit.UITextAutocapitalizationType
 import platform.UIKit.UITextAutocorrectionType
 import platform.UIKit.UITextContentType
@@ -134,8 +137,10 @@ internal class IntermediateTextInputUIView(
                 it.setTextInput(this)
             }
 
-    init {
-        setScrollEnabled(false)
+    override fun layoutSubviews() {
+        super.layoutSubviews()
+
+        hideCursorView()
     }
 
     override fun becomeFirstResponder(): Boolean {
@@ -160,19 +165,6 @@ internal class IntermediateTextInputUIView(
         return result
     }
 
-    fun notifyGeometryChanged(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
-        val inset = UIEdgeInsetsMake(
-            top = max(0.0, -CGRectGetMinY(bounds)),
-            left = max(0.0, -CGRectGetMinX(bounds)),
-            bottom = max(0.0, CGRectGetHeight(frame) - CGRectGetHeight(bounds) + CGRectGetMinY(bounds)),
-            right = max(0.0, CGRectGetWidth(frame) - CGRectGetWidth(bounds) + CGRectGetMinX(bounds))
-        )
-        this.setContentInset(inset)
-        this.setContentSize(bounds.useContents { size.readValue() })
-        this.setContentOffset(bounds.useContents { origin.readValue() })
-        this.setFrame(frame)
-    }
-
     override fun beginFloatingCursorAtPoint(point: CValue<CGPoint>) {
         input?.beginFloatingCursor(point.useContents { DpOffset(x.dp, y.dp) })
     }
@@ -193,18 +185,6 @@ internal class IntermediateTextInputUIView(
     override fun pressesEnded(presses: Set<*>, withEvent: UIPressesEvent?) {
         onKeyboardPresses(presses)
         super.pressesEnded(presses, withEvent)
-    }
-
-    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-        return if (input == null) {
-            null
-        } else {
-            super.hitTest(point, withEvent) ?: innerHitTest(point, withEvent)
-        }
-    }
-
-    override fun pointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-        return (super.pointInside(point, withEvent) || innerPointInside(point, withEvent))
     }
 
     /**
@@ -482,15 +462,25 @@ internal class IntermediateTextInputUIView(
         // TODO support RTL text direction
     }
 
-    //Working with Geometry and Hit-Testing. Some methods return stubs for now.
+    // Working with Geometry and Hit-Testing. Some methods return stubs for now.
     override fun firstRectForRange(range: UITextRange): CValue<CGRect> {
         return input?.currentFocusedDpRect()?.asCGRect() ?: return CGRectNull.readValue()
     }
 
     override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
-        val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 1.0, height = 1.0)
+        // Cursor is drawing on Compose canvas, hence no need to display it in UIKit.
+        // Returning zero-width rect that will hide cursor on iOS 13 - iOS 16.
+        // On iOS 17+ cursor is removed manually after it is placed.
+
+        mainScope.launch {
+            hideCursorView()
+        }
+
+        val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 0.0, height = 1.0)
         val longPosition = (position as? IntermediateTextPosition)?.position ?: return fallbackRect
-        val caretDpRect = input?.caretDpRectForPosition(longPosition)
+        val caretDpRect = input?.caretDpRectForPosition(longPosition)?.let {
+            it.copy(right = it.left)
+        }
         return caretDpRect?.asCGRect() ?: fallbackRect
     }
 
@@ -502,14 +492,16 @@ internal class IntermediateTextInputUIView(
         )
         val rects = input?.selectionRectsForRange(textRange) ?: return fallbackList
 
-// TODO: Translate selection to cursor.
-//        notificationsEnabled = false
-//        println(">>> Set selection - ${textRange}")
-//        if (input?.getSelectedTextRange() != textRange) {
-//            input?.setSelectedTextRange(textRange)
-//        }
-//        notificationsEnabled = true
-//        println(">>> Set selection - done")
+        // HACK: On iOS 17+, selection changes are not submitted during selection interaction.
+        //
+        if (available(OS.Ios to OSVersion(major = 17))) {
+            shouldPerformSelectionHotifications = false
+            if (input?.getSelectedTextRange() != textRange) {
+                input?.setSelectedTextRange(textRange)
+            }
+            shouldPerformSelectionHotifications = true
+        }
+
         return rects.fastMap { IntermediateTextSelectionRect(it) }
     }
 
@@ -613,9 +605,9 @@ internal class IntermediateTextInputUIView(
     /**
      * Call when something changes in text data
      */
-    var notificationsEnabled: Boolean = true
+    var shouldPerformSelectionHotifications: Boolean = true
     fun selectionWillChange() {
-        if (notificationsEnabled) {
+        if (shouldPerformSelectionHotifications) {
             _inputDelegate?.selectionWillChange(this)
         }
     }
@@ -624,7 +616,7 @@ internal class IntermediateTextInputUIView(
      * Call when something changes in text data
      */
     fun selectionDidChange() {
-        if (notificationsEnabled) {
+        if (shouldPerformSelectionHotifications) {
             _inputDelegate?.selectionDidChange(this)
         }
     }
@@ -669,40 +661,31 @@ internal class IntermediateTextInputUIView(
             endEditBatch()
         }
     }
+
+    private fun hideCursorView() {
+        val cursorViewClass = when {
+            available(OS.Ios to OSVersion(major = 17, minor = 4)) -> "UIStandardTextCursorView"
+            available(OS.Ios to OSVersion(major = 17)) -> "_UITextCursorView"
+            else -> return
+        }
+
+        subviews.forEach { subview ->
+            subview as UIView
+            if (subview::class.simpleName == cursorViewClass) {
+                subview.setHidden(true)
+            }
+        }
+    }
 }
 
 private class IntermediateTextPosition(val position: Int = 0) : UITextPosition() {
     override fun description(): String {
         return "IntermediateTextPosition($position)"
     }
-}
 
-private fun UIView.innerHitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-    if (!CGRectContainsPoint(bounds, point)) {
-        return null
+    init {
+        assert(position >= 0) { "position should be >= 0" }
     }
-    subviews.forEach { subview ->
-        subview as UIView
-        val subviewPoint = this.convertPoint(point, toView = subview)
-        subview.innerHitTest(subviewPoint, withEvent)?.let {
-            return it
-        }
-    }
-    return this
-}
-
-private fun UIView.innerPointInside(point: CValue<CGPoint>, withEvent: UIEvent?): Boolean {
-    if (CGRectContainsPoint(bounds, point)) {
-        return true
-    }
-    subviews.forEach { subview ->
-        subview as UIView
-        val subviewPoint = this.convertPoint(point, toView = subview)
-        if (subview.innerPointInside(subviewPoint, withEvent)) {
-            return true
-        }
-    }
-    return false
 }
 
 private class IntermediateTextSelectionRect(
@@ -795,7 +778,7 @@ internal class IntermediateTextTokenizer(
 
         val iteratorResult = if (isForward) {
             if (textPosition.position >= string.length - 1) {
-                string.length - 1
+                string.length
             } else {
                 iterator.following(textPosition.position)
             }
@@ -858,4 +841,79 @@ internal class IntermediateTextTokenizer(
         }
         return IntermediateTextPosition(location)
     }
+}
+
+internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.readValue()) {
+    init {
+        setScrollEnabled(false)
+        setShowsVerticalScrollIndicator(false)
+        setShowsHorizontalScrollIndicator(false)
+        setCanCancelContentTouches(false)
+        setDelaysContentTouches(false)
+        setClipsToBounds(false)
+    }
+
+    var textUIView: IntermediateTextInputUIView? = null
+        set(value) {
+            if (field != value) {
+                field?.removeFromSuperview()
+                field = value
+                value?.let {
+                    addSubview(value)
+                }
+            }
+        }
+
+    override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+        return if (textUIView != null) {
+            super.hitTest(point, withEvent) ?: textUIView?.outOfTheBoundsHitTest(point, withEvent, 0)
+        } else {
+            null
+        }
+    }
+
+    fun setFrame(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
+        textUIView?.setFrame(
+            CGRectMake(
+                x = 0.0,
+                y = 0.0,
+                width = CGRectGetWidth(bounds),
+                height = CGRectGetHeight(bounds)
+            )
+        )
+
+        val inset = UIEdgeInsetsMake(
+            top = max(0.0, -CGRectGetMinY(bounds)),
+            left = max(0.0, -CGRectGetMinX(bounds)),
+            bottom = max(0.0, CGRectGetHeight(frame) - CGRectGetHeight(bounds) + CGRectGetMinY(bounds)),
+            right = max(0.0, CGRectGetWidth(frame) - CGRectGetWidth(bounds) + CGRectGetMinX(bounds))
+        )
+        setFrame(frame)
+        setContentInset(inset)
+        setContentSize(bounds.useContents { size.readValue() })
+        setContentOffset(bounds.useContents { origin.readValue() })
+    }
+
+    fun interactionModeAt(point: CValue<CGPoint>): UIKitInteropInteractionMode? {
+        val textView = textUIView ?: return null
+        val hitTested = outOfTheBoundsHitTest(point, withEvent = null)
+        hitTested ?: return null
+
+        return if (CGRectEqualToRect(hitTested.bounds, textView.bounds)) {
+            UIKitInteropInteractionMode.Cooperative()
+        } else {
+            UIKitInteropInteractionMode.NonCooperative
+        }
+    }
+}
+
+private fun UIView.outOfTheBoundsHitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+    subviews.reversed().forEach { subview ->
+        subview as UIView
+        val subviewPoint = this.convertPoint(point, toView = subview)
+        subview.outOfTheBoundsHitTest(subviewPoint, withEvent)?.let {
+            return it
+        }
+    }
+    return this.takeIf { isUserInteractionEnabled() && CGRectContainsPoint(bounds, point) }
 }

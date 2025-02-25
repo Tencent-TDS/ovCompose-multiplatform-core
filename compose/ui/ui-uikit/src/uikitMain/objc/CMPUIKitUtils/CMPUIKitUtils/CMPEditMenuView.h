@@ -19,7 +19,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CMPEditMenuView : UIScrollView <UITextInput>
+@interface CMPEditMenuView : UIView <UITextInput>
 
 @property (readonly) BOOL isEditMenuShown;
 

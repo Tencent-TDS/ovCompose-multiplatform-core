@@ -113,7 +113,7 @@ internal class UserInputGestureRecognizer(
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent) {
         super.touchesBegan(touches, withEvent)
 
-        val touchesToInteractionMode = touches.map { touch ->
+        val touchesToInteractionMode: Map<UITouch, UIView?> = touches.map { touch ->
             touch as UITouch
             val point = touch.locationInView(view)
             val hitTestResult = view?.hitTest(point, withEvent)?.takeIf { it != view }
@@ -131,8 +131,8 @@ internal class UserInputGestureRecognizer(
             }
         }
 
-        val interactionMode = touchesToInteractionMode.values.map {
-            it?.findAncestorInteropWrappingView()?.interactionMode
+        val interactionMode = touchesToInteractionMode.map {
+            it.value?.findAncestorInteractionMode(it.key)
         }.findMostRestrictedInteractionMode()
         when (interactionMode) {
             is UIKitInteropInteractionMode.Cooperative -> {
@@ -419,7 +419,7 @@ internal class UserInputView(
                     withEvent = withEvent
                 )
             } ?: subviews.firstNotNullOfOrNull { it ->
-                (it as? IntermediateTextInputUIView)?.let {
+                (it as? IntermediateTextScrollView)?.let {
                     val inputPoint = convertPoint(point, toView = it)
 
                     it.hitTest(inputPoint, withEvent)
@@ -450,11 +450,14 @@ internal class UserInputView(
  * query. This extension method allows finding the nearest [InteropWrappingView] up the view
  * hierarchy and request the value retroactively.
  */
-private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
+private fun UIView.findAncestorInteractionMode(touch: UITouch): UIKitInteropInteractionMode? {
     var view: UIView? = this
     while (view != null) {
         if (view is InteropWrappingView) {
-            return view
+            return view.interactionMode
+        }
+        if (view is IntermediateTextScrollView) {
+            return view.interactionModeAt(touch.locationInView(view))
         }
         view = view.superview
     }
@@ -473,6 +476,7 @@ private fun UIView?.hasTrackingUIScrollView(): Boolean {
         }
         if (view is UIScrollView &&
             view.userInteractionEnabled &&
+            view.scrollEnabled &&
             view.panGestureRecognizer.isEnabled()) {
             if ((view.panGestureRecognizer.state == UIGestureRecognizerStatePossible ||
                     view.panGestureRecognizer.state == UIGestureRecognizerStateBegan) &&
