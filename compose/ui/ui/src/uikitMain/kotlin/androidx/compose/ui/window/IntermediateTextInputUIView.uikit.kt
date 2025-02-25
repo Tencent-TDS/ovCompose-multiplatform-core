@@ -866,7 +866,7 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         return if (textUIView != null) {
-            super.hitTest(point, withEvent) ?: textUIView?.outOfTheBoundsHitTest(point, withEvent, 0)
+            super.hitTest(point, withEvent) ?: textUIView?.outOfTheBoundsHitTest(point, withEvent)
         } else {
             null
         }
