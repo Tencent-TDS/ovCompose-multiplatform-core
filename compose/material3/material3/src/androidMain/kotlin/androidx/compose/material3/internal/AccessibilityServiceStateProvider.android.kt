@@ -23,6 +23,7 @@ import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityManager.AccessibilityServicesStateChangeListener
 import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener
 import android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener
+import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -43,23 +44,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 internal actual fun rememberAccessibilityServiceState(
     listenToTouchExplorationState: Boolean,
     listenToSwitchAccessState: Boolean,
-    listenToVoiceAccessState: Boolean,
 ): State<Boolean> {
     val context = LocalContext.current
     val accessibilityManager =
         context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
 
     val listener =
-        remember(
-            listenToTouchExplorationState,
-            listenToSwitchAccessState,
-            listenToVoiceAccessState,
-        ) {
-            Listener(
-                listenToTouchExplorationState = listenToTouchExplorationState,
-                listenToSwitchAccessState = listenToSwitchAccessState,
-                listenToVoiceAccessState = listenToVoiceAccessState,
-            )
+        remember(listenToTouchExplorationState, listenToSwitchAccessState) {
+            Listener(listenToTouchExplorationState, listenToSwitchAccessState)
         }
 
     ObserveState(
@@ -94,8 +86,7 @@ private fun ObserveState(
 @Stable
 private class Listener(
     listenToTouchExplorationState: Boolean,
-    val listenToSwitchAccessState: Boolean,
-    val listenToVoiceAccessState: Boolean,
+    listenToSwitchAccessState: Boolean,
 ) : AccessibilityStateChangeListener, State<Boolean> {
     private var accessibilityEnabled by mutableStateOf(false)
 
@@ -112,18 +103,13 @@ private class Listener(
             null
         }
 
-    private val otherA11yServicesListener =
-        if (
-            (listenToSwitchAccessState || listenToVoiceAccessState) &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-        ) {
+    private val switchAccessListener =
+        if (listenToSwitchAccessState && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             object : AccessibilityServicesStateChangeListener {
-                var switchAccessEnabled by mutableStateOf(false)
-                var voiceAccessEnabled by mutableStateOf(false)
+                var enabled by mutableStateOf(false)
 
                 override fun onAccessibilityServicesStateChanged(am: AccessibilityManager) {
-                    switchAccessEnabled = am.switchAccessEnabled
-                    voiceAccessEnabled = am.voiceAccessEnabled
+                    enabled = am.switchAccessEnabled
                 }
             }
         } else {
@@ -133,25 +119,14 @@ private class Listener(
     private val AccessibilityManager.switchAccessEnabled
         get() =
             getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC).fastAny {
-                it.settingsActivityName?.contains(SwitchAccessActivityName, ignoreCase = true) ==
-                    true
-            }
-
-    private val AccessibilityManager.voiceAccessEnabled
-        get() =
-            getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC).fastAny {
-                it.settingsActivityName?.contains(VoiceAccessActivityName, ignoreCase = true) ==
-                    true
+                it.settingsActivityName?.contains(SwitchAccessActivityName) == true
             }
 
     override val value: Boolean
         get() =
             accessibilityEnabled &&
-                ((touchExplorationListener?.enabled == true) ||
-                    (listenToSwitchAccessState &&
-                        otherA11yServicesListener?.switchAccessEnabled == true) ||
-                    (listenToVoiceAccessState &&
-                        otherA11yServicesListener?.voiceAccessEnabled == true))
+                ((touchExplorationListener?.enabled ?: false) ||
+                    (switchAccessListener?.enabled ?: false))
 
     override fun onAccessibilityStateChanged(enabled: Boolean) {
         accessibilityEnabled = enabled
@@ -165,9 +140,8 @@ private class Listener(
             am.addTouchExplorationStateChangeListener(it)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            otherA11yServicesListener?.let {
-                it.switchAccessEnabled = am.switchAccessEnabled
-                it.voiceAccessEnabled = am.voiceAccessEnabled
+            switchAccessListener?.let {
+                it.enabled = am.switchAccessEnabled
                 Api33Impl.addAccessibilityServicesStateChangeListener(am, it)
             }
         }
@@ -177,7 +151,7 @@ private class Listener(
         am.removeAccessibilityStateChangeListener(this)
         touchExplorationListener?.let { am.removeTouchExplorationStateChangeListener(it) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            otherA11yServicesListener?.let {
+            switchAccessListener?.let {
                 Api33Impl.removeAccessibilityServicesStateChangeListener(am, it)
             }
         }
@@ -186,6 +160,7 @@ private class Listener(
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private object Api33Impl {
         @JvmStatic
+        @DoNotInline
         fun addAccessibilityServicesStateChangeListener(
             am: AccessibilityManager,
             listener: AccessibilityServicesStateChangeListener
@@ -194,6 +169,7 @@ private class Listener(
         }
 
         @JvmStatic
+        @DoNotInline
         fun removeAccessibilityServicesStateChangeListener(
             am: AccessibilityManager,
             listener: AccessibilityServicesStateChangeListener
@@ -204,4 +180,3 @@ private class Listener(
 }
 
 private const val SwitchAccessActivityName = "SwitchAccess"
-private const val VoiceAccessActivityName = "VoiceAccess"

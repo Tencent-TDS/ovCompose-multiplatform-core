@@ -33,7 +33,6 @@ internal fun Translations.my() = mapOf(
     Strings.MenuCollapsed to "ချုံ့ထားသည်",
     Strings.ToggleDropdownMenu to "ဆွဲချမီနူးကို ပြောင်းရန်",
     Strings.SnackbarDismiss to "ပယ်ရန်",
-    Strings.SnackbarPaneTitle to "သတိပေးချက်",
     Strings.SearchBarSearch to "ရှာရန်",
     Strings.SuggestionsAvailable to "အကြံပြုချက်များသည် အောက်တွင်ရှိသည်",
     Strings.DatePickerTitle to "ရက်စွဲရွေးရန်",
@@ -86,6 +85,4 @@ internal fun Translations.my() = mapOf(
     Strings.TimePickerHour to "နာရီ",
     Strings.TimePickerMinuteTextField to "မိနစ်ကြာ",
     Strings.TimePickerHourTextField to "နာရီကြာ",
-    Strings.CloseRail to "ဘားပိတ်ရန်",
-    Strings.WideNavigationRailPaneTitle to "လမ်းကြောင်းပြဘား",
 )

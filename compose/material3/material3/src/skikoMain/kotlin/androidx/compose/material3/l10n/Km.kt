@@ -33,7 +33,6 @@ internal fun Translations.km() = mapOf(
     Strings.MenuCollapsed to "បាន​បង្រួម",
     Strings.ToggleDropdownMenu to "បិទ/បើកម៉ឺនុយ​ធ្លាក់​ចុះ",
     Strings.SnackbarDismiss to "ច្រានចោល",
-    Strings.SnackbarPaneTitle to "ជូន​ដំណឹង",
     Strings.SearchBarSearch to "ស្វែងរក",
     Strings.SuggestionsAvailable to "ការណែនាំខាងក្រោម",
     Strings.DatePickerTitle to "ជ្រើសរើស​កាលបរិច្ឆេទ",
@@ -86,6 +85,4 @@ internal fun Translations.km() = mapOf(
     Strings.TimePickerHour to "ម៉ោង",
     Strings.TimePickerMinuteTextField to "រយៈពេលប៉ុន្មាននាទី",
     Strings.TimePickerHourTextField to "រយៈពេលប៉ុន្មានម៉ោង",
-    Strings.CloseRail to "បិទខ្សែ",
-    Strings.WideNavigationRailPaneTitle to "ខ្សែរុករក",
 )

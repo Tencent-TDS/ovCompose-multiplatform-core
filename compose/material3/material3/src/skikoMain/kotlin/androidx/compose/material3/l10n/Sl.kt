@@ -33,7 +33,6 @@ internal fun Translations.sl() = mapOf(
     Strings.MenuCollapsed to "Strnjeno",
     Strings.ToggleDropdownMenu to "Preklop spustnega menija",
     Strings.SnackbarDismiss to "Opusti",
-    Strings.SnackbarPaneTitle to "Opozorilo",
     Strings.SearchBarSearch to "Iskanje",
     Strings.SuggestionsAvailable to "Predlogi so spodaj",
     Strings.DatePickerTitle to "Izbira datuma",
@@ -86,6 +85,4 @@ internal fun Translations.sl() = mapOf(
     Strings.TimePickerHour to "Ura",
     Strings.TimePickerMinuteTextField to "za minute",
     Strings.TimePickerHourTextField to "za uro",
-    Strings.CloseRail to "Zapiranje črte",
-    Strings.WideNavigationRailPaneTitle to "Črta za krmarjenje",
 )

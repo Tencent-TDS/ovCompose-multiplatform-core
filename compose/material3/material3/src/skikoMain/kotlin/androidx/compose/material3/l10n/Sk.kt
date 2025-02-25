@@ -33,7 +33,6 @@ internal fun Translations.sk() = mapOf(
     Strings.MenuCollapsed to "Zbalené",
     Strings.ToggleDropdownMenu to "Prepnutie rozbaľovacieho zoznamu",
     Strings.SnackbarDismiss to "Zavrieť",
-    Strings.SnackbarPaneTitle to "Upozornenie",
     Strings.SearchBarSearch to "Hľadať",
     Strings.SuggestionsAvailable to "Návrhy sú nižšie",
     Strings.DatePickerTitle to "Vybrať dátum",
@@ -86,6 +85,4 @@ internal fun Translations.sk() = mapOf(
     Strings.TimePickerHour to "Hodina",
     Strings.TimePickerMinuteTextField to "minúty",
     Strings.TimePickerHourTextField to "hodiny",
-    Strings.CloseRail to "Zavrieť pruh",
-    Strings.WideNavigationRailPaneTitle to "Navigačný pruh",
 )

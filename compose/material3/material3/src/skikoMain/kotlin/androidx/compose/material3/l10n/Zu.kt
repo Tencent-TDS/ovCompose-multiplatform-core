@@ -33,7 +33,6 @@ internal fun Translations.zu() = mapOf(
     Strings.MenuCollapsed to "Kugoqiwe",
     Strings.ToggleDropdownMenu to "Guqula imenyu yokwehlayo",
     Strings.SnackbarDismiss to "Chitha",
-    Strings.SnackbarPaneTitle to "Isexwayiso",
     Strings.SearchBarSearch to "Sesha",
     Strings.SuggestionsAvailable to "Iziphakamiso ngezansi",
     Strings.DatePickerTitle to "Khetha usuku",
@@ -86,6 +85,4 @@ internal fun Translations.zu() = mapOf(
     Strings.TimePickerHour to "Ihora",
     Strings.TimePickerMinuteTextField to "ngemizuzu",
     Strings.TimePickerHourTextField to "ngehora",
-    Strings.CloseRail to "Vala ikhalamu lezikhangiso",
-    Strings.WideNavigationRailPaneTitle to "Ikhalamu lezikhangiso lokufuna",
 )

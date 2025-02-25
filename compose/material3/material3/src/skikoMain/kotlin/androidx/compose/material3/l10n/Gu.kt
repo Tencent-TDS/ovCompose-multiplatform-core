@@ -33,7 +33,6 @@ internal fun Translations.gu() = mapOf(
     Strings.MenuCollapsed to "નાની કરેલી",
     Strings.ToggleDropdownMenu to "ડ્રૉપડાઉન મેનૂ ટૉગલ કરો",
     Strings.SnackbarDismiss to "છોડી દો",
-    Strings.SnackbarPaneTitle to "અલર્ટ",
     Strings.SearchBarSearch to "શોધો",
     Strings.SuggestionsAvailable to "સૂચનો નીચે છે",
     Strings.DatePickerTitle to "તારીખ પસંદ કરો",
@@ -86,6 +85,4 @@ internal fun Translations.gu() = mapOf(
     Strings.TimePickerHour to "કલાક",
     Strings.TimePickerMinuteTextField to "મિનિટ માટે",
     Strings.TimePickerHourTextField to "કલાક માટે",
-    Strings.CloseRail to "રેલ બંધ કરો",
-    Strings.WideNavigationRailPaneTitle to "નૅવિગેશન રેલ",
 )

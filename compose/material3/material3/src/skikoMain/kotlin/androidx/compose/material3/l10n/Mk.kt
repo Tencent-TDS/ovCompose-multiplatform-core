@@ -33,7 +33,6 @@ internal fun Translations.mk() = mapOf(
     Strings.MenuCollapsed to "Собрано",
     Strings.ToggleDropdownMenu to "Вклучување/исклучување паѓачко мени",
     Strings.SnackbarDismiss to "Отфрли",
-    Strings.SnackbarPaneTitle to "Предупредување",
     Strings.SearchBarSearch to "Пребарување",
     Strings.SuggestionsAvailable to "Предлозите се наведени подолу",
     Strings.DatePickerTitle to "Изберете датум",
@@ -86,6 +85,4 @@ internal fun Translations.mk() = mapOf(
     Strings.TimePickerHour to "Час",
     Strings.TimePickerMinuteTextField to "за минути",
     Strings.TimePickerHourTextField to "за час",
-    Strings.CloseRail to "Затворање на шината",
-    Strings.WideNavigationRailPaneTitle to "Шина за навигација",
 )

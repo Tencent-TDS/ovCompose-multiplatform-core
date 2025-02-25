@@ -33,7 +33,6 @@ internal fun Translations.mn() = mapOf(
     Strings.MenuCollapsed to "Хураасан",
     Strings.ToggleDropdownMenu to "Унадаг цэсийг асаах/унтраах",
     Strings.SnackbarDismiss to "Хаах",
-    Strings.SnackbarPaneTitle to "Сэрэмжлүүлэг",
     Strings.SearchBarSearch to "Хайх",
     Strings.SuggestionsAvailable to "Доорх зөвлөмжүүд",
     Strings.DatePickerTitle to "Огноо сонгох",
@@ -86,6 +85,4 @@ internal fun Translations.mn() = mapOf(
     Strings.TimePickerHour to "Цаг",
     Strings.TimePickerMinuteTextField to "минутын турш",
     Strings.TimePickerHourTextField to "цагийн турш",
-    Strings.CloseRail to "Хажуугийн навигацын бүрэлдэхүүнийг хаах",
-    Strings.WideNavigationRailPaneTitle to "Хажуугийн навигацын бүрэлдэхүүн",
 )
