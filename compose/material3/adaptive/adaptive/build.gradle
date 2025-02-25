@@ -49,7 +49,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 api(project(":compose:foundation:foundation"))
                 api(project(":compose:ui:ui-geometry"))
                 api("org.jetbrains.androidx.window:window-core:1.3.1")

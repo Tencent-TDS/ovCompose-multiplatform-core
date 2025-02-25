@@ -50,7 +50,7 @@ dependencies {
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block below
          */
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation(libs.kotlinCoroutinesCore)
         implementation(libs.atomicFu)
 
@@ -162,7 +162,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
                 implementation(project(":performance:performance-annotation"))
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
 
                 // when updating the runtime version please also update the runtime-saveable version
