@@ -206,9 +206,6 @@ internal class UIKitTextInputService(
         }
         if (textChanged || selectionChanged) {
             updateView()
-
-            // TODO: Do we need it??
-            textUIView?.reloadInputViews()
         }
     }
 
@@ -418,7 +415,7 @@ internal class UIKitTextInputService(
             rootView.addSubview(scrollView)
             scrollView.layer.setBorderColor(UIColor.orangeColor.CGColor)
             scrollView.layer.borderWidth = 2.0
-            scrollView.textUIView = it
+            scrollView.textView = it
             rootView.setFrame(it.bounds)
 
             it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.2))
@@ -441,8 +438,8 @@ internal class UIKitTextInputService(
             view.inputTraits = EmptyInputTraits
             view.resetOnKeyboardPressesCallback()
             mainScope.launch {
-                if (scrollView.textUIView == view) {
-                    scrollView.textUIView = null
+                if (scrollView.textView == view) {
+                    scrollView.textView = null
                 }
             }
         }

@@ -27,7 +27,6 @@ import androidx.compose.ui.uikit.utils.CMPTextInputStringTokenizer
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import kotlin.math.max
@@ -49,6 +48,7 @@ import platform.CoreGraphics.CGRectGetHeight
 import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectGetWidth
+import platform.CoreGraphics.CGRectInset
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectNull
 import platform.CoreGraphics.CGRectZero
@@ -244,7 +244,10 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun setSelectedTextRange(selectedTextRange: UITextRange?) {
-        input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+        val range = selectedTextRange?.toTextRange()
+        if (input?.getSelectedTextRange() != range) {
+            input?.setSelectedTextRange(range)
+        }
     }
 
     /**
@@ -645,9 +648,9 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun canPerformAction(action: COpaquePointer?, withSender: Any?): Boolean {
-        val action = NSStringFromSelector(action)
+        val selectorName = NSStringFromSelector(action)
 
-        return when (action) {
+        return when (selectorName) {
             "copy:" -> onCopy != null
             "paste:" -> onPaste != null
             "cut:" -> onCut != null
@@ -864,7 +867,7 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
         setClipsToBounds(false)
     }
 
-    var textUIView: IntermediateTextInputUIView? = null
+    var textView: IntermediateTextInputUIView? = null
         set(value) {
             if (field != value) {
                 field?.removeFromSuperview()
@@ -876,15 +879,34 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
         }
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
-        return if (textUIView != null) {
-            super.hitTest(point, withEvent) ?: textUIView?.outOfTheBoundsHitTest(point, withEvent)
+        val textView = textView ?: return null
+
+        super.hitTest(point, withEvent)?.let {
+            return it
+        }
+
+        return if (available(OS.Ios to OSVersion(major = 17))) {
+            hitTestTextInteractiveViews(
+                point = point,
+                excludeItemsWithBounds = textView.bounds
+            )?.takeIf { it != this }?.let {
+                // The text input view always returns self as a hit test result, regardless of whether
+                // the pointer hits interactive elements within the view, such as selection handles.
+                textView
+            }
         } else {
-            null
+            // On iOS <= 16 actual text interaction view is zero size.
+            // Find it using hit testing over subviews.
+            return textView.subviews.firstNotNullOfOrNull { subview ->
+                subview as UIView
+                val subviewPoint = this.convertPoint(point, toView = subview)
+                subview.hitTest(subviewPoint, withEvent = withEvent)
+            }
         }
     }
 
     fun setFrame(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
-        textUIView?.setFrame(
+        textView?.setFrame(
             CGRectMake(
                 x = 0.0,
                 y = 0.0,
@@ -906,25 +928,42 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
     }
 
     fun interactionModeAt(point: CValue<CGPoint>): UIKitInteropInteractionMode? {
-        val textView = textUIView ?: return null
-        val hitTested = outOfTheBoundsHitTest(point, withEvent = null)
-        hitTested ?: return null
+        val selectionHandleOrCursor = hitTestTextInteractiveViews(
+            point = point,
+            excludeItemsWithBounds = textView?.bounds ?: CGRectZero.readValue()
+        )
 
-        return if (CGRectEqualToRect(hitTested.bounds, textView.bounds)) {
+        return if (selectionHandleOrCursor != null && selectionHandleOrCursor != this) {
+            UIKitInteropInteractionMode.NonCooperative
+        } else if (CGRectContainsPoint(bounds, point)) {
             UIKitInteropInteractionMode.Cooperative()
         } else {
-            UIKitInteropInteractionMode.NonCooperative
+            null
         }
     }
 }
 
-private fun UIView.outOfTheBoundsHitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
+/**
+ * The method traverses the text input view hierarchy, looking for interactive elements such as
+ * selection handles or the cursor: usually these are only views that have different boundaries
+ * from the text input view.
+ * The method used to test interactive text editing elements when they are outside the boundaries
+ * of the text input view.
+ */
+private fun UIView.hitTestTextInteractiveViews(
+    point: CValue<CGPoint>,
+    excludeItemsWithBounds: CValue<CGRect>,
+    level: Int = 0
+): UIView? {
     subviews.reversed().forEach { subview ->
         subview as UIView
         val subviewPoint = this.convertPoint(point, toView = subview)
-        subview.outOfTheBoundsHitTest(subviewPoint, withEvent)?.let {
+        subview.hitTestTextInteractiveViews(subviewPoint, excludeItemsWithBounds, level + 1)?.let {
             return it
         }
     }
-    return this.takeIf { isUserInteractionEnabled() && CGRectContainsPoint(bounds, point) }
+    return this.takeIf {
+        !CGRectEqualToRect(bounds, excludeItemsWithBounds) &&
+            CGRectContainsPoint(CGRectInset(bounds, -4.0, -4.0), point)
+    }
 }
