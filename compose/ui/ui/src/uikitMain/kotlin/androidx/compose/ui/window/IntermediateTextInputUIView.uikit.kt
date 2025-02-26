@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.TextSelectionRect
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.uikit.utils.CMPEditMenuView
+import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPTextInputStringTokenizer
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
@@ -63,6 +64,7 @@ import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
 import platform.UIKit.UIEdgeInsetsMake
 import platform.UIKit.UIEvent
+import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UIKeyInputProtocol
 import platform.UIKit.UIKeyboardAppearance
 import platform.UIKit.UIKeyboardType
@@ -94,6 +96,7 @@ import platform.UIKit.UITextSelectionRect
 import platform.UIKit.UITextStorageDirection
 import platform.UIKit.UITextStorageDirectionForward
 import platform.UIKit.UITextWritingDirection
+import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.addInteraction
 import platform.UIKit.removeInteraction
@@ -120,6 +123,10 @@ internal class IntermediateTextInputUIView(
         }
 
     private val mainScope = MainScope()
+
+    private val touchesTrackerGestureRecognizer = TouchTrackingGestureRecognizer().also {
+        addGestureRecognizer(it)
+    }
 
     /**
      * Callback to handle keyboard presses. The parameter is a [Set] of [UIPress] objects.
@@ -496,12 +503,14 @@ internal class IntermediateTextInputUIView(
         val rects = input?.selectionRectsForRange(textRange) ?: return fallbackList
 
         // HACK: On iOS 17+, selection changes are not submitted during selection interaction.
-        if (available(OS.Ios to OSVersion(major = 17))) {
-            shouldPerformSelectionHotifications = false
+        if (available(OS.Ios to OSVersion(major = 17)) &&
+            touchesTrackerGestureRecognizer.isTrackingTouches
+        ) {
+            shouldPerformSelectionNotifications = false
             if (input?.getSelectedTextRange() != textRange) {
                 input?.setSelectedTextRange(textRange)
             }
-            shouldPerformSelectionHotifications = true
+            shouldPerformSelectionNotifications = true
         }
 
         return rects.fastMap { IntermediateTextSelectionRect(it) }
@@ -607,9 +616,9 @@ internal class IntermediateTextInputUIView(
     /**
      * Call when something changes in text data
      */
-    var shouldPerformSelectionHotifications: Boolean = true
+    var shouldPerformSelectionNotifications: Boolean = true
     fun selectionWillChange() {
-        if (shouldPerformSelectionHotifications) {
+        if (shouldPerformSelectionNotifications) {
             _inputDelegate?.selectionWillChange(this)
         }
     }
@@ -618,7 +627,7 @@ internal class IntermediateTextInputUIView(
      * Call when something changes in text data
      */
     fun selectionDidChange() {
-        if (shouldPerformSelectionHotifications) {
+        if (shouldPerformSelectionNotifications) {
             _inputDelegate?.selectionDidChange(this)
         }
     }
@@ -965,5 +974,58 @@ private fun UIView.hitTestTextInteractiveViews(
     return this.takeIf {
         !CGRectEqualToRect(bounds, excludeItemsWithBounds) &&
             CGRectContainsPoint(CGRectInset(bounds, -4.0, -4.0), point)
+    }
+}
+
+private class TouchTrackingGestureRecognizer : CMPGestureRecognizer(target = null, action = null) {
+    private val trackedTouches = mutableSetOf<UITouch>()
+
+    val isTrackingTouches: Boolean get() = trackedTouches.isNotEmpty()
+
+    init {
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+    }
+
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesBegan(touches, withEvent)
+
+        touches.forEach {
+            it as UITouch
+            println(">>> TOUCH - $it")
+            trackedTouches.add(it)
+        }
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesEnded(touches, withEvent)
+
+        touches.forEach {
+            it as UITouch
+            println(">> Ended - $it")
+            trackedTouches.remove(it)
+        }
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesCancelled(touches, withEvent)
+
+        touches.forEach {
+            it as UITouch
+            println(">> Cancelled - $it")
+            trackedTouches.remove(it)
+        }
+    }
+
+    override fun canBePreventedByGestureRecognizer(
+        preventingGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return false
+    }
+
+    override fun canPreventGestureRecognizer(
+        preventedGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return false
     }
 }
