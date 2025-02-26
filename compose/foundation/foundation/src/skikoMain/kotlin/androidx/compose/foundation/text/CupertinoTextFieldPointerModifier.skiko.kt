@@ -23,8 +23,8 @@ import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.foundation.text.selection.getTextFieldSelectionLayout
 import androidx.compose.foundation.text.selection.isSelectionHandleInVisibleBound
-import androidx.compose.foundation.text.selection.selectionGestureInput
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -55,6 +55,9 @@ internal fun Modifier.cupertinoTextFieldPointer(
         this
             .then(defaultTextFieldPointer(manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping))
     } else {
+        LaunchedEffect(manager.value.selection) {
+            manager.enterSelectionMode(true)
+        }
         println("TextField focused, disabling pointer modifier")
         this
     }

@@ -23,9 +23,12 @@ actual typealias NativeClipboard = platform.UIKit.UIPasteboard
 
 internal class UiKitPlatformClipboard internal constructor() : Clipboard {
     override suspend fun getClipEntry(): ClipEntry? {
-        if (nativeClipboard.items.isEmpty()) return null
+        if (nativeClipboard.numberOfItems() == 0L) return null
         return ClipEntry().apply {
-            plainText = nativeClipboard.string
+            getPlainText = {
+                nativeClipboard.string
+            }
+            hasPlainText = nativeClipboard.hasStrings
         }
     }
 
@@ -33,7 +36,7 @@ internal class UiKitPlatformClipboard internal constructor() : Clipboard {
         if (clipEntry == null) {
             nativeClipboard.items = emptyList<Map<String, Any>>()
         } else {
-            nativeClipboard.string = clipEntry.plainText
+            nativeClipboard.string = clipEntry.getPlainText()
         }
     }
 
@@ -59,15 +62,22 @@ actual class ClipEntry internal constructor() {
     actual val clipMetadata: ClipMetadata
         get() = TODO("ClipMetadata is not implemented. Consider using nativeClipboard")
 
-    internal var plainText: String? = null
+    internal var getPlainText: () -> String? = { null }
+    internal var hasPlainText: Boolean = false
 
     @ExperimentalComposeUiApi
-    fun getPlainText(): String? = plainText
+    fun getPlainText(): String? = getPlainText.invoke()
+
+    @ExperimentalComposeUiApi
+    fun hasPlainText(): Boolean {
+        return hasPlainText
+    }
 
     companion object {
         @ExperimentalComposeUiApi
         fun withPlainText(text: String): ClipEntry = ClipEntry().apply {
-            plainText = text
+            getPlainText = { text }
+            hasPlainText = true
         }
     }
 }

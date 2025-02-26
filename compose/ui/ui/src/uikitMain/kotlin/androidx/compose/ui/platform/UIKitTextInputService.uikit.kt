@@ -206,6 +206,8 @@ internal class UIKitTextInputService(
         }
         if (textChanged || selectionChanged) {
             updateView()
+
+            // TODO: Do we need it??
             textUIView?.reloadInputViews()
         }
     }
@@ -362,40 +364,50 @@ internal class UIKitTextInputService(
         onCutRequested: (() -> Unit)?,
         onSelectAllRequested: (() -> Unit)?
     ) {
+        showMenu(
+            rect = rect,
+            onCopyRequested = onCopyRequested,
+            onPasteRequested = onPasteRequested,
+            onCutRequested = onCutRequested,
+            onSelectAllRequested = onSelectAllRequested,
+            onAutofillRequested = null
+        )
+    }
+
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?,
+        onAutofillRequested: (() -> Unit)?
+    ) {
         if (textUIView == null) {
+            // TODO: Handle show menu when no active text field
             // If showMenu() is called and textUIView is not created,
             // then it means that showMenu() called in SelectionContainer without any text fields,
             // and IntermediateTextInputView must be created to show an editing menu
             attachIntermediateTextInputView()
             updateView()
         }
-        textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(rootView.density).asCGRect(),
-            textActions = object : TextActions {
-                override val copy: (() -> Unit)? = onCopyRequested
-                override val cut: (() -> Unit)? = onCutRequested
-                override val paste: (() -> Unit)? = onPasteRequested
-                override val selectAll: (() -> Unit)? = onSelectAllRequested
-            }
-        )
+        textUIView?.onCopy = onCopyRequested
+        textUIView?.onPaste = onPasteRequested
+        textUIView?.onCut = onCutRequested
+        textUIView?.onSelectAll = onSelectAllRequested
+        textUIView?.canShowAutoFill = onAutofillRequested != null
     }
 
-    /**
-     * TODO on UIKit native behaviour is hide text menu, when touch outside
-     */
     override fun hide() {
-        textUIView?.hideTextMenu()
-        if ((textUIView != null) && (currentInput == null)) { // means that editing context menu shown in selection container
-            textUIView?.resignFirstResponder()
-            detachIntermediateTextInputView()
-        }
+        textUIView?.onCopy = null
+        textUIView?.onPaste = null
+        textUIView?.onCut = null
+        textUIView?.onSelectAll = null
+        textUIView?.canShowAutoFill = false
     }
 
-    override val status: TextToolbarStatus
-        get() = if (textUIView?.isFirstResponder() == true)
-            TextToolbarStatus.Shown
-        else
-            TextToolbarStatus.Hidden
+    // The Menu appearance is controlled by UIKit.
+    // Return `Hidden` to make Compose always provide a new set of actions when selection changes.
+    override val status: TextToolbarStatus get() = TextToolbarStatus.Hidden
 
     private fun attachIntermediateTextInputView() {
         detachIntermediateTextInputView()
@@ -680,7 +692,15 @@ internal class UIKitTextInputService(
         }
 
         override fun selectionRectsForRange(range: TextRange): List<TextSelectionRect> {
+            // The text selection is drawn by Compose.
+            // Selection rects should not be empty, but with the small width they won't be visible
+            // behind the selection handles.
+            val selectionRectWidth = 1f
+
             val emptyList = emptyList<TextSelectionRect>()
+            if (range.collapsed) {
+                return emptyList
+            }
             if (isIncorrect(range)) {
                 return emptyList
             }
@@ -696,7 +716,7 @@ internal class UIKitTextInputService(
                 dpRect = Rect(
                     left = startHandleRect.left,
                     top = startHandleRect.top,
-                    right = startHandleRect.left + 1,
+                    right = startHandleRect.left + selectionRectWidth,
                     bottom = startHandleRect.bottom
                 )
                     .toDpRect(rootView.density),
@@ -708,7 +728,7 @@ internal class UIKitTextInputService(
 
             val endLineRect = TextSelectionRect(
                 dpRect = Rect(
-                    left = endHandleRect.right - 1,
+                    left = endHandleRect.right - selectionRectWidth,
                     top = endHandleRect.top,
                     right = endHandleRect.right,
                     bottom = endHandleRect.bottom

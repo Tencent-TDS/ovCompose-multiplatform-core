@@ -19,7 +19,6 @@ package androidx.compose.ui.window
 import androidx.compose.ui.platform.EmptyInputTraits
 import androidx.compose.ui.platform.IOSSkikoInput
 import androidx.compose.ui.platform.SkikoUITextInputTraits
-import androidx.compose.ui.platform.TextActions
 import androidx.compose.ui.platform.TextSelectionRect
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.TextRange
@@ -28,11 +27,11 @@ import androidx.compose.ui.uikit.utils.CMPTextInputStringTokenizer
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import kotlin.math.max
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.DurationUnit
+import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
@@ -58,6 +57,7 @@ import platform.Foundation.NSOrderedAscending
 import platform.Foundation.NSOrderedDescending
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSRange
+import platform.Foundation.NSStringFromSelector
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
@@ -479,7 +479,7 @@ internal class IntermediateTextInputUIView(
         val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 0.0, height = 1.0)
         val longPosition = (position as? IntermediateTextPosition)?.position ?: return fallbackRect
         val caretDpRect = input?.caretDpRectForPosition(longPosition)?.let {
-            it.copy(right = it.left)
+            it.copy(right = it.left + 1.dp)
         }
         return caretDpRect?.asCGRect() ?: fallbackRect
     }
@@ -493,7 +493,6 @@ internal class IntermediateTextInputUIView(
         val rects = input?.selectionRectsForRange(textRange) ?: return fallbackList
 
         // HACK: On iOS 17+, selection changes are not submitted during selection interaction.
-        //
         if (available(OS.Ios to OSVersion(major = 17))) {
             shouldPerformSelectionHotifications = false
             if (input?.getSelectedTextRange() != textRange) {
@@ -582,7 +581,7 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun buildMenuWithBuilder(builder: UIMenuBuilderProtocol) {
-        if (available(OS.Ios to OSVersion(major = 17))) {
+        if (available(OS.Ios to OSVersion(major = 17)) && !canShowAutoFill) {
             builder.removeMenuForIdentifier(UIMenuAutoFill)
         }
         super.buildMenuWithBuilder(builder)
@@ -623,27 +622,39 @@ internal class IntermediateTextInputUIView(
 
     override fun isUserInteractionEnabled(): Boolean = true
 
-    override fun editMenuDelay(): Double =
-        viewConfiguration.doubleTapTimeoutMillis.milliseconds.toDouble(DurationUnit.SECONDS)
+    var onCopy: (() -> Unit)? = null
+    var onPaste: (() -> Unit)? = null
+    var onCut: (() -> Unit)? = null
+    var onSelectAll: (() -> Unit)? = null
+    var canShowAutoFill: Boolean = false
 
-    /**
-     * Show copy/paste text menu
-     * @param targetRect - rectangle of selected text area
-     * @param textActions - available (not null) actions in text menu
-     */
-    fun showTextMenu(targetRect: CValue<CGRect>, textActions: TextActions) {
-        this.showEditMenuAtRect(
-            targetRect = targetRect,
-            copy = textActions.copy,
-            cut = textActions.cut,
-            paste = textActions.paste,
-            selectAll = textActions.selectAll
-        )
+    override fun copy(sender: Any?) {
+        onCopy?.invoke()
     }
 
-    fun hideTextMenu() = this.hideEditMenu()
+    override fun paste(sender: Any?) {
+        onPaste?.invoke()
+    }
 
-    fun isTextMenuShown() = isEditMenuShown
+    override fun cut(sender: Any?) {
+        onCut?.invoke()
+    }
+
+    override fun selectAll(sender: Any?) {
+        onSelectAll?.invoke()
+    }
+
+    override fun canPerformAction(action: COpaquePointer?, withSender: Any?): Boolean {
+        val action = NSStringFromSelector(action)
+
+        return when (action) {
+            "copy:" -> onCopy != null
+            "paste:" -> onPaste != null
+            "cut:" -> onCut != null
+            "selectAll:" -> onSelectAll != null
+            else -> false
+        }
+    }
 
     private val _tokenizer = IntermediateTextTokenizer(textInput = this) {
         input?.let { it.textInRange(TextRange(0, it.endOfDocument())) }

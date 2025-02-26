@@ -21,18 +21,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPEditMenuView : UIView <UITextInput>
 
-@property (readonly) BOOL isEditMenuShown;
-
-- (void)showEditMenuAtRect:(CGRect)targetRect
-                      copy:(void (^__nullable)(void))copyBlock
-                       cut:(void (^__nullable)(void))cutBlock
-                     paste:(void (^__nullable)(void))pasteBlock
-                 selectAll:(void (^__nullable)(void))selectAllBlock;
-
-- (void)hideEditMenu;
-
-- (NSTimeInterval)editMenuDelay;
-
 - (nullable UITextPosition *)positionWithinRangeFarthestInDirection:(UITextRange *)range
                                                 farthestInDirection:(UITextLayoutDirection)direction CMP_ABSTRACT_FUNCTION;
 - (nullable UITextPosition *)positionWithinRangeAtCharacterOffset:(UITextRange *)range
