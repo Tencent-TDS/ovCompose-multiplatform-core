@@ -42,6 +42,7 @@ import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGPoint
+import platform.CoreGraphics.CGPointEqualToPoint
 import platform.CoreGraphics.CGRect
 import platform.CoreGraphics.CGRectContainsPoint
 import platform.CoreGraphics.CGRectEqualToRect
@@ -53,6 +54,7 @@ import platform.CoreGraphics.CGRectInset
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectNull
 import platform.CoreGraphics.CGRectZero
+import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSComparisonResult
 import platform.Foundation.NSOrderedAscending
 import platform.Foundation.NSOrderedDescending
@@ -62,6 +64,7 @@ import platform.Foundation.NSStringFromSelector
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
+import platform.UIKit.UIEdgeInsetsEqualToEdgeInsets
 import platform.UIKit.UIEdgeInsetsMake
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
@@ -613,10 +616,11 @@ internal class IntermediateTextInputUIView(
         _inputDelegate?.textDidChange(this)
     }
 
+    private var shouldPerformSelectionNotifications: Boolean = true
+
     /**
      * Call when something changes in text data
      */
-    var shouldPerformSelectionNotifications: Boolean = true
     fun selectionWillChange() {
         if (shouldPerformSelectionNotifications) {
             _inputDelegate?.selectionWillChange(this)
@@ -915,25 +919,49 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
     }
 
     fun setFrame(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
-        textView?.setFrame(
-            CGRectMake(
-                x = 0.0,
-                y = 0.0,
-                width = CGRectGetWidth(bounds),
-                height = CGRectGetHeight(bounds)
-            )
+        val textViewFrame = CGRectMake(
+            x = 0.0,
+            y = 0.0,
+            width = CGRectGetWidth(bounds),
+            height = CGRectGetHeight(bounds)
         )
-
         val inset = UIEdgeInsetsMake(
             top = max(0.0, -CGRectGetMinY(bounds)),
             left = max(0.0, -CGRectGetMinX(bounds)),
-            bottom = max(0.0, CGRectGetHeight(frame) - CGRectGetHeight(bounds) + CGRectGetMinY(bounds)),
-            right = max(0.0, CGRectGetWidth(frame) - CGRectGetWidth(bounds) + CGRectGetMinX(bounds))
+            bottom = max(
+                0.0, CGRectGetHeight(frame) - CGRectGetHeight(bounds) + CGRectGetMinY(bounds)
+            ),
+            right = max(
+                0.0, CGRectGetWidth(frame) - CGRectGetWidth(bounds) + CGRectGetMinX(bounds)
+            )
         )
-        setFrame(frame)
-        setContentInset(inset)
-        setContentSize(bounds.useContents { size.readValue() })
-        setContentOffset(bounds.useContents { origin.readValue() })
+        val scrollContentSize = bounds.useContents { size.readValue() }
+        val scrollContentInset = bounds.useContents { origin.readValue() }
+
+        val textFrameChanged =
+            textView?.let { !CGRectEqualToRect(it.frame, textViewFrame) } ?: false
+        val frameChanged = !CGRectEqualToRect(this.frame, frame)
+        val contentInsetChanged = !UIEdgeInsetsEqualToEdgeInsets(contentInset, inset)
+        val contentSizeChanged = !CGSizeEqualToSize(contentSize, scrollContentSize)
+        val contentOffsetChanged = !CGPointEqualToPoint(contentOffset, scrollContentInset)
+
+        val hasChanges = textFrameChanged ||
+            frameChanged ||
+            contentInsetChanged ||
+            contentSizeChanged ||
+            contentOffsetChanged
+
+        if (hasChanges) {
+            textView?.selectionWillChange()
+
+            textView?.setFrame(textViewFrame)
+            setFrame(frame)
+            setContentInset(inset)
+            setContentSize(bounds.useContents { size.readValue() })
+            setContentOffset(bounds.useContents { origin.readValue() })
+
+            textView?.selectionDidChange()
+        }
     }
 
     fun interactionModeAt(point: CValue<CGPoint>): UIKitInteropInteractionMode? {
@@ -992,7 +1020,6 @@ private class TouchTrackingGestureRecognizer : CMPGestureRecognizer(target = nul
 
         touches.forEach {
             it as UITouch
-            println(">>> TOUCH - $it")
             trackedTouches.add(it)
         }
     }
@@ -1002,7 +1029,6 @@ private class TouchTrackingGestureRecognizer : CMPGestureRecognizer(target = nul
 
         touches.forEach {
             it as UITouch
-            println(">> Ended - $it")
             trackedTouches.remove(it)
         }
     }
@@ -1012,7 +1038,6 @@ private class TouchTrackingGestureRecognizer : CMPGestureRecognizer(target = nul
 
         touches.forEach {
             it as UITouch
-            println(">> Cancelled - $it")
             trackedTouches.remove(it)
         }
     }
