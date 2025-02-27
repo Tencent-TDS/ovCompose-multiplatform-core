@@ -150,7 +150,6 @@ internal class AndroidAutofillManager(
             } else {
                 currentlyDisplayedIDs.remove(semanticsId)
             }
-            pendingChangesToDisplayedIds = true
         }
     }
 
@@ -227,7 +226,6 @@ internal class AndroidAutofillManager(
     // Consider moving the currently displayed IDs to a separate VisibilityManager class. This might
     // be needed by ContentCapture and Accessibility.
     private var currentlyDisplayedIDs = MutableIntSet()
-    private var pendingChangesToDisplayedIds = false
 
     internal fun requestAutofill(semanticsInfo: SemanticsInfo) {
         rectManager.rects.withRect(semanticsInfo.semanticsId) { left, top, right, bottom ->
@@ -239,7 +237,6 @@ internal class AndroidAutofillManager(
     internal fun onPostAttach(semanticsInfo: SemanticsInfo) {
         if (semanticsInfo.semanticsConfiguration?.isRelatedToAutoCommit() == true) {
             currentlyDisplayedIDs.add(semanticsInfo.semanticsId)
-            pendingChangesToDisplayedIds = true
             // `notifyVisibilityChanged` is called when nodes appear onscreen (and become visible).
             platformAutofillManager.notifyViewVisibilityChanged(
                 view,
@@ -251,12 +248,10 @@ internal class AndroidAutofillManager(
 
     internal fun onPostLayoutNodeReused(semanticsInfo: SemanticsInfo, previousSemanticsId: Int) {
         if (currentlyDisplayedIDs.remove(previousSemanticsId)) {
-            pendingChangesToDisplayedIds = true
             platformAutofillManager.notifyViewVisibilityChanged(view, previousSemanticsId, false)
         }
         if (semanticsInfo.semanticsConfiguration?.isRelatedToAutoCommit() == true) {
             currentlyDisplayedIDs.add(semanticsInfo.semanticsId)
-            pendingChangesToDisplayedIds = true
             platformAutofillManager.notifyViewVisibilityChanged(
                 view,
                 semanticsInfo.semanticsId,
@@ -267,7 +262,6 @@ internal class AndroidAutofillManager(
 
     internal fun onLayoutNodeDeactivated(semanticsInfo: SemanticsInfo) {
         if (currentlyDisplayedIDs.remove(semanticsInfo.semanticsId)) {
-            pendingChangesToDisplayedIds = true
             platformAutofillManager.notifyViewVisibilityChanged(
                 view,
                 semanticsInfo.semanticsId,
@@ -278,7 +272,6 @@ internal class AndroidAutofillManager(
 
     internal fun onDetach(semanticsInfo: SemanticsInfo) {
         if (currentlyDisplayedIDs.remove(semanticsInfo.semanticsId)) {
-            pendingChangesToDisplayedIds = true
             // `notifyVisibilityChanged` is called when nodes go offscreen (and become invisible
             // to the user).
             platformAutofillManager.notifyViewVisibilityChanged(
@@ -289,23 +282,18 @@ internal class AndroidAutofillManager(
         }
     }
 
+    private var pendingAutofillCommit = false
+
     internal fun onEndApplyChanges() {
-        if (pendingChangesToDisplayedIds) {
-            executeAutoCommit()
-            pendingChangesToDisplayedIds = false
-        }
-    }
-
-    // We maintain a copy of the previously displayed IDs, and call AutofillManager.commit() when
-    // all the previously displayed IDs were removed.
-    private var previouslyDisplayedIDs = MutableIntSet()
-
-    private fun executeAutoCommit() {
-        // Check for screen changes or complete removal.
-        if (!currentlyDisplayedIDs.containsAll(previouslyDisplayedIDs)) {
+        if (currentlyDisplayedIDs.isEmpty() && pendingAutofillCommit) {
+            // We call AutofillManager.commit() when no more autofillable components are
+            // onscreen.
             platformAutofillManager.commit()
+            pendingAutofillCommit = false
         }
-        previouslyDisplayedIDs.copyFrom(currentlyDisplayedIDs)
+        if (currentlyDisplayedIDs.isNotEmpty()) {
+            pendingAutofillCommit = true
+        }
     }
 }
 
