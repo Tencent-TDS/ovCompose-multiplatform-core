@@ -20,7 +20,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.OnGloballyPositionedModifier
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Internal modifier which allows to delay some interactions (e.g. scroll) until layout is ready.
@@ -32,7 +32,7 @@ internal class AwaitFirstLayoutModifier : OnGloballyPositionedModifier {
     suspend fun waitForFirstLayout() {
         if (!wasPositioned) {
             val oldContinuation = continuation
-            suspendCoroutine { continuation = it }
+            suspendCancellableCoroutine { continuation = it }
             oldContinuation?.resume(Unit)
         }
     }
