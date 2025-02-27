@@ -894,15 +894,13 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? {
         val textView = textView ?: return null
 
-        super.hitTest(point, withEvent)?.let {
-            return it
-        }
+        val hitTestResult = super.hitTest(point, withEvent)
 
         return if (available(OS.Ios to OSVersion(major = 17))) {
-            hitTestTextInteractiveViews(
+            (hitTestResult ?: hitTestTextInteractiveViews(
                 point = point,
                 excludeItemsWithBounds = textView.bounds
-            )?.takeIf { it != this }?.let {
+            ))?.let {
                 // The text input view always returns self as a hit test result, regardless of whether
                 // the pointer hits interactive elements within the view, such as selection handles.
                 textView
@@ -910,7 +908,7 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
         } else {
             // On iOS <= 16 actual text interaction view is zero size.
             // Find it using hit testing over subviews.
-            return textView.subviews.firstNotNullOfOrNull { subview ->
+            hitTestResult ?: textView.subviews.firstNotNullOfOrNull { subview ->
                 subview as UIView
                 val subviewPoint = this.convertPoint(point, toView = subview)
                 subview.hitTest(subviewPoint, withEvent = withEvent)
