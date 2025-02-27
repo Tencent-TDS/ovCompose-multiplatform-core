@@ -134,7 +134,9 @@ internal interface IOSSkikoInput {
 
     fun caretDpRectForPosition(position: Int): DpRect?
 
-    fun selectionRectsForRange(range: TextRange): List<TextSelectionRect>
+    fun selectionHandlesRectsForRange(range: TextRange): List<TextSelectionRect>
+
+    fun firstSelectionRectForRange(range: TextRange): DpRect?
 
     fun closestPositionToPoint(point: DpOffset): Int?
 

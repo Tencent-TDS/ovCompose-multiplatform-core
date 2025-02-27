@@ -687,20 +687,16 @@ internal class UIKitTextInputService(
             return rect.toDpRect(rootView.density)
         }
 
-        override fun selectionRectsForRange(range: TextRange): List<TextSelectionRect> {
+        override fun selectionHandlesRectsForRange(range: TextRange): List<TextSelectionRect> {
             // The text selection is drawn by Compose.
             // Selection rects should not be empty, but with the small width they won't be visible
             // behind the selection handles.
             val selectionRectWidth = 1f
 
-            val emptyList = emptyList<TextSelectionRect>()
-            if (range.collapsed) {
-                return emptyList
+            if (range.collapsed || isIncorrect(range)) {
+                return emptyList()
             }
-            if (isIncorrect(range)) {
-                return emptyList
-            }
-            val currentTextLayoutResult = textLayoutResult ?: return emptyList
+            val currentTextLayoutResult = textLayoutResult ?: return emptyList()
             if (range.end > currentTextLayoutResult.multiParagraph.intrinsics.annotatedString.length) {
                 return emptyList()
             }
@@ -737,6 +733,39 @@ internal class UIKitTextInputService(
             )
 
             return listOf(firstLineRect, endLineRect)
+        }
+
+        override fun firstSelectionRectForRange(range: TextRange): DpRect? {
+            if (range.collapsed && isIncorrect(range)) {
+                return null
+            }
+            val currentTextLayoutResult = textLayoutResult ?: return null
+            if (range.end > currentTextLayoutResult.multiParagraph.intrinsics.annotatedString.length) {
+                return null
+            }
+
+            val startHandleRect = currentTextLayoutResult.getCursorRect(range.start)
+            val endHandleRect = currentTextLayoutResult.getCursorRect(range.end)
+
+            val oneLineSelection = startHandleRect.bottom == endHandleRect.bottom
+
+            return if (oneLineSelection) {
+                Rect(
+                    startHandleRect.left,
+                    startHandleRect.top,
+                    endHandleRect.right,
+                    endHandleRect.bottom
+                ).toDpRect(rootView.density)
+            } else {
+                val startLineNumber = currentTextLayoutResult.getLineForOffset(range.start)
+                val startLineRight = currentTextLayoutResult.getLineRight(startLineNumber)
+                Rect(
+                    startHandleRect.left,
+                    startHandleRect.top,
+                    startLineRight,
+                    startHandleRect.bottom
+                ).toDpRect(rootView.density)
+            }
         }
 
         override fun closestPositionToPoint(point: DpOffset): Int? {

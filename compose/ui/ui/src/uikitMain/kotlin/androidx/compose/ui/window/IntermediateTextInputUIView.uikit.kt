@@ -52,7 +52,6 @@ import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectGetWidth
 import platform.CoreGraphics.CGRectInset
 import platform.CoreGraphics.CGRectMake
-import platform.CoreGraphics.CGRectNull
 import platform.CoreGraphics.CGRectZero
 import platform.CoreGraphics.CGSizeEqualToSize
 import platform.Foundation.NSComparisonResult
@@ -61,9 +60,7 @@ import platform.Foundation.NSOrderedDescending
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSRange
 import platform.Foundation.NSStringFromSelector
-import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.NSWritingDirection
-import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
 import platform.UIKit.UIEdgeInsetsEqualToEdgeInsets
 import platform.UIKit.UIEdgeInsetsMake
@@ -476,19 +473,21 @@ internal class IntermediateTextInputUIView(
         position: UITextPosition,
         inDirection: UITextStorageDirection
     ): NSWritingDirection {
-        return NSWritingDirectionLeftToRight // TODO support RTL text direction
+        // TODO: Verify if it works
+        return NSWritingDirectionNatural
     }
 
     override fun setBaseWritingDirection(
         writingDirection: NSWritingDirection,
         forRange: UITextRange
     ) {
-        // TODO support RTL text direction
+        // TODO: Verify if no more handling needed
     }
 
     // Working with Geometry and Hit-Testing. Some methods return stubs for now.
     override fun firstRectForRange(range: UITextRange): CValue<CGRect> {
-        return input?.currentFocusedDpRect()?.asCGRect() ?: return CGRectNull.readValue()
+        return input?.firstSelectionRectForRange(range.toTextRange())?.asCGRect()
+            ?: CGRectZero.readValue()
     }
 
     override fun caretRectForPosition(position: UITextPosition): CValue<CGRect> {
@@ -514,7 +513,7 @@ internal class IntermediateTextInputUIView(
             start = (range.start as? IntermediateTextPosition)?.position ?: return fallbackList,
             end = (range.end as? IntermediateTextPosition)?.position ?: return fallbackList
         )
-        val rects = input?.selectionRectsForRange(textRange) ?: return fallbackList
+        val rects = input?.selectionHandlesRectsForRange(textRange) ?: return fallbackList
 
         // HACK: On iOS 17+, selection changes are not submitted during selection interaction.
         if (available(OS.Ios to OSVersion(major = 17)) &&
@@ -564,16 +563,6 @@ internal class IntermediateTextInputUIView(
 //        return NSDictionary.dictionary()
 //        //TODO: Need to implement
 //    }
-
-    override fun characterOffsetOfPosition(
-        position: UITextPosition,
-        withinRange: UITextRange
-    ): NSInteger {
-        if (position !is IntermediateTextPosition) {
-            error("position !is IntermediateTextPosition")
-        }
-        return 0 // TODO: characterOffsetOfPosition
-    }
 
     override fun shouldChangeTextInRange(range: UITextRange, replacementText: String): Boolean {
         // Here we should decide to replace text in range or not.
