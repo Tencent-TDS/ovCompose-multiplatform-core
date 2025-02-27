@@ -412,13 +412,14 @@ internal class UIKitTextInputService(
             viewConfiguration = viewConfiguration
         ).also {
             rootView.addSubview(scrollView)
-            scrollView.layer.setBorderColor(UIColor.orangeColor.CGColor)
-            scrollView.layer.borderWidth = 2.0
+            // TODO: Remove
+            // scrollView.layer.setBorderColor(UIColor.orangeColor.CGColor)
+            // scrollView.layer.borderWidth = 2.0
+            // it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.2))
+            // it.setTintColor(UIColor.yellowColor) // forward colors here
             scrollView.textView = it
             scrollView.setFrame(it.bounds)
 
-            it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.2))
-            it.setTintColor(UIColor.yellowColor) // forward colors here
             it.onKeyboardPresses = onKeyboardPresses
             it.clipsToBounds = false
             it.input = createSkikoInput()
