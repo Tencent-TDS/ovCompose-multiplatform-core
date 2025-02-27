@@ -71,8 +71,8 @@ import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
-import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlin.test.Ignore
 import kotlinx.coroutines.CoroutineScope
@@ -93,6 +93,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.verifyZeroInteractions
 
+@MediumTest
 @SdkSuppress(minSdkVersion = 26)
 @RequiresApi(Build.VERSION_CODES.O)
 @RunWith(AndroidJUnit4::class)
@@ -115,6 +116,7 @@ class AndroidAutofillManagerTest {
 
     @After
     fun teardown() {
+        verifyNoMoreInteractions(am)
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val activity = rule.activity
         while (!activity.isDestroyed) {
@@ -129,7 +131,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_initialization() {
         rule.setContent {
@@ -157,24 +158,35 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     fun autofillManager_doNotCallCommit_nodesAppeared() {
         var isVisible by mutableStateOf(false)
 
         rule.setTestContent {
             if (isVisible) {
-                Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+                Box(
+                    Modifier.semantics {
+                            testTag = "username"
+                            contentType = ContentType.Username
+                        }
+                        .size(height, width)
+                )
             }
         }
 
         rule.runOnIdle { isVisible = true }
 
         // `commit` should not be called when an autofillable component appears onscreen.
-        rule.runOnIdle { verify(am, never()).commit() }
+        rule.waitForIdle()
+        verify(am, never()).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(true)
+            )
     }
 
     @Test
-    @SmallTest
     fun autofillManager_doNotCallCommit_autofillTagsAdded() {
         var hasContentType by mutableStateOf(false)
 
@@ -199,47 +211,85 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     fun autofillManager_callCommit_nodesDisappeared() {
         var revealFirstUsername by mutableStateOf(true)
 
         rule.setTestContent {
             if (revealFirstUsername) {
-                Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+                Box(
+                    Modifier.semantics {
+                            testTag = "username"
+                            contentType = ContentType.Username
+                        }
+                        .size(height, width)
+                )
             }
         }
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
 
         rule.runOnIdle { revealFirstUsername = false }
 
         // `commit` should be called when an autofill-able component leaves the screen.
-        rule.runOnIdle { verify(am, times(1)).commit() }
+        rule.waitForIdle()
+        verify(am, times(1)).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(semanticsId),
+                isVisible = eq(false)
+            )
     }
 
     @Test
-    @SmallTest
     fun autofillManager_callCommit_nodesDisappearedAndAppeared() {
         var revealFirstUsername by mutableStateOf(true)
         var revealSecondUsername by mutableStateOf(false)
 
         rule.setTestContent {
             if (revealFirstUsername) {
-                Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+                Box(
+                    Modifier.semantics {
+                            testTag = "first username"
+                            contentType = ContentType.Username
+                        }
+                        .size(height, width)
+                )
             }
             if (revealSecondUsername) {
-                Box(Modifier.semantics { contentType = ContentType.Username }.size(height, width))
+                Box(
+                    Modifier.semantics {
+                            testTag = "second username"
+                            contentType = ContentType.Username
+                        }
+                        .size(height, width)
+                )
             }
         }
 
+        val firstSemanticsId = rule.onNodeWithTag("first username").semanticsId()
         rule.runOnIdle { revealFirstUsername = false }
         rule.runOnIdle { revealSecondUsername = true }
+        val secondSemanticsId = rule.onNodeWithTag("second username").semanticsId()
 
         // `commit` should be called when an autofill-able component leaves onscreen, even when
         // another, different autofill-able component is added.
-        rule.runOnIdle { verify(am, times(1)).commit() }
+        rule.waitForIdle()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(firstSemanticsId),
+                isVisible = eq(false)
+            )
+        verify(am, times(1)).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(secondSemanticsId),
+                isVisible = eq(true)
+            )
     }
 
     @Test
-    @SmallTest
     fun autofillManager_doNotCallCommit_nonAutofillRelatedNodesAddedAndDisappear() {
         var isVisible by mutableStateOf(true)
         var semanticsExist by mutableStateOf(false)
@@ -268,7 +318,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     fun autofillManager_callCommit_nodesBecomeAutofillRelatedAndDisappear() {
         var isVisible by mutableStateOf(true)
         var hasContentType by mutableStateOf(false)
@@ -279,7 +328,10 @@ class AndroidAutofillManagerTest {
                     modifier =
                         Modifier.then(
                                 if (hasContentType) {
-                                    Modifier.semantics { contentType = ContentType.Username }
+                                    Modifier.semantics {
+                                        testTag = "username"
+                                        contentType = ContentType.Username
+                                    }
                                 } else {
                                     Modifier
                                 }
@@ -290,14 +342,21 @@ class AndroidAutofillManagerTest {
         }
 
         rule.runOnIdle { hasContentType = true }
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
         rule.runOnIdle { isVisible = false }
 
         // `commit` should be called when component becomes autofillable, then leaves the screen.
-        rule.runOnIdle { verify(am, times(1)).commit() }
+        rule.waitForIdle()
+        verify(am, times(1)).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(semanticsId),
+                isVisible = eq(false)
+            )
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyValueChanged() {
         var changeText by mutableStateOf(false)
@@ -325,9 +384,7 @@ class AndroidAutofillManagerTest {
             )
     }
 
-    @Ignore
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyValueChanged_fromEmpty() {
         var changeText by mutableStateOf(false)
@@ -355,9 +412,7 @@ class AndroidAutofillManagerTest {
             )
     }
 
-    @Ignore
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyValueChanged_toEmpty() {
         var changeText by mutableStateOf(false)
@@ -386,10 +441,9 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_notifyValueChanged_editableTextAdded() {
-        var hasEditableText by mutableStateOf(false)
+    fun autofillManager_notifyValueChanged_inputTextAdded() {
+        var hasInputText by mutableStateOf(false)
 
         rule.setTestContent {
             Box(
@@ -397,24 +451,28 @@ class AndroidAutofillManagerTest {
                         testTag = "username"
                         contentType = ContentType.Username
                         contentDataType = ContentDataType.Text
-                        if (hasEditableText) inputText = AnnotatedString("1234")
+                        if (hasInputText) inputText = AnnotatedString("1234")
                     }
                     .size(height, width)
             )
         }
 
-        rule.runOnIdle { hasEditableText = true }
+        rule.runOnIdle { hasInputText = true }
 
-        // TODO: This does not send notifyValueChanged, but will we could add a test to verify that
-        //  it sends notifyVisibilityChanged after aosp/3391719 lands.
-        rule.runOnIdle { verify(am, never()).notifyValueChanged(any(), any(), any()) }
+        rule.waitForIdle()
+        verify(am, never()).notifyValueChanged(any(), any(), any())
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(true)
+            )
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_notifyValueChanged_editableTextRemoved() {
-        var hasEditableText by mutableStateOf(true)
+    fun autofillManager_notifyValueChanged_inputTextRemoved() {
+        var hasInputText by mutableStateOf(true)
 
         rule.setTestContent {
             Box(
@@ -422,24 +480,28 @@ class AndroidAutofillManagerTest {
                         testTag = "username"
                         contentType = ContentType.Username
                         contentDataType = ContentDataType.Text
-                        if (hasEditableText) inputText = AnnotatedString("1234")
+                        if (hasInputText) inputText = AnnotatedString("1234")
                     }
                     .size(height, width)
             )
         }
 
-        rule.runOnIdle { hasEditableText = false }
+        rule.runOnIdle { hasInputText = false }
 
-        // TODO: This does not send notifyValueChanged, but will we could add a test to verify that
-        //  it sends notifyVisibilityChanged after aosp/3391719 lands.
-        rule.runOnIdle { verify(am, never()).notifyValueChanged(any(), any(), any()) }
+        rule.waitForIdle()
+        verify(am, never()).notifyValueChanged(any(), any(), any())
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(false)
+            )
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_notifyValueChanged_addedEmptyEditableText() {
-        var hasEditableText by mutableStateOf(false)
+    fun autofillManager_notifyValueChanged_addedEmptyInputText() {
+        var hasInputText by mutableStateOf(false)
 
         rule.setTestContent {
             Box(
@@ -447,24 +509,28 @@ class AndroidAutofillManagerTest {
                         testTag = "username"
                         contentType = ContentType.Username
                         contentDataType = ContentDataType.Text
-                        if (hasEditableText) inputText = AnnotatedString("")
+                        if (hasInputText) inputText = AnnotatedString("")
                     }
                     .size(height, width)
             )
         }
 
-        rule.runOnIdle { hasEditableText = true }
+        rule.runOnIdle { hasInputText = true }
 
-        // TODO: This does not send notifyValueChanged, but will we could add a test to verify that
-        //  it sends notifyVisibilityChanged after aosp/3391719 lands.
+        rule.waitForIdle()
         rule.runOnIdle { verify(am, never()).notifyValueChanged(any(), any(), any()) }
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(true)
+            )
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
-    fun autofillManager_notifyValueChanged_removedEmptyEditableText() {
-        var hasEditableText by mutableStateOf(true)
+    fun autofillManager_notifyValueChanged_removedEmptyInputText() {
+        var hasInputText by mutableStateOf(true)
 
         rule.setTestContent {
             Box(
@@ -472,21 +538,25 @@ class AndroidAutofillManagerTest {
                         testTag = "username"
                         contentType = ContentType.Username
                         contentDataType = ContentDataType.Text
-                        if (hasEditableText) inputText = AnnotatedString("")
+                        if (hasInputText) inputText = AnnotatedString("")
                     }
                     .size(height, width)
             )
         }
 
-        rule.runOnIdle { hasEditableText = false }
+        rule.runOnIdle { hasInputText = false }
 
-        // TODO: This does not send notifyValueChanged, but will we could add a test to verify that
-        //  it sends notifyVisibilityChanged after aosp/3391719 lands.
-        rule.runOnIdle { verify(am, never()).notifyValueChanged(any(), any(), any()) }
+        rule.waitForIdle()
+        verify(am, never()).notifyValueChanged(any(), any(), any())
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(rule.onNodeWithTag("username").semanticsId()),
+                isVisible = eq(false)
+            )
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyViewEntered_previousFocusFalse() {
         rule.setTestContent {
@@ -517,7 +587,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notAutofillable_notifyViewEntered_previousFocusFalse() {
         rule.setTestContent {
@@ -538,7 +607,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyViewEntered_previousFocusNull() {
         rule.setTestContent {
@@ -570,9 +638,9 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyViewExited_previousFocusTrue() {
+        // Arrange.
         lateinit var focusManager: FocusManager
         rule.setTestContent {
             focusManager = LocalFocusManager.current
@@ -586,20 +654,35 @@ class AndroidAutofillManagerTest {
             )
         }
         rule.onNodeWithTag("username").requestFocus()
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
         rule.runOnIdle { clearInvocations(am) }
 
+        // Act.
         rule.runOnIdle { focusManager.clearFocus() }
 
+        // Assert.
         rule.waitForIdle()
-        verify(am)
-            .notifyViewExited(
-                view = eq(view),
-                semanticsId = eq(rule.onNodeWithTag("username").semanticsId())
-            )
+        verify(am).notifyViewExited(view = eq(view), semanticsId = eq(semanticsId))
+
+        // Before API 28, we reassigned initial focus after clear focus even in touch mode.
+        // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
+        if (Build.VERSION.SDK_INT < 28) {
+            rule.waitForIdle()
+            verify(am)
+                .notifyViewEntered(
+                    view = eq(view),
+                    semanticsId = eq(semanticsId),
+                    bounds =
+                        eq(
+                            with(rule.density) {
+                                Rect(0, 0, width.toPx().toInt(), height.toPx().toInt())
+                            }
+                        )
+                )
+        }
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyViewExited_previouslyFocusedItemNotAutofillable() {
         lateinit var focusManager: FocusManager
@@ -616,7 +699,6 @@ class AndroidAutofillManagerTest {
 
     @Ignore // TODO(b/383198004): Add support for notifyVisibilityChanged.
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 27)
     fun autofillManager_notifyVisibilityChanged_disappeared() {
         var isVisible by mutableStateOf(true)
@@ -650,7 +732,6 @@ class AndroidAutofillManagerTest {
 
     @Ignore // TODO(b/383198004): Add support for notifyVisibilityChanged.
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 27)
     fun autofillManager_notifyVisibilityChanged_appeared() {
         var isVisible by mutableStateOf(false)
@@ -683,7 +764,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 27)
     fun autofillManager_notifyVisibilityChanged_lazyScroll() {
         // Arrange.
@@ -731,7 +811,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyCommit() {
         val forwardTag = "forward_button_tag"
@@ -753,7 +832,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_notifyCancel() {
         val backTag = "back_button_tag"
@@ -774,7 +852,6 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     fun autofillManager_lazyColumnScroll_callsCommit() {
         lateinit var state: LazyListState
         lateinit var coroutineScope: CoroutineScope
@@ -788,7 +865,10 @@ class AndroidAutofillManagerTest {
                 LazyColumn(Modifier.fillMaxWidth().height(50.dp), state) {
                     item {
                         Box(
-                            Modifier.semantics { contentType = ContentType.Username }
+                            Modifier.semantics {
+                                    testTag = "username"
+                                    contentType = ContentType.Username
+                                }
                                 .size(10.toDp())
                         )
                     }
@@ -797,13 +877,20 @@ class AndroidAutofillManagerTest {
             }
         }
 
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
         rule.runOnIdle { coroutineScope.launch { state.scrollToItem(10) } }
 
-        rule.runOnIdle { verify(am).commit() }
+        rule.waitForIdle()
+        verify(am).commit()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(semanticsId),
+                isVisible = eq(false)
+            )
     }
 
     @Test
-    @SmallTest
     fun autofillManager_columnScroll_doesNotCallCommit() {
         lateinit var scrollState: ScrollState
         lateinit var coroutineScope: CoroutineScope
@@ -832,8 +919,8 @@ class AndroidAutofillManagerTest {
     }
 
     @Test
-    @SmallTest
     fun autofillManager_column_nodesDisappearingCallsCommit() {
+        // Arrange.
         lateinit var scrollState: ScrollState
         var autofillComponentsVisible by mutableStateOf(true)
 
@@ -845,7 +932,10 @@ class AndroidAutofillManagerTest {
                     if (autofillComponentsVisible) {
                         Row {
                             Box(
-                                Modifier.semantics { contentType = ContentType.Username }
+                                Modifier.semantics {
+                                        testTag = "username"
+                                        contentType = ContentType.Username
+                                    }
                                     .size(10.toDp())
                             )
                         }
@@ -854,15 +944,23 @@ class AndroidAutofillManagerTest {
                 }
             }
         }
+        val semanticsId = rule.onNodeWithTag("username").semanticsId()
 
+        // Act.
         rule.runOnIdle { autofillComponentsVisible = false }
 
-        // A column disappearing will call commit
-        rule.runOnIdle { verify(am).commit() }
+        // Assert - A column disappearing will call commit
+        rule.waitForIdle()
+        verify(am)
+            .notifyViewVisibilityChanged(
+                view = eq(view),
+                semanticsId = eq(semanticsId),
+                isVisible = eq(false)
+            )
+        verify(am).commit()
     }
 
     @Test
-    @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillManager_requestAutofill() {
         // Arrange.
