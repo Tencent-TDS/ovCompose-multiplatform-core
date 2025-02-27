@@ -507,6 +507,12 @@ internal class RootNodeOwner(
         override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {
         }
 
+        override fun onPreLayoutNodeReused(layoutNode: LayoutNode, oldSemanticsId: Int) {
+            // Keep the mapping up to date when the semanticsId changes
+            layoutNodes.remove(oldSemanticsId)
+            layoutNodes[layoutNode.semanticsId] = layoutNode
+        }
+
         @InternalComposeUiApi
         override fun onInteropViewLayoutChange(view: InteropView) {
             // TODO dispatch platform re-layout
