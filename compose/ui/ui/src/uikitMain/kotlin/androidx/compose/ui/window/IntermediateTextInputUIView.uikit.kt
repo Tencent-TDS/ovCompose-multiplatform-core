@@ -976,7 +976,7 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
         return if (selectionHandleOrCursor != null && selectionHandleOrCursor != this) {
             UIKitInteropInteractionMode.NonCooperative
         } else if (CGRectContainsPoint(bounds, point)) {
-            UIKitInteropInteractionMode.Cooperative()
+            UIKitInteropInteractionMode.Cooperative(1000)
         } else {
             null
         }

@@ -182,23 +182,10 @@ internal class UserInputGestureRecognizer(
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent) {
         super.touchesEnded(touches, withEvent)
 
-        fun endTouchesEvent() {
-            onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.ENDED)
-            stopTrackingTouches(touches)
-            if (trackedTouches.isEmpty()) {
-                setState(UIGestureRecognizerStateEnded)
-            }
-        }
-
-        if (state.isOngoing) {
-            endTouchesEvent()
-        } else {
-            val hasHitTestResult = touches.firstNotNullOfOrNull { trackedTouches[it] } != null
-            if (hasHitTestResult) {
-                cancelAllTrackedTouches()
-            } else {
-                endTouchesEvent()
-            }
+        onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.ENDED)
+        stopTrackingTouches(touches)
+        if (trackedTouches.isEmpty()) {
+            setState(UIGestureRecognizerStateEnded)
         }
     }
 
