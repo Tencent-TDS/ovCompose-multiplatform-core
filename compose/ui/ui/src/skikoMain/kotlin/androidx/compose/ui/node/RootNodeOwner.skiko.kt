@@ -403,7 +403,10 @@ internal class RootNodeOwner(
         }
 
         override fun onDetach(node: LayoutNode) {
-            layoutNodes.remove(node.semanticsId)
+            val existing = layoutNodes.remove(node.semanticsId)
+            checkNotNull(existing) {
+                "Invalid usage of Owner.onDetach: layoutNode was not previously attached"
+            }
             measureAndLayoutDelegate.onNodeDetached(node)
             snapshotObserver.clear(node)
             needClearObservations = true
@@ -509,7 +512,13 @@ internal class RootNodeOwner(
 
         override fun onPreLayoutNodeReused(layoutNode: LayoutNode, oldSemanticsId: Int) {
             // Keep the mapping up to date when the semanticsId changes
-            layoutNodes.remove(oldSemanticsId)
+            val existing = layoutNodes.remove(oldSemanticsId)
+            checkNotNull(existing) {
+                "Invalid usage of Owner.onPreLayoutNodeReused: layoutNode is not found"
+            }
+            check(existing == layoutNode) {
+                "Invalid usage of Owner.onPreLayoutNodeReused: previous semanticsId refers another layoutNode"
+            }
             layoutNodes[layoutNode.semanticsId] = layoutNode
         }
 
