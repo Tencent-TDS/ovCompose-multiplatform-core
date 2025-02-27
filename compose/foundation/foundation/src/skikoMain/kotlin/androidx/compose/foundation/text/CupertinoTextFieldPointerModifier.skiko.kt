@@ -49,18 +49,18 @@ internal fun Modifier.cupertinoTextFieldPointer(
     readOnly: Boolean,
     offsetMapping: OffsetMapping
 ): Modifier {
-//    val isFocused = state.hasFocus
-//    return if (!isFocused) {
-//        println("TextField not focused, using default modifier")
-        return this
+    val isFocused = state.hasFocus
+    return if (!isFocused) {
+        println("TextField not focused, using default modifier")
+        this
             .then(defaultTextFieldPointer(manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping))
-//    } else {
-//        LaunchedEffect(manager.value.selection) {
-//            manager.enterSelectionMode(true)
-//        }
-////        println("TextField focused, disabling pointer modifier")
-//        this
-//    }
+    } else {
+        LaunchedEffect(manager.value.selection) {
+            manager.enterSelectionMode(true)
+        }
+        println("TextField focused, disabling pointer modifier")
+        this
+    }
 }
 
 @Composable
