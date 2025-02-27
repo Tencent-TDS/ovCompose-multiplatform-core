@@ -61,6 +61,7 @@ import platform.Foundation.NSOrderedDescending
 import platform.Foundation.NSOrderedSame
 import platform.Foundation.NSRange
 import platform.Foundation.NSStringFromSelector
+import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.NSWritingDirection
 import platform.UIKit.NSWritingDirectionLeftToRight
 import platform.UIKit.NSWritingDirectionNatural
@@ -256,7 +257,17 @@ internal class IntermediateTextInputUIView(
     override fun setSelectedTextRange(selectedTextRange: UITextRange?) {
         val range = selectedTextRange?.toTextRange()
         if (input?.getSelectedTextRange() != range) {
+            // iOS <= 16 does not update selection handles when selection changes from the keyboard
+            // Posting an extra notification solves this issue
+            val notifySelectionChanges = !available(OS.Ios to OSVersion(major = 17)) &&
+                !touchesTrackerGestureRecognizer.isTrackingTouches
+            if (notifySelectionChanges) {
+                selectionWillChange()
+            }
             input?.setSelectedTextRange(range)
+            if (notifySelectionChanges) {
+                selectionDidChange()
+            }
         }
     }
 
@@ -918,30 +929,33 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
         }
     }
 
-    fun setFrame(frame: CValue<CGRect>, bounds: CValue<CGRect>) {
+    fun setFrame(newFrame: CValue<CGRect>, textBounds: CValue<CGRect>) {
         val textViewFrame = CGRectMake(
             x = 0.0,
             y = 0.0,
-            width = CGRectGetWidth(bounds),
-            height = CGRectGetHeight(bounds)
+            width = CGRectGetWidth(textBounds),
+            height = CGRectGetHeight(textBounds)
         )
-        val inset = UIEdgeInsetsMake(
-            top = max(0.0, -CGRectGetMinY(bounds)),
-            left = max(0.0, -CGRectGetMinX(bounds)),
+        val insets = UIEdgeInsetsMake(
+            top = max(0.0, -CGRectGetMinY(textBounds)),
+            left = max(0.0, -CGRectGetMinX(textBounds)),
             bottom = max(
-                0.0, CGRectGetHeight(frame) - CGRectGetHeight(bounds) + CGRectGetMinY(bounds)
+                0.0,
+                CGRectGetHeight(newFrame) - CGRectGetHeight(textBounds) + CGRectGetMinY(textBounds)
             ),
             right = max(
-                0.0, CGRectGetWidth(frame) - CGRectGetWidth(bounds) + CGRectGetMinX(bounds)
+                0.0,
+                CGRectGetWidth(newFrame) - CGRectGetWidth(textBounds) + CGRectGetMinX(textBounds)
             )
         )
-        val scrollContentSize = bounds.useContents { size.readValue() }
-        val scrollContentInset = bounds.useContents { origin.readValue() }
+
+        val scrollContentSize = textBounds.useContents { size.readValue() }
+        val scrollContentInset = textBounds.useContents { origin.readValue() }
 
         val textFrameChanged =
             textView?.let { !CGRectEqualToRect(it.frame, textViewFrame) } ?: false
-        val frameChanged = !CGRectEqualToRect(this.frame, frame)
-        val contentInsetChanged = !UIEdgeInsetsEqualToEdgeInsets(contentInset, inset)
+        val frameChanged = !CGRectEqualToRect(frame, newFrame)
+        val contentInsetChanged = !UIEdgeInsetsEqualToEdgeInsets(contentInset, insets)
         val contentSizeChanged = !CGSizeEqualToSize(contentSize, scrollContentSize)
         val contentOffsetChanged = !CGPointEqualToPoint(contentOffset, scrollContentInset)
 
@@ -955,10 +969,10 @@ internal class IntermediateTextScrollView(): UIScrollView(frame = CGRectZero.rea
             textView?.selectionWillChange()
 
             textView?.setFrame(textViewFrame)
-            setFrame(frame)
-            setContentInset(inset)
-            setContentSize(bounds.useContents { size.readValue() })
-            setContentOffset(bounds.useContents { origin.readValue() })
+            setFrame(newFrame)
+            setContentInset(insets)
+            setContentSize(scrollContentSize)
+            setContentOffset(scrollContentInset)
 
             textView?.selectionDidChange()
         }

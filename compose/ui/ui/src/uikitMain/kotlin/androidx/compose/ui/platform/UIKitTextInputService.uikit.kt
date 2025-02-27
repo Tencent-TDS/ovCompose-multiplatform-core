@@ -60,7 +60,6 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIColor
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
-import platform.UIKit.reloadInputViews
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -416,7 +415,7 @@ internal class UIKitTextInputService(
             scrollView.layer.setBorderColor(UIColor.orangeColor.CGColor)
             scrollView.layer.borderWidth = 2.0
             scrollView.textView = it
-            rootView.setFrame(it.bounds)
+            scrollView.setFrame(it.bounds)
 
             it.setBackgroundColor(UIColor.redColor.colorWithAlphaComponent(0.2))
             it.setTintColor(UIColor.yellowColor) // forward colors here
