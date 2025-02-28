@@ -421,6 +421,7 @@ internal class TextFieldSelectionState(
         try {
             coroutineScope {
                 launch { observeTextChanges() }
+                launch { observeSelectionChanges() }
                 launch { observeTextToolbarVisibility() }
             }
         } finally {
@@ -464,52 +465,57 @@ internal class TextFieldSelectionState(
         detectTapAndPress(
             onTap = { offset ->
                 logDebug { "onTapTextField" }
-                requestFocus()
+                if (!isFocused) {
+                    requestFocus()
 
-                if (enabled && isFocused) {
-                    if (!readOnly) {
-                        showKeyboard()
-                        if (textFieldState.visualText.isNotEmpty()) {
-                            showCursorHandle = true
+                    if (enabled && isFocused) {
+                        if (!readOnly) {
+                            showKeyboard()
+                            if (textFieldState.visualText.isNotEmpty()) {
+                                showCursorHandle = true
+                            }
                         }
+
+                        // do not show any TextToolbar.
+                        updateTextToolbarState(None)
+
+                        val coercedOffset =
+                            textLayoutState.coercedInVisibleBoundsOfInputText(offset)
+
+                        placeCursorAtNearestOffset(
+                            textLayoutState.fromDecorationToTextLayout(coercedOffset)
+                        )
                     }
-
-                    // do not show any TextToolbar.
-                    updateTextToolbarState(None)
-
-                    val coercedOffset = textLayoutState.coercedInVisibleBoundsOfInputText(offset)
-
-                    placeCursorAtNearestOffset(
-                        textLayoutState.fromDecorationToTextLayout(coercedOffset)
-                    )
                 }
             },
             onPress = { offset ->
-                interactionSource?.let { interactionSource ->
-                    coroutineScope {
-                        launch {
-                            // Remove any old interactions if we didn't fire stop / cancel properly
-                            pressInteraction?.let { oldValue ->
-                                val interaction = PressInteraction.Cancel(oldValue)
-                                interactionSource.emit(interaction)
-                                pressInteraction = null
-                            }
-
-                            val press = PressInteraction.Press(offset)
-                            interactionSource.emit(press)
-                            pressInteraction = press
-                        }
-                        val success = tryAwaitRelease()
-                        pressInteraction?.let { pressInteraction ->
-                            val endInteraction =
-                                if (success) {
-                                    PressInteraction.Release(pressInteraction)
-                                } else {
-                                    PressInteraction.Cancel(pressInteraction)
+                if (!isFocused) {
+                    interactionSource?.let { interactionSource ->
+                        coroutineScope {
+                            launch {
+                                // Remove any old interactions if we didn't fire stop / cancel properly
+                                pressInteraction?.let { oldValue ->
+                                    val interaction = PressInteraction.Cancel(oldValue)
+                                    interactionSource.emit(interaction)
+                                    pressInteraction = null
                                 }
-                            interactionSource.emit(endInteraction)
+
+                                val press = PressInteraction.Press(offset)
+                                interactionSource.emit(press)
+                                pressInteraction = press
+                            }
+                            val success = tryAwaitRelease()
+                            pressInteraction?.let { pressInteraction ->
+                                val endInteraction =
+                                    if (success) {
+                                        PressInteraction.Release(pressInteraction)
+                                    } else {
+                                        PressInteraction.Cancel(pressInteraction)
+                                    }
+                                interactionSource.emit(endInteraction)
+                            }
+                            pressInteraction = null
                         }
-                        pressInteraction = null
                     }
                 }
             }
@@ -655,10 +661,10 @@ internal class TextFieldSelectionState(
      *   exception is the first mouse down does immediately place the cursor at the position.
      */
     suspend fun PointerInputScope.textFieldSelectionGestures(requestFocus: () -> Unit) {
-        selectionGesturePointerInputBtf2(
-            mouseSelectionObserver = TextFieldMouseSelectionObserver(requestFocus),
-            textDragObserver = TextFieldTextDragObserver(requestFocus),
-        )
+        // selectionGesturePointerInputBtf2(
+        //     mouseSelectionObserver = TextFieldMouseSelectionObserver(requestFocus),
+        //     textDragObserver = TextFieldTextDragObserver(requestFocus),
+        // )
     }
 
     private inner class TextFieldMouseSelectionObserver(private val requestFocus: () -> Unit) :
@@ -1050,6 +1056,22 @@ internal class TextFieldSelectionState(
             }
     }
 
+    private suspend fun observeSelectionChanges() {
+        snapshotFlow {
+            val isCollapsed = textFieldState.visualText.selection.collapsed
+            if (draggingHandle == null && isInTouchMode) {
+                if (isCollapsed) {
+                    Cursor
+                } else {
+                    Selection
+                }
+            } else {
+                None
+            }
+        }.collect { state ->
+            updateTextToolbarState(state)
+        }
+    }
     /**
      * Manages the visibility of text toolbar according to current state and received events from
      * various sources.
