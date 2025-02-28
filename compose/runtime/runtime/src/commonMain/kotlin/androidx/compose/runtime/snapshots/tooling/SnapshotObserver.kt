@@ -50,7 +50,25 @@ interface SnapshotObserver {
      * @param readonly whether the snapshot being created will be read-only.
      * @return optional read and write observers that will be added to the snapshot created.
      */
+    @Deprecated(
+        "Deprecated and renamed to onPreCreate. This method will be removed before 1.8.0 stable",
+        ReplaceWith("onPreCreate")
+    )
     fun onCreating(parent: Snapshot?, readonly: Boolean): SnapshotInstanceObservers? = null
+
+    /**
+     * Called before a snapshot is created allowing reads and writes to the snapshot to be observed.
+     *
+     * This method is called in the same thread that creates the snapshot.
+     *
+     * @param parent the parent snapshot for the new snapshot if it is a nested snapshot or null
+     *   otherwise.
+     * @param readonly whether the snapshot being created will be read-only.
+     * @return optional read and write observers that will be added to the snapshot created.
+     */
+    @Suppress("DEPRECATION")
+    fun onPreCreate(parent: Snapshot?, readonly: Boolean): SnapshotInstanceObservers? =
+        onCreating(parent, readonly)
 
     /**
      * Called after snapshot is created.
@@ -76,7 +94,20 @@ interface SnapshotObserver {
      *
      * @param snapshot information about the snapshot that was created.
      */
+    @Deprecated(
+        "Deprecated and renamed to onPreDispose. This method will be removed before 1.8.0 stable",
+        ReplaceWith("onPreDispose")
+    )
     fun onDisposing(snapshot: Snapshot) {}
+
+    /**
+     * Called while a snapshot is being disposed.
+     *
+     * This method is called in the same thread that disposes the snapshot.
+     *
+     * @param snapshot information about the snapshot that was created.
+     */
+    @Suppress("DEPRECATION") fun onPreDispose(snapshot: Snapshot) = onDisposing(snapshot)
 
     /**
      * Called after a snapshot is applied.
@@ -186,7 +217,7 @@ internal fun PersistentList<SnapshotObserver>.mergeObservers(
     var currentWriteObserver = writeObserver
     var observerMap: MutableMap<SnapshotObserver, SnapshotInstanceObservers>? = null
     fastForEach { observer ->
-        val instance = observer.onCreating(parent, readonly)
+        val instance = observer.onPreCreate(parent, readonly)
         if (instance != null) {
             currentReadObserver = mergeObservers(instance.readObserver, currentReadObserver)
             currentWriteObserver = mergeObservers(instance.writeObserver, currentWriteObserver)
@@ -223,8 +254,8 @@ internal fun PersistentList<SnapshotObserver>.dispatchCreatedObservers(
 }
 
 @OptIn(ExperimentalComposeRuntimeApi::class)
-internal fun dispatchObserverOnDispose(snapshot: Snapshot) {
-    observers?.fastForEach { observer -> observer.onDisposing(snapshot) }
+internal fun dispatchObserverOnPreDispose(snapshot: Snapshot) {
+    observers?.fastForEach { observer -> observer.onPreDispose(snapshot) }
 }
 
 @OptIn(ExperimentalComposeRuntimeApi::class)
