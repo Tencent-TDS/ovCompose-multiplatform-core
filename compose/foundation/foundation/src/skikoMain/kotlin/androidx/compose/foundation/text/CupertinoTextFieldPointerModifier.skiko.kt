@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text
 
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectRepeatingTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,13 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.util.fastForEach
 
 @Composable
 internal fun Modifier.cupertinoTextFieldPointer(
@@ -55,11 +56,17 @@ internal fun Modifier.cupertinoTextFieldPointer(
         this
             .then(defaultTextFieldPointer(manager, enabled, interactionSource, state, focusRequester, readOnly, offsetMapping))
     } else {
+        println("TextField focused, disabling pointer modifier")
         LaunchedEffect(manager.value.selection) {
             manager.enterSelectionMode(true)
         }
-        println("TextField focused, disabling pointer modifier")
-        this
+        this.pointerInput(Unit) {
+            awaitEachGesture {
+                awaitPointerEvent().changes.fastForEach {
+                    it.consume()
+                }
+            }
+        }
     }
 }
 
