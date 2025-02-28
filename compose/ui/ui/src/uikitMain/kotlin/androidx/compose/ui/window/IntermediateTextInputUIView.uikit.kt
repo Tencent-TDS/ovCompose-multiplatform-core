@@ -502,7 +502,7 @@ internal class IntermediateTextInputUIView(
         val fallbackRect = CGRectMake(x = 1.0, y = 1.0, width = 0.0, height = 1.0)
         val longPosition = (position as? IntermediateTextPosition)?.position ?: return fallbackRect
         val caretDpRect = input?.caretDpRectForPosition(longPosition)?.let {
-            it.copy(right = it.left + 1.dp)
+            it.copy(right = it.left)
         }
         return caretDpRect?.asCGRect() ?: fallbackRect
     }
