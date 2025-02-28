@@ -62,7 +62,7 @@ kotlin {
                 api project(":navigation:navigation-runtime")
                 api project(":savedstate:savedstate")
 
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinSerializationCore)
             }
         }
