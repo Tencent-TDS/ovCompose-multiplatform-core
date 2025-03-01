@@ -74,6 +74,37 @@ class ConfigurationScreenWidthHeightDetectorTest : LintDetectorTest() {
             """
         )
 
+    val FakeWearStub =
+        bytecodeStub(
+            "Foo.kt",
+            "androidx/wear/compose/foo",
+            0x3c06169a,
+            """
+            package androidx.wear.compose.foo
+
+            class Foo
+        """,
+            """
+        META-INF/main.kotlin_module:
+        H4sIAAAAAAAA/2NgYGBmYGBgAmJGBijg0uOSSMxLKcrPTKnQS87PLcgvTtUr
+        Ks0rycxNFRJyBgtklmTm5/nkJyfmeJdwWXHJYKgvzdQryEksScsvyhWScoTI
+        omstBupVwGIXUG9pXmaJEItLAVAFHxdLSWpxiRBbCJD0LlFi0GIAAIyv63a2
+        AAAA
+        """,
+            """
+        androidx/wear/compose/foo/Foo.class:
+        H4sIAAAAAAAA/31QTUsDMRScZLfbulZbv+sX4k09uCqCB0VQQShUBZVeekq7
+        UWPbRDapeuxv8R94EjxI8eiPEl+qZy/zMjPvJfPy9f3+AWAXywzLQqeZUelz
+        8iRFlrRM98FYmdwYk5wakwdjKN+LR5F0hL5NLpr3suXyCBiiA6WVO2QI1tbr
+        ReQQxQiRZwjdnbIMK7V/b95nmKi1jesonZxJJ1LhBGm8+xhQNO6BeQADa5P+
+        rDzbolO6zbA66BdjXuExLw/6MS/wyqC/w7fYcf7zJQoLvBz4xh3mxyN6bbPt
+        KNiJSSVDqaa0PO91mzK7Fs0OKZM10xKdusiU539ifGV6WUueKk/mL3vaqa6s
+        K6vIPdLaOOGU0Rbb4LT3X1L/DYQVYsmQA7mNNxRe/U6YJ4yGYogFwuJvA0YQ
+        D/3FIc5hieoeeaPkFRsIqhirYryKEspUMVHFJKYaYBbTmGkgtIgtZi1yFtEP
+        oGFY3NwBAAA=
+        """
+        )
+
     @Test
     fun error() {
         lint()
@@ -147,6 +178,57 @@ src/test/test.kt:29: Warning: Using Configuration.screenHeightDp instead of Loca
 0 errors, 8 warnings
             """
             )
+    }
+
+    @Test
+    fun ignoresErrorsWithWearImports() {
+        lint()
+            .files(
+                kotlin(
+                    """
+                package test
+
+                import android.content.res.Configuration
+                import androidx.compose.runtime.Composable
+                import androidx.compose.ui.platform.LocalConfiguration
+                import androidx.compose.ui.unit.dp
+                import androidx.wear.compose.foo.Foo
+
+                val foo = Foo()
+
+                @Composable
+                fun Test() {
+                    LocalConfiguration.current.screenWidthDp
+                    LocalConfiguration.current.screenHeightDp
+
+                    val configuration = LocalConfiguration.current
+                    val width = configuration.screenWidthDp.dp
+                    val height = configuration.screenHeightDp.dp
+
+                    val someLambda = {
+                        // Capture configuration value from composition, and use outside of
+                        // composition
+                        configuration.screenWidthDp
+                        configuration.screenHeightDp
+                    }
+                }
+
+                @Composable
+                fun Test2(configuration: Configuration) {
+                    val width = configuration.screenWidthDp.dp
+                    val height = configuration.screenHeightDp.dp
+                }
+            """
+                ),
+                LocalConfigurationStub,
+                FakeWearStub,
+                Stubs.Composable,
+                Stubs.CompositionLocal,
+                Stubs.Dp,
+                AndroidStubs.Configuration
+            )
+            .run()
+            .expectClean()
     }
 
     @Test
