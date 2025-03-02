@@ -86,7 +86,7 @@ internal fun SemanticsConfiguration.accessibilityTraits(): UIAccessibilityTraits
         }
     }
 
-    if (isTextNode) {
+    if (contains(SemanticsProperties.EditableText)) {
         result = result or CMPAccessibilityTraitTextView
         if (getOrNull(SemanticsProperties.Focused) == true) {
             result = result or CMPAccessibilityTraitIsEditing
@@ -139,9 +139,6 @@ internal fun SemanticsConfiguration.accessibilityLabel(): String? {
         editableText ?: getOrNull(SemanticsProperties.Text)?.joinToString("\n") { it.text }
     }
 }
-
-internal val SemanticsConfiguration.isTextNode: Boolean get() =
-    contains(SemanticsProperties.EditableText) && contains(SemanticsActions.SetText)
 
 internal fun SemanticsConfiguration.accessibilityValue(): String? {
     getOrNull(SemanticsProperties.StateDescription)?.let {
