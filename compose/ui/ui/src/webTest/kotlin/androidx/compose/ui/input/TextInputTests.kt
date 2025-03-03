@@ -16,11 +16,14 @@
 
 package androidx.compose.ui.input
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.TextField
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,22 +31,23 @@ import androidx.compose.ui.OnCanvasTests
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlinx.browser.document
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.events.MouseEvent
+import org.w3c.dom.events.MouseEventInit
 
 class TextInputTests : OnCanvasTests  {
 
@@ -127,5 +131,37 @@ class TextInputTests : OnCanvasTests  {
         yield()
         textArea = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(textArea)
+    }
+
+    @Test
+    fun canSelectAWordUsingMouse() = runTest {
+        val syncChannel = Channel<TextRange?>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        createComposeWindow {
+            val textState = remember { TextFieldState("qwerty 1234567") }
+
+            CompositionLocalProvider(LocalDensity provides Density(2f)) {
+                Column {
+                    TextField(state = textState)
+
+                    LaunchedEffect(textState.selection) {
+                        syncChannel.send(textState.selection)
+                    }
+                }
+            }
+        }
+
+        var selection = syncChannel.receive()
+        assertEquals(TextRange(14, 14), selection)
+
+        val canvas = getCanvas()
+        canvas.dispatchEvent(MouseEvent("mouseenter"))
+        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 0, clientY = 8, buttons = 1, button = 1)))
+        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 56, clientY = 8, buttons = 0, button = 1)))
+
+        selection = syncChannel.receive()
+        assertEquals(TextRange(0, 6), selection)
     }
 }
