@@ -279,7 +279,6 @@ final class CMPViewControllerTests: XCTestCase {
             (viewController3, false),
         ])
         rootViewController = UIViewController()
-        rootViewController.additionalSafeAreaInsets
         await expect(viewControllers: [viewController0, viewController1, viewController2, viewController3], toBeInHierarchy: false)
     }
 
@@ -304,22 +303,38 @@ final class CMPViewControllerTests: XCTestCase {
     }
     
     @MainActor
-    public func testViewDisposal() async {
-        var viewDisposedCalled = false
+    public func testLifecycleDelegate() async {
+        let delegate = LifecycleDelegate()
 
         autoreleasepool {
-            let viewController = TestViewController()
-            viewController.onViewIsDisposed = {
-                viewDisposedCalled = true
-            }
+            let viewController = TestViewController(delegate: delegate)
             rootViewController = viewController
         }
         
-        await expect(viewControllers: [rootViewController as! TestViewController], toBeInHierarchy: true)
+        await expect { delegate.viewControllerWillAppearCallsCount == 1 }
         
         rootViewController = UIViewController()
-        
-        await expect { viewDisposedCalled }
+
+        await expect { delegate.viewControllerWillAppearCallsCount == 1 }
+        await expect { delegate.viewControllerDidDisappearCallsCount == 1 }
+        await expect { delegate.viewControllerWillDeallocCallsCount == 1 }
+    }
+}
+
+private class LifecycleDelegate: CMPViewControllerLifecycleDelegate {
+    var viewControllerWillAppearCallsCount = 0
+    func viewControllerWillAppear() {
+        viewControllerWillAppearCallsCount += 1
+    }
+    
+    var viewControllerDidDisappearCallsCount = 0
+    func viewControllerDidDisappear() {
+        viewControllerDidDisappearCallsCount += 1
+    }
+    
+    var viewControllerWillDeallocCallsCount = 0
+    func viewControllerWillDealloc() {
+        viewControllerWillDeallocCallsCount += 1
     }
 }
 
@@ -329,12 +344,11 @@ private class TestViewController: CMPViewController {
     private let id: Int
     
     public var viewIsInWindowHierarchy: Bool = false
-    public var onViewIsDisposed = {}
 
-    init() {
+    init(delegate: CMPViewControllerLifecycleDelegate? = nil) {
         id = TestViewController.counter
         TestViewController.counter += 1
-        super.init(nibName: nil, bundle: nil)
+        super.init(lifecycleDelegate: delegate)
     }
     
     required init?(coder: NSCoder) {
@@ -353,9 +367,5 @@ private class TestViewController: CMPViewController {
         print("TestViewController_\(id) didLeaveWindowHierarchy")
         XCTAssertTrue(viewIsInWindowHierarchy)
         viewIsInWindowHierarchy = false
-    }
-    
-    override func viewControllerWillDispose() {
-        onViewIsDisposed()
     }
 }
