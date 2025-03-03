@@ -176,6 +176,7 @@ internal class BackingTextArea(
             setProperty("border", "none")
             setProperty("resize", "none")
             setProperty("text-shadow", "none")
+            setProperty("z-index", "-1")
         }
 
         initEvents(htmlInput)
