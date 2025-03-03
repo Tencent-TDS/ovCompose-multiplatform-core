@@ -73,7 +73,7 @@ internal class UIKitComposeSceneLayersHolder(
 
     var window: UIWindow? = null
         set(value) {
-            if (field != window) {
+            if (field != value) {
                 field = value
 
                 view.removeFromSuperview()

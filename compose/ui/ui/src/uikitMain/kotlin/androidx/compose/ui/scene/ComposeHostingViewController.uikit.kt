@@ -200,6 +200,7 @@ internal class ComposeHostingViewController(
 
         updateInterfaceOrientationState()
 
+        layers?.window = window
         windowContext.setWindowContainer(windowContainer)
         updateMotionSpeed()
     }
@@ -397,6 +398,7 @@ internal class ComposeHostingViewController(
         metalView.canBeOpaque = configuration.opaque
 
         val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
+        layers.window = rootView.window
         this.layers = layers
 
         mediator = ComposeSceneMediator(
