@@ -193,7 +193,9 @@ class TextInputTests : OnCanvasTests  {
         // So it will be the first to process all the point inputs
         assertEquals(canvas, elementsAtPos[0])
         assertTrue(elementsAtPos.toList().any { it == textArea }) // such a weird check to make the test common for js and wasm
-        yield()
+        withContext(Dispatchers.Default) {
+            delay(250) // to separate the mouse events
+        }
 
         // Try to select the text using mouse:
         val clientY = textAreaRect.top.toInt() + 8
