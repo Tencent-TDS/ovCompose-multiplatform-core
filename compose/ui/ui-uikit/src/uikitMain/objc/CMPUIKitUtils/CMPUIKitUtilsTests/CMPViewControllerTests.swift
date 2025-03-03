@@ -217,15 +217,6 @@ final class CMPViewControllerTests: XCTestCase {
     
     @MainActor
     public func testFullscreenPresentationOnTop() async throws {
-        /*
-         Fails on CI with
-         
-         CMPViewController shouldn't be reused after completely removed from hierarchy,
-         because it's logically marked as Destroyed.
-         You must create a new CMPViewController and use it instead. (CMPViewControllerMisuse)
-         */
-        throw XCTSkip("TODO: Investigate CI fail")
-        
         let viewController = TestViewController()
         rootViewController = viewController
         
@@ -288,7 +279,47 @@ final class CMPViewControllerTests: XCTestCase {
             (viewController3, false),
         ])
         rootViewController = UIViewController()
+        rootViewController.additionalSafeAreaInsets
         await expect(viewControllers: [viewController0, viewController1, viewController2, viewController3], toBeInHierarchy: false)
+    }
+
+    @MainActor
+    public func testMultipleHierarchyReEntrance() async {
+        let viewController = TestViewController()
+        
+        let navigationController = UINavigationController(rootViewController: UIViewController())
+
+        rootViewController = navigationController
+        navigationController.pushViewController(viewController, animated: false)
+
+        await expect(viewControllers: [viewController], toBeInHierarchy: true)
+
+        navigationController.popViewController(animated: false)
+
+        await expect(viewControllers: [viewController], toBeInHierarchy: false)
+
+        navigationController.pushViewController(viewController, animated: false)
+
+        await expect(viewControllers: [viewController], toBeInHierarchy: true)
+    }
+    
+    @MainActor
+    public func testViewDisposal() async {
+        var viewDisposedCalled = false
+
+        autoreleasepool {
+            let viewController = TestViewController()
+            viewController.onViewIsDisposed = {
+                viewDisposedCalled = true
+            }
+            rootViewController = viewController
+        }
+        
+        await expect(viewControllers: [rootViewController as! TestViewController], toBeInHierarchy: true)
+        
+        rootViewController = UIViewController()
+        
+        await expect { viewDisposedCalled }
     }
 }
 
@@ -298,7 +329,8 @@ private class TestViewController: CMPViewController {
     private let id: Int
     
     public var viewIsInWindowHierarchy: Bool = false
-    
+    public var onViewIsDisposed = {}
+
     init() {
         id = TestViewController.counter
         TestViewController.counter += 1
@@ -312,12 +344,18 @@ private class TestViewController: CMPViewController {
     override func viewControllerDidEnterWindowHierarchy() {
         super.viewControllerDidEnterWindowHierarchy()
         print("TestViewController_\(id) didEnterWindowHierarchy")
+        XCTAssertFalse(viewIsInWindowHierarchy)
         viewIsInWindowHierarchy = true
     }
 
     override func viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
         print("TestViewController_\(id) didLeaveWindowHierarchy")
+        XCTAssertTrue(viewIsInWindowHierarchy)
         viewIsInWindowHierarchy = false
+    }
+    
+    override func viewControllerWillDispose() {
+        onViewIsDisposed()
     }
 }
