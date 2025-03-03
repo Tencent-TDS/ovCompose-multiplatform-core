@@ -177,6 +177,8 @@ internal class BackingTextArea(
             setProperty("resize", "none")
             setProperty("text-shadow", "none")
             setProperty("z-index", "-1")
+            // TODO: do we need pointer-events: none
+            //setProperty("pointer-events", "none")
         }
 
         initEvents(htmlInput)

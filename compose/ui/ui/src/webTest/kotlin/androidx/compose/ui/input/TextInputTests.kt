@@ -31,19 +31,27 @@ import androidx.compose.ui.OnCanvasTests
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.browser.document
+import kotlinx.browser.window
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.MouseEvent
@@ -139,12 +147,14 @@ class TextInputTests : OnCanvasTests  {
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
+        val focusRequester = FocusRequester()
+
         createComposeWindow {
             val textState = remember { TextFieldState("qwerty 1234567") }
 
             CompositionLocalProvider(LocalDensity provides Density(2f)) {
                 Column {
-                    TextField(state = textState)
+                    TextField(state = textState, modifier = Modifier.focusRequester(focusRequester))
 
                     LaunchedEffect(textState.selection) {
                         syncChannel.send(textState.selection)
@@ -153,15 +163,47 @@ class TextInputTests : OnCanvasTests  {
             }
         }
 
+        focusRequester.requestFocus()
+        yield()
+
+        val textArea = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(textArea)
+
         var selection = syncChannel.receive()
         assertEquals(TextRange(14, 14), selection)
 
         val canvas = getCanvas()
         canvas.dispatchEvent(MouseEvent("mouseenter"))
-        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 0, clientY = 8, buttons = 1, button = 1)))
-        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 56, clientY = 8, buttons = 0, button = 1)))
+        yield()
+        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 8, clientY = 20, buttons = 1, button = 1)))
+        yield()
+        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 8, clientY = 20, buttons = 0, button = 1)))
 
         selection = syncChannel.receive()
-        assertEquals(TextRange(0, 6), selection)
+        assertEquals(TextRange(0, 0), selection)
+
+        val textAreaRect = textArea.getBoundingClientRect()
+        // Do a manual hit-test
+        val elementsAtPos = document.elementsFromPoint(
+            textAreaRect.left + textAreaRect.width / 2 ,
+            textAreaRect.top + textAreaRect.height / 2
+        )
+
+        // We expect the canvas to be on the top despite the coordinates match the textarea.
+        // So it will be the first to process all the point inputs
+        assertEquals(canvas, elementsAtPos[0])
+        assertTrue(elementsAtPos.toList().any { it == textArea }) // such a weird check to make the test common for js and wasm
+        yield()
+
+        // Try to select the text using mouse:
+        val clientY = textAreaRect.top.toInt() + 8
+        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 56, clientY = clientY, buttons = 1, button = 1)))
+        yield()
+        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 1, button = 1)))
+        yield()
+        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 0, button = 1)))
+
+        selection = syncChannel.receive()
+        assertEquals(TextRange(6, 13), selection)
     }
 }
