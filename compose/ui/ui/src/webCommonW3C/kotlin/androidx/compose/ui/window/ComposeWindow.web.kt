@@ -75,7 +75,6 @@ import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.SkiaLayer
 import org.jetbrains.skiko.SkikoRenderDelegate
 import org.w3c.dom.AddEventListenerOptions
-import org.w3c.dom.DragEvent
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLStyleElement
@@ -182,7 +181,7 @@ internal class ComposeWindow(
 
     private var keyboardModeState: KeyboardModeState = KeyboardModeState.Hardware
 
-    private val platformContext: PlatformContext = object : PlatformContext {
+    private val platformContext: PlatformContext = object : PlatformContext by PlatformContext.Empty {
         override val windowInfo get() = _windowInfo
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
