@@ -23,7 +23,8 @@ import platform.Foundation.NSNotificationCenter
 import platform.darwin.NSObject
 
 internal class ViewControllerLifecycleDelegate(
-    private val lifecycleOwner: IOSLifecycleOwner
+    private val lifecycleOwner: IOSLifecycleOwner,
+    notificationCenter: NSNotificationCenter = NSNotificationCenter.defaultCenter
 ): NSObject(), CMPViewControllerLifecycleDelegateProtocol {
 
     private var isViewAppeared = false
@@ -32,13 +33,13 @@ internal class ViewControllerLifecycleDelegate(
     private var isDisposed = false
 
     private val applicationForegroundStateListener =
-        ApplicationForegroundStateListener(NSNotificationCenter.defaultCenter) { isForeground ->
+        ApplicationForegroundStateListener(notificationCenter) { isForeground ->
             isAppForeground = isForeground
             updateLifecycleState()
         }
 
     private val applicationActiveStateListener =
-        ApplicationActiveStateListener(NSNotificationCenter.defaultCenter) { isActive ->
+        ApplicationActiveStateListener(notificationCenter) { isActive ->
             isAppActive = isActive
             updateLifecycleState()
         }
