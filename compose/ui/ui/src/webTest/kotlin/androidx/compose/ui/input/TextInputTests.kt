@@ -197,8 +197,11 @@ class TextInputTests : OnCanvasTests  {
             delay(250) // to separate the mouse events
         }
 
+
         // Try to select the text using mouse:
         val clientY = textAreaRect.top.toInt() + 8
+        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56, clientY = clientY, buttons = 1, button = 1)))
+        yield()
         canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 56, clientY = clientY, buttons = 1, button = 1)))
         yield()
         canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 1, button = 1)))
