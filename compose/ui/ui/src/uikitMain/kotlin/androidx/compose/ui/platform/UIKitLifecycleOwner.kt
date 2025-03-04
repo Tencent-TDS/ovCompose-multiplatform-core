@@ -16,12 +16,51 @@
 
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.window.ApplicationForegroundStateListener
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.Lifecycle.State
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 
 internal class IOSLifecycleOwner: LifecycleOwner, ViewModelStoreOwner {
     override val lifecycle = LifecycleRegistry(this)
     override val viewModelStore = ViewModelStore()
+
+    var isViewAppeared = false
+        set(value) {
+            field = value
+            updateLifecycleState()
+        }
+    var isAppForeground = ApplicationForegroundStateListener.isApplicationForeground
+        set(value) {
+            field = value
+            updateLifecycleState()
+        }
+    var isAppActive = isAppForeground
+        set(value) {
+            field = value
+            updateLifecycleState()
+        }
+
+    private var isDisposed = false
+
+    init {
+        updateLifecycleState()
+    }
+
+    fun dispose() {
+        isDisposed = true
+        viewModelStore.clear()
+        updateLifecycleState()
+    }
+
+    private fun updateLifecycleState() {
+        lifecycle.currentState = when {
+            isDisposed -> State.DESTROYED
+            isViewAppeared && isAppForeground && isAppActive -> State.RESUMED
+            isViewAppeared && isAppForeground && !isAppActive -> State.STARTED
+            else -> State.CREATED
+        }
+    }
 }

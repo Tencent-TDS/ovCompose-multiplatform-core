@@ -18,7 +18,6 @@ package androidx.compose.ui.window
 
 import androidx.compose.ui.platform.IOSLifecycleOwner
 import androidx.compose.ui.uikit.utils.CMPViewControllerLifecycleDelegateProtocol
-import androidx.lifecycle.Lifecycle.State
 import platform.Foundation.NSNotificationCenter
 import platform.darwin.NSObject
 
@@ -27,51 +26,27 @@ internal class ViewControllerLifecycleDelegate(
     notificationCenter: NSNotificationCenter = NSNotificationCenter.defaultCenter
 ): NSObject(), CMPViewControllerLifecycleDelegateProtocol {
 
-    private var isViewAppeared = false
-    private var isAppForeground = ApplicationForegroundStateListener.isApplicationForeground
-    private var isAppActive = isAppForeground
-    private var isDisposed = false
-
     private val applicationForegroundStateListener =
         ApplicationForegroundStateListener(notificationCenter) { isForeground ->
-            isAppForeground = isForeground
-            updateLifecycleState()
+            lifecycleOwner.isAppForeground = isForeground
         }
 
     private val applicationActiveStateListener =
         ApplicationActiveStateListener(notificationCenter) { isActive ->
-            isAppActive = isActive
-            updateLifecycleState()
+            lifecycleOwner.isAppActive = isActive
         }
-
-    init {
-        updateLifecycleState()
-    }
 
     override fun viewControllerWillDealloc() {
         applicationForegroundStateListener.dispose()
         applicationActiveStateListener.dispose()
-        lifecycleOwner.viewModelStore.clear()
-        isDisposed = true
-        updateLifecycleState()
+        lifecycleOwner.dispose()
     }
 
     override fun viewControllerWillAppear() {
-        isViewAppeared = true
-        updateLifecycleState()
+        lifecycleOwner.isViewAppeared = true
     }
 
     override fun viewControllerDidDisappear() {
-        isViewAppeared = false
-        updateLifecycleState()
-    }
-
-    private fun updateLifecycleState() {
-        lifecycleOwner.lifecycle.currentState = when {
-            isDisposed -> State.DESTROYED
-            isViewAppeared && isAppForeground && isAppActive -> State.RESUMED
-            isViewAppeared && isAppForeground && !isAppActive -> State.STARTED
-            else -> State.CREATED
-        }
+        lifecycleOwner.isViewAppeared = false
     }
 }

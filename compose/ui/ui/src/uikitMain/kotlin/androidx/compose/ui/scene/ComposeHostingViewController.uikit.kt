@@ -261,13 +261,64 @@ internal class ComposeHostingViewController(
     override fun viewControllerDidEnterWindowHierarchy() {
         super.viewControllerDidEnterWindowHierarchy()
 
-        startScene()
+        val metalView = MetalView(
+            retrieveInteropTransaction = {
+                mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
+                    override val actions = emptyList<UIKitInteropAction>()
+                    override val isInteropActive = false
+                }
+            },
+            useSeparateRenderThreadWhenPossible = configuration.parallelRendering,
+            render = { canvas, nanoTime ->
+                mediator?.render(canvas.asComposeCanvas(), nanoTime)
+            }
+        )
+        metalView.canBeOpaque = configuration.opaque
+
+        val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
+        layers.window = rootView.window
+        this.layers = layers
+
+        mediator = ComposeSceneMediator(
+            parentView = rootView,
+            onFocusBehavior = configuration.onFocusBehavior,
+            focusStack = focusStack,
+            windowContext = windowContext,
+            coroutineContext = composeCoroutineContext,
+            redrawer = metalView.redrawer,
+            composeSceneFactory = { invalidate, context ->
+                createComposeScene(invalidate, context, layers.metalView)
+            },
+            backGestureDispatcher = backGestureDispatcher
+        ).also { mediator ->
+            mediator.updateInteractionRect()
+            mediator.setContent {
+                ProvideContainerCompositionLocals(content)
+            }
+        }
+
+        applicationActiveStateListener = ApplicationActiveStateListener { isApplicationActive ->
+            if (isApplicationActive) {
+                updateMotionSpeed()
+            }
+        }
+
+        rootView.updateMetalView(metalView, ::onDidMoveToWindow)
     }
 
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
 
-        stopScene()
+        rootView.updateMetalView(metalView = null)
+
+        mediator?.dispose()
+        mediator = null
+
+        applicationActiveStateListener?.dispose()
+        applicationActiveStateListener = null
+
+        layers?.dispose(hasViewAppeared)
+        layers = null
     }
 
     @OptIn(NativeRuntimeApi::class)
@@ -380,65 +431,6 @@ internal class ComposeHostingViewController(
             }
         }
         mediator?.isAccessibilityEnabled = isAccessibilityEnabled
-    }
-
-    private fun startScene() {
-        val metalView = MetalView(
-            retrieveInteropTransaction = {
-                mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
-                    override val actions = emptyList<UIKitInteropAction>()
-                    override val isInteropActive = false
-                }
-            },
-            useSeparateRenderThreadWhenPossible = configuration.parallelRendering,
-            render = { canvas, nanoTime ->
-                mediator?.render(canvas.asComposeCanvas(), nanoTime)
-            }
-        )
-        metalView.canBeOpaque = configuration.opaque
-
-        val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
-        layers.window = rootView.window
-        this.layers = layers
-
-        mediator = ComposeSceneMediator(
-            parentView = rootView,
-            onFocusBehavior = configuration.onFocusBehavior,
-            focusStack = focusStack,
-            windowContext = windowContext,
-            coroutineContext = composeCoroutineContext,
-            redrawer = metalView.redrawer,
-            composeSceneFactory = { invalidate, context ->
-                createComposeScene(invalidate, context, layers.metalView)
-            },
-            backGestureDispatcher = backGestureDispatcher
-        ).also { mediator ->
-            mediator.updateInteractionRect()
-            mediator.setContent {
-                ProvideContainerCompositionLocals(content)
-            }
-        }
-
-        applicationActiveStateListener = ApplicationActiveStateListener { isApplicationActive ->
-            if (isApplicationActive) {
-                updateMotionSpeed()
-            }
-        }
-
-        rootView.updateMetalView(metalView, ::onDidMoveToWindow)
-    }
-
-    private fun stopScene() {
-        rootView.updateMetalView(metalView = null)
-
-        mediator?.dispose()
-        mediator = null
-
-        applicationActiveStateListener?.dispose()
-        applicationActiveStateListener = null
-
-        layers?.dispose(hasViewAppeared)
-        layers = null
     }
 
     private fun attachLayer(layer: UIKitComposeSceneLayer) {
