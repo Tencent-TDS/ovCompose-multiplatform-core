@@ -31,21 +31,17 @@ import androidx.compose.ui.OnCanvasTests
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.browser.document
-import kotlinx.browser.window
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
@@ -142,7 +138,7 @@ class TextInputTests : OnCanvasTests  {
     }
 
     @Test
-    fun canSelectAWordUsingMouse() = runTest {
+    fun canSelectUsingMouse() = runTest {
         val syncChannel = Channel<TextRange?>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
@@ -199,16 +195,15 @@ class TextInputTests : OnCanvasTests  {
 
 
         // Try to select the text using mouse:
-        val clientY = textAreaRect.top.toInt() + 8
-        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56, clientY = clientY, buttons = 1, button = 1)))
-        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = 56, clientY = clientY, buttons = 1, button = 1)))
-        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 1, button = 1)))
-        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 0, button = 1)))
+        val startX = textAreaRect.left.toInt() + 1
+        val startY = textAreaRect.top.toInt() + 8
+        val endX = textAreaRect.right.toInt() - 1
+        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = startX, clientY = startY, buttons = 1, button = 1)))
+        canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = startX, clientY = startY, buttons = 1, button = 1)))
+        canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = endX, clientY = startY, buttons = 1, button = 1)))
+        canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = endX, clientY = startY, buttons = 0, button = 1)))
 
-        do {
-            selection = syncChannel.receive()
-        } while (selection != TextRange(6, 13))
-
-        assertEquals(TextRange(6, 13), selection)
+        selection = syncChannel.receive()
+        assertEquals(TextRange(0, 14), selection)
     }
 }
