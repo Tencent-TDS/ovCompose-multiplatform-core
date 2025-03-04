@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,20 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
-//! Project version number for CMPUIKitUtils.
-FOUNDATION_EXPORT double CMPUIKitUtilsVersionNumber;
+NS_ASSUME_NONNULL_BEGIN
 
-//! Project version string for CMPUIKitUtils.
-FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
+@interface CMPHoverGestureHandler : NSObject
 
-#import "CMPViewController.h"
-#import "CMPAccessibilityElement.h"
-#import "CMPOSLogger.h"
-#import "CMPTextLoupeSession.h"
-#import "CMPMetalDrawablesHandler.h"
-#import "CMPGestureRecognizer.h"
-#import "CMPDragInteractionProxy.h"
-#import "CMPDropInteractionProxy.h"
-#import "CMPPanGestureRecognizer.h"
-#import "CMPHoverGestureHandler.h"
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithTarget:(nullable id)target action:(nullable SEL)action NS_DESIGNATED_INITIALIZER;
+
+@property (readonly, nullable) UIEvent *lastHandledEvent;
+
+- (void)attachToView:(UIView *)view;
+- (void)detachFromViewAndDispose:(UIView *)view;
+
+@end
+
+NS_ASSUME_NONNULL_END

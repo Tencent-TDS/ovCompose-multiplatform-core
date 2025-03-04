@@ -22,7 +22,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.animation.withAnimationProgress
 import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
@@ -36,8 +35,11 @@ import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.PointerKeyboardModifiers
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.HistoricalChange
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
@@ -65,6 +67,7 @@ import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpOffset
@@ -99,9 +102,15 @@ import platform.CoreGraphics.CGPoint
 import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
 import platform.UIKit.UIEvent
+import platform.UIKit.UIEventButtonMaskPrimary
+import platform.UIKit.UIEventButtonMaskSecondary
 import platform.UIKit.UIPress
 import platform.UIKit.UITouch
 import platform.UIKit.UITouchPhase
+import platform.UIKit.UITouchTypeDirect
+import platform.UIKit.UITouchTypeIndirect
+import platform.UIKit.UITouchTypeIndirectPointer
+import platform.UIKit.UITouchTypePencil
 import platform.UIKit.UIView
 
 /**
@@ -252,6 +261,9 @@ internal class ComposeSceneMediator(
         ::isPointInsideInteractionBounds,
         ::onTouchesEvent,
         ::onCancelAllTouches,
+        ::onScrollEvent,
+        ::onCancelScroll,
+        ::onHoverEvent,
         ::onKeyboardPresses
     )
 
@@ -343,6 +355,71 @@ internal class ComposeSceneMediator(
             }
         }
 
+    fun onScrollEvent(
+        position: DpOffset,
+        velocity: DpOffset,
+        event: UIEvent?,
+        eventKind: TouchesEventKind
+    ) {
+        when (eventKind) {
+            TouchesEventKind.BEGAN -> redrawer.ongoingInteractionEventsCount += 1
+            TouchesEventKind.MOVED -> {}
+            TouchesEventKind.ENDED -> redrawer.ongoingInteractionEventsCount -= 1
+        }
+
+        scene.sendPointerEvent(
+            eventType = PointerEventType.Scroll,
+            pointers = listOf(
+                ComposeScenePointer(
+                    id = PointerId(0),
+                    position = position.toOffset(density),
+                    pressed = false,
+                    type = PointerType.Mouse,
+                )
+            ),
+            scrollDelta = velocity.toOffset(density) * SCROLL_VELOCITY_MULTIPLIER,
+            timeMillis = event.timeMillis,
+            nativeEvent = event,
+            button = event?.button,
+            buttons = PointerButtons(event?.buttonMask ?: 0L),
+            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
+        )
+    }
+
+    fun onHoverEvent(
+        position: DpOffset,
+        event: UIEvent?,
+        eventKind: TouchesEventKind
+    ) {
+        val eventType = when (eventKind) {
+            TouchesEventKind.BEGAN -> PointerEventType.Enter
+            TouchesEventKind.MOVED -> PointerEventType.Move
+            TouchesEventKind.ENDED -> PointerEventType.Exit
+        }
+
+        scene.sendPointerEvent(
+            eventType = eventType,
+            pointers = listOf(
+                ComposeScenePointer(
+                    id = PointerId(0),
+                    position = position.toOffset(density),
+                    pressed = false,
+                    type = PointerType.Mouse,
+                )
+            ),
+            timeMillis = event.timeMillis,
+            nativeEvent = event,
+            button = event?.button,
+            buttons = PointerButtons(event?.buttonMask ?: 0L),
+            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
+        )
+    }
+
+    fun onCancelScroll() {
+        redrawer.ongoingInteractionEventsCount -= 1
+        scene.cancelPointerInput()
+    }
+
     private fun onCancelAllTouches(touches: Set<*>) {
         redrawer.ongoingInteractionEventsCount -= touches.count()
         scene.cancelPointerInput()
@@ -369,11 +446,17 @@ internal class ComposeSceneMediator(
             val touch = it as UITouch
             val id = touch.hashCode().toLong()
             val position = touch.offsetInView(userInputView, density.density)
+            val pointerType = when (touch.type) {
+                UITouchTypeDirect -> PointerType.Touch
+                UITouchTypeIndirect, UITouchTypeIndirectPointer -> PointerType.Mouse
+                UITouchTypePencil -> PointerType.Stylus
+                else -> PointerType.Touch
+            }
             ComposeScenePointer(
                 id = PointerId(id),
                 position = position,
                 pressed = touch.isPressed,
-                type = PointerType.Touch,
+                type = pointerType,
                 pressure = touch.force.toFloat(),
                 historical = event?.historicalChangesForTouch(
                     touch,
@@ -383,16 +466,14 @@ internal class ComposeSceneMediator(
             )
         }
 
-        // If the touches were cancelled due to gesture failure, the timestamp is not available,
-        // because no actual event with touch updates happened. We just use the current time in
-        // this case.
-        val timestamp = event?.timestamp ?: CACurrentMediaTime()
-
         return scene.sendPointerEvent(
             eventType = eventKind.toPointerEventType(),
             pointers = pointers,
-            timeMillis = (timestamp * 1e3).toLong(),
-            nativeEvent = event
+            timeMillis = event.timeMillis,
+            nativeEvent = event,
+            button = event?.button,
+            buttons = PointerButtons(event?.buttonMask ?: 0L),
+            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
         )
     }
 
@@ -650,7 +731,25 @@ internal class ComposeSceneMediator(
     }
 }
 
+private val UIEvent.button: PointerButton? get() =
+    if (buttonMask and UIEventButtonMaskPrimary != 0L) {
+        PointerButton.Primary
+    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L) {
+        PointerButton.Secondary
+    } else {
+        null
+    }
+
+private val UIEvent?.timeMillis: Long get() {
+    // If the touches were cancelled due to gesture failure, the timestamp is not available,
+    // because no actual event with touch updates happened. We just use the current time in
+    // this case.
+    val timestamp = this?.timestamp ?: CACurrentMediaTime()
+    return (timestamp * 1e3).toLong()
+}
+
 private val FOCUS_CHANGE_ANIMATION_DURATION = 0.15.seconds
+private val SCROLL_VELOCITY_MULTIPLIER = 0.01f
 
 private fun TouchesEventKind.toPointerEventType(): PointerEventType =
     when (this) {
