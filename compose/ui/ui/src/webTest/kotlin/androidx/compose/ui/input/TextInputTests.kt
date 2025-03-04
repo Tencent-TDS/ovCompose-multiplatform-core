@@ -31,6 +31,7 @@ import androidx.compose.ui.OnCanvasTests
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
@@ -145,12 +146,16 @@ class TextInputTests : OnCanvasTests  {
 
         val focusRequester = FocusRequester()
 
+        var textFieldWidth = 0
+
         createComposeWindow {
             val textState = remember { TextFieldState("qwerty 1234567") }
 
             CompositionLocalProvider(LocalDensity provides Density(2f)) {
                 Column {
-                    TextField(state = textState, modifier = Modifier.focusRequester(focusRequester))
+                    TextField(state = textState, modifier = Modifier.focusRequester(focusRequester).onGloballyPositioned {
+                        textFieldWidth = it.size.width
+                    })
 
                     LaunchedEffect(textState.selection) {
                         syncChannel.send(textState.selection)
@@ -167,6 +172,7 @@ class TextInputTests : OnCanvasTests  {
 
         var selection = syncChannel.receive()
         assertEquals(TextRange(14, 14), selection)
+        assertTrue(textFieldWidth > 0)
 
         val canvas = getCanvas()
         canvas.dispatchEvent(MouseEvent("mouseenter"))
@@ -197,7 +203,7 @@ class TextInputTests : OnCanvasTests  {
         // Try to select the text using mouse:
         val startX = textAreaRect.left.toInt() + 1
         val startY = textAreaRect.top.toInt() + 8
-        val endX = textAreaRect.right.toInt() - 1
+        val endX = startX + textFieldWidth
         canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = startX, clientY = startY, buttons = 1, button = 1)))
         canvas.dispatchEvent(MouseEvent("mousedown", MouseEventInit(clientX = startX, clientY = startY, buttons = 1, button = 1)))
         canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = endX, clientY = startY, buttons = 1, button = 1)))
