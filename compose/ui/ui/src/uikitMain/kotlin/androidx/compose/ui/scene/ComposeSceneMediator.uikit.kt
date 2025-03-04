@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalLayoutMargins
 import androidx.compose.ui.platform.LocalSafeArea
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformInsets
+import androidx.compose.ui.platform.PlatformScreenReader
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.PlatformWindowContext
@@ -91,7 +92,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -116,6 +116,7 @@ private class SemanticsOwnerListenerImpl(
     private val coroutineContext: CoroutineContext,
     private val performEscape: () -> Boolean,
     private val onKeyboardPresses: (Set<*>) -> Unit,
+    private val onScreenReaderActive: (Boolean) -> Unit,
 ) : PlatformContext.SemanticsOwnerListener {
 
     private var accessibilityMediator: AccessibilityMediator? = null
@@ -133,7 +134,8 @@ private class SemanticsOwnerListenerImpl(
                 semanticsOwner,
                 coroutineContext,
                 performEscape,
-                onKeyboardPresses
+                onKeyboardPresses,
+                onScreenReaderActive
             ).also {
                 it.isEnabled = isEnabled
             }
@@ -144,6 +146,7 @@ private class SemanticsOwnerListenerImpl(
         if (accessibilityMediator?.owner == semanticsOwner) {
             accessibilityMediator?.dispose()
             accessibilityMediator = null
+            onScreenReaderActive(false)
         }
     }
 
@@ -186,6 +189,9 @@ internal class ComposeSceneMediator(
 
     private var keyboardOverlapHeight by mutableStateOf(0.dp)
     private var animateKeyboardOffsetChanges by mutableStateOf(false)
+    private var platformScreenReader = object : PlatformScreenReader {
+        override var isActive by mutableStateOf(false)
+    }
 
     private val viewConfiguration: ViewConfiguration =
         object : ViewConfiguration by EmptyViewConfiguration {
@@ -282,7 +288,8 @@ internal class ComposeSceneMediator(
 
                 down || up
             },
-            onKeyboardPresses = ::onKeyboardPresses
+            onKeyboardPresses = ::onKeyboardPresses,
+            onScreenReaderActive = { platformScreenReader.isActive = it }
         )
     }
 
@@ -572,8 +579,9 @@ internal class ComposeSceneMediator(
             || backGestureDispatcher.onKeyEvent(keyEvent)
             || onKeyEvent(keyEvent)
 
-    private inner class PlatformContextImpl : PlatformContext by PlatformContext.Empty {
+    private inner class PlatformContextImpl : PlatformContext {
         override val windowInfo: WindowInfo get() = windowContext.windowInfo
+        override val screenReader: PlatformScreenReader get() = platformScreenReader
 
         override fun convertLocalToWindowPosition(localPosition: Offset): Offset =
             windowContext.convertLocalToWindowPosition(view, localPosition)
@@ -636,8 +644,8 @@ internal class ComposeSceneMediator(
                 }
             }
 
-        override fun updateSelectionState(newState: TextFieldValue) {
-            textInputService.updateState(oldValue = null, newValue = newState)
+        override fun updateTextFieldValue(newValue: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newValue)
         }
     }
 }

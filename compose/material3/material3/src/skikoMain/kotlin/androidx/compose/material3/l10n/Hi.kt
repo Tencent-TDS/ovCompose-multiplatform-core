@@ -33,7 +33,6 @@ internal fun Translations.hi() = mapOf(
     Strings.MenuCollapsed to "छोटा किया गया",
     Strings.ToggleDropdownMenu to "ड्रॉपडाउन मेन्यू टॉगल करें",
     Strings.SnackbarDismiss to "खारिज करें",
-    Strings.SnackbarPaneTitle to "चेतावनी",
     Strings.SearchBarSearch to "खोजें",
     Strings.SuggestionsAvailable to "सुझाव यहां मौजूद हैं",
     Strings.DatePickerTitle to "तारीख चुनें",
@@ -86,6 +85,4 @@ internal fun Translations.hi() = mapOf(
     Strings.TimePickerHour to "घंटा",
     Strings.TimePickerMinuteTextField to "मिनट के लिए",
     Strings.TimePickerHourTextField to "घंटे के लिए",
-    Strings.CloseRail to "मॉडल रेल को बंद करें",
-    Strings.WideNavigationRailPaneTitle to "नेविगेशन रेल",
 )

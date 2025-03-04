@@ -33,7 +33,6 @@ internal fun Translations.ka() = mapOf(
     Strings.MenuCollapsed to "ჩაკეცილი",
     Strings.ToggleDropdownMenu to "გადართეთ ჩამოსაშლელი მენიუ",
     Strings.SnackbarDismiss to "დახურვა",
-    Strings.SnackbarPaneTitle to "გაფრთხილება",
     Strings.SearchBarSearch to "ძიება",
     Strings.SuggestionsAvailable to "შემოთავაზებები იხილეთ ქვემოთ",
     Strings.DatePickerTitle to "თარიღის არჩევა",
@@ -86,6 +85,4 @@ internal fun Translations.ka() = mapOf(
     Strings.TimePickerHour to "საათი",
     Strings.TimePickerMinuteTextField to "რამდენიმე წუთით",
     Strings.TimePickerHourTextField to "ერთი საათით",
-    Strings.CloseRail to "არხის დახურვა",
-    Strings.WideNavigationRailPaneTitle to "ნავიგაციის არხი",
 )

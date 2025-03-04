@@ -33,7 +33,6 @@ internal fun Translations.bn() = mapOf(
     Strings.MenuCollapsed to "আড়াল করা হয়েছে",
     Strings.ToggleDropdownMenu to "ড্রপডাউন মেনু টগল করুন",
     Strings.SnackbarDismiss to "বাতিল করুন",
-    Strings.SnackbarPaneTitle to "সতর্কতা",
     Strings.SearchBarSearch to "সার্চ করুন",
     Strings.SuggestionsAvailable to "নিচে দেওয়া সাজেশন",
     Strings.DatePickerTitle to "তারিখ বেছে নিন",
@@ -86,6 +85,4 @@ internal fun Translations.bn() = mapOf(
     Strings.TimePickerHour to "ঘণ্টা",
     Strings.TimePickerMinuteTextField to "এত মিনিটের জন্য",
     Strings.TimePickerHourTextField to "এত ঘণ্টার জন্য",
-    Strings.CloseRail to "রেল বন্ধ করুন",
-    Strings.WideNavigationRailPaneTitle to "নেভিগেশন রেল",
 )

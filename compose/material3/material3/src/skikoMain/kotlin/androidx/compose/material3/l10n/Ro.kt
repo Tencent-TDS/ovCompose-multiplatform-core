@@ -33,7 +33,6 @@ internal fun Translations.ro() = mapOf(
     Strings.MenuCollapsed to "Restrâns",
     Strings.ToggleDropdownMenu to "Comută meniul drop-down",
     Strings.SnackbarDismiss to "Închide",
-    Strings.SnackbarPaneTitle to "Alertă",
     Strings.SearchBarSearch to "Caută",
     Strings.SuggestionsAvailable to "Sugestii mai jos",
     Strings.DatePickerTitle to "Selectează data",
@@ -86,6 +85,4 @@ internal fun Translations.ro() = mapOf(
     Strings.TimePickerHour to "Oră",
     Strings.TimePickerMinuteTextField to "pentru minute",
     Strings.TimePickerHourTextField to "pentru oră",
-    Strings.CloseRail to "Închide bara",
-    Strings.WideNavigationRailPaneTitle to "Bară de navigare",
 )

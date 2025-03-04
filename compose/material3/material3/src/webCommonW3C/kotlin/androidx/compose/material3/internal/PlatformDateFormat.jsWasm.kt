@@ -140,8 +140,10 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
     }
 
     @OptIn(FormatStringsInDatetimeFormats::class)
-    actual fun parse(date: String, pattern: String, locale: CalendarLocale): CalendarDate? {
-        // TODO https://youtrack.jetbrains.com/issue/CMP-7146/Properly-use-locale-in-CalendarModel.parse-implementations
+    actual fun parse(
+        date: String,
+        pattern: String
+    ): CalendarDate? {
         return try {
             LocalDate.parse(
                 input = date,
@@ -304,5 +306,3 @@ private inline fun dateLocaleOptions(init: Date.LocaleOptions.() -> Unit): Date.
     init(result)
     return result
 }
-
-internal const val MillisecondsIn24HoursDouble = 86400000.0

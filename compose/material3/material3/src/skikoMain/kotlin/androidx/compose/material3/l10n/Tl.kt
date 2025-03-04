@@ -33,7 +33,6 @@ internal fun Translations.tl() = mapOf(
     Strings.MenuCollapsed to "Naka-collapse",
     Strings.ToggleDropdownMenu to "I-toggle ang dropdown menu",
     Strings.SnackbarDismiss to "I-dismiss",
-    Strings.SnackbarPaneTitle to "Alerto",
     Strings.SearchBarSearch to "Maghanap",
     Strings.SuggestionsAvailable to "Mga suhestyon sa ibaba",
     Strings.DatePickerTitle to "Pumili ng petsa",
@@ -86,6 +85,4 @@ internal fun Translations.tl() = mapOf(
     Strings.TimePickerHour to "Oras",
     Strings.TimePickerMinuteTextField to "nang ilang minuto",
     Strings.TimePickerHourTextField to "nang ilang oras",
-    Strings.CloseRail to "Isara ang rail",
-    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )

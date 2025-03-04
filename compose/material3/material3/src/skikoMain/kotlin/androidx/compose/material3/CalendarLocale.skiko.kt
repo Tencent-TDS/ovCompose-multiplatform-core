@@ -21,6 +21,4 @@ package androidx.compose.material3
  */
 internal actual fun Int.toLocalString(
     minDigits: Int,
-    maxDigits: Int,
-    isGroupingUsed: Boolean
 ): String = toString().padStart(minDigits, '0')

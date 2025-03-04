@@ -17,8 +17,10 @@
 package androidx.compose.material3
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalWindowInfo
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 internal actual fun windowContainerWidthInPx(): Int =
     LocalWindowInfo.current.containerSize.width

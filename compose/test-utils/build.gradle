@@ -32,7 +32,7 @@ androidXMultiplatform {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(projectOrArtifact(":compose:runtime:runtime"))
                 implementation(projectOrArtifact(":compose:ui:ui-unit"))
                 implementation(projectOrArtifact(":compose:ui:ui-graphics"))

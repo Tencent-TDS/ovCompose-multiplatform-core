@@ -33,7 +33,6 @@ internal fun Translations.uz() = mapOf(
     Strings.MenuCollapsed to "Yigʻilgan",
     Strings.ToggleDropdownMenu to "Pastga ochiluvchi menyuni koʻrsatish/yashirish",
     Strings.SnackbarDismiss to "Yopish",
-    Strings.SnackbarPaneTitle to "Signal",
     Strings.SearchBarSearch to "Qidiruv",
     Strings.SuggestionsAvailable to "Takliflar quyida",
     Strings.DatePickerTitle to "Sanani tanlang",
@@ -86,6 +85,4 @@ internal fun Translations.uz() = mapOf(
     Strings.TimePickerHour to "Soat",
     Strings.TimePickerMinuteTextField to "bir daqiqa",
     Strings.TimePickerHourTextField to "bir soat",
-    Strings.CloseRail to "Panelni yopish",
-    Strings.WideNavigationRailPaneTitle to "Navigatsiya paneli",
 )

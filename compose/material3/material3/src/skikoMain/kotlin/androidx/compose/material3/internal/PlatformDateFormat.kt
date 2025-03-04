@@ -18,10 +18,14 @@ package androidx.compose.material3.internal
 
 import androidx.compose.material3.CalendarLocale
 
-internal expect class PlatformDateFormat(locale: CalendarLocale) {
+internal expect class PlatformDateFormat constructor(locale: CalendarLocale) {
+
+
     val firstDayOfWeek : Int
 
-    /** Localized by platform weekdays */
+    /**
+     * Localized by platform weekdays
+     * */
     val weekdayNames: List<Pair<String, String>>
 
     fun formatWithPattern(
@@ -34,7 +38,7 @@ internal expect class PlatformDateFormat(locale: CalendarLocale) {
         skeleton: String,
     ): String
 
-    fun parse(date: String, pattern: String, locale: CalendarLocale): CalendarDate?
+    fun parse(date: String, pattern: String): CalendarDate?
 
     fun getDateInputFormat(): DateInputFormat
 

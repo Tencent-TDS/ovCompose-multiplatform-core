@@ -57,51 +57,56 @@ actual fun NavHost(
         popExitTransition == DefaultNavTransitions.popExitTransition &&
         sizeTransform == DefaultNavTransitions.sizeTransform
 
-    val iosBlackout = remember(isDefaultTransition) {
-        if (isDefaultTransition) {
-            @Composable { isBackAnimation: Boolean, progress: Float ->
-                val blackoutFraction = if (isBackAnimation) 1 - progress else progress
-                Box(
-                    modifier = Modifier
-                        .layout { m, c ->
-                            val placeable = m.measure(
-                                Constraints.fixed(c.maxWidth, c.maxHeight)
-                            )
-                            layout(c.minWidth, c.minHeight) { placeable.place(0, 0) }
-                        }
-                        .drawBehind {
-                            drawRect(Color.Black, alpha = 0.106f * blackoutFraction)
-                        }
-                )
-            }
-        } else {
-            null
+    if (isDefaultTransition) {
+        val iosBlackout = @Composable { isBackAnimation: Boolean, progress: Float ->
+            val blackoutFraction = if (isBackAnimation) 1 - progress else progress
+            Box(
+                modifier = Modifier
+                    .layout { m, c ->
+                        val placeable = m.measure(
+                            Constraints.fixed(c.maxWidth, c.maxHeight)
+                        )
+                        layout(c.minWidth, c.minHeight) { placeable.place(0, 0) }
+                    }
+                    .drawBehind {
+                        drawRect(Color.Black, alpha = 0.106f * blackoutFraction)
+                    }
+            )
         }
+
+        val backEventEdge = when (LocalLayoutDirection.current) {
+            LayoutDirection.Ltr -> BackEventCompat.EDGE_LEFT
+            LayoutDirection.Rtl -> BackEventCompat.EDGE_RIGHT
+        }
+        NavHost(
+            navController,
+            graph,
+            modifier,
+            contentAlignment,
+            enterTransition,
+            exitTransition,
+            popEnterTransition,
+            popExitTransition,
+            sizeTransform,
+            drawOnBottomEntryDuringAnimation = iosBlackout,
+            limitBackGestureSwipeEdge = backEventEdge
+        )
+    } else {
+        NavHost(
+            navController,
+            graph,
+            modifier,
+            contentAlignment,
+            enterTransition,
+            exitTransition,
+            popEnterTransition,
+            popExitTransition,
+            sizeTransform,
+            null,
+            null
+        )
     }
 
-    val layoutDirection = LocalLayoutDirection.current
-    val backEventEdge = remember(isDefaultTransition, layoutDirection) {
-        if (isDefaultTransition) {
-            when (layoutDirection) {
-                LayoutDirection.Ltr -> BackEventCompat.EDGE_LEFT
-                LayoutDirection.Rtl -> BackEventCompat.EDGE_RIGHT
-            }
-        } else {
-            null
-        }
-    }
 
-    NavHost(
-        navController,
-        graph,
-        modifier,
-        contentAlignment,
-        enterTransition,
-        exitTransition,
-        popEnterTransition,
-        popExitTransition,
-        sizeTransform,
-        drawOnBottomEntryDuringAnimation = iosBlackout,
-        limitBackGestureSwipeEdge = backEventEdge
-    )
+
 }
