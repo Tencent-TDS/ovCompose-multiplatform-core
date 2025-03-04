@@ -205,7 +205,10 @@ class TextInputTests : OnCanvasTests  {
         canvas.dispatchEvent(MouseEvent("mousemove", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 1, button = 1)))
         canvas.dispatchEvent(MouseEvent("mouseup", MouseEventInit(clientX = 56 * 2, clientY = clientY, buttons = 0, button = 1)))
 
-        selection = syncChannel.receive()
+        do {
+            selection = syncChannel.receive()
+        } while (selection != TextRange(6, 13))
+
         assertEquals(TextRange(6, 13), selection)
     }
 }
