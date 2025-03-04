@@ -35,4 +35,4 @@ internal actual fun AnnotatedString?.toClipEntry(): ClipEntry? {
     return ClipEntry.withPlainText(this.text)
 }
 
-internal actual fun ClipEntry?.hasText(): Boolean = this?.getPlainText() != null
+internal actual fun ClipEntry?.hasText(): Boolean = this?.hasPlainText() ?: false
