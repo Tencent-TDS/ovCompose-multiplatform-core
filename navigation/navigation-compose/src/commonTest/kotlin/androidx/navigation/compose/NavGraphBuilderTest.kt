@@ -37,7 +37,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
 import kotlin.test.Test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.serializer
@@ -574,7 +573,6 @@ class NavGraphBuilderTest {
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     @Test
     fun testComposableKClassArgsMissingCustomType() = runComposeUiTestOnUiThread {
         @Serializable class TestClass(val arg: CustomType)
@@ -596,9 +594,9 @@ class NavGraphBuilderTest {
         }
         assertThat(exception)
             .isEqualTo(
-                "Route ${TestClass.serializer().descriptor.serialName} " +
-                    "could not find any NavType for argument arg " +
-                    "of type androidx.navigation.compose.CustomType - typeMap received was {}"
+                "Route ${TestClass.serializer().descriptor.serialName} could " +
+                    "not find any NavType for argument arg of type androidx" +
+                    ".navigation.compose.CustomType - typeMap received was {}"
             )
     }
 
@@ -692,7 +690,6 @@ class NavGraphBuilderTest {
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     @Test
     fun testDialogKClassArgsMissingCustomType() = runComposeUiTestOnUiThread {
         @Serializable class TestClass(val arg: CustomType)
@@ -715,9 +712,9 @@ class NavGraphBuilderTest {
         }
         assertThat(exception)
             .isEqualTo(
-                "Route ${TestClass.serializer().descriptor.serialName} " +
-                    "could not find any NavType for argument arg " +
-                    "of type androidx.navigation.compose.CustomType - typeMap received was {}"
+                "Route ${TestClass.serializer().descriptor.serialName} could not " +
+                    "find any NavType for argument arg of type androidx.navigation" +
+                    ".compose.CustomType - typeMap received was {}"
             )
     }
 
