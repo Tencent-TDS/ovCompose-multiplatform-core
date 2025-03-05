@@ -22,6 +22,8 @@
  * modifying its settings.
  */
 
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
@@ -46,7 +48,7 @@ androidXMultiplatform {
                 implementation(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:ui:ui-graphics"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation("androidx.collection:collection:1.4.0")
+                implementation("androidx.collection:collection:1.5.0")
                 implementation(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
             }
@@ -54,23 +56,22 @@ androidXMultiplatform {
 
         commonTest {
             dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":kruth:kruth"))
             }
         }
 
         jvmMain {
             dependsOn(commonMain)
             dependencies {
-                implementation(libs.kotlinStdlib)
-                api(libs.kotlinCoroutinesCore)
             }
         }
-
 
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.1.0")
-                implementation(libs.kotlinStdlib)
+                api("androidx.annotation:annotation:1.8.1")
             }
         }
 
@@ -99,6 +100,8 @@ androidXMultiplatform {
                 implementation("androidx.compose.ui:ui-test-junit4:1.2.1")
                 implementation(project(":compose:test-utils"))
                 implementation("androidx.compose.material3:material3:1.2.1")
+                implementation(libs.leakcanary)
+                implementation(libs.leakcanaryInstrumentation)
             }
         }
 
@@ -116,7 +119,7 @@ androidXMultiplatform {
 }
 
 dependencies {
-    lintPublish project(":compose:animation:animation-core-lint")
+    lintPublish(project(":compose:animation:animation-core-lint"))
 }
 
 androidx {
@@ -124,10 +127,15 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2019"
     description = "Animation engine and animation primitives that are the building blocks of the Compose animation library"
-    legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
     samples(project(":compose:animation:animation-core:animation-core-samples"))
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {
+    compileSdk 35
     namespace "androidx.compose.animation.core"
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

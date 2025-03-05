@@ -26,9 +26,6 @@ import static java.util.Objects.requireNonNull;
 
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.impl.EncoderProfilesProvider;
@@ -40,6 +37,9 @@ import androidx.camera.video.CapabilitiesByQuality;
 import androidx.camera.video.Quality;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,7 +58,6 @@ import java.util.TreeMap;
  * When a quality is explored, the corresponding profile will be derived from a nearest higher
  * supported profile.
  */
-@RequiresApi(21)
 public class QualityExploredEncoderProfilesProvider implements EncoderProfilesProvider {
     private final EncoderProfilesProvider mBaseEncoderProfilesProvider;
     private final Set<Quality> mTargetQualities;
@@ -98,14 +97,12 @@ public class QualityExploredEncoderProfilesProvider implements EncoderProfilesPr
         return getProfilesInternal(quality) != null;
     }
 
-    @Nullable
     @Override
-    public EncoderProfilesProxy getAll(int quality) {
+    public @Nullable EncoderProfilesProxy getAll(int quality) {
         return getProfilesInternal(quality);
     }
 
-    @Nullable
-    private EncoderProfilesProxy getProfilesInternal(int qualityValue) {
+    private @Nullable EncoderProfilesProxy getProfilesInternal(int qualityValue) {
         if (mEncoderProfilesCache.containsKey(qualityValue)) {
             return mEncoderProfilesCache.get(qualityValue);
         }
@@ -132,8 +129,8 @@ public class QualityExploredEncoderProfilesProvider implements EncoderProfilesPr
         return true;
     }
 
-    @Nullable
-    private EncoderProfilesProxy exploreProfiles(@NonNull Quality.ConstantQuality quality) {
+    private @Nullable EncoderProfilesProxy exploreProfiles(
+            Quality.@NonNull ConstantQuality quality) {
         checkArgument(mTargetQualities.contains(quality));
         EncoderProfilesProxy qualityMappedProfiles =
                 mBaseEncoderProfilesProvider.getAll(quality.getValue());
@@ -187,8 +184,7 @@ public class QualityExploredEncoderProfilesProvider implements EncoderProfilesPr
         return null;
     }
 
-    @Nullable
-    private Quality.ConstantQuality findQualityInTargetQualities(int qualityValue) {
+    private Quality.@Nullable ConstantQuality findQualityInTargetQualities(int qualityValue) {
         for (Quality quality : mTargetQualities) {
             Quality.ConstantQuality constantQuality = (Quality.ConstantQuality) quality;
             if (constantQuality.getValue() == qualityValue) {
@@ -198,8 +194,8 @@ public class QualityExploredEncoderProfilesProvider implements EncoderProfilesPr
         return null;
     }
 
-    @NonNull
-    private CapabilitiesByQuality getCapabilitiesByQualityFor(@NonNull DynamicRange dynamicRange) {
+    private @NonNull CapabilitiesByQuality getCapabilitiesByQualityFor(
+            @NonNull DynamicRange dynamicRange) {
         if (mDynamicRangeToCapabilitiesMap.containsKey(dynamicRange)) {
             return requireNonNull(mDynamicRangeToCapabilitiesMap.get(dynamicRange));
         }
@@ -211,8 +207,7 @@ public class QualityExploredEncoderProfilesProvider implements EncoderProfilesPr
         return capabilities;
     }
 
-    @Nullable
-    private static EncoderProfilesProxy mergeEncoderProfiles(
+    private static @Nullable EncoderProfilesProxy mergeEncoderProfiles(
             @Nullable EncoderProfilesProxy baseProfiles,
             @Nullable EncoderProfilesProxy profilesToMerge) {
         if (baseProfiles == null && profilesToMerge == null) {

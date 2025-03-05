@@ -263,11 +263,7 @@ class ProjectDependencyGraph {
                     links.add(matcherInspection.group(1))
                 }
                 if (composePlugin.matcher(line).find()) {
-                    links.add(":compose:compiler:compiler")
                     links.add(":compose:lint:internal-lint-checks")
-                }
-                if (iconGenerator.matcher(line).find()) {
-                    links.add(":compose:material:material:icons:generator")
                 }
                 if (publishedLibrary.matcher(line).find()) {
                     publishedLibraryProjects.add(projectPath)
@@ -293,9 +289,10 @@ class ProjectDependencyGraph {
     private static Pattern multilineProjectReference = Pattern.compile("project\\(\$")
     private static Pattern inspection = Pattern.compile("packageInspector\\(project, \"(.*)\"\\)")
     private static Pattern composePlugin = Pattern.compile("id\\(\"AndroidXComposePlugin\"\\)")
-    private static Pattern iconGenerator = Pattern.compile("IconGenerationTask\\.register")
     private static Pattern publishedLibrary = Pattern.compile(
-            "(type = LibraryType\\.(PUBLISHED_LIBRARY|GRADLE_PLUGIN|ANNOTATION_PROCESSOR|PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS)|" +
+            "(type = LibraryType\\.(PUBLISHED_LIBRARY|GRADLE_PLUGIN|ANNOTATION_PROCESSOR|ANNOTATION_PROCESSOR_UTILS|OTHER_CODE_PROCESSOR" +
+                    "|STANDALONE_PUBLISHED_LINT|PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS" +
+                    "|PUBLISHED_TEST_LIBRARY|PUBLISHED_PROTO_LIBRARY|PUBLISHED_KOTLIN_ONLY_TEST_LIBRARY)|" +
                     "publish = Publish\\.SNAPSHOT_AND_RELEASE)"
     )
 }

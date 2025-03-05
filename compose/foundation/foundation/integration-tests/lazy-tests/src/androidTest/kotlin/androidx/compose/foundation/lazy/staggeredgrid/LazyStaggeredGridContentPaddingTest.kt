@@ -16,10 +16,10 @@
 
 package androidx.compose.foundation.lazy.staggeredgrid
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.list.assertIsNotPlaced
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -36,20 +36,19 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-@OptIn(ExperimentalFoundationApi::class)
 @MediumTest
 @RunWith(Parameterized::class)
-class LazyStaggeredGridContentPaddingTest(
-    orientation: Orientation
-) : BaseLazyStaggeredGridWithOrientation(orientation) {
+class LazyStaggeredGridContentPaddingTest(orientation: Orientation) :
+    BaseLazyStaggeredGridWithOrientation(orientation) {
 
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun initParameters(): Array<Any> = arrayOf(
-            Orientation.Vertical,
-            Orientation.Horizontal,
-        )
+        fun initParameters(): Array<Any> =
+            arrayOf(
+                Orientation.Vertical,
+                Orientation.Horizontal,
+            )
 
         private const val LazyStaggeredGrid = "Lazy"
     }
@@ -61,9 +60,7 @@ class LazyStaggeredGridContentPaddingTest(
 
     @Before
     fun setUp() {
-        with(rule.density) {
-            itemSizeDp = itemSizePx.toDp()
-        }
+        with(rule.density) { itemSizeDp = itemSizePx.toDp() }
     }
 
     @Test
@@ -71,39 +68,36 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .axisSize(itemSizeDp * 4, itemSizeDp * 5)
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 2,
-                    crossAxis = itemSizeDp
-                )
+                modifier =
+                    Modifier.axisSize(itemSizeDp * 4, itemSizeDp * 5).testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = itemSizeDp)
             ) {
-                items(4) {
-                    Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it"))
-                }
+                items(4) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
             }
         }
 
-        rule.onNodeWithTag("0")
+        rule
+            .onNodeWithTag("0")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp)
             .assertCrossAxisSizeIsEqualTo(itemSizeDp)
 
-        rule.onNodeWithTag("1")
+        rule
+            .onNodeWithTag("1")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisSizeIsEqualTo(itemSizeDp)
 
-        rule.onNodeWithTag(LazyStaggeredGrid)
-            .scrollMainAxisBy(itemSizeDp * 100)
+        rule.onNodeWithTag(LazyStaggeredGrid).scrollMainAxisBy(itemSizeDp * 100)
 
-        rule.onNodeWithTag("2")
+        rule
+            .onNodeWithTag("2")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp)
             .assertCrossAxisSizeIsEqualTo(itemSizeDp)
 
-        rule.onNodeWithTag("3")
+        rule
+            .onNodeWithTag("3")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisSizeIsEqualTo(itemSizeDp)
@@ -115,13 +109,9 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .axisSize(itemSizeDp * 4, itemSizeDp * 5)
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 2,
-                    crossAxis = itemSizeDp
-                ),
+                modifier =
+                    Modifier.axisSize(itemSizeDp * 4, itemSizeDp * 5).testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = itemSizeDp),
                 state = state
             ) {
                 items(100) {
@@ -134,21 +124,25 @@ class LazyStaggeredGridContentPaddingTest(
         assertThat(state.firstVisibleItemScrollOffset).isEqualTo(0)
 
         // offset by content padding
-        rule.onNodeWithTag("10")
+        rule
+            .onNodeWithTag("10")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp)
 
-        rule.onNodeWithTag("11")
+        rule
+            .onNodeWithTag("11")
             .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
 
         state.scrollBy(itemSizeDp * 2)
 
-        rule.onNodeWithTag("10")
+        rule
+            .onNodeWithTag("10")
             .assertMainAxisStartPositionInRootIsEqualTo(0.dp)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp)
 
-        rule.onNodeWithTag("11")
+        rule
+            .onNodeWithTag("11")
             .assertMainAxisStartPositionInRootIsEqualTo(0.dp)
             .assertCrossAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
 
@@ -163,18 +157,12 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .axisSize(itemSizeDp * 4, itemSizeDp * 5)
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 2,
-                    crossAxis = itemSizeDp
-                ),
+                modifier =
+                    Modifier.axisSize(itemSizeDp * 4, itemSizeDp * 5).testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = itemSizeDp),
                 state = state
             ) {
-                items(100) {
-                    Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it"))
-                }
+                items(100) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
             }
         }
 
@@ -192,38 +180,28 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .axisSize(itemSizeDp * 4, itemSizeDp * 5)
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 2,
-                    crossAxis = itemSizeDp
-                ),
+                modifier =
+                    Modifier.axisSize(itemSizeDp * 4, itemSizeDp * 5).testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = itemSizeDp),
                 state = state
             ) {
-                items(10) {
-                    Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it"))
-                }
+                items(10) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
             }
         }
 
-        rule.onNodeWithTag("0")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
+        rule.onNodeWithTag("0").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
 
         state.scrollBy(itemSizeDp * 2.5f)
 
-        rule.onNodeWithTag("0")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * -0.5f)
+        rule.onNodeWithTag("0").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * -0.5f)
 
         state.scrollBy(itemSizeDp * 10)
 
-        rule.onNodeWithTag("9")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
+        rule.onNodeWithTag("9").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 2)
 
         state.scrollBy(itemSizeDp * (-2.5f))
 
-        rule.onNodeWithTag("9")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 4.5f)
+        rule.onNodeWithTag("9").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 4.5f)
     }
 
     @Test
@@ -232,33 +210,27 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .axisSize(itemSizeDp * 2, itemSizeDp * 5)
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 6
-                ),
+                modifier =
+                    Modifier.axisSize(itemSizeDp * 2, itemSizeDp * 5).testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 6),
                 state = state
             ) {
-                items(10) {
-                    Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it"))
-                }
+                items(10) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
             }
         }
 
-        rule.onNodeWithTag("0")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 6)
+        rule.onNodeWithTag("0").assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * 6)
 
         assertThat(state.firstVisibleItemIndex).isEqualTo(0)
         assertThat(state.firstVisibleItemScrollOffset).isEqualTo(0)
 
         state.scrollBy(itemSizeDp * 20)
 
-        rule.onNodeWithTag("8")
-            .assertMainAxisStartPositionInRootIsEqualTo(itemSizeDp * -2f)
+        rule.onNodeWithTag("8").assertIsNotPlaced()
 
         assertThat(state.firstVisibleItemIndex).isEqualTo(8)
-        // normally this item is invisible, but being the last item in the lane, it is forced to stay
+        // normally this item is invisible, but being the last item in the lane, it is forced to
+        // stay
         assertThat(state.firstVisibleItemScrollOffset).isEqualTo(itemSizePx * 8)
     }
 
@@ -268,21 +240,16 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .testTag(LazyStaggeredGrid),
-                contentPadding = PaddingValues(
-                    mainAxis = 10.dp,
-                    crossAxis = 2.dp
-                ),
+                modifier = Modifier.testTag(LazyStaggeredGrid),
+                contentPadding = PaddingValues(mainAxis = 10.dp, crossAxis = 2.dp),
                 state = state
             ) {
-                items(0) {
-                    Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it"))
-                }
+                items(0) { Spacer(Modifier.mainAxisSize(itemSizeDp).testTag("$it")) }
             }
         }
 
-        rule.onNodeWithTag(LazyStaggeredGrid)
+        rule
+            .onNodeWithTag(LazyStaggeredGrid)
             .assertMainAxisSizeIsEqualTo(20.dp)
             .assertCrossAxisSizeIsEqualTo(4.dp)
     }
@@ -294,22 +261,17 @@ class LazyStaggeredGridContentPaddingTest(
             Box(Modifier.crossAxisSize(itemSizeDp * 2)) {
                 LazyStaggeredGrid(
                     lanes = 2,
-                    modifier = Modifier
-                        .testTag(LazyStaggeredGrid),
-                    contentPadding = PaddingValues(
-                        mainAxis = 10.dp,
-                        crossAxis = 2.dp
-                    ),
+                    modifier = Modifier.testTag(LazyStaggeredGrid),
+                    contentPadding = PaddingValues(mainAxis = 10.dp, crossAxis = 2.dp),
                     state = state
                 ) {
-                    items(2) {
-                        Spacer(Modifier.mainAxisSize(0.dp).testTag("$it"))
-                    }
+                    items(2) { Spacer(Modifier.mainAxisSize(0.dp).testTag("$it")) }
                 }
             }
         }
 
-        rule.onNodeWithTag(LazyStaggeredGrid)
+        rule
+            .onNodeWithTag(LazyStaggeredGrid)
             .assertMainAxisSizeIsEqualTo(20.dp)
             .assertCrossAxisSizeIsEqualTo(itemSizeDp * 2)
     }
@@ -320,13 +282,9 @@ class LazyStaggeredGridContentPaddingTest(
         rule.setContent {
             LazyStaggeredGrid(
                 lanes = 2,
-                modifier = Modifier
-                    .testTag(LazyStaggeredGrid)
-                    .axisSize(itemSizeDp * 2, itemSizeDp * 5),
-                contentPadding = PaddingValues(
-                    mainAxis = itemSizeDp * 2,
-                    crossAxis = 0.dp
-                ),
+                modifier =
+                    Modifier.testTag(LazyStaggeredGrid).axisSize(itemSizeDp * 2, itemSizeDp * 5),
+                contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = 0.dp),
                 state = state
             ) {
                 items(1000, key = { it }) {
@@ -335,13 +293,9 @@ class LazyStaggeredGridContentPaddingTest(
             }
         }
 
-        repeat(10) {
-            state.scrollBy(itemSizeDp * 20)
-        }
+        repeat(10) { state.scrollBy(itemSizeDp * 20) }
 
-        rule.runOnIdle {
-            assertThat(state.firstVisibleItemIndex).isEqualTo(400)
-        }
+        rule.runOnIdle { assertThat(state.firstVisibleItemIndex).isEqualTo(400) }
     }
 
     @Test
@@ -352,10 +306,7 @@ class LazyStaggeredGridContentPaddingTest(
                 LazyStaggeredGrid(
                     lanes = 2,
                     modifier = Modifier.testTag(LazyStaggeredGrid),
-                    contentPadding = PaddingValues(
-                        mainAxis = itemSizeDp * 2,
-                        crossAxis = 0.dp
-                    ),
+                    contentPadding = PaddingValues(mainAxis = itemSizeDp * 2, crossAxis = 0.dp),
                     state = state
                 ) {
                     items(4, key = { it }) {
@@ -365,8 +316,7 @@ class LazyStaggeredGridContentPaddingTest(
             }
         }
 
-        rule.onNodeWithTag(LazyStaggeredGrid)
-            .assertMainAxisSizeIsEqualTo(itemSizeDp * 6)
+        rule.onNodeWithTag(LazyStaggeredGrid).assertMainAxisSizeIsEqualTo(itemSizeDp * 6)
     }
 
     @Test

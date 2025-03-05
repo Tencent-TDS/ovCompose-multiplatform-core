@@ -35,12 +35,12 @@ plugins {
 }
 
 android {
-    namespace "androidx.annotation.experimental.lint.integrationtests"
+    namespace = "androidx.annotation.experimental.lint.integrationtests"
 }
 
 dependencies {
     implementation(libs.kotlinStdlib)
-    implementation("androidx.annotation:annotation-experimental:1.4.0")
+    implementation(project(":annotation:annotation-experimental"))
 }
 
 // Allow usage of Kotlin's @Experimental annotation, which is itself experimental.

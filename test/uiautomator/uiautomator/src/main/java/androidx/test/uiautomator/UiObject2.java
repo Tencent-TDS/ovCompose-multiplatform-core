@@ -22,6 +22,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -33,13 +34,13 @@ import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.Checkable;
 import android.widget.TextView;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.FloatRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.test.uiautomator.util.Traces;
 import androidx.test.uiautomator.util.Traces.Section;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -72,6 +73,11 @@ public class UiObject2 implements Searchable {
     private static final int DEFAULT_PINCH_SPEED = 1_000; // dp/s
     // Retry if scrollFinished has null result
     private static final int MAX_NULL_SCROLL_RETRY = 2;
+
+    private static final int WAIT_FOR_SNAPPING_BACK = 1_000;
+    // b/278551289
+    private static final int MAX_RECYCLERVIEW_SCROLL = 10;
+
     private static final long SCROLL_TIMEOUT = 1_000; // ms
     private static final long FLING_TIMEOUT = 5_000; // ms; longer as motion may continue.
 
@@ -106,8 +112,7 @@ public class UiObject2 implements Searchable {
         mDisplayDensity = (float) densityDpi / DisplayMetrics.DENSITY_DEFAULT;
     }
 
-    @Nullable
-    static UiObject2 create(@NonNull UiDevice device, @NonNull BySelector selector,
+    static @Nullable UiObject2 create(@NonNull UiDevice device, @NonNull BySelector selector,
             @NonNull AccessibilityNodeInfo cachedNode) {
         try {
             return new UiObject2(device, selector, cachedNode);
@@ -247,8 +252,7 @@ public class UiObject2 implements Searchable {
     }
 
     /** Returns a collection of the child elements directly under this object. */
-    @NonNull
-    public List<UiObject2> getChildren() {
+    public @NonNull List<UiObject2> getChildren() {
         return findObjects(By.depth(1));
     }
 
@@ -286,8 +290,7 @@ public class UiObject2 implements Searchable {
      * Searches all elements under this object and returns those that match the {@code selector}.
      */
     @Override
-    @NonNull
-    public List<UiObject2> findObjects(@NonNull BySelector selector) {
+    public @NonNull List<UiObject2> findObjects(@NonNull BySelector selector) {
         Log.d(TAG, String.format("Retrieving nodes with selector: %s.", selector));
         List<UiObject2> ret = new ArrayList<>();
         for (AccessibilityNodeInfo node :
@@ -308,8 +311,7 @@ public class UiObject2 implements Searchable {
     }
 
     /** Returns this object's visible bounds. */
-    @NonNull
-    public Rect getVisibleBounds() {
+    public @NonNull Rect getVisibleBounds() {
         return getVisibleBounds(getAccessibilityNodeInfo());
     }
 
@@ -326,14 +328,12 @@ public class UiObject2 implements Searchable {
     }
 
     /** Returns a point in the center of this object's visible bounds. */
-    @NonNull
-    public Point getVisibleCenter() {
+    public @NonNull Point getVisibleCenter() {
         return getVisibleCenter(getAccessibilityNodeInfo());
     }
 
     /** Returns a point in the center of the {@code node}'s visible bounds. */
-    @NonNull
-    private Point getVisibleCenter(AccessibilityNodeInfo node) {
+    private @NonNull Point getVisibleCenter(AccessibilityNodeInfo node) {
         Rect bounds = getVisibleBounds(node);
         return new Point(bounds.centerX(), bounds.centerY());
     }
@@ -412,8 +412,7 @@ public class UiObject2 implements Searchable {
      * @see TextView#getHint()
      */
     @RequiresApi(26)
-    @Nullable
-    public String getHint() {
+    public @Nullable String getHint() {
         return Api26Impl.getHintText(getAccessibilityNodeInfo());
     }
 
@@ -805,14 +804,14 @@ public class UiObject2 implements Searchable {
         int speed = (int) (DEFAULT_SCROLL_SPEED * mDisplayDensity);
         int nullScrollRetryCount = 0;
 
-        EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
-
         if (!node.isScrollable()) {
             Log.w(TAG, String.format("Scrolling on non-scrollable object: %s", node));
         }
 
         // To scroll, we swipe in the opposite direction
         final Direction swipeDirection = Direction.reverse(direction);
+        Boolean scrollFinishedResult = false;
+        int scrollCount = 0;
         while (true) {
             if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
                 // b/267804786: clearing cache on API 28 before applying the condition.
@@ -825,7 +824,8 @@ public class UiObject2 implements Searchable {
             }
             PointerGesture swipe = Gestures.swipeRect(bounds, swipeDirection,
                     DEFAULT_SCROLL_UNTIL_PERCENT, speed, getDisplayId()).pause(250);
-            Boolean scrollFinishedResult =
+            EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
+            scrollFinishedResult =
                     mGestureController.performGestureAndWait(scrollFinished, SCROLL_TIMEOUT, swipe);
             if (Boolean.TRUE.equals(scrollFinishedResult)) {
                 // Scroll has finished.
@@ -840,12 +840,24 @@ public class UiObject2 implements Searchable {
                 Log.i(TAG, String.format("Couldn't determine whether scroll was finished, "
                         + "retrying: count %d", nullScrollRetryCount - 1));
             }
+            if (scrollCount++ >= MAX_RECYCLERVIEW_SCROLL && isRecyclerView()) {
+                Log.d(TAG, String.format("Exit scrollUntil as Recyclerview has scrolled %d times, "
+                        + "threshold: %d", scrollCount, MAX_RECYCLERVIEW_SCROLL));
+                break;
+            }
         }
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.P) {
             // b/267804786: clearing cache on API 28 before applying the condition.
             clearCache();
         }
-        return condition.apply(this);
+        U result = condition.apply(this);
+        // b/339676505: sleep for snapping back animation when scroll reaches the end and
+        // also the condition is met.
+        if (result != null && !Boolean.FALSE.equals(result)
+                && Boolean.TRUE.equals(scrollFinishedResult)) {
+            SystemClock.sleep(WAIT_FOR_SNAPPING_BACK);
+        }
+        return result;
     }
 
     /**
@@ -863,38 +875,37 @@ public class UiObject2 implements Searchable {
         int speed = (int) (DEFAULT_SCROLL_SPEED * mDisplayDensity);
         int nullScrollRetryCount = 0;
 
-        // combine the input condition with scroll finished condition.
-        EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
-        EventCondition<Boolean> combinedEventCondition = new EventCondition<Boolean>() {
-            @Override
-            public Boolean getResult() {
-                if (Boolean.TRUE.equals(scrollFinished.getResult())) {
-                    // scroll has finished.
-                    return true;
-                }
-                U result = condition.getResult();
-                return result != null && !Boolean.FALSE.equals(result);
-            }
-
-            @Override
-            public boolean accept(AccessibilityEvent event) {
-                return condition.accept(event) || scrollFinished.accept(event);
-            }
-
-            @NonNull
-            @Override
-            public String toString() {
-                return condition + " || " + scrollFinished;
-            }
-        };
-
         if (!node.isScrollable()) {
             Log.w(TAG, String.format("Scrolling on non-scrollable object: %s", node));
         }
 
         // To scroll, we swipe in the opposite direction
         final Direction swipeDirection = Direction.reverse(direction);
+        int scrollCount = 0;
         while (true) {
+            // combine the input condition with scroll finished condition.
+            EventCondition<Boolean> scrollFinished = Until.scrollFinished(direction);
+            EventCondition<Boolean> combinedEventCondition = new EventCondition<Boolean>() {
+                @Override
+                public Boolean getResult() {
+                    if (Boolean.TRUE.equals(scrollFinished.getResult())) {
+                        // scroll has finished.
+                        return true;
+                    }
+                    U result = condition.getResult();
+                    return result != null && !Boolean.FALSE.equals(result);
+                }
+
+                @Override
+                public boolean accept(AccessibilityEvent event) {
+                    return condition.accept(event) || scrollFinished.accept(event);
+                }
+
+                @Override
+                public @NonNull String toString() {
+                    return condition + " || " + scrollFinished;
+                }
+            };
             PointerGesture swipe = Gestures.swipeRect(bounds, swipeDirection,
                     DEFAULT_SCROLL_UNTIL_PERCENT, speed, getDisplayId()).pause(250);
             if (mGestureController.performGestureAndWait(combinedEventCondition, SCROLL_TIMEOUT,
@@ -912,6 +923,11 @@ public class UiObject2 implements Searchable {
                 }
                 Log.i(TAG, String.format("Couldn't determine whether scroll was finished, "
                         + "retrying: count %d", nullScrollRetryCount - 1));
+            }
+            if (scrollCount++ >= MAX_RECYCLERVIEW_SCROLL && isRecyclerView()) {
+                Log.d(TAG, String.format("Exit scrollUntil as Recyclerview has scrolled %d times, "
+                        + "threshold: %d", scrollCount, MAX_RECYCLERVIEW_SCROLL));
+                break;
             }
         }
         return condition.getResult();
@@ -1023,6 +1039,10 @@ public class UiObject2 implements Searchable {
 
     }
 
+    private boolean isRecyclerView() {
+        return this.getClassName().contains("RecyclerView");
+    }
+
     UiDevice getDevice() {
         return mDevice;
     }
@@ -1032,7 +1052,6 @@ public class UiObject2 implements Searchable {
         private Api24Impl() {
         }
 
-        @DoNotInline
         static int getDrawingOrder(AccessibilityNodeInfo accessibilityNodeInfo) {
             return accessibilityNodeInfo.getDrawingOrder();
         }
@@ -1043,7 +1062,6 @@ public class UiObject2 implements Searchable {
         private Api26Impl() {
         }
 
-        @DoNotInline
         static String getHintText(AccessibilityNodeInfo accessibilityNodeInfo) {
             CharSequence chars = accessibilityNodeInfo.getHintText();
             return chars != null ? chars.toString() : null;
@@ -1055,7 +1073,6 @@ public class UiObject2 implements Searchable {
         private Api30Impl() {
         }
 
-        @DoNotInline
         static int getDisplayId(AccessibilityWindowInfo accessibilityWindowInfo) {
             return accessibilityWindowInfo.getDisplayId();
         }

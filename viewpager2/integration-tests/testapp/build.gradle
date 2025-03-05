@@ -42,5 +42,6 @@ dependencies {
 }
 
 android {
-    namespace "androidx.viewpager2.integration.testapp"
+    compileSdk = 35
+    namespace = "androidx.viewpager2.integration.testapp"
 }

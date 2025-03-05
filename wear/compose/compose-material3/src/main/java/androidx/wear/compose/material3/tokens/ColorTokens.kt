@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// VERSION: v0_42
+// VERSION: v0_103
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 package androidx.wear.compose.material3.tokens
@@ -27,13 +27,13 @@ internal object ColorTokens {
     val OnError = PaletteTokens.Error20
     val OnErrorContainer = PaletteTokens.Error10
     val OnPrimary = PaletteTokens.Primary10
-    val OnPrimaryContainer = PaletteTokens.Primary90
+    val OnPrimaryContainer = PaletteTokens.Primary95
     val OnSecondary = PaletteTokens.Secondary10
-    val OnSecondaryContainer = PaletteTokens.Secondary90
+    val OnSecondaryContainer = PaletteTokens.Secondary95
     val OnSurface = PaletteTokens.Neutral95
     val OnSurfaceVariant = PaletteTokens.NeutralVariant80
     val OnTertiary = PaletteTokens.Tertiary10
-    val OnTertiaryContainer = PaletteTokens.Tertiary90
+    val OnTertiaryContainer = PaletteTokens.Tertiary95
     val Outline = PaletteTokens.NeutralVariant60
     val OutlineVariant = PaletteTokens.NeutralVariant40
     val Primary = PaletteTokens.Primary90

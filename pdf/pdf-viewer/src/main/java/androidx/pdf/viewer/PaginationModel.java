@@ -16,16 +16,19 @@
 
 package androidx.pdf.viewer;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Rect;
-import android.util.Log;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import androidx.annotation.RestrictTo;
 import androidx.pdf.data.Range;
 import androidx.pdf.models.Dimensions;
-import androidx.pdf.util.ErrorLog;
+import androidx.pdf.util.PaginationUtils;
 import androidx.pdf.util.Preconditions;
-import androidx.pdf.util.ProjectorContext;
-import androidx.pdf.util.Screen;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -51,22 +54,15 @@ import java.util.Set;
  * <ol>
  *   <li>{@link #initialize(int)} with the number of pages it will contain.
  *   <li>{@link #addPage(int, Dimensions)} to set the dimensions for each page.
- *   <li>{@link #setViewArea(Rect)} to report current visible area so pages can be moved
- *       horizontally for maximum visibility.
  * </ol>
  *
  * <p>This model is observable. Any classes implementing {@link PaginationModelObserver} can
  * register themselves via {@link #addObserver(PaginationModelObserver)} and will be notified when
- * pages are added or the {@link #mViewArea} is changed.
+ * pages are added
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-public class PaginationModel {
-
-    private static final String TAG = PaginationModel.class.getSimpleName();
-
-    /** The spacing added before and after each page, in dip. */
-    private static final int PAGE_SPACING_DP = 4;
-
+@SuppressLint("BanParcelableUsage")
+public class PaginationModel implements Parcelable {
     /**
      * The spacing added before and after each page (the actual space between 2 consecutive pages is
      * twice this distance), in pixels.
@@ -75,6 +71,9 @@ public class PaginationModel {
 
     /** The maximum number of pages this model can accommodate. */
     private int mMaxPages = -1;
+
+    /** The page centered in the view. */
+    private int mMidPage = -1;
 
     /** The Dimensions of each page in the list. */
     private Dimensions[] mPages;
@@ -90,28 +89,33 @@ public class PaginationModel {
 
     private int mAccumulatedPageSize = 0;
 
-    /**
-     * The portion of this model that is currently (or last we knew) exposed on the screen.
-     *
-     * <p>In the co-ordinates of this model - so if this entire model is within the visible area,
-     * then
-     * {@code viewArea} will contain the rect Rect(0, 0, getWidth, getHeight). Current visible area
-     * should be reported to this model via {@link #setViewArea(Rect)}.
-     */
-    private final Rect mViewArea = new Rect();
-
-    /**
-     * A temp working instance for computing {@link #mViewArea} to avoid excessive object
-     * creation.
-     */
-    private final Rect mTempViewArea = new Rect();
-
     private final Set<PaginationModelObserver> mObservers = new HashSet<>();
 
-    public PaginationModel() {
-        Screen screen = ProjectorContext.get().getScreen();
-        mPageSpacingPx = screen.pxFromDp(PAGE_SPACING_DP);
+    public PaginationModel(@NonNull Context context) {
+        mPageSpacingPx = PaginationUtils.getPageSpacingInPixels(context);
     }
+
+    protected PaginationModel(@NonNull Parcel in) {
+        mPageSpacingPx = in.readInt();
+        mMaxPages = in.readInt();
+        mPages = in.createTypedArray(Dimensions.CREATOR);
+        mPageStops = in.createIntArray();
+        mSize = in.readInt();
+        mEstimatedPageHeight = in.readFloat();
+        mAccumulatedPageSize = in.readInt();
+    }
+
+    public static final Creator<PaginationModel> CREATOR = new Creator<PaginationModel>() {
+        @Override
+        public PaginationModel createFromParcel(Parcel in) {
+            return new PaginationModel(in);
+        }
+
+        @Override
+        public PaginationModel[] newArray(int size) {
+            return new PaginationModel[size];
+        }
+    };
 
     /**
      * Initializes the model.
@@ -124,8 +128,11 @@ public class PaginationModel {
         Preconditions.checkArgument(numPages >= 0, "Num pages should be >= 0, " + numPages);
         if (isInitialized()) {
             // Already initialized, don't overwrite existing data.
-            ErrorLog.checkState(mMaxPages == numPages, TAG, "init",
-                    String.format("called with different value %d, was %d.", numPages, mMaxPages));
+            if (mMaxPages != numPages) {
+                throw new IllegalArgumentException(
+                        String.format("called with different value %d, was %d.", numPages,
+                                mMaxPages));
+            }
             return;
         }
 
@@ -170,22 +177,21 @@ public class PaginationModel {
                 }
             };
 
+    public void setMaxPages(int maxPages) {
+        mMaxPages = maxPages;
+    }
+
     /** Adds the dimensions of the page at {@code pageNum} to this model. */
-    public void addPage(int pageNum, Dimensions pageSize) {
+    public void addPage(int pageNum, @NonNull Dimensions pageSize) {
         Preconditions.checkNotNull(pageSize);
         if (pageNum < mSize) {
-            ErrorLog.log(TAG, "addPage", String.format("ignored add page#%d < %d", pageNum, mSize));
             return;
         }
         if (pageNum >= mMaxPages) {
-            ErrorLog.log(TAG, "addPage",
-                    String.format("cant add page - not initialized?" + "page#%d >= maxpages:%d",
-                            pageNum, mMaxPages));
             return;
         }
         for (int i = mSize; i < pageNum; i++) {
             // Edge case: there are missing pages. Create them temporarily as clones of this one.
-            ErrorLog.log(TAG, "Backfill page# " + i);
             mPages[i] = pageSize;
         }
         mPages[pageNum] = pageSize;
@@ -203,8 +209,7 @@ public class PaginationModel {
         int p = 0;
         while (p < mSize - 1) {
             if (mPages[p] == null) {
-                ErrorLog.logAndThrow(TAG, "computeTops",
-                        String.format("Missing page %d in (0,%d)", p, mSize));
+                throw new RuntimeException(String.format("Missing page %d in (0,%d)", p, mSize));
             }
             mPageStops[p + 1] = mPageStops[p] + mPages[p].getHeight() + 2 * mPageSpacingPx;
             p++;
@@ -249,7 +254,7 @@ public class PaginationModel {
      * @param includePartial If true, will include pages that are partially visible.
      * @return the range of visible pages (may be an empty range).
      */
-    public Range getPagesInWindow(Range intervalPx, boolean includePartial) {
+    public @NonNull Range getPagesInWindow(@NonNull Range intervalPx, boolean includePartial) {
         if (intervalPx.getFirst() > mPageBottoms.get(mSize - 1)) {
             return new Range(mSize + 1, mSize);
         }
@@ -262,12 +267,14 @@ public class PaginationModel {
         int bottomResult = Collections.binarySearch(endList, intervalPx.getLast());
         int rangeEnd = Math.abs(bottomResult + 1) - 1; // Before insertion point.
 
+        int midPoint = (intervalPx.getFirst() + intervalPx.getLast()) / 2;
+        int midResult = Collections.binarySearch(mPageTops, midPoint);
+
+        mMidPage = Math.max(Math.abs(midResult + 1) - 1, 0); // Before insertion point.
+
         if (rangeEnd < rangeStart) {
             // No page is entirely visible.
-            int midPoint = (intervalPx.getFirst() + intervalPx.getLast()) / 2;
-            int midResult = Collections.binarySearch(mPageTops, midPoint);
-            int page = Math.max(Math.abs(midResult + 1) - 1, 0); // Before insertion point.
-            return new Range(page, page);
+            return new Range(mMidPage, mMidPage);
         }
 
         return new Range(rangeStart, rangeEnd);
@@ -275,7 +282,7 @@ public class PaginationModel {
 
     /** Return the estimated full height. */
     public int getEstimatedFullHeight() {
-        if (!isInitialized()) {
+        if (!isInitialized() || mSize == 0) {
             return 0;
         }
         // If we've rendered the entire document, we know exactly how tall we are
@@ -287,22 +294,6 @@ public class PaginationModel {
                 mMaxPages - mSize + 1));
     }
 
-    /**
-     * Updates the portion of this model that is visible on the screen, in this model's
-     * coordinates -
-     * so relative to (0, 0)-(getWidth(), getHeight()).
-     */
-    public void setViewArea(Rect viewArea) {
-        mTempViewArea.set(viewArea);
-        if (!mTempViewArea.intersect(
-                0, 0, getWidth(), getEstimatedFullHeight())) { // Modifies tempViewArea.
-            Log.w(TAG, String.format("PaginationModel is outside view area. %s", mTempViewArea));
-        }
-        if (!mTempViewArea.equals(this.mViewArea)) {
-            this.mViewArea.set(mTempViewArea);
-            notifyViewAreaChanged();
-        }
-    }
 
     /**
      * Returns the location of the page in the model.
@@ -316,10 +307,11 @@ public class PaginationModel {
      *       maximizes the portion of that view that is visible on the screen
      * </ul>
      *
-     * @param pageNum - index of requested page
+     * @param pageNum  - index of requested page
+     * @param viewArea - the current viewport in content coordinates
      * @return - coordinates of the page within this model
      */
-    public Rect getPageLocation(int pageNum) {
+    public @NonNull Rect getPageLocation(int pageNum, @NonNull Rect viewArea) {
         int left = 0;
         int right = getWidth();
         int top = mPageStops[pageNum];
@@ -327,15 +319,15 @@ public class PaginationModel {
         int width = mPages[pageNum].getWidth();
         if (width < right - left) {
             // this page is smaller than the view's width, it may slide left or right.
-            if (width < mViewArea.width()) {
+            if (width < viewArea.width()) {
                 // page is smaller than the view: center (but respect min left margin)
-                left = Math.max(left, mViewArea.left + (mViewArea.width() - width) / 2);
+                left = Math.max(left, viewArea.left + (viewArea.width() - width) / 2);
             } else {
                 // page is larger than view: scroll proportionally between the margins.
-                if (mViewArea.right > right) {
+                if (viewArea.right > right) {
                     left = right - width;
-                } else if (mViewArea.left > left) {
-                    left = mViewArea.left * (right - width) / (right - mViewArea.width());
+                } else if (viewArea.left > left) {
+                    left = viewArea.left * (right - width) / (right - viewArea.width());
                 }
             }
             right = left + width;
@@ -354,7 +346,7 @@ public class PaginationModel {
     }
 
     /** Returns the Dimensions of page {@code pageNum}. */
-    public Dimensions getPageSize(int pageNum) {
+    public @NonNull Dimensions getPageSize(int pageNum) {
         return mPages[pageNum];
     }
 
@@ -363,20 +355,19 @@ public class PaginationModel {
         return mSize;
     }
 
-    /**
-     * Returns the intersection of this model and the last viewArea that was reported to this model
-     * via {@link #setViewArea(Rect)}.
-     */
-    public Rect getViewArea() {
-        return mViewArea;
+    /** Returns the centered page */
+    public int getMidPage() {
+        return mMidPage;
     }
 
-    /** Notify all observers that the {@code viewArea} has changed. */
-    private void notifyViewAreaChanged() {
-        Iterator<PaginationModelObserver> iterator = iterator();
-        while (iterator.hasNext()) {
-            iterator.next().onViewAreaChanged();
-        }
+    /**
+     * Returns the number of pages in the document.
+     *
+     * @throws IllegalStateException if this is called before the model is initialized
+     */
+    public int getNumPages() {
+        Preconditions.checkState(mMaxPages != -1, "Model is not initialized");
+        return mMaxPages;
     }
 
     /** Notify all observers that a page has been added to the model. */
@@ -398,7 +389,7 @@ public class PaginationModel {
      * <p>Allows duplicate registration. Action will be a no-op if the observer is already
      * registered.
      */
-    public void addObserver(PaginationModelObserver observer) {
+    public void addObserver(@NonNull PaginationModelObserver observer) {
         synchronized (mObservers) {
             mObservers.add(observer);
         }
@@ -410,7 +401,7 @@ public class PaginationModel {
      * <p>Allows removal of unregistered observers. Action will be a no-op if the observer was never
      * registered with this model.
      */
-    public void removeObserver(PaginationModelObserver observer) {
+    public void removeObserver(@NonNull PaginationModelObserver observer) {
         synchronized (mObservers) {
             mObservers.remove(observer);
         }
@@ -420,21 +411,32 @@ public class PaginationModel {
      * Provides an iterator over a copy of the references in {@link #mObservers} so they can be
      * notified of updates without synchronizing on {@link #mObservers}.
      */
-    public Iterator<PaginationModelObserver> iterator() {
+    public @NonNull Iterator<PaginationModelObserver> iterator() {
         synchronized (mObservers) {
-            return new ArrayList<PaginationModelObserver>(mObservers).iterator();
+            return new ArrayList<>(mObservers).iterator();
         }
     }
 
     /** Just makes sure to clear any observers that have been set. */
     @Override
     protected void finalize() throws Throwable {
-        if (!mObservers.isEmpty()) {
-            ErrorLog.log(TAG, String.format(
-                    "PaginationModel still has %d registered observers during garabage "
-                            + "collection. They" + " will be removed.", mObservers.size()));
-        }
         mObservers.clear();
         super.finalize();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
+        dest.writeInt(mPageSpacingPx);
+        dest.writeInt(mMaxPages);
+        dest.writeTypedArray(mPages, flags);
+        dest.writeIntArray(mPageStops);
+        dest.writeInt(mSize);
+        dest.writeFloat(mEstimatedPageHeight);
+        dest.writeInt(mAccumulatedPageSize);
     }
 }

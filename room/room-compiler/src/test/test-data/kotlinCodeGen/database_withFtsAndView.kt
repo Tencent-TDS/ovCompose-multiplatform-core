@@ -33,7 +33,6 @@ public class MyDatabase_Impl : MyDatabase() {
     MyDao_Impl(this)
   }
 
-
   protected override fun createOpenDelegate(): RoomOpenDelegate {
     val _openDelegate: RoomOpenDelegate = object : RoomOpenDelegate(1,
         "89ba16fb8b062b50acf0eb06c853efcb", "8a71a68e07bdd62aa8c8324d870cf804") {

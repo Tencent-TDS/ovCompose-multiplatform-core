@@ -25,3 +25,6 @@ internal actual class AnchoredDragFinishedSignal actual constructor() :
         implementedInJetBrainsFork()
     }
 }
+
+internal actual inline fun assertOnJvm(statement: Boolean, message: () -> String): Unit =
+    implementedInJetBrainsFork()

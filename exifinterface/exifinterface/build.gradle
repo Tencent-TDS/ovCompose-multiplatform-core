@@ -13,7 +13,8 @@ plugins {
 }
 
 dependencies {
-    implementation("androidx.annotation:annotation:1.2.0")
+    api(libs.jspecify)
+    implementation("androidx.annotation:annotation:1.8.1")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testExtTruth)
@@ -27,9 +28,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2016"
     description = "Android Support ExifInterface"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.exifinterface"
+    namespace = "androidx.exifinterface"
 }

@@ -32,7 +32,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.2.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":wear:tiles:tiles"))
     implementation(project(":wear:tiles:tiles-proto"))
 
@@ -60,18 +61,9 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-
-    sourceSets {
-        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/wear/wear-tiles-material"
-    }
-
-    defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    namespace "androidx.wear.tiles.material"
+    namespace = "androidx.wear.tiles.material"
 }
 
 androidx {
@@ -79,5 +71,6 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "Material components library for Android Wear Tiles."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    addGoldenImageAssets()
 }

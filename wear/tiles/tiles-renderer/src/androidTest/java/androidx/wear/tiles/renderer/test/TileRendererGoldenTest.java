@@ -120,7 +120,7 @@ public class TileRendererGoldenTest {
 
     @Rule
     public AndroidXScreenshotTestRule screenshotRule =
-            new AndroidXScreenshotTestRule("wear/wear-tiles-renderer");
+            new AndroidXScreenshotTestRule("wear/tiles/tiles-renderer");
 
     // This isn't totally ideal right now. The screenshot tests run on a phone, so emulate some
     // watch dimensions here.

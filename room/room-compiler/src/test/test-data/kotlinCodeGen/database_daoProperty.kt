@@ -29,7 +29,6 @@ public class MyDatabase_Impl : MyDatabase() {
     MyDao_Impl(this)
   }
 
-
   public override val dao: MyDao
     get() = _myDao.value
 

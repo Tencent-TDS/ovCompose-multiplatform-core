@@ -32,21 +32,18 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
 }
 
 android {
-    namespace "androidx.privacysandbox.activity.core"
+    namespace = "androidx.privacysandbox.activity.core"
     buildFeatures {
         aidl = true
     }
     buildTypes.configureEach {
         stableAidl {
-            version 1
+            version = 1
         }
-    }
-    defaultConfig {
-        minSdk 21
     }
 }
 
@@ -55,4 +52,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Core utilities for Activities in the Privacy Sandbox."
+    legacyDisableKotlinStrictApiMode = true
 }

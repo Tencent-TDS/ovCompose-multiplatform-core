@@ -16,6 +16,10 @@
 
 package androidx.health.connect.client.impl.platform
 
+import androidx.health.connect.client.impl.platform.aggregate.InstantTimeRange
+import androidx.health.connect.client.impl.platform.aggregate.LocalTimeRange
+import androidx.health.connect.client.impl.platform.aggregate.createInstantTimeRange
+import androidx.health.connect.client.impl.platform.aggregate.createLocalTimeRange
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -38,34 +42,10 @@ class TimeExtensionsTest {
     }
 
     @Test
-    fun dibByZero_returnsZero() {
-        val dividend = Duration.ofHours(1)
-        val divisor = Duration.ofSeconds(0)
-        assertThat(dividend / divisor).isEqualTo(0.0)
-    }
-
-    @Test
     fun minus() {
         val a = Instant.now()
         val b = a.plusSeconds(5)
         assertThat(b - a).isEqualTo(Duration.ofSeconds(5))
-    }
-
-    @Test
-    fun useLocalTime() {
-        assertThat(TimeRangeFilter.none().useLocalTime()).isFalse()
-        assertThat(
-            TimeRangeFilter.between(Instant.now(), Instant.now().plusSeconds(2)).useLocalTime()
-        ).isFalse()
-        assertThat(TimeRangeFilter.after(Instant.now()).useLocalTime()).isFalse()
-        assertThat(TimeRangeFilter.before(Instant.now()).useLocalTime()).isFalse()
-
-        assertThat(
-            TimeRangeFilter.between(LocalDateTime.now(), LocalDateTime.now().plusSeconds(2))
-                .useLocalTime()
-        ).isTrue()
-        assertThat(TimeRangeFilter.after(LocalDateTime.now()).useLocalTime()).isTrue()
-        assertThat(TimeRangeFilter.before(LocalDateTime.now()).useLocalTime()).isTrue()
     }
 
     @Test
@@ -74,20 +54,109 @@ class TimeExtensionsTest {
         val localDateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
 
         assertThat(localDateTime.toInstantWithDefaultZoneFallback(ZoneOffset.UTC))
-        .isEqualTo(instant)
+            .isEqualTo(instant)
         assertThat(localDateTime.toInstantWithDefaultZoneFallback(ZoneOffset.ofHours(2)))
             .isEqualTo(instant - Duration.ofHours(2))
     }
 
     @Test
+    fun isWithin_instantTimeRange_outOfBounds_returnsFalse() {
+        var timeRange = createInstantTimeRange(TimeRangeFilter.after(Instant.ofEpochMilli(100)))
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange)).isFalse()
+
+        timeRange = createInstantTimeRange(TimeRangeFilter.before(Instant.ofEpochMilli(100)))
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange)).isFalse()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange)).isFalse()
+
+        timeRange = InstantTimeRange(Instant.ofEpochMilli(100), Instant.ofEpochMilli(200))
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange)).isFalse()
+        assertThat(Instant.ofEpochMilli(200).isWithin(timeRange)).isFalse()
+        assertThat(Instant.ofEpochMilli(201).isWithin(timeRange)).isFalse()
+    }
+
+    @Test
+    fun isWithin_localTimeRange_outOfBounds_returnsFalse() {
+        var timeRange =
+            createLocalTimeRange(
+                TimeRangeFilter.after(
+                    Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                )
+            )
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+
+        timeRange =
+            createLocalTimeRange(
+                TimeRangeFilter.before(
+                    Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                )
+            )
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+
+        timeRange =
+            LocalTimeRange(
+                Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC),
+                Instant.ofEpochMilli(200).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+            )
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+        assertThat(Instant.ofEpochMilli(200).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+        assertThat(Instant.ofEpochMilli(201).isWithin(timeRange, ZoneOffset.UTC)).isFalse()
+    }
+
+    @Test
+    fun isWithin_instantTimeRange_withinBounds_returnsTrue() {
+        var timeRange = createInstantTimeRange(TimeRangeFilter.after(Instant.ofEpochMilli(100)))
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange)).isTrue()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange)).isTrue()
+
+        timeRange = createInstantTimeRange(TimeRangeFilter.before(Instant.ofEpochMilli(100)))
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange)).isTrue()
+
+        timeRange = InstantTimeRange(Instant.ofEpochMilli(100), Instant.ofEpochMilli(200))
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange)).isTrue()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange)).isTrue()
+        assertThat(Instant.ofEpochMilli(199).isWithin(timeRange)).isTrue()
+    }
+
+    @Test
+    fun isWithin_localTimeRange_withinBounds_returnsTrue() {
+        var timeRange =
+            createLocalTimeRange(
+                TimeRangeFilter.after(
+                    Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                )
+            )
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+
+        timeRange =
+            createLocalTimeRange(
+                TimeRangeFilter.before(
+                    Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+                )
+            )
+        assertThat(Instant.ofEpochMilli(99).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+
+        timeRange =
+            LocalTimeRange(
+                Instant.ofEpochMilli(100).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC),
+                Instant.ofEpochMilli(200).toLocalTimeWithDefaultZoneFallback(ZoneOffset.UTC)
+            )
+        assertThat(Instant.ofEpochMilli(100).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+        assertThat(Instant.ofEpochMilli(101).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+        assertThat(Instant.ofEpochMilli(199).isWithin(timeRange, ZoneOffset.UTC)).isTrue()
+    }
+
+    @Test
     fun intervalRecord_duration() {
         val startTime = Instant.now()
-        val nutritionRecord = NutritionRecord(
-            startTime = startTime,
-            endTime = startTime.plusSeconds(10),
-            startZoneOffset = null,
-            endZoneOffset = null
-        )
+        val nutritionRecord =
+            NutritionRecord(
+                startTime = startTime,
+                endTime = startTime.plusSeconds(10),
+                startZoneOffset = null,
+                endZoneOffset = null
+            )
         assertThat(nutritionRecord.duration).isEqualTo(Duration.ofSeconds(10))
     }
 }

@@ -41,6 +41,7 @@ public class SelectionBoundaryTest {
     public void testAtIndex_selectionBoundaryCreatedWithCorrectValues() {
         assertThat(SelectionBoundary.atIndex(4)).isEqualTo(new SelectionBoundary(4, -1, -1, false));
     }
+
     @Test
     public void testAtPoint_selectionBoundaryCreatedWithCorrectValues() {
         assertThat(SelectionBoundary.atPoint(new Point(3, 4))).isEqualTo(
@@ -52,6 +53,7 @@ public class SelectionBoundaryTest {
         assertThat(SelectionBoundary.atPoint(1, 2)).isEqualTo(
                 new SelectionBoundary(-1, 1, 2, false));
     }
+
     @Test
     public void testClassFields() {
         List<String> fields = new ArrayList<>();

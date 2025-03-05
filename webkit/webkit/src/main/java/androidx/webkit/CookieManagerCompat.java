@@ -18,18 +18,21 @@ package androidx.webkit;
 
 import android.webkit.CookieManager;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.AnyThread;
 import androidx.annotation.RequiresFeature;
 import androidx.webkit.internal.ApiFeature;
 import androidx.webkit.internal.CookieManagerAdapter;
 import androidx.webkit.internal.WebViewFeatureInternal;
 import androidx.webkit.internal.WebViewGlueCommunicator;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 
 /**
  * Compatibility version of {@link android.webkit.CookieManager}
  */
+@AnyThread
 public class CookieManagerCompat {
     private CookieManagerCompat() {}
 

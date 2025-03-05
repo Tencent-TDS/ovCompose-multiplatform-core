@@ -2,6 +2,7 @@
 package androidx.wear.compose.material {
 
   @Deprecated @androidx.compose.runtime.Immutable public final class AutoCenteringParams {
+    ctor @Deprecated public AutoCenteringParams();
     ctor @Deprecated public AutoCenteringParams(optional int itemIndex, optional int itemOffset);
   }
 
@@ -137,6 +138,7 @@ package androidx.wear.compose.material {
   }
 
   @androidx.compose.runtime.Immutable @androidx.compose.runtime.Stable public final class Colors {
+    ctor public Colors();
     ctor public Colors(optional long primary, optional long primaryVariant, optional long secondary, optional long secondaryVariant, optional long background, optional long surface, optional long error, optional long onPrimary, optional long onSecondary, optional long onBackground, optional long onSurface, optional long onSurfaceVariant, optional long onError);
     method public androidx.wear.compose.material.Colors copy(optional long primary, optional long primaryVariant, optional long secondary, optional long secondaryVariant, optional long background, optional long surface, optional long error, optional long onPrimary, optional long onSecondary, optional long onBackground, optional long onSurface, optional long onSurfaceVariant, optional long onError);
     method public long getBackground();
@@ -313,6 +315,7 @@ package androidx.wear.compose.material {
   }
 
   public final class PickerGroupState {
+    ctor public PickerGroupState();
     ctor public PickerGroupState(optional int initiallySelectedIndex);
     method public int getSelectedIndex();
     method public void setSelectedIndex(int);
@@ -385,7 +388,7 @@ package androidx.wear.compose.material {
     method public suspend Object? startPlaceholderAnimation(kotlin.coroutines.Continuation<? super kotlin.Unit>);
     property public final boolean isShowContent;
     property public final boolean isWipeOff;
-    property public final float placeholderProgression;
+    property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final float placeholderProgression;
   }
 
   @kotlin.jvm.JvmInline public final value class PositionIndicatorAlignment {
@@ -478,16 +481,14 @@ package androidx.wear.compose.material {
     method public float getBasis();
     method public float getFactorAtMax();
     method public float getFactorAtMin();
-    property public final float basis;
-    property public final float factorAtMax;
-    property public final float factorAtMin;
+    property @FloatRange(from=0.0, fromInclusive=false) public final float basis;
+    property @FloatRange(from=0.0) public final float factorAtMax;
+    property @FloatRange(from=0.0) public final float factorAtMin;
   }
 
   public final class RippleKt {
-    method @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public static androidx.compose.runtime.ProvidableCompositionLocal<java.lang.Boolean> getLocalUseFallbackRippleImplementation();
     method @androidx.compose.runtime.Stable public static androidx.compose.foundation.IndicationNodeFactory ripple(androidx.compose.ui.graphics.ColorProducer color, optional boolean bounded, optional float radius);
     method @androidx.compose.runtime.Stable public static androidx.compose.foundation.IndicationNodeFactory ripple(optional boolean bounded, optional float radius, optional long color);
-    property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public static final androidx.compose.runtime.ProvidableCompositionLocal<java.lang.Boolean> LocalUseFallbackRippleImplementation;
   }
 
   public final class ScaffoldKt {
@@ -575,6 +576,7 @@ package androidx.wear.compose.material {
   }
 
   @Deprecated @androidx.compose.runtime.Stable public final class ScalingLazyListState implements androidx.compose.foundation.gestures.ScrollableState {
+    ctor @Deprecated public ScalingLazyListState();
     ctor @Deprecated public ScalingLazyListState(optional int initialCenterItemIndex, optional int initialCenterItemScrollOffset);
     method @Deprecated public suspend Object? animateScrollToItem(int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method @Deprecated public float dispatchRawDelta(float delta);
@@ -655,6 +657,7 @@ package androidx.wear.compose.material {
   }
 
   @androidx.compose.runtime.Immutable public final class Shapes {
+    ctor public Shapes();
     ctor public Shapes(optional androidx.compose.foundation.shape.CornerBasedShape small, optional androidx.compose.foundation.shape.CornerBasedShape medium, optional androidx.compose.foundation.shape.CornerBasedShape large);
     method public androidx.wear.compose.material.Shapes copy(optional androidx.compose.foundation.shape.CornerBasedShape small, optional androidx.compose.foundation.shape.CornerBasedShape medium, optional androidx.compose.foundation.shape.CornerBasedShape large);
     method public androidx.compose.foundation.shape.CornerBasedShape getLarge();
@@ -706,7 +709,7 @@ package androidx.wear.compose.material {
     method public float getFraction();
     method public T getFrom();
     method public T getTo();
-    property public final float fraction;
+    property @FloatRange(from=0.0, to=1.0) public final float fraction;
     property public final T from;
     property public final T to;
   }
@@ -729,6 +732,7 @@ package androidx.wear.compose.material {
   }
 
   @Deprecated @androidx.compose.runtime.Stable public final class SwipeToDismissBoxState {
+    ctor @Deprecated public SwipeToDismissBoxState();
     ctor @Deprecated public SwipeToDismissBoxState(optional androidx.compose.animation.core.AnimationSpec<java.lang.Float> animationSpec, optional kotlin.jvm.functions.Function1<? super androidx.wear.compose.material.SwipeToDismissValue,java.lang.Boolean> confirmStateChange);
     method @Deprecated public androidx.wear.compose.material.SwipeToDismissValue getCurrentValue();
     method @Deprecated public androidx.wear.compose.material.SwipeToDismissValue getTargetValue();
@@ -789,6 +793,8 @@ package androidx.wear.compose.material {
     method public float getVelocityThreshold();
     method public androidx.wear.compose.material.ResistanceConfig? resistanceConfig(java.util.Set<java.lang.Float> anchors, optional float factorAtMin, optional float factorAtMax);
     property public final androidx.compose.animation.core.SpringSpec<java.lang.Float> AnimationSpec;
+    property public static final float StandardResistanceFactor;
+    property public static final float StiffResistanceFactor;
     property public final float VelocityThreshold;
     field public static final androidx.wear.compose.material.SwipeableDefaults INSTANCE;
     field public static final float StandardResistanceFactor = 10.0f;
@@ -812,9 +818,9 @@ package androidx.wear.compose.material {
     method public final boolean isAnimationRunning();
     method @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final suspend Object? performFling(float velocity, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final suspend Object? snapTo(T targetValue, kotlin.coroutines.Continuation<? super kotlin.Unit>);
-    property public final T currentValue;
+    property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final T currentValue;
     property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final float direction;
-    property public final boolean isAnimationRunning;
+    property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final boolean isAnimationRunning;
     property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final androidx.compose.runtime.State<java.lang.Float> offset;
     property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final androidx.compose.runtime.State<java.lang.Float> overflow;
     property @SuppressCompatibility @androidx.wear.compose.material.ExperimentalWearMaterialApi public final androidx.wear.compose.material.SwipeProgress<T> progress;
@@ -863,6 +869,8 @@ package androidx.wear.compose.material {
     method public androidx.wear.compose.material.TimeSource timeSource(String timeFormat);
     method @androidx.compose.runtime.Composable public androidx.compose.ui.text.TextStyle timeTextStyle(optional long background, optional long color, optional long fontSize);
     property public final androidx.compose.foundation.layout.PaddingValues ContentPadding;
+    property public static final String TimeFormat12Hours;
+    property public static final String TimeFormat24Hours;
     field public static final androidx.wear.compose.material.TimeTextDefaults INSTANCE;
     field public static final String TimeFormat12Hours = "h:mm";
     field public static final String TimeFormat24Hours = "HH:mm";

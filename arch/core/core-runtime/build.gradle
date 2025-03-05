@@ -29,7 +29,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":arch:core:core-common"))
 }
 
@@ -38,9 +39,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Arch-Runtime"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.arch.core"
+    namespace = "androidx.arch.core"
 }

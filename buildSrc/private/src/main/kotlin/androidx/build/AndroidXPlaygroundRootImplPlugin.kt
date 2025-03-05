@@ -61,9 +61,8 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
         rootProject.repositories.addPlaygroundRepositories()
         GradleTransformWorkaround.maybeApply(rootProject)
         PlaygroundCIHostTestsTask.register(rootProject)
-        primaryProjectPaths = target.extensions.extraProperties
-            .get("primaryProjects").toString().split(",")
-            .toSet()
+        primaryProjectPaths =
+            target.extensions.extraProperties.get("primaryProjects").toString().split(",").toSet()
         rootProject.subprojects { configureSubProject(it) }
     }
 
@@ -146,12 +145,6 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
     }
 
     private class PlaygroundRepositories(props: PlaygroundProperties) {
-        val sonatypeSnapshot =
-            PlaygroundRepository(
-                url = "https://oss.sonatype.org/content/repositories/snapshots",
-                includeGroupRegex = """com\.pinterest.*""",
-                includeModuleRegex = """ktlint.*"""
-            )
         val snapshots =
             PlaygroundRepository(
                 "https://androidx.dev/snapshots/builds/${props.snapshotBuildId}/artifacts" +
@@ -174,7 +167,7 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
                 "https://maven.pkg.jetbrains.space/kotlin/p/dokka/dev",
                 includeGroupRegex = """org\.jetbrains\.dokka"""
             )
-        val all = listOf(sonatypeSnapshot, snapshots, metalava, dokka, prebuilts)
+        val all = listOf(snapshots, metalava, dokka, prebuilts)
     }
 
     private data class PlaygroundRepository(
@@ -252,16 +245,16 @@ class AndroidXPlaygroundRootImplPlugin : Plugin<Project> {
     abstract class PlaygroundCIHostTestsTask : DefaultTask() {
         init {
             group = "Verification"
-            description = "Runs host tests that belong to the projects which were explicitly " +
-                "requested in the playground setup."
+            description =
+                "Runs host tests that belong to the projects which were explicitly " +
+                    "requested in the playground setup."
         }
 
         companion object {
             private val NAME = "playgroundCIHostTests"
+
             fun addTask(project: Project, task: AbstractTestTask) {
-                project.rootProject.tasks.named(NAME).configure {
-                    it.dependsOn(task)
-                }
+                project.rootProject.tasks.named(NAME).configure { it.dependsOn(task) }
             }
 
             fun register(project: Project) {

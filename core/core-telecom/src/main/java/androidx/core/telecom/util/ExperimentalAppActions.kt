@@ -22,4 +22,4 @@ package androidx.core.telecom.util
  */
 @RequiresOptIn
 @Retention(AnnotationRetention.BINARY)
-annotation class ExperimentalAppActions
+public annotation class ExperimentalAppActions

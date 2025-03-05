@@ -16,17 +16,59 @@
 
 package androidx.compose.material3.adaptive.layout
 
+import androidx.annotation.FloatRange
+import androidx.compose.animation.core.Transition
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.ParentDataModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 
 /**
- * Scope for the panes of pane scaffolds.
+ * Extended scope for the panes of pane scaffolds. All pane scaffolds will implement this interface
+ * to provide necessary info for panes to correctly render their content, motion, etc.
+ *
+ * @param Role The type of roles that denotes panes in the associated pane scaffold.
+ * @param ScaffoldValue The type of scaffold values that denotes the [PaneAdaptedValue]s in the
+ *   associated pane scaffold.
+ * @see ThreePaneScaffoldPaneScope
+ * @see PaneScaffoldScope
+ * @see PaneScaffoldTransitionScope
+ * @see PaneScaffoldPaneScope
+ * @see LookaheadScope
+ */
+@ExperimentalMaterial3AdaptiveApi
+sealed interface ExtendedPaneScaffoldPaneScope<Role, ScaffoldValue : PaneScaffoldValue<Role>> :
+    ExtendedPaneScaffoldScope<Role, ScaffoldValue>, PaneScaffoldPaneScope<Role>
+
+/**
+ * Extended scope for pane scaffolds. All pane scaffolds will implement this interface to provide
+ * necessary info for its sub-composables to correctly render their content, motion, etc.
+ *
+ * @param Role The type of roles that denotes panes in the associated pane scaffold.
+ * @param ScaffoldValue The type of scaffold values that denotes the [PaneAdaptedValue]s in the
+ *   associated pane scaffold.
+ * @see ThreePaneScaffoldScope
+ * @see PaneScaffoldScope
+ * @see PaneScaffoldTransitionScope
+ * @see LookaheadScope
+ */
+@ExperimentalMaterial3AdaptiveApi
+sealed interface ExtendedPaneScaffoldScope<Role, ScaffoldValue : PaneScaffoldValue<Role>> :
+    PaneScaffoldScope, PaneScaffoldTransitionScope<Role, ScaffoldValue>, LookaheadScope
+
+/**
+ * The base scope of pane scaffolds, which provides scoped functions that supported by pane
+ * scaffolds.
  */
 sealed interface PaneScaffoldScope {
     /**
@@ -39,6 +81,62 @@ sealed interface PaneScaffoldScope {
      * @see PaneScaffoldDirective.defaultPanePreferredWidth
      */
     fun Modifier.preferredWidth(width: Dp): Modifier
+
+    /**
+     * The modifier that should be applied on a drag handle composable so the drag handle can be
+     * dragged and operate on the provided [PaneExpansionState] properly. This modifier also sets up
+     * other behaviors a pane expansion drag handle is supposed to perform, like excluding system
+     * gestures and ensuring minimum touch target size.
+     *
+     * See usage samples at:
+     *
+     * @sample androidx.compose.material3.adaptive.samples.PaneExpansionDragHandleSample
+     */
+    @ExperimentalMaterial3AdaptiveApi
+    // TODO(conradchen): Change this to a composable function with default semantics after
+    //  b/165812010 is fixed
+    fun Modifier.paneExpansionDraggable(
+        state: PaneExpansionState,
+        minTouchTargetSize: Dp,
+        interactionSource: MutableInteractionSource,
+        semanticsProperties: (SemanticsPropertyReceiver.() -> Unit)
+    ): Modifier
+}
+
+/**
+ * The transition scope of pane scaffold implementations, which provides the current transition info
+ * of the associated pane scaffold.
+ */
+@ExperimentalMaterial3AdaptiveApi
+sealed interface PaneScaffoldTransitionScope<Role, ScaffoldValue : PaneScaffoldValue<Role>> {
+    /** The current scaffold state transition between [PaneScaffoldValue]s. */
+    val scaffoldStateTransition: Transition<ScaffoldValue>
+
+    /** The current motion progress. */
+    @get:FloatRange(from = 0.0, to = 1.0) val motionProgress: Float
+
+    /**
+     * Provides measurement and other data required in motion calculation like the size and offset
+     * of each pane before and after the motion.
+     *
+     * Note that the data provided are supposed to be only read proactively by the motion logic
+     * "on-the-fly" when the scaffold motion is happening. Using them elsewhere may cause unexpected
+     * behavior.
+     */
+    val motionDataProvider: PaneScaffoldMotionDataProvider<Role>
+}
+
+/**
+ * The pane scope of the current pane under the scope, which provides the pane relevant info like
+ * its role and [PaneMotion].
+ */
+@ExperimentalMaterial3AdaptiveApi
+sealed interface PaneScaffoldPaneScope<Role> {
+    /** The role of the current pane in the scope. */
+    val paneRole: Role
+
+    /** The specified pane motion of the current pane in the scope. */
+    val paneMotion: PaneMotion
 }
 
 internal abstract class PaneScaffoldScopeImpl : PaneScaffoldScope {
@@ -81,8 +179,8 @@ private class PreferredWidthElement(
 
 private class PreferredWidthNode(var width: Dp) : ParentDataModifierNode, Modifier.Node() {
     override fun Density.modifyParentData(parentData: Any?) =
-        ((parentData as? PaneScaffoldParentData) ?: PaneScaffoldParentData()).also {
-            it.preferredWidth = with(this) { width.toPx() }
+        ((parentData as? PaneScaffoldParentDataImpl) ?: PaneScaffoldParentDataImpl()).also {
+            it.preferredWidth = width
         }
 }
 
@@ -100,8 +198,7 @@ private object AnimatedPaneElement : ModifierNodeElement<AnimatedPaneNode>() {
         return AnimatedPaneNode()
     }
 
-    override fun update(node: AnimatedPaneNode) {
-    }
+    override fun update(node: AnimatedPaneNode) {}
 
     override fun InspectorInfo.inspectableProperties() {
         inspectorInfo()
@@ -118,12 +215,45 @@ private object AnimatedPaneElement : ModifierNodeElement<AnimatedPaneNode>() {
 
 private class AnimatedPaneNode : ParentDataModifierNode, Modifier.Node() {
     override fun Density.modifyParentData(parentData: Any?) =
-        ((parentData as? PaneScaffoldParentData) ?: PaneScaffoldParentData()).also {
+        ((parentData as? PaneScaffoldParentDataImpl) ?: PaneScaffoldParentDataImpl()).also {
             it.isAnimatedPane = true
         }
 }
 
-internal data class PaneScaffoldParentData(
-    var preferredWidth: Float? = null,
-    var isAnimatedPane: Boolean = false
-)
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal val Measurable.minTouchTargetSize: Dp
+    get() {
+        val size = (parentData as? PaneScaffoldParentData)?.minTouchTargetSize ?: Dp.Unspecified
+        return if (size.isSpecified) size else 0.dp
+    }
+
+/**
+ * The parent data passed to pane scaffolds by their contents like panes and drag handles.
+ *
+ * @see PaneScaffoldScope.preferredWidth
+ */
+@ExperimentalMaterial3AdaptiveApi
+sealed interface PaneScaffoldParentData {
+    /**
+     * The preferred width of the child, which is supposed to be set via
+     * [PaneScaffoldScope.preferredWidth] on a pane composable, like [AnimatedPane].
+     */
+    val preferredWidth: Dp
+
+    /** `true` to indicate that the child is an [AnimatedPane]; otherwise `false`. */
+    val isAnimatedPane: Boolean
+
+    /**
+     * The minimum touch target size of the child, which is supposed to be set via
+     * [PaneScaffoldScope.paneExpansionDraggable] on a drag handle component.
+     */
+    val minTouchTargetSize: Dp
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal data class PaneScaffoldParentDataImpl(
+    override var preferredWidth: Dp = Dp.Unspecified,
+    var paneMargins: PaneMargins = PaneMargins.Unspecified,
+    override var isAnimatedPane: Boolean = false,
+    override var minTouchTargetSize: Dp = Dp.Unspecified
+) : PaneScaffoldParentData

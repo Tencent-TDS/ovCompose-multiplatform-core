@@ -18,9 +18,10 @@ package androidx.biometric;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.biometric.BiometricManager.Authenticators;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Utilities related to {@link BiometricManager.Authenticators} constants.
@@ -83,8 +84,8 @@ class AuthenticatorUtils {
     @SuppressWarnings("deprecation")
     @BiometricManager.AuthenticatorTypes
     static int getConsolidatedAuthenticators(
-            @NonNull BiometricPrompt.PromptInfo info,
-            @Nullable BiometricPrompt.CryptoObject crypto) {
+            BiometricPrompt.@NonNull PromptInfo info,
+            BiometricPrompt.@Nullable CryptoObject crypto) {
 
         @BiometricManager.AuthenticatorTypes int authenticators;
         if (info.getAllowedAuthenticators() != 0) {

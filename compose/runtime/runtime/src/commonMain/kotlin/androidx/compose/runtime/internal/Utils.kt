@@ -40,6 +40,8 @@ internal expect fun identityHashCode(instance: Any?): Int
 
 internal expect fun invokeComposable(composer: Composer, composable: @Composable () -> Unit)
 
+internal expect fun logError(message: String, e: Throwable)
+
 /**
  * Represents a platform-optimized cancellation exception. This allows us to configure exceptions
  * separately on JVM and other platforms.

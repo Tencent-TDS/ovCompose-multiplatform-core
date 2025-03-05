@@ -154,19 +154,13 @@ internal class StatefulWatchFaceServiceWatchFaceService : StatefulWatchFaceServi
                     CanvasType.SOFTWARE,
                     16
                 ) {
-                override fun render(
-                    canvas: Canvas,
-                    bounds: Rect,
-                    zonedDateTime: ZonedDateTime
-                ) {
-                }
+                override fun render(canvas: Canvas, bounds: Rect, zonedDateTime: ZonedDateTime) {}
 
                 override fun renderHighlightLayer(
                     canvas: Canvas,
                     bounds: Rect,
                     zonedDateTime: ZonedDateTime
-                ) {
-                }
+                ) {}
             }
         )
     }
@@ -187,7 +181,7 @@ val DEVICE_CONFIG =
 @MediumTest
 public class WatchFaceControlServiceTest {
 
-    @get:Rule internal val screenshotRule = AndroidXScreenshotTestRule("wear/wear-watchface")
+    @get:Rule internal val screenshotRule = AndroidXScreenshotTestRule(SCREENSHOT_GOLDEN_PATH)
 
     private lateinit var instance: IHeadlessWatchFace
 

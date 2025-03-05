@@ -29,3 +29,12 @@ package androidx.lifecycle.viewmodel.compose {
 
 }
 
+package androidx.lifecycle.viewmodel.compose.serialization.serializers {
+
+  public final class MutableStateSerializerKt {
+    method public static inline <reified T> kotlinx.serialization.KSerializer<androidx.compose.runtime.MutableState<T>> MutableStateSerializer();
+    method public static <T> kotlinx.serialization.KSerializer<androidx.compose.runtime.MutableState<T>> MutableStateSerializer(kotlinx.serialization.KSerializer<T> serializer);
+  }
+
+}
+

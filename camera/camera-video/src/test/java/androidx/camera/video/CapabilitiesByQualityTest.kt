@@ -21,6 +21,7 @@ import android.media.CamcorderProfile.QUALITY_720P
 import android.media.CamcorderProfile.QUALITY_HIGH
 import android.media.CamcorderProfile.QUALITY_LOW
 import android.os.Build
+import androidx.camera.core.impl.EncoderProfilesProvider
 import androidx.camera.testing.impl.EncoderProfilesUtil.PROFILES_2160P
 import androidx.camera.testing.impl.EncoderProfilesUtil.PROFILES_720P
 import androidx.camera.testing.impl.EncoderProfilesUtil.RESOLUTION_1080P
@@ -49,12 +50,15 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class CapabilitiesByQualityTest {
 
-    private val capabilitiesByQuality = CapabilitiesByQuality(FakeEncoderProfilesProvider.Builder()
-        .add(QUALITY_HIGH, PROFILES_2160P)
-        .add(QUALITY_2160P, PROFILES_2160P) // UHD
-        .add(QUALITY_720P, PROFILES_720P) // HD
-        .add(QUALITY_LOW, PROFILES_720P)
-        .build())
+    private val capabilitiesByQuality =
+        CapabilitiesByQuality(
+            FakeEncoderProfilesProvider.Builder()
+                .add(QUALITY_HIGH, PROFILES_2160P)
+                .add(QUALITY_2160P, PROFILES_2160P) // UHD
+                .add(QUALITY_720P, PROFILES_720P) // HD
+                .add(QUALITY_LOW, PROFILES_720P)
+                .build()
+        )
 
     @Test
     fun canGetSupportedQualities() {
@@ -87,23 +91,29 @@ class CapabilitiesByQualityTest {
         val videoValidProfile720P = VideoValidatedEncoderProfilesProxy.from(PROFILES_720P)
 
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_4KDCI)
-        ).isEqualTo(videoValidProfile2160P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_4KDCI)
+            )
+            .isEqualTo(videoValidProfile2160P)
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_2160P)
-        ).isEqualTo(videoValidProfile2160P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_2160P)
+            )
+            .isEqualTo(videoValidProfile2160P)
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_1080P)
-        ).isEqualTo(videoValidProfile2160P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_1080P)
+            )
+            .isEqualTo(videoValidProfile2160P)
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_720P)
-        ).isEqualTo(videoValidProfile720P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_720P)
+            )
+            .isEqualTo(videoValidProfile720P)
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_480P)
-        ).isEqualTo(videoValidProfile720P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_480P)
+            )
+            .isEqualTo(videoValidProfile720P)
         assertThat(
-            capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_QVGA)
-        ).isEqualTo(videoValidProfile720P)
+                capabilitiesByQuality.findNearestHigherSupportedEncoderProfilesFor(RESOLUTION_QVGA)
+            )
+            .isEqualTo(videoValidProfile720P)
     }
 
     @Test
@@ -120,5 +130,19 @@ class CapabilitiesByQualityTest {
             .isEqualTo(HD)
         assertThat(capabilitiesByQuality.findNearestHigherSupportedQualityFor(RESOLUTION_QVGA))
             .isEqualTo(HD)
+    }
+
+    @Test
+    fun containsSupportedQuality() {
+        val provider =
+            FakeEncoderProfilesProvider.Builder()
+                .add(QUALITY_HIGH, PROFILES_720P)
+                .add(QUALITY_720P, PROFILES_720P)
+                .add(QUALITY_LOW, PROFILES_720P)
+                .build()
+        val emptyProvider = EncoderProfilesProvider.EMPTY
+
+        assertThat(CapabilitiesByQuality.containsSupportedQuality(provider)).isTrue()
+        assertThat(CapabilitiesByQuality.containsSupportedQuality(emptyProvider)).isFalse()
     }
 }

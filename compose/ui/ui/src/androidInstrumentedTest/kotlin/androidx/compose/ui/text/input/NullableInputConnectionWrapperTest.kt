@@ -57,10 +57,8 @@ class NullableInputConnectionWrapperTest {
     @Test
     fun delegatesCommitContentToDelegate() {
         val ic = NullableInputConnectionWrapper(delegate, onConnectionClosed = {})
-        val contentInfo = InputContentInfo(
-            Uri.parse("content://example.com"),
-            ClipDescription("", emptyArray())
-        )
+        val contentInfo =
+            InputContentInfo(Uri.parse("content://example.com"), ClipDescription("", emptyArray()))
         ic.commitContent(contentInfo, 42, null)
         verify(delegate).commitContent(contentInfo, 42, null)
     }
@@ -69,10 +67,7 @@ class NullableInputConnectionWrapperTest {
     @Test
     fun closeConnectionInvokesCallback() {
         var closeCalls = 0
-        val ic = NullableInputConnectionWrapper(
-            delegate,
-            onConnectionClosed = { closeCalls++ }
-        )
+        val ic = NullableInputConnectionWrapper(delegate, onConnectionClosed = { closeCalls++ })
         assertThat(closeCalls).isEqualTo(0)
 
         ic.closeConnection()
@@ -83,25 +78,17 @@ class NullableInputConnectionWrapperTest {
     @Test
     fun multipleCloseConnectionsInvokesCallbackOnlyOnce() {
         var closeCalls = 0
-        val ic = NullableInputConnectionWrapper(
-            delegate,
-            onConnectionClosed = { closeCalls++ }
-        )
+        val ic = NullableInputConnectionWrapper(delegate, onConnectionClosed = { closeCalls++ })
         assertThat(closeCalls).isEqualTo(0)
 
-        repeat(5) {
-            ic.closeConnection()
-        }
+        repeat(5) { ic.closeConnection() }
         assertThat(closeCalls).isEqualTo(1)
     }
 
     @Test
     fun disposeDelegateDoesNotInvokeCallback() {
         var closeCalls = 0
-        val ic = NullableInputConnectionWrapper(
-            delegate,
-            onConnectionClosed = { closeCalls++ }
-        )
+        val ic = NullableInputConnectionWrapper(delegate, onConnectionClosed = { closeCalls++ })
         assertThat(closeCalls).isEqualTo(0)
 
         ic.disposeDelegate()

@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
@@ -61,7 +63,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.annotation:annotation:1.8.1")
                 implementation(project(":compose:animation:animation"))
                 implementation("androidx.savedstate:savedstate-ktx:1.2.1")
                 implementation("androidx.compose.material:material:1.0.0")
@@ -88,6 +90,7 @@ androidXMultiplatform {
                 implementation(libs.junit)
                 implementation(libs.testRunner)
                 implementation(libs.testRules)
+                implementation("androidx.compose.material:material-icons-core:1.6.7")
                 implementation(project(":compose:foundation:foundation-layout"))
                 implementation(project(":compose:foundation:foundation"))
                 implementation(project(":compose:test-utils"))
@@ -115,8 +118,12 @@ androidx {
     legacyDisableKotlinStrictApiMode = true
     samples(project(":compose:animation:animation:animation-samples"))
     // samples(project(":compose:animation:animation-core:animation-core-samples")) TODO(b/318840087)
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
 android {
-    namespace "androidx.compose.ui.tooling"
+    compileSdk = 35
+    namespace = "androidx.compose.ui.tooling"
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false
 }

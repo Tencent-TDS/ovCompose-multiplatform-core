@@ -40,9 +40,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2018"
     description = "Kotlin extensions for 'viewmodel' artifact"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.lifecycle.viewmodel.ktx"
+    namespace = "androidx.lifecycle.viewmodel.ktx"
 }

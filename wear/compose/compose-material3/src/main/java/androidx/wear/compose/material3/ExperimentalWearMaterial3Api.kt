@@ -21,4 +21,4 @@ package androidx.wear.compose.material3
         " the future."
 )
 @Retention(AnnotationRetention.BINARY)
-annotation class ExperimentalWearMaterial3Api
+public annotation class ExperimentalWearMaterial3Api

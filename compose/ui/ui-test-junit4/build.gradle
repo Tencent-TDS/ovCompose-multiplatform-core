@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
@@ -40,7 +42,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(project(":compose:ui:ui-test"))
-                implementation("androidx.annotation:annotation:1.8.0")
+                implementation("androidx.annotation:annotation:1.8.1")
                 implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
                 implementation(libs.kotlinCoroutinesTest)
@@ -111,10 +113,11 @@ androidXMultiplatform {
 
 
 android {
+    compileSdk = 35
     lintOptions {
         disable("InvalidPackage")
     }
-    namespace "androidx.compose.ui.test.junit4"
+    namespace = "androidx.compose.ui.test.junit4"
 }
 
 androidx {
@@ -123,4 +126,6 @@ androidx {
     inceptionYear = "2020"
     description = "Compose testing integration with JUnit4"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

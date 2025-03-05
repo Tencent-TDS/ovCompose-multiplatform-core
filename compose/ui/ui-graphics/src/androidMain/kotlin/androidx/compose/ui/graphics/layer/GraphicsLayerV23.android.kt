@@ -391,22 +391,18 @@ internal class GraphicsLayerV23(
 @RequiresApi(Build.VERSION_CODES.P)
 private object RenderNodeVerificationHelper28 {
 
-    @androidx.annotation.DoNotInline
     fun getAmbientShadowColor(renderNode: RenderNode): Int {
         return renderNode.ambientShadowColor
     }
 
-    @androidx.annotation.DoNotInline
     fun setAmbientShadowColor(renderNode: RenderNode, target: Int) {
         renderNode.ambientShadowColor = target
     }
 
-    @androidx.annotation.DoNotInline
     fun getSpotShadowColor(renderNode: RenderNode): Int {
         return renderNode.spotShadowColor
     }
 
-    @androidx.annotation.DoNotInline
     fun setSpotShadowColor(renderNode: RenderNode, target: Int) {
         renderNode.spotShadowColor = target
     }
@@ -415,7 +411,6 @@ private object RenderNodeVerificationHelper28 {
 @RequiresApi(Build.VERSION_CODES.N)
 private object RenderNodeVerificationHelper24 {
 
-    @androidx.annotation.DoNotInline
     fun discardDisplayList(renderNode: RenderNode) {
         renderNode.discardDisplayList()
     }
@@ -424,7 +419,6 @@ private object RenderNodeVerificationHelper24 {
 @RequiresApi(Build.VERSION_CODES.M)
 private object RenderNodeVerificationHelper23 {
 
-    @androidx.annotation.DoNotInline
     fun destroyDisplayListData(renderNode: RenderNode) {
         renderNode.destroyDisplayListData()
     }

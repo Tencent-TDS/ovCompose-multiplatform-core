@@ -13,7 +13,7 @@
  */
 
 
- import androidx.build.Publish
+ import androidx.build.LibraryType
 
  plugins {
     id("AndroidXPlugin")
@@ -21,20 +21,20 @@
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.0.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
 }
 
 androidx {
     name = "Camera OEM Extensions Stub"
-    publish = Publish.NONE
-
+    type = LibraryType.UNSET
     inceptionYear = "2019"
     description = "OEM Extensions stub implementation for the Jetpack Camera Library, a library providing interfaces" +
             " to integrate with OEM specific camera features."
 }
 
  android {
-     namespace "androidx.camera.extensions.impl"
+     namespace = "androidx.camera.extensions.impl"
 
      lintOptions {
          enable 'CameraXQuirksClassDetector'

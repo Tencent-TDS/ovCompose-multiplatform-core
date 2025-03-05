@@ -21,6 +21,8 @@ import android.widget.Toast;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Pops a toast. Avoids using static Toast.makeText which is harder to test.
  */
@@ -41,14 +43,14 @@ public class Toaster {
     /**
      *
      */
-    public void popToast(Context context, int resId, Object... args) {
+    public void popToast(@NonNull Context context, int resId, Object @NonNull ... args) {
         popToast(context, context.getString(resId, args));
     }
 
     /**
      *
      */
-    public void popToast(Context context, String message) {
+    public void popToast(@NonNull Context context, @NonNull String message) {
         Toast.makeText(context, message, mDuration).show();
     }
 }

@@ -15,29 +15,31 @@
  */
 package androidx.savedstate
 
-import android.os.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.savedstate.SavedStateRegistry.AutoRecreated
 
-internal class Recreator(
-    private val owner: SavedStateRegistryOwner
-) : LifecycleEventObserver {
+internal class Recreator(private val owner: SavedStateRegistryOwner) : LifecycleEventObserver {
 
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         if (event != Lifecycle.Event.ON_CREATE) {
             throw AssertionError("Next event must be ON_CREATE")
         }
         source.lifecycle.removeObserver(this)
-        val bundle: Bundle = owner.savedStateRegistry
-            .consumeRestoredStateForKey(COMPONENT_KEY) ?: return
-        val classes: MutableList<String> = bundle.getStringArrayList(CLASSES_KEY)
-            ?: throw IllegalStateException(
-                "Bundle with restored state for the component " +
-                    "\"$COMPONENT_KEY\" must contain list of strings by the key " +
-                    "\"$CLASSES_KEY\""
-            )
+
+        val registry = owner.savedStateRegistry
+        val savedState = registry.consumeRestoredStateForKey(COMPONENT_KEY) ?: return
+        val classes =
+            savedState.read {
+                return@read getStringListOrElse(CLASSES_KEY) {
+                    error(
+                        "SavedState with restored state for the component " +
+                            "\"$COMPONENT_KEY\" must contain list of strings by the key " +
+                            "\"$CLASSES_KEY\""
+                    )
+                }
+            }
         for (className: String in classes) {
             reflectiveNew(className)
         }
@@ -57,7 +59,8 @@ internal class Recreator(
             } catch (e: NoSuchMethodException) {
                 throw IllegalStateException(
                     "Class ${clazz.simpleName} must have " +
-                        "default constructor in order to be automatically recreated", e
+                        "default constructor in order to be automatically recreated",
+                    e
                 )
             }
         constructor.isAccessible = true
@@ -79,10 +82,8 @@ internal class Recreator(
             registry.registerSavedStateProvider(COMPONENT_KEY, this)
         }
 
-        override fun saveState(): Bundle {
-            return Bundle().apply {
-                putStringArrayList(CLASSES_KEY, ArrayList(classes))
-            }
+        override fun saveState(): SavedState = savedState {
+            putStringList(CLASSES_KEY, classes.toList())
         }
 
         fun add(className: String) {

@@ -13,21 +13,22 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     implementation("androidx.core:core:1.1.0")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.espressoCore)
 }
 
 android {
     sourceSets {
         main.res.srcDir "res"
     }
-    namespace "androidx.percentlayout"
+    namespace = "androidx.percentlayout"
 }
 
 androidx {
@@ -35,5 +36,4 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2015"
     description = "Android Percent Support Library"
-    metalavaK2UastEnabled = true
 }

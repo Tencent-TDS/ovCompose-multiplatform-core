@@ -21,8 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
-import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -33,22 +34,21 @@ plugins {
 dependencies {
     api(libs.kotlinStdlib)
     implementation(libs.kotlinCoroutinesAndroid)
-    implementation("androidx.annotation:annotation-experimental:1.4.0")
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
     implementation("androidx.core:core:1.8.0")
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation("androidx.lifecycle:lifecycle-common:2.5.0-alpha01")
+    androidTestImplementation("androidx.lifecycle:lifecycle-common:2.8.3")
     androidTestImplementation("androidx.test:core:1.4.0@aar")
-    androidTestImplementation(project(":core:core"))
 }
 
 android {
-    namespace 'androidx.graphics.core'
+    compileSdk = 35
+    namespace = "androidx.graphics.core"
 
     defaultConfig {
-        minSdkVersion 21
         externalNativeBuild {
             def versionScript = file("src/main/cpp/jni.lds").getAbsolutePath()
 
@@ -57,15 +57,16 @@ android {
                         "-fomit-frame-pointer", "-fdata-sections", "-ffunction-sections", "-fvisibility=hidden"
                 arguments "-DCMAKE_VERBOSE_MAKEFILE=ON",
                         "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--gc-sections " +
-                                "-Wl,--version-script=${versionScript}"
+                                "-Wl,--version-script=${versionScript} " +
+                                "-Wl,--undefined-version"
             }
         }
-        consumerProguardFiles 'proguard-rules.pro'
+        consumerProguardFiles("proguard-rules.pro")
     }
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
-            version '3.22.1'
+            version = libs.versions.cmake.get()
         }
     }
 }
@@ -76,6 +77,7 @@ androidx {
     mavenVersion = LibraryVersions.GRAPHICS_CORE
     inceptionYear = "2021"
     description = "Leverage graphics facilities across multiple Android platform releases"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     samples(project(":graphics:graphics-core:graphics-core-samples"))
 }

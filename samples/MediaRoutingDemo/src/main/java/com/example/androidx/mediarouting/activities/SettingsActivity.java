@@ -21,6 +21,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
@@ -30,8 +31,6 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Switch;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.mediarouter.media.MediaRouter;
@@ -46,26 +45,29 @@ import com.example.androidx.mediarouting.services.SampleDynamicGroupMediaRoutePr
 import com.example.androidx.mediarouting.ui.RoutesAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * Allows the user to control dialog types, enabling or disabling Dynamic Groups, enabling or
  * disabling transfer to local and customize the routes exposed by {@link
  * SampleDynamicGroupMediaRouteProviderService}.
  */
 public final class SettingsActivity extends AppCompatActivity {
+    private final ProviderServiceConnection mConnection = new ProviderServiceConnection();
+    private PackageManager mPackageManager;
     private MediaRouter mMediaRouter;
     private RoutesManager mRoutesManager;
     private RoutesAdapter mRoutesAdapter;
-    private SampleDynamicGroupMediaRouteProviderService mService;
-    private ServiceConnection mConnection;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
+        mPackageManager = getPackageManager();
         mMediaRouter = MediaRouter.getInstance(this);
         mRoutesManager = RoutesManager.getInstance(getApplicationContext());
-        mConnection = new ProviderServiceConnection();
 
         setUpViews();
 
@@ -86,7 +88,11 @@ public final class SettingsActivity extends AppCompatActivity {
                                 android.R.string.ok,
                                 (dialogInterface, i) -> {
                                     mRoutesManager.deleteRouteWithId(routeId);
-                                    mService.reloadRoutes();
+                                    SampleDynamicGroupMediaRouteProviderService providerService =
+                                            mConnection.mService;
+                                    if (providerService != null) {
+                                        providerService.reloadRoutes();
+                                    }
                                     mRoutesAdapter.updateRoutes(
                                             mRoutesManager.getRouteItems());
                                 })
@@ -111,10 +117,7 @@ public final class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // Bind to SampleDynamicGroupMediaRouteProviderService
-        Intent intent = new Intent(this, SampleDynamicGroupMediaRouteProviderService.class);
-        intent.setAction(SampleDynamicGroupMediaRouteProviderService.ACTION_BIND_LOCAL);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        bindToDynamicProviderService();
     }
 
     @Override
@@ -125,13 +128,19 @@ public final class SettingsActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        try {
+            unbindService(mConnection);
+        } catch (RuntimeException e) {
+            // This happens when the provider is disabled, but there's no way of preventing this
+            // completely so we just ignore the exception.
+        }
         super.onStop();
-        unbindService(mConnection);
     }
 
     private void setUpViews() {
         setUpDynamicGroupsEnabledSwitch();
         setUpTransferToLocalSwitch();
+        setUpDynamicProviderEnabledSwitch();
         setUpDialogTypeDropDownList();
         setUpNewRouteButton();
         setupSystemRoutesButton();
@@ -141,9 +150,13 @@ public final class SettingsActivity extends AppCompatActivity {
         Switch dynamicRoutingEnabled = findViewById(R.id.dynamic_routing_switch);
         dynamicRoutingEnabled.setChecked(mRoutesManager.isDynamicRoutingEnabled());
         dynamicRoutingEnabled.setOnCheckedChangeListener(
-                (compoundButton, b) -> {
-                    mRoutesManager.setDynamicRoutingEnabled(b);
-                    mService.reloadDynamicRoutesEnabled();
+                (compoundButton, enabled) -> {
+                    mRoutesManager.setDynamicRoutingEnabled(enabled);
+                    SampleDynamicGroupMediaRouteProviderService providerService =
+                            mConnection.mService;
+                    if (providerService != null) {
+                        providerService.reloadDynamicRoutesEnabled();
+                    }
                 });
     }
 
@@ -151,11 +164,34 @@ public final class SettingsActivity extends AppCompatActivity {
         Switch showThisPhoneSwitch = findViewById(R.id.show_this_phone_switch);
         showThisPhoneSwitch.setChecked(mMediaRouter.getRouterParams().isTransferToLocalEnabled());
         showThisPhoneSwitch.setOnCheckedChangeListener(
-                (compoundButton, b) -> {
+                (compoundButton, enabled) -> {
                     MediaRouterParams.Builder builder =
                             new MediaRouterParams.Builder(mMediaRouter.getRouterParams());
-                    builder.setTransferToLocalEnabled(b);
+                    builder.setTransferToLocalEnabled(enabled);
                     mMediaRouter.setRouterParams(builder.build());
+                });
+    }
+
+    private void setUpDynamicProviderEnabledSwitch() {
+        Switch dynamicProviderEnabledSwitch = findViewById(R.id.enable_dynamic_provider_switch);
+        ComponentName dynamicProviderComponentName =
+                new ComponentName(
+                        /* context= */ this, SampleDynamicGroupMediaRouteProviderService.class);
+        dynamicProviderEnabledSwitch.setChecked(
+                mPackageManager.getComponentEnabledSetting(dynamicProviderComponentName)
+                        != PackageManager.COMPONENT_ENABLED_STATE_DISABLED);
+        dynamicProviderEnabledSwitch.setOnCheckedChangeListener(
+                (compoundButton, enabled) -> {
+                    mPackageManager
+                            .setComponentEnabledSetting(
+                                    dynamicProviderComponentName,
+                                    enabled
+                                            ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                                            : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                                    /* flags= */ PackageManager.DONT_KILL_APP);
+                    if (enabled) {
+                        bindToDynamicProviderService();
+                    }
                 });
     }
 
@@ -204,13 +240,22 @@ public final class SettingsActivity extends AppCompatActivity {
         showSystemRoutesButton.setOnClickListener(v -> SystemRoutingActivity.launch(this));
     }
 
-    private class ProviderServiceConnection implements ServiceConnection {
+    private void bindToDynamicProviderService() {
+        Intent intent = new Intent(this, SampleDynamicGroupMediaRouteProviderService.class);
+        intent.setAction(SampleDynamicGroupMediaRouteProviderService.ACTION_BIND_LOCAL);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private static class ProviderServiceConnection implements ServiceConnection {
+
+        private @Nullable SampleDynamicGroupMediaRouteProviderService mService;
 
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             SampleDynamicGroupMediaRouteProviderService.LocalBinder binder =
                     (SampleDynamicGroupMediaRouteProviderService.LocalBinder) service;
             mService = binder.getService();
+            mService.reloadRoutes();
         }
 
         @Override

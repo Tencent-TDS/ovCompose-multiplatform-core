@@ -23,17 +23,17 @@ import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.XTypeName.Companion.PRIMITIVE_LONG
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.compileFiles
-import androidx.room.compiler.processing.util.runProcessorTest
 import androidx.room.parser.SQLTypeAffinity
 import androidx.room.processor.ProcessorErrors.RELATION_IN_ENTITY
+import androidx.room.runProcessorTestWithK1
 import androidx.room.testing.context
 import androidx.room.vo.CallType
+import androidx.room.vo.DataClass
 import androidx.room.vo.Field
 import androidx.room.vo.FieldGetter
 import androidx.room.vo.FieldSetter
 import androidx.room.vo.Fields
 import androidx.room.vo.Index
-import androidx.room.vo.Pojo
 import androidx.room.vo.columnNames
 import org.hamcrest.CoreMatchers.hasItems
 import org.hamcrest.CoreMatchers.`is`
@@ -76,8 +76,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 )
             )
             assertThat(field.setter, `is`(FieldSetter("id", "setId", intType, CallType.METHOD)))
-            assertThat(field.getter,
-                `is`(FieldGetter("id", "getId", intType, CallType.METHOD)))
+            assertThat(field.getter, `is`(FieldGetter("id", "getId", intType, CallType.METHOD)))
             assertThat(entity.primaryKey.fields, `is`(Fields(field)))
         }
     }
@@ -99,11 +98,13 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun noGetterInLibraryClass() {
-        val libraryClasspath = compileFiles(
-            sources = listOf(
-                Source.java(
-                    "test.library.MissingGetterEntity",
-                    """
+        val libraryClasspath =
+            compileFiles(
+                sources =
+                    listOf(
+                        Source.java(
+                            "test.library.MissingGetterEntity",
+                            """
                     package test.library;
                     import androidx.room.*;
                     @Entity
@@ -113,18 +114,16 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                         public void setId(int id) {this.id = id;}
                     }
                     """
-                )
+                        )
+                    )
             )
-        )
         singleEntity(
             "",
             baseClass = "test.library.MissingGetterEntity",
             classpathFiles = libraryClasspath
         ) { _, invocation ->
             invocation.assertCompilationResult {
-                hasErrorContaining(
-                    ProcessorErrors.CANNOT_FIND_GETTER_FOR_FIELD
-                )
+                hasErrorContaining(ProcessorErrors.CANNOT_FIND_GETTER_FOR_FIELD)
             }
         }
     }
@@ -178,9 +177,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_sort_desc() {
-        val annotation = mapOf(
-            "indices" to """@Index(value = {"foo"}, orders = {Index.Order.DESC})"""
-        )
+        val annotation =
+            mapOf("indices" to """@Index(value = {"foo"}, orders = {Index.Order.DESC})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -207,11 +205,12 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_sort_multiple() {
-        val annotation = mapOf(
-            "tableName" to "\"MyTable\"",
-            "indices" to
-                """@Index(value = {"foo", "id"}, orders = {Index.Order.DESC, Index.Order.ASC})"""
-        )
+        val annotation =
+            mapOf(
+                "tableName" to "\"MyTable\"",
+                "indices" to
+                    """@Index(value = {"foo", "id"}, orders = {Index.Order.DESC, Index.Order.ASC})"""
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -238,9 +237,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_invalidOrdersSize() {
-        val annotation = mapOf(
-            "indices" to """@Index(value = {"foo", "id"}, orders = {Index.Order.DESC})"""
-        )
+        val annotation =
+            mapOf("indices" to """@Index(value = {"foo", "id"}, orders = {Index.Order.DESC})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -280,8 +278,9 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 """
         ) { entity, invocation ->
             val idField = entity.fields.first()
-            val cursorValueReader = idField.cursorValueReader
-                ?: throw AssertionError("must have a cursor value reader")
+            val cursorValueReader =
+                idField.statementValueReader
+                    ?: throw AssertionError("must have a cursor value reader")
             assertThat(
                 cursorValueReader.typeMirror().asTypeName(),
                 `is`(invocation.processingEnv.requireType(XTypeName.PRIMITIVE_INT).asTypeName())
@@ -310,8 +309,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 """
         ) { entity, invocation ->
             val idField = entity.fields.first()
-            val statementBinder = idField.statementBinder
-                ?: throw AssertionError("must have a statement binder")
+            val statementBinder =
+                idField.statementBinder ?: throw AssertionError("must have a statement binder")
             assertThat(
                 statementBinder.typeMirror().asTypeName(),
                 `is`(invocation.processingEnv.requireType(XTypeName.PRIMITIVE_INT).asTypeName())
@@ -345,9 +344,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 public int id(){ return id; }
                 """
         ) { _, invocation ->
-            invocation.assertCompilationResult {
-                hasErrorContaining("getId, id")
-            }
+            invocation.assertCompilationResult { hasErrorContaining("getId, id") }
         }
     }
 
@@ -407,9 +404,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 public int getId(){ return id; }
                 """
         ) { _, invocation ->
-            invocation.assertCompilationResult {
-                hasErrorContaining("setId, id")
-            }
+            invocation.assertCompilationResult { hasErrorContaining("setId, id") }
         }
     }
 
@@ -546,9 +541,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             assertThat(entity.primaryKey.fields.map { it.name }, `is`(listOf("id")))
             invocation.assertCompilationResult {
                 hasWarningContaining(
-                    ProcessorErrors.embeddedPrimaryKeyIsDropped(
-                        "foo.bar.MyEntity", "x"
-                    )
+                    ProcessorErrors.embeddedPrimaryKeyIsDropped("foo.bar.MyEntity", "x")
                 )
             }
         }
@@ -571,9 +564,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 """
         ) { entity, invocation ->
             assertThat(entity.primaryKey.fields.map { it.name }, `is`(listOf("id")))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
@@ -592,15 +583,13 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
         }
     }
 
-    private fun fieldsByName(entity: Pojo, vararg fieldNames: String): List<Field> {
+    private fun fieldsByName(entity: DataClass, vararg fieldNames: String): List<Field> {
         return fieldNames.mapNotNull { name -> entity.fields.find { it.name == name } }
     }
 
     @Test
     fun index_simple() {
-        val annotation = mapOf(
-            "indices" to """@Index("foo")"""
-        )
+        val annotation = mapOf("indices" to """@Index("foo")""")
         singleEntity(
             """
                 @PrimaryKey
@@ -653,9 +642,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_multiColumn() {
-        val annotation = mapOf(
-            "indices" to """@Index({"foo", "id"})"""
-        )
+        val annotation = mapOf("indices" to """@Index({"foo", "id"})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -682,9 +669,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_multiple() {
-        val annotation = mapOf(
-            "indices" to """{@Index({"foo", "id"}), @Index({"bar_column", "foo"})}"""
-        )
+        val annotation =
+            mapOf("indices" to """{@Index({"foo", "id"}), @Index({"bar_column", "foo"})}""")
         singleEntity(
             """
                 @PrimaryKey
@@ -719,9 +705,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_unique() {
-        val annotation = mapOf(
-            "indices" to """@Index(value = {"foo", "id"}, unique = true)"""
-        )
+        val annotation = mapOf("indices" to """@Index(value = {"foo", "id"}, unique = true)""")
         singleEntity(
             """
                 @PrimaryKey
@@ -748,9 +732,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_customName() {
-        val annotation = mapOf(
-            "indices" to """@Index(value = {"foo"}, name = "myName")"""
-        )
+        val annotation = mapOf("indices" to """@Index(value = {"foo"}, name = "myName")""")
         singleEntity(
             """
                 @PrimaryKey
@@ -777,10 +759,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_customTableName() {
-        val annotation = mapOf(
-            "tableName" to "\"MyTable\"",
-            "indices" to """@Index(value = {"foo"})"""
-        )
+        val annotation =
+            mapOf("tableName" to "\"MyTable\"", "indices" to """@Index(value = {"foo"})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -807,9 +787,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_empty() {
-        val annotation = mapOf(
-            "indices" to """@Index({})"""
-        )
+        val annotation = mapOf("indices" to """@Index({})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -826,9 +804,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_missingColumn() {
-        val annotation = mapOf(
-            "indices" to """@Index({"foo", "bar"})"""
-        )
+        val annotation = mapOf("indices" to """@Index({"foo", "bar"})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -847,9 +823,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_nameConflict() {
-        val annotation = mapOf(
-            "indices" to """@Index({"foo"})"""
-        )
+        val annotation = mapOf("indices" to """@Index({"foo"})""")
         singleEntity(
             """
                 @PrimaryKey
@@ -860,18 +834,18 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             annotation
         ) { _, invocation ->
             invocation.assertCompilationResult {
-                hasErrorContaining(
-                    ProcessorErrors.duplicateIndexInEntity("index_MyEntity_foo")
-                )
+                hasErrorContaining(ProcessorErrors.duplicateIndexInEntity("index_MyEntity_foo"))
             }
         }
     }
 
     @Test
     fun index_droppedParentFieldIndex() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 public class Base {
@@ -882,13 +856,14 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
                 public int id;
                 """,
-            baseClass = "foo.bar.Base", sources = listOf(parent)
+            baseClass = "foo.bar.Base",
+            sources = listOf(parent)
         ) { entity, invocation ->
             assertThat(entity.indices.isEmpty(), `is`(true))
             invocation.assertCompilationResult {
@@ -905,9 +880,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_keptGrandParentEntityIndex() {
-        val grandParent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val grandParent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(indices = @Index({"name", "lastName"}))
@@ -917,10 +894,12 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
-        val parent = Source.java(
-            qName = "foo.bar.Parent",
-            code = """
+            )
+        val parent =
+            Source.java(
+                qName = "foo.bar.Parent",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
 
@@ -928,7 +907,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String iHaveAField;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -950,17 +929,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     )
                 )
             )
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun index_keptParentEntityIndex() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(indices = @Index({"name", "lastName"}))
@@ -970,7 +949,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -992,17 +971,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     )
                 )
             )
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun ignoredFields() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 public class Base {
@@ -1010,7 +989,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String tmp1;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1023,17 +1002,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
         ) { entity, invocation ->
             assertThat(entity.fields.size, `is`(2))
             assertThat(entity.fields.map(Field::name), hasItems("name", "id"))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun index_keptParentFieldIndex() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 public class Base {
@@ -1044,7 +1023,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1066,17 +1045,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     )
                 )
             )
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun index_droppedGrandParentEntityIndex() {
-        val grandParent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val grandParent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(indices = @Index({"name", "lastName"}))
@@ -1086,10 +1065,12 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
-        val parent = Source.java(
-            qName = "foo.bar.Parent",
-            code = """
+            )
+        val parent =
+            Source.java(
+                qName = "foo.bar.Parent",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
 
@@ -1097,13 +1078,14 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String iHaveAField;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
                 public int id;
                 """,
-            baseClass = "foo.bar.Parent", sources = listOf(parent, grandParent)
+            baseClass = "foo.bar.Parent",
+            sources = listOf(parent, grandParent)
         ) { entity, invocation ->
             assertThat(entity.indices.isEmpty(), `is`(true))
             invocation.assertCompilationResult {
@@ -1119,9 +1101,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun index_droppedParentEntityIndex() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(indices = @Index({"name", "lastName"}))
@@ -1131,13 +1115,14 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
                 public int id;
                 """,
-            baseClass = "foo.bar.Base", sources = listOf(parent)
+            baseClass = "foo.bar.Base",
+            sources = listOf(parent)
         ) { entity, invocation ->
             assertThat(entity.indices.isEmpty(), `is`(true))
             invocation.assertCompilationResult {
@@ -1199,7 +1184,9 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
         ) { entity, invocation ->
             assertThat(entity.indices.isEmpty(), `is`(true))
             invocation.assertCompilationResult {
-                hasErrorContaining(ProcessorErrors.CANNOT_USE_MORE_THAN_ONE_POJO_FIELD_ANNOTATION)
+                hasErrorContaining(
+                    ProcessorErrors.CANNOT_USE_MORE_THAN_ONE_DATA_CLASS_FIELD_ANNOTATION
+                )
             }
         }
     }
@@ -1315,9 +1302,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_fromParentField() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 public class Base {
@@ -1326,7 +1315,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1335,17 +1324,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             sources = listOf(parent)
         ) { entity, invocation ->
             assertThat(entity.primaryKey.fields.firstOrNull()?.name, `is`("baseId"))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun primaryKey_fromParentEntity() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(primaryKeys = "baseId")
@@ -1354,7 +1343,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1363,17 +1352,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             sources = listOf(parent)
         ) { entity, invocation ->
             assertThat(entity.primaryKey.fields.firstOrNull()?.name, `is`("baseId"))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun primaryKey_overrideFromParentField() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 public class Base {
@@ -1382,7 +1371,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1402,9 +1391,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_overrideFromParentEntityViaField() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(primaryKeys = "baseId")
@@ -1413,7 +1404,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1432,9 +1423,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_overrideFromParentEntityViaEntity() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
                 @Entity(primaryKeys = "baseId")
@@ -1443,7 +1436,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1530,17 +1523,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 """
         ) { entity, invocation ->
             assertThat(entity.primaryKey.columnNames, `is`(listOf("bar_a", "bar_b")))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun primaryKey_embeddedInherited() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -1559,7 +1552,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1568,17 +1561,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             sources = listOf(parent)
         ) { entity, invocation ->
             assertThat(entity.primaryKey.columnNames, `is`(listOf("bar_a", "bar_b")))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun primaryKey_overrideViaEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
 
@@ -1588,7 +1581,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1616,9 +1609,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_overrideEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -1637,7 +1632,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1712,9 +1707,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
             """
         ) { _, invocation ->
             invocation.assertCompilationResult {
-                hasErrorContaining(
-                    ProcessorErrors.primaryKeyNull("anotherId")
-                )
+                hasErrorContaining(ProcessorErrors.primaryKeyNull("anotherId"))
             }
         }
     }
@@ -1831,9 +1824,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_nullableEmbeddedInherited() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -1851,7 +1846,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1870,9 +1865,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_nullableOverrideViaEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.room.*;
 
@@ -1882,7 +1879,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     String name, lastName;
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 public int id;
@@ -1912,9 +1909,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_nullableOverrideEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -1932,7 +1931,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1953,9 +1952,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_integerOverrideEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -1972,7 +1973,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -1989,9 +1990,11 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun primaryKey_singleStringPrimaryKeyOverrideEmbedded() {
-        val parent = Source.java(
-            qName = "foo.bar.Base",
-            code = """
+        val parent =
+            Source.java(
+                qName = "foo.bar.Base",
+                code =
+                    """
                 package foo.bar;
                 import androidx.annotation.NonNull;
                 import androidx.room.*;
@@ -2008,7 +2011,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     }
                 }
                 """
-        )
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -2037,30 +2040,32 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 """,
             sources = listOf(COMMON.USER)
         ) { _, invocation ->
-            invocation.assertCompilationResult {
-                hasErrorContaining(RELATION_IN_ENTITY)
-            }
+            invocation.assertCompilationResult { hasErrorContaining(RELATION_IN_ENTITY) }
         }
     }
 
     @Test
     fun foreignKey_invalidAction() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "name",
                     onDelete = 101
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(ProcessorErrors.INVALID_FOREIGN_KEY_ACTION)
@@ -2070,56 +2075,55 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_badEntity() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = dsa.class,
                     parentColumns = "lastName",
                     childColumns = "name"
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
-                // TODO: https://github.com/google/ksp/issues/603
-                // KSP validator does not validate annotation types so we will get another error
-                // down the line.
-                if (invocation.isKsp) {
-                    hasErrorContaining(
-                        ProcessorErrors.foreignKeyNotAnEntity("<Error>")
-                    ).onLine(11)
-                } else {
-                    hasErrorContaining(
-                        "Element 'foo.bar.MyEntity' references a type that is not present"
-                    )
-                }
+                hasErrorContaining(
+                    "Element 'foo.bar.MyEntity' references a type that is not present"
+                )
             }
         }
     }
 
     @Test
     fun foreignKey_notAnEntity() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.NOT_AN_ENTITY_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "name"
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.NOT_AN_ENTITY)
+            attributes = annotation,
+            sources = listOf(COMMON.NOT_AN_ENTITY)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(
@@ -2133,27 +2137,29 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_invalidChildColumn() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "namex"
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(
-                    ProcessorErrors.foreignKeyChildColumnDoesNotExist(
-                        "namex", listOf("id", "name")
-                    )
+                    ProcessorErrors.foreignKeyChildColumnDoesNotExist("namex", listOf("id", "name"))
                 )
             }
         }
@@ -2161,26 +2167,31 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_columnCountMismatch() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = {"name", "id"}
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(
                     ProcessorErrors.foreignKeyColumnNumberMismatch(
-                        listOf("name", "id"), listOf("lastName")
+                        listOf("name", "id"),
+                        listOf("lastName")
                     )
                 )
             }
@@ -2189,21 +2200,25 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_emptyChildColumns() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = {}
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(ProcessorErrors.FOREIGN_KEY_EMPTY_CHILD_COLUMN_LIST)
@@ -2213,21 +2228,25 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_emptyParentColumns() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = {},
                     childColumns = {"name"}
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(ProcessorErrors.FOREIGN_KEY_EMPTY_PARENT_COLUMN_LIST)
@@ -2237,8 +2256,10 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_simple() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "name",
@@ -2246,15 +2267,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, _ ->
             assertThat(entity.foreignKeys.size, `is`(1))
             val fKey = entity.foreignKeys.first()
@@ -2269,8 +2292,10 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_dontDuplicationChildIndex_SingleColumn() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "name",
@@ -2278,27 +2303,29 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent(),
-            "indices" to """@Index("name")"""
-        )
+            """
+                        .trimIndent(),
+                "indices" to """@Index("name")"""
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun foreignKey_dontDuplicationChildIndex_MultipleColumns() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = {"lastName", "name"},
                     childColumns = {"lName", "name"},
@@ -2306,9 +2333,10 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent(),
-            "indices" to """@Index({"lName", "name"})"""
-        )
+            """
+                        .trimIndent(),
+                "indices" to """@Index({"lName", "name"})"""
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -2316,19 +2344,20 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 String name;
                 String lName;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, invocation ->
             assertThat(entity.indices.size, `is`(1))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun foreignKey_dontDuplicationChildIndex_WhenCovered() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = {"lastName"},
                     childColumns = {"name"},
@@ -2336,9 +2365,10 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent(),
-            "indices" to """@Index({"name", "lName"})"""
-        )
+            """
+                        .trimIndent(),
+                "indices" to """@Index({"name", "lName"})"""
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -2346,19 +2376,20 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 String name;
                 String lName;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, invocation ->
             assertThat(entity.indices.size, `is`(1))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
     @Test
     fun foreignKey_warnMissingChildIndex() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "name",
@@ -2366,15 +2397,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, invocation ->
             assertThat(entity.indices, `is`(emptyList()))
             invocation.assertCompilationResult {
@@ -2385,14 +2418,17 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_warnMissingChildrenIndex() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = {"lastName", "name"},
                     childColumns = {"lName", "name"}
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
@@ -2400,17 +2436,13 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 String name;
                 String lName;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, invocation ->
             assertThat(entity.indices, `is`(emptyList()))
             invocation.assertCompilationResult {
                 hasWarningContaining(
-                    ProcessorErrors.foreignKeyMissingIndexInChildColumns(
-                        listOf(
-                            "lName",
-                            "name"
-                        )
-                    )
+                    ProcessorErrors.foreignKeyMissingIndexInChildColumns(listOf("lName", "name"))
                 )
             }
         }
@@ -2418,8 +2450,10 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun foreignKey_dontIndexIfAlreadyPrimaryKey() {
-        val annotation = mapOf(
-            "foreignKeys" to """{@ForeignKey(
+        val annotation =
+            mapOf(
+                "foreignKeys" to
+                    """{@ForeignKey(
                     entity = ${COMMON.USER_TYPE_NAME.canonicalName}.class,
                     parentColumns = "lastName",
                     childColumns = "id",
@@ -2427,20 +2461,20 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                     onUpdate = ForeignKey.CASCADE,
                     deferred = true
                 )}
-            """.trimIndent()
-        )
+            """
+                        .trimIndent()
+            )
         singleEntity(
             """
                 @PrimaryKey
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, invocation ->
             assertThat(entity.indices, `is`(emptyList()))
-            invocation.assertCompilationResult {
-                hasNoWarnings()
-            }
+            invocation.assertCompilationResult { hasNoWarnings() }
         }
     }
 
@@ -2466,13 +2500,13 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
     fun recursion_2Levels_embedToRelation() {
         singleEntity(
             """
-                int pojoId;
+                int dataClassId;
                 @Embedded
                 A a;
 
                 static class A {
                     int entityId;
-                    @Relation(parentColumn = "entityId", entityColumn = "pojoId")
+                    @Relation(parentColumn = "entityId", entityColumn = "dataClassId")
                     List<MyEntity> myEntity;
                 }
                 """
@@ -2488,7 +2522,7 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
     }
 
     @Test
-    fun recursion_2Levels_onlyEmbeds_entityToPojo() {
+    fun recursion_2Levels_onlyEmbeds_entityToDataClass() {
         singleEntity(
             """
                 @Embedded
@@ -2543,7 +2577,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { entity, _ ->
             assertThat(entity.tableName).isEqualTo("foo bar")
         }
@@ -2558,7 +2593,8 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
                 int id;
                 String name;
                 """,
-            attributes = annotation, sources = listOf(COMMON.USER)
+            attributes = annotation,
+            sources = listOf(COMMON.USER)
         ) { _, invocation ->
             invocation.assertCompilationResult {
                 hasErrorContaining(ProcessorErrors.INVALID_TABLE_NAME)
@@ -2585,23 +2621,24 @@ class TableEntityProcessorTest : BaseEntityParserTest() {
 
     @Test
     fun typeAlias() {
-        val src = Source.kotlin(
-            "Entity.kt",
-            """
+        val src =
+            Source.kotlin(
+                "Entity.kt",
+                """
             import androidx.room.*;
 
             typealias MyLong = Long
             @Entity(tableName = "par_table")
             data class Subject(@PrimaryKey @ColumnInfo(name = "my_long") val myLong: MyLong)
-            """.trimIndent()
-        )
-        runProcessorTest(
-            sources = listOf(src)
-        ) { invocation ->
-            val parser = TableEntityProcessor(
-                invocation.context,
-                invocation.processingEnv.requireTypeElement("Subject")
+            """
+                    .trimIndent()
             )
+        runProcessorTestWithK1(sources = listOf(src)) { invocation ->
+            val parser =
+                TableEntityProcessor(
+                    invocation.context,
+                    invocation.processingEnv.requireTypeElement("Subject")
+                )
             val parsed = parser.process()
             val field = parsed.primaryKey.fields.first()
             assertThat(field.typeName).isEqualTo(PRIMITIVE_LONG)

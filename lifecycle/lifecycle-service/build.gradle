@@ -44,9 +44,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Android Lifecycle Service"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.lifecycle.service"
+    namespace = "androidx.lifecycle.service"
 }
