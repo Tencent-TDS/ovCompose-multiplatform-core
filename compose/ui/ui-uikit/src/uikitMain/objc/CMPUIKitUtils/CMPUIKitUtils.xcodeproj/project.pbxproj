@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9968C38B2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */; };
 		997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCDD2B18D135000B56B5 /* CMPViewController.m */; };
 		997DFCE62B18D99E000B56B5 /* CMPViewControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCE52B18D99E000B56B5 /* CMPViewControllerTests.swift */; };
 		997DFCE72B18D99E000B56B5 /* libCMPUIKitUtils.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 996EFEEA2B02CE5D0000FE0F /* libCMPUIKitUtils.a */; };
@@ -60,6 +61,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9968C3892D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPScreenEdgePanGestureRecognizer.h; sourceTree = "<group>"; };
+		9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPScreenEdgePanGestureRecognizer.m; sourceTree = "<group>"; };
 		996EFEEA2B02CE5D0000FE0F /* libCMPUIKitUtils.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCMPUIKitUtils.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		996EFEF52B02CE8A0000FE0F /* CMPUIKitUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPUIKitUtils.h; sourceTree = "<group>"; };
 		997DFCDC2B18D135000B56B5 /* CMPViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPViewController.h; sourceTree = "<group>"; };
@@ -127,28 +130,30 @@
 			children = (
 				EA70A7E62B27106100300068 /* CMPAccessibilityElement.h */,
 				EA70A7E82B27106100300068 /* CMPAccessibilityElement.m */,
-				EA70A7E72B27106100300068 /* CMPMacros.h */,
-				996EFEF52B02CE8A0000FE0F /* CMPUIKitUtils.h */,
-				997DFCDC2B18D135000B56B5 /* CMPViewController.h */,
-				997DFCDD2B18D135000B56B5 /* CMPViewController.m */,
-				EA82F4F72B86144E00465418 /* CMPOSLogger.h */,
-				EA82F4F82B86144E00465418 /* CMPOSLogger.m */,
-				EA82F4FA2B86184F00465418 /* CMPOSLoggerInterval.h */,
-				EA82F4FB2B86184F00465418 /* CMPOSLoggerInterval.m */,
-				EABD91292BC02B5F00455279 /* CMPInteropWrappingView.h */,
-				EABD912A2BC02B5F00455279 /* CMPInteropWrappingView.m */,
-				99DCAB0C2BD00F5C002E6AC7 /* CMPTextLoupeSession.h */,
-				99DCAB0D2BD00F5C002E6AC7 /* CMPTextLoupeSession.m */,
-				99D97A862BF73A9B0035552B /* CMPEditMenuView.h */,
-				99D97A872BF73A9B0035552B /* CMPEditMenuView.m */,
-				EAB33E162C12E746002CFF44 /* CMPMetalDrawablesHandler.h */,
-				EAB33E172C12E746002CFF44 /* CMPMetalDrawablesHandler.m */,
-				EA4B52942C2EDEF200FBB55C /* CMPGestureRecognizer.h */,
-				EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */,
 				EADD028E2C9846D9003F66E8 /* CMPDragInteractionProxy.h */,
 				EADD028F2C9846D9003F66E8 /* CMPDragInteractionProxy.m */,
 				EADD02912C98484F003F66E8 /* CMPDropInteractionProxy.h */,
 				EADD02922C98484F003F66E8 /* CMPDropInteractionProxy.m */,
+				99D97A862BF73A9B0035552B /* CMPEditMenuView.h */,
+				99D97A872BF73A9B0035552B /* CMPEditMenuView.m */,
+				EA4B52942C2EDEF200FBB55C /* CMPGestureRecognizer.h */,
+				EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */,
+				EABD91292BC02B5F00455279 /* CMPInteropWrappingView.h */,
+				EABD912A2BC02B5F00455279 /* CMPInteropWrappingView.m */,
+				EA70A7E72B27106100300068 /* CMPMacros.h */,
+				EAB33E162C12E746002CFF44 /* CMPMetalDrawablesHandler.h */,
+				EAB33E172C12E746002CFF44 /* CMPMetalDrawablesHandler.m */,
+				EA82F4F72B86144E00465418 /* CMPOSLogger.h */,
+				EA82F4F82B86144E00465418 /* CMPOSLogger.m */,
+				EA82F4FA2B86184F00465418 /* CMPOSLoggerInterval.h */,
+				EA82F4FB2B86184F00465418 /* CMPOSLoggerInterval.m */,
+				9968C3892D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.h */,
+				9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */,
+				99DCAB0C2BD00F5C002E6AC7 /* CMPTextLoupeSession.h */,
+				99DCAB0D2BD00F5C002E6AC7 /* CMPTextLoupeSession.m */,
+				996EFEF52B02CE8A0000FE0F /* CMPUIKitUtils.h */,
+				997DFCDC2B18D135000B56B5 /* CMPViewController.h */,
+				997DFCDD2B18D135000B56B5 /* CMPViewController.m */,
 			);
 			path = CMPUIKitUtils;
 			sourceTree = "<group>";
@@ -324,6 +329,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */,
+				9968C38B2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m in Sources */,
 				EAB33E182C12E746002CFF44 /* CMPMetalDrawablesHandler.m in Sources */,
 				99D97A882BF73A9B0035552B /* CMPEditMenuView.m in Sources */,
 				EABD912B2BC02B5F00455279 /* CMPInteropWrappingView.m in Sources */,
