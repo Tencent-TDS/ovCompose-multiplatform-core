@@ -538,6 +538,10 @@ internal fun NavHost(
                     inPredictiveBack = true
                     if (goodEdge) {
                         progress = it.progress
+                    } else {
+                        throw CancellationException(
+                            "The current edge is not allowed to perform back gesture."
+                        )
                     }
                 }
             }
