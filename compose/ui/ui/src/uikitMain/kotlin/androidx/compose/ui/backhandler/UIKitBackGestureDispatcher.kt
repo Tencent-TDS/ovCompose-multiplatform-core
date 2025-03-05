@@ -126,13 +126,15 @@ private class UiKitScreenEdgePanGestureHandler(
     private val getTopLeftOffsetInWindow: () -> IntOffset,
     private val getListener: () -> BackGestureListener?
 ) : NSObject() {
+    private var listener: BackGestureListener? = null
+
     @ObjCAction
     fun handleEdgePan(recognizer: UIScreenEdgePanGestureRecognizer) {
-        val listener = getListener() ?: return
         val view = recognizer.view ?: return
         when (recognizer.state) {
             UIGestureRecognizerStateBegan -> {
-                listener.onStarted()
+                listener = getListener()
+                listener?.onStarted()
             }
 
             UIGestureRecognizerStateChanged -> {
@@ -155,7 +157,7 @@ private class UiKitScreenEdgePanGestureHandler(
                             }
                         )
 
-                        listener.onProgressed(event)
+                        listener?.onProgressed(event)
                     }
                 }
             }
@@ -170,25 +172,28 @@ private class UiKitScreenEdgePanGestureHandler(
                             val velX = if (edge == UIRectEdgeLeft) this@velocity.x else -this@velocity.x
                             when {
                                 //if movement is fast in the right direction
-                                velX > BACK_GESTURE_VELOCITY -> listener.onCompleted()
+                                velX > BACK_GESTURE_VELOCITY -> listener?.onCompleted()
                                 //if movement is backward
-                                velX < -10 -> listener.onCancelled()
+                                velX < -10 -> listener?.onCancelled()
                                 //if there is no movement, or the movement is slow,
                                 //but the touch is already more than BACK_GESTURE_SCREEN_SIZE
-                                abs(x) >= size.width * BACK_GESTURE_SCREEN_SIZE -> listener.onCompleted()
-                                else -> listener.onCancelled()
+                                abs(x) >= size.width * BACK_GESTURE_SCREEN_SIZE -> listener?.onCompleted()
+                                else -> listener?.onCancelled()
                             }
                         }
                     }
                 }
+                listener = null
             }
 
             UIGestureRecognizerStateCancelled -> {
-                listener.onCancelled()
+                listener?.onCancelled()
+                listener = null
             }
 
             UIGestureRecognizerStateFailed -> {
-                listener.onCancelled()
+                listener?.onCancelled()
+                listener = null
             }
         }
     }
