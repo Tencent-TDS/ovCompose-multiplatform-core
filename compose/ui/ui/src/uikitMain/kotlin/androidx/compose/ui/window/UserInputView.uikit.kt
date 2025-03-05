@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.window
 
+import androidx.compose.ui.backhandler.UIKitBackGestureRecognizer
 import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
 import androidx.compose.ui.uikit.utils.CMPHoverGestureHandler
@@ -240,7 +241,10 @@ private class TouchesGestureRecognizer(
     override fun canBePreventedByGestureRecognizer(
         preventingGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        return if (canIgnoreDragGesture(preventingGestureRecognizer)) {
+        return if (preventingGestureRecognizer is UIKitBackGestureRecognizer) {
+            cancelAllTrackedTouches()
+            true
+        } else if (canIgnoreDragGesture(preventingGestureRecognizer)) {
             false
         } else if (preventingGestureRecognizer is ScrollGestureRecognizer
             && preventingGestureRecognizer.state.isOngoing) {
