@@ -304,6 +304,7 @@ internal class ComposeHostingViewController(
         }
 
         rootView.updateMetalView(metalView, ::onDidMoveToWindow)
+        onAccessibilityChanged()
     }
 
     override fun viewControllerDidLeaveWindowHierarchy() {
