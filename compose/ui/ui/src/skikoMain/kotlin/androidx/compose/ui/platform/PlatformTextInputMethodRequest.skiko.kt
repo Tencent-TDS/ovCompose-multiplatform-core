@@ -17,8 +17,8 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
@@ -62,4 +62,22 @@ actual interface PlatformTextInputMethodRequest {
      */
     @ExperimentalComposeUiApi
     val focusedRectInRoot: Flow<Rect>
+
+    /**
+     * A flow that emits the rectangular area of the text field relative to the root layout.
+     *
+     * When the size or position of the text field changes, new values are emitted by the flow.
+     */
+    @ExperimentalComposeUiApi
+    val textFieldRectInRoot: Flow<Rect>
+
+    /**
+     * A flow that emits the rectangular area of the text core clipping region relative to the root
+     * layout. This region defines the visual bounds of the text that is currently displayed within
+     * the text field.
+     *
+     * When the size or position of this region changes, new values are emitted by the flow.
+     */
+    @ExperimentalComposeUiApi
+    val textClippingRectInRoot: Flow<Rect>
 }
