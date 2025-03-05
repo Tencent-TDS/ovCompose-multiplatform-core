@@ -18,10 +18,10 @@ package androidx.camera.camera2.internal.compat.quirk;
 
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.core.internal.compat.quirk.OnePixelShiftQuirk;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * <p>QuirkSummary
@@ -31,7 +31,6 @@ import androidx.camera.core.internal.compat.quirk.OnePixelShiftQuirk;
  *                  RGB in applications.
  *     Device(s): Motorola MotoG3, Samsung SM-G532F/SM-J700F/SM-J415F/SM-920F, Xiaomi Mi A1
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class YuvImageOnePixelShiftQuirk implements OnePixelShiftQuirk {
 
     static boolean load(@NonNull CameraCharacteristicsCompat characteristicsCompat) {

@@ -32,7 +32,7 @@ plugins {
 
 dependencies {
     // Classes and types that are needed at compile & runtime
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
 
     // Classes and types that are only needed at runtime
     implementation(libs.atomicFu)
@@ -55,7 +55,7 @@ android {
     }
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.camera.camera2.pipe.testing"
+    namespace = "androidx.camera.camera2.pipe.testing"
 }
 
 // Allow usage of Kotlin's @OptIn.
@@ -73,6 +73,5 @@ androidx {
     description = "Testing components for the Camera2 Pipe Library, a library providing a " +
             "consistent and reliable camera foundation that enables great camera driven " +
             "experiences across all of Android."
-    metalavaK2UastEnabled = true
     doNotDocumentReason = "Not shipped externally"
 }

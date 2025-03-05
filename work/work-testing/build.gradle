@@ -30,6 +30,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(project(":work:work-runtime"))
 
     implementation("androidx.lifecycle:lifecycle-livedata-core:2.6.2")
@@ -41,10 +42,9 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
 
     testImplementation(libs.truth)
     testImplementation(libs.testCore)
@@ -59,12 +59,10 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Android WorkManager testing library"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
-    namespace "androidx.work.testing"
-    defaultConfig {
-        multiDexEnabled = true
-    }
+    compileSdk = 35
+    namespace = "androidx.work.testing"
 }

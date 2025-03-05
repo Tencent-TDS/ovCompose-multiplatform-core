@@ -33,7 +33,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(libs.guavaListenableFuture)
 
     implementation "androidx.concurrent:concurrent-futures:1.1.0"
@@ -70,7 +71,7 @@ dependencies {
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
 
     buildTypes.configureEach {
@@ -80,20 +81,18 @@ android {
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
 
-    sourceSets {
-        androidTest.assets.srcDirs += project.rootDir.absolutePath + "/../../golden/wear/wear-tiles-renderer"
-    }
-    namespace "androidx.wear.tiles.renderer"
+    namespace = "androidx.wear.tiles.renderer"
 }
 
 protobuf {
-    protoc {
-        artifact = libs.protobufCompiler.get()
-    }
     generateProtoTasks {
-        all().each { task ->
+        all().configureEach { task ->
             task.builtins {
-                java {}
+                java {
+                    // AndroidXPlugin defaults to lite as most projects should use that library,
+                    // however TileRendererGoldenTest relies on full proto library.
+                    options.remove("lite")
+                }
             }
         }
     }
@@ -105,6 +104,7 @@ androidx {
     inceptionYear = "2021"
     description = "Android Wear Tiles Renderer components. These components can be used to parse " +
             "and render an already constructed Wear Tile."
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
+    addGoldenImageAssets()
 }
 

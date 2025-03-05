@@ -27,34 +27,32 @@ import java.util.Locale
  *
  * QuirkSummary
  * - Bug Id: 216667482
- * - Description: When attempting to retrieve the
- *   [CameraCharacteristics.FLASH_INFO_AVAILABLE] characteristic, a
- *   [BufferUnderflowException] is thrown. This is an undocumented exception
- *   on the [CameraCharacteristics.get] method, so this violates the API contract.
+ * - Description: When attempting to retrieve the [CameraCharacteristics.FLASH_INFO_AVAILABLE]
+ *   characteristic, a [BufferUnderflowException] is thrown. This is an undocumented exception on
+ *   the [CameraCharacteristics.get] method, so this violates the API contract.
  * - Device(s): Spreadtrum devices including LEMFO LEMP and DM20C
  *
  * TODO: enable CameraXQuirksClassDetector lint check when kotlin is supported.
  */
 @SuppressLint("CameraXQuirksClassDetector")
-class FlashAvailabilityBufferUnderflowQuirk : Quirk {
+public class FlashAvailabilityBufferUnderflowQuirk : Quirk {
 
-    companion object {
-        private val KNOWN_AFFECTED_MODELS = setOf(
-            // Devices enumerated as DeviceInfo(Build.MANUFACTURER, Build.MODEL).
-            DeviceInfo("sprd", "lemp"),
-            DeviceInfo("sprd", "DM20C"),
-        )
-
-        fun isEnabled(): Boolean {
-            return KNOWN_AFFECTED_MODELS.contains(
-                DeviceInfo(Build.MANUFACTURER, Build.MODEL)
+    public companion object {
+        private val KNOWN_AFFECTED_MODELS =
+            setOf(
+                // Devices enumerated as DeviceInfo(Build.MANUFACTURER, Build.MODEL).
+                DeviceInfo("sprd", "lemp"),
+                DeviceInfo("sprd", "DM20C"),
             )
+
+        public fun isEnabled(): Boolean {
+            return KNOWN_AFFECTED_MODELS.contains(DeviceInfo(Build.MANUFACTURER, Build.MODEL))
         }
     }
 
-    data class DeviceInfo private constructor(val manufacturer: String, val model: String) {
-        companion object {
-            operator fun invoke(manufacturer: String, model: String) =
+    public data class DeviceInfo private constructor(val manufacturer: String, val model: String) {
+        public companion object {
+            public operator fun invoke(manufacturer: String, model: String): DeviceInfo =
                 DeviceInfo(manufacturer.lowercase(Locale.US), model.lowercase(Locale.US))
         }
     }

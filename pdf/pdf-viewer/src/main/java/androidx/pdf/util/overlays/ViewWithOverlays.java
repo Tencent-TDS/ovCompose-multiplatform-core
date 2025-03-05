@@ -20,6 +20,8 @@ import android.graphics.drawable.Drawable;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Interface to define views which support overlays for comments.
  */
@@ -29,5 +31,5 @@ public interface ViewWithOverlays {
     /**
      * Adds the comment overlay to the view with a key identifying the type.
      */
-    void addOverlay(String key, Drawable overlay);
+    void addOverlay(@NonNull String key, @NonNull Drawable overlay);
 }

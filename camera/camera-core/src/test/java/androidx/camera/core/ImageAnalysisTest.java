@@ -16,8 +16,8 @@
 
 package androidx.camera.core;
 
-import static androidx.camera.core.MirrorMode.MIRROR_MODE_OFF;
 import static androidx.camera.core.MirrorMode.MIRROR_MODE_ON_FRONT_ONLY;
+import static androidx.camera.core.MirrorMode.MIRROR_MODE_UNSPECIFIED;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -33,8 +33,6 @@ import android.util.Pair;
 import android.util.Size;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.camera.core.impl.CameraFactory;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
@@ -59,6 +57,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.google.common.collect.Iterables;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -172,7 +172,7 @@ public class ImageAnalysisTest {
     @Test
     public void defaultMirrorModeIsOff() {
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
-        assertThat(imageAnalysis.getMirrorModeInternal()).isEqualTo(MIRROR_MODE_OFF);
+        assertThat(imageAnalysis.getMirrorModeInternal()).isEqualTo(MIRROR_MODE_UNSPECIFIED);
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -226,9 +226,9 @@ public class ImageAnalysisTest {
     public void setAnalyzerWithResolution_doesNotOverridesAppResolutionFilter() {
         ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
         ResolutionFilter appResolutionFilter = new ResolutionFilter() {
-            @NonNull
             @Override
-            public List<Size> filter(@NonNull List<Size> supportedSizes, int rotationDegrees) {
+            public @NonNull List<Size> filter(@NonNull List<Size> supportedSizes,
+                    int rotationDegrees) {
                 return Collections.singletonList(APP_RESOLUTION);
             }
         };
@@ -266,7 +266,7 @@ public class ImageAnalysisTest {
         getMergedImageAnalysisConfig().getTargetResolution();
     }
 
-    private void setResolutionSelectorToImageAnalysisBuilder(@NonNull ImageAnalysis.Builder builder,
+    private void setResolutionSelectorToImageAnalysisBuilder(ImageAnalysis.@NonNull Builder builder,
             @AspectRatio.Ratio int aspectRatio, @Nullable Size boundSize,
             @Nullable ResolutionFilter resolutionFilter) {
         ResolutionSelector.Builder selectorBuilder = new ResolutionSelector.Builder();
@@ -304,16 +304,14 @@ public class ImageAnalysisTest {
         mImageAnalysis.setAnalyzer(mBackgroundExecutor, analyzer);
     }
 
-    @NonNull
-    private ImageAnalysisConfig getMergedImageAnalysisConfig() {
+    private @NonNull ImageAnalysisConfig getMergedImageAnalysisConfig() {
         CameraInfoInternal cameraInfoInternal = new FakeCameraInfoInternal(90,
                 CameraSelector.LENS_FACING_BACK);
         return (ImageAnalysisConfig) mImageAnalysis.mergeConfigs(cameraInfoInternal, null,
                 new ImageAnalysis.Defaults().getConfig());
     }
 
-    @NonNull
-    private ImageAnalysisConfig createDefaultConfig() {
+    private @NonNull ImageAnalysisConfig createDefaultConfig() {
         ImageAnalysis.Builder builder = new ImageAnalysis.Builder();
         builder.setDefaultResolution(DEFAULT_RESOLUTION);
         return builder.getUseCaseConfig();

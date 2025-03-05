@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Build;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -92,7 +91,7 @@ public class GestureTrackingViewTest {
             plainView.setBackgroundColor(Color.BLUE);
             plainView.setLayoutParams(params);
 
-            GestureTracker viewTracker = new GestureTracker("View", activity);
+            GestureTracker viewTracker = new GestureTracker(activity);
             viewTracker.setDelegateHandler(mViewGestureHandler);
             plainView.setOnTouchListener(viewTracker);
 
@@ -140,11 +139,7 @@ public class GestureTrackingViewTest {
 
         @Override
         protected boolean interceptGesture(GestureTracker gestureTracker) {
-            boolean intercepted = gestureTracker.matches(mInterceptedGestures);
-            if (intercepted) {
-                Log.i(TAG, "Intercepted: " + gestureTracker.getLog());
-            }
-            return intercepted;
+            return gestureTracker.matches(mInterceptedGestures);
         }
     }
 

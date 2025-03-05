@@ -15,6 +15,12 @@
   -->
 
 <resources>
+    <declare-styleable name="PdfView">
+        <attr name="fastScrollVerticalThumbDrawable" format="reference" />
+        <attr name="fastScrollVerticalTrackDrawable" format="reference" />
+        <attr name="fastScrollPageIndicatorBackgroundDrawable" format="reference" />
+    </declare-styleable>
+
     <declare-styleable name="FastScrollView">
         <attr name="scrollbarMarginTop" format="dimension" />
         <attr name="scrollbarMarginBottom" format="dimension" />
@@ -31,5 +37,9 @@
         <attr name="actionModeCutDrawable" />
         <attr name="actionModeCopyDrawable" />
         <attr name="actionModePasteDrawable" />
+    </declare-styleable>
+
+    <declare-styleable name="FindInFile">
+        <attr name="customColor" format="color" />
     </declare-styleable>
 </resources>

@@ -32,7 +32,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutModifier
@@ -63,6 +62,7 @@ import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import kotlin.math.roundToInt
 import kotlin.random.Random
+import leakcanary.DetectLeaksAfterTestSuccess
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.nullValue
 import org.hamcrest.MatcherAssert.assertThat
@@ -70,14 +70,16 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class AnimationModifierTest {
-
-    @get:Rule
     val rule = createComposeRule()
+    // Detect leaks BEFORE and AFTER compose rule work
+    @get:Rule
+    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(rule)
 
     @Before
     fun before() {
@@ -110,12 +112,9 @@ class AnimationModifierTest {
         rule.setContent {
             Box(
                 testModifier
-                    .animateContentSize(
-                        tween(
-                            animDuration,
-                            easing = LinearOutSlowInEasing
-                        )
-                    ) { startSize, endSize ->
+                    .animateContentSize(tween(animDuration, easing = LinearOutSlowInEasing)) {
+                        startSize,
+                        endSize ->
                         animationStartSize = startSize
                         animationEndSize = endSize
                     }
@@ -136,24 +135,20 @@ class AnimationModifierTest {
             val fraction = LinearOutSlowInEasing.transform(i / animDuration.toFloat())
             assertEquals(
                 density * (startWidth * (1 - fraction) + endWidth * fraction),
-                testModifier.width.toFloat(), 1f
+                testModifier.width.toFloat(),
+                1f
             )
 
             assertEquals(
                 density * (startHeight * (1 - fraction) + endHeight * fraction),
-                testModifier.height.toFloat(), 1f
+                testModifier.height.toFloat(),
+                1f
             )
 
             if (i == animDuration) {
                 assertNotNull(animationStartSize)
-                assertEquals(
-                    animationStartSize!!.width.toFloat(),
-                    startWidth * density, 1f
-                )
-                assertEquals(
-                    animationStartSize!!.height.toFloat(),
-                    startHeight * density, 1f
-                )
+                assertEquals(animationStartSize!!.width.toFloat(), startWidth * density, 1f)
+                assertEquals(animationStartSize!!.height.toFloat(), startHeight * density, 1f)
             } else {
                 assertNull(animationEndSize)
             }
@@ -173,7 +168,6 @@ class AnimationModifierTest {
         assertAlignmentInAnimateContentSize(LayoutDirection.Rtl)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun testAnimatedContentSizeInLookahead() {
         val lookaheadSizes = mutableListOf<IntSize>()
@@ -181,19 +175,18 @@ class AnimationModifierTest {
         rule.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f)) {
                 LookaheadScope {
-                    Box(Modifier
-                        .layout { measurable, constraints ->
-                            measurable
-                                .measure(constraints)
-                                .run {
+                    Box(
+                        Modifier.layout { measurable, constraints ->
+                                measurable.measure(constraints).run {
                                     if (isLookingAhead) {
                                         lookaheadSizes.add(IntSize(width, height))
                                     }
                                     layout(width, height) { place(0, 0) }
                                 }
-                        }
-                        .animateContentSize()
-                        .size(size.width.dp, size.height.dp)) {
+                            }
+                            .animateContentSize()
+                            .size(size.width.dp, size.height.dp)
+                    ) {
                         Box(Modifier.size(20.dp))
                     }
                 }
@@ -201,16 +194,11 @@ class AnimationModifierTest {
         }
 
         repeat(8) {
-            size = IntSize(
-                Random.nextInt(200, 600),
-                Random.nextInt(100, 800)
-            )
+            size = IntSize(Random.nextInt(200, 600), Random.nextInt(100, 800))
             lookaheadSizes.clear()
             rule.runOnIdle {
                 assertTrue(lookaheadSizes.isNotEmpty())
-                lookaheadSizes.forEach {
-                    assertEquals(size, it)
-                }
+                lookaheadSizes.forEach { assertEquals(size, it) }
             }
         }
     }
@@ -218,101 +206,109 @@ class AnimationModifierTest {
     @Test
     fun testInspectorValue() {
         rule.setContent {
-            Modifier.animateContentSize().any {
-                it as InspectableValue
-                if (it.nameFallback == "animateContentSize") {
-                    assertThat(it.valueOverride, nullValue())
-                    assertThat(
-                        it.inspectableElements.map { it.name }.toList(),
-                        `is`(listOf("animationSpec", "alignment", "finishedListener"))
-                    )
-                    true
-                } else {
-                    false
+            Modifier.animateContentSize()
+                .any {
+                    it as InspectableValue
+                    if (it.nameFallback == "animateContentSize") {
+                        assertThat(it.valueOverride, nullValue())
+                        assertThat(
+                            it.inspectableElements.map { it.name }.toList(),
+                            `is`(listOf("animationSpec", "alignment", "finishedListener"))
+                        )
+                        true
+                    } else {
+                        false
+                    }
                 }
-            }.also { assertTrue(it) }
+                .also { assertTrue(it) }
         }
     }
 
     @Test
-    fun properFinalStateAfterReAttach() = with(rule.density) {
-        // Tests that animateContentSize is able to recover (end at its proper target size) after
-        // being interrupted with movableContent
-        val totalSizePx = 300
+    fun properFinalStateAfterReAttach() =
+        with(rule.density) {
+            // Tests that animateContentSize is able to recover (end at its proper target size)
+            // after
+            // being interrupted with movableContent
+            val totalSizePx = 300
 
-        val smallSizePx = 100
-        val largeSizePx = 200
-        val isExpanded = mutableStateOf(false)
+            val smallSizePx = 100
+            val largeSizePx = 200
+            val isExpanded = mutableStateOf(false)
 
-        val containerAOffset = Offset.Zero
-        val containerBOffset = Offset(100f, 100f)
-        val isAtContainerA = mutableStateOf(true)
+            val containerAOffset = Offset.Zero
+            val containerBOffset = Offset(100f, 100f)
+            val isAtContainerA = mutableStateOf(true)
 
-        val frameDuration = 16
-        val animDuration = 10 * frameDuration
+            val frameDuration = 16
+            val animDuration = 10 * frameDuration
 
-        val testModifier by mutableStateOf(TestModifier())
+            val testModifier by mutableStateOf(TestModifier())
 
-        rule.setContent {
-            val animatedBox = remember {
-                movableContentOf {
-                    Box(
-                        modifier = Modifier
-                            .wrapContentSize()
-                            .then(testModifier)
-                            .animateContentSize(tween(animDuration, easing = LinearEasing))
-                    ) {
-                        val size = if (isExpanded.value) {
-                            largeSizePx.toDp()
-                        } else {
-                            smallSizePx.toDp()
+            rule.setContent {
+                val animatedBox = remember {
+                    movableContentOf {
+                        Box(
+                            modifier =
+                                Modifier.wrapContentSize()
+                                    .then(testModifier)
+                                    .animateContentSize(tween(animDuration, easing = LinearEasing))
+                        ) {
+                            val size =
+                                if (isExpanded.value) {
+                                    largeSizePx.toDp()
+                                } else {
+                                    smallSizePx.toDp()
+                                }
+                            Box(Modifier.requiredSize(size))
                         }
-                        Box(Modifier.requiredSize(size))
+                    }
+                }
+
+                Box(Modifier.size(totalSizePx.toDp())) {
+                    Box(Modifier.offset { containerAOffset.round() }) {
+                        if (isAtContainerA.value) {
+                            animatedBox()
+                        }
+                    }
+                    Box(Modifier.offset { containerBOffset.round() }) {
+                        if (!isAtContainerA.value) {
+                            animatedBox()
+                        }
                     }
                 }
             }
 
-            Box(Modifier.size(totalSizePx.toDp())) {
-                Box(Modifier.offset { containerAOffset.round() }) {
-                    if (isAtContainerA.value) {
-                        animatedBox()
-                    }
-                }
-                Box(Modifier.offset { containerBOffset.round() }) {
-                    if (!isAtContainerA.value) {
-                        animatedBox()
-                    }
-                }
-            }
+            rule.waitForIdle()
+            rule.mainClock.autoAdvance = false
+
+            isExpanded.value = true
+            rule.mainClock.advanceTimeByFrame()
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+
+            // Animate towards halfway the animation
+            rule.mainClock.advanceTimeBy(animDuration / 2L)
+            rule.waitForIdle()
+
+            assertEquals(150, testModifier.width)
+            assertEquals(150, testModifier.height)
+
+            // Move container, this should cause a re-attach in `animateContentSize` node, after
+            // this,
+            // if we let the animation run until it finishes, the final size should match the
+            // expected
+            // size.
+            // Note that this test intentionally doesn't cover the behavior of the remaining
+            // animation
+            // as this change does not address that.
+            isAtContainerA.value = !isAtContainerA.value
+            rule.mainClock.autoAdvance = true
+            rule.waitForIdle()
+
+            assertEquals(largeSizePx, testModifier.width)
+            assertEquals(largeSizePx, testModifier.height)
         }
-
-        rule.waitForIdle()
-        rule.mainClock.autoAdvance = false
-
-        isExpanded.value = true
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
-        rule.waitForIdle()
-
-        // Animate towards halfway the animation
-        rule.mainClock.advanceTimeBy(animDuration / 2L)
-        rule.waitForIdle()
-
-        assertEquals(150, testModifier.width)
-        assertEquals(150, testModifier.height)
-
-        // Move container, this should cause a re-attach in `animateContentSize` node, after this,
-        // if we let the animation run until it finishes, the final size should match the expected
-        // size.
-        // Note that this test intentionally doesn't cover the behavior of the remaining animation
-        // as this change does not address that.
-        isAtContainerA.value = !isAtContainerA.value
-        rule.mainClock.autoAdvance = true
-        rule.waitForIdle()
-
-        assertEquals(largeSizePx, testModifier.width)
-        assertEquals(largeSizePx, testModifier.height)
-    }
 
     /**
      * Verifies Alignment behavior when used with animateContentSize.
@@ -394,6 +390,7 @@ internal class TestModifier : LayoutModifier {
     var height: Int = 0
     var lookaheadSize: IntSize? = null
         private set
+
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
@@ -402,8 +399,6 @@ internal class TestModifier : LayoutModifier {
         if (isLookingAhead) lookaheadSize = IntSize(placeable.width, placeable.height)
         width = placeable.width
         height = placeable.height
-        return layout(width, height) {
-            placeable.place(0, 0)
-        }
+        return layout(width, height) { placeable.place(0, 0) }
     }
 }

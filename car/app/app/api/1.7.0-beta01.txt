@@ -244,6 +244,15 @@ package androidx.car.app.constraints {
 
 }
 
+package androidx.car.app.features {
+
+  public final class CarFeatures {
+    method public static boolean isFeatureEnabled(android.content.Context, String);
+    field public static final String FEATURE_BACKGROUND_AUDIO_WHILE_DRIVING = "background_audio_while_driving";
+  }
+
+}
+
 package androidx.car.app.hardware {
 
   @MainThread @androidx.car.app.annotations.RequiresCarApi(3) public interface CarHardwareManager extends androidx.car.app.managers.Manager {
@@ -867,6 +876,21 @@ package androidx.car.app.media {
 
 }
 
+package androidx.car.app.media.model {
+
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi @androidx.car.app.annotations.RequiresCarApi(8) public class MediaPlaybackTemplate implements androidx.car.app.model.Template {
+    method public androidx.car.app.model.Header? getHeader();
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class MediaPlaybackTemplate.Builder {
+    ctor public MediaPlaybackTemplate.Builder();
+    ctor public MediaPlaybackTemplate.Builder(androidx.car.app.media.model.MediaPlaybackTemplate);
+    method public androidx.car.app.media.model.MediaPlaybackTemplate build();
+    method public androidx.car.app.media.model.MediaPlaybackTemplate.Builder setHeader(androidx.car.app.model.Header?);
+  }
+
+}
+
 package androidx.car.app.mediaextensions {
 
   public final class MediaBrowserExtras {
@@ -998,7 +1022,7 @@ package androidx.car.app.messaging {
 
 package androidx.car.app.messaging.model {
 
-  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi @androidx.car.app.annotations.RequiresCarApi(7) public class CarMessage {
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.RequiresCarApi(7) public class CarMessage {
     method public androidx.car.app.model.CarText? getBody();
     method public String? getMultimediaMimeType();
     method public android.net.Uri? getMultimediaUri();
@@ -1018,17 +1042,17 @@ package androidx.car.app.messaging.model {
     method public androidx.car.app.messaging.model.CarMessage.Builder setSender(androidx.core.app.Person?);
   }
 
-  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi public interface ConversationCallback {
+  @androidx.car.app.annotations.CarProtocol public interface ConversationCallback {
     method public void onMarkAsRead();
     method public void onTextReply(String);
   }
 
-  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi @androidx.car.app.annotations.RequiresCarApi(7) public interface ConversationCallbackDelegate {
+  @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.RequiresCarApi(7) public interface ConversationCallbackDelegate {
     method public void sendMarkAsRead(androidx.car.app.OnDoneCallback);
     method public void sendTextReply(String, androidx.car.app.OnDoneCallback);
   }
 
-  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi @androidx.car.app.annotations.RequiresCarApi(7) public class ConversationItem implements androidx.car.app.model.Item {
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.RequiresCarApi(7) public class ConversationItem implements androidx.car.app.model.Item {
     method public java.util.List<androidx.car.app.model.Action!> getActions();
     method public androidx.car.app.messaging.model.ConversationCallbackDelegate getConversationCallbackDelegate();
     method public androidx.car.app.model.CarIcon? getIcon();
@@ -1037,6 +1061,7 @@ package androidx.car.app.messaging.model {
     method public androidx.core.app.Person getSelf();
     method public androidx.car.app.model.CarText getTitle();
     method public boolean isGroupConversation();
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public boolean isIndexable();
   }
 
   public static final class ConversationItem.Builder {
@@ -1048,6 +1073,7 @@ package androidx.car.app.messaging.model {
     method public androidx.car.app.messaging.model.ConversationItem.Builder setGroupConversation(boolean);
     method public androidx.car.app.messaging.model.ConversationItem.Builder setIcon(androidx.car.app.model.CarIcon);
     method public androidx.car.app.messaging.model.ConversationItem.Builder setId(String);
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public androidx.car.app.messaging.model.ConversationItem.Builder setIndexable(boolean);
     method public androidx.car.app.messaging.model.ConversationItem.Builder setMessages(java.util.List<androidx.car.app.messaging.model.CarMessage!>);
     method public androidx.car.app.messaging.model.ConversationItem.Builder setSelf(androidx.core.app.Person);
     method public androidx.car.app.messaging.model.ConversationItem.Builder setTitle(androidx.car.app.model.CarText);
@@ -1290,6 +1316,7 @@ package androidx.car.app.model {
     method public androidx.car.app.model.OnClickDelegate? getOnClickDelegate();
     method public androidx.car.app.model.CarText? getText();
     method public androidx.car.app.model.CarText? getTitle();
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public boolean isIndexable();
     method public boolean isLoading();
     field public static final int IMAGE_TYPE_ICON = 1; // 0x1
     field public static final int IMAGE_TYPE_LARGE = 2; // 0x2
@@ -1302,12 +1329,30 @@ package androidx.car.app.model {
     method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public androidx.car.app.model.GridItem.Builder setImage(androidx.car.app.model.CarIcon, androidx.car.app.model.Badge);
     method public androidx.car.app.model.GridItem.Builder setImage(androidx.car.app.model.CarIcon, int);
     method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public androidx.car.app.model.GridItem.Builder setImage(androidx.car.app.model.CarIcon, int, androidx.car.app.model.Badge);
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public androidx.car.app.model.GridItem.Builder setIndexable(boolean);
     method public androidx.car.app.model.GridItem.Builder setLoading(boolean);
     method public androidx.car.app.model.GridItem.Builder setOnClickListener(androidx.car.app.model.OnClickListener);
     method public androidx.car.app.model.GridItem.Builder setText(androidx.car.app.model.CarText);
     method public androidx.car.app.model.GridItem.Builder setText(CharSequence);
     method public androidx.car.app.model.GridItem.Builder setTitle(androidx.car.app.model.CarText?);
     method public androidx.car.app.model.GridItem.Builder setTitle(CharSequence?);
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi public final class GridSection extends androidx.car.app.model.Section<androidx.car.app.model.GridItem!> {
+    method public int getItemImageShape();
+    method public int getItemSize();
+    field public static final int ITEM_IMAGE_SHAPE_CIRCLE = 2; // 0x2
+    field public static final int ITEM_IMAGE_SHAPE_UNSET = 1; // 0x1
+    field public static final int ITEM_SIZE_LARGE = 3; // 0x3
+    field public static final int ITEM_SIZE_MEDIUM = 2; // 0x2
+    field public static final int ITEM_SIZE_SMALL = 1; // 0x1
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class GridSection.Builder extends androidx.car.app.model.Section.BaseBuilder<androidx.car.app.model.GridItem!,androidx.car.app.model.GridSection.Builder!> {
+    ctor public GridSection.Builder();
+    method public androidx.car.app.model.GridSection build();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.GridSection.Builder setItemImageShape(int);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.GridSection.Builder setItemSize(int);
   }
 
   @SuppressCompatibility @androidx.car.app.annotations.CarProtocol public final class GridTemplate implements androidx.car.app.model.Template {
@@ -1612,6 +1657,7 @@ package androidx.car.app.model {
     method public androidx.car.app.model.Toggle? getToggle();
     method public boolean isBrowsable();
     method @androidx.car.app.annotations.RequiresCarApi(5) public boolean isEnabled();
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public boolean isIndexable();
     method public androidx.car.app.model.Row row();
     method public CharSequence yourBoat();
     field @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final int IMAGE_TYPE_EXTRA_SMALL = 8; // 0x8
@@ -1631,12 +1677,25 @@ package androidx.car.app.model {
     method @androidx.car.app.annotations.RequiresCarApi(5) public androidx.car.app.model.Row.Builder setEnabled(boolean);
     method public androidx.car.app.model.Row.Builder setImage(androidx.car.app.model.CarIcon);
     method public androidx.car.app.model.Row.Builder setImage(androidx.car.app.model.CarIcon, int);
+    method @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public androidx.car.app.model.Row.Builder setIndexable(boolean);
     method public androidx.car.app.model.Row.Builder setMetadata(androidx.car.app.model.Metadata);
     method @IntRange(from=0) @androidx.car.app.annotations.RequiresCarApi(6) public androidx.car.app.model.Row.Builder setNumericDecoration(int);
     method public androidx.car.app.model.Row.Builder setOnClickListener(androidx.car.app.model.OnClickListener);
     method public androidx.car.app.model.Row.Builder setTitle(androidx.car.app.model.CarText);
     method public androidx.car.app.model.Row.Builder setTitle(CharSequence);
     method public androidx.car.app.model.Row.Builder setToggle(androidx.car.app.model.Toggle);
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi public final class RowSection extends androidx.car.app.model.Section<androidx.car.app.model.Row!> {
+    method public int getInitialSelectedIndex();
+    method public boolean isSelectionGroup();
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class RowSection.Builder extends androidx.car.app.model.Section.BaseBuilder<androidx.car.app.model.Row!,androidx.car.app.model.RowSection.Builder!> {
+    ctor public RowSection.Builder();
+    method public androidx.car.app.model.RowSection build();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.RowSection.Builder clearSelectionGroup();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.RowSection.Builder setAsSelectionGroup(int);
   }
 
   @androidx.car.app.annotations.CarProtocol public interface SearchCallbackDelegate {
@@ -1672,10 +1731,52 @@ package androidx.car.app.model {
     method public default void onSearchTextChanged(String);
   }
 
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi public abstract class Section<T extends androidx.car.app.model.Item> {
+    ctor protected Section();
+    ctor protected Section(androidx.car.app.model.Section.BaseBuilder<T!,? extends java.lang.Object!>);
+    method public androidx.car.app.serialization.ListDelegate<T!> getItemsDelegate();
+    method public androidx.car.app.model.CarText? getNoItemsMessage();
+    method public androidx.car.app.model.CarText? getTitle();
+  }
+
+  protected abstract static class Section.BaseBuilder<T extends androidx.car.app.model.Item, B> {
+    ctor protected Section.BaseBuilder();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B addItem(T);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B clearItems();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B setItems(java.util.List<T!>);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B setNoItemsMessage(androidx.car.app.model.CarText?);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B setNoItemsMessage(CharSequence?);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B setTitle(androidx.car.app.model.CarText?);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public B setTitle(CharSequence?);
+  }
+
   @SuppressCompatibility @androidx.car.app.annotations.CarProtocol public final class SectionedItemList {
     method public static androidx.car.app.model.SectionedItemList create(androidx.car.app.model.ItemList, CharSequence);
     method public androidx.car.app.model.CarText getHeader();
     method public androidx.car.app.model.ItemList getItemList();
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.ExperimentalCarApi public final class SectionedItemTemplate implements androidx.car.app.model.Template {
+    method public java.util.List<androidx.car.app.model.Action!> getActions();
+    method public androidx.car.app.model.Header? getHeader();
+    method public java.util.List<androidx.car.app.model.Section<? extends java.lang.Object!>!> getSections();
+    method public boolean isAlphabeticalIndexingAllowed();
+    method public boolean isLoading();
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class SectionedItemTemplate.Builder {
+    ctor public SectionedItemTemplate.Builder();
+    ctor public SectionedItemTemplate.Builder(androidx.car.app.model.SectionedItemTemplate);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder addAction(androidx.car.app.model.Action);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder addSection(androidx.car.app.model.Section<? extends java.lang.Object!>);
+    method public androidx.car.app.model.SectionedItemTemplate build();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder clearActions();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder clearSections();
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder setActions(java.util.List<androidx.car.app.model.Action!>);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder setAlphabeticalIndexingAllowed(boolean);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder setHeader(androidx.car.app.model.Header?);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder setLoading(boolean);
+    method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.car.app.model.SectionedItemTemplate.Builder setSections(java.util.List<androidx.car.app.model.Section<? extends java.lang.Object!>!>);
   }
 
   @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.RequiresCarApi(6) public final class Tab implements androidx.car.app.model.Content {
@@ -1701,6 +1802,11 @@ package androidx.car.app.model {
     method public String getContentId();
     method public androidx.car.app.model.Template getTemplate();
     field public static final String CONTENT_ID = "TAB_CONTENTS_CONTENT_ID";
+  }
+
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class TabContents.Api8Builder {
+    ctor public TabContents.Api8Builder(androidx.car.app.model.Template);
+    method public androidx.car.app.model.TabContents build();
   }
 
   public static final class TabContents.Builder {
@@ -2275,7 +2381,7 @@ package androidx.car.app.serialization {
     ctor public BundlerException(String?, Throwable);
   }
 
-  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public interface RemoteListDelegate<T> {
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public interface ListDelegate<T> {
     method public int getSize();
     method public void requestItemRange(int startIndex, int endIndex, androidx.car.app.OnDoneCallback callback);
     property public abstract int size;
@@ -2343,6 +2449,7 @@ package androidx.car.app.versioning {
     field public static final int LEVEL_5 = 5; // 0x5
     field public static final int LEVEL_6 = 6; // 0x6
     field public static final int LEVEL_7 = 7; // 0x7
+    field public static final int LEVEL_8 = 8; // 0x8
   }
 
 }

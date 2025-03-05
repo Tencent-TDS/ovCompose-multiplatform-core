@@ -23,7 +23,6 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.os.Build;
 
-import androidx.media.AudioManagerCompat;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SdkSuppress;
@@ -33,7 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-/** Tests for {@link AudioManagerCompat}. */
+/** Tests for {@link androidx.media.AudioManagerCompat}. */
+@SuppressWarnings("deprecation")
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class AudioManagerCompatTest {
@@ -52,7 +52,7 @@ public class AudioManagerCompatTest {
     public void getStreamMaxVolume_returnsStreamMaxVolume() {
         assertEquals(
                 mAudioManager.getStreamMaxVolume(mStreamType),
-                AudioManagerCompat.getStreamMaxVolume(mAudioManager, mStreamType));
+                androidx.media.AudioManagerCompat.getStreamMaxVolume(mAudioManager, mStreamType));
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
@@ -60,13 +60,15 @@ public class AudioManagerCompatTest {
     public void getStreamMinVolume_fromP_returnsStreamMinVolume() {
         assertEquals(
                 mAudioManager.getStreamMinVolume(mStreamType),
-                AudioManagerCompat.getStreamMinVolume(mAudioManager, mStreamType));
+                androidx.media.AudioManagerCompat.getStreamMinVolume(mAudioManager, mStreamType));
     }
 
     @SdkSuppress(maxSdkVersion = Build.VERSION_CODES.O_MR1)
     @Test
     public void getStreamMinVolume_underP_returnsZero() {
-        assertEquals(0, AudioManagerCompat.getStreamMinVolume(mAudioManager, mStreamType));
+        assertEquals(
+                0,
+                androidx.media.AudioManagerCompat.getStreamMinVolume(mAudioManager, mStreamType));
     }
 
     @SdkSuppress(minSdkVersion = 21)
@@ -74,12 +76,12 @@ public class AudioManagerCompatTest {
     public void isVolumeFixed_fromApi21_returnsIsVolumeFixed() {
         assertEquals(
                 mAudioManager.isVolumeFixed(),
-                AudioManagerCompat.isVolumeFixed(mAudioManager));
+                androidx.media.AudioManagerCompat.isVolumeFixed(mAudioManager));
     }
 
     @SdkSuppress(maxSdkVersion = 20)
     @Test
     public void isVolumeFixed_underApi21_returnsFalse() {
-        assertFalse(AudioManagerCompat.isVolumeFixed(mAudioManager));
+        assertFalse(androidx.media.AudioManagerCompat.isVolumeFixed(mAudioManager));
     }
 }

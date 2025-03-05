@@ -26,6 +26,7 @@ import androidx.pdf.data.FutureValues;
 import androidx.pdf.data.FutureValues.SettableFutureValue;
 import androidx.test.filters.SmallTest;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -43,7 +44,7 @@ public class SettableFutureValueTest {
         private float mLastProgressDone = LAST_PROGRESS_DONE_DEFAULT;
 
         @Override
-        public void failed(Throwable thrown) {
+        public void failed(@NonNull Throwable thrown) {
             this.mThrown = thrown;
             this.mResultCount++;
         }

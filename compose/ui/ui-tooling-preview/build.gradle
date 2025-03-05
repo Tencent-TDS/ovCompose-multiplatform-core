@@ -27,11 +27,20 @@ import androidx.build.PlatformIdentifier
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
-    id("com.android.library")
 }
 
 androidXMultiplatform {
-    android()
+    androidLibrary {
+        namespace = "androidx.compose.ui.tooling.preview"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
     jvmStubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
@@ -58,7 +67,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.2.0")
+                api("androidx.annotation:annotation:1.8.1")
             }
         }
 
@@ -92,6 +101,3 @@ androidx {
     legacyDisableKotlinStrictApiMode = true
 }
 
-android {
-    namespace "androidx.compose.ui.tooling.preview"
-}

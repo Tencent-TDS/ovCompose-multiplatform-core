@@ -22,16 +22,11 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-}
-
-kotlin {
-    explicitApi = ExplicitApiMode.Strict
 }
 
 dependencies {
@@ -43,9 +38,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2018"
     description = "Android Navigation-Common-Ktx"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.navigation.common.ktx"
+    namespace = "androidx.navigation.common.ktx"
 }

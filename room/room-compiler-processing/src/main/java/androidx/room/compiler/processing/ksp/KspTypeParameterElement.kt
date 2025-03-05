@@ -16,20 +16,20 @@
 
 package androidx.room.compiler.processing.ksp
 
+import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.processing.XAnnotated
 import androidx.room.compiler.processing.XMemberContainer
-import androidx.room.compiler.processing.XNullability
 import androidx.room.compiler.processing.XType
 import androidx.room.compiler.processing.XTypeParameterElement
 import androidx.room.compiler.processing.ksp.KspAnnotated.UseSiteFilter.Companion.NO_USE_SITE_OR_FIELD
 import com.google.devtools.ksp.symbol.KSTypeParameter
-import com.google.devtools.ksp.symbol.Nullability
 import com.squareup.javapoet.TypeVariableName
 
 internal class KspTypeParameterElement(
     env: KspProcessingEnv,
     override val declaration: KSTypeParameter
-) : KspElement(env, declaration),
+) :
+    KspElement(env, declaration),
     XTypeParameterElement,
     XAnnotated by KspAnnotated.create(env, declaration, NO_USE_SITE_OR_FIELD) {
 
@@ -37,26 +37,25 @@ internal class KspTypeParameterElement(
         get() = declaration.name.asString()
 
     override val typeVariableName: TypeVariableName by lazy {
-        TypeVariableName.get(name, *bounds.map { it.typeName }.toTypedArray())
+        asTypeVariableName().java as TypeVariableName
     }
+
+    override fun asTypeVariableName() =
+        XTypeName.getTypeVariableName(name, bounds.map { it.asTypeName() })
 
     override val enclosingElement: KspMemberContainer by lazy {
         declaration.requireEnclosingMemberContainer(env)
     }
 
     override val bounds: List<XType> by lazy {
-        declaration.bounds.map {
-            val type = it.resolve().let {
-                if (it.nullability == Nullability.PLATFORM) {
-                    it.withNullability(XNullability.NULLABLE)
-                } else {
-                    it
-                }
-            }
-            env.wrap(it, type)
-        }.toList().ifEmpty {
-            listOf(env.requireType(Any::class).makeNullable())
-        }
+        declaration.bounds
+            .map { env.wrap(it, it.resolve()) }
+            .toList()
+            // In Kotlin the order doesn't matter but in Java class bound should go
+            // before interface bounds:
+            // https://docs.oracle.com/javase/specs/jls/se8/html/jls-4.html#jls-4.4
+            .sortedBy { it.typeElement?.isInterface() ?: false }
+            .ifEmpty { listOf(env.requireType(Any::class).makeNullable()) }
     }
 
     override val fallbackLocationText: String

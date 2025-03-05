@@ -31,18 +31,20 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.biometric.BiometricManager.AuthenticatorTypes;
 import androidx.biometric.BiometricManager.Authenticators;
 import androidx.test.core.app.ApplicationProvider;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.internal.DoNotInstrument;
@@ -51,14 +53,14 @@ import org.robolectric.annotation.internal.DoNotInstrument;
 @RunWith(RobolectricTestRunner.class)
 @DoNotInstrument
 public class BiometricManagerTest {
+    @Rule
+    public final MockitoRule mocks = MockitoJUnit.rule();
     @Mock private androidx.core.hardware.fingerprint.FingerprintManagerCompat mFingerprintManager;
 
     private Context mContext;
 
-    @SuppressWarnings("deprecation") // b/251211046
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
     }
 
@@ -1245,9 +1247,9 @@ public class BiometricManagerTest {
      * A configurable injector to be used for testing.
      */
     private static class TestInjector implements BiometricManager.Injector {
-        @NonNull private final Context mContext;
-        @Nullable private final android.hardware.biometrics.BiometricManager mBiometricManager;
-        @Nullable private final androidx.core.hardware.fingerprint.FingerprintManagerCompat
+        private final @NonNull Context mContext;
+        private final android.hardware.biometrics.@Nullable BiometricManager mBiometricManager;
+        private final androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
                 mFingerprintManager;
         private final boolean mIsDeviceSecurable;
         private final boolean mIsDeviceSecuredWithCredential;
@@ -1258,8 +1260,8 @@ public class BiometricManagerTest {
 
         private TestInjector(
                 @NonNull Context context,
-                @Nullable android.hardware.biometrics.BiometricManager biometricManager,
-                @Nullable androidx.core.hardware.fingerprint.FingerprintManagerCompat
+                android.hardware.biometrics.@Nullable BiometricManager biometricManager,
+                androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
                         fingerprintManager,
                 boolean isDeviceSecurable,
                 boolean isDeviceSecuredWithCredential,
@@ -1279,20 +1281,18 @@ public class BiometricManagerTest {
         }
 
         @Override
-        @NonNull
-        public Resources getResources() {
+        public @NonNull Resources getResources() {
             return mContext.getResources();
         }
 
         @Override
-        @Nullable
-        public android.hardware.biometrics.BiometricManager getBiometricManager() {
+        public android.hardware.biometrics.@Nullable BiometricManager getBiometricManager() {
             return mBiometricManager;
         }
 
-        @Nullable
         @Override
-        public androidx.core.hardware.fingerprint.FingerprintManagerCompat getFingerprintManager() {
+        public androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
+                getFingerprintManager() {
             return mFingerprintManager;
         }
 
@@ -1327,10 +1327,10 @@ public class BiometricManagerTest {
         }
 
         static final class Builder {
-            @NonNull private final Context mContext;
+            private final @NonNull Context mContext;
 
-            @Nullable private android.hardware.biometrics.BiometricManager mBiometricManager = null;
-            @Nullable private androidx.core.hardware.fingerprint.FingerprintManagerCompat
+            private android.hardware.biometrics.@Nullable BiometricManager mBiometricManager = null;
+            private androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
                     mFingerprintManager = null;
             private boolean mIsDeviceSecurable = false;
             private boolean mIsDeviceSecuredWithCredential = false;
@@ -1344,13 +1344,13 @@ public class BiometricManagerTest {
             }
 
             Builder setBiometricManager(
-                    @Nullable android.hardware.biometrics.BiometricManager biometricManager) {
+                    android.hardware.biometrics.@Nullable BiometricManager biometricManager) {
                 mBiometricManager = biometricManager;
                 return this;
             }
 
             Builder setFingerprintManager(
-                    @Nullable androidx.core.hardware.fingerprint.FingerprintManagerCompat
+                    androidx.core.hardware.fingerprint.@Nullable FingerprintManagerCompat
                             fingerprintManager) {
                 mFingerprintManager = fingerprintManager;
                 return this;

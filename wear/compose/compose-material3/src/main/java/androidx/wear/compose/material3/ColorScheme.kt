@@ -81,38 +81,38 @@ import androidx.wear.compose.material3.tokens.ColorTokens
  */
 @Immutable
 @Stable
-class ColorScheme(
-    val primary: Color = ColorTokens.Primary,
-    val primaryDim: Color = ColorTokens.PrimaryDim,
-    val primaryContainer: Color = ColorTokens.PrimaryContainer,
-    val onPrimary: Color = ColorTokens.OnPrimary,
-    val onPrimaryContainer: Color = ColorTokens.OnPrimaryContainer,
-    val secondary: Color = ColorTokens.Secondary,
-    val secondaryDim: Color = ColorTokens.SecondaryDim,
-    val secondaryContainer: Color = ColorTokens.SecondaryContainer,
-    val onSecondary: Color = ColorTokens.OnSecondary,
-    val onSecondaryContainer: Color = ColorTokens.OnSecondaryContainer,
-    val tertiary: Color = ColorTokens.Tertiary,
-    val tertiaryDim: Color = ColorTokens.TertiaryDim,
-    val tertiaryContainer: Color = ColorTokens.TertiaryContainer,
-    val onTertiary: Color = ColorTokens.OnTertiary,
-    val onTertiaryContainer: Color = ColorTokens.OnTertiaryContainer,
-    val surfaceContainerLow: Color = ColorTokens.SurfaceContainerLow,
-    val surfaceContainer: Color = ColorTokens.SurfaceContainer,
-    val surfaceContainerHigh: Color = ColorTokens.SurfaceContainerHigh,
-    val onSurface: Color = ColorTokens.OnSurface,
-    val onSurfaceVariant: Color = ColorTokens.OnSurfaceVariant,
-    val outline: Color = ColorTokens.Outline,
-    val outlineVariant: Color = ColorTokens.OutlineVariant,
-    val background: Color = ColorTokens.Background,
-    val onBackground: Color = ColorTokens.OnBackground,
-    val error: Color = ColorTokens.Error,
-    val onError: Color = ColorTokens.OnError,
-    val errorContainer: Color = ColorTokens.ErrorContainer,
-    val onErrorContainer: Color = ColorTokens.OnErrorContainer,
+public class ColorScheme(
+    public val primary: Color = ColorTokens.Primary,
+    public val primaryDim: Color = ColorTokens.PrimaryDim,
+    public val primaryContainer: Color = ColorTokens.PrimaryContainer,
+    public val onPrimary: Color = ColorTokens.OnPrimary,
+    public val onPrimaryContainer: Color = ColorTokens.OnPrimaryContainer,
+    public val secondary: Color = ColorTokens.Secondary,
+    public val secondaryDim: Color = ColorTokens.SecondaryDim,
+    public val secondaryContainer: Color = ColorTokens.SecondaryContainer,
+    public val onSecondary: Color = ColorTokens.OnSecondary,
+    public val onSecondaryContainer: Color = ColorTokens.OnSecondaryContainer,
+    public val tertiary: Color = ColorTokens.Tertiary,
+    public val tertiaryDim: Color = ColorTokens.TertiaryDim,
+    public val tertiaryContainer: Color = ColorTokens.TertiaryContainer,
+    public val onTertiary: Color = ColorTokens.OnTertiary,
+    public val onTertiaryContainer: Color = ColorTokens.OnTertiaryContainer,
+    public val surfaceContainerLow: Color = ColorTokens.SurfaceContainerLow,
+    public val surfaceContainer: Color = ColorTokens.SurfaceContainer,
+    public val surfaceContainerHigh: Color = ColorTokens.SurfaceContainerHigh,
+    public val onSurface: Color = ColorTokens.OnSurface,
+    public val onSurfaceVariant: Color = ColorTokens.OnSurfaceVariant,
+    public val outline: Color = ColorTokens.Outline,
+    public val outlineVariant: Color = ColorTokens.OutlineVariant,
+    public val background: Color = ColorTokens.Background,
+    public val onBackground: Color = ColorTokens.OnBackground,
+    public val error: Color = ColorTokens.Error,
+    public val onError: Color = ColorTokens.OnError,
+    public val errorContainer: Color = ColorTokens.ErrorContainer,
+    public val onErrorContainer: Color = ColorTokens.OnErrorContainer,
 ) {
     /** Returns a copy of this Colors, optionally overriding some of the values. */
-    fun copy(
+    public fun copy(
         primary: Color = this.primary,
         primaryDim: Color = this.primaryDim,
         primaryContainer: Color = this.primaryContainer,
@@ -207,7 +207,7 @@ class ColorScheme(
 
     // Button Colors
     internal var defaultButtonColorsCached: ButtonColors? = null
-    internal var defaultFilledButtonColorsCached: ButtonColors? = null
+    internal var defaultFilledVariantButtonColorsCached: ButtonColors? = null
     internal var defaultFilledTonalButtonColorsCached: ButtonColors? = null
     internal var defaultOutlinedButtonColorsCached: ButtonColors? = null
     internal var defaultChildButtonColorsCached: ButtonColors? = null
@@ -215,32 +215,63 @@ class ColorScheme(
     // Icon Button
     internal var defaultIconButtonColorsCached: IconButtonColors? = null
     internal var defaultFilledIconButtonColorsCached: IconButtonColors? = null
+    internal var defaultFilledVariantIconButtonColorsCached: IconButtonColors? = null
     internal var defaultFilledTonalIconButtonColorsCached: IconButtonColors? = null
     internal var defaultOutlinedIconButtonColorsCached: IconButtonColors? = null
 
     // Icon Toggle Button
-    internal var defaultIconToggleButtonColorsCached: ToggleButtonColors? = null
+    internal var defaultIconToggleButtonColorsCached: IconToggleButtonColors? = null
 
     // Text Button
     internal var defaultTextButtonColorsCached: TextButtonColors? = null
     internal var defaultFilledTextButtonColorsCached: TextButtonColors? = null
+    internal var defaultFilledVariantTextButtonColorsCached: TextButtonColors? = null
     internal var defaultFilledTonalTextButtonColorsCached: TextButtonColors? = null
     internal var defaultOutlinedTextButtonColorsCached: TextButtonColors? = null
+
+    // Text Toggle Button
+    internal var defaultTextToggleButtonColorsCached: TextToggleButtonColors? = null
 
     // Card
     internal var defaultCardColorsCached: CardColors? = null
     internal var defaultOutlinedCardColorsCached: CardColors? = null
 
     // Toggle Button
-    internal var defaultToggleButtonColorsCached: ToggleButtonColors? = null
-    internal var defaultSplitToggleButtonColorsCached: SplitToggleButtonColors? = null
+    internal var defaultSwitchButtonColorsCached: SwitchButtonColors? = null
+    internal var defaultSplitSwitchButtonColorsCached: SplitSwitchButtonColors? = null
+
+    // Checkbox Button
+    internal var defaultCheckboxButtonColorsCached: CheckboxButtonColors? = null
+    internal var defaultSplitCheckboxButtonColorsCached: SplitCheckboxButtonColors? = null
 
     // Radio Button
-    internal var defaultSelectableButtonColorsCached: SelectableButtonColors? = null
-    internal var defaultSplitSelectableButtonColorsCached: SplitSelectableButtonColors? = null
+    internal var defaultRadioButtonColorsCached: RadioButtonColors? = null
+    internal var defaultSplitRadioButtonColorsCached: SplitRadioButtonColors? = null
 
     // Progress Indicator
     internal var defaultProgressIndicatorColorsCached: ProgressIndicatorColors? = null
+
+    // Slider
+    internal var defaultSliderColorsCached: SliderColors? = null
+    internal var defaultVariantSliderColorsCached: SliderColors? = null
+
+    // Stepper
+    internal var defaultStepperColorsCached: StepperColors? = null
+
+    // Level Indicator
+    internal var defaultLevelIndicatorColorsCached: LevelIndicatorColors? = null
+
+    // Confirmation
+    internal var defaultConfirmationColorsCached: ConfirmationDialogColors? = null
+    internal var defaultSuccessConfirmationColorsCached: ConfirmationDialogColors? = null
+    internal var defaultFailureConfirmationColorsCached: ConfirmationDialogColors? = null
+
+    // Open on Phone dialog
+    internal var mDefaultOpenOnPhoneDialogColorsCached: OpenOnPhoneDialogColors? = null
+
+    // Picker
+    internal var defaultTimePickerColorsCached: TimePickerColors? = null
+    internal var defaultDatePickerColorsCached: DatePickerColors? = null
 }
 
 /**
@@ -259,7 +290,7 @@ class ColorScheme(
  *   the theme's [ColorScheme], then returns [Color.Unspecified].
  * @see contentColorFor
  */
-fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
+public fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
     return when (backgroundColor) {
         primary,
         primaryDim -> onPrimary
@@ -298,7 +329,7 @@ fun ColorScheme.contentColorFor(backgroundColor: Color): Color {
  */
 @Composable
 @ReadOnlyComposable
-fun contentColorFor(backgroundColor: Color): Color =
+public fun contentColorFor(backgroundColor: Color): Color =
     MaterialTheme.colorScheme.contentColorFor(backgroundColor).takeOrElse {
         LocalContentColor.current
     }

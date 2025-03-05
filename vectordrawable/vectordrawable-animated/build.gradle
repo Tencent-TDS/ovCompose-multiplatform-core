@@ -13,17 +13,18 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.2.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":vectordrawable:vectordrawable"))
     implementation("androidx.core:core:1.12.0")
     implementation("androidx.interpolator:interpolator:1.0.0")
-    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.collection:collection:1.4.2")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.espressoCore)
 }
 
 android {
@@ -37,7 +38,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles("proguard-rules.pro")
     }
-    namespace "androidx.vectordrawable.animated"
+    namespace = "androidx.vectordrawable.animated"
 }
 
 androidx {
@@ -47,5 +48,4 @@ androidx {
     inceptionYear = "2015"
     description = "Android Support AnimatedVectorDrawable"
     failOnDeprecationWarnings = false
-    metalavaK2UastEnabled = true
 }

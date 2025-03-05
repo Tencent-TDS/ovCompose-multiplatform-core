@@ -23,9 +23,6 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.util.Range;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraControl;
@@ -49,6 +46,9 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.ExecutionException;
 
@@ -140,7 +140,6 @@ import java.util.concurrent.ExecutionException;
  * </code> will select the supported sizes for the use cases according to the use cases'
  * configuration and combination.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class ExtensionsManager {
     private static final String TAG = "ExtensionsManager";
 
@@ -193,9 +192,8 @@ public final class ExtensionsManager {
      *                           which is obtained by
      *                 {@link androidx.camera.lifecycle.ProcessCameraProvider#getInstance(Context)}.
      */
-    @NonNull
-    public static ListenableFuture<ExtensionsManager> getInstanceAsync(@NonNull Context context,
-            @NonNull CameraProvider cameraProvider) {
+    public static @NonNull ListenableFuture<ExtensionsManager> getInstanceAsync(
+            @NonNull Context context, @NonNull CameraProvider cameraProvider) {
         return getInstanceAsync(context, cameraProvider, ClientVersion.getCurrentVersion());
     }
 
@@ -220,16 +218,15 @@ public final class ExtensionsManager {
      */
     @RestrictTo(LIBRARY_GROUP)
     @VisibleForTesting
-    @NonNull
-    public static ListenableFuture<ExtensionsManager> getInstanceAsync(@NonNull Context context,
-            @NonNull CameraProvider cameraProvider, @NonNull String clientVersionStr) {
+    public static @NonNull ListenableFuture<ExtensionsManager> getInstanceAsync(
+            @NonNull Context context, @NonNull CameraProvider cameraProvider,
+            @NonNull String clientVersionStr) {
         ClientVersion clientVersion = new ClientVersion(clientVersionStr);
         ClientVersion.setCurrentVersion(clientVersion);
         return getInstanceAsync(context, cameraProvider, clientVersion);
     }
 
-    @NonNull
-    static ListenableFuture<ExtensionsManager> getInstanceAsync(@NonNull Context context,
+    static @NonNull ListenableFuture<ExtensionsManager> getInstanceAsync(@NonNull Context context,
             @NonNull CameraProvider cameraProvider, @NonNull ClientVersion clientVersion) {
         synchronized (EXTENSIONS_LOCK) {
             if (sDeinitializeFuture != null && !sDeinitializeFuture.isDone()) {
@@ -316,8 +313,7 @@ public final class ExtensionsManager {
     //  ExtensionsManager.init(...) if this is to be released for use outside of testing.
     @VisibleForTesting
     @RestrictTo(LIBRARY_GROUP)
-    @NonNull
-    public ListenableFuture<Void> shutdown() {
+    public @NonNull ListenableFuture<Void> shutdown() {
         synchronized (EXTENSIONS_LOCK) {
             if (ExtensionVersion.getRuntimeVersion() == null) {
                 sInitializeFuture = null;
@@ -417,8 +413,7 @@ public final class ExtensionsManager {
      *                                  mode, or the base {@link CameraSelector} has contained
      *                                  extension related configuration in it.
      */
-    @NonNull
-    public CameraSelector getExtensionEnabledCameraSelector(
+    public @NonNull CameraSelector getExtensionEnabledCameraSelector(
             @NonNull CameraSelector baseCameraSelector, @ExtensionMode.Mode int mode) {
         // Directly return the input baseCameraSelector if the target extension mode is NONE.
         if (mode == ExtensionMode.NONE) {
@@ -473,9 +468,8 @@ public final class ExtensionsManager {
      * Returns null if no capture latency info can be provided or if the device doesn't support
      * the extension mode on this camera.
      */
-    @Nullable
-    public Range<Long> getEstimatedCaptureLatencyRange(@NonNull CameraSelector cameraSelector,
-            @ExtensionMode.Mode int mode) {
+    public @Nullable Range<Long> getEstimatedCaptureLatencyRange(
+            @NonNull CameraSelector cameraSelector, @ExtensionMode.Mode int mode) {
         if (mode == ExtensionMode.NONE
                 || mExtensionsAvailability != ExtensionsAvailability.LIBRARY_AVAILABLE) {
             // Returns null for non-Extensions mode or if Extensions are not supported on this
@@ -524,8 +518,7 @@ public final class ExtensionsManager {
      * returns {@code null} if the provided {@link CameraControl} doesn't represent a camera with
      * enabled extensions.
      */
-    @Nullable
-    public CameraExtensionsControl getCameraExtensionsControl(
+    public @Nullable CameraExtensionsControl getCameraExtensionsControl(
             @NonNull CameraControl cameraControl) {
         return CameraExtensionsControls.from(cameraControl);
     }
@@ -542,14 +535,12 @@ public final class ExtensionsManager {
      * @return a {@link CameraExtensionsInfo} object for observing extension-specific capture
      * request settings and results.
      */
-    @NonNull
-    public CameraExtensionsInfo getCameraExtensionsInfo(@NonNull CameraInfo cameraInfo) {
+    public @NonNull CameraExtensionsInfo getCameraExtensionsInfo(@NonNull CameraInfo cameraInfo) {
         return CameraExtensionsInfos.from(cameraInfo);
     }
 
     @VisibleForTesting
-    @NonNull
-    ExtensionsAvailability getExtensionsAvailability() {
+    @NonNull ExtensionsAvailability getExtensionsAvailability() {
         return mExtensionsAvailability;
     }
     @VisibleForTesting

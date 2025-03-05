@@ -18,7 +18,9 @@ package androidx.camera.camera2.pipe.integration.adapter
 
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraDevice
+import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.os.Build
+import android.util.Range
 import android.view.Surface
 import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.SessionConfig
@@ -63,9 +65,7 @@ class SessionConfigAdapterTest {
         }
 
         // Act
-        val sessionConfigAdapter = SessionConfigAdapter(
-            useCases = listOf(fakeTestUseCase)
-        )
+        val sessionConfigAdapter = SessionConfigAdapter(useCases = listOf(fakeTestUseCase))
 
         // Assert
         assertThat(sessionConfigAdapter.isSessionConfigValid()).isFalse()
@@ -80,19 +80,24 @@ class SessionConfigAdapterTest {
         // Arrange
         val testDeferrableSurface = createTestDeferrableSurface().apply { close() }
 
-        val errorListener = object : SessionConfig.ErrorListener {
-            val results = mutableListOf<Pair<SessionConfig, SessionConfig.SessionError>>()
-            override fun onError(sessionConfig: SessionConfig, error: SessionConfig.SessionError) {
-                results.add(Pair(sessionConfig, error))
+        val errorListener =
+            object : SessionConfig.ErrorListener {
+                val results = mutableListOf<Pair<SessionConfig, SessionConfig.SessionError>>()
+
+                override fun onError(
+                    sessionConfig: SessionConfig,
+                    error: SessionConfig.SessionError
+                ) {
+                    results.add(Pair(sessionConfig, error))
+                }
             }
-        }
 
         val fakeTestUseCase1 = createFakeTestUseCase {
             it.setupSessionConfig(
                 SessionConfig.Builder().also { sessionConfigBuilder ->
                     sessionConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
                     sessionConfigBuilder.addSurface(testDeferrableSurface)
-                    sessionConfigBuilder.addErrorListener(errorListener)
+                    sessionConfigBuilder.setErrorListener(errorListener)
                 }
             )
         }
@@ -101,22 +106,48 @@ class SessionConfigAdapterTest {
                 SessionConfig.Builder().also { sessionConfigBuilder ->
                     sessionConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
                     sessionConfigBuilder.addSurface(createTestDeferrableSurface().apply { close() })
-                    sessionConfigBuilder.addErrorListener(errorListener)
+                    sessionConfigBuilder.setErrorListener(errorListener)
                 }
             )
         }
 
         // Act
-        SessionConfigAdapter(
-            useCases = listOf(fakeTestUseCase1, fakeTestUseCase2)
-        ).reportSurfaceInvalid(testDeferrableSurface)
+        SessionConfigAdapter(useCases = listOf(fakeTestUseCase1, fakeTestUseCase2))
+            .reportSurfaceInvalid(testDeferrableSurface)
 
         // Assert, verify it only reports the SURFACE_NEEDS_RESET error on one SessionConfig
         // at a time.
         assertThat(errorListener.results.size).isEqualTo(1)
-        assertThat(errorListener.results[0].second).isEqualTo(
-            SessionConfig.SessionError.SESSION_ERROR_SURFACE_NEEDS_RESET
-        )
+        assertThat(errorListener.results[0].second)
+            .isEqualTo(SessionConfig.SessionError.SESSION_ERROR_SURFACE_NEEDS_RESET)
+    }
+
+    @Test
+    fun getExpectedFrameRateRange() {
+        // Arrange
+        val testDeferrableSurface = createTestDeferrableSurface()
+
+        // Create an invalid SessionConfig which doesn't set the template
+        val fakeTestUseCase = createFakeTestUseCase {
+            it.setupSessionConfig(
+                SessionConfig.Builder().also { sessionConfigBuilder ->
+                    sessionConfigBuilder.addSurface(testDeferrableSurface)
+                    sessionConfigBuilder.setTemplateType(TEMPLATE_PREVIEW)
+                    sessionConfigBuilder.setExpectedFrameRateRange(Range(15, 24))
+                }
+            )
+        }
+
+        // Act
+        val sessionConfigAdapter = SessionConfigAdapter(useCases = listOf(fakeTestUseCase))
+
+        // Assert
+        assertThat(sessionConfigAdapter.isSessionConfigValid()).isTrue()
+        assertThat(sessionConfigAdapter.getValidSessionConfigOrNull()).isNotNull()
+        assertThat(sessionConfigAdapter.getExpectedFrameRateRange()).isEqualTo(Range(15, 24))
+
+        // Clean up
+        testDeferrableSurface.close()
     }
 
     @Test
@@ -133,9 +164,7 @@ class SessionConfigAdapterTest {
 
     private fun createFakeTestUseCase(block: (FakeTestUseCase) -> Unit): FakeTestUseCase = run {
         val configBuilder = FakeUseCaseConfig.Builder().setTargetName("UseCase")
-        FakeTestUseCase(configBuilder.useCaseConfig).also {
-            block(it)
-        }
+        FakeTestUseCase(configBuilder.useCaseConfig).also { block(it) }
     }
 
     private fun createTestDeferrableSurface(): TestDeferrableSurface = run {
@@ -151,7 +180,7 @@ class FakeTestUseCase(
     var cameraControlReady = false
 
     fun setupSessionConfig(sessionConfigBuilder: SessionConfig.Builder) {
-        updateSessionConfig(sessionConfigBuilder.build())
+        updateSessionConfig(listOf(sessionConfigBuilder.build()))
         notifyActive()
     }
 
@@ -161,9 +190,7 @@ class FakeTestUseCase(
 }
 
 open class TestDeferrableSurface : DeferrableSurface() {
-    private val surfaceTexture = SurfaceTexture(0).also {
-        it.setDefaultBufferSize(0, 0)
-    }
+    private val surfaceTexture = SurfaceTexture(0).also { it.setDefaultBufferSize(0, 0) }
     val testSurface = Surface(surfaceTexture)
 
     override fun provideSurface(): ListenableFuture<Surface> {

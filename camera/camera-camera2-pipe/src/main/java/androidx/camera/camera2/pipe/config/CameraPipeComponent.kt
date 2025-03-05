@@ -38,6 +38,8 @@ import androidx.camera.camera2.pipe.core.Threads
 import androidx.camera.camera2.pipe.core.TimeSource
 import androidx.camera.camera2.pipe.internal.CameraBackendsImpl
 import androidx.camera.camera2.pipe.internal.CameraDevicesImpl
+import androidx.camera.camera2.pipe.media.ImageReaderImageSources
+import androidx.camera.camera2.pipe.media.ImageSources
 import dagger.Binds
 import dagger.Component
 import dagger.Module
@@ -47,36 +49,35 @@ import javax.inject.Provider
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-@Qualifier
-internal annotation class DefaultCameraBackend
+@Qualifier internal annotation class DefaultCameraBackend
 
 /** Qualifier for requesting the CameraPipe scoped Context object */
-@Qualifier
-internal annotation class CameraPipeContext
-
-@Qualifier
-internal annotation class ForGraphLifecycleManager
+@Qualifier internal annotation class CameraPipeContext
 
 @Singleton
 @Component(
     modules =
-    [
-        CameraPipeConfigModule::class,
-        CameraPipeModules::class,
-        Camera2Module::class,
-    ]
+        [
+            CameraPipeConfigModule::class,
+            CameraPipeModules::class,
+            Camera2Module::class,
+        ]
 )
 internal interface CameraPipeComponent {
     fun cameraGraphComponentBuilder(): CameraGraphComponent.Builder
+
     fun cameras(): CameraDevices
+
+    fun cameraBackends(): CameraBackends
+
     fun cameraSurfaceManager(): CameraSurfaceManager
+
     fun cameraAudioRestrictionController(): AudioRestrictionController
 }
 
 @Module(includes = [ThreadConfigModule::class], subcomponents = [CameraGraphComponent::class])
 internal class CameraPipeConfigModule(private val config: CameraPipe.Config) {
-    @Provides
-    fun provideCameraPipeConfig(): CameraPipe.Config = config
+    @Provides fun provideCameraPipeConfig(): CameraPipe.Config = config
 
     @Provides
     fun provideCameraInteropConfig(
@@ -88,11 +89,9 @@ internal class CameraPipeConfigModule(private val config: CameraPipe.Config) {
 
 @Module
 internal abstract class CameraPipeModules {
-    @Binds
-    abstract fun bindCameras(impl: CameraDevicesImpl): CameraDevices
+    @Binds abstract fun bindCameras(impl: CameraDevicesImpl): CameraDevices
 
-    @Binds
-    abstract fun bindTimeSource(timeSource: SystemTimeSource): TimeSource
+    @Binds abstract fun bindTimeSource(timeSource: SystemTimeSource): TimeSource
 
     companion object {
         @Provides
@@ -162,9 +161,18 @@ internal abstract class CameraPipeModules {
             return CameraBackendsImpl(defaultBackendId, allBackends, cameraPipeContext, threads)
         }
 
-        @Singleton
         @Provides
-        fun provideCameraSurfaceManager() = CameraSurfaceManager()
+        fun configureImageSources(
+            imageReaderImageSources: ImageReaderImageSources,
+            cameraPipeConfig: CameraPipe.Config
+        ): ImageSources {
+            if (cameraPipeConfig.imageSources != null) {
+                return cameraPipeConfig.imageSources
+            }
+            return imageReaderImageSources
+        }
+
+        @Singleton @Provides fun provideCameraSurfaceManager() = CameraSurfaceManager()
 
         @Singleton
         @Provides

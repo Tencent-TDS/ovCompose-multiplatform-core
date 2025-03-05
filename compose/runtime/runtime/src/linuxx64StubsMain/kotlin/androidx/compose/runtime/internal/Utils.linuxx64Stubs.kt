@@ -28,3 +28,5 @@ internal actual fun invokeComposable(composer: Composer, composable: @Composable
 
 internal actual abstract class PlatformOptimizedCancellationException
 actual constructor(message: String?) : CancellationException(message)
+
+internal actual fun logError(message: String, e: Throwable): Unit = implementedInJetBrainsFork()

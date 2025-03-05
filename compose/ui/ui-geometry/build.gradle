@@ -21,18 +21,28 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
 }
 
-
 androidXMultiplatform {
-    android()
+    androidLibrary {
+        namespace = "androidx.compose.ui.geometry"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
     jvmStubs()
     linuxX64Stubs()
 
@@ -62,7 +72,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation:1.1.0")
+                api("androidx.annotation:annotation:1.8.1")
             }
         }
 
@@ -97,8 +107,7 @@ androidx {
     inceptionYear = "2020"
     description = "Compose classes related to dimensions without units"
     legacyDisableKotlinStrictApiMode = true
+    metalavaK2UastEnabled = false
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
-android {
-    namespace "androidx.compose.ui.geometry"
-}

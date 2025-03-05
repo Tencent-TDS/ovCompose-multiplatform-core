@@ -39,9 +39,8 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2018"
     description = "Kotlin extensions for 'livedata-core' artifact"
-    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace "androidx.lifecycle.livedata.core.ktx"
+    namespace = "androidx.lifecycle.livedata.core.ktx"
 }

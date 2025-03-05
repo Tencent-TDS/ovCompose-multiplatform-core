@@ -31,24 +31,22 @@ private val ASPECT_RATIO_16_9 = Rational(16, 9)
  *
  * @see PreviewPixelHDRnetQuirk
  */
-fun SessionConfig.Builder.setupHDRnet(resolution: Size) {
+public fun SessionConfig.Builder.setupHDRnet(resolution: Size) {
     DeviceQuirks[PreviewPixelHDRnetQuirk::class.java] ?: return
 
     if (isAspectRatioMatch(resolution, ASPECT_RATIO_16_9)) return
 
-    val camera2ConfigBuilder = Camera2ImplConfig.Builder().apply {
-        setCaptureRequestOption<Int>(
-            CaptureRequest.TONEMAP_MODE,
-            CaptureRequest.TONEMAP_MODE_HIGH_QUALITY
-        )
-    }
+    val camera2ConfigBuilder =
+        Camera2ImplConfig.Builder().apply {
+            setCaptureRequestOption<Int>(
+                CaptureRequest.TONEMAP_MODE,
+                CaptureRequest.TONEMAP_MODE_HIGH_QUALITY
+            )
+        }
 
     addImplementationOptions(camera2ConfigBuilder.build())
 }
 
-private fun isAspectRatioMatch(
-    resolution: Size,
-    aspectRatio: Rational
-): Boolean {
+private fun isAspectRatioMatch(resolution: Size, aspectRatio: Rational): Boolean {
     return aspectRatio == Rational(resolution.width, resolution.height)
 }

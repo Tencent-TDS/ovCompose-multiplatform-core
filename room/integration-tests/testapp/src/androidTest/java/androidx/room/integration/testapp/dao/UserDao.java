@@ -271,6 +271,9 @@ public abstract class UserDao {
     @Query("SELECT * FROM user where mAge > :age")
     public abstract DataSource.Factory<Integer, User> loadPagedByAge(int age);
 
+    @Query("SELECT * FROM user where mLastName = :name")
+    public abstract DataSource.Factory<Integer, User> loadPagedByLastname(String name);
+
     @RawQuery(observedEntities = User.class)
     public abstract DataSource.Factory<Integer, User> loadPagedByAgeWithObserver(
             SupportSQLiteQuery query);

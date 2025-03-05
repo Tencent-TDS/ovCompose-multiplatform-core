@@ -35,8 +35,6 @@ import android.media.AudioRecordingConfiguration;
 import android.media.AudioTimestamp;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.camera.core.Logger;
@@ -47,6 +45,9 @@ import androidx.camera.video.internal.compat.Api31Impl;
 import androidx.camera.video.internal.compat.quirk.AudioTimestampFramePositionIncorrectQuirk;
 import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -60,26 +61,21 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>This class is not thread safe, it should be used on the same thread.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class AudioStreamImpl implements AudioStream {
     private static final String TAG = "AudioStreamImpl";
     private static final long DIFF_LIMIT_FROM_SYSTEM_TIME_NS = MILLISECONDS.toNanos(500L);
 
-    @NonNull
-    private AudioRecord mAudioRecord;
+    private @NonNull AudioRecord mAudioRecord;
     private final AudioSettings mSettings;
     private final AtomicBoolean mIsReleased = new AtomicBoolean(false);
     private final AtomicBoolean mIsStarted = new AtomicBoolean(false);
     private final AtomicReference<Boolean> mNotifiedSilenceState = new AtomicReference<>(null);
     private final int mBufferSize;
     private final int mBytesPerFrame;
-    @Nullable
-    private AudioStreamCallback mAudioStreamCallback;
-    @Nullable
-    private Executor mCallbackExecutor;
+    private @Nullable AudioStreamCallback mAudioStreamCallback;
+    private @Nullable Executor mCallbackExecutor;
     private long mTotalFramesRead;
-    @Nullable
-    private AudioManager.AudioRecordingCallback mAudioRecordingCallback;
+    private AudioManager.@Nullable AudioRecordingCallback mAudioRecordingCallback;
     private boolean mShouldFallbackToSystemTime = false;
 
     /**
@@ -205,9 +201,8 @@ public class AudioStreamImpl implements AudioStream {
      *
      * @throws IllegalStateException if the stream has not been started or has been released.
      */
-    @NonNull
     @Override
-    public PacketInfo read(@NonNull ByteBuffer byteBuffer) {
+    public @NonNull PacketInfo read(@NonNull ByteBuffer byteBuffer) {
         checkNotReleasedOrThrow();
         checkStartedOrThrow();
 
@@ -288,8 +283,7 @@ public class AudioStreamImpl implements AudioStream {
     }
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    @NonNull
-    private static AudioRecord createAudioRecord(int bufferSizeInByte,
+    private static @NonNull AudioRecord createAudioRecord(int bufferSizeInByte,
             @NonNull AudioSettings settings, @Nullable Context context) {
         if (Build.VERSION.SDK_INT >= 23) {
             AudioFormat audioFormatObj = new AudioFormat.Builder()

@@ -20,7 +20,7 @@ dependencies {
     }
 
     api(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":core:core"))
 
     androidTestImplementation(libs.junit)
@@ -38,9 +38,10 @@ androidx {
     mavenVersion = LibraryVersions.CORE
     inceptionYear = "2018"
     description = "Kotlin extensions for 'core' artifact"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
-    namespace "androidx.core.ktx"
+    compileSdk = 35
+    namespace = "androidx.core.ktx"
 }

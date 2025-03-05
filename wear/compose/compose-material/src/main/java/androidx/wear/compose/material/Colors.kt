@@ -26,24 +26,22 @@ import androidx.compose.ui.graphics.takeOrElse
 @Immutable
 @Stable
 public class Colors(
-    val primary: Color = Color(0xFFAECBFA),
-    val primaryVariant: Color = Color(0xFF8AB4F8),
-    val secondary: Color = Color(0xFFFDE293),
-    val secondaryVariant: Color = Color(0xFF594F33),
-    val background: Color = Color.Black,
-    val surface: Color = Color(0xFF303133),
-    val error: Color = Color(0xFFEE675C),
-    val onPrimary: Color = Color(0xFF303133),
-    val onSecondary: Color = Color(0xFF303133),
-    val onBackground: Color = Color.White,
-    val onSurface: Color = Color.White,
-    val onSurfaceVariant: Color = Color(0xFFDADCE0),
-    val onError: Color = Color(0xFF000000)
+    public val primary: Color = Color(0xFFAECBFA),
+    public val primaryVariant: Color = Color(0xFF8AB4F8),
+    public val secondary: Color = Color(0xFFFDE293),
+    public val secondaryVariant: Color = Color(0xFF594F33),
+    public val background: Color = Color.Black,
+    public val surface: Color = Color(0xFF303133),
+    public val error: Color = Color(0xFFEE675C),
+    public val onPrimary: Color = Color(0xFF303133),
+    public val onSecondary: Color = Color(0xFF303133),
+    public val onBackground: Color = Color.White,
+    public val onSurface: Color = Color.White,
+    public val onSurfaceVariant: Color = Color(0xFFDADCE0),
+    public val onError: Color = Color(0xFF000000)
 ) {
 
-    /**
-     * Returns a copy of this Colors, optionally overriding some of the values.
-     */
+    /** Returns a copy of this Colors, optionally overriding some of the values. */
     public fun copy(
         primary: Color = this.primary,
         primaryVariant: Color = this.primaryVariant,
@@ -58,21 +56,22 @@ public class Colors(
         onSurface: Color = this.onSurface,
         onSurfaceVariant: Color = this.onSurfaceVariant,
         onError: Color = this.onError
-    ): Colors = Colors(
-        primary = primary,
-        primaryVariant = primaryVariant,
-        secondary = secondary,
-        secondaryVariant = secondaryVariant,
-        background = background,
-        surface = surface,
-        error = error,
-        onPrimary = onPrimary,
-        onSecondary = onSecondary,
-        onBackground = onBackground,
-        onSurface = onSurface,
-        onSurfaceVariant = onSurfaceVariant,
-        onError = onError
-    )
+    ): Colors =
+        Colors(
+            primary = primary,
+            primaryVariant = primaryVariant,
+            secondary = secondary,
+            secondaryVariant = secondaryVariant,
+            background = background,
+            surface = surface,
+            error = error,
+            onPrimary = onPrimary,
+            onSecondary = onSecondary,
+            onBackground = onBackground,
+            onSurface = onSurface,
+            onSurfaceVariant = onSurfaceVariant,
+            onError = onError
+        )
 
     override fun toString(): String {
         return "Colors(" +
@@ -94,8 +93,8 @@ public class Colors(
 }
 
 /**
- * The Material color system contains pairs of colors that are typically used for the background
- * and content color inside a component. For example, a [Button] typically uses `primary` for its
+ * The Material color system contains pairs of colors that are typically used for the background and
+ * content color inside a component. For example, a [Button] typically uses `primary` for its
  * background, and `onPrimary` for the color of its content (usually text or iconography).
  *
  * This function tries to match the provided [backgroundColor] to a 'background' color in this
@@ -106,8 +105,7 @@ public class Colors(
  * [Color.Unspecified].
  *
  * @return the matching content color for [backgroundColor]. If [backgroundColor] is not present in
- * the theme's [Colors], then returns [Color.Unspecified].
- *
+ *   the theme's [Colors], then returns [Color.Unspecified].
  * @see contentColorFor
  */
 public fun Colors.contentColorFor(backgroundColor: Color): Color {
@@ -124,20 +122,19 @@ public fun Colors.contentColorFor(backgroundColor: Color): Color {
 }
 
 /**
- * The Material color system contains pairs of colors that are typically used for the background
- * and content color inside a component. For example, a [Button] typically uses `primary` for its
+ * The Material color system contains pairs of colors that are typically used for the background and
+ * content color inside a component. For example, a [Button] typically uses `primary` for its
  * background, and `onPrimary` for the color of its content (usually text or iconography).
  *
  * This function tries to match the provided [backgroundColor] to a 'background' color in this
  * [Colors], and then will return the corresponding color used for content. For example, when
  * [backgroundColor] is [Colors.primary], this will return [Colors.onPrimary].
  *
- * If [backgroundColor] does not match a background color in the theme, this will return
- * the current value of [LocalContentColor] as a best-effort color.
+ * If [backgroundColor] does not match a background color in the theme, this will return the current
+ * value of [LocalContentColor] as a best-effort color.
  *
  * @return the matching content color for [backgroundColor]. If [backgroundColor] is not present in
- * the theme's [Colors], then returns the current value of [LocalContentColor].
- *
+ *   the theme's [Colors], then returns the current value of [LocalContentColor].
  * @see Colors.contentColorFor
  */
 @Composable
@@ -147,6 +144,7 @@ public fun contentColorFor(backgroundColor: Color): Color =
 
 /**
  * Convert given color to disabled color.
+ *
  * @param disabledContentAlpha Alpha used to represent disabled content colors.
  */
 @Composable

@@ -14,35 +14,45 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION") // Suppress for WindowWidthSizeClass
+
 package androidx.compose.material3.adaptive.navigationsuite.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuite
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldLayout
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview
 @Sampled
 @Composable
@@ -51,8 +61,12 @@ fun NavigationSuiteScaffoldSample() {
     val navItems = listOf("Songs", "Artists", "Playlists")
     val navSuiteType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    val state = rememberNavigationSuiteScaffoldState()
+    val scope = rememberCoroutineScope()
 
     NavigationSuiteScaffold(
+        layoutType = navSuiteType,
+        state = state,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, navItem ->
                 item(
@@ -65,32 +79,51 @@ fun NavigationSuiteScaffoldSample() {
         }
     ) {
         // Screen content.
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = "Current NavigationSuiteType: $navSuiteType"
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val text =
+                if (state.currentValue == NavigationSuiteScaffoldValue.Visible) {
+                    "displayed"
+                } else {
+                    "hidden"
+                }
+            Text(
+                modifier = Modifier.padding(16.dp),
+                text = "Current NavigationSuiteType: $navSuiteType,\nit is $text",
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = { scope.launch { state.toggle() } }) {
+                Text("Hide/show navigation component")
+            }
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview
 @Sampled
 @Composable
+@Suppress("DEPRECATION") // WindowWidthSizeClass is deprecated
 fun NavigationSuiteScaffoldCustomConfigSample() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val navItems = listOf("Songs", "Artists", "Playlists")
     val adaptiveInfo = currentWindowAdaptiveInfo()
+    val state = rememberNavigationSuiteScaffoldState()
+    val scope = rememberCoroutineScope()
     // Custom configuration that shows a navigation drawer in large screens.
-    val customNavSuiteType = with(adaptiveInfo) {
-        if (windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED) {
-            NavigationSuiteType.NavigationDrawer
-        } else {
-            NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+    val customNavSuiteType =
+        with(adaptiveInfo) {
+            if (windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED) {
+                NavigationSuiteType.NavigationDrawer
+            } else {
+                NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+            }
         }
-    }
 
     NavigationSuiteScaffold(
         layoutType = customNavSuiteType,
+        state = state,
         navigationSuiteItems = {
             navItems.forEachIndexed { index, navItem ->
                 item(
@@ -103,14 +136,26 @@ fun NavigationSuiteScaffoldCustomConfigSample() {
         }
     ) {
         // Screen content.
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = "Current custom NavigationSuiteType: $customNavSuiteType"
-        )
+        // Screen content.
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val text =
+                if (state.currentValue == NavigationSuiteScaffoldValue.Visible) "displayed"
+                else "hidden"
+            Text(
+                modifier = Modifier.padding(16.dp),
+                text = "Current custom NavigationSuiteType: $customNavSuiteType, is $text",
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = { scope.launch { state.toggle() } }) {
+                Text("Hide/show navigation component")
+            }
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview
 @Sampled
 @Composable
@@ -119,43 +164,60 @@ fun NavigationSuiteScaffoldCustomNavigationRail() {
     val navItems = listOf("Songs", "Artists", "Playlists")
     val navSuiteType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    val state = rememberNavigationSuiteScaffoldState()
+    val scope = rememberCoroutineScope()
 
-    NavigationSuiteScaffoldLayout(
-        navigationSuite = {
-            // Custom Navigation Rail with centered items.
-            if (navSuiteType == NavigationSuiteType.NavigationRail) {
-                NavigationRail {
-                    // Adding Spacers before and after the item so they are pushed towards the
-                    // center of the NavigationRail.
-                    Spacer(Modifier.weight(1f))
-                    navItems.forEachIndexed { index, item ->
-                        NavigationRailItem(
-                            icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
-                            label = { Text(item) },
-                            selected = selectedItem == index,
-                            onClick = { selectedItem = index }
-                        )
+    Surface {
+        NavigationSuiteScaffoldLayout(
+            state = state,
+            navigationSuite = {
+                // Custom Navigation Rail with centered items.
+                if (navSuiteType == NavigationSuiteType.NavigationRail) {
+                    NavigationRail {
+                        // Adding Spacers before and after the item so they are pushed towards the
+                        // center of the NavigationRail.
+                        Spacer(Modifier.weight(1f))
+                        navItems.forEachIndexed { index, item ->
+                            NavigationRailItem(
+                                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                                label = { Text(item) },
+                                selected = selectedItem == index,
+                                onClick = { selectedItem = index }
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
                     }
-                    Spacer(Modifier.weight(1f))
-                }
-            } else {
-                NavigationSuite {
-                    navItems.forEachIndexed { index, item ->
-                        item(
-                            icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
-                            label = { Text(item) },
-                            selected = selectedItem == index,
-                            onClick = { selectedItem = index }
-                        )
+                } else {
+                    NavigationSuite {
+                        navItems.forEachIndexed { index, item ->
+                            item(
+                                icon = { Icon(Icons.Filled.Favorite, contentDescription = item) },
+                                label = { Text(item) },
+                                selected = selectedItem == index,
+                                onClick = { selectedItem = index }
+                            )
+                        }
                     }
                 }
             }
+        ) {
+            // Screen content.
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val text =
+                    if (state.currentValue == NavigationSuiteScaffoldValue.Visible) "displayed"
+                    else "hidden"
+                Text(
+                    modifier = Modifier.padding(16.dp),
+                    text = "Current NavigationSuiteType: $navSuiteType, is $text",
+                    textAlign = TextAlign.Center
+                )
+                Button(onClick = { scope.launch { state.toggle() } }) {
+                    Text("Hide/show navigation component")
+                }
+            }
         }
-    ) {
-        // Screen content.
-        Text(
-            modifier = Modifier.padding(16.dp),
-            text = "Current NavigationSuiteType: $navSuiteType"
-        )
     }
 }

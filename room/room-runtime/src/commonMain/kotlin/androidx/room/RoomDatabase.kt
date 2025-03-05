@@ -22,7 +22,6 @@ import androidx.annotation.RestrictTo
 import androidx.room.concurrent.CloseBarrier
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
-import androidx.room.util.isAssignableFrom
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.SQLiteException
@@ -35,8 +34,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
 
 /**
- * Base class for all Room databases. All classes that are annotated with [Database] must
- * extend this class.
+ * Base class for all Room databases. All classes that are annotated with [Database] must extend
+ * this class.
  *
  * RoomDatabase provides direct access to the underlying database implementation but you should
  * prefer using [Dao] classes.
@@ -48,8 +47,8 @@ expect abstract class RoomDatabase() {
     /**
      * The invalidation tracker for this database.
      *
-     * You can use the invalidation tracker to get notified when certain tables in the database
-     * are modified.
+     * You can use the invalidation tracker to get notified when certain tables in the database are
+     * modified.
      *
      * @return The invalidation tracker for the database.
      */
@@ -72,8 +71,8 @@ expect abstract class RoomDatabase() {
     internal fun init(configuration: DatabaseConfiguration)
 
     /**
-     * Creates a connection manager to manage database connection. Note that this method
-     * is called when the [RoomDatabase] is initialized.
+     * Creates a connection manager to manage database connection. Note that this method is called
+     * when the [RoomDatabase] is initialized.
      *
      * @param configuration The database configuration
      * @return A new connection manager
@@ -90,7 +89,7 @@ expect abstract class RoomDatabase() {
      *
      * @return A new delegate to be used while opening the database
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected open fun createOpenDelegate(): RoomOpenDelegateMarker
 
     /**
@@ -103,7 +102,7 @@ expect abstract class RoomDatabase() {
      */
     protected abstract fun createInvalidationTracker(): InvalidationTracker
 
-    internal fun getCoroutineScope(): CoroutineScope
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) fun getCoroutineScope(): CoroutineScope
 
     /**
      * Returns a Set of required [AutoMigrationSpec] classes.
@@ -112,9 +111,9 @@ expect abstract class RoomDatabase() {
      * is called when the [RoomDatabase] is initialized.
      *
      * @return Creates a set that will include the classes of all required auto migration specs for
-     * this database.
+     *   this database.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun getRequiredAutoMigrationSpecClasses(): Set<KClass<out AutoMigrationSpec>>
 
     /**
@@ -126,7 +125,7 @@ expect abstract class RoomDatabase() {
      * @param autoMigrationSpecs the provided specs needed by certain migrations.
      * @return A list of migration instances each of which is a generated 'auto migration'.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     open fun createAutoMigrations(
         autoMigrationSpecs: Map<KClass<out AutoMigrationSpec>, AutoMigrationSpec>
     ): List<Migration>
@@ -140,7 +139,7 @@ expect abstract class RoomDatabase() {
      * @param T The type of the expected Type Converter subclass.
      * @return An instance of T.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     fun <T : Any> getTypeConverter(klass: KClass<T>): T
 
     /**
@@ -161,12 +160,10 @@ expect abstract class RoomDatabase() {
      *
      * @return A map that will include all required type converters for this database.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected open fun getRequiredTypeConverterClasses(): Map<KClass<*>, List<KClass<*>>>
 
-    /**
-     * Property delegate of [getRequiredTypeConverterClasses] for common ext functionality.
-     */
+    /** Property delegate of [getRequiredTypeConverterClasses] for common ext functionality. */
     internal val requiredTypeConverterClassesMap: Map<KClass<*>, List<KClass<*>>>
 
     /**
@@ -175,7 +172,7 @@ expect abstract class RoomDatabase() {
      *
      * @param connection The database connection.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     protected fun internalInitInvalidationTracker(connection: SQLiteConnection)
 
     /**
@@ -200,15 +197,11 @@ expect abstract class RoomDatabase() {
      * @see Builder#setJournalMode
      */
     enum class JournalMode {
-        /**
-         * Truncate journal mode.
-         */
+        /** Truncate journal mode. */
         TRUNCATE,
 
-        /**
-         * Write-Ahead Logging mode.
-         */
-        WRITE_AHEAD_LOGGING;
+        /** Write-Ahead Logging mode. */
+        WRITE_AHEAD_LOGGING
     }
 
     /**
@@ -237,7 +230,7 @@ expect abstract class RoomDatabase() {
          * from 3 to 5 instead of 3 to 4 and 4 to 5.
          *
          * @param migrations The migration objects that modify the database schema with the
-         * necessary changes for a version change.
+         *   necessary changes for a version change.
          * @return This builder instance.
          */
         fun addMigrations(vararg migrations: Migration): Builder<T>
@@ -246,14 +239,14 @@ expect abstract class RoomDatabase() {
          * Adds an auto migration spec instance to the builder.
          *
          * @param autoMigrationSpec The auto migration object that is annotated with
-         * [ProvidedAutoMigrationSpec] and is declared in an [AutoMigration] annotation.
+         *   [ProvidedAutoMigrationSpec] and is declared in an [AutoMigration] annotation.
          * @return This builder instance.
          */
         fun addAutoMigrationSpec(autoMigrationSpec: AutoMigrationSpec): Builder<T>
 
         /**
-         * Allows Room to destructively recreate database tables if [Migration]s that would
-         * migrate old database schemas to the latest schema version are not found.
+         * Allows Room to destructively recreate database tables if [Migration]s that would migrate
+         * old database schemas to the latest schema version are not found.
          *
          * When the database version on the device does not match the latest schema version, Room
          * runs necessary [Migration]s on the database. If it cannot find the set of [Migration]s
@@ -265,21 +258,21 @@ expect abstract class RoomDatabase() {
          * [fallbackToDestructiveMigrationOnDowngrade].
          *
          * @param dropAllTables Set to `true` if all tables should be dropped during destructive
-         * migration including those not managed by Room. Recommended value is `true` as otherwise
-         * Room could leave obsolete data when table names or existence changes between versions.
+         *   migration including those not managed by Room. Recommended value is `true` as otherwise
+         *   Room could leave obsolete data when table names or existence changes between versions.
          * @return This builder instance.
          */
         fun fallbackToDestructiveMigration(dropAllTables: Boolean): Builder<T>
 
         /**
-         * Allows Room to destructively recreate database tables if [Migration]s are not
-         * available when downgrading to old schema versions.
+         * Allows Room to destructively recreate database tables if [Migration]s are not available
+         * when downgrading to old schema versions.
          *
          * For details, see [Builder.fallbackToDestructiveMigration].
          *
          * @param dropAllTables Set to `true` if all tables should be dropped during destructive
-         * migration including those not managed by Room. Recommended value is `true` as otherwise
-         * Room could leave obsolete data when table names or existence changes between versions.
+         *   migration including those not managed by Room. Recommended value is `true` as otherwise
+         *   Room could leave obsolete data when table names or existence changes between versions.
          * @return This builder instance.
          */
         fun fallbackToDestructiveMigrationOnDowngrade(dropAllTables: Boolean): Builder<T>
@@ -292,20 +285,20 @@ expect abstract class RoomDatabase() {
          * allows the specification of a set of schema versions for which destructive recreation is
          * allowed.
          *
-         * Using this method is preferable to [fallbackToDestructiveMigration] if you want
-         * to allow destructive migrations from some schema versions while still taking advantage
-         * of exceptions being thrown due to unintentionally missing migrations.
+         * Using this method is preferable to [fallbackToDestructiveMigration] if you want to allow
+         * destructive migrations from some schema versions while still taking advantage of
+         * exceptions being thrown due to unintentionally missing migrations.
          *
          * Note: No versions passed to this method may also exist as either starting or ending
-         * versions in the [Migration]s provided via [addMigrations]. If a
-         * version passed to this method is found as a starting or ending version in a Migration, an
-         * exception will be thrown.
+         * versions in the [Migration]s provided via [addMigrations]. If a version passed to this
+         * method is found as a starting or ending version in a Migration, an exception will be
+         * thrown.
          *
          * @param dropAllTables Set to `true` if all tables should be dropped during destructive
-         * migration including those not managed by Room. Recommended value is `true` as otherwise
-         * Room could leave obsolete data when table names or existence changes between versions.
+         *   migration including those not managed by Room. Recommended value is `true` as otherwise
+         *   Room could leave obsolete data when table names or existence changes between versions.
          * @param startVersions The set of schema versions from which Room should use a destructive
-         * migration.
+         *   migration.
          * @return This builder instance.
          */
         fun fallbackToDestructiveMigrationFrom(
@@ -317,7 +310,7 @@ expect abstract class RoomDatabase() {
          * Adds a type converter instance to the builder.
          *
          * @param typeConverter The converter instance that is annotated with
-         * [ProvidedTypeConverter].
+         *   [ProvidedTypeConverter].
          * @return This builder instance.
          */
         fun addTypeConverter(typeConverter: Any): Builder<T>
@@ -340,8 +333,8 @@ expect abstract class RoomDatabase() {
          * Sets the [CoroutineContext] that will be used to execute all asynchronous queries and
          * tasks, such as `Flow` emissions and [InvalidationTracker] notifications.
          *
-         * If no [CoroutineDispatcher] is present in the [context] then this function will throw
-         * an [IllegalArgumentException]
+         * If no [CoroutineDispatcher] is present in the [context] then this function will throw an
+         * [IllegalArgumentException]
          *
          * @param context The context
          * @return This [Builder] instance
@@ -393,12 +386,11 @@ expect abstract class RoomDatabase() {
          *
          * @param migration the migration to add.
          */
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        fun addMigration(migration: Migration)
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) fun addMigration(migration: Migration)
 
         /**
-         * Indicates if the given migration is contained within the [MigrationContainer] based
-         * on its start-end versions.
+         * Indicates if the given migration is contained within the [MigrationContainer] based on
+         * its start-end versions.
          *
          * @param startVersion Start version of the migration.
          * @param endVersion End version of the migration
@@ -407,25 +399,21 @@ expect abstract class RoomDatabase() {
         fun contains(startVersion: Int, endVersion: Int): Boolean
 
         /**
-         * Returns a pair corresponding to an entry in the map of available migrations whose key
-         * is [migrationStart] and its sorted keys in ascending order.
+         * Returns a pair corresponding to an entry in the map of available migrations whose key is
+         * [migrationStart] and its sorted keys in ascending order.
          */
-        internal fun getSortedNodes(
-            migrationStart: Int
-        ): Pair<Map<Int, Migration>, Iterable<Int>>?
+        internal fun getSortedNodes(migrationStart: Int): Pair<Map<Int, Migration>, Iterable<Int>>?
 
         /**
-         * Returns a pair corresponding to an entry in the map of available migrations whose key
-         * is [migrationStart] and its sorted keys in descending order.
+         * Returns a pair corresponding to an entry in the map of available migrations whose key is
+         * [migrationStart] and its sorted keys in descending order.
          */
         internal fun getSortedDescendingNodes(
             migrationStart: Int
         ): Pair<Map<Int, Migration>, Iterable<Int>>?
     }
 
-    /**
-     * Callback for [RoomDatabase]
-     */
+    /** Callback for [RoomDatabase] */
     abstract class Callback() {
         /**
          * Called when the database is created for the first time.
@@ -460,8 +448,8 @@ expect abstract class RoomDatabase() {
  *
  * Using the connection after [block] completes is prohibited.
  *
- * The connection will be confined to the coroutine on which [block] executes, attempting to use
- * the connection from a different coroutine will result in an error.
+ * The connection will be confined to the coroutine on which [block] executes, attempting to use the
+ * connection from a different coroutine will result in an error.
  *
  * If the current coroutine calling this function already has a confined connection, then that
  * connection is used.
@@ -473,15 +461,11 @@ expect abstract class RoomDatabase() {
  *
  * @param block The code to use the connection.
  * @throws SQLiteException when the database is closed or a thread confined connection needs to be
- * upgraded or there is a timeout acquiring a connection.
- *
+ *   upgraded or there is a timeout acquiring a connection.
  * @see [useWriterConnection]
  */
-suspend fun <R> RoomDatabase.useReaderConnection(
-    block: suspend (Transactor) -> R
-): R = withContext(getCoroutineScope().coroutineContext) {
-    useConnection(isReadOnly = true, block)
-}
+suspend fun <R> RoomDatabase.useReaderConnection(block: suspend (Transactor) -> R): R =
+    withContext(getCoroutineScope().coroutineContext) { useConnection(isReadOnly = true, block) }
 
 /**
  * Acquires a WRITE connection, suspending while waiting if none is available and then calling the
@@ -491,8 +475,8 @@ suspend fun <R> RoomDatabase.useReaderConnection(
  *
  * Using the connection after [block] completes is prohibited.
  *
- * The connection will be confined to the coroutine on which [block] executes, attempting to use
- * the connection from a different coroutine will result in an error.
+ * The connection will be confined to the coroutine on which [block] executes, attempting to use the
+ * connection from a different coroutine will result in an error.
  *
  * If the current coroutine calling this function already has a confined connection, then that
  * connection is used as long as it isn't required to be upgraded to a writer. If an upgrade is
@@ -505,15 +489,11 @@ suspend fun <R> RoomDatabase.useReaderConnection(
  *
  * @param block The code to use the connection.
  * @throws SQLiteException when the database is closed or a thread confined connection needs to be
- * upgraded or there is a timeout acquiring a connection.
- *
+ *   upgraded or there is a timeout acquiring a connection.
  * @see [useReaderConnection]
  */
-suspend fun <R> RoomDatabase.useWriterConnection(
-    block: suspend (Transactor) -> R
-): R = withContext(getCoroutineScope().coroutineContext) {
-    useConnection(isReadOnly = false, block)
-}
+suspend fun <R> RoomDatabase.useWriterConnection(block: suspend (Transactor) -> R): R =
+    withContext(getCoroutineScope().coroutineContext) { useConnection(isReadOnly = false, block) }
 
 /**
  * Validates that no added migration start or end are also marked as fallback to destructive
@@ -542,8 +522,7 @@ internal fun RoomDatabase.validateAutoMigrations(configuration: DatabaseConfigur
         var foundIndex = -1
         for (providedIndex in configuration.autoMigrationSpecs.indices.reversed()) {
             val provided: Any = configuration.autoMigrationSpecs[providedIndex]
-            // TODO(b/317210564): For native only FQN is compared
-            if (spec.isAssignableFrom(provided::class)) {
+            if (spec.isInstance(provided)) {
                 foundIndex = providedIndex
                 usedSpecs[foundIndex] = true
                 break
@@ -565,10 +544,11 @@ internal fun RoomDatabase.validateAutoMigrations(configuration: DatabaseConfigur
     }
     val autoMigrations = createAutoMigrations(autoMigrationSpecs)
     for (autoMigration in autoMigrations) {
-        val migrationExists = configuration.migrationContainer.contains(
-            autoMigration.startVersion,
-            autoMigration.endVersion
-        )
+        val migrationExists =
+            configuration.migrationContainer.contains(
+                autoMigration.startVersion,
+                autoMigration.endVersion
+            )
         if (!migrationExists) {
             configuration.migrationContainer.addMigration(autoMigration)
         }
@@ -587,7 +567,7 @@ internal fun RoomDatabase.validateTypeConverters(configuration: DatabaseConfigur
             // traverse provided converters in reverse so that newer one overrides
             for (providedIndex in configuration.typeConverters.indices.reversed()) {
                 val provided = configuration.typeConverters[providedIndex]
-                if (converter.isAssignableFrom(provided::class)) {
+                if (converter.isInstance(provided)) {
                     foundIndex = providedIndex
                     used[foundIndex] = true
                     break

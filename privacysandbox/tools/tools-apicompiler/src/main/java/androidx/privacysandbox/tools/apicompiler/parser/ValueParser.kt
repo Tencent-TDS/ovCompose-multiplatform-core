@@ -50,7 +50,8 @@ internal class ValueParser(private val logger: KSPLogger, private val typeParser
         if (!value.isPublic()) {
             logger.error("Error in $name: annotated values should be public.")
         }
-        ensureNoCompanion(value, name)
+        validateCompanions(value, name)
+        ensureNoObject(value, name)
         ensureNoTypeParameters(value, name)
         ensureNoSuperTypes(value, name)
 
@@ -65,22 +66,40 @@ internal class ValueParser(private val logger: KSPLogger, private val typeParser
     }
 
     private fun parseEnumClass(classDeclaration: KSClassDeclaration): AnnotatedEnumClass {
-        val variants = classDeclaration.declarations.filterIsInstance<KSClassDeclaration>()
-            .map { it.simpleName.asString() }
-            .toList()
+        val variants =
+            classDeclaration.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .map { it.simpleName.asString() }
+                .toList()
         return AnnotatedEnumClass(
             type = typeParser.parseFromDeclaration(classDeclaration),
             variants = variants
         )
     }
 
-    private fun ensureNoCompanion(classDeclaration: KSClassDeclaration, name: String) {
-        if (classDeclaration.declarations.filterIsInstance<KSClassDeclaration>()
-                .any(KSClassDeclaration::isCompanionObject)
+    private fun validateCompanions(classDeclaration: KSClassDeclaration, name: String) {
+        classDeclaration.declarations
+            .filterIsInstance<KSClassDeclaration>()
+            .filter(KSClassDeclaration::isCompanionObject)
+            .forEach { validateCompanion(name, it, logger) }
+    }
+
+    private fun ensureNoObject(classDeclaration: KSClassDeclaration, name: String) {
+        if (
+            classDeclaration.declarations
+                .filterIsInstance<KSClassDeclaration>()
+                .filter {
+                    listOf(
+                            ClassKind.OBJECT,
+                            ClassKind.INTERFACE,
+                            ClassKind.ENUM_CLASS,
+                            ClassKind.CLASS
+                        )
+                        .contains(it.classKind)
+                }
+                .any { !it.isCompanionObject }
         ) {
-            logger.error(
-                "Error in $name: annotated values cannot declare companion objects."
-            )
+            logger.error("Error in $name: annotated values cannot declare objects or classes.")
         }
     }
 

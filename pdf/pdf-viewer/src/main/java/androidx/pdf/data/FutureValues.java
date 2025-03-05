@@ -16,13 +16,13 @@
 
 package androidx.pdf.data;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.WorkerThread;
-import androidx.pdf.util.ErrorLog;
 import androidx.pdf.util.ObservableValue;
 import androidx.pdf.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +38,7 @@ public class FutureValues {
     }
 
     /** Creates a {@link FutureValue} with the given value. */
-    public static <T> FutureValue<T> newImmediateValue(T value) {
+    public static <T> @NonNull FutureValue<T> newImmediateValue(T value) {
         return new ImmediateValue<T>(value);
     }
 
@@ -47,20 +47,17 @@ public class FutureValues {
      *
      * @param error the exception to be delivered on fail.
      */
-    @NonNull
-    public static <T> FutureValue<T> immediateFail(final Exception error) {
+    public static <T> @NonNull FutureValue<T> immediateFail(final @NonNull Exception error) {
         return callback -> callback.failed(error);
     }
 
     /** Creates a {@link FutureValue} that decouples setting and reading progress and results. */
-    @NonNull
-    public static <T> SettableFutureValue<T> newSettableValue() {
+    public static <T> @NonNull SettableFutureValue<T> newSettableValue() {
         return new SettableFutureValue<T>();
     }
 
     /** A {@link FutureValue.Callback} wrapper interface around a {@link SettableFutureValue}. */
-    @NonNull
-    public static <T> FutureValue.Callback<T> setterCallback(
+    public static <T> FutureValue.@NonNull Callback<T> setterCallback(
             final @NonNull SettableFutureValue<T> targetFuture) {
         return new FutureValue.Callback<T>() {
 
@@ -70,7 +67,7 @@ public class FutureValues {
             }
 
             @Override
-            public void failed(Throwable thrown) {
+            public void failed(@NonNull Throwable thrown) {
                 targetFuture.fail(thrown);
             }
 
@@ -89,8 +86,7 @@ public class FutureValues {
      * @param sourceFuture the source {@link FutureValue}.
      * @param converter    the {@link Converter} used to convert results from source to returned
      */
-    @NonNull
-    public static <F, T> FutureValue<T> convert(final @NonNull FutureValue<F> sourceFuture,
+    public static <F, T> @NonNull FutureValue<T> convert(final @NonNull FutureValue<F> sourceFuture,
             final @NonNull Converter<F, T> converter) {
         return new FutureValue<T>() {
             @Override
@@ -102,7 +98,7 @@ public class FutureValues {
                     }
 
                     @Override
-                    public void failed(Throwable thrown) {
+                    public void failed(@NonNull Throwable thrown) {
                         target.failed(thrown);
                     }
 
@@ -122,9 +118,8 @@ public class FutureValues {
     }
 
     /** Creates a new Converter that chains 2 other converters. */
-    @NonNull
-    public static <F, T, V> Converter<F, T> combine(final @NonNull Converter<F, V> converter1,
-            final @NonNull Converter<V, T> converter2) {
+    public static <F, T, V> @NonNull Converter<F, T> combine(
+            final @NonNull Converter<F, V> converter1, final @NonNull Converter<V, T> converter2) {
         return new Converter<F, T>() {
             @Override
             public T convert(F from) {
@@ -149,9 +144,8 @@ public class FutureValues {
      * @return A {@link FutureValue} that completes when the observable value changes to target.
      */
     @SafeVarargs
-    @NonNull
-    public static <T> FutureValue<T> observeAsFuture(final @NonNull ObservableValue<T> obs,
-            T... target) {
+    public static <T> @NonNull FutureValue<T> observeAsFuture(final @NonNull ObservableValue<T> obs,
+            T @NonNull ... target) {
         Preconditions.checkNotNull(obs);
         final Set<T> targetSet = new HashSet<>(Arrays.asList(target));
         return new FutureValue<T>() {
@@ -161,8 +155,7 @@ public class FutureValues {
              * {@link FutureValue#get} is called). It becomes non-null after that (holds the
              * {@link ValueObserver}'s registration key if applicable).
              */
-            @Nullable
-            private Object mKey;
+            private @Nullable Object mKey;
 
             @Override
             public void get(final FutureValue.Callback<T> callback) {
@@ -197,7 +190,7 @@ public class FutureValues {
 
     /**
      * A convenient base implementation of {@link FutureValue.Callback} that does nothing. It
-     * assumes no failures are reported and thus handles them with {@link ErrorLog#logAndThrow}.
+     * assumes no failures are reported and thus handles them.
      * Subclasses should override {@link #failed} if failures are expected.
      *
      * @param <T> the type of result
@@ -209,17 +202,15 @@ public class FutureValues {
         }
 
         @Override
-        public void failed(Throwable thrown) {
-            ErrorLog.logAndThrow(toString(), "failed", thrown);
+        public void failed(@NonNull Throwable thrown) {
         }
 
         @Override
         public void progress(float progress) {
         }
 
-        @NonNull
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             return "SimpleCallback (unspecified)";
         }
     }
@@ -243,7 +234,7 @@ public class FutureValues {
         }
 
         @Override
-        public void failed(Throwable thrown) {
+        public void failed(@NonNull Throwable thrown) {
             mFail = thrown;
             mSemaphore.release();
         }
@@ -298,12 +289,12 @@ public class FutureValues {
          */
         private final Supplier<FutureValue<T>> mComputation;
 
-        public DeferredFutureValue(Supplier<FutureValue<T>> computation) {
+        public DeferredFutureValue(@NonNull Supplier<FutureValue<T>> computation) {
             this.mComputation = computation;
         }
 
         @Override
-        public void get(Callback<T> callback) {
+        public void get(@Nullable Callback<T> callback) {
             try {
                 mComputation.supply(progress -> {
                 }).get(callback);
@@ -366,7 +357,7 @@ public class FutureValues {
          * @param thrown The problem encountered while getting the result of the asynchronous
          *               operation.
          */
-        public void fail(Throwable thrown) {
+        public void fail(@NonNull Throwable thrown) {
             checkNotSet(thrown.toString());
             this.mThrown = Preconditions.checkNotNull(thrown);
             for (Callback<T> callback : mCallbacks) {
@@ -379,12 +370,12 @@ public class FutureValues {
          * Wraps a {@link String} error message in an {@link Exception}. Otherwise, it has the same
          * behaviour as {@link SettableFutureValue#fail(Throwable)}.
          */
-        public void fail(String errorMessage) {
+        public void fail(@NonNull String errorMessage) {
             fail(new Exception(errorMessage));
         }
 
         @Override
-        public void get(Callback<T> callback) {
+        public void get(@Nullable Callback<T> callback) {
             if (mValue != null) {
                 callback.available(mValue);
             } else if (mThrown != null) {

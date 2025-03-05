@@ -42,6 +42,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
+                implementation("androidx.collection:collection:1.4.3")
             }
         }
 
@@ -60,8 +61,7 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                implementation(libs.kotlinStdlib)
-                api("androidx.annotation:annotation-experimental:1.4.0")
+                api("androidx.annotation:annotation-experimental:1.4.1")
             }
         }
 
@@ -106,4 +106,7 @@ androidxCompose {
 
 android {
     namespace "androidx.compose.ui.util"
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

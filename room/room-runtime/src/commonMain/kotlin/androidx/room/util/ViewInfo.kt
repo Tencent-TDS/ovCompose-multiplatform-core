@@ -17,7 +17,6 @@ package androidx.room.util
 
 import androidx.annotation.RestrictTo
 import androidx.sqlite.SQLiteConnection
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmStatic
 
 /**
@@ -27,20 +26,11 @@ import kotlin.jvm.JvmStatic
  *
  * Even though SQLite column names are case insensitive, this class uses case sensitive matching.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-expect class ViewInfo(
-    name: String,
-    sql: String?
-) {
-    /**
-     * The view name
-     */
-    @JvmField
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+expect class ViewInfo(name: String, sql: String?) {
+    /** The view name */
     val name: String
-    /**
-     * The SQL of CREATE VIEW.
-     */
-    @JvmField
+    /** The SQL of CREATE VIEW. */
     val sql: String?
 
     override fun equals(other: Any?): Boolean
@@ -57,8 +47,7 @@ expect class ViewInfo(
          * @param viewName The view name.
          * @return A ViewInfo containing the schema information for the provided view name.
          */
-        @JvmStatic
-        fun read(connection: SQLiteConnection, viewName: String): ViewInfo
+        @JvmStatic fun read(connection: SQLiteConnection, viewName: String): ViewInfo
     }
 }
 
@@ -75,12 +64,11 @@ internal fun ViewInfo.hashCodeCommon(): Int {
 }
 
 internal fun ViewInfo.toStringCommon(): String {
-    return (
-        """
+    return ("""
             |ViewInfo {
             |   name = '$name',
             |   sql = '$sql'
             |}
-        """.trimMargin()
-    )
+        """
+        .trimMargin())
 }

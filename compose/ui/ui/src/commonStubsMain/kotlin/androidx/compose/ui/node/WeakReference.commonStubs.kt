@@ -17,7 +17,7 @@ package androidx.compose.ui.node
 
 import androidx.compose.ui.implementedInJetBrainsFork
 
-actual class WeakReference<T> actual constructor(referent: T) {
+internal actual class WeakReference<T : Any> actual constructor(referent: T) {
     actual fun clear(): Unit = implementedInJetBrainsFork()
 
     actual fun get(): T? = implementedInJetBrainsFork()

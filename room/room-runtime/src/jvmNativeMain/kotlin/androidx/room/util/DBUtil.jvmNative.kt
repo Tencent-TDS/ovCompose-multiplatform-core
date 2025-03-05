@@ -28,21 +28,20 @@ import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.withContext
 
-/**
- * Performs a database operation.
- */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+/** Performs a database operation. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 actual suspend fun <R> performSuspending(
     db: RoomDatabase,
     isReadOnly: Boolean,
     inTransaction: Boolean,
     block: (SQLiteConnection) -> R
-): R = withContext(db.getCoroutineContext(inTransaction)) {
-    db.internalPerform(isReadOnly, inTransaction) { connection ->
-        val rawConnection = (connection as RawConnectionAccessor).rawConnection
-        block.invoke(rawConnection)
+): R =
+    withContext(db.getCoroutineContext(inTransaction)) {
+        db.internalPerform(isReadOnly, inTransaction) { connection ->
+            val rawConnection = (connection as RawConnectionAccessor).rawConnection
+            block.invoke(rawConnection)
+        }
     }
-}
 
 /**
  * Gets the database [CoroutineContext] to perform database operation on utility functions. Prefer
@@ -59,12 +58,8 @@ internal actual suspend fun RoomDatabase.getCoroutineContext(
  * This function should only be invoked from generated code and is needed to support `@Transaction`
  * delegates in Java and Kotlin. It is preferred to use the other 'perform' functions.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-actual suspend fun <R> performInTransactionSuspending(
-    db: RoomDatabase,
-    block: suspend () -> R
-): R = withContext(db.getCoroutineContext(inTransaction = true)) {
-    db.internalPerform(isReadOnly = false, inTransaction = true) {
-        block.invoke()
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
+actual suspend fun <R> performInTransactionSuspending(db: RoomDatabase, block: suspend () -> R): R =
+    withContext(db.getCoroutineContext(inTransaction = true)) {
+        db.internalPerform(isReadOnly = false, inTransaction = true) { block.invoke() }
     }
-}

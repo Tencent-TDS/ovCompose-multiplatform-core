@@ -31,13 +31,6 @@ plugins {
 
 dependencies {
     api(project(":tracing:tracing"))
-    api(libs.kotlinStdlib)
-
-    androidTestImplementation(libs.testExtJunit)
-    androidTestImplementation(libs.testCore)
-    androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.kotlinCoroutinesAndroid)
-    testImplementation(libs.junit)
 }
 
 androidx {
@@ -45,9 +38,9 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Android Tracing"
-    metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
-    namespace "androidx.tracing.ktx"
+    namespace = "androidx.tracing.ktx"
 }

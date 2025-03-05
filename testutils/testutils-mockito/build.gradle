@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    api(libs.mockitoCore, excludes.bytebuddy)
+    api(libs.mockitoCore)
 
     implementation(libs.kotlinStdlib)
 }
@@ -39,7 +39,7 @@ android {
     lintOptions {
         disable "InvalidPackage" // Lint is unhappy about java.lang.instrument package
     }
-    namespace "androidx.testutils.mockito"
+    namespace = "androidx.testutils.mockito"
 }
 
 androidx {

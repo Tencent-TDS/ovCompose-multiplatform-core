@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.LibraryType
+
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
@@ -24,7 +26,7 @@ plugins {
 
 dependencies {
 
-    androidTestImplementation(project(":compose:material:material-icons-core"))
+    androidTestImplementation("androidx.compose.material:material-icons-core:1.6.7")
     androidTestImplementation(project(":compose:material3:material3"))
     androidTestImplementation(project(":compose:material3:material3-adaptive-navigation-suite"))
     androidTestImplementation(project(":compose:material3:material3-window-size-class"))
@@ -38,5 +40,10 @@ dependencies {
 }
 
 android {
-    namespace "androidx.compose.material3.benchmark"
+    compileSdk = 35
+    namespace = "androidx.compose.material3.benchmark"
+}
+
+androidx {
+    type = LibraryType.BENCHMARK
 }

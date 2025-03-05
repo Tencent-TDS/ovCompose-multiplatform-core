@@ -32,9 +32,6 @@ import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.arch.core.util.Function;
 import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.EncoderProfilesProvider;
@@ -43,6 +40,9 @@ import androidx.camera.core.impl.Quirk;
 import androidx.camera.video.VideoSpec;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +58,6 @@ import java.util.Map;
  *                  it is feasible to simply check camera id "1" to create EncoderProfilesProxy.
  *     Device(s): moto c
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class ExtraSupportedQualityQuirk implements Quirk {
     private static final String MOTO_C_FRONT_CAM_ID = "1";
 
@@ -71,8 +70,7 @@ public class ExtraSupportedQualityQuirk implements Quirk {
     }
 
     /** Gets the EncoderProfilesProxy for the extra supported quality. */
-    @Nullable
-    public Map<Integer, EncoderProfilesProxy> getExtraEncoderProfiles(
+    public @Nullable Map<Integer, EncoderProfilesProxy> getExtraEncoderProfiles(
             @NonNull CameraInfoInternal cameraInfo,
             @NonNull EncoderProfilesProvider encoderProfilesProvider,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
@@ -86,8 +84,7 @@ public class ExtraSupportedQualityQuirk implements Quirk {
     // Create 480P EncoderProfiles for front Camera if not exist. Derive profile from QUALITY_HIGH
     // which should be QUALITY_CIF. Even if QUALITY_HIGH is not QUALITY_CIF due to ROM
     // update, the code should still work.
-    @Nullable
-    private Map<Integer, EncoderProfilesProxy> getExtraEncoderProfilesForMotoC(
+    private @Nullable Map<Integer, EncoderProfilesProxy> getExtraEncoderProfilesForMotoC(
             @NonNull CameraInfoInternal cameraInfo,
             @NonNull EncoderProfilesProvider encoderProfilesProvider,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
@@ -125,9 +122,8 @@ public class ExtraSupportedQualityQuirk implements Quirk {
         return extraEncoderProfilesMap;
     }
 
-    @NonNull
-    private static Range<Integer> getSupportedBitrateRange(
-            @NonNull EncoderProfilesProxy.VideoProfileProxy videoProfile,
+    private static @NonNull Range<Integer> getSupportedBitrateRange(
+            EncoderProfilesProxy.@NonNull VideoProfileProxy videoProfile,
             @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
         VideoEncoderInfo encoderInfo =
                 videoEncoderInfoFinder.apply(toVideoEncoderConfig(videoProfile));

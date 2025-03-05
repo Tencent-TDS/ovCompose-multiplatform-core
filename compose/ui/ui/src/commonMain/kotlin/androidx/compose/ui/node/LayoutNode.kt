@@ -19,15 +19,16 @@ import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.CompositionLocalMap
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
+import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.CacheDrawModifierNode
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputFilter
 import androidx.compose.ui.input.pointer.PointerInputModifier
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.internal.checkPrecondition
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.internal.requirePrecondition
@@ -48,10 +49,6 @@ import androidx.compose.ui.node.LayoutNode.LayoutState.LayingOut
 import androidx.compose.ui.node.LayoutNode.LayoutState.LookaheadLayingOut
 import androidx.compose.ui.node.LayoutNode.LayoutState.LookaheadMeasuring
 import androidx.compose.ui.node.LayoutNode.LayoutState.Measuring
-import androidx.compose.ui.node.Nodes.Draw
-import androidx.compose.ui.node.Nodes.FocusEvent
-import androidx.compose.ui.node.Nodes.FocusProperties
-import androidx.compose.ui.node.Nodes.FocusTarget
 import androidx.compose.ui.node.Nodes.PointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -59,24 +56,23 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.simpleIdentityToString
 import androidx.compose.ui.semantics.SemanticsConfiguration
+import androidx.compose.ui.semantics.SemanticsInfo
 import androidx.compose.ui.semantics.generateSemanticsId
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropViewFactoryHolder
 
-/**
- * Enable to log changes to the LayoutNode tree.  This logging is quite chatty.
- */
+/** Enable to log changes to the LayoutNode tree. This logging is quite chatty. */
 private const val DebugChanges = false
 
 private val DefaultDensity = Density(1f)
 
-/**
- * An element in the layout hierarchy, built with compose UI.
- */
+/** An element in the layout hierarchy, built with compose UI. */
 @OptIn(InternalComposeUiApi::class)
 internal class LayoutNode(
     // Virtual LayoutNode is the temporary concept allows us to a node which is not a real node,
@@ -89,26 +85,31 @@ internal class LayoutNode(
     private val isVirtual: Boolean = false,
     // The unique semantics ID that is used by all semantics modifiers attached to this LayoutNode.
     // TODO(b/281907968): Implement this with a getter that returns the compositeKeyHash.
-    override var semanticsId: Int = generateSemanticsId()
-) : ComposeNodeLifecycleCallback,
+    override var semanticsId: Int = generateSemanticsId(),
+) :
+    ComposeNodeLifecycleCallback,
     Remeasurement,
     OwnerScope,
     LayoutInfo,
+    SemanticsInfo,
     ComposeUiNode,
     InteroperableComposeUiNode,
     Owner.OnLayoutCompletedListener {
 
-    @set:ExperimentalComposeUiApi
-    @get:ExperimentalComposeUiApi
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @ExperimentalComposeUiApi
+    internal var offsetFromRoot: IntOffset = IntOffset.Max
+    internal var lastSize: IntSize = IntSize.Zero
+    internal var outerToInnerOffset: IntOffset = IntOffset.Max
+    internal var outerToInnerOffsetDirty: Boolean = true
+
+    var forceUseOldLayers: Boolean = false
+
     override var compositeKeyHash: Int = 0
 
     internal var isVirtualLookaheadRoot: Boolean = false
 
     /**
-     * This lookaheadRoot references the closest root to the LayoutNode, not the top-level
-     * lookahead root.
+     * This lookaheadRoot references the closest root to the LayoutNode, not the top-level lookahead
+     * root.
      */
     internal var lookaheadRoot: LayoutNode? = null
         private set(newRoot) {
@@ -116,9 +117,13 @@ internal class LayoutNode(
                 field = newRoot
                 if (newRoot != null) {
                     layoutDelegate.ensureLookaheadDelegateCreated()
-                    forEachCoordinatorIncludingInner {
-                        it.ensureLookaheadDelegateCreated()
-                    }
+                    forEachCoordinatorIncludingInner { it.ensureLookaheadDelegateCreated() }
+                } else {
+                    // When lookahead root is set to null, clear the lookahead pass delegate.
+                    // This can happen when lookaheadScope is removed in one of the parents, or
+                    // more likely when movableContent moves from a parent in a LookaheadScope to
+                    // a parent not in a LookaheadScope.
+                    layoutDelegate.clearLookaheadDelegate()
                 }
                 invalidateMeasurements()
             }
@@ -130,10 +135,12 @@ internal class LayoutNode(
     private var virtualChildrenCount = 0
 
     // the list of nodes containing the virtual children as is
-    private val _foldedChildren = MutableVectorWithMutationTracking(mutableVectorOf<LayoutNode>()) {
-        layoutDelegate.markChildrenDirty()
-    }
-    internal val foldedChildren: List<LayoutNode> get() = _foldedChildren.asList()
+    private val _foldedChildren =
+        MutableVectorWithMutationTracking(mutableVectorOf<LayoutNode>()) {
+            layoutDelegate.markChildrenDirty()
+        }
+    internal val foldedChildren: List<LayoutNode>
+        get() = _foldedChildren.asList()
 
     // the list of nodes where the virtual children are unfolded (their children are represented
     // as our direct children)
@@ -142,9 +149,8 @@ internal class LayoutNode(
     private fun recreateUnfoldedChildrenIfDirty() {
         if (unfoldedVirtualChildrenListDirty) {
             unfoldedVirtualChildrenListDirty = false
-            val unfoldedChildren = _unfoldedChildren ?: mutableVectorOf<LayoutNode>().also {
-                _unfoldedChildren = it
-            }
+            val unfoldedChildren =
+                _unfoldedChildren ?: mutableVectorOf<LayoutNode>().also { _unfoldedChildren = it }
             unfoldedChildren.clear()
             _foldedChildren.forEach {
                 if (it.isVirtual) {
@@ -166,6 +172,7 @@ internal class LayoutNode(
     // when the list of our children is modified it will be set to true if we are a virtual node
     // or it will be set to true on a parent if the parent is a virtual node
     private var unfoldedVirtualChildrenListDirty = false
+
     private fun invalidateUnfoldedVirtualChildren() {
         if (virtualChildrenCount > 0) {
             unfoldedVirtualChildrenListDirty = true
@@ -190,9 +197,7 @@ internal class LayoutNode(
             }
         }
 
-    /**
-     * Update children if the list is not up to date.
-     */
+    /** Update children if the list is not up to date. */
     internal fun updateChildrenIfDirty() {
         if (virtualChildrenCount > 0) {
             recreateUnfoldedChildrenIfDirty()
@@ -200,17 +205,17 @@ internal class LayoutNode(
     }
 
     inline fun forEachChild(block: (LayoutNode) -> Unit) = _children.forEach(block)
+
     inline fun forEachChildIndexed(block: (Int, LayoutNode) -> Unit) =
         _children.forEachIndexed(block)
 
-    /**
-     * The children of this LayoutNode, controlled by [insertAt], [move], and [removeAt].
-     */
-    internal val children: List<LayoutNode> get() = _children.asMutableList()
+    /** The children of this LayoutNode, controlled by [insertAt], [move], and [removeAt]. */
+    internal val children: List<LayoutNode>
+        get() = _children.asMutableList()
 
     /**
-     * The parent node in the LayoutNode hierarchy. This is `null` when the [LayoutNode]
-     * is not attached to a hierarchy or is the root of the hierarchy.
+     * The parent node in the LayoutNode hierarchy. This is `null` when the [LayoutNode] is not
+     * attached to a hierarchy or is the root of the hierarchy.
      */
     private var _foldedParent: LayoutNode? = null
 
@@ -226,9 +231,7 @@ internal class LayoutNode(
             return parent
         }
 
-    /**
-     * The view system [Owner]. This `null` until [attach] is called
-     */
+    /** The view system [Owner]. This `null` until [attach] is called */
     internal var owner: Owner? = null
         private set
 
@@ -242,10 +245,11 @@ internal class LayoutNode(
     override fun getInteropView(): InteropView? = interopViewFactoryHolder?.getInteropView()
 
     /**
-     * Returns true if this [LayoutNode] currently has an [LayoutNode.owner].  Semantically,
-     * this means that the LayoutNode is currently a part of a component tree.
+     * Returns true if this [LayoutNode] currently has an [LayoutNode.owner]. Semantically, this
+     * means that the LayoutNode is currently a part of a component tree.
      */
-    override val isAttached: Boolean get() = owner != null
+    override val isAttached: Boolean
+        get() = owner != null
 
     /**
      * The tree depth of the [LayoutNode]. This is valid only when it is attached to a hierarchy.
@@ -255,15 +259,15 @@ internal class LayoutNode(
     /**
      * The layout state the node is currently in.
      *
-     * The mutation of [layoutState] is confined to [LayoutNode], and is therefore read-only
-     * outside LayoutNode. This makes the state machine easier to reason about.
+     * The mutation of [layoutState] is confined to [LayoutNode], and is therefore read-only outside
+     * LayoutNode. This makes the state machine easier to reason about.
      */
     internal val layoutState
         get() = layoutDelegate.layoutState
 
     /**
-     * The lookahead pass delegate for the [LayoutNode]. This should only be used for measure
-     * and layout related impl during *lookahead*. For the actual measure & layout, use
+     * The lookahead pass delegate for the [LayoutNode]. This should only be used for measure and
+     * layout related impl during *lookahead*. For the actual measure & layout, use
      * [measurePassDelegate].
      */
     internal val lookaheadPassDelegate
@@ -276,9 +280,7 @@ internal class LayoutNode(
     internal val measurePassDelegate
         get() = layoutDelegate.measurePassDelegate
 
-    /**
-     * [requestRemeasure] calls will be ignored while this flag is true.
-     */
+    /** [requestRemeasure] calls will be ignored while this flag is true. */
     private var ignoreRemeasureRequests = false
 
     /**
@@ -286,15 +288,8 @@ internal class LayoutNode(
      * then [instance] will become [attach]ed also. [instance] must have a `null` [parent].
      */
     internal fun insertAt(index: Int, instance: LayoutNode) {
-        checkPrecondition(instance._foldedParent == null) {
-            "Cannot insert $instance because it already has a parent." +
-                " This tree: " + debugTreeToString() +
-                " Other tree: " + instance._foldedParent?.debugTreeToString()
-        }
-        checkPrecondition(instance.owner == null) {
-            "Cannot insert $instance because it already has an owner." +
-                " This tree: " + debugTreeToString() +
-                " Other tree: " + instance.debugTreeToString()
+        checkPrecondition(instance._foldedParent == null || instance.owner == null) {
+            exceptionMessageForParentingOrOwnership(instance)
         }
 
         if (DebugChanges) {
@@ -320,6 +315,13 @@ internal class LayoutNode(
         }
     }
 
+    private fun exceptionMessageForParentingOrOwnership(instance: LayoutNode) =
+        "Cannot insert $instance because it already has a parent or an owner." +
+            " This tree: " +
+            debugTreeToString() +
+            " Other tree: " +
+            instance._foldedParent?.debugTreeToString()
+
     internal fun onZSortedChildrenInvalidated() {
         if (isVirtual) {
             parent?.onZSortedChildrenInvalidated()
@@ -328,13 +330,9 @@ internal class LayoutNode(
         }
     }
 
-    /**
-     * Removes one or more children, starting at [index].
-     */
+    /** Removes one or more children, starting at [index]. */
     internal fun removeAt(index: Int, count: Int) {
-        requirePrecondition(count >= 0) {
-            "count ($count) must be greater than 0"
-        }
+        requirePrecondition(count >= 0) { "count ($count) must be greater than 0" }
         for (i in index + count - 1 downTo index) {
             // Call detach callbacks before removing from _foldedChildren, so the child is still
             // visible to parents traversing downwards, such as when clearing focus.
@@ -346,9 +344,7 @@ internal class LayoutNode(
         }
     }
 
-    /**
-     * Removes all children.
-     */
+    /** Removes all children. */
     internal fun removeAll() {
         for (i in _foldedChildren.size - 1 downTo 0) {
             onChildRemoved(_foldedChildren[i])
@@ -372,9 +368,7 @@ internal class LayoutNode(
 
         if (child.isVirtual) {
             virtualChildrenCount--
-            child._foldedChildren.forEach {
-                it.outerCoordinator.wrappedBy = null
-            }
+            child._foldedChildren.forEach { it.outerCoordinator.wrappedBy = null }
         }
         invalidateUnfoldedVirtualChildren()
         onZSortedChildrenInvalidated()
@@ -383,9 +377,9 @@ internal class LayoutNode(
     /**
      * Moves [count] elements starting at index [from] to index [to]. The [to] index is related to
      * the position before the change, so, for example, to move an element at position 1 to after
-     * the element at position 2, [from] should be `1` and [to] should be `3`. If the elements
-     * were LayoutNodes A B C D E, calling `move(1, 3, 1)` would result in the LayoutNodes
-     * being reordered to A C B D E.
+     * the element at position 2, [from] should be `1` and [to] should be `3`. If the elements were
+     * LayoutNodes A B C D E, calling `move(1, 3, 1)` would result in the LayoutNodes being
+     * reordered to A C B D E.
      */
     internal fun move(from: Int, to: Int, count: Int) {
         if (from == to) {
@@ -410,45 +404,93 @@ internal class LayoutNode(
         invalidateMeasurements()
     }
 
-    private var _collapsedSemantics: SemanticsConfiguration? = null
-    internal fun invalidateSemantics() {
-        _collapsedSemantics = null
-        // TODO(lmr): this ends up scheduling work that diffs the entire tree, but we should
-        //  eventually move to marking just this node as invalidated since we are invalidating
-        //  on a per-node level. This should preserve current behavior for now.
-        requireOwner().onSemanticsChange()
+    override fun isTransparent(): Boolean = outerCoordinator.isTransparent()
+
+    internal var isSemanticsInvalidated = false
+
+    internal fun requestAutofill() {
+        // Ignore calls while semantics are being applied (b/378114177).
+        if (isCurrentlyCalculatingSemanticsConfiguration) return
+
+        val owner = requireOwner()
+        owner.requestAutofill(this)
     }
 
-    internal val collapsedSemantics: SemanticsConfiguration?
+    internal fun invalidateSemantics() {
+        // Ignore calls to invalidate Semantics while semantics are being applied (b/378114177).
+        if (isCurrentlyCalculatingSemanticsConfiguration) return
+
+        if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isSemanticAutofillEnabled) {
+            _semanticsConfiguration = null
+
+            // TODO(lmr): this ends up scheduling work that diffs the entire tree, but we should
+            //  eventually move to marking just this node as invalidated since we are invalidating
+            //  on a per-node level. This should preserve current behavior for now..
+            requireOwner().onSemanticsChange()
+        } else if (nodes.isUpdating || applyingModifierOnAttach) {
+            // We are currently updating the modifier, so just schedule an invalidation. After
+            // applying the modifier, we will notify listeners of semantics changes.
+            isSemanticsInvalidated = true
+        } else {
+            // We are not currently updating the modifier, so instead of scheduling invalidation,
+            // we update the semantics configuration and send the notification event right away.
+            val prev = _semanticsConfiguration
+            _semanticsConfiguration = calculateSemanticsConfiguration()
+            isSemanticsInvalidated = false
+
+            val owner = requireOwner()
+            owner.semanticsOwner.notifySemanticsChange(this, prev)
+
+            // This is needed for Accessibility and ContentCapture. Remove after these systems
+            // are migrated to use SemanticsInfo and SemanticListeners.
+            owner.onSemanticsChange()
+        }
+    }
+
+    // This is needed until we completely move to the new world where we always pre-compute the
+    // semantics configuration. At that point, this can just be a property with a private setter.
+    private var _semanticsConfiguration: SemanticsConfiguration? = null
+    override val semanticsConfiguration: SemanticsConfiguration?
         get() {
             // TODO: investigate if there's a better way to approach "half attached" state and
             // whether or not deactivated nodes should be considered removed or not.
-            if (!isAttached || isDeactivated) return null
+            if (!isAttached || isDeactivated || !nodes.has(Nodes.Semantics)) return null
 
-            if (!nodes.has(Nodes.Semantics) || _collapsedSemantics != null) {
-                return _collapsedSemantics
+            @OptIn(ExperimentalComposeUiApi::class)
+            if (!ComposeUiFlags.isSemanticAutofillEnabled && _semanticsConfiguration == null) {
+                _semanticsConfiguration = calculateSemanticsConfiguration()
             }
-
-            var config = SemanticsConfiguration()
-            requireOwner().snapshotObserver.observeSemanticsReads(this) {
-                nodes.tailToHead(Nodes.Semantics) {
-                    if (it.shouldClearDescendantSemantics) {
-                        config = SemanticsConfiguration()
-                        config.isClearingSemantics = true
-                    }
-                    if (it.shouldMergeDescendantSemantics) {
-                        config.isMergingSemanticsOfDescendants = true
-                    }
-                    with(config) { with(it) { applySemantics() } }
-                }
-            }
-            _collapsedSemantics = config
-            return config
+            return _semanticsConfiguration
         }
 
+    private var isCurrentlyCalculatingSemanticsConfiguration = false
+
+    private fun calculateSemanticsConfiguration(): SemanticsConfiguration {
+        // Ignore calls to invalidate Semantics while semantics are being calculated.
+        isCurrentlyCalculatingSemanticsConfiguration = true
+
+        var config = SemanticsConfiguration()
+        requireOwner().snapshotObserver.observeSemanticsReads(this) {
+            nodes.tailToHead(Nodes.Semantics) {
+                if (it.shouldClearDescendantSemantics) {
+                    config = SemanticsConfiguration()
+                    config.isClearingSemantics = true
+                }
+                if (it.shouldMergeDescendantSemantics) {
+                    config.isMergingSemanticsOfDescendants = true
+                }
+                with(it) { config.applySemantics() }
+            }
+        }
+
+        isCurrentlyCalculatingSemanticsConfiguration = false
+
+        return config
+    }
+
     /**
-     * Set the [Owner] of this LayoutNode. This LayoutNode must not already be attached.
-     * [owner] must match its [parent].[owner].
+     * Set the [Owner] of this LayoutNode. This LayoutNode must not already be attached. [owner]
+     * must match its [parent].[owner].
      */
     internal fun attach(owner: Owner) {
         checkPrecondition(this.owner == null) {
@@ -456,15 +498,15 @@ internal class LayoutNode(
         }
         checkPrecondition(_foldedParent == null || _foldedParent?.owner == owner) {
             "Attaching to a different owner($owner) than the parent's owner(${parent?.owner})." +
-                " This tree: " + debugTreeToString() +
-                " Parent tree: " + _foldedParent?.debugTreeToString()
+                " This tree: " +
+                debugTreeToString() +
+                " Parent tree: " +
+                _foldedParent?.debugTreeToString()
         }
         val parent = this.parent
         if (parent == null) {
-            // it is a root node and attached root nodes are always placed (as there is no parent
-            // to place them explicitly)
             measurePassDelegate.isPlaced = true
-            lookaheadPassDelegate?.let { it.isPlaced = true }
+            lookaheadPassDelegate?.onAttachedToNullParent()
         }
 
         // Use the inner coordinator of first non-virtual parent
@@ -476,10 +518,13 @@ internal class LayoutNode(
         pendingModifier?.let { applyModifier(it) }
         pendingModifier = null
 
-        if (nodes.has(Nodes.Semantics)) {
+        // Note: With precomputed semantics config, calling invalidateSemantics() before the
+        // layoutNode is marked as attached would result in semantics not being calculated..
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (!ComposeUiFlags.isSemanticAutofillEnabled && nodes.has(Nodes.Semantics)) {
             invalidateSemantics()
         }
-        owner.onAttach(this)
+        owner.onPreAttach(this)
 
         // Update lookahead root when attached. For nested cases, we'll always use the
         // closest lookahead root
@@ -497,9 +542,7 @@ internal class LayoutNode(
         if (!isDeactivated) {
             nodes.markAsAttached()
         }
-        _foldedChildren.forEach { child ->
-            child.attach(owner)
-        }
+        _foldedChildren.forEach { child -> child.attach(owner) }
         if (!isDeactivated) {
             nodes.runAttachLifecycle()
         }
@@ -511,14 +554,19 @@ internal class LayoutNode(
         onAttach?.invoke(owner)
 
         layoutDelegate.updateParentData()
-        if (!isDeactivated) {
-            invalidateFocusOnAttach()
+
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isSemanticAutofillEnabled) {
+            if (!isDeactivated && nodes.has(Nodes.Semantics)) {
+                invalidateSemantics()
+            }
         }
+
+        owner.onPostAttach(this)
     }
 
     /**
-     * Remove the LayoutNode from the [Owner]. The [owner] must not be `null` before this call
-     * and its [parent]'s [owner] must be `null` before calling this. This will also [detach] all
+     * Remove the LayoutNode from the [Owner]. The [owner] must not be `null` before this call and
+     * its [parent]'s [owner] must be `null` before calling this. This will also [detach] all
      * children. After executing, the [owner] will be `null`.
      */
     internal fun detach() {
@@ -536,15 +584,12 @@ internal class LayoutNode(
         layoutDelegate.resetAlignmentLines()
         onDetach?.invoke(owner)
 
-        if (nodes.has(Nodes.Semantics)) {
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (!ComposeUiFlags.isSemanticAutofillEnabled && nodes.has(Nodes.Semantics)) {
             invalidateSemantics()
         }
         nodes.runDetachLifecycle()
-        ignoreRemeasureRequests {
-            _foldedChildren.forEach { child ->
-                child.detach()
-            }
-        }
+        ignoreRemeasureRequests { _foldedChildren.forEach { child -> child.detach() } }
         nodes.markAsDetached()
         owner.onDetach(this)
         this.owner = null
@@ -553,6 +598,22 @@ internal class LayoutNode(
         depth = 0
         measurePassDelegate.onNodeDetached()
         lookaheadPassDelegate?.onNodeDetached()
+
+        // Note: Don't call invalidateSemantics() from within detach() because the modifier nodes
+        // are detached before the LayoutNode, and invalidateSemantics() can trigger a call to
+        // calculateSemanticsConfiguration() which will encounter unattached nodes. Instead, just
+        // set the semantics configuration to null over here since we know the node is detached.
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (ComposeUiFlags.isSemanticAutofillEnabled && nodes.has(Nodes.Semantics)) {
+            val prev = _semanticsConfiguration
+            _semanticsConfiguration = null
+            isSemanticsInvalidated = false
+            owner.semanticsOwner.notifySemanticsChange(this, prev)
+
+            // This is needed for Accessibility and ContentCapture. Remove after these systems
+            // are migrated to use SemanticsInfo and SemanticListeners.
+            owner.onSemanticsChange()
+        }
     }
 
     private val _zSortedChildren = mutableVectorOf<LayoutNode>()
@@ -560,9 +621,8 @@ internal class LayoutNode(
 
     /**
      * Returns the children list sorted by their [LayoutNode.zIndex] first (smaller first) and the
-     * order they were placed via [Placeable.placeAt] by parent (smaller first).
-     * Please note that this list contains not placed items as well, so you have to manually
-     * filter them.
+     * order they were placed via [Placeable.placeAt] by parent (smaller first). Please note that
+     * this list contains not placed items as well, so you have to manually filter them.
      *
      * Note that the object is reused so you shouldn't save it for later.
      */
@@ -596,9 +656,7 @@ internal class LayoutNode(
             return innerContentConstraints.hasFixedWidth && innerContentConstraints.hasFixedHeight
         }
 
-    /**
-     * Call this method from the debugger to see a dump of the LayoutNode tree structure
-     */
+    /** Call this method from the debugger to see a dump of the LayoutNode tree structure */
     @Suppress("unused")
     private fun debugTreeToString(depth: Int = 0): String {
         val tree = StringBuilder()
@@ -609,9 +667,7 @@ internal class LayoutNode(
         tree.append(toString())
         tree.append('\n')
 
-        forEachChild { child ->
-            tree.append(child.debugTreeToString(depth + 1))
-        }
+        forEachChild { child -> tree.append(child.debugTreeToString(depth + 1)) }
 
         var treeString = tree.toString()
         if (depth == 0) {
@@ -644,9 +700,7 @@ internal class LayoutNode(
         ) = error(error)
     }
 
-    /**
-     * Blocks that define the measurement and intrinsic measurement of the layout.
-     */
+    /** Blocks that define the measurement and intrinsic measurement of the layout. */
     override var measurePolicy: MeasurePolicy = ErrorMeasurePolicy
         set(value) {
             if (field != value) {
@@ -657,16 +711,15 @@ internal class LayoutNode(
         }
 
     /**
-     * The intrinsic measurements of this layout, backed up by states to trigger
-     * correct remeasurement for layouts using the intrinsics of this layout
-     * when the [measurePolicy] is changing.
+     * The intrinsic measurements of this layout, backed up by states to trigger correct
+     * remeasurement for layouts using the intrinsics of this layout when the [measurePolicy] is
+     * changing.
      */
     private var intrinsicsPolicy: IntrinsicsPolicy? = null
 
     private fun getOrCreateIntrinsicsPolicy(): IntrinsicsPolicy {
-        return intrinsicsPolicy ?: IntrinsicsPolicy(this, measurePolicy).also {
-            intrinsicsPolicy = it
-        }
+        return intrinsicsPolicy
+            ?: IntrinsicsPolicy(this, measurePolicy).also { intrinsicsPolicy = it }
     }
 
     fun minLookaheadIntrinsicWidth(height: Int) =
@@ -681,54 +734,33 @@ internal class LayoutNode(
     fun maxLookaheadIntrinsicHeight(width: Int) =
         getOrCreateIntrinsicsPolicy().maxLookaheadIntrinsicHeight(width)
 
-    fun minIntrinsicWidth(height: Int) =
-        getOrCreateIntrinsicsPolicy().minIntrinsicWidth(height)
+    fun minIntrinsicWidth(height: Int) = getOrCreateIntrinsicsPolicy().minIntrinsicWidth(height)
 
-    fun minIntrinsicHeight(width: Int) =
-        getOrCreateIntrinsicsPolicy().minIntrinsicHeight(width)
+    fun minIntrinsicHeight(width: Int) = getOrCreateIntrinsicsPolicy().minIntrinsicHeight(width)
 
-    fun maxIntrinsicWidth(height: Int) =
-        getOrCreateIntrinsicsPolicy().maxIntrinsicWidth(height)
+    fun maxIntrinsicWidth(height: Int) = getOrCreateIntrinsicsPolicy().maxIntrinsicWidth(height)
 
-    fun maxIntrinsicHeight(width: Int) =
-        getOrCreateIntrinsicsPolicy().maxIntrinsicHeight(width)
+    fun maxIntrinsicHeight(width: Int) = getOrCreateIntrinsicsPolicy().maxIntrinsicHeight(width)
 
-    /**
-     * The screen density to be used by this layout.
-     */
+    /** The screen density to be used by this layout. */
     override var density: Density = DefaultDensity
         set(value) {
             if (field != value) {
                 field = value
                 onDensityOrLayoutDirectionChanged()
 
-                nodes.headToTail {
-                    if (it.isKind(PointerInput)) {
-                        (it as PointerInputModifierNode).onDensityChange()
-                    } else if (it is CacheDrawModifierNode) {
-                        // b/340662451 Replace both usages of DelegatableNode#onDensityChanged and
-                        // DelegatableNode#onLayoutDirectionChanged when API changes can be
-                        // made again
-                        it.invalidateDrawCache()
-                    }
-                }
+                nodes.headToTail { it.onDensityChange() }
             }
         }
 
-    /**
-     * The layout direction of the layout node.
-     */
+    /** The layout direction of the layout node. */
     override var layoutDirection: LayoutDirection = LayoutDirection.Ltr
         set(value) {
             if (field != value) {
                 field = value
                 onDensityOrLayoutDirectionChanged()
 
-                nodes.headToTail(Draw) {
-                    if (it is CacheDrawModifierNode) {
-                        it.invalidateDrawCache()
-                    }
-                }
+                nodes.headToTail { it.onLayoutDirectionChange() }
             }
         }
 
@@ -737,9 +769,7 @@ internal class LayoutNode(
             if (field != value) {
                 field = value
 
-                nodes.headToTail(type = PointerInput) {
-                    it.onViewConfigurationChange()
-                }
+                nodes.headToTail(type = PointerInput) { it.onViewConfigurationChange() }
             }
         }
 
@@ -760,7 +790,8 @@ internal class LayoutNode(
         }
 
     private fun onDensityOrLayoutDirectionChanged() {
-        // TODO(b/242120396): it seems like we need to update some densities in the node coordinators here
+        // TODO(b/242120396): it seems like we need to update some densities in the node
+        // coordinators here
         // measure/layout modifiers on the node
         invalidateMeasurements()
         // draw modifiers on the node
@@ -769,9 +800,7 @@ internal class LayoutNode(
         invalidateLayers()
     }
 
-    /**
-     * The measured width of this layout and all of its [modifier]s. Shortcut for `size.width`.
-     */
+    /** The measured width of this layout and all of its [modifier]s. Shortcut for `size.width`. */
     override val width: Int
         get() = layoutDelegate.width
 
@@ -782,10 +811,11 @@ internal class LayoutNode(
         get() = layoutDelegate.height
 
     internal val alignmentLinesRequired: Boolean
-        get() = layoutDelegate.run {
-            alignmentLinesOwner.alignmentLines.required ||
-                lookaheadAlignmentLinesOwner?.alignmentLines?.required == true
-        }
+        get() =
+            layoutDelegate.run {
+                alignmentLinesOwner.alignmentLines.required ||
+                    lookaheadAlignmentLinesOwner?.alignmentLines?.required == true
+            }
 
     internal val mDrawScope: LayoutNodeDrawScope
         get() = requireOwner().sharedDrawScope
@@ -807,32 +837,26 @@ internal class LayoutNode(
      * The order in which this node was placed by its parent during the previous `layoutChildren`.
      * Before the placement the order is set to [NotPlacedPlaceOrder] to all the children. Then
      * every placed node assigns this variable to [parent]s MeasurePassDelegate's
-     * nextChildPlaceOrder and increments this counter. Not placed items will still
-     * have [NotPlacedPlaceOrder] set.
+     * nextChildPlaceOrder and increments this counter. Not placed items will still have
+     * [NotPlacedPlaceOrder] set.
      */
     internal val placeOrder: Int
         get() = measurePassDelegate.placeOrder
 
-    /**
-     * Remembers how the node was measured by the parent.
-     */
+    /** Remembers how the node was measured by the parent. */
     internal val measuredByParent: UsageByParent
         get() = measurePassDelegate.measuredByParent
 
-    /**
-     * Remembers how the node was measured by the parent in lookahead.
-     */
+    /** Remembers how the node was measured by the parent in lookahead. */
     internal val measuredByParentInLookahead: UsageByParent
         get() = lookaheadPassDelegate?.measuredByParent ?: UsageByParent.NotUsed
 
-    /**
-     * Remembers how the node was measured using intrinsics by an ancestor.
-     */
+    /** Remembers how the node was measured using intrinsics by an ancestor. */
     internal var intrinsicsUsageByParent: UsageByParent = UsageByParent.NotUsed
 
     /**
-     * We must cache a previous value of [intrinsicsUsageByParent] because measurement
-     * is sometimes skipped. When it is skipped, the subtree must be restored to this value.
+     * We must cache a previous value of [intrinsicsUsageByParent] because measurement is sometimes
+     * skipped. When it is skipped, the subtree must be restored to this value.
      */
     private var previousIntrinsicsUsageByParent: UsageByParent = UsageByParent.NotUsed
 
@@ -842,30 +866,27 @@ internal class LayoutNode(
     internal val nodes = NodeChain(this)
     internal val innerCoordinator: NodeCoordinator
         get() = nodes.innerCoordinator
+
     internal val layoutDelegate = LayoutNodeLayoutDelegate(this)
     internal val outerCoordinator: NodeCoordinator
         get() = nodes.outerCoordinator
 
     /**
-     * zIndex defines the drawing order of the LayoutNode. Children with larger zIndex are drawn
-     * on top of others (the original order is used for the nodes with the same zIndex).
-     * Default zIndex is 0. We use sum of the values passed as zIndex to place() by the
-     * parent layout and all the applied modifiers.
+     * zIndex defines the drawing order of the LayoutNode. Children with larger zIndex are drawn on
+     * top of others (the original order is used for the nodes with the same zIndex). Default zIndex
+     * is 0. We use sum of the values passed as zIndex to place() by the parent layout and all the
+     * applied modifiers.
      */
     private val zIndex: Float
         get() = measurePassDelegate.zIndex
 
-    /**
-     * The inner state associated with [androidx.compose.ui.layout.SubcomposeLayout].
-     */
+    /** The inner state associated with [androidx.compose.ui.layout.SubcomposeLayout]. */
     internal var subcompositionsState: LayoutNodeSubcompositionsState? = null
 
-    /**
-     * The inner-most layer coordinator. Used for performance for NodeCoordinator.findLayer().
-     */
+    /** The inner-most layer coordinator. Used for performance for NodeCoordinator.findLayer(). */
     private var _innerLayerCoordinator: NodeCoordinator? = null
     internal var innerLayerCoordinatorIsDirty = true
-    private val innerLayerCoordinator: NodeCoordinator?
+    internal val innerLayerCoordinator: NodeCoordinator?
         get() {
             if (innerLayerCoordinatorIsDirty) {
                 var coordinator: NodeCoordinator? = innerCoordinator
@@ -903,22 +924,22 @@ internal class LayoutNode(
 
     private var _modifier: Modifier = Modifier
     private var pendingModifier: Modifier? = null
-    internal val applyingModifierOnAttach get() = pendingModifier != null
+    internal val applyingModifierOnAttach
+        get() = pendingModifier != null
 
-    /**
-     * The [Modifier] currently applied to this node.
-     */
+    /** The [Modifier] currently applied to this node. */
     override var modifier: Modifier
         get() = _modifier
         set(value) {
             requirePrecondition(!isVirtual || modifier === Modifier) {
                 "Modifiers are not supported on virtual LayoutNodes"
             }
-            requirePrecondition(!isDeactivated) {
-                "modifier is updated when deactivated"
-            }
+            requirePrecondition(!isDeactivated) { "modifier is updated when deactivated" }
             if (isAttached) {
                 applyModifier(value)
+                if (isSemanticsInvalidated) {
+                    invalidateSemantics()
+                }
             } else {
                 pendingModifier = value
             }
@@ -947,20 +968,15 @@ internal class LayoutNode(
     override val coordinates: LayoutCoordinates
         get() = innerCoordinator
 
-    /**
-     * Callback to be executed whenever the [LayoutNode] is attached to a new [Owner].
-     */
+    /** Callback to be executed whenever the [LayoutNode] is attached to a new [Owner]. */
     internal var onAttach: ((Owner) -> Unit)? = null
 
-    /**
-     * Callback to be executed whenever the [LayoutNode] is detached from an [Owner].
-     */
+    /** Callback to be executed whenever the [LayoutNode] is detached from an [Owner]. */
     internal var onDetach: ((Owner) -> Unit)? = null
 
     /**
-     * Flag used by [OnPositionedDispatcher] to identify LayoutNodes that have already
-     * had their [OnGloballyPositionedModifier]'s dispatch called so that they aren't called
-     * multiple times.
+     * Flag used by [OnPositionedDispatcher] to identify LayoutNodes that have already had their
+     * [OnGloballyPositionedModifier]'s dispatch called so that they aren't called multiple times.
      */
     internal var needsOnPositionedDispatch = false
 
@@ -975,9 +991,7 @@ internal class LayoutNode(
         }
     }
 
-    /**
-     * Place this layout node again on the same position it was placed last time
-     */
+    /** Place this layout node again on the same position it was placed last time */
     internal fun replace() {
         if (intrinsicsUsageByParent == UsageByParent.NotUsed) {
             // This LayoutNode may have asked children for intrinsics. If so, we should
@@ -1003,19 +1017,17 @@ internal class LayoutNode(
      * Carries out a hit test on the [PointerInputModifier]s associated with this [LayoutNode] and
      * all [PointerInputModifier]s on all descendant [LayoutNode]s.
      *
-     * If [pointerPosition] is within the bounds of any tested
-     * [PointerInputModifier]s, the [PointerInputModifier] is added to [hitTestResult]
-     * and true is returned.
+     * If [pointerPosition] is within the bounds of any tested [PointerInputModifier]s, the
+     * [PointerInputModifier] is added to [hitTestResult] and true is returned.
      *
-     * @param pointerPosition The tested pointer position, which is relative to
-     * the LayoutNode.
-     * @param hitTestResult The collection that the hit [PointerInputFilter]s will be
-     * added to if hit.
+     * @param pointerPosition The tested pointer position, which is relative to the LayoutNode.
+     * @param hitTestResult The collection that the hit [PointerInputFilter]s will be added to if
+     *   hit.
      */
     internal fun hitTest(
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean = false,
+        pointerType: PointerType = PointerType.Unknown,
         isInLayer: Boolean = true
     ) {
         val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
@@ -1023,7 +1035,7 @@ internal class LayoutNode(
             NodeCoordinator.PointerInputSource,
             positionInWrapped,
             hitTestResult,
-            isTouchEvent,
+            pointerType,
             isInLayer
         )
     }
@@ -1032,7 +1044,7 @@ internal class LayoutNode(
     internal fun hitTestSemantics(
         pointerPosition: Offset,
         hitSemanticsEntities: HitTestResult,
-        isTouchEvent: Boolean = true,
+        pointerType: PointerType = PointerType.Touch,
         isInLayer: Boolean = true
     ) {
         val positionInWrapped = outerCoordinator.fromParentPosition(pointerPosition)
@@ -1040,7 +1052,7 @@ internal class LayoutNode(
             NodeCoordinator.SemanticsSource,
             positionInWrapped,
             hitSemanticsEntities,
-            isTouchEvent = true,
+            pointerType = PointerType.Touch,
             isInLayer = isInLayer
         )
     }
@@ -1064,14 +1076,11 @@ internal class LayoutNode(
                     }
                 }
             }
-
             else -> throw IllegalStateException("Unexpected state ${it.layoutState}")
         }
     }
 
-    /**
-     * Used to request a new measurement + layout pass from the owner.
-     */
+    /** Used to request a new measurement + layout pass from the owner. */
     internal fun requestRemeasure(
         forceRequest: Boolean = false,
         scheduleMeasureAndLayout: Boolean = true,
@@ -1091,8 +1100,8 @@ internal class LayoutNode(
     }
 
     /**
-     * Used to request a new lookahead measurement, lookahead layout, and subsequently
-     * measure and layout from the owner.
+     * Used to request a new lookahead measurement, lookahead layout, and subsequently measure and
+     * layout from the owner.
      */
     internal fun requestLookaheadRemeasure(
         forceRequest: Boolean = false,
@@ -1122,6 +1131,7 @@ internal class LayoutNode(
      * measurement need to be re-done. Such events include modifier change, attach/detach, etc.
      */
     internal fun invalidateMeasurements() {
+        outerToInnerOffsetDirty = true
         if (lookaheadRoot != null) {
             requestLookaheadRemeasure()
         } else {
@@ -1135,26 +1145,15 @@ internal class LayoutNode(
         requireOwner().requestOnPositionedCallback(this)
     }
 
-    private fun invalidateFocusOnAttach() {
-        if (nodes.has(FocusTarget or FocusProperties or FocusEvent)) {
-            nodes.headToTail {
-                if (it.isKind(FocusTarget) or it.isKind(FocusProperties) or it.isKind(FocusEvent)) {
-                    autoInvalidateInsertedNode(it)
-                }
-            }
-        }
-    }
-
     internal inline fun ignoreRemeasureRequests(block: () -> Unit) {
         ignoreRemeasureRequests = true
         block()
         ignoreRemeasureRequests = false
     }
 
-    /**
-     * Used to request a new layout pass from the owner.
-     */
+    /** Used to request a new layout pass from the owner. */
     internal fun requestRelayout(forceRequest: Boolean = false) {
+        outerToInnerOffsetDirty = true
         if (!isVirtual) {
             owner?.onRequestRelayout(this, forceRequest = forceRequest)
         }
@@ -1179,19 +1178,14 @@ internal class LayoutNode(
     }
 
     /**
-     * This returns a new List of Modifiers and the coordinates and any extra information
-     * that may be useful. This is used for tooling to retrieve layout modifier and layer
-     * information.
+     * This returns a new List of Modifiers and the coordinates and any extra information that may
+     * be useful. This is used for tooling to retrieve layout modifier and layer information.
      */
     override fun getModifierInfo(): List<ModifierInfo> = nodes.getModifierInfo()
 
-    /**
-     * Invalidates layers defined on this LayoutNode.
-     */
+    /** Invalidates layers defined on this LayoutNode. */
     internal fun invalidateLayers() {
-        forEachCoordinator { coordinator ->
-            coordinator.layer?.invalidate()
-        }
+        forEachCoordinator { coordinator -> coordinator.layer?.invalidate() }
         innerCoordinator.layer?.invalidate()
     }
 
@@ -1207,12 +1201,8 @@ internal class LayoutNode(
         }
     }
 
-    /**
-     * Return true if the measured size has been changed
-     */
-    internal fun remeasure(
-        constraints: Constraints? = layoutDelegate.lastConstraints
-    ): Boolean {
+    /** Return true if the measured size has been changed */
+    internal fun remeasure(constraints: Constraints? = layoutDelegate.lastConstraints): Boolean {
         return if (constraints != null) {
             if (intrinsicsUsageByParent == UsageByParent.NotUsed) {
                 // This LayoutNode may have asked children for intrinsics. If so, we should
@@ -1226,20 +1216,19 @@ internal class LayoutNode(
     }
 
     /**
-     * Tracks whether another measure pass is needed for the LayoutNode.
-     * Mutation to [measurePending] is confined to LayoutNodeLayoutDelegate.
-     * It can only be set true from outside of LayoutNode via [markMeasurePending].
-     * It is cleared (i.e. set false) during the measure pass (
-     * i.e. in [LayoutNodeLayoutDelegate.performMeasure]).
+     * Tracks whether another measure pass is needed for the LayoutNode. Mutation to
+     * [measurePending] is confined to LayoutNodeLayoutDelegate. It can only be set true from
+     * outside of LayoutNode via [markMeasurePending]. It is cleared (i.e. set false) during the
+     * measure pass ( i.e. in [LayoutNodeLayoutDelegate.performMeasure]).
      */
     internal val measurePending: Boolean
         get() = layoutDelegate.measurePending
 
     /**
-     * Tracks whether another layout pass is needed for the LayoutNode.
-     * Mutation to [layoutPending] is confined to LayoutNode. It can only be set true from outside
-     * of LayoutNode via [markLayoutPending]. It is cleared (i.e. set false) during the layout pass
-     * (i.e. in layoutChildren).
+     * Tracks whether another layout pass is needed for the LayoutNode. Mutation to [layoutPending]
+     * is confined to LayoutNode. It can only be set true from outside of LayoutNode via
+     * [markLayoutPending]. It is cleared (i.e. set false) during the layout pass (i.e. in
+     * layoutChildren).
      */
     internal val layoutPending: Boolean
         get() = layoutDelegate.layoutPending
@@ -1250,19 +1239,13 @@ internal class LayoutNode(
     internal val lookaheadLayoutPending: Boolean
         get() = layoutDelegate.lookaheadLayoutPending
 
-    /**
-     * Marks the layoutNode dirty for another layout pass.
-     */
+    /** Marks the layoutNode dirty for another layout pass. */
     internal fun markLayoutPending() = layoutDelegate.markLayoutPending()
 
-    /**
-     * Marks the layoutNode dirty for another measure pass.
-     */
+    /** Marks the layoutNode dirty for another measure pass. */
     internal fun markMeasurePending() = layoutDelegate.markMeasurePending()
 
-    /**
-     * Marks the layoutNode dirty for another lookahead layout pass.
-     */
+    /** Marks the layoutNode dirty for another lookahead layout pass. */
     internal fun markLookaheadLayoutPending() = layoutDelegate.markLookaheadLayoutPending()
 
     fun invalidateSubtree(isRootOfInvalidation: Boolean = true) {
@@ -1271,18 +1254,13 @@ internal class LayoutNode(
         }
         invalidateSemantics()
         requestRemeasure()
-        nodes.headToTail(Nodes.Layout) {
-            it.requireCoordinator(Nodes.Layout).layer?.invalidate()
-        }
+        nodes.headToTail(Nodes.Layout) { it.requireCoordinator(Nodes.Layout).layer?.invalidate() }
         // TODO: invalidate parent data
         _children.forEach { it.invalidateSubtree(false) }
     }
 
-    /**
-     * Marks the layoutNode dirty for another lookahead measure pass.
-     */
-    internal fun markLookaheadMeasurePending() =
-        layoutDelegate.markLookaheadMeasurePending()
+    /** Marks the layoutNode dirty for another lookahead measure pass. */
+    internal fun markLookaheadMeasurePending() = layoutDelegate.markLookaheadMeasurePending()
 
     override fun forceRemeasure() {
         // we do not schedule measure and layout as we are going to call it manually right after
@@ -1300,14 +1278,10 @@ internal class LayoutNode(
     }
 
     override fun onLayoutComplete() {
-        innerCoordinator.visitNodes(Nodes.LayoutAware) {
-            it.onPlaced(innerCoordinator)
-        }
+        innerCoordinator.visitNodes(Nodes.LayoutAware) { it.onPlaced(innerCoordinator) }
     }
 
-    /**
-     * Calls [block] on all [LayoutModifierNodeCoordinator]s in the NodeCoordinator chain.
-     */
+    /** Calls [block] on all [LayoutModifierNodeCoordinator]s in the NodeCoordinator chain. */
     internal inline fun forEachCoordinator(block: (LayoutModifierNodeCoordinator) -> Unit) {
         var coordinator: NodeCoordinator? = outerCoordinator
         val inner = innerCoordinator
@@ -1317,9 +1291,7 @@ internal class LayoutNode(
         }
     }
 
-    /**
-     * Calls [block] on all [NodeCoordinator]s in the NodeCoordinator chain.
-     */
+    /** Calls [block] on all [NodeCoordinator]s in the NodeCoordinator chain. */
     internal inline fun forEachCoordinatorIncludingInner(block: (NodeCoordinator) -> Unit) {
         var delegate: NodeCoordinator? = outerCoordinator
         val final = innerCoordinator.wrapped
@@ -1329,29 +1301,15 @@ internal class LayoutNode(
         }
     }
 
-    private fun shouldInvalidateParentLayer(): Boolean {
-        if (nodes.has(Nodes.Draw) && !nodes.has(Nodes.Layout)) return true
-        nodes.headToTail {
-            if (it.isKind(Nodes.Layout)) {
-                if (it.requireCoordinator(Nodes.Layout).layer != null) {
-                    return false
-                }
-            }
-            if (it.isKind(Nodes.Draw)) return true
-        }
-        return true
-    }
-
     /**
-     * Walks the subtree and clears all [intrinsicsUsageByParent] that this
-     * LayoutNode's measurement used intrinsics on.
+     * Walks the subtree and clears all [intrinsicsUsageByParent] that this LayoutNode's measurement
+     * used intrinsics on.
      *
-     * The layout that asks for intrinsics of its children is the node to call this to request
-     * all of its subtree to be cleared.
+     * The layout that asks for intrinsics of its children is the node to call this to request all
+     * of its subtree to be cleared.
      *
-     * We can't do clearing as part of measure() because the child's measure()
-     * call is normally done after the intrinsics is requested and we don't want
-     * to clear the usage at that point.
+     * We can't do clearing as part of measure() because the child's measure() call is normally done
+     * after the intrinsics is requested and we don't want to clear the usage at that point.
      */
     internal fun clearSubtreeIntrinsicsUsage() {
         // save the usage in case we short-circuit the measure call
@@ -1365,15 +1323,14 @@ internal class LayoutNode(
     }
 
     /**
-     * Walks the subtree and clears all [intrinsicsUsageByParent] that this
-     * LayoutNode's layout block used intrinsics on.
+     * Walks the subtree and clears all [intrinsicsUsageByParent] that this LayoutNode's layout
+     * block used intrinsics on.
      *
-     * The layout that asks for intrinsics of its children is the node to call this to request
-     * all of its subtree to be cleared.
+     * The layout that asks for intrinsics of its children is the node to call this to request all
+     * of its subtree to be cleared.
      *
-     * We can't do clearing as part of measure() because the child's measure()
-     * call is normally done after the intrinsics is requested and we don't want
-     * to clear the usage at that point.
+     * We can't do clearing as part of measure() because the child's measure() call is normally done
+     * after the intrinsics is requested and we don't want to clear the usage at that point.
      */
     private fun clearSubtreePlacementIntrinsicsUsage() {
         // save the usage in case we short-circuit the measure call
@@ -1387,8 +1344,8 @@ internal class LayoutNode(
     }
 
     /**
-     * For a subtree that skips measurement, this resets the [intrinsicsUsageByParent]
-     * to what it was prior to [clearSubtreeIntrinsicsUsage].
+     * For a subtree that skips measurement, this resets the [intrinsicsUsageByParent] to what it
+     * was prior to [clearSubtreeIntrinsicsUsage].
      */
     internal fun resetSubtreeIntrinsicsUsage() {
         forEachChild {
@@ -1399,8 +1356,11 @@ internal class LayoutNode(
         }
     }
 
-    override val parentInfo: LayoutInfo?
+    override val parentInfo: SemanticsInfo?
         get() = parent
+
+    override val childrenInfo: List<SemanticsInfo>
+        get() = children
 
     override var isDeactivated = false
         private set
@@ -1409,18 +1369,28 @@ internal class LayoutNode(
         requirePrecondition(isAttached) { "onReuse is only expected on attached node" }
         interopViewFactoryHolder?.onReuse()
         subcompositionsState?.onReuse()
+        isCurrentlyCalculatingSemanticsConfiguration = false
         if (isDeactivated) {
             isDeactivated = false
-            invalidateSemantics()
+            if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isSemanticAutofillEnabled) {
+                invalidateSemantics()
+            }
             // we don't need to reset state as it was done when deactivated
         } else {
             resetModifierState()
         }
-        // resetModifierState detaches all nodes, so we need to re-attach them upon reuse.
+        val oldSemanticsId = semanticsId
         semanticsId = generateSemanticsId()
+        owner?.onPreLayoutNodeReused(this, oldSemanticsId)
+        // resetModifierState detaches all nodes, so we need to re-attach them upon reuse.
         nodes.markAsAttached()
         nodes.runAttachLifecycle()
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (ComposeUiFlags.isSemanticAutofillEnabled && nodes.has(Nodes.Semantics)) {
+            invalidateSemantics()
+        }
         rescheduleRemeasureOrRelayout(this)
+        owner?.onPostLayoutNodeReused(this, oldSemanticsId)
     }
 
     override fun onDeactivate() {
@@ -1430,8 +1400,14 @@ internal class LayoutNode(
         resetModifierState()
         // if the node is detached the semantics were already updated without this node.
         if (isAttached) {
-            invalidateSemantics()
+            if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isSemanticAutofillEnabled) {
+                invalidateSemantics()
+            } else {
+                _semanticsConfiguration = null
+                isSemanticsInvalidated = false
+            }
         }
+        owner?.onLayoutNodeDeactivated(this)
     }
 
     override fun onRelease() {
@@ -1442,81 +1418,70 @@ internal class LayoutNode(
 
     internal companion object {
         private val ErrorMeasurePolicy: NoIntrinsicsMeasurePolicy =
-            object : NoIntrinsicsMeasurePolicy(
-                error = "Undefined intrinsics block and it is required"
-            ) {
+            object :
+                NoIntrinsicsMeasurePolicy(error = "Undefined intrinsics block and it is required") {
                 override fun MeasureScope.measure(
                     measurables: List<Measurable>,
                     constraints: Constraints
                 ) = error("Undefined measure and it is required")
             }
 
-        /**
-         * Constant used by [placeOrder].
-         */
-        @Suppress("ConstPropertyName")
-        internal const val NotPlacedPlaceOrder = Int.MAX_VALUE
+        /** Constant used by [placeOrder]. */
+        @Suppress("ConstPropertyName") internal const val NotPlacedPlaceOrder = Int.MAX_VALUE
 
-        /**
-         * Pre-allocated constructor to be used with ComposeNode
-         */
+        /** Pre-allocated constructor to be used with ComposeNode */
         internal val Constructor: () -> LayoutNode = { LayoutNode() }
 
         /**
-         * All of these values are only used in tests. The real ViewConfiguration should
-         * be set in Layout()
+         * All of these values are only used in tests. The real ViewConfiguration should be set in
+         * Layout()
          */
-        internal val DummyViewConfiguration = object : ViewConfiguration {
-            override val longPressTimeoutMillis: Long
-                get() = 400L
-            override val doubleTapTimeoutMillis: Long
-                get() = 300L
-            override val doubleTapMinTimeMillis: Long
-                get() = 40L
-            override val touchSlop: Float
-                get() = 16f
-            override val minimumTouchTargetSize: DpSize
-                get() = DpSize.Zero
-        }
+        internal val DummyViewConfiguration =
+            object : ViewConfiguration {
+                override val longPressTimeoutMillis: Long
+                    get() = 400L
 
-        /**
-         * Comparator allowing to sort nodes by zIndex and placement order.
-         */
-        internal val ZComparator = Comparator<LayoutNode> { node1, node2 ->
-            if (node1.zIndex == node2.zIndex) {
-                // if zIndex is the same we use the placement order
-                node1.placeOrder.compareTo(node2.placeOrder)
-            } else {
-                node1.zIndex.compareTo(node2.zIndex)
+                override val doubleTapTimeoutMillis: Long
+                    get() = 300L
+
+                override val doubleTapMinTimeMillis: Long
+                    get() = 40L
+
+                override val touchSlop: Float
+                    get() = 16f
+
+                override val minimumTouchTargetSize: DpSize
+                    get() = DpSize.Zero
             }
-        }
+
+        /** Comparator allowing to sort nodes by zIndex and placement order. */
+        internal val ZComparator =
+            Comparator<LayoutNode> { node1, node2 ->
+                if (node1.zIndex == node2.zIndex) {
+                    // if zIndex is the same we use the placement order
+                    node1.placeOrder.compareTo(node2.placeOrder)
+                } else {
+                    node1.zIndex.compareTo(node2.zIndex)
+                }
+            }
     }
 
     /**
      * Describes the current state the [LayoutNode] is in. A [LayoutNode] is expected to be in
-     * [LookaheadMeasuring] first, followed by [LookaheadLayingOut] if it is in a
-     * LookaheadScope. After the lookahead is finished, [Measuring] and then [LayingOut] will
-     * happen as needed.
+     * [LookaheadMeasuring] first, followed by [LookaheadLayingOut] if it is in a LookaheadScope.
+     * After the lookahead is finished, [Measuring] and then [LayingOut] will happen as needed.
      */
     internal enum class LayoutState {
-        /**
-         * Node is currently being measured.
-         */
+        /** Node is currently being measured. */
         Measuring,
 
-        /**
-         * Node is being measured in lookahead.
-         */
+        /** Node is being measured in lookahead. */
         LookaheadMeasuring,
 
-        /**
-         * Node is currently being laid out.
-         */
+        /** Node is currently being laid out. */
         LayingOut,
 
-        /**
-         * Node is being laid out in lookahead.
-         */
+        /** Node is being laid out in lookahead. */
         LookaheadLayingOut,
 
         /**
@@ -1533,21 +1498,16 @@ internal class LayoutNode(
     }
 }
 
-/**
- * Returns [LayoutNode.owner] or throws if it is null.
- */
+/** Returns [LayoutNode.owner] or throws if it is null. */
 internal fun LayoutNode.requireOwner(): Owner {
     val owner = owner
-    checkPreconditionNotNull(owner) {
-        "LayoutNode should be attached to an owner"
-    }
+    checkPreconditionNotNull(owner) { "LayoutNode should be attached to an owner" }
     return owner
 }
 
 /**
- * Inserts a child [LayoutNode] at a last index. If this LayoutNode [LayoutNode.isAttached]
- * then [child] will become [LayoutNode.isAttached] also. [child] must have a `null`
- * [LayoutNode.parent].
+ * Inserts a child [LayoutNode] at a last index. If this LayoutNode [LayoutNode.isAttached] then
+ * [child] will become [LayoutNode.isAttached] also. [child] must have a `null` [LayoutNode.parent].
  */
 internal fun LayoutNode.add(child: LayoutNode) {
     insertAt(children.size, child)

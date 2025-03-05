@@ -19,11 +19,12 @@ package androidx.appsearch.compiler.annotationwrapper;
 import static androidx.appsearch.compiler.IntrospectionHelper.APPSEARCH_SCHEMA_CLASS;
 import static androidx.appsearch.compiler.IntrospectionHelper.DOCUMENT_ANNOTATION_CLASS;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.compiler.IntrospectionHelper;
 
 import com.google.auto.value.AutoValue;
 import com.squareup.javapoet.ClassName;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Map;
 
@@ -53,23 +54,21 @@ public abstract class DoublePropertyAnnotation extends DataPropertyAnnotation {
      * @param defaultName The name to use for the annotated property in case the annotation
      *                    params do not mention an explicit name.
      */
-    @NonNull
-    static DoublePropertyAnnotation parse(
+    static @NonNull DoublePropertyAnnotation parse(
             @NonNull Map<String, Object> annotationParams, @NonNull String defaultName) {
         String name = (String) annotationParams.get("name");
         return new AutoValue_DoublePropertyAnnotation(
                 name.isEmpty() ? defaultName : name, (boolean) annotationParams.get("required"));
     }
 
-    @NonNull
     @Override
-    public final Kind getDataPropertyKind() {
+    public final @NonNull Kind getDataPropertyKind() {
         return Kind.DOUBLE_PROPERTY;
     }
 
-    @NonNull
     @Override
-    public TypeMirror getUnderlyingTypeWithinGenericDoc(@NonNull IntrospectionHelper helper) {
+    public @NonNull TypeMirror getUnderlyingTypeWithinGenericDoc(
+            @NonNull IntrospectionHelper helper) {
         return helper.mDoublePrimitiveType;
     }
 }

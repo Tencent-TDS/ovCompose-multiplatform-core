@@ -96,7 +96,9 @@ internal val Project.versionMetadataUsage: Usage
     get() = objects.named("library-version-metadata")
 
 /** Creates a component for the version metadata JSON and registers it for publishing. */
-fun Project.registerVersionMetadataComponent(generateApiTask: TaskProvider<GenerateApiTask>) {
+internal fun Project.registerVersionMetadataComponent(
+    generateApiTask: TaskProvider<GenerateApiTask>
+) {
     configurations.create("libraryVersionMetadata") { configuration ->
         configuration.isVisible = false
         configuration.isCanBeResolved = false

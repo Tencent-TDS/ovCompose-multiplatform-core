@@ -13,9 +13,10 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.13.0")
-    implementation("androidx.collection:collection:1.1.0")
+    implementation("androidx.collection:collection:1.4.2")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -31,7 +32,7 @@ android {
     aaptOptions {
         additionalParameters "--no-version-vectors"
     }
-    namespace "androidx.vectordrawable"
+    namespace = "androidx.vectordrawable"
 }
 
 androidx {
@@ -41,5 +42,4 @@ androidx {
     inceptionYear = "2015"
     description = "Android Support VectorDrawable"
     failOnDeprecationWarnings = false
-    metalavaK2UastEnabled = true
 }

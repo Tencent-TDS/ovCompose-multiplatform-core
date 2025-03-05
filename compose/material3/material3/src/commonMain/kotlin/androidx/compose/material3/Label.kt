@@ -40,8 +40,8 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * Label component that will append a [label] to [content].
- * The positioning logic uses [TooltipDefaults.rememberPlainTooltipPositionProvider].
+ * Label component that will append a [label] to [content]. The positioning logic uses
+ * [TooltipDefaults.rememberTooltipPositionProvider].
  *
  * Label appended to thumbs of Slider:
  *
@@ -50,14 +50,13 @@ import kotlinx.coroutines.flow.collectLatest
  * Label appended to thumbs of RangeSlider:
  *
  * @sample androidx.compose.material3.samples.RangeSliderWithCustomComponents
- *
  * @param label composable that will be appended to [content]
  * @param modifier [Modifier] that will be applied to [content]
- * @param interactionSource the [MutableInteractionSource] representing the
- * stream of [Interaction]s for the [content].
- * @param isPersistent boolean to determine if the label should be persistent.
- * If true, then the label will always show and be anchored to [content].
- * if false, then the label will only show when pressing down or hovering over the [content].
+ * @param interactionSource the [MutableInteractionSource] representing the stream of [Interaction]s
+ *   for the [content].
+ * @param isPersistent boolean to determine if the label should be persistent. If true, then the
+ *   label will always show and be anchored to [content]. if false, then the label will only show
+ *   when pressing down or hovering over the [content].
  * @param content the composable that [label] will anchor to.
  */
 @ExperimentalMaterial3Api
@@ -72,21 +71,16 @@ fun Label(
     @Suppress("NAME_SHADOWING")
     val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
     // Has the same positioning logic as PlainTooltips
-    val positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider()
-    val state = if (isPersistent)
-        remember { LabelStateImpl() }
-    else
-        rememberBasicTooltipState(mutatorMutex = MutatorMutex())
+    val positionProvider = TooltipDefaults.rememberTooltipPositionProvider()
+    val state =
+        if (isPersistent) remember { LabelStateImpl() }
+        else rememberBasicTooltipState(mutatorMutex = MutatorMutex())
 
     var anchorBounds: MutableState<LayoutCoordinates?> = remember { mutableStateOf(null) }
     val scope = remember { TooltipScopeImpl { anchorBounds.value } }
 
     val wrappedContent: @Composable () -> Unit = {
-        Box(
-            modifier = Modifier.onGloballyPositioned { anchorBounds.value = it }
-        ) {
-            content()
-        }
+        Box(modifier = Modifier.onGloballyPositioned { anchorBounds.value = it }) { content() }
     }
 
     BasicTooltipBox(
@@ -118,10 +112,14 @@ private fun HandleInteractions(
                 when (interaction) {
                     is PressInteraction.Press,
                     is DragInteraction.Start,
-                    is HoverInteraction.Enter -> { state.show(MutatePriority.UserInput) }
+                    is HoverInteraction.Enter -> {
+                        state.show(MutatePriority.UserInput)
+                    }
                     is PressInteraction.Release,
                     is DragInteraction.Stop,
-                    is HoverInteraction.Exit -> { state.dismiss() }
+                    is HoverInteraction.Exit -> {
+                        state.dismiss()
+                    }
                 }
             }
         }
@@ -133,8 +131,8 @@ private class LabelStateImpl(
     override val isVisible: Boolean = true,
     override val isPersistent: Boolean = true,
 ) : TooltipState {
-    override val transition: MutableTransitionState<Boolean> =
-        MutableTransitionState(false)
+    override val transition: MutableTransitionState<Boolean> = MutableTransitionState(false)
+
     override suspend fun show(mutatePriority: MutatePriority) {}
 
     override fun dismiss() {}

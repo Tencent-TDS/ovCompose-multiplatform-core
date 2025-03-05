@@ -12,9 +12,14 @@ package androidx.bluetooth {
   }
 
   public static final class AdvertiseException.Companion {
+    property public static final int DATA_TOO_LARGE;
+    property public static final int INTERNAL_ERROR;
+    property public static final int TOO_MANY_ADVERTISERS;
+    property public static final int UNSUPPORTED;
   }
 
   public final class AdvertiseParams {
+    ctor public AdvertiseParams();
     ctor public AdvertiseParams(optional boolean shouldIncludeDeviceAddress, optional boolean shouldIncludeDeviceName, optional boolean isConnectable, optional boolean isDiscoverable, optional @IntRange(from=0L, to=180000L) long durationMillis, optional java.util.Map<java.lang.Integer,byte[]> manufacturerData, optional java.util.Map<java.util.UUID,byte[]> serviceData, optional java.util.List<java.util.UUID> serviceUuids, optional java.util.List<java.util.UUID> serviceSolicitationUuids);
     method public long getDurationMillis();
     method public java.util.Map<java.lang.Integer,byte[]> getManufacturerData();
@@ -25,7 +30,7 @@ package androidx.bluetooth {
     method public boolean isDiscoverable();
     method public boolean shouldIncludeDeviceAddress();
     method public boolean shouldIncludeDeviceName();
-    property public final long durationMillis;
+    property @IntRange(from=0L, to=180000L) public final long durationMillis;
     property public final boolean isConnectable;
     property public final boolean isDiscoverable;
     property public final java.util.Map<java.lang.Integer,byte[]> manufacturerData;
@@ -51,6 +56,11 @@ package androidx.bluetooth {
   }
 
   public static final class BluetoothAddress.Companion {
+    property public static final int ADDRESS_TYPE_PUBLIC;
+    property public static final int ADDRESS_TYPE_RANDOM_NON_RESOLVABLE;
+    property public static final int ADDRESS_TYPE_RANDOM_RESOLVABLE;
+    property public static final int ADDRESS_TYPE_RANDOM_STATIC;
+    property public static final int ADDRESS_TYPE_UNKNOWN;
   }
 
   public final class BluetoothDevice {
@@ -77,6 +87,13 @@ package androidx.bluetooth {
   }
 
   public static final class BluetoothException.Companion {
+    property public static final int BLUETOOTH_NOT_ALLOWED;
+    property public static final int BLUETOOTH_NOT_ENABLED;
+    property public static final int DEVICE_NOT_BONDED;
+    property public static final int DEVICE_NOT_CONNECTED;
+    property public static final int ERROR_UNKNOWN;
+    property public static final int FEATURE_NOT_CONFIGURED;
+    property public static final int FEATURE_NOT_SUPPORTED;
   }
 
   public final class BluetoothLe {
@@ -90,6 +107,7 @@ package androidx.bluetooth {
   }
 
   public static final class BluetoothLe.Companion {
+    property public static final int ADVERTISE_STARTED;
   }
 
   public final class GattCharacteristic {
@@ -110,6 +128,14 @@ package androidx.bluetooth {
   }
 
   public static final class GattCharacteristic.Companion {
+    property public static final int PROPERTY_BROADCAST;
+    property public static final int PROPERTY_EXTENDED_PROPS;
+    property public static final int PROPERTY_INDICATE;
+    property public static final int PROPERTY_NOTIFY;
+    property public static final int PROPERTY_READ;
+    property public static final int PROPERTY_SIGNED_WRITE;
+    property public static final int PROPERTY_WRITE;
+    property public static final int PROPERTY_WRITE_NO_RESPONSE;
   }
 
   public interface GattClientScope {
@@ -191,9 +217,15 @@ package androidx.bluetooth {
   }
 
   public static final class ScanException.Companion {
+    property public static final int APPLICATION_REGISTRATION_FAILED;
+    property public static final int INTERNAL_ERROR;
+    property public static final int OUT_OF_HARDWARE_RESOURCES;
+    property public static final int SCANNING_TOO_FREQUENTLY;
+    property public static final int UNSUPPORTED;
   }
 
   public final class ScanFilter {
+    ctor public ScanFilter();
     ctor public ScanFilter(optional androidx.bluetooth.BluetoothAddress? deviceAddress, optional String? deviceName, optional int manufacturerId, optional byte[]? manufacturerData, optional byte[]? manufacturerDataMask, optional java.util.UUID? serviceDataUuid, optional byte[]? serviceData, optional byte[]? serviceDataMask, optional java.util.UUID? serviceUuid, optional java.util.UUID? serviceUuidMask, optional java.util.UUID? serviceSolicitationUuid, optional java.util.UUID? serviceSolicitationUuidMask);
     method public androidx.bluetooth.BluetoothAddress? getDeviceAddress();
     method public String? getDeviceName();
@@ -224,6 +256,7 @@ package androidx.bluetooth {
   }
 
   public static final class ScanFilter.Companion {
+    property public static final int MANUFACTURER_FILTER_NONE;
   }
 
   public final class ScanResult {
@@ -251,6 +284,7 @@ package androidx.bluetooth {
   }
 
   public static final class ScanResult.Companion {
+    property public static final int PERIODIC_INTERVAL_NOT_PRESENT;
   }
 
 }

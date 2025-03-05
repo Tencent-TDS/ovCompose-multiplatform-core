@@ -21,8 +21,9 @@ import androidx.compose.foundation.contextmenu.ContextMenuItemState
 import androidx.compose.foundation.contextmenu.assertContextMenuItems
 import androidx.compose.foundation.contextmenu.clickOffPopup
 import androidx.compose.foundation.contextmenu.contextMenuItemInteraction
+import androidx.compose.foundation.internal.readText
 import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.text.input.internal.selection.FakeClipboardManager
+import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
 import androidx.compose.foundation.text.selection.gestures.util.longPress
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -30,9 +31,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.click
@@ -49,16 +49,15 @@ import androidx.compose.ui.unit.lerp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@OptIn(ExperimentalTestApi::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class SelectionContainerContextMenuTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private val textTag = "text"
     private val defaultText = "Text Text Text"
@@ -67,9 +66,7 @@ class SelectionContainerContextMenuTest {
     @Test
     fun contextMenu_rightClick_appears() {
         rule.setContent {
-            SelectionContainer {
-                BasicText(defaultText, modifier = Modifier.testTag(textTag))
-            }
+            SelectionContainer { BasicText(defaultText, modifier = Modifier.testTag(textTag)) }
         }
 
         val contextMenuInteraction = rule.onNode(isPopup())
@@ -81,9 +78,7 @@ class SelectionContainerContextMenuTest {
     @Test
     fun contextMenu_leftClick_doesNotAppear() {
         rule.setContent {
-            SelectionContainer {
-                BasicText(defaultText, modifier = Modifier.testTag(textTag))
-            }
+            SelectionContainer { BasicText(defaultText, modifier = Modifier.testTag(textTag)) }
         }
 
         val contextMenuInteraction = rule.onNode(isPopup())
@@ -95,9 +90,7 @@ class SelectionContainerContextMenuTest {
     @Test
     fun contextMenu_disappearsOnClickOffOfPopup() {
         rule.setContent {
-            SelectionContainer {
-                BasicText(defaultText, modifier = Modifier.testTag(textTag))
-            }
+            SelectionContainer { BasicText(defaultText, modifier = Modifier.testTag(textTag)) }
         }
 
         val contextMenuInteraction = rule.onNode(isPopup())
@@ -107,38 +100,44 @@ class SelectionContainerContextMenuTest {
         rule.clickOffPopup { rootRect -> lerp(rootRect.topLeft, rootRect.center, 0.5f) }
         contextMenuInteraction.assertDoesNotExist()
     }
+
     // endregion SelectionContainer Context Menu Gesture Tests
 
     // region Context Menu Item Click Tests
     @Test
-    fun contextMenu_onClickCopy() = runClickContextMenuItemTest(
-        labelToClick = ContextMenuItemLabels.COPY,
-        expectedSelection = TextRange(5, 9),
-        expectedClipboardContent = "Text",
-    )
+    fun contextMenu_onClickCopy() = runTest {
+        runClickContextMenuItemTest(
+            labelToClick = ContextMenuItemLabels.COPY,
+            expectedSelection = TextRange(5, 9),
+            expectedClipboardContent = "Text",
+        )
+    }
 
     @Test
-    fun contextMenu_onClickSelectAll() = runClickContextMenuItemTest(
-        labelToClick = ContextMenuItemLabels.SELECT_ALL,
-        expectedSelection = TextRange(0, 14),
-    )
+    fun contextMenu_onClickSelectAll() = runTest {
+        runClickContextMenuItemTest(
+            labelToClick = ContextMenuItemLabels.SELECT_ALL,
+            expectedSelection = TextRange(0, 14),
+        )
+    }
 
     @Suppress("SameParameterValue")
-    private fun runClickContextMenuItemTest(
+    private suspend fun runClickContextMenuItemTest(
         labelToClick: String,
         expectedSelection: TextRange,
         expectedClipboardContent: String? = null,
     ) {
         val initialClipboardText = "clip"
 
-        val clipboardManager = FakeClipboardManager(
-            initialText = initialClipboardText,
-            supportsClipEntry = true,
-        )
+        val clipboard =
+            FakeClipboard(
+                initialText = initialClipboardText,
+                supportsClipEntry = true,
+            )
 
         var selection by mutableStateOf<Selection?>(null)
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 SelectionContainer(
                     selection = selection,
                     onSelectionChange = { selection = it },
@@ -167,9 +166,9 @@ class SelectionContainerContextMenuTest {
         // Operation was applied
         assertThat(selection).isNotNull()
         assertThat(selection!!.toTextRange()).isEqualTo(expectedSelection)
-        val clipboardContent = clipboardManager.getText()
+        val clipboardContent = clipboard.getClipEntry()
         assertThat(clipboardContent).isNotNull()
-        assertThat(clipboardContent!!.text)
+        assertThat(clipboardContent!!.readText())
             .isEqualTo(expectedClipboardContent ?: initialClipboardText)
     }
 
@@ -177,47 +176,57 @@ class SelectionContainerContextMenuTest {
 
     // region Context Menu Correct Item Tests
     @Test
-    fun contextMenu_noSelection_itemsMatch() = runCorrectItemsTest(
-        selectionAmount = SelectionAmount.NONE,
-    ) { selection ->
-        assertThat(selection).isNull()
-        rule.assertContextMenuItems(
-            cutState = ContextMenuItemState.DOES_NOT_EXIST,
-            copyState = ContextMenuItemState.DISABLED,
-            pasteState = ContextMenuItemState.DOES_NOT_EXIST,
-            selectAllState = ContextMenuItemState.ENABLED,
-        )
-    }
+    fun contextMenu_noSelection_itemsMatch() =
+        runCorrectItemsTest(
+            selectionAmount = SelectionAmount.NONE,
+        ) { selection ->
+            assertThat(selection).isNull()
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.DOES_NOT_EXIST,
+                pasteState = ContextMenuItemState.DOES_NOT_EXIST,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
 
     @Test
-    fun contextMenu_partialSelection_itemsMatch() = runCorrectItemsTest(
-        selectionAmount = SelectionAmount.PARTIAL,
-    ) { selection ->
-        assertThat(selection).isNotNull()
-        assertThat(selection!!.toTextRange()).isEqualTo(TextRange(5, 9))
-        rule.assertContextMenuItems(
-            cutState = ContextMenuItemState.DOES_NOT_EXIST,
-            copyState = ContextMenuItemState.ENABLED,
-            pasteState = ContextMenuItemState.DOES_NOT_EXIST,
-            selectAllState = ContextMenuItemState.ENABLED,
-        )
-    }
+    fun contextMenu_partialSelection_itemsMatch() =
+        runCorrectItemsTest(
+            selectionAmount = SelectionAmount.PARTIAL,
+        ) { selection ->
+            assertThat(selection).isNotNull()
+            assertThat(selection!!.toTextRange()).isEqualTo(TextRange(5, 9))
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.ENABLED,
+                pasteState = ContextMenuItemState.DOES_NOT_EXIST,
+                selectAllState = ContextMenuItemState.ENABLED,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
 
     @Test
-    fun contextMenu_fullSelection_itemsMatch() = runCorrectItemsTest(
-        selectionAmount = SelectionAmount.ALL,
-    ) { selection ->
-        assertThat(selection).isNotNull()
-        assertThat(selection!!.toTextRange()).isEqualTo(TextRange(0, 14))
-        rule.assertContextMenuItems(
-            cutState = ContextMenuItemState.DOES_NOT_EXIST,
-            copyState = ContextMenuItemState.ENABLED,
-            pasteState = ContextMenuItemState.DOES_NOT_EXIST,
-            selectAllState = ContextMenuItemState.DISABLED,
-        )
-    }
+    fun contextMenu_fullSelection_itemsMatch() =
+        runCorrectItemsTest(
+            selectionAmount = SelectionAmount.ALL,
+        ) { selection ->
+            assertThat(selection).isNotNull()
+            assertThat(selection!!.toTextRange()).isEqualTo(TextRange(0, 14))
+            rule.assertContextMenuItems(
+                cutState = ContextMenuItemState.DOES_NOT_EXIST,
+                copyState = ContextMenuItemState.ENABLED,
+                pasteState = ContextMenuItemState.DOES_NOT_EXIST,
+                selectAllState = ContextMenuItemState.DOES_NOT_EXIST,
+                autofillState = ContextMenuItemState.DOES_NOT_EXIST,
+            )
+        }
 
-    private enum class SelectionAmount { NONE, PARTIAL, ALL }
+    private enum class SelectionAmount {
+        NONE,
+        PARTIAL,
+        ALL
+    }
 
     private fun runCorrectItemsTest(
         selectionAmount: SelectionAmount = SelectionAmount.PARTIAL,
@@ -225,15 +234,16 @@ class SelectionContainerContextMenuTest {
     ) {
         val text = "Text Text Text"
 
-        val clipboardManager = FakeClipboardManager(
-            initialText = "Clipboard Text",
-            supportsClipEntry = true,
-        )
+        val clipboard =
+            FakeClipboard(
+                initialText = "Clipboard Text",
+                supportsClipEntry = true,
+            )
 
         var selection by mutableStateOf<Selection?>(null)
 
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 SelectionContainer(
                     selection = selection,
                     onSelectionChange = { selection = it },
@@ -246,13 +256,11 @@ class SelectionContainerContextMenuTest {
         // set selection
         when (selectionAmount) {
             SelectionAmount.NONE -> {} // already no selection
-
             SelectionAmount.PARTIAL -> {
                 // select middle word
                 rule.onNodeWithTag(textTag).performTouchInput { longClick(center) }
                 rule.waitForIdle()
             }
-
             SelectionAmount.ALL -> {
                 // select everything
                 rule.onNodeWithTag(textTag).performTouchInput {

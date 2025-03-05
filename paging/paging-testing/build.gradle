@@ -21,15 +21,15 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
-import androidx.build.Publish
 import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
 }
 
 androidXMultiplatform {
@@ -37,7 +37,16 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
-    android()
+    watchos()
+    tvos()
+    androidLibrary {
+        namespace = "androidx.paging.testing"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+    }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -101,11 +110,14 @@ androidXMultiplatform {
             dependsOn(nativeMain)
         }
 
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
-                    if (konanTargetFamily == Family.OSX || konanTargetFamily == Family.IOS) {
+                    if (konanTargetFamily == Family.OSX ||
+                            konanTargetFamily == Family.IOS ||
+                            konanTargetFamily == Family.WATCHOS ||
+                            konanTargetFamily == Family.TVOS) {
                         dependsOn(darwinMain)
                     } else if (konanTargetFamily == Family.LINUX) {
                         dependsOn(linuxMain)
@@ -123,8 +135,6 @@ androidx {
     type = LibraryType.PUBLISHED_TEST_LIBRARY
     inceptionYear = "2022"
     description = "Test artifact for Paging implementation"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
 
-android {
-    namespace "androidx.paging.testing"
-}

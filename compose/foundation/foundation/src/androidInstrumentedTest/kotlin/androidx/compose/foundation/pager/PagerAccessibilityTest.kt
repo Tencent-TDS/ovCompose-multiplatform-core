@@ -19,6 +19,8 @@ package androidx.compose.foundation.pager
 import android.view.accessibility.AccessibilityNodeProvider
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.PivotBringIntoViewSpec
+import androidx.compose.foundation.internal.checkPreconditionNotNull
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -48,14 +50,14 @@ import org.junit.runners.Parameterized
 class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = config) {
 
     private val accessibilityNodeProvider: AccessibilityNodeProvider
-        get() = checkNotNull(composeView) {
-            "composeView not initialized."
-        }.let { composeView ->
-            ViewCompat
-                .getAccessibilityDelegate(composeView)!!
-                .getAccessibilityNodeProvider(composeView)!!
-                .provider as AccessibilityNodeProvider
-        }
+        get() =
+            checkPreconditionNotNull(composeView) { "composeView not initialized." }
+                .let { composeView ->
+                    ViewCompat.getAccessibilityDelegate(composeView)!!.getAccessibilityNodeProvider(
+                            composeView
+                        )!!
+                        .provider as AccessibilityNodeProvider
+                }
 
     @Test
     fun scrollBySemantics_shouldScrollCorrectly() {
@@ -63,9 +65,7 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
 
         assertThat(pagerState.currentPage).isEqualTo(5)
 
-        rule.onNodeWithTag(PagerTestTag).performSemanticsAction(ScrollBy) {
-            it.invoke(100f, 100f)
-        }
+        rule.onNodeWithTag(PagerTestTag).performSemanticsAction(ScrollBy) { it.invoke(100f, 100f) }
 
         rule.runOnIdle {
             assertThat(pagerState.currentPageOffsetFraction).isWithin(0.001f).of(100f / pageSize)
@@ -93,18 +93,15 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
 
         assertThat(pagerState.currentPage).isEqualTo(5)
 
-        val actionBackward = if (vertical) {
-            android.R.id.accessibilityActionPageUp
-        } else {
-            android.R.id.accessibilityActionPageLeft
-        }
+        val actionBackward =
+            if (vertical) {
+                android.R.id.accessibilityActionPageUp
+            } else {
+                android.R.id.accessibilityActionPageLeft
+            }
 
         rule.onNodeWithTag(PagerTestTag).withSemanticsNode {
-            accessibilityNodeProvider.performAction(
-                id,
-                actionBackward,
-                null
-            )
+            accessibilityNodeProvider.performAction(id, actionBackward, null)
         }
 
         // Go to the previous page
@@ -113,18 +110,15 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
             assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
         }
 
-        val actionForward = if (vertical) {
-            android.R.id.accessibilityActionPageDown
-        } else {
-            android.R.id.accessibilityActionPageRight
-        }
+        val actionForward =
+            if (vertical) {
+                android.R.id.accessibilityActionPageDown
+            } else {
+                android.R.id.accessibilityActionPageRight
+            }
 
         rule.onNodeWithTag(PagerTestTag).withSemanticsNode {
-            accessibilityNodeProvider.performAction(
-                id,
-                actionForward,
-                null
-            )
+            accessibilityNodeProvider.performAction(id, actionForward, null)
         }
 
         // Go to the next page
@@ -178,12 +172,39 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
     }
 
     @Test
+    fun focusScroll_forwardAndBackward_pageIsFocusable_fullPage_shouldScrollFullPage_pivotSpec() {
+        // Arrange
+        createPager(pageCount = { DefaultPageCount }, bringIntoViewSpec = PivotBringIntoViewSpec)
+        rule.runOnUiThread { initialFocusedItem.requestFocus() }
+        rule.waitForIdle()
+
+        // Act: move forward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Next) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(1)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+
+        // Act: move backward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Previous) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(0)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+    }
+
+    @Test
     fun focusScroll_forwardAndBackward_pageIsFocusable_fixedSizedPage_shouldScrollFullPage() {
         // Arrange
         createPager(
             modifier = Modifier.size(210.dp), // make sure one page is halfway shown
             pageCount = { DefaultPageCount },
-            pageSize = { PageSize.Fixed(50.dp) })
+            pageSize = { PageSize.Fixed(50.dp) }
+        )
         val lastVisibleItem = pagerState.layoutInfo.visiblePagesInfo.last().index
         rule.runOnUiThread { focusRequesters[lastVisibleItem - 1]?.requestFocus() }
         rule.waitForIdle()
@@ -212,21 +233,90 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
     }
 
     @Test
+    fun focusScroll_forwardAndBackward_pageIsFocusable_fixedSizedPage_shouldScrollFullPage_pivotSpec() {
+        // Arrange
+        createPager(
+            modifier = Modifier.size(210.dp), // make sure one page is halfway shown
+            pageCount = { DefaultPageCount },
+            pageSize = { PageSize.Fixed(50.dp) },
+            bringIntoViewSpec = PivotBringIntoViewSpec
+        )
+        val lastVisibleItem = pagerState.layoutInfo.visiblePagesInfo.last().index
+        rule.runOnUiThread { focusRequesters[lastVisibleItem - 1]?.requestFocus() }
+        rule.waitForIdle()
+
+        // Act: move forward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Next) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(2) // current page moved by 1
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+
+        // move focus back to the first visible item
+        rule.runOnUiThread { focusRequesters[pagerState.firstVisiblePage]?.requestFocus() }
+        rule.waitForIdle()
+
+        // Act: move backward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Previous) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(0)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+    }
+
+    @Test
     fun focusScroll_forwardAndBackward_pageContentIsFocusable_fullPage_shouldScrollFullPage() {
         // Arrange
-        createPager(pageCount = { DefaultPageCount }, pageContent = { page ->
-            val focusRequester = FocusRequester().also {
-                if (page == 0) initialFocusedItem = it
+        createPager(
+            pageCount = { DefaultPageCount },
+            pageContent = { page ->
+                val focusRequester =
+                    FocusRequester().also { if (page == 0) initialFocusedItem = it }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(30.dp).focusRequester(focusRequester).focusable())
+                }
             }
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .focusRequester(focusRequester)
-                        .focusable()
-                )
-            }
-        })
+        )
+        rule.runOnUiThread { initialFocusedItem.requestFocus() }
+        rule.waitForIdle()
+
+        // Act: move forward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Next) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(1)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+
+        // Act: move backward
+        rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Previous) }
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(0)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+    }
+
+    @Test
+    fun focusScroll_forwardAndBackward_pageContentIsFocusable_fullPage_shouldScrollFullPage_pivotSpec() {
+        // Arrange
+        createPager(
+            pageCount = { DefaultPageCount },
+            pageContent = { page ->
+                val focusRequester =
+                    FocusRequester().also { if (page == 0) initialFocusedItem = it }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(30.dp).focusRequester(focusRequester).focusable())
+                }
+            },
+            bringIntoViewSpec = PivotBringIntoViewSpec
+        )
         rule.runOnUiThread { initialFocusedItem.requestFocus() }
         rule.waitForIdle()
 
@@ -257,19 +347,13 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
             pageCount = { DefaultPageCount },
             pageSize = { PageSize.Fixed(50.dp) },
             pageContent = { page ->
-                val focusRequester = FocusRequester().also {
-                    focusRequesters[page] = it
-                }
+                val focusRequester = FocusRequester().also { focusRequesters[page] = it }
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     // focus bounds is smaller than page itself
-                    Box(
-                        modifier = Modifier
-                            .size(30.dp)
-                            .focusRequester(focusRequester)
-                            .focusable()
-                    )
+                    Box(modifier = Modifier.size(30.dp).focusRequester(focusRequester).focusable())
                 }
-            })
+            }
+        )
         val lastVisibleItem = pagerState.layoutInfo.visiblePagesInfo.last().index
         rule.runOnUiThread { focusRequesters[lastVisibleItem - 1]?.requestFocus() }
 
@@ -280,6 +364,51 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
         // Assert
         rule.runOnIdle {
             assertThat(pagerState.currentPage).isEqualTo(1) // current page moved by 1
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+
+        rule.runOnUiThread { focusManager.clearFocus(true) } // reset focus
+
+        // move focus back to the first visible item
+        rule.runOnUiThread { focusRequesters[pagerState.firstVisiblePage]?.requestFocus() }
+
+        // Act: move backward
+        val resultBackward = rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Previous) }
+        assertThat(resultBackward).isTrue() // focus moved
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(0)
+            assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
+        }
+    }
+
+    @Test
+    fun focusScroll_forwardAndBackward_pageContentIsFocusable_fixedSizePage_shouldScrollFullPage_pivotSpec() {
+        // Arrange
+        createPager(
+            modifier = Modifier.size(210.dp), // make sure one page is halfway shown
+            pageCount = { DefaultPageCount },
+            pageSize = { PageSize.Fixed(50.dp) },
+            pageContent = { page ->
+                val focusRequester = FocusRequester().also { focusRequesters[page] = it }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    // focus bounds is smaller than page itself
+                    Box(modifier = Modifier.size(30.dp).focusRequester(focusRequester).focusable())
+                }
+            },
+            bringIntoViewSpec = PivotBringIntoViewSpec
+        )
+        val lastVisibleItem = pagerState.layoutInfo.visiblePagesInfo.last().index
+        rule.runOnUiThread { focusRequesters[lastVisibleItem - 1]?.requestFocus() }
+
+        // Act: move forward
+        val resultForward = rule.runOnUiThread { focusManager.moveFocus(FocusDirection.Next) }
+        assertThat(resultForward).isTrue() // focus moved
+
+        // Assert
+        rule.runOnIdle {
+            assertThat(pagerState.currentPage).isEqualTo(2) // current page moved by 1
             assertThat(pagerState.currentPageOffsetFraction).isEqualTo(0.0f)
         }
 
@@ -375,18 +504,15 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
 
         assertThat(pagerState.currentPage).isEqualTo(0)
 
-        val actionBackward = if (vertical) {
-            android.R.id.accessibilityActionScrollDown
-        } else {
-            android.R.id.accessibilityActionScrollRight
-        }
+        val actionBackward =
+            if (vertical) {
+                android.R.id.accessibilityActionScrollDown
+            } else {
+                android.R.id.accessibilityActionScrollRight
+            }
 
         rule.onNodeWithTag(PagerTestTag).withSemanticsNode {
-            accessibilityNodeProvider.performAction(
-                id,
-                actionBackward,
-                null
-            )
+            accessibilityNodeProvider.performAction(id, actionBackward, null)
         }
 
         rule.runOnIdle {
@@ -401,18 +527,15 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
 
         assertThat(pagerState.currentPage).isEqualTo(1)
 
-        val actionBackward = if (vertical) {
-            android.R.id.accessibilityActionScrollUp
-        } else {
-            android.R.id.accessibilityActionScrollLeft
-        }
+        val actionBackward =
+            if (vertical) {
+                android.R.id.accessibilityActionScrollUp
+            } else {
+                android.R.id.accessibilityActionScrollLeft
+            }
 
         rule.onNodeWithTag(PagerTestTag).withSemanticsNode {
-            accessibilityNodeProvider.performAction(
-                id,
-                actionBackward,
-                null
-            )
+            accessibilityNodeProvider.performAction(id, actionBackward, null)
         }
 
         rule.runOnIdle {
@@ -426,8 +549,6 @@ class PagerAccessibilityTest(config: ParamConfig) : BasePagerTest(config = confi
     }
 
     companion object {
-        @JvmStatic
-        @Parameterized.Parameters(name = "{0}")
-        fun params() = AllOrientationsParams
+        @JvmStatic @Parameterized.Parameters(name = "{0}") fun params() = AllOrientationsParams
     }
 }

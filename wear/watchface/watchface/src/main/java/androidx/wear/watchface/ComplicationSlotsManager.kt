@@ -17,6 +17,7 @@
 package androidx.wear.watchface
 
 import android.annotation.SuppressLint
+import android.app.ActivityOptions
 import android.app.PendingIntent.CanceledException
 import android.content.ComponentName
 import android.content.Context
@@ -97,14 +98,13 @@ public class ComplicationSlotsManager(
             for ((_, complication) in complicationSlots) {
                 require(
                     complication.defaultDataSourcePolicy.systemDataSourceFallback !=
-                    SystemDataSources.DATA_SOURCE_HEART_RATE ||
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+                        SystemDataSources.DATA_SOURCE_HEART_RATE ||
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                 ) {
                     "DATA_SOURCE_HEART_RATE requires Android U or above."
                 }
             }
         }
-
         get() = watchFaceHostApi_
 
     internal lateinit var renderer: Renderer
@@ -485,7 +485,18 @@ public class ComplicationSlotsManager(
         }
 
         try {
-            data.tapAction?.send()
+            // BAL Opt-in as a pending intent sender. See:
+            // https://developer.android.com/guide/components/activities/background-starts#sender-pendingintent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                val options: ActivityOptions =
+                    ActivityOptions.makeBasic()
+                        .setPendingIntentBackgroundActivityStartMode(
+                            ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                data.tapAction?.send(options.toBundle())
+            } else {
+                data.tapAction?.send()
+            }
         } catch (e: CanceledException) {
             // In case the PendingIntent is no longer able to execute the request.
             // We don't need to do anything here.
@@ -517,11 +528,9 @@ public class ComplicationSlotsManager(
                     it.value.defaultDataSourcePolicy.systemDataSourceFallback,
                     systemDataSourceFallbackDefaultType,
                     it.value.defaultDataSourcePolicy.primaryDataSourceDefaultType
-                        ?.toWireComplicationType()
-                        ?: systemDataSourceFallbackDefaultType,
+                        ?.toWireComplicationType() ?: systemDataSourceFallbackDefaultType,
                     it.value.defaultDataSourcePolicy.secondaryDataSourceDefaultType
-                        ?.toWireComplicationType()
-                        ?: systemDataSourceFallbackDefaultType,
+                        ?.toWireComplicationType() ?: systemDataSourceFallbackDefaultType,
                     it.value.enabled,
                     it.value.initiallyEnabled,
                     it.value.renderer.getData().type.toWireComplicationType(),

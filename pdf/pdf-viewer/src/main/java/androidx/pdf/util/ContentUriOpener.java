@@ -24,10 +24,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore.MediaColumns;
 import android.text.TextUtils;
-import android.util.Log;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileNotFoundException;
 
@@ -42,12 +43,12 @@ public class ContentUriOpener {
 
     private final ContentResolver mContentResolver;
 
-    public ContentUriOpener(ContentResolver contentResolver) {
+    public ContentUriOpener(@NonNull ContentResolver contentResolver) {
         this.mContentResolver = contentResolver;
     }
 
     /** Opens an image preview (of the given size) of this content. */
-    public AssetFileDescriptor openPreview(Uri contentUri, Point size)
+    public @NonNull AssetFileDescriptor openPreview(@NonNull Uri contentUri, @NonNull Point size)
             throws FileNotFoundException {
         Preconditions.checkNotRunOnUIThread();
         Bundle extraSize = new Bundle();
@@ -66,7 +67,7 @@ public class ContentUriOpener {
      * use this to get the Exif orientation from the original file and manually apply it to the
      * thumbnail.
      */
-    public int getExifOrientation(Uri contentUri) {
+    public int getExifOrientation(@NonNull Uri contentUri) {
         Preconditions.checkNotRunOnUIThread();
         return ExifThumbnailUtils.getExifOrientation(contentUri, mContentResolver);
     }
@@ -77,7 +78,7 @@ public class ContentUriOpener {
      * @param contentUri  the content Uri
      * @param contentType the requested content type. If null, will use the default.
      */
-    public AssetFileDescriptor open(Uri contentUri, String contentType)
+    public @NonNull AssetFileDescriptor open(@NonNull Uri contentUri, @NonNull String contentType)
             throws FileNotFoundException {
         Preconditions.checkNotRunOnUIThread();
         if (contentType == null) {
@@ -87,14 +88,14 @@ public class ContentUriOpener {
     }
 
     /**
+     *
      */
-    @Nullable
-    public String getContentType(Uri contentUri) {
+    public @Nullable String getContentType(@NonNull Uri contentUri) {
         try {
             String[] availableTypes = mContentResolver.getStreamTypes(contentUri, "*/*");
             String declaredType = mContentResolver.getType(contentUri);
             // Sometimes the declared type is actually not available, then pick an available type
-          // instead.
+            // instead.
             String useType = null;
             if (availableTypes != null) {
                 for (String type : availableTypes) {
@@ -103,17 +104,13 @@ public class ContentUriOpener {
                     } else if (type.equals(declaredType)) {
                         useType = declaredType;
                     }
-                    Log.v(TAG, String.format("available type: %s", type));
                 }
             }
-            Log.v(TAG,
-                    String.format("Use content type %s (declared was %s)", useType, declaredType));
             if (useType == null) {
                 useType = declaredType;
             }
             return useType;
         } catch (SecurityException se) {
-            ErrorLog.log(TAG, "content:" + contentUri.getAuthority(), se);
             return null;
         }
     }
@@ -125,7 +122,7 @@ public class ContentUriOpener {
      * is no
      * guarantee the corresponding content can be streamed.
      */
-    public String[] getAvailableTypes(Uri contentUri) {
+    public String @Nullable [] getAvailableTypes(@NonNull Uri contentUri) {
         Preconditions.checkArgument(Uris.isContentUri(contentUri),
                 "Can't handle Uri " + contentUri.getScheme());
         try {
@@ -136,15 +133,15 @@ public class ContentUriOpener {
                 return new String[]{mContentResolver.getType(contentUri)};
             }
         } catch (SecurityException se) {
-            ErrorLog.log(TAG, "content:" + contentUri.getAuthority(), se);
             return new String[]{};
         }
     }
 
     /**
+     *
      */
-    @Nullable
-    public static String extractContentName(ContentResolver contentResolver, Uri contentUri) {
+    public static @Nullable String extractContentName(@NonNull ContentResolver contentResolver,
+            @NonNull Uri contentUri) {
         Cursor cursor = null;
         String[] queryColumn = new String[1];
         String name = null;
@@ -160,7 +157,7 @@ public class ContentUriOpener {
                 }
             } catch (Exception e) {
                 // Misbehaved app!
-                ErrorLog.log(TAG, "extractName", e);
+                // TODO: Rethrow exception or return an error code
             } finally {
                 if (cursor != null) {
                     cursor.close();
@@ -171,8 +168,7 @@ public class ContentUriOpener {
         return name;
     }
 
-    @Nullable
-    private static String extractColumn(Cursor cursor, String columnName) {
+    private static @Nullable String extractColumn(Cursor cursor, String columnName) {
         int columnIndex = cursor.getColumnIndex(columnName);
         if (columnIndex >= 0) {
             String result = cursor.getString(columnIndex);

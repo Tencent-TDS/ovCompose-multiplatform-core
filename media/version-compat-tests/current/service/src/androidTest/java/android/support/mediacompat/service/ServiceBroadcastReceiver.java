@@ -18,13 +18,11 @@ package android.support.mediacompat.service;
 
 
 import static android.support.mediacompat.testlib.MediaBrowserConstants.CUSTOM_ACTION_SEND_ERROR;
-import static android.support.mediacompat.testlib.MediaBrowserConstants
-        .CUSTOM_ACTION_SEND_PROGRESS_UPDATE;
+import static android.support.mediacompat.testlib.MediaBrowserConstants.CUSTOM_ACTION_SEND_PROGRESS_UPDATE;
 import static android.support.mediacompat.testlib.MediaBrowserConstants.CUSTOM_ACTION_SEND_RESULT;
 import static android.support.mediacompat.testlib.MediaBrowserConstants.NOTIFY_CHILDREN_CHANGED;
 import static android.support.mediacompat.testlib.MediaBrowserConstants.SEND_DELAYED_ITEM_LOADED;
-import static android.support.mediacompat.testlib.MediaBrowserConstants
-        .SEND_DELAYED_NOTIFY_CHILDREN_CHANGED;
+import static android.support.mediacompat.testlib.MediaBrowserConstants.SEND_DELAYED_NOTIFY_CHILDREN_CHANGED;
 import static android.support.mediacompat.testlib.MediaBrowserConstants.SET_SESSION_TOKEN;
 import static android.support.mediacompat.testlib.MediaSessionConstants.RELEASE;
 import static android.support.mediacompat.testlib.MediaSessionConstants.RELEASE_AND_THEN_SET_PLAYBACK_STATE;
@@ -43,8 +41,7 @@ import static android.support.mediacompat.testlib.MediaSessionConstants.SET_RATI
 import static android.support.mediacompat.testlib.MediaSessionConstants.SET_REPEAT_MODE;
 import static android.support.mediacompat.testlib.MediaSessionConstants.SET_SESSION_ACTIVITY;
 import static android.support.mediacompat.testlib.MediaSessionConstants.SET_SHUFFLE_MODE;
-import static android.support.mediacompat.testlib.util.IntentUtil
-        .ACTION_CALL_MEDIA_BROWSER_SERVICE_METHOD;
+import static android.support.mediacompat.testlib.util.IntentUtil.ACTION_CALL_MEDIA_BROWSER_SERVICE_METHOD;
 import static android.support.mediacompat.testlib.util.IntentUtil.ACTION_CALL_MEDIA_SESSION_METHOD;
 import static android.support.mediacompat.testlib.util.IntentUtil.KEY_ARGUMENT;
 import static android.support.mediacompat.testlib.util.IntentUtil.KEY_METHOD_ID;
@@ -54,17 +51,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.RatingCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.MediaSessionCompat.QueueItem;
-import android.support.v4.media.session.ParcelableVolumeInfo;
-import android.support.v4.media.session.PlaybackStateCompat;
-
-import androidx.media.VolumeProviderCompat;
 
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 public class ServiceBroadcastReceiver extends BroadcastReceiver {
 
     @Override
@@ -100,7 +90,8 @@ public class ServiceBroadcastReceiver extends BroadcastReceiver {
                     break;
             }
         } else if (ACTION_CALL_MEDIA_SESSION_METHOD.equals(intent.getAction()) && extras != null) {
-            MediaSessionCompat session = StubMediaBrowserServiceCompat.sSession;
+            android.support.v4.media.session.MediaSessionCompat session =
+                    StubMediaBrowserServiceCompat.sSession;
             int method = extras.getInt(KEY_METHOD_ID, 0);
 
             switch (method) {
@@ -111,14 +102,18 @@ public class ServiceBroadcastReceiver extends BroadcastReceiver {
                     session.setFlags(extras.getInt(KEY_ARGUMENT));
                     break;
                 case SET_METADATA:
-                    session.setMetadata((MediaMetadataCompat) extras.getParcelable(KEY_ARGUMENT));
+                    session.setMetadata(
+                            (android.support.v4.media.MediaMetadataCompat)
+                                    extras.getParcelable(KEY_ARGUMENT));
                     break;
                 case SET_PLAYBACK_STATE:
                     session.setPlaybackState(
-                            (PlaybackStateCompat) extras.getParcelable(KEY_ARGUMENT));
+                            (android.support.v4.media.session.PlaybackStateCompat)
+                                    extras.getParcelable(KEY_ARGUMENT));
                     break;
                 case SET_QUEUE:
-                    List<QueueItem> items = extras.getParcelableArrayList(KEY_ARGUMENT);
+                    List<android.support.v4.media.session.MediaSessionCompat.QueueItem> items =
+                            extras.getParcelableArrayList(KEY_ARGUMENT);
                     session.setQueue(items);
                     break;
                 case SET_QUEUE_TITLE:
@@ -151,14 +146,16 @@ public class ServiceBroadcastReceiver extends BroadcastReceiver {
                     session.setPlaybackToLocal(extras.getInt(KEY_ARGUMENT));
                     break;
                 case SET_PLAYBACK_TO_REMOTE:
-                    ParcelableVolumeInfo volumeInfo = extras.getParcelable(KEY_ARGUMENT);
-                    session.setPlaybackToRemote(new VolumeProviderCompat(
-                            volumeInfo.controlType,
-                            volumeInfo.maxVolume,
-                            volumeInfo.currentVolume) {});
+                    android.support.v4.media.session.ParcelableVolumeInfo volumeInfo =
+                            extras.getParcelable(KEY_ARGUMENT);
+                    session.setPlaybackToRemote(
+                            new androidx.media.VolumeProviderCompat(
+                                    volumeInfo.controlType,
+                                    volumeInfo.maxVolume,
+                                    volumeInfo.currentVolume) {});
                     break;
                 case SET_RATING_TYPE:
-                    session.setRatingType(RatingCompat.RATING_5_STARS);
+                    session.setRatingType(android.support.v4.media.RatingCompat.RATING_5_STARS);
                     break;
                 case RELEASE_AND_THEN_SET_PLAYBACK_STATE:
                     session.release();

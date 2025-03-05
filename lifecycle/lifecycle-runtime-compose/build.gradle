@@ -23,6 +23,7 @@
  */
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
@@ -32,16 +33,17 @@ plugins {
 
 androidXMultiplatform {
     android()
-    desktop()
+    jvmStubs()
+    linuxX64Stubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         commonMain {
             dependencies {
-                api(projectOrArtifact(":lifecycle:lifecycle-runtime"))
-                api("androidx.annotation:annotation:1.8.0")
-                api("androidx.compose.runtime:runtime:1.6.5")
+                api(project(":lifecycle:lifecycle-runtime"))
+                api("androidx.annotation:annotation:1.8.1")
+                api("androidx.compose.runtime:runtime:1.7.1")
             }
         }
 
@@ -52,20 +54,32 @@ androidXMultiplatform {
                 // `lifecycle-runtime-compose` also updates `lifecycle-runtime-ktx`
                 // in cases where our constraints fail (e.g., internally in AndroidX
                 // when using project dependencies).
-                api(projectOrArtifact(":lifecycle:lifecycle-runtime-ktx"))
+                api(project(":lifecycle:lifecycle-runtime-ktx"))
             }
         }
 
         androidInstrumentedTest {
             dependencies {
-                implementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
-                implementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
+                implementation(project(":lifecycle:lifecycle-runtime-testing"))
+                implementation(project(":compose:ui:ui-test"))
                 implementation(project(":compose:test-utils"))
                 implementation(libs.testRules)
                 implementation(libs.testRunner)
-                implementation(libs.junit)
-                implementation(libs.truth)
+                implementation(libs.kotlinTest)
+                implementation(project(":kruth:kruth"))
             }
+        }
+
+        nonAndroidMain {
+            dependsOn(commonMain)
+        }
+
+        jvmStubsMain {
+            dependsOn(nonAndroidMain)
+        }
+
+        linuxx64StubsMain {
+            dependsOn(nonAndroidMain)
         }
     }
 }
@@ -79,5 +93,11 @@ androidx {
 }
 
 android {
+    compileSdk 35
+
+    buildTypes.configureEach {
+        consumerProguardFiles "proguard-rules.pro"
+    }
+
     namespace "androidx.lifecycle.runtime.compose"
 }

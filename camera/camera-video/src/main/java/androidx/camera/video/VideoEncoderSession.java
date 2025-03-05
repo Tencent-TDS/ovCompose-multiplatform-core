@@ -21,9 +21,6 @@ import static androidx.camera.video.internal.config.VideoConfigUtil.resolveVideo
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.SurfaceRequest;
@@ -42,6 +39,9 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -53,7 +53,6 @@ import java.util.concurrent.Executor;
  *  <li>The session can only be configured once, cannot be reused for another SurfaceRequest.</li>
  * </ul>
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 final class VideoEncoderSession {
 
     private static final String TAG = "VideoEncoderSession";
@@ -104,9 +103,8 @@ final class VideoEncoderSession {
         mVideoEncoderFactory = videoEncoderFactory;
     }
 
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Encoder> configure(@NonNull SurfaceRequest surfaceRequest,
+    @NonNull ListenableFuture<Encoder> configure(@NonNull SurfaceRequest surfaceRequest,
             @NonNull Timebase timebase, @NonNull MediaSpec mediaSpec,
             @Nullable VideoValidatedEncoderProfilesProxy resolvedEncoderProfiles) {
         switch (mVideoEncoderState) {
@@ -180,9 +178,8 @@ final class VideoEncoderSession {
     /**
      * Return a ListenableFuture will be completed when the VideoEncoder can safely be released.
      */
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Encoder> getReadyToReleaseFuture() {
+    @NonNull ListenableFuture<Encoder> getReadyToReleaseFuture() {
         return Futures.nonCancellationPropagating(mReadyToReleaseFuture);
     }
 
@@ -197,9 +194,8 @@ final class VideoEncoderSession {
      *
      * @return a ListenableFuture will be completed when the VideoEncoder is released.
      */
-    @NonNull
     @ExecutedBy("mSequentialExecutor")
-    ListenableFuture<Void> signalTermination() {
+    @NonNull ListenableFuture<Void> signalTermination() {
         closeInternal();
         return Futures.nonCancellationPropagating(mReleasedFuture);
     }
@@ -238,18 +234,16 @@ final class VideoEncoderSession {
         }
     }
 
-    @Nullable
     @ExecutedBy("mSequentialExecutor")
-    Surface getActiveSurface() {
+    @Nullable Surface getActiveSurface() {
         if (mVideoEncoderState != VideoEncoderState.READY) {
             return null;
         }
         return mActiveSurface;
     }
 
-    @Nullable
     @ExecutedBy("mSequentialExecutor")
-    Encoder getVideoEncoder() {
+    @Nullable Encoder getVideoEncoder() {
         return mVideoEncoder;
     }
 
@@ -288,7 +282,7 @@ final class VideoEncoderSession {
             @NonNull Timebase timebase,
             @Nullable VideoValidatedEncoderProfilesProxy resolvedEncoderProfiles,
             @NonNull MediaSpec mediaSpec,
-            @NonNull CallbackToFutureAdapter.Completer<Encoder> configureCompleter) {
+            CallbackToFutureAdapter.@NonNull Completer<Encoder> configureCompleter) {
         DynamicRange dynamicRange = surfaceRequest.getDynamicRange();
         VideoMimeInfo videoMimeInfo = resolveVideoMimeInfo(mediaSpec, dynamicRange,
                 resolvedEncoderProfiles);
@@ -362,7 +356,7 @@ final class VideoEncoderSession {
     }
 
     @ExecutedBy("mSequentialExecutor")
-    private void onSurfaceRequestComplete(@NonNull SurfaceRequest.Result result) {
+    private void onSurfaceRequestComplete(SurfaceRequest.@NonNull Result result) {
         Logger.d(TAG, "Surface can be closed: " + result.getSurface().hashCode());
         Surface resultSurface = result.getSurface();
         if (resultSurface == mActiveSurface) {
@@ -375,9 +369,8 @@ final class VideoEncoderSession {
         }
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return TAG + "@" + hashCode() + " for " + Objects.toString(mSurfaceRequest,
                 "SURFACE_REQUEST_NOT_CONFIGURED");
     }

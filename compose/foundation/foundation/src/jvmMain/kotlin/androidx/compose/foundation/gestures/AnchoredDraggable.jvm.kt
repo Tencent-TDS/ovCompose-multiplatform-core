@@ -25,3 +25,8 @@ internal actual class AnchoredDragFinishedSignal actual constructor() :
         return this
     }
 }
+
+@Suppress("NOTHING_TO_INLINE")
+internal actual inline fun assertOnJvm(statement: Boolean, message: () -> String): Unit {
+    assert(statement, message)
+}

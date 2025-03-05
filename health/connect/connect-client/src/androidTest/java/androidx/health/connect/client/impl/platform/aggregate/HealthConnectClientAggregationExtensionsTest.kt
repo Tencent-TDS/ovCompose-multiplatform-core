@@ -22,13 +22,23 @@ import android.os.Build
 import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
+import androidx.health.connect.client.impl.platform.records.SDK_TO_PLATFORM_RECORD_CLASS
+import androidx.health.connect.client.impl.platform.records.SDK_TO_PLATFORM_RECORD_CLASS_EXT_13
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
 import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.SpeedRecord
+import androidx.health.connect.client.records.StepsCadenceRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
 import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
-import androidx.health.connect.client.units.Mass
+import androidx.health.connect.client.units.Velocity
+import androidx.health.connect.client.units.grams
+import androidx.health.connect.client.units.metersPerSecond
+import androidx.health.connect.client.units.millimetersOfMercury
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -61,49 +71,41 @@ class HealthConnectClientAggregationExtensionsTest {
     private companion object {
         private val START_TIME =
             LocalDate.now().minusDays(5).atStartOfDay().toInstant(ZoneOffset.UTC)
+
+        fun getAllRecordPermissions(): Array<String> {
+            val permissions: HashSet<String> = HashSet()
+
+            for (recordType in SDK_TO_PLATFORM_RECORD_CLASS.keys) {
+                permissions.add(HealthPermission.getReadPermission(recordType))
+                permissions.add(HealthPermission.getWritePermission(recordType))
+            }
+
+            if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13) {
+                for (recordType in SDK_TO_PLATFORM_RECORD_CLASS_EXT_13.keys) {
+                    permissions.add(HealthPermission.getReadPermission(recordType))
+                    permissions.add(HealthPermission.getWritePermission(recordType))
+                }
+            }
+
+            return permissions.toTypedArray()
+        }
     }
 
     @get:Rule
-    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        HealthPermission.getWritePermission(NutritionRecord::class),
-        HealthPermission.getReadPermission(NutritionRecord::class),
-        HealthPermission.getWritePermission(StepsRecord::class),
-        HealthPermission.getReadPermission(StepsRecord::class)
-    )
+    val grantPermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(*getAllRecordPermissions())
 
     @After
     fun tearDown() = runTest {
-        healthConnectClient.deleteRecords(NutritionRecord::class, TimeRangeFilter.none())
-        healthConnectClient.deleteRecords(StepsRecord::class, TimeRangeFilter.none())
-    }
+        for (recordType in SDK_TO_PLATFORM_RECORD_CLASS.keys) {
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+        }
 
-    @Test
-    fun aggregateFallback_sdkExt10AndAbove() = runTest {
-        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)
-
-        healthConnectClient.insertRecords(
-            listOf(
-                NutritionRecord(
-                    startTime = START_TIME,
-                    endTime = START_TIME + 1.minutes,
-                    transFat = Mass.grams(0.3),
-                    calcium = Mass.grams(0.1),
-                    startZoneOffset = ZoneOffset.UTC,
-                    endZoneOffset = ZoneOffset.UTC
-                )
-            )
-        )
-
-        val aggregationResult =
-            healthConnectClient.aggregateFallback(AggregateRequest(
-                metrics = setOf(NutritionRecord.TRANS_FAT_TOTAL, NutritionRecord.CALCIUM_TOTAL),
-                timeRangeFilter = TimeRangeFilter.none()
-            ))
-
-        assertThat(NutritionRecord.TRANS_FAT_TOTAL in aggregationResult).isFalse()
-        assertThat(NutritionRecord.CALCIUM_TOTAL in aggregationResult).isFalse()
-
-        assertThat(aggregationResult.dataOrigins).isEmpty()
+        if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13) {
+            for (recordType in SDK_TO_PLATFORM_RECORD_CLASS_EXT_13.keys) {
+                healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+            }
+        }
     }
 
     @Test
@@ -112,41 +114,129 @@ class HealthConnectClientAggregationExtensionsTest {
 
         healthConnectClient.insertRecords(
             listOf(
+                BloodPressureRecord(
+                    time = START_TIME,
+                    zoneOffset = ZoneOffset.UTC,
+                    diastolic = 70.millimetersOfMercury,
+                    systolic = 110.millimetersOfMercury
+                ),
+                CyclingPedalingCadenceRecord(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 30.minutes,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC,
+                    samples =
+                        listOf(
+                            CyclingPedalingCadenceRecord.Sample(
+                                time = START_TIME + 5.minutes,
+                                revolutionsPerMinute = 80.0
+                            ),
+                            CyclingPedalingCadenceRecord.Sample(
+                                time = START_TIME + 15.minutes,
+                                revolutionsPerMinute = 90.0
+                            )
+                        )
+                ),
                 NutritionRecord(
                     startTime = START_TIME,
                     endTime = START_TIME + 1.minutes,
-                    transFat = Mass.grams(0.3),
-                    calcium = Mass.grams(0.1),
+                    transFat = 0.3.grams,
+                    calcium = 0.1.grams,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC
+                ),
+                SpeedRecord(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 15.minutes,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC,
+                    samples =
+                        listOf(
+                            SpeedRecord.Sample(
+                                time = START_TIME + 5.minutes,
+                                speed = Velocity.metersPerSecond(2.8)
+                            ),
+                            SpeedRecord.Sample(
+                                time = START_TIME + 10.minutes,
+                                speed = Velocity.metersPerSecond(2.7)
+                            )
+                        )
+                ),
+                StepsCadenceRecord(
+                    startTime = START_TIME,
+                    endTime = START_TIME + 10.minutes,
+                    startZoneOffset = ZoneOffset.UTC,
+                    endZoneOffset = ZoneOffset.UTC,
+                    samples =
+                        listOf(
+                            StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0)
+                        )
                 )
             )
         )
 
+        // Adding calcium total (which has always been supported) to make sure it's filtered out of
+        // the calculation.
         val aggregationResult =
-            healthConnectClient.aggregateFallback(AggregateRequest(
-                metrics = setOf(NutritionRecord.TRANS_FAT_TOTAL, NutritionRecord.CALCIUM_TOTAL),
-                timeRangeFilter = TimeRangeFilter.none()
-            ))
+            healthConnectClient.aggregateFallback(
+                AggregateRequest(
+                    metrics = AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10 + NutritionRecord.CALCIUM_TOTAL,
+                    timeRangeFilter = TimeRangeFilter.none()
+                )
+            )
 
-        assertThat(aggregationResult[NutritionRecord.TRANS_FAT_TOTAL]).isEqualTo(Mass.grams(0.3))
+        assertEquals(
+            aggregationResult[BloodPressureRecord.DIASTOLIC_AVG] to 70.millimetersOfMercury,
+            aggregationResult[BloodPressureRecord.DIASTOLIC_MAX] to 70.millimetersOfMercury,
+            aggregationResult[BloodPressureRecord.DIASTOLIC_MIN] to 70.millimetersOfMercury,
+            aggregationResult[BloodPressureRecord.SYSTOLIC_AVG] to 110.millimetersOfMercury,
+            aggregationResult[BloodPressureRecord.SYSTOLIC_MAX] to 110.millimetersOfMercury,
+            aggregationResult[BloodPressureRecord.SYSTOLIC_MIN] to 110.millimetersOfMercury,
+            aggregationResult[CyclingPedalingCadenceRecord.RPM_AVG] to 85.0,
+            aggregationResult[CyclingPedalingCadenceRecord.RPM_MAX] to 90.0,
+            aggregationResult[CyclingPedalingCadenceRecord.RPM_MIN] to 80.0,
+            aggregationResult[NutritionRecord.TRANS_FAT_TOTAL] to 0.3.grams,
+            aggregationResult[SpeedRecord.SPEED_AVG] to 2.75.metersPerSecond,
+            aggregationResult[SpeedRecord.SPEED_MAX] to 2.8.metersPerSecond,
+            aggregationResult[SpeedRecord.SPEED_MIN] to 2.7.metersPerSecond,
+            aggregationResult[StepsCadenceRecord.RATE_AVG] to 170.0,
+            aggregationResult[StepsCadenceRecord.RATE_MAX] to 170.0,
+            aggregationResult[StepsCadenceRecord.RATE_MIN] to 170.0,
+        )
+
         assertThat(NutritionRecord.CALCIUM_TOTAL in aggregationResult).isFalse()
+        assertThat(aggregationResult.dataOrigins).containsExactly(DataOrigin(context.packageName))
+    }
 
-        assertThat(aggregationResult.dataOrigins)
-            .containsExactly(DataOrigin(context.packageName))
+    @Test
+    fun aggregateFallback_belowSdkExt10NoData() = runTest {
+        assumeFalse(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)
+
+        val aggregationResult =
+            healthConnectClient.aggregateFallback(
+                AggregateRequest(
+                    metrics = AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10,
+                    timeRangeFilter = TimeRangeFilter.none()
+                )
+            )
+
+        for (metric in AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10) {
+            assertThat(metric in aggregationResult).isFalse()
+        }
+
+        assertThat(aggregationResult.dataOrigins).isEmpty()
     }
 
     @Test
     fun readRecordsFlow_noFilters_readsAllInsertedRecords() = runTest {
         insertManyStepsRecords()
 
-        val count = healthConnectClient.readRecordsFlow(
-            StepsRecord::class,
-            TimeRangeFilter.none(),
-            emptySet()
-        ).fold(0) { currentCount, records ->
-            currentCount + records.size
-        }
+        val count =
+            healthConnectClient
+                .readRecordsFlow(
+                    ReadRecordsRequest(StepsRecord::class, TimeRangeFilter.none(), emptySet())
+                )
+                .fold(0) { currentCount, records -> currentCount + records.size }
 
         assertThat(count).isEqualTo(10_000L)
     }
@@ -156,13 +246,19 @@ class HealthConnectClientAggregationExtensionsTest {
         assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)
         insertManyStepsRecords()
 
-        val count = healthConnectClient.readRecordsFlow(
-            StepsRecord::class,
-            TimeRangeFilter.between(START_TIME + 10_000.seconds, START_TIME + 90_000.seconds),
-            emptySet()
-        ).fold(0) { currentCount, records ->
-            currentCount + records.size
-        }
+        val count =
+            healthConnectClient
+                .readRecordsFlow(
+                    ReadRecordsRequest(
+                        StepsRecord::class,
+                        TimeRangeFilter.between(
+                            START_TIME + 10_000.seconds,
+                            START_TIME + 90_000.seconds
+                        ),
+                        emptySet()
+                    )
+                )
+                .fold(0) { currentCount, records -> currentCount + records.size }
 
         assertThat(count).isEqualTo(8_000L)
     }
@@ -172,13 +268,16 @@ class HealthConnectClientAggregationExtensionsTest {
     fun readRecordsFlow_insertedDataOriginFilter_readsAllInsertedRecords() = runTest {
         insertManyStepsRecords()
 
-        val count = healthConnectClient.readRecordsFlow(
-            StepsRecord::class,
-            TimeRangeFilter.none(),
-            setOf(DataOrigin(context.packageName))
-        ).fold(0) { currentCount, records ->
-            currentCount + records.size
-        }
+        val count =
+            healthConnectClient
+                .readRecordsFlow(
+                    ReadRecordsRequest(
+                        StepsRecord::class,
+                        TimeRangeFilter.none(),
+                        setOf(DataOrigin(context.packageName))
+                    )
+                )
+                .fold(0) { currentCount, records -> currentCount + records.size }
 
         assertThat(count).isEqualTo(10_000L)
     }
@@ -187,13 +286,16 @@ class HealthConnectClientAggregationExtensionsTest {
     fun readRecordsFlow_nonExistingDataOriginFilter_doesNotReadAnyRecord() = runTest {
         insertManyStepsRecords()
 
-        val count = healthConnectClient.readRecordsFlow(
-            StepsRecord::class,
-            TimeRangeFilter.none(),
-            setOf(DataOrigin("some random package name"))
-        ).fold(0) { currentCount, records ->
-            currentCount + records.size
-        }
+        val count =
+            healthConnectClient
+                .readRecordsFlow(
+                    ReadRecordsRequest(
+                        StepsRecord::class,
+                        TimeRangeFilter.none(),
+                        setOf(DataOrigin("some random package name"))
+                    )
+                )
+                .fold(0) { currentCount, records -> currentCount + records.size }
 
         assertThat(count).isEqualTo(0L)
     }
@@ -201,17 +303,23 @@ class HealthConnectClientAggregationExtensionsTest {
     private suspend fun insertManyStepsRecords() {
         // Insert a large number of step records, bigger than the default page size
         for (i in 0..9) {
-            healthConnectClient.insertRecords(List(1000) {
-                val startTime = START_TIME + (i * 10_000 + it * 10).seconds
-                StepsRecord(
-                    startTime = startTime,
-                    endTime = startTime + 5.seconds,
-                    count = 10L,
-                    startZoneOffset = ZoneOffset.UTC,
-                    endZoneOffset = ZoneOffset.UTC
-                )
-            })
+            healthConnectClient.insertRecords(
+                List(1000) {
+                    val startTime = START_TIME + (i * 10_000 + it * 10).seconds
+                    StepsRecord(
+                        startTime = startTime,
+                        endTime = startTime + 5.seconds,
+                        count = 10L,
+                        startZoneOffset = ZoneOffset.UTC,
+                        endZoneOffset = ZoneOffset.UTC
+                    )
+                }
+            )
         }
+    }
+
+    private fun <A, E> assertEquals(vararg assertions: Pair<A, E>) {
+        assertions.forEach { (actual, expected) -> assertThat(actual).isEqualTo(expected) }
     }
 
     private val Int.seconds: Duration

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.LibraryType
+
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
@@ -30,5 +32,9 @@ dependencies {
 }
 
 android {
-    namespace "androidx.benchmark.integration.startup.benchmark"
+    namespace = "androidx.benchmark.integration.startup.benchmark"
+}
+
+androidx {
+    type = LibraryType.BENCHMARK
 }

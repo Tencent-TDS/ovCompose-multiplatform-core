@@ -23,9 +23,8 @@ import android.os.IBinder
 import android.view.Display
 import android.view.MotionEvent
 import android.view.SurfaceControlViewHost
-import android.view.SurfaceView
 import android.view.View
-import androidx.annotation.RequiresApi
+import android.widget.LinearLayout
 import androidx.privacysandbox.ui.provider.TouchFocusTransferringView
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
@@ -33,9 +32,11 @@ import androidx.test.espresso.action.ViewActions.slowSwipeLeft
 import androidx.test.espresso.action.ViewActions.swipeLeft
 import androidx.test.espresso.action.ViewActions.swipeUp
 import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withParent
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiScrollable
@@ -44,14 +45,12 @@ import androidx.testutils.withActivity
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import org.junit.Assume
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class BinderAdapterDelegateTest {
@@ -59,70 +58,72 @@ class BinderAdapterDelegateTest {
         const val TIMEOUT_MILLIS: Long = 2000
         const val WIDTH = 500
         const val HEIGHT = 500
-        const val SURFACE_VIEW_RES = "androidx.privacysandbox.ui.provider.test:id/surface_view"
+        const val MAIN_LAYOUT_RES = "androidx.privacysandbox.ui.provider.test:id/main_layout"
     }
 
-    @get:Rule
-    val activityScenarioRule = ActivityScenarioRule(MainActivity::class.java)
+    @get:Rule val activityScenarioRule = ActivityScenarioRule(MainActivity::class.java)
 
     private val transferTouchFocusLatch = CountDownLatch(1)
 
     @Before
     fun setUp() {
-        Assume.assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val activity = activityScenarioRule.withActivity { this }
         UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        activity.runOnUiThread {
-            val surfaceView = activity.findViewById<SurfaceView>(R.id.surface_view)
+        activityScenarioRule.withActivity {
             val surfaceControlViewHost =
                 GestureTransferringSurfaceControlViewHost(
-                    activity, activity.display!!, Binder(), transferTouchFocusLatch)
+                    activity,
+                    activity.display!!,
+                    Binder(),
+                    transferTouchFocusLatch
+                )
             val touchFocusTransferringView =
                 TouchFocusTransferringView(context, surfaceControlViewHost)
             touchFocusTransferringView.addView(TestView(context))
-            surfaceControlViewHost.setView(touchFocusTransferringView, WIDTH, HEIGHT)
-            surfaceView.setChildSurfacePackage(surfaceControlViewHost.surfacePackage!!)
-            surfaceView.setZOrderOnTop(true)
+            activity
+                .findViewById<LinearLayout>(R.id.main_layout)
+                .addView(touchFocusTransferringView, WIDTH, HEIGHT)
         }
     }
 
-    @Ignore // b/328282434
     @Test
     fun touchFocusTransferredForSwipeUp() {
-        onView(withId(R.id.surface_view)).perform(swipeUp())
+        onView(withParent(withId(R.id.main_layout))).perform(swipeUp())
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isTrue()
     }
 
     @Test
     fun touchFocusNotTransferredForSwipeLeft() {
-        onView(withId(R.id.surface_view)).perform(swipeLeft())
+        onView(withParent(withId(R.id.main_layout))).perform(swipeLeft())
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isFalse()
     }
 
     @Test
     fun touchFocusNotTransferredForSlowSwipeLeft() {
-        onView(withId(R.id.surface_view)).perform(slowSwipeLeft())
+        onView(withParent(withId(R.id.main_layout))).perform(slowSwipeLeft())
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isFalse()
     }
 
     @Test
     fun touchFocusNotTransferredForClicks() {
-        onView(withId(R.id.surface_view)).perform(click())
+        onView(withParent(withId(R.id.main_layout))).perform(click())
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isFalse()
     }
 
     @Test
     fun touchFocusTransferredForFlingForward() {
-        val scrollView = UiScrollable(UiSelector().resourceId(SURFACE_VIEW_RES))
-        scrollView.flingForward()
+        val parentSelector = UiSelector().resourceId(MAIN_LAYOUT_RES)
+        val testView = UiScrollable(parentSelector.childSelector(UiSelector().index(0)))
+        testView.flingForward()
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isTrue()
     }
 
     @Test
     fun touchFocusTransferredForFlingBackward() {
-        val scrollView = UiScrollable(UiSelector().resourceId(SURFACE_VIEW_RES))
-        scrollView.flingBackward()
+        val parentSelector = UiSelector().resourceId(MAIN_LAYOUT_RES)
+        val testView = UiScrollable(parentSelector.childSelector(UiSelector().index(0)))
+        testView.flingBackward()
         assertThat(transferTouchFocusLatch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)).isTrue()
     }
 

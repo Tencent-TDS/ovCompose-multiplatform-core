@@ -62,10 +62,10 @@ import static java.util.Objects.requireNonNull;
 
 import android.media.MediaFormat;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.impl.EncoderProfilesProxy;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,7 +76,6 @@ import java.util.Set;
 /**
  * Utility class for dynamic range related operations.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class DynamicRangeUtil {
     public static final Map<Integer, Set<Integer>> DR_TO_VP_BIT_DEPTH_MAP = new HashMap<>();
     public static final Map<Integer, Set<Integer>> DR_TO_VP_FORMAT_MAP = new HashMap<>();
@@ -168,8 +167,7 @@ public class DynamicRangeUtil {
      *
      * <p>Returns an empty set if no HDR formats are supported for the provided dynamic range.
      */
-    @NonNull
-    public static Set<Integer> dynamicRangeToVideoProfileHdrFormats(
+    public static @NonNull Set<Integer> dynamicRangeToVideoProfileHdrFormats(
             @NonNull DynamicRange dynamicRange) {
         Set<Integer> hdrFormats = DR_TO_VP_FORMAT_MAP.get(dynamicRange.getEncoding());
         if (hdrFormats == null) {
@@ -188,8 +186,7 @@ public class DynamicRangeUtil {
      *
      * <p>Returns an empty set if no bit depths are supported for the provided dynamic range.
      */
-    @NonNull
-    public static Set<Integer> dynamicRangeToVideoProfileBitDepth(
+    public static @NonNull Set<Integer> dynamicRangeToVideoProfileBitDepth(
             @NonNull DynamicRange dynamicRange) {
         Set<Integer> bitDepths = DR_TO_VP_BIT_DEPTH_MAP.get(dynamicRange.getBitDepth());
         if (bitDepths == null) {
@@ -249,7 +246,7 @@ public class DynamicRangeUtil {
      * <p>HDR settings includes bit depth and encoding.
      */
     public static boolean isHdrSettingsMatched(
-            @NonNull EncoderProfilesProxy.VideoProfileProxy videoProfile,
+            EncoderProfilesProxy.@NonNull VideoProfileProxy videoProfile,
             @NonNull DynamicRange dynamicRange) {
         return isBitDepthMatched(videoProfile.getBitDepth(), dynamicRange)
                 && isHdrEncodingMatched(videoProfile.getHdrFormat(), dynamicRange);
