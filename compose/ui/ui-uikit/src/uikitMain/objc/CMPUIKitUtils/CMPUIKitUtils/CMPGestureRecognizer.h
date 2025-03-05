@@ -32,8 +32,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)canBePreventedByGestureRecognizer:(UIGestureRecognizer *)preventingGestureRecognizer;
 
-- (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer;
-
 @end
 
 NS_ASSUME_NONNULL_END

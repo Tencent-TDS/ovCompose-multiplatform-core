@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.uikit.utils.CMPScreenEdgePanGestureRecognizer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -34,6 +35,7 @@ import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import platform.Foundation.NSSelectorFromString
+import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UIGestureRecognizerStateBegan
 import platform.UIKit.UIGestureRecognizerStateCancelled
 import platform.UIKit.UIGestureRecognizerStateChanged
@@ -198,4 +200,22 @@ private class UiKitScreenEdgePanGestureHandler(
  */
 internal class UIKitBackGestureRecognizer(
     target: Any?, action: CPointer<out CPointed>?
-) : UIScreenEdgePanGestureRecognizer(target = target, action = action)
+) : CMPScreenEdgePanGestureRecognizer(target = target, action = action) {
+    init {
+        setDelaysTouchesBegan(true)
+        setDelaysTouchesEnded(true)
+        setCancelsTouchesInView(true)
+    }
+
+    override fun canBePreventedByGestureRecognizer(
+        preventingGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return false
+    }
+
+    override fun canPreventGestureRecognizer(
+        preventedGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return true
+    }
+}
