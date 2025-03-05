@@ -39,17 +39,8 @@
         <action android:id="@+id/finish_self" app:popUpTo="@id/second_test"
             app:popUpToInclusive="true" />
         <deepLink app:uri="android-app://androidx.navigation.test/test/{arg2}"/>
-        <deepLink app:action="test.action"/>
-        <deepLink app:mimeType="type/test"/>
-        <deepLink app:action="mime.action" app:mimeType="mime/action"/>
-        <deepLink app:uri="android-app://androidx.navigation.test/mime/uri" app:mimeType="mime/uri"/>
-        <deepLink app:uri="android-app://androidx.navigation.test/action/uri" app:action="action.uri"/>
-        <deepLink app:uri="android-app://androidx.navigation.test/uri/action/mime" app:action="uri.action.mime" app:mimeType="uri/actionMime"/>
-
         <deepLink app:uri="android-app://androidx.navigation.test/test/{arg1}/{arg2}"
             app:action="" />
-        <deepLink app:uri="android-app://androidx.navigation.test/test/{arg1}/{arg2}"
-            app:action="android.intent.action.VIEW" />
     </test>
     <test android:id="@+id/nonNullableArg_test">
         <argument android:name="arg3" app:argType="integer" app:nullable="false" />

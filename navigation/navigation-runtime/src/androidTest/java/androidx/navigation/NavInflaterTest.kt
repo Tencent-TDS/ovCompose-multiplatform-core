@@ -95,14 +95,14 @@ class NavInflaterTest {
     fun testInflateDeepLinkWithApplicationIdAction() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
-        val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromAction("test.action").build()
+        val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromAction("action.only").build()
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNotNull()
         assertThat(result?.destination).isNotNull()
-        assertThat(result?.destination?.id).isEqualTo(R.id.second_test)
+        assertThat(result?.destination?.id).isEqualTo(R.id.action_only)
     }
 
     @Test
@@ -143,14 +143,14 @@ class NavInflaterTest {
     fun testInflateDeepLinkWithApplicationIdMimeType() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
-        val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromMimeType("type/test").build()
+        val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromMimeType("mime/only").build()
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNotNull()
         assertThat(result?.destination).isNotNull()
-        assertThat(result?.destination?.id).isEqualTo(R.id.second_test)
+        assertThat(result?.destination?.id).isEqualTo(R.id.mime_only)
     }
 
     @Test
@@ -169,7 +169,7 @@ class NavInflaterTest {
     fun testInflateDeepLinkWithApplicationIdMimeTypeAndAction() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
         val expectedDeepLinkRequest =
@@ -177,7 +177,7 @@ class NavInflaterTest {
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNotNull()
         assertThat(result?.destination).isNotNull()
-        assertThat(result?.destination?.id).isEqualTo(R.id.second_test)
+        assertThat(result?.destination?.id).isEqualTo(R.id.mime_action)
     }
 
     @Test
@@ -187,7 +187,10 @@ class NavInflaterTest {
         val graph = navInflater.inflate(R.navigation.nav_simple)
 
         assertThat(graph).isNotNull()
-        val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromMimeType("mime/action").build()
+        val expectedDeepLinkRequest =
+            NavDeepLinkRequest.Builder.fromMimeType("uri/actionMime")
+                .setAction("uri.action.mime")
+                .build()
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNull()
     }
@@ -196,7 +199,7 @@ class NavInflaterTest {
     fun testInflateDeepLinkWithApplicationIdMimeTypeAndUri() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
         val expectedDeepLinkRequest =
@@ -210,14 +213,14 @@ class NavInflaterTest {
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNotNull()
         assertThat(result?.destination).isNotNull()
-        assertThat(result?.destination?.id).isEqualTo(R.id.second_test)
+        assertThat(result?.destination?.id).isEqualTo(R.id.mime_uri)
     }
 
     @Test
     fun testInflateDeepLinkWithApplicationIdMimeTypeAndUri_missingUri() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
         val expectedDeepLinkRequest = NavDeepLinkRequest.Builder.fromMimeType("mime/uri").build()
@@ -229,7 +232,7 @@ class NavInflaterTest {
     fun testInflateDeepLinkWithApplicationIdActionAndUri() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
         val expectedDeepLinkRequest =
@@ -243,14 +246,14 @@ class NavInflaterTest {
         val result = graph.matchDeepLink(expectedDeepLinkRequest)
         assertThat(result).isNotNull()
         assertThat(result?.destination).isNotNull()
-        assertThat(result?.destination?.id).isEqualTo(R.id.second_test)
+        assertThat(result?.destination?.id).isEqualTo(R.id.action_uri)
     }
 
     @Test
     fun testInflateDeepLinkWithApplicationIdActionAndUri_missingAction() {
         val context = ApplicationProvider.getApplicationContext() as Context
         val navInflater = NavInflater(context, TestNavigatorProvider())
-        val graph = navInflater.inflate(R.navigation.nav_simple)
+        val graph = navInflater.inflate(R.navigation.nav_deeplink)
 
         assertThat(graph).isNotNull()
         val expectedDeepLinkRequest =

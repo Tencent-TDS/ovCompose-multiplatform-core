@@ -122,45 +122,37 @@ internal constructor(
     /**
      * Checks for matches on uri, action, and mimType between a deepLink and a deepLinkRequest.
      *
-     * Returns false if the deepLink's field nullability differs from the requested link's field
-     * nullability (i.e. deeplink.action == null while requested.action != null), or if both fields
-     * are non-null but don't match.
+     * Returns false if either
+     * 1. the deepLink's field is non-null while requested link's field is null
+     * 2. both fields are non-null but don't match
      *
      * Returns true otherwise (including when both fields are null).
      */
-    internal fun matches(deepLinkRequest: NavDeepLinkRequest): Boolean {
-        if (!matchUri(deepLinkRequest.uri)) {
-            return false
+    internal fun matches(deepLinkRequest: NavDeepLinkRequest): Boolean =
+        matchUri(deepLinkRequest.uri) &&
+            matchAction(deepLinkRequest.action) &&
+            matchMimeType(deepLinkRequest.mimeType)
+
+    private fun matchUri(uri: Uri?): Boolean =
+        when {
+            pathPattern == null -> true
+            uri == null -> false
+            else -> pathPattern!!.matcher(uri.toString()).matches()
         }
-        return if (!matchAction(deepLinkRequest.action)) {
-            false
-        } else matchMimeType(deepLinkRequest.mimeType)
-    }
 
-    private fun matchUri(uri: Uri?): Boolean {
-        // If the null status of both are not the same return false.
-        return if (uri == null == (pathPattern != null)) {
-            false
-        } else uri == null || pathPattern!!.matcher(uri.toString()).matches()
-        // If both are null return true, otherwise see if they match
-    }
+    private fun matchAction(action: String?): Boolean =
+        when {
+            this.action == null -> true
+            action == null -> false
+            else -> this.action == action
+        }
 
-    private fun matchAction(action: String?): Boolean {
-        // If the null status of both are not the same return false.
-        return if (action == null == (this.action != null)) {
-            false
-        } else action == null || this.action == action
-        // If both are null return true, otherwise see if they match
-    }
-
-    private fun matchMimeType(mimeType: String?): Boolean {
-        // If the null status of both are not the same return false.
-        return if (mimeType == null == (this.mimeType != null)) {
-            false
-        } else mimeType == null || mimeTypePattern!!.matcher(mimeType).matches()
-
-        // If both are null return true, otherwise see if they match
-    }
+    private fun matchMimeType(mimeType: String?): Boolean =
+        when {
+            this.mimeType == null -> true
+            mimeType == null -> false
+            else -> mimeTypePattern!!.matcher(mimeType).matches()
+        }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun getMimeTypeMatchRating(mimeType: String): Int {
