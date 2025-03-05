@@ -13,4 +13,6 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: JetBrains/compose-multiplatform/tools/changelog/check-release-notes-github-action@master
+      - uses: JetBrains/compose-multiplatform/tools/changelog/check-release-notes-github-action@igordmn-patch-7
+        with:
+          checkout_ref: 'igordmn-patch-7'
