@@ -268,6 +268,16 @@ internal class UserInputGestureRecognizer(
         }
     }
 
+    override fun shouldRequireFailureOfGestureRecognizer(
+        otherGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return if (otherGestureRecognizer is UIKitBackGestureRecognizer) {
+            true
+        } else {
+            super.shouldRequireFailureOfGestureRecognizer(otherGestureRecognizer)
+        }
+    }
+
     /**
      * Checks if compose can get priority over interop view with UIScrollView on it.
      *
