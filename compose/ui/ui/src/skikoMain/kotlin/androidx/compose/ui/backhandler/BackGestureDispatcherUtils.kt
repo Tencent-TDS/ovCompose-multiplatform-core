@@ -16,16 +16,21 @@
 
 package androidx.compose.ui.backhandler
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 
-@OptIn(ExperimentalComposeUiApi::class)
-internal class DesktopBackGestureDispatcher : BackGestureDispatcher() {
-    fun onKeyEvent(event: KeyEvent): Boolean {
-        return handleBackKeyEvent(event, activeListener)
+internal fun BackGestureDispatcher.handleBackKeyEvent(
+    event: KeyEvent,
+    listener: BackGestureListener?
+): Boolean {
+    if (listener != null && event.type == KeyEventType.KeyDown && event.key == Key.Escape) {
+        listener.onStarted()
+        listener.onCompleted()
+        return true
+    } else {
+        return false
     }
 }

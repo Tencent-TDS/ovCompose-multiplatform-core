@@ -107,16 +107,7 @@ internal class UIKitBackGestureDispatcher(
     }
 
     fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.type == KeyEventType.KeyUp && event.key == Key.Escape) {
-            activeListener?.let {
-                it.onStarted()
-                it.onCompleted()
-            }
-
-            return true
-        } else {
-            return false
-        }
+        return handleBackKeyEvent(event, activeListener)
     }
 }
 
@@ -169,7 +160,8 @@ private class UiKitScreenEdgePanGestureHandler(
                     translation.useContents {
                         view.bounds.useContents {
                             val edge = recognizer.edges
-                            val velX = if (edge == UIRectEdgeLeft) this@velocity.x else -this@velocity.x
+                            val velX =
+                                if (edge == UIRectEdgeLeft) this@velocity.x else -this@velocity.x
                             when {
                                 //if movement is fast in the right direction
                                 velX > BACK_GESTURE_VELOCITY -> listener?.onCompleted()
