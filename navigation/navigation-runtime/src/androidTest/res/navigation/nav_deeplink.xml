@@ -14,23 +14,33 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
+
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
-            xmlns:app="http://schemas.android.com/apk/res-auto"
-            android:id="@+id/nav_root"
-            android:label=""
-            app:startDestination="@+id/start">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_deeplink"
+    android:label=""
+    app:startDestination="@+id/start_test">
 
-    <test android:id="@+id/start"/>
-
-    <test android:id="@+id/first_test">
-        <deepLink app:mimeType="*/*"/>
+    <test android:id="@+id/start_test"/>
+    <test android:id="@+id/uri_only">
+        <deepLink app:uri="android-app://androidx.navigation.test/test/uriOnly"/>
     </test>
-
-    <test android:id="@+id/second_test">
-        <deepLink app:mimeType="image/*"/>
+    <test android:id="@+id/mime_only">
+        <deepLink app:mimeType="mime/only"/>
     </test>
-
-    <test android:id="@+id/third_test">
-        <deepLink app:mimeType="*/test"/>
+    <test android:id="@+id/action_only">
+        <deepLink app:action="action.only"/>
+    </test>
+    <test android:id="@+id/action_uri">
+        <deepLink app:uri="android-app://androidx.navigation.test/action/uri" app:action="action.uri"/>
+    </test>
+    <test android:id="@+id/mime_uri">
+        <deepLink app:uri="android-app://androidx.navigation.test/mime/uri" app:mimeType="mime/uri"/>
+    </test>
+    <test android:id="@+id/mime_action">
+        <deepLink app:action="mime.action" app:mimeType="mime/action"/>
+    </test>
+    <test android:id="@+id/uri_action_mime">
+            <deepLink app:uri="android-app://androidx.navigation.test/uri/action/mime" app:action="uri.action.mime" app:mimeType="uri/actionMime"/>
     </test>
 </navigation>
