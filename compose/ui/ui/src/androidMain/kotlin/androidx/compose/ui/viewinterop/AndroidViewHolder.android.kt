@@ -20,6 +20,7 @@ import android.content.Context
 import android.graphics.Rect
 import android.graphics.Region
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
@@ -40,6 +41,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.internal.checkPrecondition
+import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Measurable
@@ -245,36 +247,45 @@ internal open class AndroidViewHolder(
 
     override fun onDeactivate() {
         reset()
-        if (hasFocus()) {
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            if (!hasFocus()) {
+                removeAllViewsInLayout()
+                return
+            }
+
+            val focused = checkPreconditionNotNull(findFocus()) { "Couldn't find focused view" }
+
+            // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
+            if (isInTouchMode && SDK_INT > 28) {
+                focused.clearFocus()
+                removeAllViewsInLayout()
+                return
+            }
+
             // When a focused View is removed, it will request a focus change. We'll give it a
             // temporary View to focus on so that we don't do a recompose during applyChanges()
             // while searching for a focusable View (e.g. in a LazyColumn)
-            val focused = findFocus()
-            // focused should not be null here, but we'll check just in case
-            if (focused == null) {
-                removeAllViewsInLayout()
-            } else {
-                val tempFocusable = View(context)
-                val rect = Rect(0, 0, focused.width, focused.height)
-                offsetDescendantRectToMyCoords(focused, rect)
-                addView(tempFocusable)
+            val tempFocusable = View(context)
+            val rect = Rect(0, 0, focused.width, focused.height)
+            offsetDescendantRectToMyCoords(focused, rect)
+            addView(tempFocusable)
 
-                with(tempFocusable) {
-                    isFocusable = true
-                    isFocusableInTouchMode = true
-                    nextFocusUpId = focused.nextFocusUpId
-                    nextFocusDownId = focused.nextFocusDownId
-                    nextFocusLeftId = focused.nextFocusLeftId
-                    nextFocusRightId = focused.nextFocusRightId
-                    nextFocusForwardId = focused.nextFocusForwardId
-                    layout(rect.left, rect.top, rect.right, rect.bottom)
-                    requestFocus()
-                }
-                repeat(childCount - 1) { removeViewAt(0) }
-                owner.registerOnEndApplyChangesListener {
-                    // Now we're ready to send focus to the next focusable item.
-                    removeView(tempFocusable)
-                }
+            with(tempFocusable) {
+                isFocusable = true
+                isFocusableInTouchMode = true
+                nextFocusUpId = focused.nextFocusUpId
+                nextFocusDownId = focused.nextFocusDownId
+                nextFocusLeftId = focused.nextFocusLeftId
+                nextFocusRightId = focused.nextFocusRightId
+                nextFocusForwardId = focused.nextFocusForwardId
+                layout(rect.left, rect.top, rect.right, rect.bottom)
+                requestFocus()
+            }
+
+            removeViewsInLayout(0, childCount - 2)
+            post {
+                // Now we're ready to send focus to the next focusable item.
+                removeViewInLayout(tempFocusable)
             }
         } else {
             removeAllViewsInLayout()
