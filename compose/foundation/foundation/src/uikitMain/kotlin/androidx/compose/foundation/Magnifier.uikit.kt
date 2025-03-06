@@ -316,12 +316,6 @@ internal class MagnifierNode(
         // Once the position is set, it's never null again, so we don't need to worry
         // about dismissing the magnifier if this expression changes value.
         if (sourceCenterInView != null) {
-            // Calculate magnifier center if it's provided. Only accept if the returned value is
-            // specified. Then add [anchorPositionInWindow] for relative positioning.
-            //magnifierCenter?.invoke(density)
-            //    ?.takeIf { it.isSpecified }
-            //    ?.let { anchorPositionInWindow + it }
-
             magnifier.update(sourceCenter = sourceCenterInView)
             updateSizeIfNecessary()
         } else {
