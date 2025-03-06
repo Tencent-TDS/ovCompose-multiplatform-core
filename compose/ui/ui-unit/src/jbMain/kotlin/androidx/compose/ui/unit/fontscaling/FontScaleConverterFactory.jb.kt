@@ -106,7 +106,7 @@ internal object FontScaleConverterFactory {
     private fun put(scaleKey: Float, fontScaleConverter: FontScaleConverter) {
         lookupTablesWriteLock.withLock {
             // copy-on-write to safely omit reading synchronization
-            val copy = SparseArrayCompat<FontScaleConverter>(lookupTables.size)
+            val copy = SparseArrayCompat<FontScaleConverter>(lookupTables.size + 1)
             lookupTables.forEach { key, value ->
                 copy.put(key, value)
             }
