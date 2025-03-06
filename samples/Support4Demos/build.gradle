@@ -1,3 +1,10 @@
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
@@ -20,13 +27,8 @@ dependencies {
     implementation(project(":coordinatorlayout:coordinatorlayout"))
     implementation("com.google.android.material:material:1.6.0")
     implementation(project(":appcompat:appcompat"))
-    implementation(libs.multidex)
 }
 
 android {
     namespace "com.example.android.supportv4"
-
-    defaultConfig {
-        multiDexEnabled true
-    }
 }

@@ -22,6 +22,8 @@ import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.SessionMutex
+import androidx.compose.ui.draganddrop.WebDragAndDropManager
 import androidx.compose.ui.events.EventTargetListener
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -41,13 +43,14 @@ import androidx.compose.ui.input.pointer.composeButtons
 import androidx.compose.ui.platform.DefaultInputModeManager
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.PlatformDragAndDropManager
+import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WebTextInputService
 import androidx.compose.ui.platform.WindowInfoImpl
 import androidx.compose.ui.scene.CanvasLayersComposeScene
-import androidx.compose.ui.scene.ComposeSceneContext
+import androidx.compose.ui.scene.ComposeSceneDragAndDropNode
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.scene.platformContext
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -178,13 +181,17 @@ internal class ComposeWindow(
 
     private var keyboardModeState: KeyboardModeState = KeyboardModeState.Hardware
 
-    private val platformContext: PlatformContext = object : PlatformContext {
+    private val platformContext: PlatformContext = object : PlatformContext by PlatformContext.Empty {
         override val windowInfo get() = _windowInfo
 
         override val inputModeManager: InputModeManager = DefaultInputModeManager()
 
+        override val dragAndDropManager: PlatformDragAndDropManager = object : WebDragAndDropManager(canvasEvents, state.globalEvents, density) {
+            override val rootDragAndDropNode: ComposeSceneDragAndDropNode
+                get() = scene.rootDragAndDropNode
+        }
+
         override val textInputService = object : WebTextInputService() {
-            override fun isVirtualKeyboard() = keyboardModeState == KeyboardModeState.Virtual
 
             override fun getOffset(rect: Rect): Offset {
                 val viewportRect = canvas.getBoundingClientRect()
@@ -208,6 +215,17 @@ internal class ComposeWindow(
                 canvas.style.cursor = pointerIcon.id
             }
         }
+
+        private val textInputSessionMutex = SessionMutex<WebTextInputSession>()
+
+        override suspend fun textInputSession(
+            session: suspend PlatformTextInputSessionScope.() -> Nothing
+        ): Nothing = textInputSessionMutex.withSessionCancellingPrevious(
+            sessionInitializer = {
+                WebTextInputSession(it, textInputService)
+            },
+            session = session
+        )
     }
 
     private val skiaLayer: SkiaLayer = SkiaLayer().apply {
@@ -220,9 +238,7 @@ internal class ComposeWindow(
 
     private val scene = CanvasLayersComposeScene(
         coroutineContext = Dispatchers.Main,
-        composeSceneContext = object : ComposeSceneContext {
-            override val platformContext get() = this@ComposeWindow.platformContext
-        },
+        platformContext = platformContext,
         density = density,
         invalidate = skiaLayer::needRedraw,
     )
@@ -322,6 +338,7 @@ internal class ComposeWindow(
         state.init()
 
         canvas.setAttribute("tabindex", "0")
+        canvas.setAttribute("draggable", "true")
 
         scene.density = density
 
@@ -387,7 +404,7 @@ internal class ComposeWindow(
         event: TouchEvent,
         offset: Offset,
     ) {
-        val inputModeManager = scene.platformContext.inputModeManager
+        val inputModeManager = platformContext.inputModeManager
         if (inputModeManager.inputMode != InputMode.Touch) {
             inputModeManager.requestInputMode(InputMode.Touch)
         }
@@ -525,7 +542,8 @@ fun CanvasBasedWindow(
         )
     }
 
-    val canvas = document.getElementById(canvasElementId) as HTMLCanvasElement
+    val canvas = document.getElementById(canvasElementId)?.let { it as HTMLCanvasElement }
+        ?: error("failed to find element with id '$canvasElementId'")
 
     ComposeWindow(
         canvas = canvas,
@@ -545,7 +563,8 @@ fun ComposeViewport(
     viewportContainerId: String,
     content: @Composable () -> Unit = { }
 ) {
-    ComposeViewport(document.getElementById(viewportContainerId)!!, content)
+    val canvasContainer = document.getElementById(viewportContainerId) ?: error("failed to find element by viewportContainerId: '$viewportContainerId'")
+    ComposeViewport(canvasContainer, content)
 }
 
 /**

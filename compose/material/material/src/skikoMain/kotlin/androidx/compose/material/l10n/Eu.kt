@@ -28,4 +28,5 @@ internal fun Translations.eu() = mapOf(
     Strings.DefaultErrorMessage to "Sarrerak ez du balio",
     Strings.SliderRangeStart to "Barrutiaren hasiera",
     Strings.SliderRangeEnd to "Barrutiaren amaiera",
+    Strings.SnackbarPaneTitle to "Alerta",
 )

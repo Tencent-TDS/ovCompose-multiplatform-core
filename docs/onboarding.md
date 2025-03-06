@@ -6,11 +6,10 @@ This page describes how to set up your workstation to check out source code,
 make simple changes in Android Studio, and upload commits to Gerrit for review.
 
 This page does **not** cover best practices for the content of changes. Please
-see [Life of a Jetpack Feature](/company/teams/androidx/loaf.md) for details on
-developing and releasing a library,
-[API Guidelines](/company/teams/androidx/api_guidelines/index.md) for best
-practices regarding public APIs and an overview of the constraints placed on
-changes.
+see [Life of a Jetpack Feature](/docs/loaf.md) for details on
+creating and releasing a library or
+[API Guidelines](/docs/api_guidelines/index.md) for best
+practices regarding library development.
 
 ## Workstation setup {#setup}
 
@@ -35,6 +34,9 @@ following should work with `bash` as well.
 ```shell
 export PATH=~/bin:$PATH
 ```
+
+> NOTE: When using quotes (`"~/bin"`), `~` does not expand and the path is
+> invalid. (Possibly `bash` only?)
 
 Next, add the following lines to `~/.zshrc` (or `~/.bash_profile` if using
 `bash`) aliasing the `repo` command to run with `python3`:
@@ -65,9 +67,10 @@ Finally, you will need to either start a new terminal session or run `source
 > fatal: error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (\_ssl.c:997)
 > ```
 >
-> Run the `Install Certificates.command` in the Python folder of Application.
-> For more information about SSL/TLS certificate validation, you can read the
-> "Important Information" displayed during Python installation.
+> Run the `Install Certificates.command` in the Python folder of Application
+> (e.g. `/Applications/Python\ 3.11/Install\ Certificates.command`). For more
+> information about SSL/TLS certificate validation, you can read the "Important
+> Information" displayed during Python installation.
 
 ### Windows {#setup-win}
 
@@ -83,7 +86,7 @@ credentials with the AOSP Gerrit code review system by signing in to
 least once using the account you will use to submit patches.
 
 Next, you will need to
-[set up authentication](https://android-review.googlesource.com/new-password).
+[set up authentication](https://android.googlesource.com/new-password).
 This will give you a shell command to update your local Git cookies, which will
 allow you to upload changes.
 
@@ -230,13 +233,6 @@ or sample to run or debug it, search through classes, and so on.
 
 ### Troubleshooting {#studio-troubleshooting}
 
-*   If you've updated to macOS Ventura and receive a "App is damaged and cannot
-    be opened" message when running Studio, *do not* move the app to the Trash.
-    Cancel out of the dialog and open macOS `System Settings > Gatekeeper`, look
-    for `"Android Studio" was blocked`, and click `Open Anyway` to grant an
-    exception. Alternatively, you can navigate to the Studio `.app` file under
-    `frameworks/support/studio` and run it once using `Control+Click` and `Open`
-    to automatically grant an exception.
 *   If you've updated to macOS Ventura and receive a "xcrun: error: invalid
     active developer path" message when running Studio, reinstall Xcode using
     `xcode-select --install`. If that does not work, you will need to download
@@ -331,35 +327,35 @@ to use HTTP/1.1 with `git config --global http.version HTTP/1.1`.
 
 ### Fixing Kotlin code style errors
 
-`repo upload` automatically runs `ktlint`, which will cause the upload to fail
-if your code has style errors, which it reports on the command line like so:
+`repo upload` automatically runs `ktfmt`, which will cause the upload to fail if
+your code has style errors, which it reports on the command line like so:
 
 ```
-[FAILED] ktlint_hook
+[FAILED] ktfmt_hook
     [path]/MessageListAdapter.kt:36:69: Missing newline before ")"
 ```
 
-To find and fix these errors, you can run ktlint locally, either in a console
+To find and fix these errors, you can run ktfmt locally, either in a console
 window or in the Terminal tool in Android Studio. Running in the Terminal tool
 is preferable because it will surface links to your source files/lines so you
 can easily navigate to the code to fix any problems.
 
 First, to run the tool and see all of the errors, run:
 
-`./gradlew module:submodule:ktlint`
+`./gradlew module:submodule:ktCheck`
 
 where module/submodule are the names used to refer to the module you want to
-check, such as `navigation:navigation-common`. You can also run ktlint on the
+check, such as `navigation:navigation-common`. You can also run ktfmt on the
 entire project, but that takes longer as it is checking all active modules in
 your project.
 
-Many of the errors that ktlint finds can be automatically fixed by running
-ktlintFormat:
+Many of the errors that ktfmt finds can be automatically fixed by running
+ktFormat:
 
-`./gradlew module:submodule:ktlintFormat`
+`./gradlew module:submodule:ktFormat`
 
-ktlintFormat will report any remaining errors, but you can also run `ktlint`
-again at any time to see an updated list of the remaining errors.
+ktFormat will report any remaining errors, but you can also run `ktCheck` again
+at any time to see an updated list of the remaining errors.
 
 ## Building {#building}
 
@@ -475,7 +471,7 @@ locally.
 NOTE `./gradlew tasks` always has the canonical task information! When in doubt,
 run `./gradlew tasks`
 
-#### Generate Docs
+#### Generate docs
 
 To build API reference docs for both Java and Kotlin source code using Dackka,
 run the Gradle task:
@@ -524,7 +520,7 @@ the prebuilt checked into
 `{androidx-main-checkout}/prebuilts/androidx/internal/androidx/`. We
 colloquially refer to this two step process of (1) updating `docs-public` and
 (2) checking in a prebuilt artifact into the prebuilts directory as
-[The Prebuilts Dance](/company/teams/androidx/releasing_prebuilts_dance.md#the-prebuilts-dance™).
+[The Prebuilts Dance](/docs/releasing_prebuilts_dance.md#the-prebuilts-dance™).
 So, to build javadocs that will be published to
 https://developer.android.com/reference/androidx/packages, both of these steps
 need to be completed.
@@ -571,11 +567,19 @@ version -- we record three different types of API surfaces.
 *   `<version>.txt`: Public API surface, tracked for compatibility
 *   `restricted_<version>.txt`: `@RestrictTo` API surface, tracked for
     compatibility where necessary (see
-    [Restricted APIs](/company/teams/androidx/api_guidelines/index.md#restricted-api))
+    [Restricted APIs](/docs/api_guidelines/index.md#restricted-api))
 *   `public_plus_experimental_<version>.txt`: Public API surface plus
     `@RequiresOptIn` experimental API surfaces used for documentation (see
-    [Experimental APIs](/company/teams/androidx/api_guidelines/index.md#experimental-api))
+    [Experimental APIs](/docs/api_guidelines/index.md#experimental-api))
     and API review
+
+NOTE: Experimental API tracking for KLib is enabled by default for KMP projects
+via parallel `updateAbi` and `checkAbi` tasks. If you have a problem with these
+tools,
+[please file an issue](https://issuetracker.google.com/issues/new?component=1102332&template=1780493).
+As a workaround, you may opt-out by setting
+`enableBinaryCompatibilityValidator = false` under
+`AndroidxMultiplatformExtension` in your library's `build.gradle` file.
 
 ### Release notes & the `Relnote:` tag {#relnote}
 
@@ -762,7 +766,7 @@ You probably need to update the prebuilt SDK used by the gradle build. If you
 are referencing new framework APIs, you will need to wait for the framework
 changes to land in an SDK build (or build it yourself) and then land in both
 prebuilts/fullsdk and prebuilts/sdk. See
-[Updating SDK prebuilts](/company/teams/androidx/playbook.md#prebuilts-fullsdk)
+[Updating SDK prebuilts](/docs/playbook.md#prebuilts-fullsdk)
 for more information.
 
 #### How do I handle refactoring a framework API referenced from a library?
@@ -790,7 +794,7 @@ the issue being fixed.
 Generally, tests in the AndroidX repository should be run through the Android
 Studio UI. You can also run tests from the command line or via remote devices on
 FTL, see
-[Running unit and integration tests](/company/teams/androidx/testing.md#running)
+[Running unit and integration tests](/docs/testing.md#running)
 for details.
 
 #### Single test class or method
@@ -814,7 +818,7 @@ These applications are named either `<libraryname>-integration-tests-testapp`,
 or `support-\*-demos` (e.g. `support-v4-demos` or `support-leanback-demos`). You
 can run them by clicking `Run > Run ...` and choosing the desired application.
 
-See the [Testing](/company/teams/androidx/testing.md) page for more resources on
+See the [Testing](/docs/testing.md) page for more resources on
 writing, running, and monitoring tests.
 
 ### AVD Manager
@@ -967,7 +971,7 @@ First, use the `createArchive` Gradle task to generate the local Maven
 repository artifact:
 
 ```shell
-# Creates <path-to-checkout>/out/androidx/build/support_repo/
+# Creates <path-to-checkout>/out/repository/
 ./gradlew createArchive
 ```
 
@@ -984,7 +988,7 @@ dependencyResolutionManagement {
         mavenCentral()
         // Add this
         maven {
-            setUrl("<path-to-sdk>/out/androidx/build/support_repo/")
+            setUrl("<path-to-sdk>/out/repository/")
         }
     }
 }
@@ -1014,8 +1018,8 @@ module. We recommend only replacing the module you are modifying instead of the
 full m2repository to avoid version issues of other modules. You can either take
 the unzipped directory from
 `<path-to-checkout>/out/dist/top-of-tree-m2repository-##.zip`, or from
-`<path-to-checkout>/out/androidx/build/support_repo/` after building `androidx`.
-Here is an example of replacing the RecyclerView module:
+`<path-to-checkout>/out/repository/` after building `androidx`. Here is an
+example of replacing the RecyclerView module:
 
 ```shell
 $TARGET=YOUR_ANDROID_PATH/prebuilts/sdk/current/androidx/m2repository/androidx/recyclerview/recyclerview/1.1.0-alpha07;
@@ -1025,26 +1029,6 @@ cp -a <path-to-sdk>/extras/m2repository/androidx/recyclerview/recyclerview/1.1.0
 
 Make sure the library versions are the same before and after replacement. Then
 you can build the Android platform code with the new `androidx` code.
-
-### How do I measure library size? {#library-size}
-
-Method count and bytecode size are tracked in CI
-[alongside benchmarks](/company/teams/androidx/benchmarking.md#monitoring) to
-detect regressions.
-
-For local measurements, use the `:reportLibraryMetrics` task. For example:
-
-```shell
-./gradlew benchmark:benchmark-macro:reportLibraryMetrics
-cat ../../out/dist/librarymetrics/androidx.benchmark_benchmark-macro.json
-```
-
-Will output something like: `{"method_count":1256,"bytecode_size":178822}`
-
-Note: this only counts the weight of your library's jar/aar, including
-resources. It does not count library dependencies. It does not account for a
-minification step (e.g. with R8), as that is dynamic, and done at app build time
-(and depend on which entrypoints the app uses).
 
 ### How do I add content to a library's Overview reference doc page?
 
@@ -1058,18 +1042,4 @@ includes content from
 
 ### How do I enable MultiDex for my library?
 
-Go to your project/app level build.gradle file, and add
-
-```
-android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-}
-```
-
-as well as `androidTestImplementation(libs.multidex)` to the dependenices block.
-
-If you want it enabled for the application and not test apk, add
-`implementation(libs.multidex)` to the dependencies block instead. Any prior
-failures may not re-occur now that the software is multi-dexed. Rerun the build.
+It is enabled automatically as androidx minSdkVersion is API >=21.

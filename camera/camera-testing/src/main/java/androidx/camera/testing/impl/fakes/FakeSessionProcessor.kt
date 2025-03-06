@@ -20,6 +20,7 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import android.media.ImageWriter
 import android.os.SystemClock
+import android.util.Size
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.camera.core.CameraInfo
@@ -31,24 +32,26 @@ import androidx.camera.core.impl.Config
 import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.ImageReaderProxy
 import androidx.camera.core.impl.OptionsBundle
-import androidx.camera.core.impl.OutputSurface
+import androidx.camera.core.impl.OutputSurfaceConfiguration
 import androidx.camera.core.impl.RequestProcessor
-import androidx.camera.core.impl.RestrictedCameraControl
+import androidx.camera.core.impl.RestrictedCameraInfo
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.impl.SessionProcessorSurface
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
+import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 
-const val FAKE_CAPTURE_SEQUENCE_ID = 1
+private const val FAKE_CAPTURE_SEQUENCE_ID = 1
 
 @RequiresApi(23) // ImageWriter requires API 23+
-class FakeSessionProcessor(
-    val inputFormatPreview: Int? = null,
-    val inputFormatCapture: Int? = null
+public class FakeSessionProcessor(
+    private val inputFormatPreview: Int? = null,
+    private val inputFormatCapture: Int? = null,
+    private val postviewSupportedSizes: Map<Int, List<Size>>? = null,
 ) : SessionProcessor {
     private lateinit var previewProcessorSurface: DeferrableSurface
     private lateinit var captureProcessorSurface: DeferrableSurface
@@ -65,55 +68,66 @@ class FakeSessionProcessor(
 
     // Values of these Deferred are the timestamp to complete.
     private val initSessionCalled = CompletableDeferred<Long>()
+    private val initSessionOutputSurfaceConfiguration =
+        CompletableDeferred<OutputSurfaceConfiguration>()
     private val deInitSessionCalled = CompletableDeferred<Long>()
     private val onCaptureSessionStartCalled = CompletableDeferred<Long>()
     private val onCaptureSessionEndCalled = CompletableDeferred<Long>()
     private val startRepeatingCalled = CompletableDeferred<Long>()
     private val startCaptureCalled = CompletableDeferred<Long>()
+    private val startCapturePostviewEnabled = CompletableDeferred<Boolean>()
     private val setParametersCalled = CompletableDeferred<Config>()
     private val startTriggerCalled = CompletableDeferred<Config>()
     private val stopRepeatingCalled = CompletableDeferred<Long>()
     private var latestParameters: Config = OptionsBundle.emptyBundle()
     private var blockRunAfterInitSession: () -> Unit = {}
-
+    private var failStillCaptureImmediately = false
     private var rotationDegrees = 0
     private var jpegQuality = 100
 
-    @RestrictedCameraControl.CameraOperation
-    var restrictedCameraOperations: Set<Int> = emptySet()
+    @RestrictedCameraInfo.CameraOperation
+    public var restrictedCameraOperations: Set<Int> = emptySet()
 
-    fun releaseSurfaces() {
+    public fun releaseSurfaces() {
         intermediaPreviewImageReader?.close()
         intermediaCaptureImageReader?.close()
     }
 
-    fun runAfterInitSession(block: () -> Unit) {
+    public fun runAfterInitSession(block: () -> Unit) {
         blockRunAfterInitSession = block
+    }
+
+    public fun setStillCaptureFailedImmediately(failedImmediately: Boolean) {
+        failStillCaptureImmediately = failedImmediately
     }
 
     override fun initSession(
         cameraInfo: CameraInfo,
-        previewSurfaceConfig: OutputSurface,
-        imageCaptureSurfaceConfig: OutputSurface,
-        imageAnalysisSurfaceConfig: OutputSurface?
+        outputSurfaceConfig: OutputSurfaceConfiguration
     ): SessionConfig {
         initSessionCalled.complete(SystemClock.elapsedRealtimeNanos())
+        initSessionOutputSurfaceConfiguration.complete(outputSurfaceConfig)
         val sessionBuilder = SessionConfig.Builder()
+
+        val previewSurfaceConfig = outputSurfaceConfig.previewOutputSurface
+        val imageCaptureSurfaceConfig = outputSurfaceConfig.imageCaptureOutputSurface
+        val imageAnalysisSurfaceConfig = outputSurfaceConfig.imageAnalysisOutputSurface
 
         // Preview
         lateinit var previewTransformedSurface: Surface
         if (inputFormatPreview == null) { // no conversion, use origin surface.
             previewTransformedSurface = previewSurfaceConfig.surface
         } else {
-            intermediaPreviewImageReader = ImageReaderProxys.createIsolatedReader(
-                previewSurfaceConfig.size.width, previewSurfaceConfig.size.height,
-                inputFormatPreview, 2
-            )
+            intermediaPreviewImageReader =
+                ImageReaderProxys.createIsolatedReader(
+                    previewSurfaceConfig.size.width,
+                    previewSurfaceConfig.size.height,
+                    inputFormatPreview,
+                    2
+                )
             previewTransformedSurface = intermediaPreviewImageReader!!.surface!!
 
-            intermediaPreviewImageWriter = ImageWriter.newInstance(
-                previewSurfaceConfig.surface, 2
-            )
+            intermediaPreviewImageWriter = ImageWriter.newInstance(previewSurfaceConfig.surface, 2)
 
             intermediaPreviewImageReader!!.setOnImageAvailableListener(
                 {
@@ -141,17 +155,22 @@ class FakeSessionProcessor(
         if (inputFormatCapture == null) { // no conversion, use origin surface.
             captureTransformedSurface = imageCaptureSurfaceConfig.surface
         } else {
-            intermediaCaptureImageReader = ImageReaderProxys.createIsolatedReader(
-                imageCaptureSurfaceConfig.size.width, imageCaptureSurfaceConfig.size.height,
-                inputFormatCapture, 2
-            )
+            intermediaCaptureImageReader =
+                ImageReaderProxys.createIsolatedReader(
+                    imageCaptureSurfaceConfig.size.width,
+                    imageCaptureSurfaceConfig.size.height,
+                    inputFormatCapture,
+                    2
+                )
             captureTransformedSurface = intermediaCaptureImageReader!!.surface!!
 
             intermediaCaptureImageReader!!.setOnImageAvailableListener(
                 {
                     it.acquireNextImage().use { imageProxy ->
                         ImageProcessingUtil.convertYuvToJpegBytesIntoSurface(
-                            imageProxy!!, jpegQuality, rotationDegrees,
+                            imageProxy!!,
+                            jpegQuality,
+                            rotationDegrees,
                             imageCaptureSurfaceConfig.surface
                         )
                     }
@@ -163,17 +182,14 @@ class FakeSessionProcessor(
             SessionProcessorSurface(captureTransformedSurface, captureOutputConfigId)
 
         captureProcessorSurface.terminationFuture.addListener(
-            {
-                intermediaCaptureImageReader?.close()
-            },
+            { intermediaCaptureImageReader?.close() },
             CameraXExecutors.directExecutor()
         )
         sessionBuilder.addSurface(captureProcessorSurface)
 
         imageAnalysisSurfaceConfig?.let {
-            imageAnalysisProcessorSurface = SessionProcessorSurface(
-                it.surface, analysisOutputConfigId
-            )
+            imageAnalysisProcessorSurface =
+                SessionProcessorSurface(it.surface, analysisOutputConfigId)
             sessionBuilder.addSurface(imageAnalysisProcessorSurface!!)
         }
         sessionBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
@@ -192,19 +208,19 @@ class FakeSessionProcessor(
     override fun setParameters(config: Config) {
         setParametersCalled.complete(config)
         latestParameters = config
-        config.listOptions().filter {
-            it.token is CaptureRequest.Key<*>
-        }.forEach {
-            @Suppress("UNCHECKED_CAST")
-            val key = it.token as CaptureRequest.Key<Any>?
-            if (key == CaptureRequest.JPEG_ORIENTATION) {
-                rotationDegrees = config.retrieveOption(it) as Int
-            }
+        config
+            .listOptions()
+            .filter { it.token is CaptureRequest.Key<*> }
+            .forEach {
+                @Suppress("UNCHECKED_CAST") val key = it.token as CaptureRequest.Key<Any>?
+                if (key == CaptureRequest.JPEG_ORIENTATION) {
+                    rotationDegrees = config.retrieveOption(it) as Int
+                }
 
-            if (key == CaptureRequest.JPEG_QUALITY) {
-                jpegQuality = (config.retrieveOption(it) as Byte).toInt()
+                if (key == CaptureRequest.JPEG_QUALITY) {
+                    jpegQuality = (config.retrieveOption(it) as Byte).toInt()
+                }
             }
-        }
     }
 
     override fun onCaptureSessionStart(_requestProcessor: RequestProcessor) {
@@ -216,22 +232,27 @@ class FakeSessionProcessor(
         onCaptureSessionEndCalled.complete(SystemClock.elapsedRealtimeNanos())
     }
 
-    fun getLatestParameters(): Config {
+    public fun getLatestParameters(): Config {
         return latestParameters
     }
 
-    @RestrictedCameraControl.CameraOperation
+    @RestrictedCameraInfo.CameraOperation
     override fun getSupportedCameraOperations(): Set<Int> {
         return restrictedCameraOperations
     }
 
+    override fun getSupportedPostviewSize(captureSize: Size): Map<Int, List<Size>> {
+        return postviewSupportedSizes ?: emptyMap()
+    }
+
     override fun startRepeating(callback: SessionProcessor.CaptureCallback): Int {
         startRepeatingCalled.complete(SystemClock.elapsedRealtimeNanos())
-        val builder = RequestProcessorRequest.Builder().apply {
-            addTargetOutputConfigId(previewOutputConfigId)
-            setParameters(latestParameters)
-            setTemplateId(CameraDevice.TEMPLATE_PREVIEW)
-        }
+        val builder =
+            RequestProcessorRequest.Builder().apply {
+                addTargetOutputConfigId(previewOutputConfigId)
+                setParameters(latestParameters)
+                setTemplateId(CameraDevice.TEMPLATE_PREVIEW)
+            }
 
         requestProcessor!!.setRepeating(
             builder.build(),
@@ -265,13 +286,9 @@ class FakeSessionProcessor(
                     outputConfigId: Int
                 ) {}
 
-                override fun onCaptureSequenceCompleted(
-                    sequenceId: Int,
-                    frameNumber: Long
-                ) {}
+                override fun onCaptureSequenceCompleted(sequenceId: Int, frameNumber: Long) {}
 
-                override fun onCaptureSequenceAborted(sequenceId: Int) {
-                }
+                override fun onCaptureSequenceAborted(sequenceId: Int) {}
             }
         )
         return FAKE_CAPTURE_SEQUENCE_ID
@@ -282,14 +299,27 @@ class FakeSessionProcessor(
         stopRepeatingCalled.complete(SystemClock.elapsedRealtimeNanos())
     }
 
-    override fun startCapture(callback: SessionProcessor.CaptureCallback): Int {
+    override fun startCapture(
+        postviewEnabled: Boolean,
+        callback: SessionProcessor.CaptureCallback
+    ): Int {
         startCaptureCalled.complete(SystemClock.elapsedRealtimeNanos())
-        val request = RequestProcessorRequest.Builder().apply {
-            addTargetOutputConfigId(captureOutputConfigId)
-            setParameters(latestParameters)
-            setTemplateId(CameraDevice.TEMPLATE_STILL_CAPTURE)
-        }.build()
+        startCapturePostviewEnabled.complete(postviewEnabled)
+        if (failStillCaptureImmediately) {
+            callback.onCaptureFailed(FAKE_CAPTURE_SEQUENCE_ID)
+            return FAKE_CAPTURE_SEQUENCE_ID
+        }
 
+        val request =
+            RequestProcessorRequest.Builder()
+                .apply {
+                    addTargetOutputConfigId(captureOutputConfigId)
+                    setParameters(latestParameters)
+                    setTemplateId(CameraDevice.TEMPLATE_STILL_CAPTURE)
+                }
+                .build()
+
+        callback.onCaptureProcessProgressed(0)
         requestProcessor!!.submit(
             request,
             object : RequestProcessor.Callback {
@@ -297,14 +327,16 @@ class FakeSessionProcessor(
                     request: RequestProcessor.Request,
                     captureResult: CameraCaptureResult
                 ) {
-                    callback.onCaptureSequenceCompleted(1)
+                    callback.onCaptureSequenceCompleted(FAKE_CAPTURE_SEQUENCE_ID)
                 }
 
                 override fun onCaptureStarted(
                     request: RequestProcessor.Request,
                     frameNumber: Long,
                     timestamp: Long
-                ) {}
+                ) {
+                    callback.onCaptureStarted(FAKE_CAPTURE_SEQUENCE_ID, timestamp)
+                }
 
                 override fun onCaptureProgressed(
                     request: RequestProcessor.Request,
@@ -315,7 +347,7 @@ class FakeSessionProcessor(
                     request: RequestProcessor.Request,
                     captureFailure: CameraCaptureFailure
                 ) {
-                    callback.onCaptureFailed(1)
+                    callback.onCaptureFailed(FAKE_CAPTURE_SEQUENCE_ID)
                 }
 
                 override fun onCaptureBufferLost(
@@ -338,63 +370,62 @@ class FakeSessionProcessor(
         return FAKE_CAPTURE_SEQUENCE_ID
     }
 
-    override fun abortCapture(captureSequenceId: Int) {
-    }
+    override fun abortCapture(captureSequenceId: Int) {}
 
-    suspend fun assertInitSessionInvoked(): Long {
+    public suspend fun assertInitSessionInvoked(): Long {
         return initSessionCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun wasInitSessionInvoked(): Boolean {
-        val result = withTimeoutOrNull(3000) { initSessionCalled.await() }
-        return result != null
+    public suspend fun awaitInitSessionOutputSurfaceConfiguration(): OutputSurfaceConfiguration {
+        return initSessionOutputSurfaceConfiguration.awaitWithTimeout(3000)
     }
 
-    suspend fun assertDeInitSessionInvoked(): Long {
+    public suspend fun assertDeInitSessionInvoked(): Long {
         return deInitSessionCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertOnCaptureSessionStartInvoked(): Long {
+    public suspend fun assertOnCaptureSessionStartInvoked(): Long {
         return onCaptureSessionStartCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun wasOnCaptureSessionStartInvoked(): Boolean {
+    public suspend fun wasOnCaptureSessionStartInvoked(): Boolean {
         val result = withTimeoutOrNull(3000) { onCaptureSessionStartCalled.await() }
         return result != null
     }
 
-    suspend fun assertOnCaptureEndInvoked(): Long {
+    public suspend fun assertOnCaptureEndInvoked(): Long {
         return onCaptureSessionEndCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertStartRepeatingInvoked(): Long {
+    public suspend fun assertStartRepeatingInvoked(): Long {
         return startRepeatingCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertStartCaptureInvoked(): Long {
+    public suspend fun assertStartCaptureInvoked(): Long {
         return startCaptureCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertSetParametersInvoked(): Config {
+    public suspend fun assertStartCapturePostviewEnabled() {
+        assertThat(startCapturePostviewEnabled.awaitWithTimeout(3000)).isTrue()
+    }
+
+    public suspend fun assertSetParametersInvoked(): Config {
         return setParametersCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertStartTriggerInvoked(): Config {
+    public suspend fun assertStartTriggerInvoked(): Config {
         return startTriggerCalled.awaitWithTimeout(3000)
     }
 
-    suspend fun assertStopRepeatingInvoked(): Long {
+    public suspend fun assertStopRepeatingInvoked(): Long {
         return stopRepeatingCalled.awaitWithTimeout(3000)
     }
 
     private suspend fun <T> Deferred<T>.awaitWithTimeout(timeMillis: Long): T {
-        return withTimeout(timeMillis) {
-            await()
-        }
+        return withTimeout(timeMillis) { await() }
     }
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal class RequestProcessorRequest(
     private val targetOutputConfigIds: List<Int>,
     private val parameters: Config,

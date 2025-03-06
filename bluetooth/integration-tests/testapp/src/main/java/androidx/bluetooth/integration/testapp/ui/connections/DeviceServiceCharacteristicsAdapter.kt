@@ -36,24 +36,21 @@ class DeviceServiceCharacteristicsAdapter(
 ) : RecyclerView.Adapter<DeviceServiceCharacteristicsAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_device_service_characteristic, parent, false)
-        return ViewHolder(view, onCharacteristicActionClick)
+        val view =
+            LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_device_service_characteristic, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(deviceConnection, characteristics[position])
     }
 
     override fun getItemCount(): Int {
         return characteristics.size
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val characteristic = characteristics[position]
-        holder.bind(deviceConnection, characteristic)
-    }
-
-    inner class ViewHolder(
-        itemView: View,
-        private val onCharacteristicActionClick: OnCharacteristicActionClick
-    ) : RecyclerView.ViewHolder(itemView) {
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         private val textViewUuid: TextView = itemView.findViewById(R.id.text_view_uuid)
         private val textViewProperties: TextView = itemView.findViewById(R.id.text_view_properties)
@@ -69,17 +66,11 @@ class DeviceServiceCharacteristicsAdapter(
         private var currentCharacteristic: GattCharacteristic? = null
 
         init {
-            buttonRead.setOnClickListener {
-                onClick(OnCharacteristicActionClick.READ)
-            }
+            buttonRead.setOnClickListener { onClick(OnCharacteristicActionClick.READ) }
 
-            buttonWrite.setOnClickListener {
-                onClick(OnCharacteristicActionClick.WRITE)
-            }
+            buttonWrite.setOnClickListener { onClick(OnCharacteristicActionClick.WRITE) }
 
-            buttonSubscribe.setOnClickListener {
-                onClick(OnCharacteristicActionClick.SUBSCRIBE)
-            }
+            buttonSubscribe.setOnClickListener { onClick(OnCharacteristicActionClick.SUBSCRIBE) }
         }
 
         fun bind(deviceConnection: DeviceConnection, characteristic: GattCharacteristic) {
@@ -118,13 +109,15 @@ class DeviceServiceCharacteristicsAdapter(
             val isReadable = properties.and(GattCharacteristic.PROPERTY_READ) != 0
             buttonRead.isVisible = isReadable
 
-            val isWriteable = properties.and(GattCharacteristic.PROPERTY_WRITE) != 0 ||
-                properties.and(GattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0 ||
-                properties.and(GattCharacteristic.PROPERTY_SIGNED_WRITE) != 0
+            val isWriteable =
+                properties.and(GattCharacteristic.PROPERTY_WRITE) != 0 ||
+                    properties.and(GattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0 ||
+                    properties.and(GattCharacteristic.PROPERTY_SIGNED_WRITE) != 0
             buttonWrite.isVisible = isWriteable
 
-            val isSubscribable = properties.and(GattCharacteristic.PROPERTY_INDICATE) != 0 ||
-                properties.and(GattCharacteristic.PROPERTY_NOTIFY) != 0
+            val isSubscribable =
+                properties.and(GattCharacteristic.PROPERTY_INDICATE) != 0 ||
+                    properties.and(GattCharacteristic.PROPERTY_NOTIFY) != 0
             buttonSubscribe.isVisible = isSubscribable
 
             val value = deviceConnection.valueFor(characteristic)
@@ -136,11 +129,7 @@ class DeviceServiceCharacteristicsAdapter(
             val deviceConnection = currentDeviceConnection
             val characteristic = currentCharacteristic
             if (deviceConnection != null && characteristic != null) {
-                onCharacteristicActionClick.onClick(
-                    deviceConnection,
-                    characteristic,
-                    action
-                )
+                onCharacteristicActionClick.onClick(deviceConnection, characteristic, action)
             }
         }
     }

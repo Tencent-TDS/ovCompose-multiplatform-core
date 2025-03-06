@@ -19,6 +19,7 @@ package androidx.benchmark
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import kotlin.test.assertEquals
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -27,9 +28,7 @@ import org.junit.runner.RunWith
 class MetricCaptureTest {
     @Test
     fun allocationCountCapture_simple() {
-        AllocationCountCapture().verifyMedian(100..110) {
-            allocate(100)
-        }
+        AllocationCountCapture().verifyMedian(100..110) { allocate(100) }
     }
 
     @Test
@@ -43,6 +42,50 @@ class MetricCaptureTest {
             captureResumed()
         }
     }
+
+    @Test
+    fun cpuEventCounterCapture_outputName() {
+        CpuEventCounter().use {
+            assertEquals(
+                listOf("instructions", "cpuCycles"),
+                CpuEventCounterCapture(
+                        it,
+                        listOf(CpuEventCounter.Event.Instructions, CpuEventCounter.Event.CpuCycles)
+                    )
+                    .names
+            )
+        }
+    }
+
+    @Test
+    fun cpuEventCounterCapture_multi() {
+        try {
+            // skip test if need root, or event fails to enable
+            CpuEventCounter.forceEnable()?.let { errorMessage -> assumeTrue(errorMessage, false) }
+
+            CpuEventCounter().use { counter ->
+                val firstEvents = listOf(CpuEventCounter.Event.Instructions)
+                val secondEvents =
+                    listOf(CpuEventCounter.Event.Instructions, CpuEventCounter.Event.CpuCycles)
+
+                val firstCapture = CpuEventCounterCapture(counter, firstEvents)
+                val secondCapture = CpuEventCounterCapture(counter, secondEvents)
+
+                val checkCapture: (CpuEventCounterCapture, List<CpuEventCounter.Event>) -> Unit =
+                    { capture, events ->
+                        capture.captureStart(0)
+                        assertEquals(events.getFlags(), counter.currentEventFlags)
+                        capture.captureStop(1, LongArray(events.size), 0)
+                    }
+
+                checkCapture(firstCapture, firstEvents)
+                checkCapture(secondCapture, secondEvents)
+                checkCapture(firstCapture, firstEvents)
+            }
+        } finally {
+            CpuEventCounter.reset()
+        }
+    }
 }
 
 /**
@@ -53,12 +96,13 @@ class MetricCaptureTest {
 private fun MetricCapture.verifyMedian(expected: IntRange, block: MetricCapture.() -> Unit) {
     assertEquals(1, names.size)
     val longArray = longArrayOf(0L)
-    val results = List(200) {
-        captureStart(System.nanoTime())
-        block()
-        captureStop(System.nanoTime(), longArray, 0)
-        longArray[0] * 1.0
-    }
+    val results =
+        List(200) {
+            captureStart(System.nanoTime())
+            block()
+            captureStop(System.nanoTime(), longArray, 0)
+            longArray[0] * 1.0
+        }
     val median = MetricResult(names[0], results).median.toInt()
     if (median !in expected) {
         throw AssertionError(

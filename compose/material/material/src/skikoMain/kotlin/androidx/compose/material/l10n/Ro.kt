@@ -28,4 +28,5 @@ internal fun Translations.ro() = mapOf(
     Strings.DefaultErrorMessage to "Intrare nevalidă",
     Strings.SliderRangeStart to "Început de interval",
     Strings.SliderRangeEnd to "Sfârșit de interval",
+    Strings.SnackbarPaneTitle to "Alertă",
 )

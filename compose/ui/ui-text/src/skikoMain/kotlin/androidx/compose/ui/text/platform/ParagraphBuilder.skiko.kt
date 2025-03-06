@@ -35,7 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
-import androidx.compose.ui.text.AnnotatedString.Range
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.FontRasterizationSettings
 import androidx.compose.ui.text.Placeholder
@@ -103,6 +103,7 @@ private data class ComputedStyle(
     var drawStyle: DrawStyle? = null,
     var blendMode: BlendMode = DrawScope.DefaultBlendMode,
     var lineHeight: Float? = null,
+    var topRatio: Float = -1f,
 ) {
     constructor(
         density: Density,
@@ -110,8 +111,9 @@ private data class ComputedStyle(
         brushSize: Size = Size.Unspecified,
         blendMode: BlendMode = DrawScope.DefaultBlendMode,
         lineHeight: TextUnit,
+        lineHeightStyle: LineHeightStyle?,
     ) : this() {
-        set(density, spanStyle, brushSize, blendMode, lineHeight)
+        set(density, spanStyle, brushSize, blendMode, lineHeight, lineHeightStyle)
     }
 
     fun set(
@@ -120,6 +122,7 @@ private data class ComputedStyle(
         brushSize: Size = Size.Unspecified,
         blendMode: BlendMode = DrawScope.DefaultBlendMode,
         lineHeight: TextUnit,
+        lineHeightStyle: LineHeightStyle?,
     ) {
         this.textForegroundStyle = spanStyle.textForegroundStyle
         this.brushSize = brushSize
@@ -144,6 +147,8 @@ private data class ComputedStyle(
         this.lineHeight = if (lineHeight.isSpecified) {
             lineHeight.toPx(density, spanStyle.fontSize)
         } else null
+        val alignment = lineHeightStyle?.alignment ?: LineHeightStyle.Alignment.Proportional
+        this.topRatio = alignment.topRatio
     }
 
     private val _foregroundPaint = SkiaTextPaint()
@@ -214,6 +219,7 @@ private data class ComputedStyle(
         lineHeight?.let {
             res.height = it / fontSize
         }
+        res.topRatio = topRatio
 
         return res
     }
@@ -259,8 +265,8 @@ internal class ParagraphBuilder(
     var brushSize: Size = Size.Unspecified,
     var ellipsis: String = "",
     var maxLines: Int = Int.MAX_VALUE,
-    val spanStyles: List<Range<SpanStyle>>,
-    val placeholders: List<Range<Placeholder>>,
+    var annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
+    val placeholders: List<AnnotatedString.Range<Placeholder>>,
     val density: Density,
     val textDirection: ResolvedTextDirection,
     var drawStyle: DrawStyle? = null,
@@ -274,7 +280,14 @@ internal class ParagraphBuilder(
         initialStyle = textStyle.toSpanStyle().copyWithDefaultFontSize(
             drawStyle = drawStyle
         )
-        defaultStyle.set(density, initialStyle, brushSize, blendMode, textStyle.lineHeight)
+        defaultStyle.set(
+            density = density,
+            spanStyle = initialStyle,
+            brushSize = brushSize,
+            blendMode = blendMode,
+            lineHeight = textStyle.lineHeight,
+            lineHeightStyle = textStyle.lineHeightStyle,
+        )
     }
 
     fun updateForegroundPaint(paragraph: SkParagraph?) {
@@ -297,7 +310,7 @@ internal class ParagraphBuilder(
     fun build(): SkParagraph {
         prepareDefaultStyle()
         ops = makeOps(
-            spanStyles,
+            annotations,
             placeholders
         )
 
@@ -409,13 +422,17 @@ internal class ParagraphBuilder(
     }
 
     private fun makeOps(
-        spans: List<Range<SpanStyle>>,
-        placeholders: List<Range<Placeholder>>
+        annotations: List<AnnotatedString.Range<out AnnotatedString.Annotation>>,
+        placeholders: List<AnnotatedString.Range<Placeholder>>
     ): List<Op> {
         val cuts = mutableListOf<Cut>()
-        for (span in spans) {
-            cuts.add(Cut.StyleAdd(span.start, span.item))
-            cuts.add(Cut.StyleRemove(span.end, span.item))
+        for (annotation in annotations) {
+
+            // TODO https://youtrack.jetbrains.com/issue/CMP-7151
+            if (annotation.item !is SpanStyle) continue
+
+            cuts.add(Cut.StyleAdd(annotation.start, annotation.item))
+            cuts.add(Cut.StyleRemove(annotation.end, annotation.item))
         }
 
         for (placeholder in placeholders) {
@@ -469,7 +486,14 @@ internal class ParagraphBuilder(
 
     private fun mergeStyles(activeStyles: List<SpanStyle>): ComputedStyle {
         // there is always at least one active style
-        val style = ComputedStyle(density, activeStyles[0], brushSize, blendMode, textStyle.lineHeight)
+        val style = ComputedStyle(
+            density = density,
+            spanStyle = activeStyles[0],
+            brushSize = brushSize,
+            blendMode = blendMode,
+            lineHeight = textStyle.lineHeight,
+            lineHeightStyle = textStyle.lineHeightStyle
+        )
         for (i in 1 until activeStyles.size) {
             style.merge(density, activeStyles[i])
         }
@@ -519,8 +543,6 @@ internal class ParagraphBuilder(
             pStyle.heightMode = HeightMode.DISABLE_ALL
         }
 
-        // TODO: Support lineHeightStyle.alignment. Currently it's not exposed in skia
-
         pStyle.direction = textDirection.toSkDirection()
         textStyle.textIndent?.run {
             with(density) {
@@ -544,12 +566,22 @@ internal class ParagraphBuilder(
     // workaround for https://bugs.chromium.org/p/skia/issues/detail?id=11321 :(
     internal fun emptyLineMetrics(paragraph: SkParagraph): Array<LineMetrics> {
         val metrics = defaultFont.metrics
-        val heightMultiplier = defaultStyle.lineHeight?.let {
-            it / defaultStyle.fontSize.toDouble()
-        } ?: 1.0
-        val ascent = metrics.ascent * heightMultiplier // TODO: Support non-proportional alignment
-        val descent = metrics.descent * heightMultiplier // TODO: Support non-proportional alignment
+        var ascent = metrics.ascent.toDouble()
+        var descent = metrics.descent.toDouble()
         val baseline = paragraph.alphabeticBaseline.toDouble()
+        val lineHeight = defaultStyle.lineHeight
+        if (lineHeight != null) {
+            val topRatio = defaultStyle.topRatio
+            if (topRatio in 0.0f..1.0f) {
+                val extraLeading = lineHeight - defaultStyle.fontSize
+                ascent -= extraLeading * topRatio
+                descent += extraLeading * (1.0f - topRatio)
+            } else {
+                val multiplier = lineHeight / defaultStyle.fontSize
+                ascent *= multiplier
+                descent *= multiplier
+            }
+        }
         val height = descent - ascent
         return arrayOf(
             LineMetrics(

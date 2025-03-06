@@ -48,7 +48,7 @@ internal class TooltipAreaTest {
         onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }
-
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
         onNodeWithTag("tooltip").assertExists()
     }
 
@@ -64,6 +64,7 @@ internal class TooltipAreaTest {
         onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
         onNodeWithTag("tooltip").assertExists()
 
         onNodeWithTag("elementWithTooltip").performMouseInput {
@@ -84,6 +85,7 @@ internal class TooltipAreaTest {
         onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
         onNodeWithTag("tooltip").assertExists()
 
         onNodeWithTag("elementWithTooltip").performMouseInput {
@@ -122,6 +124,7 @@ internal class TooltipAreaTest {
         onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
 
         // Move into the tooltip, but still inside the area
         onNodeWithTag("tooltip").let {
@@ -178,6 +181,7 @@ internal class TooltipAreaTest {
         onNodeWithTag("elementWithTooltip").performMouseInput {
             moveTo(Offset(30f, 40f))
         }
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
         onNodeWithTag("tooltip").assertExists()
 
         onNodeWithTag("elementWithTooltip").performMouseInput {
@@ -189,6 +193,7 @@ internal class TooltipAreaTest {
             release()
             moveBy(Offset(10f, 10f))
         }
+        mainClock.advanceTimeBy(TooltipDelayMillis + 1L)
         onNodeWithTag("tooltip").assertExists()
     }
 
@@ -196,7 +201,7 @@ internal class TooltipAreaTest {
     private fun SimpleTooltipArea(
         areaSize: Dp = 100.dp,
         tooltipSize: Dp = 20.dp,
-        delayMillis: Int = 500
+        delayMillis: Int = TooltipDelayMillis
     ) {
         TooltipArea(
             tooltip = {
@@ -208,3 +213,5 @@ internal class TooltipAreaTest {
         }
     }
 }
+
+private const val TooltipDelayMillis = 500

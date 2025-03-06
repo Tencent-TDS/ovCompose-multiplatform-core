@@ -18,8 +18,8 @@ package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.MediaType
 import androidx.compose.ui.draganddrop.DragAndDropEvent
-import androidx.compose.ui.draganddrop.DragAndDropModifierNode
 import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTargetModifierNode
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.ClipMetadata
@@ -36,8 +36,8 @@ internal actual fun textFieldDragAndDropNode(
     onChanged: ((event: DragAndDropEvent) -> Unit)?,
     onExited: ((event: DragAndDropEvent) -> Unit)?,
     onEnded: ((event: DragAndDropEvent) -> Unit)?
-): DragAndDropModifierNode {
-    return DragAndDropModifierNode(
+): DragAndDropTargetModifierNode {
+    return DragAndDropTargetModifierNode(
         shouldStartDragAndDrop = { _ ->
             false
         },

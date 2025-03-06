@@ -47,10 +47,10 @@ import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
 import java.awt.Dimension
 import java.awt.GraphicsEnvironment
-import java.awt.SystemColor.window
 import java.awt.Toolkit
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -468,7 +468,7 @@ class WindowTest {
                         // toInt() because this is how the ComposeWindow rounds decimal sizes
                         // (see ComposeBridge.updateSceneSize)
                         actualCanvasSize = size.toInt()
-                        expectedCanvasSizePx = expectedCanvasSize().toSize().toInt()
+                        expectedCanvasSizePx = expectedCanvasSize().toSize().roundToIntSize()
                     }
                 }
             }
@@ -636,8 +636,8 @@ class WindowTest {
             assertEquals(1, constraintsList.size)
             assertEquals(
                 Constraints(
-                    maxWidth = expectedSize.width.toInt(),
-                    maxHeight = expectedSize.height.toInt()
+                    maxWidth = expectedSize.width.roundToInt(),
+                    maxHeight = expectedSize.height.roundToInt()
                 ),
                 constraintsList.first()
             )

@@ -18,9 +18,6 @@ package androidx.compose.ui.test
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.scene.ComposeHostingViewController
 import androidx.compose.ui.uikit.ComposeUIViewControllerConfiguration
@@ -43,18 +40,40 @@ import platform.Foundation.NSRunLoop
 import platform.Foundation.NSValue
 import platform.Foundation.dateWithTimeIntervalSinceNow
 import platform.Foundation.runUntilDate
+import platform.UIKit.UIApplication
 import platform.UIKit.UIKeyboardAnimationCurveUserInfoKey
 import platform.UIKit.UIKeyboardAnimationDurationUserInfoKey
 import platform.UIKit.UIKeyboardFrameEndUserInfoKey
 import platform.UIKit.UIKeyboardWillChangeFrameNotification
+import platform.UIKit.UIKeyboardWillHideNotification
 import platform.UIKit.UIKeyboardWillShowNotification
 import platform.UIKit.UIScreen
 import platform.UIKit.UIWindow
 import platform.UIKit.valueWithCGRect
 
+/**
+ * Sets up the test environment for iOS instrumented tests, runs the given [test][testBlock]
+ * and then tears down the test environment. Use the methods on [UIKitInstrumentedTest]
+ * in the test to find compose content and make assertions on it.
+ *
+ * Tests run without [UIApplication] and Application Delegate are created.
+ * Because of this, there are several known issues:
+ * - Rendering calls do not take effect. Also, it's not possible to take screenshots of the views.
+ * - The [becomeFirstResponder()] method does not display the keyboard on the first call.
+ *   Use the dedicated keyboard methods of the [UIKitInstrumentedTest]
+ *   class to manipulate the keyboard appearance.
+ *
+ * @param [testBlock] The test function.
+ */
 internal fun runUIKitInstrumentedTest(
     testBlock: UIKitInstrumentedTest.() -> Unit
-) = with(UIKitInstrumentedTest(), testBlock)
+) = with(UIKitInstrumentedTest()) {
+    try {
+        testBlock()
+    } finally {
+        tearDown()
+    }
+}
 
 @OptIn(ExperimentalForeignApi::class)
 internal class UIKitInstrumentedTest {
@@ -79,38 +98,29 @@ internal class UIKitInstrumentedTest {
         configure: ComposeUIViewControllerConfiguration.() -> Unit = {},
         content: @Composable () -> Unit
     ) {
-        var onDraw = false
         hostingViewController = ComposeHostingViewController(
             configuration = ComposeUIViewControllerConfiguration().apply {
                 // Current instrumented test environment doesn't allow providing a plist.
                 enforceStrictPlistSanityCheck = false
                 configure()
             },
-            content = {
-                Layout(
-                    content = content,
-                    modifier = Modifier.drawWithContent {
-                        onDraw = true
-                    },
-                    measurePolicy = { measurables, constraints ->
-                        val placeable = measurables.firstOrNull()?.measure(constraints)
-
-                        val width = placeable?.width ?: constraints.minWidth
-                        val height = placeable?.height ?: constraints.minHeight
-
-                        layout(width, height) {
-                            placeable?.placeRelative(0, 0)
-                        }
-                    }
-                )
-            },
+            content = content,
             coroutineContext = coroutineContext
         )
 
+        // Due to keyboard appearance issues in instrumented tests,
+        // all keyboard manipulations must be initiated manually.
+        hostingViewController.focusStack = null
+
         window.rootViewController = hostingViewController
         window.makeKeyAndVisible()
-        waitUntil { onDraw }
         waitForIdle()
+    }
+
+    fun tearDown() {
+        window.resignKeyWindow()
+        window.rootViewController = null
+        hideKeyboard(false)
     }
 
     private fun keyboardUserInfo(height: Dp, animated: Boolean): Map<Any?, *> {
@@ -131,6 +141,8 @@ internal class UIKitInstrumentedTest {
     }
 
     fun showKeyboard(height: Dp = 216.dp, animated: Boolean = true) {
+        // On iOS, resize notification also comes before UIKeyboardWillShowNotification
+        resizeKeyboard(height, animated)
         NSNotificationCenter.defaultCenter().postNotification(
             NSNotification(
                 name = UIKeyboardWillShowNotification,
@@ -138,8 +150,6 @@ internal class UIKitInstrumentedTest {
                 userInfo = keyboardUserInfo(height, animated)
             )
         )
-        keyboardHeight = height
-        resizeKeyboard(height, animated)
     }
 
     fun resizeKeyboard(newHeight: Dp, animated: Boolean = true) {
@@ -154,14 +164,15 @@ internal class UIKitInstrumentedTest {
     }
 
     fun hideKeyboard(animated: Boolean = true) {
+        // On iOS, resize notification also comes before UIKeyboardWillHideNotification
+        resizeKeyboard(0.dp, animated)
         NSNotificationCenter.defaultCenter().postNotification(
             NSNotification(
-                name = UIKeyboardWillChangeFrameNotification,
+                name = UIKeyboardWillHideNotification,
                 `object` = null,
                 userInfo = keyboardUserInfo(0.dp, animated)
             )
         )
-        keyboardHeight = 0.dp
     }
 
     private val isIdle: Boolean

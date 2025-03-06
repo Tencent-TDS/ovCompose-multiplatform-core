@@ -22,9 +22,9 @@ import android.os.SystemClock
 import java.util.concurrent.Executor
 
 /**
- * Handler does not expose a post method that takes a token and a runnable.
- * We need the token to be able to cancel pending requests so just call
- * postAtTime with the default of SystemClock.uptimeMillis
+ * Handler does not expose a post method that takes a token and a runnable. We need the token to be
+ * able to cancel pending requests so just call postAtTime with the default of
+ * SystemClock.uptimeMillis
  */
 internal fun Handler.post(token: Any?, runnable: Runnable) {
     postAtTime(runnable, token, SystemClock.uptimeMillis())
@@ -47,8 +47,16 @@ internal class HandlerThreadExecutor(name: String) : Executor {
         mHandler.post(runnable)
     }
 
+    fun postDelayed(runnable: Runnable, delayMillis: Long) {
+        mHandler.postDelayed(runnable, delayMillis)
+    }
+
     fun removeCallbacksAndMessages(token: Any) {
         mHandler.removeCallbacksAndMessages(token)
+    }
+
+    fun removeCallbacks(runnable: Runnable) {
+        mHandler.removeCallbacks(runnable)
     }
 
     override fun execute(runnable: Runnable?) {

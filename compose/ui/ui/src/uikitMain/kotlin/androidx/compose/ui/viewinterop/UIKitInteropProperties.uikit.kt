@@ -20,9 +20,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.window.DialogProperties
-import kotlinx.cinterop.CValue
-import platform.CoreGraphics.CGSize
 
 /**
  * Properties that are used to configure the behavior of the interop view.

@@ -367,6 +367,8 @@ actual value class Key(val keyCode: Long) {
 
         actual val MoveEnd = Key(35)
 
+        actual val Apostrophe = Key(222)
+
         // Unsupported Keys
         actual val SoftLeft = Key(-1000000001)
         actual val SoftRight = Key(-1000000002)
@@ -546,7 +548,6 @@ actual value class Key(val keyCode: Long) {
         actual val Cut = Key(-1000000188)
         actual val Copy = Key(-1000000189)
         actual val Paste = Key(-1000000190)
-        actual val Apostrophe = Key(-1000000191)
         actual val At = Key(-10000001902)
         actual val NumPadDot = Key(-1000000193)
         actual val NumPadComma = Key(-1000000194)

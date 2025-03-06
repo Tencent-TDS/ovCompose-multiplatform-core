@@ -20,6 +20,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.RectF
 import android.graphics.drawable.Icon
+import android.opengl.EGL14
 import android.opengl.GLES20
 import android.opengl.Matrix
 import android.view.Gravity
@@ -80,14 +81,14 @@ open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
                         resources,
                         R.string.colors_style_red,
                         R.string.colors_style_red_screen_reader,
-                        Icon.createWithResource(this, R.drawable.red_style)
+                        { Icon.createWithResource(this, R.drawable.red_style) }
                     ),
                     ListUserStyleSetting.ListOption(
                         Option.Id("green_style"),
                         resources,
                         R.string.colors_style_green,
                         R.string.colors_style_green_screen_reader,
-                        Icon.createWithResource(this, R.drawable.green_style)
+                        { Icon.createWithResource(this, R.drawable.green_style) }
                     )
                 ),
             listOf(WatchFaceLayer.BASE, WatchFaceLayer.COMPLICATIONS_OVERLAY)
@@ -152,8 +153,11 @@ open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
                 Intent(this, ComplicationRationalActivity::class.java)
             )
 
+    class ExampleSharedAssets : Renderer.SharedAssets {
+        override fun onDestroy() {}
+    }
+
     @OptIn(WatchFaceExperimental::class)
-    @Suppress("Deprecation")
     @RequiresApi(27)
     private class ExampleOpenGLRenderer(
         surfaceHolder: SurfaceHolder,
@@ -162,11 +166,45 @@ open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
         private val colorStyleSetting: ListUserStyleSetting,
         private val complicationSlot: ComplicationSlot
     ) :
-        Renderer.GlesRenderer(
+        Renderer.GlesRenderer2<ExampleSharedAssets>(
             surfaceHolder,
             currentUserStyleRepository,
             watchState,
-            FRAME_PERIOD_MS
+            FRAME_PERIOD_MS,
+            // Try a config with 4x MSAA if supported and if necessary fall back to one without.
+            eglConfigAttribListList =
+                listOf(
+                    intArrayOf(
+                        EGL14.EGL_RENDERABLE_TYPE,
+                        EGL14.EGL_OPENGL_ES2_BIT,
+                        EGL14.EGL_RED_SIZE,
+                        8,
+                        EGL14.EGL_GREEN_SIZE,
+                        8,
+                        EGL14.EGL_BLUE_SIZE,
+                        8,
+                        EGL14.EGL_ALPHA_SIZE,
+                        8,
+                        EGL14.EGL_SAMPLES, // 4x MSAA (anti-aliasing)
+                        4,
+                        EGL14.EGL_NONE
+                    ),
+                    intArrayOf(
+                        EGL14.EGL_RENDERABLE_TYPE,
+                        EGL14.EGL_OPENGL_ES2_BIT,
+                        EGL14.EGL_RED_SIZE,
+                        8,
+                        EGL14.EGL_GREEN_SIZE,
+                        8,
+                        EGL14.EGL_BLUE_SIZE,
+                        8,
+                        EGL14.EGL_ALPHA_SIZE,
+                        8,
+                        EGL14.EGL_NONE
+                    )
+                ),
+            eglSurfaceAttribList = intArrayOf(EGL14.EGL_NONE),
+            eglContextAttribList = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
         ) {
 
         /** Projection transformation matrix. Converts from 3D to 2D. */
@@ -560,7 +598,9 @@ open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
             }
         }
 
-        override fun render(zonedDateTime: ZonedDateTime) {
+        override suspend fun createSharedAssets() = ExampleSharedAssets()
+
+        override fun render(zonedDateTime: ZonedDateTime, sharedAssets: ExampleSharedAssets) {
             // Draw background color and select the appropriate view projection matrix. The
             // background
             // should always be black in ambient mode. The view projection matrix used is overhead
@@ -634,7 +674,10 @@ open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
             }
         }
 
-        override fun renderHighlightLayer(zonedDateTime: ZonedDateTime) {
+        override fun renderHighlightLayer(
+            zonedDateTime: ZonedDateTime,
+            sharedAssets: ExampleSharedAssets
+        ) {
             val cameraIndex =
                 (zonedDateTime.toInstant().toEpochMilli() / FRAME_PERIOD_MS % numCameraAngles)
                     .toInt()

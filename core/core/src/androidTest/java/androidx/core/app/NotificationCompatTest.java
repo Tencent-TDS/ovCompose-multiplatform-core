@@ -286,21 +286,15 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext);
 
         Notification nDefault = builder.build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertThat(NotificationCompat.getShowWhen(nDefault)).isTrue();
-        }
+        assertThat(NotificationCompat.getShowWhen(nDefault)).isTrue();
 
         // test true
         Notification nTrue = builder.setShowWhen(true).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertTrue(NotificationCompat.getShowWhen(nTrue));
-        }
+        assertTrue(NotificationCompat.getShowWhen(nTrue));
 
         // test false
         Notification nFalse = builder.setShowWhen(false).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertFalse(NotificationCompat.getShowWhen(nFalse));
-        }
+        assertFalse(NotificationCompat.getShowWhen(nFalse));
     }
 
     @Test
@@ -309,15 +303,11 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // test true
         Notification nTrue = builder.setUsesChronometer(true).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertTrue(NotificationCompat.getUsesChronometer(nTrue));
-        }
+        assertTrue(NotificationCompat.getUsesChronometer(nTrue));
 
         // test false
         Notification nFalse = builder.setUsesChronometer(false).build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertFalse(NotificationCompat.getUsesChronometer(nFalse));
-        }
+        assertFalse(NotificationCompat.getUsesChronometer(nFalse));
     }
 
     @SdkSuppress(minSdkVersion = 24)
@@ -686,12 +676,6 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         // Add an action so that we start getting the view
         builder.addAction(new NotificationCompat.Action(null, "action", null));
 
-        // Before Jellybean, there was no big view; expect null
-        if (Build.VERSION.SDK_INT < 16) {
-            assertNull(builder.createHeadsUpContentView());
-            return;
-        }
-
         // Expect the standard big notification template
         RemoteViews standardView = builder.createBigContentView();
         assertNotNull(standardView);
@@ -781,6 +765,50 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             String packageName = mContext.getPackageName();
             assertEquals(packageName + ":layout/notification_template_custom_big", layoutName);
         }
+    }
+
+    @SdkSuppress(minSdkVersion = 24)
+    @Test
+    public void testGetTextsFromContentView() {
+        Notification n1 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .build();
+        List<CharSequence> texts = NotificationCompat.DecoratedCustomViewStyle
+                .getTextsFromContentView(mContext, n1);
+        assertThat(texts).isEmpty();
+
+        Notification n2 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.BigTextStyle())
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n2);
+        assertThat(texts).isEmpty();
+
+        Notification n3 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n3);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
+
+        Notification n4 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomBigContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n4);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
+
+        Notification n5 = new NotificationCompat.Builder(mContext, "channelId")
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomHeadsUpContentView(new RemoteViews(mContext.getPackageName(),
+                        androidx.core.test.R.layout.notification_custom_content_view))
+                .build();
+        texts = NotificationCompat.DecoratedCustomViewStyle.getTextsFromContentView(mContext, n5);
+        assertThat(texts).isNotEmpty();
+        assertTrue(texts.containsAll(List.of("Test title", "Test info")));
     }
 
     @Test
@@ -1140,16 +1168,13 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 .setLargeIcon((Bitmap) null)
                 .build();
 
-        // Extras are not populated before API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            if (Build.VERSION.SDK_INT <= 23) {
-                assertFalse(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-            } else {
-                assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-                assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
-            }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        if (Build.VERSION.SDK_INT <= 23) {
+            assertFalse(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+        } else {
+            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+            assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
         }
 
         if (Build.VERSION.SDK_INT >= 23) {
@@ -1167,12 +1192,10 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                 .build();
 
         // Extras are not populated before API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
-            assertNotNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
-        }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON));
+        assertNotNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON));
         if (Build.VERSION.SDK_INT >= 23) {
             assertNotNull(n.getLargeIcon());
         }
@@ -1570,13 +1593,10 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
                         .setBigContentTitle("Big Content Title")
                         .setSummaryText("Summary Text"))
                 .build();
-        // Extras are not populated before KITKAT
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            Bundle extras = NotificationCompat.getExtras(n);
-            assertNotNull(extras);
-            assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON_BIG));
-            assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON_BIG));
-        }
+        Bundle extras = NotificationCompat.getExtras(n);
+        assertNotNull(extras);
+        assertTrue(extras.containsKey(NotificationCompat.EXTRA_LARGE_ICON_BIG));
+        assertNull(extras.get(NotificationCompat.EXTRA_LARGE_ICON_BIG));
     }
 
     @SdkSuppress(minSdkVersion = 23)
@@ -2436,7 +2456,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 20)
+    @SdkSuppress(minSdkVersion = 20, maxSdkVersion = 32) // Failing on API 33 emulator, b/355507696
     public void testCallStyle_preservesCustomActions() {
         PendingIntent hangupIntent = createIntent("hangup");
         Person person = new Person.Builder().setName("test name").build();
@@ -2776,25 +2796,22 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
         // and checking the values in it (because those are created via restoreFromCompatExtras).
-        // Extras and NotificationCompatBuilder only available on API 19 and greater.
-        if (Build.VERSION.SDK_INT >= 19) {
-            Bundle extras = notification.extras;
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set).
-            assertEquals(
-                    mContext.getResources().getString(R.string.call_notification_incoming_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set).
+        assertEquals(
+                mContext.getResources().getString(R.string.call_notification_incoming_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
 
         if (Build.VERSION.SDK_INT >= 20) {
             assertNotNull(notification.actions);
@@ -2846,13 +2863,11 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            Bundle extras = builder.getExtras();
-            assertTrue(extras.getBoolean(NotificationCompat.EXTRA_CALL_IS_VIDEO));
-        }
+        Bundle extras = builder.getExtras();
+        assertTrue(extras.getBoolean(NotificationCompat.EXTRA_CALL_IS_VIDEO));
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -2897,27 +2912,25 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
-            // and checking the values in it (as those are created via restoreFromCompatExtras).
-            Bundle extras = notification.extras;
+        // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
+        // and checking the values in it (as those are created via restoreFromCompatExtras).
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
 
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set). 11 >=
-            assertEquals(mContext.getResources().getString(R.string.call_notification_ongoing_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set). 11 >=
+        assertEquals(mContext.getResources().getString(R.string.call_notification_ongoing_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -2965,28 +2978,27 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // Checks in this section check values in the Notification's extras, which were unavailable
         // prior to API 19.
-        if (Build.VERSION.SDK_INT >= 19) {
-            // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
-            // and checking the values in it (as those are created via restoreFromCompatExtras).
-            Bundle extras = notification.extras;
+        // Test extras values. This is equivalent to creating a new NotificationCompat.Builder,
+        // and checking the values in it (as those are created via restoreFromCompatExtras).
+        Bundle extras = notification.extras;
 
-            // Checks that the notification title is set to the caller name. 11 >=
-            assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
+        // Checks that the notification title is set to the caller name. 11 >=
+        assertEquals("test name", extras.getCharSequence(NotificationCompat.EXTRA_TITLE));
 
-            // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
-            // set). 11 >=
-            assertEquals(
-                    mContext.getResources().getString(R.string.call_notification_screening_text),
-                    extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
+        // Checks that the notification text is set to the default text (since EXTRA_TEXT isn't
+        // set). 11 >=
+        assertEquals(
+                mContext.getResources().getString(R.string.call_notification_screening_text),
+                extras.getCharSequence(NotificationCompat.EXTRA_TEXT));
 
-            // Create a new NotificationCompat Builder object based on the notification.
-            // This allows us to inspect various fields, including actions.
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
-                    notification);
+        // Create a new NotificationCompat Builder object based on the notification.
+        // This allows us to inspect various fields, including actions.
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(mContext,
+                notification);
 
-            // For versions above 11, the "Person" name from the style is applied to the title.
-            assertEquals("test name", builder.mContentTitle);
-        }
+        // For versions above 11, the "Person" name from the style is applied to the title.
+        assertEquals("test name", builder.mContentTitle);
+
 
         // Actions were introduced in API 20.
         if (Build.VERSION.SDK_INT >= 20) {
@@ -3569,10 +3581,8 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
 
         // before testing the notification we've built with people, test the clearPeople() method
         final Notification notificationWithoutPeople = builder.clearPeople().build();
-        if (Build.VERSION.SDK_INT >= 19) {
-            assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
-            assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
-        }
+        assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
+        assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
 
         if (Build.VERSION.SDK_INT >= 29) {
             assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE));
@@ -3598,7 +3608,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             expected.add("test name\tnull");
             expected.add("test name 2\tnull");
             assertEquals(expected, people);
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             assertNull(notificationWithoutPeople.extras.get(NotificationCompat.EXTRA_PEOPLE_LIST));
             final String[] peopleArray =
                     notification.extras.getStringArray(Notification.EXTRA_PEOPLE);
@@ -3624,7 +3634,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
             expected.add("test name\tnull");
             expected.add("test name 2\tnull");
             expected.add("null\ttest:selfUri");
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             // On older platforms, the name is converted into a URI
             expected.add("null\tname:test name");
             expected.add("null\tname:test name 2");

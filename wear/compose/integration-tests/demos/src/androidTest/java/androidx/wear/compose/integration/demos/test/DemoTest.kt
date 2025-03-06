@@ -17,7 +17,6 @@
 package androidx.wear.compose.integration.demos.test
 
 import android.util.Log
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -38,20 +37,19 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-private val ignoredDemos = listOf<String>(
-    // Not ignoring any of them \o/
-)
+private val ignoredDemos =
+    listOf<String>(
+        // Not ignoring any of them \o/
+    )
 
 // Run this test on a phone emulator.
 // There are issues running on Watch emulators that menu items off screen are not found,
 // given the use of ScalingLAZYColumn.
 @LargeTest
 @RunWith(AndroidJUnit4::class)
-@OptIn(ExperimentalTestApi::class)
 class DemoTest {
     // We need to provide the recompose factory first to use new clock.
-    @get:Rule
-    val rule = createAndroidComposeRule<DemoActivity>()
+    @get:Rule val rule = createAndroidComposeRule<DemoActivity>()
 
     @Test
     fun navigateThroughAllDemos() {
@@ -94,8 +92,8 @@ class DemoTest {
     /**
      * Visits a [Demo], and then navigates back up to the [DemoCategory] it was inside.
      *
-     * If this [Demo] is a [DemoCategory], this will visit sub-[Demo]s first before continuing
-     * in the current category.
+     * If this [Demo] is a [DemoCategory], this will visit sub-[Demo]s first before continuing in
+     * the current category.
      *
      * @param path The path of categories that leads to this demo
      */
@@ -110,7 +108,8 @@ class DemoTest {
             fastForwardClock()
         }
 
-        rule.onNode(hasScrollToNodeAction())
+        rule
+            .onNode(hasScrollToNodeAction())
             .performScrollToNode(hasText(title) and hasClickAction())
         rule.onNode(hasText(title) and hasClickAction()).performClick()
 
@@ -152,16 +151,18 @@ class DemoTest {
 
     private fun clearFocusFromDemo() {
         with(rule.activity) {
-            if (hostView.hasFocus()) {
-                if (hostView.isFocused) {
-                    // One of the Compose components has focus.
-                    focusManager.clearFocus(force = true)
-                } else {
-                    // A child view has focus. (View interop scenario).
-                    // We could also use hostViewGroup.focusedChild?.clearFocus(), but the
-                    // interop views might end up being focused if one of them is marked as
-                    // focusedByDefault. So we clear focus by requesting focus on the owner.
-                    rule.runOnUiThread { hostView.requestFocus() }
+            rule.runOnUiThread {
+                if (hostView.hasFocus()) {
+                    if (hostView.isFocused) {
+                        // One of the Compose components has focus.
+                        focusManager.clearFocus(force = true)
+                    } else {
+                        // A child view has focus. (View interop scenario).
+                        // We could also use hostViewGroup.focusedChild?.clearFocus(), but the
+                        // interop views might end up being focused if one of them is marked as
+                        // focusedByDefault. So we clear focus by requesting focus on the owner.
+                        hostView.requestFocus()
+                    }
                 }
             }
         }
@@ -169,9 +170,7 @@ class DemoTest {
 }
 
 private val AllButIgnoredDemos =
-    WearComposeDemos.filter { path, demo ->
-        demo.navigationTitle(path) !in ignoredDemos
-    }
+    WearComposeDemos.filter { path, demo -> demo.navigationTitle(path) !in ignoredDemos }
 
 private fun Demo.navigationTitle(path: List<DemoCategory>): String {
     return path.plus(this).navigationTitle
@@ -181,8 +180,8 @@ private val List<Demo>.navigationTitle: String
     get() = if (size == 1) first().title else drop(1).joinToString(" > ")
 
 /**
- * Trims the tree of [Demo]s represented by this [DemoCategory] by cutting all leave demos for
- * which the [predicate] returns `false` and recursively removing all empty categories as a result.
+ * Trims the tree of [Demo]s represented by this [DemoCategory] by cutting all leave demos for which
+ * the [predicate] returns `false` and recursively removing all empty categories as a result.
  */
 private fun DemoCategory.filter(
     path: List<DemoCategory> = emptyList(),
@@ -191,22 +190,20 @@ private fun DemoCategory.filter(
     val newPath = path + this
     return DemoCategory(
         title,
-        demos.mapNotNull {
-            when (it) {
+        demos.mapNotNull { demo ->
+            when (demo) {
                 is DemoCategory -> {
-                    it.filter(newPath, predicate).let { if (it.demos.isEmpty()) null else it }
+                    demo.filter(newPath, predicate).let { if (it.demos.isEmpty()) null else it }
                 }
                 else -> {
-                    if (predicate(newPath, it)) it else null
+                    if (predicate(newPath, demo)) demo else null
                 }
             }
         }
     )
 }
 
-/**
- * Flattened recursive DFS [List] of every demo in [this].
- */
+/** Flattened recursive DFS [List] of every demo in [this]. */
 fun DemoCategory.allDemos(): List<Demo> {
     val allDemos = mutableListOf<Demo>()
     fun DemoCategory.addAllDemos() {

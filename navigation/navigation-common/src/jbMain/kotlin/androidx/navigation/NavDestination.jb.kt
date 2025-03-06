@@ -17,9 +17,11 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
 import androidx.navigation.serialization.generateHashCode
-import androidx.navigation.serialization.generateRoutePattern
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
+import androidx.savedstate.write
 import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 import kotlinx.serialization.InternalSerializationApi
@@ -28,10 +30,13 @@ import kotlinx.serialization.serializer
 public actual open class NavDestination actual constructor(
     public actual val navigatorName: String
 ) {
+
+    public actual constructor(navigator: Navigator<out NavDestination>) : this(navigator.name)
+
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual class DeepLinkMatch(
         public actual val destination: NavDestination,
-        public actual val matchingArgs: Bundle?,
+        public actual val matchingArgs: SavedState?,
         private val isExactDeepLink: Boolean,
     ) : Comparable<DeepLinkMatch> {
         override fun compareTo(other: DeepLinkMatch): Int {
@@ -47,7 +52,8 @@ public actual open class NavDestination actual constructor(
                 return -1
             }
             if (matchingArgs != null) {
-                val sizeDifference = matchingArgs.size() - other.matchingArgs!!.size()
+                val sizeDifference =
+                    matchingArgs.read { size() } - other.matchingArgs!!.read { size() }
                 if (sizeDifference > 0) {
                     return 1
                 } else if (sizeDifference < 0) {
@@ -57,16 +63,16 @@ public actual open class NavDestination actual constructor(
             return 0
         }
 
-        public actual fun hasMatchingArgs(arguments: Bundle?): Boolean {
+        public actual fun hasMatchingArgs(arguments: SavedState?): Boolean {
             if (arguments == null || matchingArgs == null) return false
 
-            matchingArgs.keySet().forEach { key ->
+            matchingArgs.read { toMap().keys }.forEach { key ->
                 // the arguments must at least contain every argument stored in this deep link
-                if (!arguments.containsKey(key)) return false
+                if (!arguments.read { contains(key) }) return false
 
                 val type = destination._arguments[key]?.type
-                val matchingArgValue = type?.get(matchingArgs, key!!)
-                val entryArgValue = type?.get(arguments, key!!)
+                val matchingArgValue = type?.get(matchingArgs, key)
+                val entryArgValue = type?.get(arguments, key)
                 if (type?.valueEquals(matchingArgValue, entryArgValue) == false) {
                     return false
                 }
@@ -85,8 +91,6 @@ public actual open class NavDestination actual constructor(
 
     public actual val arguments: Map<String, NavArgument>
         get() = _arguments.toMap()
-
-    public actual constructor(navigator: Navigator<out NavDestination>) : this(navigator.name)
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public var id: Int = 0
@@ -108,6 +112,14 @@ public actual open class NavDestination actual constructor(
     public actual open val displayName: String
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get() = navigatorName
 
+    public actual open fun hasDeepLink(deepLink: NavUri): Boolean {
+        return hasDeepLink(NavDeepLinkRequest(deepLink, null, null))
+    }
+
+    public actual open fun hasDeepLink(deepLinkRequest: NavDeepLinkRequest): Boolean {
+        return matchDeepLink(deepLinkRequest) != null
+    }
+
     public actual fun addDeepLink(uriPattern: String) {
         addDeepLink(NavDeepLink.Builder().setUriPattern(uriPattern).build())
     }
@@ -124,30 +136,38 @@ public actual open class NavDestination actual constructor(
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public actual open fun matchDeepLink(route: String): DeepLinkMatch? {
+    public actual fun matchRoute(route: String): DeepLinkMatch? {
+        val request = NavDeepLinkRequest.Builder.fromUri(NavUriUtils.parse(createRoute(route))).build()
         val matchingDeepLink =
             if (this is NavGraph) {
                 matchDeepLinkComprehensive(
-                    route,
+                    request,
                     searchChildren = false,
                     searchParent = false,
                     lastVisited = this
                 )
             } else {
-                matchDeepLinkRequest(route)
+                matchDeepLink(request)
             }
         return matchingDeepLink
     }
 
-    internal fun matchDeepLinkRequest(route: String): DeepLinkMatch? {
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public actual open fun matchDeepLink(navDeepLinkRequest: NavDeepLinkRequest): DeepLinkMatch? {
         if (deepLinks.isEmpty()) {
             return null
         }
-        val internalRoute = createRoute(route)
         var bestMatch: DeepLinkMatch? = null
         for (deepLink in deepLinks) {
-            // includes matching args for path, query, and fragment
-            val matchingArguments = deepLink.getMatchingArguments(internalRoute, _arguments)
+            val uri = navDeepLinkRequest.uri
+            // first filter out invalid matches
+            if (!deepLink.matches(navDeepLinkRequest)) continue
+            // then look for positive matches
+            val matchingArguments =
+                // includes matching args for path, query, and fragment
+                if (uri != null) {
+                    deepLink.getMatchingArguments(uri, _arguments)
+                } else null
             if (matchingArguments != null) {
                 val newMatch = DeepLinkMatch(
                     destination = this,
@@ -163,13 +183,38 @@ public actual open class NavDestination actual constructor(
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public actual fun hasRoute(route: String, arguments: Bundle?): Boolean {
+    public fun buildDeepLinkDestinations(previousDestination: NavDestination? = null): List<NavDestination> {
+        val hierarchy = ArrayDeque<NavDestination>()
+        var current: NavDestination? = this
+        do {
+            val parent = current!!.parent
+            if (
+            // If the current destination is a sibling of the previous, just add it straightaway
+                previousDestination?.parent != null &&
+                previousDestination.parent!!.findNode(current.id) === current
+            ) {
+                hierarchy.addFirst(current)
+                break
+            }
+            if (parent == null || parent.startDestinationId != current.id) {
+                hierarchy.addFirst(current)
+            }
+            if (parent == previousDestination) {
+                break
+            }
+            current = parent
+        } while (current != null)
+        return hierarchy.toList()
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public actual fun hasRoute(route: String, arguments: SavedState?): Boolean {
         // this matches based on routePattern
         if (this.route == route) return true
 
         // if no match based on routePattern, this means route contains filled in args or query
         // params
-        val matchingDeepLink = matchDeepLink(route)
+        val matchingDeepLink = matchRoute(route)
 
         // if no matchingDeepLink or mismatching destination, return false directly
         if (this != matchingDeepLink?.destination) return false
@@ -187,24 +232,24 @@ public actual open class NavDestination actual constructor(
         _arguments.remove(argumentName)
     }
 
-    @Suppress("NullableCollection") // Needed for nullable bundle
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public actual fun addInDefaultArgs(args: Bundle?): Bundle? {
+    @Suppress("NullableCollection")
+    public actual fun addInDefaultArgs(args: SavedState?): SavedState? {
         if (args == null && _arguments.isEmpty()) {
             return null
         }
-        val defaultArgs = Bundle()
+        val defaultArgs = savedState()
         for ((key, value) in _arguments) {
             value.putDefaultValue(key, defaultArgs)
         }
         if (args != null) {
-            defaultArgs.putAll(args)
+            defaultArgs.write { putAll(args) }
             // Don't verify unknown default values - these default values are only available
             // during deserialization for safe args.
             for ((key, value) in _arguments) {
                 if (!value.isDefaultValueUnknown) {
                     require(value.verify(key, defaultArgs)) {
-                        "Wrong argument type for '$key' in argument bundle. ${value.type.name} " +
+                        "Wrong argument type for '$key' in argument savedState. ${value.type.name} " +
                             "expected."
                     }
                 }
@@ -266,7 +311,7 @@ public actual open class NavDestination actual constructor(
         public fun getDisplayName(id: Int): String = "0x${id.toString(16)}"
 
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        public fun createRoute(route: String?): String =
+        public actual fun createRoute(route: String?): String =
             if (route != null) "multiplatform-app://androidx.navigation/$route" else ""
 
         @JvmStatic

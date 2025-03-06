@@ -18,39 +18,28 @@ package androidx.compose.material.internal
 
 import androidx.compose.runtime.NoLiveLiterals
 
-// a copy from compose/runtime/runtime/src/commonMain/kotlin/androidx/compose/runtime/Expect.kt
-
 private var nextHash = 1
-private const val IDENTITY_HASHCODE_FIELD = "kotlinIdentityHashcodeValue$"
 
+private external interface WeakMap {
+    fun set(key: Any, value: Int)
+    fun get(key: Any): Int?
+}
+
+private val weakMap: WeakMap = js("new WeakMap()")
 @NoLiveLiterals
-private fun memoizeIdentityHashCode(instance: Any?): Int {
+private fun memoizeIdentityHashCode(instance: Any): Int {
     val value = nextHash++
 
-    val descriptor = js("new Object()")
-    descriptor.value = value
-    descriptor.writable = false
-    descriptor.configurable = false
-    descriptor.enumerable = false
-
-    js("Object").defineProperty(instance, IDENTITY_HASHCODE_FIELD, descriptor)
+    weakMap.set(instance, value)
 
     return value
 }
+
+// For the reference check the identityHashCode in compose:runtime
 internal actual fun identityHashCode(instance: Any?): Int {
     if (instance == null) {
         return 0
     }
 
-    val hashCode = instance.asDynamic()[IDENTITY_HASHCODE_FIELD]
-    if (hashCode != null) {
-        return hashCode
-    }
-
-    return when (jsTypeOf(instance)) {
-        "object", "function" -> memoizeIdentityHashCode(instance)
-        else -> throw IllegalArgumentException(
-            "identity hash code for ${jsTypeOf(instance)} is not supported"
-        )
-    }
+    return weakMap.get(instance) ?: memoizeIdentityHashCode(instance)
 }

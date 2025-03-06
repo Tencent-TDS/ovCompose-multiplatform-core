@@ -8,10 +8,14 @@ package androidx.compose.material3.adaptive {
   public final class AndroidWindowAdaptiveInfo_androidKt {
     method @androidx.compose.runtime.Composable public static androidx.compose.runtime.State<java.util.List<androidx.window.layout.FoldingFeature>> collectFoldingFeaturesAsState();
     method @androidx.compose.runtime.Composable public static androidx.compose.material3.adaptive.WindowAdaptiveInfo currentWindowAdaptiveInfo();
+    method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi @androidx.compose.runtime.Composable public static long currentWindowDpSize();
     method @androidx.compose.runtime.Composable public static long currentWindowSize();
   }
 
   @SuppressCompatibility @kotlin.RequiresOptIn(message="This material3 adaptive API is experimental and is likely to change or to be" + "removed in the future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalMaterial3AdaptiveApi {
+  }
+
+  @SuppressCompatibility @kotlin.RequiresOptIn(message="This material3 adaptive API is experimental and is likely to change or to be" + "removed in the future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalMaterial3AdaptiveComponentOverrideApi {
   }
 
   @androidx.compose.runtime.Immutable public final class HingeInfo {
@@ -29,6 +33,7 @@ package androidx.compose.material3.adaptive {
   }
 
   @androidx.compose.runtime.Immutable public final class Posture {
+    ctor public Posture();
     ctor public Posture(optional boolean isTabletop, optional java.util.List<androidx.compose.material3.adaptive.HingeInfo> hingeList);
     method public java.util.List<androidx.compose.material3.adaptive.HingeInfo> getHingeList();
     method public boolean isTabletop();

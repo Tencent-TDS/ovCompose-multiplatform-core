@@ -1,0 +1,127 @@
+// Baseline format: 1.0
+MissingNullability: sun.misc.Unsafe#allocateInstance(Class<?>):
+    Missing nullability on method `allocateInstance` return
+MissingNullability: sun.misc.Unsafe#allocateInstance(Class<?>) parameter #0:
+    Missing nullability on parameter `c` in method `allocateInstance`
+MissingNullability: sun.misc.Unsafe#arrayBaseOffset(Class<?>) parameter #0:
+    Missing nullability on parameter `clazz` in method `arrayBaseOffset`
+MissingNullability: sun.misc.Unsafe#arrayIndexScale(Class<?>) parameter #0:
+    Missing nullability on parameter `clazz` in method `arrayIndexScale`
+MissingNullability: sun.misc.Unsafe#compareAndSwapInt(Object, long, int, int) parameter #0:
+    Missing nullability on parameter `obj` in method `compareAndSwapInt`
+MissingNullability: sun.misc.Unsafe#compareAndSwapLong(Object, long, long, long) parameter #0:
+    Missing nullability on parameter `obj` in method `compareAndSwapLong`
+MissingNullability: sun.misc.Unsafe#compareAndSwapObject(Object, long, Object, Object) parameter #0:
+    Missing nullability on parameter `obj` in method `compareAndSwapObject`
+MissingNullability: sun.misc.Unsafe#compareAndSwapObject(Object, long, Object, Object) parameter #2:
+    Missing nullability on parameter `expectedValue` in method `compareAndSwapObject`
+MissingNullability: sun.misc.Unsafe#compareAndSwapObject(Object, long, Object, Object) parameter #3:
+    Missing nullability on parameter `newValue` in method `compareAndSwapObject`
+MissingNullability: sun.misc.Unsafe#copyMemoryFromPrimitiveArray(Object, long, long, long) parameter #0:
+    Missing nullability on parameter `src` in method `copyMemoryFromPrimitiveArray`
+MissingNullability: sun.misc.Unsafe#copyMemoryToPrimitiveArray(long, Object, long, long) parameter #1:
+    Missing nullability on parameter `dst` in method `copyMemoryToPrimitiveArray`
+MissingNullability: sun.misc.Unsafe#getAndAddInt(Object, long, int) parameter #0:
+    Missing nullability on parameter `o` in method `getAndAddInt`
+MissingNullability: sun.misc.Unsafe#getAndAddLong(Object, long, long) parameter #0:
+    Missing nullability on parameter `o` in method `getAndAddLong`
+MissingNullability: sun.misc.Unsafe#getAndSetInt(Object, long, int) parameter #0:
+    Missing nullability on parameter `o` in method `getAndSetInt`
+MissingNullability: sun.misc.Unsafe#getAndSetLong(Object, long, long) parameter #0:
+    Missing nullability on parameter `o` in method `getAndSetLong`
+MissingNullability: sun.misc.Unsafe#getAndSetObject(Object, long, Object):
+    Missing nullability on method `getAndSetObject` return
+MissingNullability: sun.misc.Unsafe#getAndSetObject(Object, long, Object) parameter #0:
+    Missing nullability on parameter `o` in method `getAndSetObject`
+MissingNullability: sun.misc.Unsafe#getAndSetObject(Object, long, Object) parameter #2:
+    Missing nullability on parameter `newValue` in method `getAndSetObject`
+MissingNullability: sun.misc.Unsafe#getBoolean(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getBoolean`
+MissingNullability: sun.misc.Unsafe#getByte(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getByte`
+MissingNullability: sun.misc.Unsafe#getChar(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getChar`
+MissingNullability: sun.misc.Unsafe#getDouble(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getDouble`
+MissingNullability: sun.misc.Unsafe#getFloat(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getFloat`
+MissingNullability: sun.misc.Unsafe#getInt(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getInt`
+MissingNullability: sun.misc.Unsafe#getIntVolatile(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getIntVolatile`
+MissingNullability: sun.misc.Unsafe#getLong(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getLong`
+MissingNullability: sun.misc.Unsafe#getLongVolatile(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getLongVolatile`
+MissingNullability: sun.misc.Unsafe#getObject(Object, long):
+    Missing nullability on method `getObject` return
+MissingNullability: sun.misc.Unsafe#getObject(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getObject`
+MissingNullability: sun.misc.Unsafe#getObjectVolatile(Object, long):
+    Missing nullability on method `getObjectVolatile` return
+MissingNullability: sun.misc.Unsafe#getObjectVolatile(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getObjectVolatile`
+MissingNullability: sun.misc.Unsafe#getShort(Object, long) parameter #0:
+    Missing nullability on parameter `obj` in method `getShort`
+MissingNullability: sun.misc.Unsafe#getUnsafe():
+    Missing nullability on method `getUnsafe` return
+MissingNullability: sun.misc.Unsafe#objectFieldOffset(java.lang.reflect.Field) parameter #0:
+    Missing nullability on parameter `field` in method `objectFieldOffset`
+MissingNullability: sun.misc.Unsafe#putBoolean(Object, long, boolean) parameter #0:
+    Missing nullability on parameter `obj` in method `putBoolean`
+MissingNullability: sun.misc.Unsafe#putByte(Object, long, byte) parameter #0:
+    Missing nullability on parameter `obj` in method `putByte`
+MissingNullability: sun.misc.Unsafe#putChar(Object, long, char) parameter #0:
+    Missing nullability on parameter `obj` in method `putChar`
+MissingNullability: sun.misc.Unsafe#putDouble(Object, long, double) parameter #0:
+    Missing nullability on parameter `obj` in method `putDouble`
+MissingNullability: sun.misc.Unsafe#putFloat(Object, long, float) parameter #0:
+    Missing nullability on parameter `obj` in method `putFloat`
+MissingNullability: sun.misc.Unsafe#putInt(Object, long, int) parameter #0:
+    Missing nullability on parameter `obj` in method `putInt`
+MissingNullability: sun.misc.Unsafe#putIntVolatile(Object, long, int) parameter #0:
+    Missing nullability on parameter `obj` in method `putIntVolatile`
+MissingNullability: sun.misc.Unsafe#putLong(Object, long, long) parameter #0:
+    Missing nullability on parameter `obj` in method `putLong`
+MissingNullability: sun.misc.Unsafe#putLongVolatile(Object, long, long) parameter #0:
+    Missing nullability on parameter `obj` in method `putLongVolatile`
+MissingNullability: sun.misc.Unsafe#putObject(Object, long, Object) parameter #0:
+    Missing nullability on parameter `obj` in method `putObject`
+MissingNullability: sun.misc.Unsafe#putObject(Object, long, Object) parameter #2:
+    Missing nullability on parameter `newValue` in method `putObject`
+MissingNullability: sun.misc.Unsafe#putObjectVolatile(Object, long, Object) parameter #0:
+    Missing nullability on parameter `obj` in method `putObjectVolatile`
+MissingNullability: sun.misc.Unsafe#putObjectVolatile(Object, long, Object) parameter #2:
+    Missing nullability on parameter `newValue` in method `putObjectVolatile`
+MissingNullability: sun.misc.Unsafe#putOrderedInt(Object, long, int) parameter #0:
+    Missing nullability on parameter `obj` in method `putOrderedInt`
+MissingNullability: sun.misc.Unsafe#putOrderedLong(Object, long, long) parameter #0:
+    Missing nullability on parameter `obj` in method `putOrderedLong`
+MissingNullability: sun.misc.Unsafe#putOrderedObject(Object, long, Object) parameter #0:
+    Missing nullability on parameter `obj` in method `putOrderedObject`
+MissingNullability: sun.misc.Unsafe#putOrderedObject(Object, long, Object) parameter #2:
+    Missing nullability on parameter `newValue` in method `putOrderedObject`
+MissingNullability: sun.misc.Unsafe#putShort(Object, long, short) parameter #0:
+    Missing nullability on parameter `obj` in method `putShort`
+MissingNullability: sun.misc.Unsafe#unpark(Object) parameter #0:
+    Missing nullability on parameter `obj` in method `unpark`
+
+
+NoByteOrShort: sun.misc.Unsafe#getByte(Object, long):
+    Should avoid odd sized primitives; use `int` instead of `byte` in method sun.misc.Unsafe.getByte(Object,long)
+NoByteOrShort: sun.misc.Unsafe#getByte(long):
+    Should avoid odd sized primitives; use `int` instead of `byte` in method sun.misc.Unsafe.getByte(long)
+NoByteOrShort: sun.misc.Unsafe#getShort(Object, long):
+    Should avoid odd sized primitives; use `int` instead of `short` in method sun.misc.Unsafe.getShort(Object,long)
+NoByteOrShort: sun.misc.Unsafe#getShort(long):
+    Should avoid odd sized primitives; use `int` instead of `short` in method sun.misc.Unsafe.getShort(long)
+NoByteOrShort: sun.misc.Unsafe#putByte(Object, long, byte) parameter #2:
+    Should avoid odd sized primitives; use `int` instead of `byte` in parameter newValue in sun.misc.Unsafe.putByte(Object obj, long offset, byte newValue)
+NoByteOrShort: sun.misc.Unsafe#putByte(long, byte) parameter #1:
+    Should avoid odd sized primitives; use `int` instead of `byte` in parameter x in sun.misc.Unsafe.putByte(long address, byte x)
+NoByteOrShort: sun.misc.Unsafe#putShort(Object, long, short) parameter #2:
+    Should avoid odd sized primitives; use `int` instead of `short` in parameter newValue in sun.misc.Unsafe.putShort(Object obj, long offset, short newValue)
+NoByteOrShort: sun.misc.Unsafe#putShort(long, short) parameter #1:
+    Should avoid odd sized primitives; use `int` instead of `short` in parameter x in sun.misc.Unsafe.putShort(long address, short x)
+NoByteOrShort: sun.misc.Unsafe#setMemory(long, long, byte) parameter #2:
+    Should avoid odd sized primitives; use `int` instead of `byte` in parameter value in sun.misc.Unsafe.setMemory(long address, long bytes, byte value)

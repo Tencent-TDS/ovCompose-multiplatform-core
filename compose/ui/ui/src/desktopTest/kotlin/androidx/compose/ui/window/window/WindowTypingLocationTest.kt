@@ -16,28 +16,24 @@
 
 package androidx.compose.ui.window.window
 
-import androidx.compose.material.TextField
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.focusedInputMethodRequests
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.sendKeyEvent
 import androidx.compose.ui.sendKeyTypedEvent
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.window.WindowTestScope
-import androidx.compose.ui.window.runApplicationTest
 import java.awt.event.KeyEvent.KEY_PRESSED
 import java.awt.event.KeyEvent.KEY_RELEASED
-import org.junit.Test
+import org.junit.experimental.theories.Theories
+import org.junit.experimental.theories.Theory
+import org.junit.runner.RunWith
 
-class WindowTypingLocationTest {
-    @Test
-    fun `input methods text location going right when type`() = runTextFieldTest {
+@RunWith(Theories::class)
+class WindowTypingLocationTest: BaseWindowTextFieldTest() {
+    @Theory
+    internal fun `input methods text location going right when type`(
+        textFieldKind: TextFieldKind<*>,
+    ) = runTextFieldTest(
+        textFieldKind = textFieldKind,
+        name = "input methods text location going right when type"
+    ) {
         val location0 = window.focusedInputMethodRequests()!!.getTextLocation(null)
 
         window.sendKeyEvent(81, 'a', KEY_PRESSED)
@@ -58,8 +54,13 @@ class WindowTypingLocationTest {
         assert(location2.y == location1.y)
     }
 
-    @Test
-    fun `input methods text location is inside window`() = runTextFieldTest {
+    @Theory
+    internal fun `input methods text location is inside window`(
+        textFieldKind: TextFieldKind<*>,
+    ) = runTextFieldTest(
+        textFieldKind = textFieldKind,
+        name = "input methods text location inside window",
+    ) {
         val windowLocation = window.contentPane.locationOnScreen
         val windowSize = window.contentPane.size
 
@@ -83,28 +84,5 @@ class WindowTypingLocationTest {
         assert(location0.y in windowLocation.y..windowLocation.y + windowSize.height)
         assert(location1.y in windowLocation.y..windowLocation.y + windowSize.height)
         assert(location2.y in windowLocation.y..windowLocation.y + windowSize.height)
-    }
-
-
-    private fun runTextFieldTest(body: suspend WindowTestScope.() -> Unit) = runApplicationTest(
-        hasAnimations = true,
-        animationsDelayMillis = 100
-    ) {
-        launchTestWindowApplication {
-            var text by remember { mutableStateOf(TextFieldValue()) }
-
-            val focusRequester = FocusRequester()
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                modifier = Modifier.focusRequester(focusRequester)
-            )
-
-            LaunchedEffect(focusRequester) {
-                focusRequester.requestFocus()
-            }
-        }
-        awaitIdle()
-        body()
     }
 }

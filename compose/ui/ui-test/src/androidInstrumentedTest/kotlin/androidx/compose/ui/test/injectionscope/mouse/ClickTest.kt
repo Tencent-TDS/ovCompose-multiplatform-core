@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.test.injectionscope.mouse
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
@@ -69,7 +68,6 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-@OptIn(ExperimentalTestApi::class)
 class ClickTest {
     companion object {
         private val T = InputDispatcher.eventPeriodMillis
@@ -81,174 +79,191 @@ class ClickTest {
     }
 
     @Test
-    fun click_pressIn_releaseIn() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // move around the box
-            moveTo(positionMove1)
-            // release primary button
-            release(MouseButton.Primary)
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Release, false, positionMove1) },
-        )
-    )
-
-    @Test
-    fun click_pressIn_moveOutIn_releaseIn() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // move out of the box
-            moveTo(positionOut)
-            // move back into the box
-            moveTo(positionMove1)
-            // release primary button in the box
-            release(MouseButton.Primary)
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Exit, true, positionOut, PrimaryButton) },
-            { verifyMouseEvent(3 * T, Enter, true, positionMove1, PrimaryButton) },
-            { verifyMouseEvent(3 * T, Release, false, positionMove1) },
-        )
-    )
-
-    @Test
-    fun click_pressIn_releaseOut() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // move out of the box
-            moveTo(positionOut)
-            // release primary button
-            release(MouseButton.Primary)
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Exit, true, positionOut, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Release, false, positionOut) },
-        )
-    )
-
-    @Test
-    fun click_twoButtons_symmetric() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // move around the box
-            moveTo(positionMove1)
-            // press secondary button
-            press(MouseButton.Secondary)
-            // move around a bit more
-            moveTo(positionMove2)
-            // release secondary button
-            release(MouseButton.Secondary)
-            // release primary button
-            release(MouseButton.Primary)
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
-            // TODO(b/234439423): Expect more events when b/234439423 is fixed
-//            { verifyMouseEvent(2 * T, Press, true, positionMove1, PrimarySecondaryButton) },
-            { verifyMouseEvent(3 * T, Move, true, positionMove2, PrimarySecondaryButton) },
-//            { verifyMouseEvent(3 * T, Release, true, positionMove2, PrimaryButton) },
-            { verifyMouseEvent(3 * T, Release, false, positionMove2) },
-        )
-    )
-
-    @Test
-    fun click_twoButtons_staggered() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // move around the box
-            moveTo(positionMove1)
-            // press secondary button
-            press(MouseButton.Secondary)
-            // move around a bit more
-            moveTo(positionMove2)
-            // release primary button
-            release(MouseButton.Primary)
-            // release secondary button
-            release(MouseButton.Secondary)
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
-            { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
-            // TODO(b/234439423): Expect more events when b/234439423 is fixed
-//            { verifyMouseEvent(2 * T, Press, true, positionMove1, PrimarySecondaryButton) },
-            { verifyMouseEvent(3 * T, Move, true, positionMove2, PrimarySecondaryButton) },
-//            { verifyMouseEvent(3 * T, Release, true, positionMove2, SecondaryButton) },
-            { verifyMouseEvent(3 * T, Release, false, positionMove2) },
-        )
-    )
-
-    @Test
-    fun press_alreadyPressed() = runMouseInputInjectionTest(
-        mouseInput = {
-            // enter the box
-            moveTo(positionIn)
-            // press primary button
-            press(MouseButton.Primary)
-            // press primary button again
-            expectError<IllegalStateException>(
-                expectedMessage = "Cannot send mouse button down event, " +
-                    "button ${MouseButton.Primary.buttonId} is already pressed"
-            ) {
+    fun click_pressIn_releaseIn() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
                 press(MouseButton.Primary)
-            }
-        },
-        eventVerifiers = arrayOf(
-            { verifyMouseEvent(1 * T, Enter, false, positionIn) },
-            { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                // move around the box
+                moveTo(positionMove1)
+                // release primary button
+                release(MouseButton.Primary)
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Release, false, positionMove1) },
+                )
         )
-    )
 
     @Test
-    fun clickTest() = runMouseInputInjectionTest(
-        mouseInput = {
-            click()
-        },
-        eventVerifiers = arrayOf(
-            // t = 0, because click() presses immediately
-            { verifyMouseEvent(0, Enter, false, positionCenter) },
-            { verifyMouseEvent(0, Press, true, positionCenter, PrimaryButton) },
-            { verifyMouseEvent(ClickDuration, Release, false, positionCenter) },
+    fun click_pressIn_moveOutIn_releaseIn() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
+                press(MouseButton.Primary)
+                // move out of the box
+                moveTo(positionOut)
+                // move back into the box
+                moveTo(positionMove1)
+                // release primary button in the box
+                release(MouseButton.Primary)
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Exit, true, positionOut, PrimaryButton) },
+                    { verifyMouseEvent(3 * T, Enter, true, positionMove1, PrimaryButton) },
+                    { verifyMouseEvent(3 * T, Release, false, positionMove1) },
+                )
         )
-    )
 
     @Test
-    fun rightClickTest() = runMouseInputInjectionTest(
-        mouseInput = {
-            rightClick()
-        },
-        eventVerifiers = arrayOf(
-            // t = 0, because click() presses immediately
-            { verifyMouseEvent(0, Enter, false, positionCenter) },
-            { verifyMouseEvent(0, Press, true, positionCenter, SecondaryButton) },
-            { verifyMouseEvent(ClickDuration, Release, false, positionCenter) },
+    fun click_pressIn_releaseOut() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
+                press(MouseButton.Primary)
+                // move out of the box
+                moveTo(positionOut)
+                // release primary button
+                release(MouseButton.Primary)
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Exit, true, positionOut, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Release, false, positionOut) },
+                )
         )
-    )
+
+    @Test
+    fun click_twoButtons_symmetric() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
+                press(MouseButton.Primary)
+                // move around the box
+                moveTo(positionMove1)
+                // press secondary button
+                press(MouseButton.Secondary)
+                // move around a bit more
+                moveTo(positionMove2)
+                // release secondary button
+                release(MouseButton.Secondary)
+                // release primary button
+                release(MouseButton.Primary)
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
+                    // TODO(b/234439423): Expect more events when b/234439423 is fixed
+                    //            { verifyMouseEvent(2 * T, Press, true, positionMove1,
+                    // PrimarySecondaryButton) },
+                    { verifyMouseEvent(3 * T, Move, true, positionMove2, PrimarySecondaryButton) },
+                    //            { verifyMouseEvent(3 * T, Release, true, positionMove2,
+                    // PrimaryButton) },
+                    { verifyMouseEvent(3 * T, Release, false, positionMove2) },
+                )
+        )
+
+    @Test
+    fun click_twoButtons_staggered() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
+                press(MouseButton.Primary)
+                // move around the box
+                moveTo(positionMove1)
+                // press secondary button
+                press(MouseButton.Secondary)
+                // move around a bit more
+                moveTo(positionMove2)
+                // release primary button
+                release(MouseButton.Primary)
+                // release secondary button
+                release(MouseButton.Secondary)
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                    { verifyMouseEvent(2 * T, Move, true, positionMove1, PrimaryButton) },
+                    // TODO(b/234439423): Expect more events when b/234439423 is fixed
+                    //            { verifyMouseEvent(2 * T, Press, true, positionMove1,
+                    // PrimarySecondaryButton) },
+                    { verifyMouseEvent(3 * T, Move, true, positionMove2, PrimarySecondaryButton) },
+                    //            { verifyMouseEvent(3 * T, Release, true, positionMove2,
+                    // SecondaryButton) },
+                    { verifyMouseEvent(3 * T, Release, false, positionMove2) },
+                )
+        )
+
+    @Test
+    fun press_alreadyPressed() =
+        runMouseInputInjectionTest(
+            mouseInput = {
+                // enter the box
+                moveTo(positionIn)
+                // press primary button
+                press(MouseButton.Primary)
+                // press primary button again
+                expectError<IllegalStateException>(
+                    expectedMessage =
+                        "Cannot send mouse button down event, " +
+                            "button ${MouseButton.Primary.buttonId} is already pressed"
+                ) {
+                    press(MouseButton.Primary)
+                }
+            },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(1 * T, Enter, false, positionIn) },
+                    { verifyMouseEvent(1 * T, Press, true, positionIn, PrimaryButton) },
+                )
+        )
+
+    @Test
+    fun clickTest() =
+        runMouseInputInjectionTest(
+            mouseInput = { click() },
+            eventVerifiers =
+                arrayOf(
+                    // t = 0, because click() presses immediately
+                    { verifyMouseEvent(0, Enter, false, positionCenter) },
+                    { verifyMouseEvent(0, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(ClickDuration, Release, false, positionCenter) },
+                )
+        )
+
+    @Test
+    fun rightClickTest() =
+        runMouseInputInjectionTest(
+            mouseInput = { rightClick() },
+            eventVerifiers =
+                arrayOf(
+                    // t = 0, because click() presses immediately
+                    { verifyMouseEvent(0, Enter, false, positionCenter) },
+                    { verifyMouseEvent(0, Press, true, positionCenter, SecondaryButton) },
+                    { verifyMouseEvent(ClickDuration, Release, false, positionCenter) },
+                )
+        )
 
     @Test
     fun doubleClickTest() {
@@ -259,16 +274,15 @@ class ClickTest {
         val release2 = press2 + ClickDuration
 
         runMouseInputInjectionTest(
-            mouseInput = {
-                doubleClick()
-            },
-            eventVerifiers = arrayOf(
-                { verifyMouseEvent(press1, Enter, false, positionCenter) },
-                { verifyMouseEvent(press1, Press, true, positionCenter, PrimaryButton) },
-                { verifyMouseEvent(release1, Release, false, positionCenter) },
-                { verifyMouseEvent(press2, Press, true, positionCenter, PrimaryButton) },
-                { verifyMouseEvent(release2, Release, false, positionCenter) },
-            )
+            mouseInput = { doubleClick() },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(press1, Enter, false, positionCenter) },
+                    { verifyMouseEvent(press1, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(release1, Release, false, positionCenter) },
+                    { verifyMouseEvent(press2, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(release2, Release, false, positionCenter) },
+                )
         )
     }
 
@@ -283,38 +297,45 @@ class ClickTest {
         val release3 = press3 + ClickDuration
 
         runMouseInputInjectionTest(
-            mouseInput = {
-                tripleClick()
-            },
-            eventVerifiers = arrayOf(
-                { verifyMouseEvent(press1, Enter, false, positionCenter) },
-                { verifyMouseEvent(press1, Press, true, positionCenter, PrimaryButton) },
-                { verifyMouseEvent(release1, Release, false, positionCenter) },
-                { verifyMouseEvent(press2, Press, true, positionCenter, PrimaryButton) },
-                { verifyMouseEvent(release2, Release, false, positionCenter) },
-                { verifyMouseEvent(press3, Press, true, positionCenter, PrimaryButton) },
-                { verifyMouseEvent(release3, Release, false, positionCenter) },
-            )
+            mouseInput = { tripleClick() },
+            eventVerifiers =
+                arrayOf(
+                    { verifyMouseEvent(press1, Enter, false, positionCenter) },
+                    { verifyMouseEvent(press1, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(release1, Release, false, positionCenter) },
+                    { verifyMouseEvent(press2, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(release2, Release, false, positionCenter) },
+                    { verifyMouseEvent(press3, Press, true, positionCenter, PrimaryButton) },
+                    { verifyMouseEvent(release3, Release, false, positionCenter) },
+                )
         )
     }
 
     @Test
-    fun longClickTest() = runMouseInputInjectionTest(
-        mouseInput = {
-            longClick()
-        },
-        eventVerifiers = arrayOf(
-            // t = 0, because longClick() presses immediately
-            { verifyMouseEvent(0L, Enter, false, positionCenter) },
-            { verifyMouseEvent(0L, Press, true, positionCenter, PrimaryButton) },
-            // longClick adds 100ms to the minimum required time, just to be sure
-            { verifyMouseEvent(DefaultLongClickTimeMillis + 100, Release, false, positionCenter) },
+    fun longClickTest() =
+        runMouseInputInjectionTest(
+            mouseInput = { longClick() },
+            eventVerifiers =
+                arrayOf(
+                    // t = 0, because longClick() presses immediately
+                    { verifyMouseEvent(0L, Enter, false, positionCenter) },
+                    { verifyMouseEvent(0L, Press, true, positionCenter, PrimaryButton) },
+                    // longClick adds 100ms to the minimum required time, just to be sure
+                    {
+                        verifyMouseEvent(
+                            DefaultLongClickTimeMillis + 100,
+                            Release,
+                            false,
+                            positionCenter
+                        )
+                    },
+                )
         )
-    )
 
     // Rather than checking the events sent on, for this more complex mouse gesture we
     // check if the events actually lead to the expected outcome.
     @Test
+    @OptIn(ExperimentalTestApi::class)
     fun dragAndDropTest() = runComposeUiTest {
         val sizeDp = 50.dp
         val sizePx = with(density) { sizeDp.toPx() }
@@ -324,11 +345,9 @@ class ClickTest {
         var yOffsetPx by mutableStateOf(0f)
 
         setContent {
-            @OptIn(ExperimentalFoundationApi::class)
             Box(Modifier.padding(16.dp).fillMaxSize()) {
                 Box(
-                    Modifier
-                        .testTag("draggable-box")
+                    Modifier.testTag("draggable-box")
                         .offset { IntOffset(xOffsetPx.roundToInt(), yOffsetPx.roundToInt()) }
                         .size(sizeDp)
                         .background(Color.Red)

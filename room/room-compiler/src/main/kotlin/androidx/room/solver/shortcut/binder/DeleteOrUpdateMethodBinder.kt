@@ -26,32 +26,14 @@ import androidx.room.vo.ShortcutQueryParameter
  * Connects the delete or update method, the database and the [DeleteOrUpdateMethodAdapter].
  *
  * The default implementation is [InstantDeleteOrUpdateMethodBinder] that executes the delete/update
- * synchronously.
- * If the delete/update is deferred, rather than synchronously, alternatives implementations can be
- * implemented using this interface (e.g. RxJava, coroutines etc).
+ * synchronously. If the delete/update is deferred, rather than synchronously, alternatives
+ * implementations can be implemented using this interface (e.g. RxJava, coroutines etc).
  */
 abstract class DeleteOrUpdateMethodBinder(val adapter: DeleteOrUpdateMethodAdapter?) {
 
     /**
-     * Received the delete/update method parameters, the adapters and generates the code that
-     * runs the delete/update and returns the result.
-     *
-     * For example, for the DAO method
-     * ```
-     * @Delete
-     * fun deletePublishers(vararg publishers: Publisher)
-     * ```
-     * The following code will be generated:
-     *
-     * ```
-     * __db.beginTransaction();
-     * try {
-     *   __deletionAdapterOfPublisher.handleMultiple(publishers);
-     *   __db.setTransactionSuccessful();
-     * } finally {
-     *   __db.endTransaction();
-     * }
-     * ```
+     * Received the delete/update method parameters, the adapters and generates the code that runs
+     * the delete/update and returns the result.
      */
     abstract fun convertAndReturn(
         parameters: List<ShortcutQueryParameter>,
@@ -59,4 +41,14 @@ abstract class DeleteOrUpdateMethodBinder(val adapter: DeleteOrUpdateMethodAdapt
         dbProperty: XPropertySpec,
         scope: CodeGenScope
     )
+
+    abstract fun convertAndReturnCompat(
+        parameters: List<ShortcutQueryParameter>,
+        adapters: Map<String, Pair<XPropertySpec, XTypeSpec>>,
+        dbProperty: XPropertySpec,
+        scope: CodeGenScope
+    )
+
+    // TODO(b/319660042): Remove once migration to driver API is done.
+    open fun isMigratedToDriver(): Boolean = false
 }

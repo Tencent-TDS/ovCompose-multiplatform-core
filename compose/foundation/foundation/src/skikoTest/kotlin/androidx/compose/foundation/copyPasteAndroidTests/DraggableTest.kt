@@ -50,7 +50,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.MouseButton
 import androidx.compose.ui.test.MouseInjectionScope
 import androidx.compose.ui.test.SkikoComposeUiTest
-import androidx.compose.ui.test.animateTo
+import androidx.compose.ui.test.animateMoveTo
 import androidx.compose.ui.test.dragAndDrop
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
@@ -229,7 +229,7 @@ class DraggableTest {
     ) {
         updatePointerTo(start)
         press(MouseButton.Secondary)
-        animateTo(end, durationMillis)
+        animateMoveTo(end, durationMillis)
         release(MouseButton.Secondary)
     }
 

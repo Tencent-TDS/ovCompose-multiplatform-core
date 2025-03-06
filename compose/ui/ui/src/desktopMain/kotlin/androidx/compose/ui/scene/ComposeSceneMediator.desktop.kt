@@ -20,11 +20,13 @@ import androidx.compose.ui.input.key.KeyEvent as ComposeKeyEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalContext
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
+import androidx.compose.ui.awt.SwingInteropViewGroup
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
 import androidx.compose.ui.awt.runOnEDTThread
 import androidx.compose.ui.focus.FocusDirection
@@ -57,6 +59,7 @@ import androidx.compose.ui.platform.a11y.AccessibilityController
 import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.scene.skia.SkiaLayerComponent
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
@@ -92,6 +95,8 @@ import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.ClipRectangle
@@ -171,11 +176,13 @@ internal class ComposeSceneMediator(
         requestRedraw = ::onComposeInvalidation
     )
 
-    private val containerListener = object : ContainerListener {
-        private val clipMap = mutableMapOf<Component, ClipRectangle>()
+    private val interopContainerListener = object : ContainerListener {
+        private val clipMap = mutableMapOf<SwingInteropViewGroup, ClipRectangle>()
 
         override fun componentAdded(e: ContainerEvent) {
             val component = e.child
+            if (component !is SwingInteropViewGroup) return
+
             if (useInteropBlending) {
                 // In case of interop blending, compose might draw content above this [component].
                 // But due to implementation of [JLayeredPane]'s lightweight/heavyweight mixing
@@ -192,17 +199,19 @@ internal class ComposeSceneMediator(
 
         override fun componentRemoved(e: ContainerEvent) {
             val component = e.child
+            if (component !is SwingInteropViewGroup) return
+
             removeClipComponent(component)
             component.unsubscribeFromMouseEvents(mouseListener)
         }
 
-        private fun addClipComponent(component: Component) {
+        private fun addClipComponent(component: SwingInteropViewGroup) {
             val clipRectangle = interopContainer.getClipRectForComponent(component)
             clipMap[component] = clipRectangle
             skiaLayerComponent.clipComponents.add(clipRectangle)
         }
 
-        private fun removeClipComponent(component: Component) {
+        private fun removeClipComponent(component: SwingInteropViewGroup) {
             clipMap.remove(component)?.let {
                 skiaLayerComponent.clipComponents.remove(it)
             }
@@ -336,9 +345,10 @@ internal class ComposeSceneMediator(
      */
     private var keyboardModifiersRequireUpdate = false
 
-    private val dragAndDropManager = AwtDragAndDropManager(container) {
-        scene.dragAndDropTarget
-    }
+    private val dragAndDropManager = AwtDragAndDropManager(
+        rootContainer = container,
+        getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
+    )
 
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
@@ -349,9 +359,9 @@ internal class ComposeSceneMediator(
         container.add(invisibleComponent)
         container.add(contentComponent)
 
-        // Adding a listener after adding [invisibleComponent] and [contentComponent]
-        // to react only on changes with [interopLayer].
-        container.addContainerListener(containerListener)
+        // Because interopContainer.root == container, add a listener only after adding
+        // [invisibleComponent] and [contentComponent] to react only on changes with [interopLayer].
+        interopContainer.root.addContainerListener(interopContainerListener)
 
         // AwtDragAndDropManager support
         container.transferHandler = dragAndDropManager.transferHandler
@@ -474,9 +484,10 @@ internal class ComposeSceneMediator(
 
         unsubscribe(contentComponent)
 
-        // Since rendering will not happen after, we needs to execute all scheduled updates
+        interopContainer.root.removeContainerListener(interopContainerListener)
+        // Since rendering will not happen after, we need to execute all scheduled updates
         interopContainer.dispose()
-        container.removeContainerListener(containerListener)
+
         container.remove(contentComponent)
         container.remove(invisibleComponent)
         container.transferHandler = null
@@ -763,18 +774,31 @@ internal class ComposeSceneMediator(
             // This session has no data, just init/dispose tasks.
             sessionInitializer = { null }
         ) {
-            (suspendCancellableCoroutine<Nothing> { continuation ->
-                textInputService.startInput(
-                    value = request.state,
-                    imeOptions = request.imeOptions,
-                    onEditCommand = request.onEditCommand,
-                    onImeActionPerformed = request.onImeAction ?: {}
-                )
-
-                continuation.invokeOnCancellation {
-                    textInputService.stopInput()
+            coroutineScope {
+                launch {
+                    request.focusedRectInRoot.collect {
+                        textInputService.notifyFocusedRect(it)
+                    }
                 }
-            })
+
+                suspendCancellableCoroutine<Nothing> { continuation ->
+                    textInputService.startInput(
+                        value = request.state,
+                        imeOptions = request.imeOptions,
+                        onEditCommand = request.onEditCommand,
+                        onImeActionPerformed = request.onImeAction ?: {}
+                    )
+
+                    continuation.invokeOnCancellation {
+                        textInputService.stopInput()
+                    }
+                }
+            }
+        }
+
+        @ExperimentalComposeUiApi
+        override fun updateTextFieldValue(newValue: TextFieldValue) {
+            textInputService.updateState(oldValue = null, newValue = newValue)
         }
     }
 

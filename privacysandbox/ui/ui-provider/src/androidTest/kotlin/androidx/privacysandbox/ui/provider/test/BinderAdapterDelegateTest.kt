@@ -46,6 +46,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assume
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -61,8 +62,7 @@ class BinderAdapterDelegateTest {
         const val SURFACE_VIEW_RES = "androidx.privacysandbox.ui.provider.test:id/surface_view"
     }
 
-    @get:Rule
-    val activityScenarioRule = ActivityScenarioRule(MainActivity::class.java)
+    @get:Rule val activityScenarioRule = ActivityScenarioRule(MainActivity::class.java)
 
     private val transferTouchFocusLatch = CountDownLatch(1)
 
@@ -76,7 +76,11 @@ class BinderAdapterDelegateTest {
             val surfaceView = activity.findViewById<SurfaceView>(R.id.surface_view)
             val surfaceControlViewHost =
                 GestureTransferringSurfaceControlViewHost(
-                    activity, activity.display!!, Binder(), transferTouchFocusLatch)
+                    activity,
+                    activity.display!!,
+                    Binder(),
+                    transferTouchFocusLatch
+                )
             val touchFocusTransferringView =
                 TouchFocusTransferringView(context, surfaceControlViewHost)
             touchFocusTransferringView.addView(TestView(context))
@@ -86,6 +90,7 @@ class BinderAdapterDelegateTest {
         }
     }
 
+    @Ignore // b/328282434
     @Test
     fun touchFocusTransferredForSwipeUp() {
         onView(withId(R.id.surface_view)).perform(swipeUp())

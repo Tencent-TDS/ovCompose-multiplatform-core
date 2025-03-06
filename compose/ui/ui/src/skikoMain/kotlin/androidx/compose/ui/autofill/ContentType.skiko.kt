@@ -16,251 +16,50 @@
 
 package androidx.compose.ui.autofill
 
-/**
- * Content type information.
- *
- * Autofill services use the [ContentType] to determine what value to use to autofill fields
- * associated with this type. If the [ContentType] is not specified, the autofill services have
- * to use heuristics to determine the right value to use while autofilling the corresponding field.
- */
-// TODO(b/333102566): When Autofill goes live for Compose,
-//  these classes will need to be made public.
-internal actual class ContentType private actual constructor(contentHint: String) {
-    internal actual companion object {
-        /**
-         * Indicates that the associated component can be autofilled with an email address.
-         */
-        actual val EmailAddress: ContentType
-            get() = TODO("Not yet implemented")
+import kotlin.jvm.JvmInline
 
-        /**
-         * Indicates that the associated component can be autofilled with a username.
-         */
-        actual val Username: ContentType
-            get() = TODO("Not yet implemented")
+// TODO https://youtrack.jetbrains.com/issue/CMP-7154/Adopt-Autofill-semantic-properties
 
-        /**
-         * Indicates that the associated component can be autofilled with a password.
-         */
-        actual val Password: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be interpreted as a newly created username for
-         * save/update.
-         */
-        actual val NewUsername: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be interpreted as a newly created password for
-         * save/update.
-         */
-        actual val NewPassword: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a postal address.
-         */
-        actual val PostalAddress: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a postal code.
-         */
-        actual val PostalCode: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card number.
-         */
-        actual val CreditCardNumber: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card security code.
-         */
-        actual val CreditCardSecurityCode: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card expiration date.
-         */
-        actual val CreditCardExpirationDate: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card expiration
-         * month.
-         */
-        actual val CreditCardExpirationMonth: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card expiration
-         * year.
-         */
-        actual val CreditCardExpirationYear: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a credit card expiration day.
-         */
-        actual val CreditCardExpirationDay: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a country name/code.
-         */
-        actual val AddressCountry: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a region/state.
-         */
-        actual val AddressRegion: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with an address locality
-         * (city/town).
-         */
-        actual val AddressLocality: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a street address.
-         */
-        actual val AddressStreet: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with auxiliary address details.
-         */
-        actual val AddressAuxiliaryDetails: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with an extended ZIP/POSTAL code.
-         *
-         * Example: In forms that split the U.S. ZIP+4 Code with nine digits 99999-9999 into two
-         * fields annotate the delivery route code with this hint.
-         */
-        actual val PostalCodeExtended: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's full name.
-         *
-         */
-        actual val PersonFullName: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's first/given name.
-         */
-        actual val PersonFirstName: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's last/family name.
-         */
-        actual val PersonLastName: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's middle name.
-         */
-        actual val PersonMiddleName: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's middle initial.
-         */
-        actual val PersonMiddleInitial: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's name prefix.
-         */
-        actual val PersonNamePrefix: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a person's name suffix.
-         */
-        actual val PersonNameSuffix: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a phone number with
-         * country code.
-         *
-         * Example: +1 123-456-7890
-         */
-        actual val PhoneNumber: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with the current device's phone number
-         * usually for Sign Up / OTP flows.
-         */
-        actual val PhoneNumberDevice: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a phone number's country code.
-         */
-        actual val PhoneCountryCode: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a phone number without
-         * country code.
-         */
-        actual val PhoneNumberNational: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a gender.
-         */
-        actual val Gender: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a full birth date.
-         */
-        actual val BirthDateFull: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a birth day(of the month).
-         */
-        actual val BirthDateDay: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a birth day(of the month).
-         */
-        actual val BirthDateMonth: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a birth year.
-         */
-        actual val BirthDateYear: ContentType
-            get() = TODO("Not yet implemented")
-
-        /**
-         * Indicates that the associated component can be autofilled with a SMS One Time Password (OTP).
-         */
-        actual val SmsOtpCode: ContentType
-            get() = TODO("Not yet implemented")
-
-        internal actual fun from(value: String): ContentType {
-            TODO("Not yet implemented")
-        }
-
+actual sealed interface ContentType {
+    actual companion object {
+        actual val Username: ContentType = PlatformContentType(1)
+        actual val Password: ContentType = PlatformContentType(2)
+        actual val EmailAddress: ContentType = PlatformContentType(3)
+        actual val NewUsername: ContentType = PlatformContentType(4)
+        actual val NewPassword: ContentType = PlatformContentType(5)
+        actual val PostalAddress: ContentType = PlatformContentType(6)
+        actual val PostalCode: ContentType = PlatformContentType(7)
+        actual val CreditCardNumber: ContentType = PlatformContentType(8)
+        actual val CreditCardSecurityCode: ContentType = PlatformContentType(9)
+        actual val CreditCardExpirationDate: ContentType = PlatformContentType(10)
+        actual val CreditCardExpirationMonth: ContentType = PlatformContentType(11)
+        actual val CreditCardExpirationYear: ContentType = PlatformContentType(12)
+        actual val CreditCardExpirationDay: ContentType = PlatformContentType(13)
+        actual val AddressCountry: ContentType = PlatformContentType(14)
+        actual val AddressRegion: ContentType = PlatformContentType(15)
+        actual val AddressLocality: ContentType = PlatformContentType(16)
+        actual val AddressStreet: ContentType = PlatformContentType(17)
+        actual val AddressAuxiliaryDetails: ContentType = PlatformContentType(18)
+        actual val PostalCodeExtended: ContentType = PlatformContentType(19)
+        actual val PersonFullName: ContentType = PlatformContentType(20)
+        actual val PersonFirstName: ContentType = PlatformContentType(21)
+        actual val PersonLastName: ContentType = PlatformContentType(22)
+        actual val PersonMiddleName: ContentType = PlatformContentType(23)
+        actual val PersonMiddleInitial: ContentType = PlatformContentType(24)
+        actual val PersonNamePrefix: ContentType = PlatformContentType(25)
+        actual val PersonNameSuffix: ContentType = PlatformContentType(26)
+        actual val PhoneNumber: ContentType = PlatformContentType(27)
+        actual val PhoneNumberDevice: ContentType = PlatformContentType(28)
+        actual val PhoneCountryCode: ContentType = PlatformContentType(29)
+        actual val PhoneNumberNational: ContentType = PlatformContentType(30)
+        actual val Gender: ContentType = PlatformContentType(31)
+        actual val BirthDateFull: ContentType = PlatformContentType(32)
+        actual val BirthDateDay: ContentType = PlatformContentType(33)
+        actual val BirthDateMonth: ContentType = PlatformContentType(34)
+        actual val BirthDateYear: ContentType = PlatformContentType(35)
+        actual val SmsOtpCode: ContentType = PlatformContentType(36)
     }
-
 }
+
+@JvmInline
+private value class PlatformContentType(val type: Int) : ContentType

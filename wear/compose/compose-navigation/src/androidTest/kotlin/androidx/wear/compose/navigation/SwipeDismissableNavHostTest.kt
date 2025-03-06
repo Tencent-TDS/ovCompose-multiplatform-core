@@ -19,6 +19,7 @@ import androidx.activity.OnBackPressedDispatcher
 import androidx.activity.OnBackPressedDispatcherOwner
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -61,23 +62,18 @@ import org.junit.Rule
 import org.junit.Test
 
 class SwipeDismissableNavHostTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun supports_testtag() {
-        rule.setContentWithTheme {
-            SwipeDismissWithNavigation()
-        }
+        rule.setContentWithTheme { SwipeDismissWithNavigation() }
 
         rule.onNodeWithTag(TEST_TAG).assertExists()
     }
 
     @Test
     fun navigates_to_next_level() {
-        rule.setContentWithTheme {
-            SwipeDismissWithNavigation()
-        }
+        rule.setContentWithTheme { SwipeDismissWithNavigation() }
 
         // Click to move to next destination.
         rule.onNodeWithText(START).performClick()
@@ -88,13 +84,11 @@ class SwipeDismissableNavHostTest {
 
     @Test
     fun navigates_back_to_previous_level_after_swipe() {
-        rule.setContentWithTheme {
-            SwipeDismissWithNavigation()
-        }
+        rule.setContentWithTheme { SwipeDismissWithNavigation() }
 
         // Click to move to next destination then swipe to dismiss.
         rule.onNodeWithText(START).performClick()
-        rule.onNodeWithTag(TEST_TAG).performTouchInput({ swipeRight() })
+        rule.onNodeWithTag(TEST_TAG).performTouchInput { swipeRight() }
 
         // Should now display "start".
         rule.onNodeWithText(START).assertExists()
@@ -102,9 +96,7 @@ class SwipeDismissableNavHostTest {
 
     @Test
     fun does_not_navigate_back_to_previous_level_when_swipe_disabled() {
-        rule.setContentWithTheme {
-            SwipeDismissWithNavigation(userSwipeEnabled = false)
-        }
+        rule.setContentWithTheme { SwipeDismissWithNavigation(userSwipeEnabled = false) }
 
         // Click to move to next destination then swipe to dismiss.
         rule.onNodeWithText(START).performClick()
@@ -134,9 +126,7 @@ class SwipeDismissableNavHostTest {
         rule.onNodeWithText(START).performClick()
 
         // Now trigger the back button
-        rule.runOnIdle {
-            onBackPressedDispatcher.onBackPressed()
-        }
+        rule.runOnIdle { onBackPressedDispatcher.onBackPressed() }
         rule.waitForIdle()
 
         // Should now display "start".
@@ -146,9 +136,7 @@ class SwipeDismissableNavHostTest {
 
     @Test
     fun hides_previous_level_when_not_swiping() {
-        rule.setContentWithTheme {
-            SwipeDismissWithNavigation()
-        }
+        rule.setContentWithTheme { SwipeDismissWithNavigation() }
 
         // Click to move to next destination then swipe to dismiss.
         rule.onNodeWithText(START).performClick()
@@ -160,21 +148,17 @@ class SwipeDismissableNavHostTest {
     @ExperimentalTestApi
     @Test
     fun displays_previous_screen_during_swipe_gesture() {
-        rule.setContentWithTheme {
-            WithTouchSlop(0f) {
-                SwipeDismissWithNavigation()
-            }
-        }
+        rule.setContentWithTheme { WithTouchSlop(0f) { SwipeDismissWithNavigation() } }
 
         // Click to move to next destination.
         rule.onNodeWithText(START).performClick()
         // Click and drag to being a swipe gesture, but do not release the finger.
-        rule.onNodeWithTag(TEST_TAG).performTouchInput(
-            {
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .performTouchInput({
                 down(Offset(x = 0f, y = height / 2f))
                 moveTo(Offset(x = width / 4f, y = height / 2f))
-            }
-        )
+            })
 
         // As the finger is still 'down', the background should be visible.
         rule.onNodeWithText(START).assertExists()
@@ -195,28 +179,28 @@ class SwipeDismissableNavHostTest {
                     composable(START) {
                         screenId.value = START
                         var toggle by rememberSaveable { mutableStateOf(false) }
-                        Column {
-                            ToggleButton(
-                                checked = toggle,
-                                onCheckedChange = {
-                                    toggle = !toggle
-                                },
-                                content = { Text(text = if (toggle) "On" else "Off") },
-                                modifier = Modifier.testTag("ToggleButton"),
-                            )
-                            Button(
-                                onClick = { navController.navigate(NEXT) },
-                            ) {
-                                Text("Go")
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column {
+                                ToggleButton(
+                                    checked = toggle,
+                                    onCheckedChange = { toggle = !toggle },
+                                    content = { Text(text = if (toggle) "On" else "Off") },
+                                    modifier = Modifier.testTag("ToggleButton"),
+                                )
+                                Button(
+                                    onClick = { navController.navigate(NEXT) },
+                                ) {
+                                    Text("Go")
+                                }
                             }
                         }
                     }
-                    composable("next") {
+                    composable(NEXT) {
                         screenId.value = NEXT
-                        CompactChip(
-                            onClick = {},
-                            label = { Text(text = NEXT) }
-                        )
+                        CompactChip(onClick = {}, label = { Text(text = NEXT) })
                     }
                 }
             }
@@ -235,60 +219,55 @@ class SwipeDismissableNavHostTest {
         val screenId = mutableStateOf(START)
         rule.setContentWithTheme {
             val holder = rememberSaveableStateHolder()
-                val navController = rememberSwipeDismissableNavController()
-                SwipeDismissableNavHost(
-                    navController = navController,
-                    startDestination = START,
-                    modifier = Modifier.testTag(TEST_TAG),
-                ) {
-                    composable(START) {
-                        screenId.value = START
-                        holder.SaveableStateProvider(START) {
-                            var toggle by rememberSaveable { mutableStateOf(false) }
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
+            val navController = rememberSwipeDismissableNavController()
+            SwipeDismissableNavHost(
+                navController = navController,
+                startDestination = START,
+                modifier = Modifier.testTag(TEST_TAG),
+            ) {
+                composable(START) {
+                    screenId.value = START
+                    holder.SaveableStateProvider(START) {
+                        var toggle by rememberSaveable { mutableStateOf(false) }
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ToggleButton(
+                                checked = toggle,
+                                onCheckedChange = { toggle = !toggle },
+                                content = { Text(text = if (toggle) "On" else "Off") },
+                                modifier = Modifier.testTag("ToggleButton"),
+                            )
+                            Button(
+                                onClick = { navController.navigate(NEXT) },
                             ) {
-                                ToggleButton(
-                                    checked = toggle,
-                                    onCheckedChange = {
-                                        toggle = !toggle
-                                    },
-                                    content = { Text(text = if (toggle) "On" else "Off") },
-                                    modifier = Modifier.testTag("ToggleButton"),
-                                )
-                                Button(
-                                    onClick = { navController.navigate(NEXT) },
-                                ) {
-                                    Text("Go")
-                                }
+                                Text("Go")
                             }
                         }
                     }
-                    composable(NEXT) {
-                        screenId.value = NEXT
-                        holder.SaveableStateProvider(NEXT) {
-                            var counter by rememberSaveable { mutableStateOf(0) }
-                            Column(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally
+                }
+                composable(NEXT) {
+                    screenId.value = NEXT
+                    holder.SaveableStateProvider(NEXT) {
+                        var counter by rememberSaveable { mutableStateOf(0) }
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Button(onClick = { ++counter }, modifier = Modifier.testTag(COUNTER)) {
+                                Text("$counter")
+                            }
+                            Button(
+                                onClick = { navController.navigate(START) },
                             ) {
-                                Button(
-                                    onClick = { ++counter },
-                                    modifier = Modifier.testTag(COUNTER)
-                                ) {
-                                    Text("$counter")
-                                }
-                                Button(
-                                    onClick = { navController.navigate(START) },
-                                ) {
-                                    Text("Jump")
-                                }
+                                Text("Jump")
                             }
                         }
                     }
+                }
             }
         }
 
@@ -379,9 +358,7 @@ class SwipeDismissableNavHostTest {
         rule.waitForIdle()
         rule.onNodeWithText(START).performClick()
 
-        rule.runOnIdle {
-            navController.popBackStack()
-        }
+        rule.runOnIdle { navController.popBackStack() }
 
         rule.runOnIdle {
             assertThat(navController.currentBackStackEntry?.lifecycle?.currentState)
@@ -401,10 +378,7 @@ class SwipeDismissableNavHostTest {
 
         rule.onNodeWithText(START).performClick()
 
-        rule.runOnIdle {
-            assertThat(backStackEntry.value?.destination?.route)
-                .isEqualTo(NEXT)
-        }
+        rule.runOnIdle { assertThat(backStackEntry.value?.destination?.route).isEqualTo(NEXT) }
     }
 
     @Test
@@ -448,26 +422,24 @@ class SwipeDismissableNavHostTest {
             userSwipeEnabled = userSwipeEnabled
         ) {
             composable(START) {
-                CompactChip(
-                    onClick = { navController.navigate(NEXT) },
-                    label = { Text(text = START) }
-                )
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CompactChip(
+                        onClick = { navController.navigate(NEXT) },
+                        label = { Text(text = START) }
+                    )
+                }
             }
             composable("next") {
-                Text(NEXT)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(NEXT)
+                }
             }
         }
     }
 }
 
-fun ComposeContentTestRule.setContentWithTheme(
-    composable: @Composable () -> Unit
-) {
-    setContent {
-        MaterialTheme {
-            composable()
-        }
-    }
+fun ComposeContentTestRule.setContentWithTheme(composable: @Composable () -> Unit) {
+    setContent { MaterialTheme { composable() } }
 }
 
 private const val NEXT = "next"

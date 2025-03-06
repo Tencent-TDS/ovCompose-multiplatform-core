@@ -17,7 +17,6 @@ import android.os.Build;
 import android.os.Trace;
 import android.util.Log;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
@@ -50,7 +49,7 @@ public final class TraceCompat {
     private static Method sTraceCounterMethod;
 
     static {
-        if (Build.VERSION.SDK_INT >= 18 && Build.VERSION.SDK_INT < 29) {
+        if (Build.VERSION.SDK_INT < 29) {
             try {
                 Field traceTagAppField = Trace.class.getField("TRACE_TAG_APP");
                 sTraceTagApp = traceTagAppField.getLong(null);
@@ -81,7 +80,7 @@ public final class TraceCompat {
     public static boolean isEnabled() {
         if (Build.VERSION.SDK_INT >= 29) {
             return Api29Impl.isEnabled();
-        } else if (Build.VERSION.SDK_INT >= 18) {
+        } else {
             try {
                 return (boolean) sIsTagEnabledMethod.invoke(null, sTraceTagApp);
             } catch (Exception e) {
@@ -105,9 +104,7 @@ public final class TraceCompat {
      * most 127 Unicode code units long.
      */
     public static void beginSection(@NonNull String sectionName) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            Api18Impl.beginSection(sectionName);
-        }
+        Trace.beginSection(sectionName);
     }
 
     /**
@@ -118,9 +115,7 @@ public final class TraceCompat {
      * thread.
      */
     public static void endSection() {
-        if (Build.VERSION.SDK_INT >= 18) {
-            Api18Impl.endSection();
-        }
+        Trace.endSection();
     }
 
     /**
@@ -136,7 +131,7 @@ public final class TraceCompat {
     public static void beginAsyncSection(@NonNull String methodName, int cookie) {
         if (Build.VERSION.SDK_INT >= 29) {
             Api29Impl.beginAsyncSection(methodName, cookie);
-        } else if (Build.VERSION.SDK_INT >= 18) {
+        } else {
             try {
                 sAsyncTraceBeginMethod.invoke(null, sTraceTagApp, methodName, cookie);
             } catch (Exception e) {
@@ -156,7 +151,7 @@ public final class TraceCompat {
     public static void endAsyncSection(@NonNull String methodName, int cookie) {
         if (Build.VERSION.SDK_INT >= 29) {
             Api29Impl.endAsyncSection(methodName, cookie);
-        } else if (Build.VERSION.SDK_INT >= 18) {
+        } else {
             try {
                 sAsyncTraceEndMethod.invoke(null, sTraceTagApp, methodName, cookie);
             } catch (Exception e) {
@@ -175,7 +170,7 @@ public final class TraceCompat {
     public static void setCounter(@NonNull String counterName, int counterValue) {
         if (Build.VERSION.SDK_INT >= 29) {
             Api29Impl.setCounter(counterName, counterValue);
-        } else if (Build.VERSION.SDK_INT >= 18) {
+        } else {
             try {
                 sTraceCounterMethod.invoke(null, sTraceTagApp, counterName, counterValue);
             } catch (Exception e) {
@@ -193,41 +188,20 @@ public final class TraceCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static boolean isEnabled() {
             return Trace.isEnabled();
         }
 
-        @DoNotInline
         static void endAsyncSection(String methodName, int cookie) {
             Trace.endAsyncSection(methodName, cookie);
         }
 
-        @DoNotInline
         static void beginAsyncSection(String methodName, int cookie) {
             Trace.beginAsyncSection(methodName, cookie);
         }
 
-        @DoNotInline
         static void setCounter(String counterName, long counterValue) {
             Trace.setCounter(counterName, counterValue);
-        }
-    }
-
-    @RequiresApi(18)
-    static class Api18Impl {
-        private Api18Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void beginSection(String sectionName) {
-            Trace.beginSection(sectionName);
-        }
-
-        @DoNotInline
-        static void endSection() {
-            Trace.endSection();
         }
     }
 }

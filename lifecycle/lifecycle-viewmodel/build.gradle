@@ -22,10 +22,8 @@
  * modifying its settings.
  */
 
-import androidx.build.JetbrainsAndroidXPlugin
-import androidx.build.KmpPlatformsKt
+import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
@@ -36,11 +34,6 @@ plugins {
     id("JetbrainsAndroidXPlugin")
 }
 
-JetbrainsAndroidXPlugin.applyAndConfigure(project)
-
-def jsEnabled = KmpPlatformsKt.enableJs(project)
-def wasmEnabled = KmpPlatformsKt.enableWasm(project)
-
 androidXMultiplatform {
     android()
     desktop()
@@ -50,26 +43,11 @@ androidXMultiplatform {
     js()
     wasm()
 
-    defaultPlatform(PlatformIdentifier.ANDROID)
-}
-
-kotlin {
-    js {
-        browser()
+    kotlin {
+        explicitApi = ExplicitApiMode.Strict
     }
-    wasmJs()
 
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
-    // TODO: mingwX64 requires Lock actual implementation.
-    //  Or copy approach from :collection:collection - use unstable atomicFu
-
-    explicitApi = ExplicitApiMode.Strict
+    defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         configureEach {
@@ -78,7 +56,7 @@ kotlin {
 
         commonMain {
             dependencies {
-                api(project(":annotation:annotation"))
+                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
             }
@@ -92,11 +70,11 @@ kotlin {
             }
         }
 
-        jvmMain {
+        jvmCommonMain {
             dependsOn(commonMain)
         }
 
-        jvmTest {
+        jvmCommonTest {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.junit)
@@ -104,14 +82,15 @@ kotlin {
         }
 
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(jvmCommonMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
+                implementation("androidx.core:core-viewtree:1.0.0-alpha01")
             }
         }
 
         androidUnitTest {
-            dependsOn(jvmTest)
+            dependsOn(jvmCommonTest)
             dependencies {
                 implementation(libs.mockitoCore4)
             }
@@ -127,17 +106,14 @@ kotlin {
             }
         }
 
-        desktopMain.dependsOn(jvmMain)
-        nonJvmMain.dependsOn(commonMain)
-        nativeMain.dependsOn(nonJvmMain)
+        desktopMain.dependsOn(jvmCommonMain)
+        nonJvmCommonMain.dependsOn(commonMain)
+        nativeMain.dependsOn(nonJvmCommonMain)
         darwinMain.dependsOn(nativeMain)
         linuxMain.dependsOn(nativeMain)
+        webMain.dependsOn(nonJvmCommonMain)
 
-        if (jsEnabled || wasmEnabled) {
-            webMain.dependsOn(nonJvmMain)
-        }
-
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     def konanTargetFamily = target.konanTarget.family
@@ -161,8 +137,18 @@ kotlin {
     }
 }
 
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+}
+
 android {
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
     namespace "androidx.lifecycle.viewmodel"
@@ -170,7 +156,8 @@ android {
 
 androidx {
     name = "Lifecycle ViewModel"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Lifecycle ViewModel"
+    metalavaK2UastEnabled = false
 }

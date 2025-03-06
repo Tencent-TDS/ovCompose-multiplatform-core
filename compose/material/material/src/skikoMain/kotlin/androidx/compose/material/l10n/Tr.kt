@@ -28,4 +28,5 @@ internal fun Translations.tr() = mapOf(
     Strings.DefaultErrorMessage to "Geçersiz giriş",
     Strings.SliderRangeStart to "Aralık başlangıcı",
     Strings.SliderRangeEnd to "Aralık sonu",
+    Strings.SnackbarPaneTitle to "Uyarı",
 )

@@ -74,7 +74,7 @@ public actual open class NavGraphBuilder : NavDestinationBuilder<NavGraph> {
     }
 
     @OptIn(InternalSerializationApi::class)
-    override fun build(): NavGraph =
+    actual override fun build(): NavGraph =
         super.build().also { navGraph ->
             navGraph.addDestinations(destinations)
             if (

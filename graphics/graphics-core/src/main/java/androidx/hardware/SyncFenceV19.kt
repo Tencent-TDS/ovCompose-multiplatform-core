@@ -33,7 +33,6 @@ import kotlin.concurrent.withLock
  * When the fence signals, then the backing storage for the framebuffer may be safely read from,
  * such as for display or media encoding.
  */
-@RequiresApi(Build.VERSION_CODES.KITKAT)
 @JniVisible
 internal class SyncFenceV19(private var fd: Int) : AutoCloseable, SyncFenceImpl {
 
@@ -41,35 +40,36 @@ internal class SyncFenceV19(private var fd: Int) : AutoCloseable, SyncFenceImpl 
 
     /**
      * Checks if the SyncFence object is valid.
+     *
      * @return `true` if it is valid, `false` otherwise
      */
-    override fun isValid(): Boolean = fenceLock.withLock {
-        fd != -1
-    }
+    override fun isValid(): Boolean = fenceLock.withLock { fd != -1 }
 
     /**
-     * Returns the time that the fence signaled in the [CLOCK_MONOTONIC] time domain.
-     * This returns [SyncFenceCompat.SIGNAL_TIME_INVALID] if the SyncFence is invalid.
+     * Returns the time that the fence signaled in the [CLOCK_MONOTONIC] time domain. This returns
+     * [SyncFenceCompat.SIGNAL_TIME_INVALID] if the SyncFence is invalid.
      */
     // Relies on NDK APIs sync_file_info/sync_file_info_free which were introduced in API level 26
     @RequiresApi(Build.VERSION_CODES.O)
-    override fun getSignalTimeNanos(): Long = fenceLock.withLock {
-        if (isValid()) {
-            nGetSignalTime(fd)
-        } else {
-            SyncFenceCompat.SIGNAL_TIME_INVALID
+    override fun getSignalTimeNanos(): Long =
+        fenceLock.withLock {
+            if (isValid()) {
+                SyncFenceBindings.nGetSignalTime(fd)
+            } else {
+                SyncFenceCompat.SIGNAL_TIME_INVALID
+            }
         }
-    }
 
     // Accessed through JNI to obtain the dup'ed file descriptor in a thread safe manner
     @JniVisible
-    private fun dupeFileDescriptor(): Int = fenceLock.withLock {
-        return if (isValid()) {
-            nDup(fd)
-        } else {
-            -1
+    private fun dupeFileDescriptor(): Int =
+        fenceLock.withLock {
+            return if (isValid()) {
+                nDup(fd)
+            } else {
+                -1
+            }
         }
-    }
 
     /**
      * Waits for a SyncFence to signal for up to the [timeoutNanos] duration. An invalid SyncFence,
@@ -77,7 +77,7 @@ internal class SyncFenceV19(private var fd: Int) : AutoCloseable, SyncFenceImpl 
      * signaled. That is, wait() will immediately return `true`.
      *
      * @param timeoutNanos Timeout duration in nanoseconds. Providing a negative value will wait
-     * indefinitely until the fence is signaled
+     *   indefinitely until the fence is signaled
      * @return `true` if the fence signaled or is not valid, `false` otherwise
      */
     override fun await(timeoutNanos: Long): Boolean {
@@ -106,8 +106,8 @@ internal class SyncFenceV19(private var fd: Int) : AutoCloseable, SyncFenceImpl 
     override fun awaitForever(): Boolean = await(-1)
 
     /**
-     * Close the SyncFence instance. After this method is invoked the fence is invalid. That
-     * is subsequent calls to [isValid] will return `false`
+     * Close the SyncFence instance. After this method is invoked the fence is invalid. That is
+     * subsequent calls to [isValid] will return `false`
      */
     override fun close() {
         fenceLock.withLock {
@@ -125,21 +125,15 @@ internal class SyncFenceV19(private var fd: Int) : AutoCloseable, SyncFenceImpl 
     // SyncFence in the framework implements timeoutNanos as a long but
     // it is casted down to an int within native code and eventually calls into
     // the poll API which consumes a timeout in nanoseconds as an int.
-    @JniVisible
-    private external fun nWait(fd: Int, timeoutMillis: Int): Boolean
+    @JniVisible private external fun nWait(fd: Int, timeoutMillis: Int): Boolean
 
-    @JniVisible
-    private external fun nGetSignalTime(fd: Int): Long
-
-    @JniVisible
-    private external fun nClose(fd: Int)
+    @JniVisible private external fun nClose(fd: Int)
 
     /**
-     * Dup the provided file descriptor, this method requires the caller to acquire the corresponding
-     * [fenceLock] before invoking
+     * Dup the provided file descriptor, this method requires the caller to acquire the
+     * corresponding [fenceLock] before invoking
      */
-    @JniVisible
-    private external fun nDup(fd: Int): Int
+    @JniVisible private external fun nDup(fd: Int): Int
 
     companion object {
 

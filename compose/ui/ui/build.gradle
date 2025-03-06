@@ -50,7 +50,7 @@ dependencies {
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block below
          */
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation(libs.kotlinCoroutinesCore)
         implementation(libs.atomicFu)
 
@@ -144,7 +144,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
         darwin()
         js()
         wasm()
-        iosInstrumentedTest()
+        // TODO: Migrate iosInstrumentedTest to kotlin 2.1.0
+        //  https://youtrack.jetbrains.com/issue/CMP-7390/Migrate-iosInstrumentedTest-target-to-kotlin-2.1.0
+        //  Kotlin 2.1.0 doesn't support declaring multiple targets of the same type
+        // iosInstrumentedTest()
 
         configureDarwinFlags()
     }
@@ -156,10 +159,11 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
+                implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
-                implementation(libs.kotlinStdlibCommon)
+                implementation(project(":performance:performance-annotation"))
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
 
                 // when updating the runtime version please also update the runtime-saveable version
                 implementation(project(":compose:runtime:runtime"))
@@ -170,7 +174,9 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api project(":compose:ui:ui-text")
                 api project(":compose:ui:ui-unit")
                 api project(":compose:ui:ui-util")
-                implementation(project(":annotation:annotation"))
+                implementation(project(":compose:ui:ui-backhandler"))
+
+                // TODO(igor): figure out how to avoid downgrading runtime to 1.6 in case of project dependencies in mpp demo + pinned lifecycle here
                 implementation(project(":lifecycle:lifecycle-common"))
                 implementation(project(":lifecycle:lifecycle-runtime"))
                 implementation(project(":lifecycle:lifecycle-runtime-compose"))
@@ -205,11 +211,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                     api(project(":compose:ui:ui-graphics"))
                     api(project(":compose:ui:ui-text"))
                     api(libs.skikoCommon)
+                    implementation(libs.atomicFu)
                 }
             }
             uikitMain {
                 dependencies {
-                    api project(":compose:ui:ui-uikit")
+                    implementation(project(":compose:ui:ui-uikit"))
                 }
             }
             notMobileMain.dependsOn(skikoMain)
@@ -336,6 +343,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinCoroutinesSwing)
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(project(":compose:material:material"))
+                implementation(project(":compose:material3:material3"))
                 implementation(project(":compose:ui:ui-test-junit4"))
             }
 
@@ -354,7 +362,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
     }
 }
 
-// This task updates the translations of the localizable strings in this module.
+// This task updates the translations of the localizable strings for the desktopMain target.
 // It obtains them from Android's base repository.
 tasks.register("updateTranslations", UpdateTranslationsTask.class) {
     group = "localization"
@@ -383,6 +391,93 @@ tasks.register("updateTranslations", UpdateTranslationsTask.class) {
             "ms", "my", "nb", "ne", "nl", "or", "pa", "pl", "pt", "pt_BR", "pt_PT", "ro", "ru",
             "si", "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur",
             "uz", "vi", "zh_CN", "zh_HK", "zh_TW", "zu"
+    ]
+}
+
+// This task updates the translations of the localizable strings for the uikitMain target.
+// It obtains them from compose multiplatform repository.
+// See also `scripts/convertCrowdinToStringsXml.sh`.
+tasks.register("updateTranslationsIos", UpdateTranslationsTask.class) {
+    group = "localization"
+    gitRepo = "https://github.com/JetBrains/compose-multiplatform-core"
+    repoResDirectories = ["compose/ui/ui/src/uikitMain/res"]
+    targetDirectory = project.file("src/uikitMain/kotlin/androidx/compose/ui/platform/l10n")
+    targetPackageName = "androidx.compose.ui.platform.l10n"
+    kotlinStringsPackageName = "androidx.compose.ui.platform"
+    stringByResourceName = [
+            "first_page": "FirstPage",
+            "last_page": "LastPage",
+            "next_page": "NextPage",
+            "previous_page": "PreviousPage"
+    ]
+
+    // Currently, strings are used in accessibility features, which limits the language list to the
+    // languages supported in accessibility on iOS: https://support.apple.com/en-us/111748.
+    locales = [
+            "ar", // Arabic
+            "eu", // Basque
+            "bn", // Bengali (India)
+            "bho", // Bhojpuri (India)
+            "bg", // Bulgarian
+            "zh_HK", // Cantonese (Hong Kong)
+            "ca", // Catalan
+            "hr", // Croatian
+            "cs", // Czech
+            "da", // Danish
+            "nl_BE", // Dutch (Belgium)
+            "nl", // Dutch (Netherlands)
+            "en_AU", // English (Australia)
+            "en_IN", // English (India)
+            "en_IE", // English (Ireland)
+            "en_GB", // English (Scotland)
+            "en_ZA", // English (South Africa)
+            "en_GB", // English (UK)
+            "en", // English (US)
+            "fa", // Farsi
+            "fi", // Finnish
+            "fr_BE", // French (Belgium)
+            "fr_CA", // French (Canada)
+            "fr", // French (France)
+            "gl", // Galician
+            "de", // German
+            "el", // Greek
+            "iw", // Hebrew
+            "hi", // Hindi
+            "hu", // Hungarian
+            "in", // Indonesian
+            "it", // Italian
+            "ja", // Japanese
+            "kn", // Kannada
+            "ko", // Korean
+            "ms", // Malay
+            "zh_CN", // Chinese (China mainland)
+            // "zh_CN", // Chinese (Liaoning, China mainland)
+            // "zh_CN", // Chinese (Shaanxi, China mainland)
+            // "zh_CN", // Chinese (Sichuan, China mainland)
+            "zh_TW", // Chinese (Taiwan)
+            "mr", // Marathi
+            "nb", // Norwegian
+            "pl", // Polish
+            "pt_BR", // Portuguese (Brazil)
+            "pt", // Portuguese (Portugal)
+            "ro", // Romanian
+            "ru", // Russian
+            // "zh_CN", // Shanghainese (China mainland)
+            "sk", // Slovak
+            "sl", // Slovenian
+            "es_AR", // Spanish (Argentina)
+            "es_CL", // Spanish (Chile)
+            "es_CO", // Spanish (Colombia)
+            "es_MX", // Spanish (Mexico)
+            "es", // Spanish (Spain)
+            "sv", // Swedish
+            "th", // Thai
+            "tr", // Turkish
+            "ta", // Tamil
+            "te", // Telugu
+            "uk", // Ukrainian
+            "ca_ES", // Valencian
+            "vi", // Vietnamese
     ]
 }
 

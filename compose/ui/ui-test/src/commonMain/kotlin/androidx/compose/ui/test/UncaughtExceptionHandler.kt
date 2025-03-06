@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 
 package androidx.compose.ui.test
 
-import kotlinx.coroutines.CoroutineExceptionHandler
+import androidx.compose.ui.test.platform.makeSynchronizedObject
+import androidx.compose.ui.test.platform.synchronized
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineExceptionHandler
 
 /**
  * Similar to [TestCoroutineExceptionHandler], but with clearing all thrown exceptions
@@ -43,9 +45,10 @@ internal class UncaughtExceptionHandler :
     AbstractCoroutineContextElement(CoroutineExceptionHandler),
     CoroutineExceptionHandler {
     private var exception: Throwable? = null
+    private val lock = makeSynchronizedObject(this)
 
     override fun handleException(context: CoroutineContext, exception: Throwable) {
-        synchronized(this) {
+        synchronized(lock) {
             if (this.exception == null) {
                 this.exception = exception
             } else {
@@ -67,7 +70,7 @@ internal class UncaughtExceptionHandler :
      * points to fail the test asap after the exception was caught.
      */
     fun throwUncaught() {
-        synchronized(this) {
+        synchronized(lock) {
             val exception = exception
             if (exception != null) {
                 this.exception = null
@@ -76,5 +79,3 @@ internal class UncaughtExceptionHandler :
         }
     }
 }
-
-internal expect inline fun <T> synchronized(lock: Any, block: () -> T): T

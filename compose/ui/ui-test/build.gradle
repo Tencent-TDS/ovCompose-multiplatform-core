@@ -54,7 +54,7 @@ dependencies {
         api(libs.kotlinCoroutinesCore)
         api(libs.kotlinCoroutinesTest)
         api(libs.kotlinStdlib)
-        api(libs.kotlinStdlibCommon)
+        api(libs.kotlinStdlib)
 
         implementation(project(":compose:ui:ui-util"))
         implementation("androidx.annotation:annotation:1.1.0")
@@ -102,6 +102,8 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(libs.kotlinCoroutinesTest)
                 api(libs.kotlinStdlib)
 
+                implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
                 implementation(project(":compose:ui:ui-util"))
             }
 
@@ -109,9 +111,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:runtime:runtime"))
                 api(libs.kotlinCoroutinesCore)
                 api(libs.kotlinCoroutinesTest)
-                api(libs.kotlinStdlibCommon)
-
-                implementation(project(":annotation:annotation"))
+                api(libs.kotlinStdlib)
             }
 
             androidMain.dependencies {
@@ -149,6 +149,9 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             skikoMain {
                 dependsOn(commonMain)
+                dependencies {
+                    implementation(libs.atomicFu)
+                }
             }
 
             desktopMain.dependsOn(skikoMain)
@@ -164,6 +167,24 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.truth)
                 implementation(libs.skiko)
             }
+
+            skikoTest.dependencies {
+                api(project(":compose:foundation:foundation"))
+                api(project(":compose:material:material"))
+                implementation(libs.kotlinTest)
+                implementation(libs.atomicFu)
+            }
+            skikoTest.dependsOn(commonTest)
+
+            desktopTest.dependencies {
+                implementation(libs.skikoCurrentOs)
+            }
+            desktopTest.dependsOn(skikoTest)
+            desktopTest.dependsOn(jvmTest)
+
+            wasmJsTest.dependsOn(skikoTest)
+            jsTest.dependsOn(skikoTest)
+            nativeTest.dependsOn(skikoTest)
 
             androidCommonTest.dependsOn(commonTest)
             androidTest.dependsOn(androidCommonTest)

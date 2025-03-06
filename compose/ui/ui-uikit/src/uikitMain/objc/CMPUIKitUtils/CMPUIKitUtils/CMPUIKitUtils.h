@@ -24,8 +24,10 @@ FOUNDATION_EXPORT const unsigned char CMPUIKitUtilsVersionString[];
 
 #import "CMPViewController.h"
 #import "CMPAccessibilityElement.h"
-#import "CMPAccessibilityContainer.h"
 #import "CMPOSLogger.h"
 #import "CMPTextLoupeSession.h"
 #import "CMPMetalDrawablesHandler.h"
 #import "CMPGestureRecognizer.h"
+#import "CMPDragInteractionProxy.h"
+#import "CMPDropInteractionProxy.h"
+#import "CMPScreenEdgePanGestureRecognizer.h"

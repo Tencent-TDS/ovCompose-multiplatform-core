@@ -1,20 +1,11 @@
 import androidx.build.jetbrains.ArtifactRedirecting
 import androidx.build.jetbrains.artifactRedirecting
-import org.jetbrains.compose.internal.publishing.*
-
-plugins {
-    signing
-}
 
 buildscript {
     repositories {
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/internal")
         maven("https://maven.pkg.jetbrains.space/public/p/space/maven")
-    }
-    dependencies {
-        val buildHelpersVersion = System.getProperty("BUILD_HELPERS_VERSION") ?: "0.1.16"
-        classpath("org.jetbrains.compose.internal.build-helpers:publishing:$buildHelpersVersion")
     }
 }
 
@@ -24,19 +15,10 @@ open class ComposePublishingTask : AbstractComposePublishingTask() {
     }
 }
 
-val composeProperties = ComposeProperties(project)
-
 // TODO: Align with other modules
 val viewModelPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
 
 val libraryToComponents = mapOf(
-    "CORE_BUNDLE" to listOf(
-        ComposeComponent(
-            path = ":core:core-bundle",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP,
-            neverRedirect = true
-        ),
-    ),
     "COMPOSE" to listOf(
         // TODO https://youtrack.jetbrains.com/issue/CMP-1604/Publish-public-collection-annotation-libraries-with-a-separate-version
         // They are part of COMPOSE versioning
@@ -50,8 +32,7 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:foundation:foundation-layout"),
         ComposeComponent(":compose:material:material"),
         ComposeComponent(":compose:material3:material3"),
-        ComposeComponent(":compose:material3:material3-common"),
-        ComposeComponent(":compose:material:material-icons-core"),
+        //ComposeComponent(":compose:material:material-icons-core"),
         ComposeComponent(":compose:material:material-ripple"),
         ComposeComponent(":compose:material:material-navigation"),
         ComposeComponent(":compose:material3:material3-window-size-class"),
@@ -60,6 +41,11 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:runtime:runtime-saveable", supportedPlatforms = ComposePlatforms.ALL),
         ComposeComponent(":compose:ui:ui"),
         ComposeComponent(":compose:ui:ui-geometry"),
+        ComposeComponent(
+            path = ":compose:ui:ui-backhandler",
+            supportedPlatforms = ComposePlatforms.SKIKO_SUPPORT,
+            neverRedirect = true
+        ),
         ComposeComponent(":compose:ui:ui-graphics"),
         ComposeComponent(":compose:ui:ui-test"),
         ComposeComponent(
@@ -83,10 +69,20 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:ui:ui-unit"),
         ComposeComponent(":compose:ui:ui-util"),
     ),
+    "COMPOSE_MATERIAL3_COMMON" to listOf(
+        ComposeComponent(":compose:material3:material3-common"),
+    ),
     "COMPOSE_MATERIAL3_ADAPTIVE" to listOf(
         ComposeComponent(":compose:material3:adaptive:adaptive"),
         ComposeComponent(":compose:material3:adaptive:adaptive-layout"),
         ComposeComponent(":compose:material3:adaptive:adaptive-navigation"),
+    ),
+    "GRAPHICS_SHAPES" to listOf(
+        ComposeComponent(
+            path = ":graphics:graphics-shapes",
+            // TODO: Maybe it makes sense to support mingwX64 here for consistency
+            supportedPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
+        ),
     ),
     "LIFECYCLE" to listOf(
         ComposeComponent(
@@ -111,6 +107,9 @@ val libraryToComponents = mapOf(
         ComposeComponent(":navigation:navigation-common", viewModelPlatforms),
         ComposeComponent(":navigation:navigation-runtime", viewModelPlatforms),
     ),
+    "PERFORMANCE" to listOf(
+        ComposeComponent(":performance:performance-annotation", viewModelPlatforms),
+    ),
     "SAVEDSTATE" to listOf(
         ComposeComponent(":savedstate:savedstate", viewModelPlatforms),
     ),
@@ -130,7 +129,8 @@ val libraryToTasks = mapOf(
             "Jvmlinux-arm64",
             "Jvmmacos-x64",
             "Jvmmacos-arm64",
-            "Jvmwindows-x64"
+            "Jvmwindows-x64",
+            "Jvmwindows-arm64"
         )
     )
 )
@@ -155,10 +155,9 @@ tasks.register("publishComposeJbToMavenLocal", ComposePublishingTask::class) {
 
 // isn't included in libraryToComponents for easy conflict resolution
 // (it is changed in integration and should be removed in 1.8)
+// TODO remove this and CI tasks after merging Jetpack Compose 1.8 to jb-main
 val iconsComponents =
-    listOf(
-        ComposeComponent(":compose:material:material-icons-extended"),
-    )
+    emptyList<ComposeComponent>()
 
 fun ComposePublishingTask.iconsPublications() {
     iconsComponents.forEach { publishMultiplatform(it) }
@@ -187,27 +186,43 @@ tasks.register("checkDesktop") {
 }
 
 tasks.register("testWeb") {
-    dependsOn(":compose:runtime:runtime:jsTest")
-    dependsOn(":compose:runtime:runtime:wasmJsTest")
-    dependsOn(":compose:ui:ui:compileTestKotlinJs")
-    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(testWebJs)
+    dependsOn(testWebWasm)
+}
 
-    dependsOn(":compose:foundation:foundation:wasmJsBrowserTest")
-    dependsOn(":compose:material3:material3:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui-text:wasmJsBrowserTest")
-    dependsOn(":compose:ui:ui:wasmJsBrowserTest")
-    dependsOn(":collection:collection:wasmJsBrowserTest")
+val testWebJs = tasks.register("testWebJs") {
+    dependsOn(":collection:collection:compileTestKotlinJs")
+    dependsOn(":compose:foundation:foundation:jsTest")
+    dependsOn(":compose:material3:material3:jsTest")
+    dependsOn(":compose:runtime:runtime:jsTest")
+    dependsOn(":compose:ui:ui-text:jsTest")
+    dependsOn(":compose:ui:ui:jsTest")
+    dependsOn(":navigation:navigation-runtime:jsTest")
+}
+
+val testWebWasm = tasks.register("testWebWasm") {
+    // TODO: ideally we want to run all wasm tests that are possible but now we deal only with modules that have skikoTests
+    dependsOn(":collection:collection:wasmJsTest")
+    dependsOn(":compose:foundation:foundation:wasmJsTest")
+    dependsOn(":compose:material3:material3:wasmJsTest")
+    dependsOn(":compose:runtime:runtime:wasmJsTest")
+    dependsOn(":compose:ui:ui-text:wasmJsTest")
+    dependsOn(":compose:ui:ui:wasmJsTest")
+    dependsOn(":navigation:navigation-runtime:wasmJsTest")
 }
 
 tasks.register("testUIKit") {
     val suffix = if (System.getProperty("os.arch") == "aarch64") "SimArm64Test" else "X64Test"
     val uikitTestSubtaskName = "uikit$suffix"
-    val instrumentedTestSubtaskName = "uikitInstrumented$suffix"
+    // TODO: Migrate iosInstrumentedTest to kotlin 2.1.0
+    //  https://youtrack.jetbrains.com/issue/CMP-7390/Migrate-iosInstrumentedTest-target-to-kotlin-2.1.0
+    //  Kotlin 2.1.0 doesn't support declaring multiple targets of the same type
+    // val instrumentedTestSubtaskName = "uikitInstrumented$suffix"
 
     dependsOn(":compose:runtime:runtime:$uikitTestSubtaskName")
     dependsOn(":compose:ui:ui-text:$uikitTestSubtaskName")
     dependsOn(":compose:ui:ui:$uikitTestSubtaskName")
-    dependsOn(":compose:ui:ui:$instrumentedTestSubtaskName")
+    // dependsOn(":compose:ui:ui:$instrumentedTestSubtaskName")
     dependsOn(":compose:material3:material3:$uikitTestSubtaskName")
     dependsOn(":compose:foundation:foundation:$uikitTestSubtaskName")
     dependsOn(":collection:collection:$uikitTestSubtaskName")
@@ -240,81 +255,8 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
     // android:exported needs to be explicitly specified for <activity>. Apps targeting Android 12 and higher are required to specify an explicit value for `android:exported` when the corresponding component has an intent filter defined.
 }
 
-val mavenCentral = MavenCentralProperties(project)
-val mavenCentralGroup = project.providers.gradleProperty("maven.central.group")
-val mavenCentralStage = project.providers.gradleProperty("maven.central.stage")
-if (mavenCentral.signArtifacts) {
-    signing.useInMemoryPgpKeys(
-        mavenCentral.signArtifactsKey.get(),
-        mavenCentral.signArtifactsPassword.get()
-    )
-}
-
-val publishingDir = project.layout.buildDirectory.dir("publishing")
-val originalArtifactsRoot = publishingDir.map { it.dir("original") }
-val preparedArtifactsRoot = publishingDir.map { it.dir("prepared") }
-val modulesFile = publishingDir.map { it.file("modules.txt") }
-
-val findComposeModules by tasks.registering(FindModulesInSpaceTask::class) {
-    requestedGroupId.set(mavenCentralGroup)
-    requestedVersion.set(mavenCentral.version)
-    spaceInstanceUrl.set("https://public.jetbrains.space")
-    spaceClientId.set(System.getenv("COMPOSE_REPO_USERNAME") ?: "")
-    spaceClientSecret.set(System.getenv("COMPOSE_REPO_KEY") ?: "")
-    spaceProjectId.set(System.getenv("COMPOSE_DEV_REPO_PROJECT_ID") ?: "")
-    spaceRepoId.set(System.getenv("COMPOSE_DEV_REPO_REPO_ID") ?: "")
-    modulesTxtFile.set(modulesFile)
-}
-
-val downloadArtifactsFromComposeDev by tasks.registering(DownloadFromSpaceMavenRepoTask::class) {
-    dependsOn(findComposeModules)
-    modulesToDownload.set(project.provider {
-        readComposeModules(
-            modulesFile,
-            originalArtifactsRoot
-        )
-    })
-    spaceRepoUrl.set("https://maven.pkg.jetbrains.space/public/p/compose/dev")
-}
-
-val fixModulesBeforePublishing by tasks.registering(FixModulesBeforePublishingTask::class) {
-    dependsOn(downloadArtifactsFromComposeDev)
-    inputRepoDir.set(originalArtifactsRoot)
-    outputRepoDir.set(preparedArtifactsRoot)
-}
-
-val reuploadArtifactsToMavenCentral by tasks.registering(UploadToSonatypeTask::class) {
-    dependsOn(fixModulesBeforePublishing)
-
-    version.set(mavenCentral.version)
-    modulesToUpload.set(project.provider { readComposeModules(modulesFile, preparedArtifactsRoot) })
-
-    sonatypeServer.set("https://oss.sonatype.org")
-    user.set(mavenCentral.user)
-    password.set(mavenCentral.password)
-    autoCommitOnSuccess.set(mavenCentral.autoCommitOnSuccess)
-    stagingProfileName.set(mavenCentralStage)
-}
-
-fun readComposeModules(
-    modulesFile: Provider<out FileSystemLocation>,
-    repoRoot: Provider<out FileSystemLocation>
-): List<ModuleToUpload> =
-    modulesFile.get().asFile.readLines()
-        .filter { it.isNotBlank() }
-        .map { line ->
-            val (group, artifact, version) = line.split(":")
-            ModuleToUpload(
-                groupId = group,
-                artifactId = artifact,
-                version = version,
-                localDir = repoRoot.get().asFile.resolve("$group/$artifact/$version")
-            )
-        }
-
 fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
-
 
 // ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
 // or just ./gradlew printAllArtifactRedirectingVersions

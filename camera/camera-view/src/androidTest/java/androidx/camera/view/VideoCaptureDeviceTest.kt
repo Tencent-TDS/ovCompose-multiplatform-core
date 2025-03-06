@@ -35,6 +35,7 @@ import androidx.camera.testing.impl.CoreAppTestUtil
 import androidx.camera.testing.impl.CoreAppTestUtil.ForegroundOccupiedError
 import androidx.camera.testing.impl.fakes.FakeActivity
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.testrule.PreTestRule
 import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileDescriptorOutputOptions
 import androidx.camera.video.FileOutputOptions
@@ -48,6 +49,7 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.camera.video.VideoRecordEvent.Finalize.ERROR_SOURCE_INACTIVE
 import androidx.camera.video.internal.compat.quirk.DeviceQuirks
 import androidx.camera.video.internal.compat.quirk.MediaStoreVideoCannotWrite
+import androidx.camera.video.internal.compat.quirk.StopCodecAfterSurfaceRemovalCrashMediaServerQuirk
 import androidx.camera.view.CameraController.IMAGE_ANALYSIS
 import androidx.camera.view.CameraController.VIDEO_CAPTURE
 import androidx.camera.view.video.AudioConfig
@@ -65,6 +67,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assume
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -86,7 +89,13 @@ class VideoCaptureDeviceTest(
      * in Parameterized tests, ref: b/37086576
      */
     enum class TargetQuality {
-        NOT_SPECIFIED, FHD, HD, HIGHEST, LOWEST, SD, UHD;
+        NOT_SPECIFIED,
+        FHD,
+        HD,
+        HIGHEST,
+        LOWEST,
+        SD,
+        UHD;
 
         fun getSelector(): QualitySelector {
             return when (this) {
@@ -125,31 +134,40 @@ class VideoCaptureDeviceTest(
 
         @JvmStatic
         @Parameterized.Parameters(name = "initialQuality={0}, nextQuality={1}")
-        fun data() = mutableListOf<Array<TargetQuality>>().apply {
-            add(arrayOf(TargetQuality.NOT_SPECIFIED, TargetQuality.FHD))
-            add(arrayOf(TargetQuality.FHD, TargetQuality.HD))
-            add(arrayOf(TargetQuality.HD, TargetQuality.HIGHEST))
-            add(arrayOf(TargetQuality.HIGHEST, TargetQuality.LOWEST))
-            add(arrayOf(TargetQuality.LOWEST, TargetQuality.SD))
-            add(arrayOf(TargetQuality.SD, TargetQuality.UHD))
-            add(arrayOf(TargetQuality.UHD, TargetQuality.NOT_SPECIFIED))
-        }
+        fun data() =
+            mutableListOf<Array<TargetQuality>>().apply {
+                add(arrayOf(TargetQuality.NOT_SPECIFIED, TargetQuality.FHD))
+                add(arrayOf(TargetQuality.FHD, TargetQuality.HD))
+                add(arrayOf(TargetQuality.HD, TargetQuality.HIGHEST))
+                add(arrayOf(TargetQuality.HIGHEST, TargetQuality.LOWEST))
+                add(arrayOf(TargetQuality.LOWEST, TargetQuality.SD))
+                add(arrayOf(TargetQuality.SD, TargetQuality.UHD))
+                add(arrayOf(TargetQuality.UHD, TargetQuality.NOT_SPECIFIED))
+            }
     }
 
-    @get:Rule
-    val cameraRule: TestRule = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
-    )
+    @get:Rule(order = 0)
+    val skipRule: TestRule = PreTestRule {
+        skipVideoRecordingTestIfNotSupportedByEmulator()
+        skipTestWithSurfaceProcessingOnCuttlefishApi30()
+    }
 
-    @get:Rule
+    @get:Rule(order = 1)
+    val cameraRule: TestRule =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+        )
+
+    @get:Rule(order = 2)
+    val permissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO
+        )
+
+    @get:Rule(order = 3)
     val activityRule: ActivityScenarioRule<FakeActivity> =
         ActivityScenarioRule(FakeActivity::class.java)
-
-    @get:Rule
-    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.RECORD_AUDIO
-    )
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context: Context = ApplicationProvider.getApplicationContext()
@@ -166,41 +184,39 @@ class VideoCaptureDeviceTest(
     private lateinit var latchForVideoRecording: CountDownLatch
     private lateinit var finalize: VideoRecordEvent.Finalize
 
-    private val videoRecordEventListener = Consumer<VideoRecordEvent> {
-        when (it) {
-            is VideoRecordEvent.Start -> {
-                Log.d(TAG, "Recording start")
-                latchForVideoStarted.countDown()
-            }
-            is VideoRecordEvent.Finalize -> {
-                Log.d(TAG, "Recording finalize")
-                finalize = it
-                latchForVideoSaved.countDown()
-            }
-            is VideoRecordEvent.Status -> {
-                // Make sure the recording proceed for a while.
-                Log.d(TAG, "Recording Status")
-                latchForVideoRecording.countDown()
-            }
-            is VideoRecordEvent.Pause -> {
-                Log.d(TAG, "Recording Pause")
-                latchForVideoPaused.countDown()
-            }
-            is VideoRecordEvent.Resume -> {
-                Log.d(TAG, "Recording Resume")
-                latchForVideoResumed.countDown()
-            }
-            else -> {
-                throw IllegalStateException()
+    private val videoRecordEventListener =
+        Consumer<VideoRecordEvent> {
+            when (it) {
+                is VideoRecordEvent.Start -> {
+                    Log.d(TAG, "Recording start")
+                    latchForVideoStarted.countDown()
+                }
+                is VideoRecordEvent.Finalize -> {
+                    Log.d(TAG, "Recording finalize")
+                    finalize = it
+                    latchForVideoSaved.countDown()
+                }
+                is VideoRecordEvent.Status -> {
+                    // Make sure the recording proceed for a while.
+                    Log.d(TAG, "Recording Status")
+                    latchForVideoRecording.countDown()
+                }
+                is VideoRecordEvent.Pause -> {
+                    Log.d(TAG, "Recording Pause")
+                    latchForVideoPaused.countDown()
+                }
+                is VideoRecordEvent.Resume -> {
+                    Log.d(TAG, "Recording Resume")
+                    latchForVideoResumed.countDown()
+                }
+                else -> {
+                    throw IllegalStateException()
+                }
             }
         }
-    }
 
     @Before
     fun setUp() {
-        skipVideoRecordingTestIfNotSupportedByEmulator()
-        skipTestWithSurfaceProcessingOnCuttlefishApi30()
-
         initialLifecycleOwner()
         initialPreviewView()
         initialController()
@@ -209,15 +225,14 @@ class VideoCaptureDeviceTest(
     @After
     fun tearDown() {
         if (this::cameraController.isInitialized) {
-            instrumentation.runOnMainSync {
-                cameraController.shutDownForTests()
-            }
+            instrumentation.runOnMainSync { cameraController.shutDownForTests() }
         }
     }
 
     @Test
     fun canRecordToMediaStore() {
-        Assume.assumeTrue(
+        if (Build.VERSION.SDK_INT == 28) return // b/264902324
+        assumeTrue(
             "Ignore the test since the MediaStore.Video has compatibility issues.",
             DeviceQuirks.get(MediaStoreVideoCannotWrite::class.java) == null
         )
@@ -278,6 +293,7 @@ class VideoCaptureDeviceTest(
 
     @Test
     fun canRecordToFile_withoutAudio_whenAudioDisabled() {
+        if (Build.VERSION.SDK_INT == 28) return // b/264902324
         // Arrange.
         val file = createTempFile()
         val outputOptions = FileOutputOptions.Builder(file).build()
@@ -296,15 +312,16 @@ class VideoCaptureDeviceTest(
 
     @Test
     fun canRecordToFile_whenLifecycleStops() {
+        if (Build.VERSION.SDK_INT == 28) return // b/264902324
+        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
+
         // Arrange.
         val file = createTempFile()
         val outputOptions = FileOutputOptions.Builder(file).build()
 
         // Act.
         recordVideoWithInterruptAction(outputOptions, audioEnabled) {
-            instrumentation.runOnMainSync {
-                lifecycleOwner.pauseAndStop()
-            }
+            instrumentation.runOnMainSync { lifecycleOwner.pauseAndStop() }
         }
 
         // Verify.
@@ -319,6 +336,8 @@ class VideoCaptureDeviceTest(
 
     @Test
     fun canRecordToFile_whenTargetQualityChanged() {
+        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
+
         // Arrange.
         val file = createTempFile()
         val outputOptions = FileOutputOptions.Builder(file).build()
@@ -342,15 +361,15 @@ class VideoCaptureDeviceTest(
 
     @Test
     fun canRecordToFile_whenEnabledUseCasesChanged() {
+        assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk()
+
         // Arrange.
         val file = createTempFile()
         val outputOptions = FileOutputOptions.Builder(file).build()
 
         // Act.
         recordVideoWithInterruptAction(outputOptions, audioEnabled) {
-            instrumentation.runOnMainSync {
-                cameraController.setEnabledUseCases(IMAGE_ANALYSIS)
-            }
+            instrumentation.runOnMainSync { cameraController.setEnabledUseCases(IMAGE_ANALYSIS) }
         }
 
         // Verify.
@@ -365,6 +384,7 @@ class VideoCaptureDeviceTest(
 
     @Test
     fun canRecordToFile_rightAfterPreviousRecordingStopped() {
+        if (Build.VERSION.SDK_INT == 30) return // b/264902324
         // Arrange.
         val file1 = createTempFile()
         val file2 = createTempFile()
@@ -425,14 +445,10 @@ class VideoCaptureDeviceTest(
 
         // Act.
         recordVideoWithInterruptAction(outputOptions, audioEnabled) {
-            instrumentation.runOnMainSync {
-                activeRecording.pause()
-            }
+            instrumentation.runOnMainSync { activeRecording.pause() }
             assertThat(latchForVideoPaused.await(VIDEO_TIMEOUT_SEC, TimeUnit.SECONDS)).isTrue()
 
-            instrumentation.runOnMainSync {
-                activeRecording.stop()
-            }
+            instrumentation.runOnMainSync { activeRecording.stop() }
         }
 
         // Verify.
@@ -462,19 +478,13 @@ class VideoCaptureDeviceTest(
 
         // Act.
         recordVideoWithInterruptAction(outputOptions, audioEnabled) {
-            instrumentation.runOnMainSync {
-                activeRecording.pause()
-            }
+            instrumentation.runOnMainSync { activeRecording.pause() }
             assertThat(latchForVideoPaused.await(VIDEO_TIMEOUT_SEC, TimeUnit.SECONDS)).isTrue()
 
-            instrumentation.runOnMainSync {
-                activeRecording.resume()
-            }
+            instrumentation.runOnMainSync { activeRecording.resume() }
             assertThat(latchForVideoResumed.await(VIDEO_TIMEOUT_SEC, TimeUnit.SECONDS)).isTrue()
 
-            instrumentation.runOnMainSync {
-                activeRecording.stop()
-            }
+            instrumentation.runOnMainSync { activeRecording.stop() }
         }
 
         // Verify.
@@ -498,11 +508,12 @@ class VideoCaptureDeviceTest(
         recordVideoWithInterruptAction(outputOptions1, audioEnabled) {
             instrumentation.runOnMainSync {
                 assertThrows(java.lang.IllegalStateException::class.java) {
-                    activeRecording = cameraController.startRecording(
-                        outputOptions2,
-                        audioEnabled,
-                        CameraXExecutors.directExecutor()
-                    ) {}
+                    activeRecording =
+                        cameraController.startRecording(
+                            outputOptions2,
+                            audioEnabled,
+                            CameraXExecutors.directExecutor()
+                        ) {}
                 }
                 activeRecording.stop()
             }
@@ -514,8 +525,10 @@ class VideoCaptureDeviceTest(
     }
 
     private fun initialLifecycleOwner() {
-        lifecycleOwner = FakeLifecycleOwner()
-        lifecycleOwner.startAndResume()
+        instrumentation.runOnMainSync {
+            lifecycleOwner = FakeLifecycleOwner()
+            lifecycleOwner.startAndResume()
+        }
     }
 
     private fun initialPreviewView() {
@@ -543,9 +556,7 @@ class VideoCaptureDeviceTest(
     }
 
     private fun createTempFile(): File {
-        return File.createTempFile("CameraX", ".tmp").apply {
-            deleteOnExit()
-        }
+        return File.createTempFile("CameraX", ".tmp").apply { deleteOnExit() }
     }
 
     private fun createMediaStoreOutputOptions(resolver: ContentResolver): MediaStoreOutputOptions {
@@ -554,8 +565,10 @@ class VideoCaptureDeviceTest(
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
         contentValues.put(MediaStore.Video.Media.TITLE, videoFileName)
         contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, videoFileName)
-        return MediaStoreOutputOptions
-            .Builder(resolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        return MediaStoreOutputOptions.Builder(
+                resolver,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            )
             .setContentValues(contentValues)
             .build()
     }
@@ -563,9 +576,7 @@ class VideoCaptureDeviceTest(
     private fun recordVideoCompletely(outputOptions: OutputOptions, audioConfig: AudioConfig) {
         // Act.
         recordVideoWithInterruptAction(outputOptions, audioConfig) {
-            instrumentation.runOnMainSync {
-                activeRecording.stop()
-            }
+            instrumentation.runOnMainSync { activeRecording.stop() }
         }
 
         // Verify.
@@ -588,9 +599,7 @@ class VideoCaptureDeviceTest(
         // Wait for finalize event to saved file.
         assertThat(latchForVideoSaved.await(VIDEO_TIMEOUT_SEC, TimeUnit.SECONDS)).isTrue()
 
-        instrumentation.runOnMainSync {
-            assertThat(cameraController.isRecording).isFalse()
-        }
+        instrumentation.runOnMainSync { assertThat(cameraController.isRecording).isFalse() }
     }
 
     private fun recordVideo(outputOptions: OutputOptions, audioConfig: AudioConfig) {
@@ -614,32 +623,35 @@ class VideoCaptureDeviceTest(
     @MainThread
     private fun startRecording(outputOptions: OutputOptions, audioConfig: AudioConfig) {
         if (outputOptions is FileOutputOptions) {
-            activeRecording = cameraController.startRecording(
-                outputOptions,
-                audioConfig,
-                CameraXExecutors.directExecutor(),
-                videoRecordEventListener
-            )
-        } else if (outputOptions is FileDescriptorOutputOptions) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                activeRecording = cameraController.startRecording(
+            activeRecording =
+                cameraController.startRecording(
                     outputOptions,
                     audioConfig,
                     CameraXExecutors.directExecutor(),
                     videoRecordEventListener
                 )
+        } else if (outputOptions is FileDescriptorOutputOptions) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                activeRecording =
+                    cameraController.startRecording(
+                        outputOptions,
+                        audioConfig,
+                        CameraXExecutors.directExecutor(),
+                        videoRecordEventListener
+                    )
             } else {
                 throw UnsupportedOperationException(
                     "File descriptors are not supported on pre-Android O (API 26) devices."
                 )
             }
         } else if (outputOptions is MediaStoreOutputOptions) {
-            activeRecording = cameraController.startRecording(
-                outputOptions,
-                audioConfig,
-                CameraXExecutors.directExecutor(),
-                videoRecordEventListener
-            )
+            activeRecording =
+                cameraController.startRecording(
+                    outputOptions,
+                    audioConfig,
+                    CameraXExecutors.directExecutor(),
+                    videoRecordEventListener
+                )
         } else {
             throw IllegalArgumentException("Unsupported OutputOptions type.")
         }
@@ -681,4 +693,13 @@ class VideoCaptureDeviceTest(
             Build.MODEL.contains("Cuttlefish") && Build.VERSION.SDK_INT == 30
         )
     }
+}
+
+fun assumeStopCodecAfterSurfaceRemovalCrashMediaServerQuirk() {
+    // Skip for b/293978082. For tests that will unbind the VideoCapture before stop the recording,
+    // they should be skipped since media server will crash if the codec surface has been removed
+    // before MediaCodec.stop() is called.
+    assumeTrue(
+        DeviceQuirks.get(StopCodecAfterSurfaceRemovalCrashMediaServerQuirk::class.java) == null
+    )
 }

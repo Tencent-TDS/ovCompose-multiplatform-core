@@ -16,17 +16,18 @@
 
 package androidx.compose.ui.scene
 
-import java.awt.event.KeyEvent as AwtKeyEvent
-import java.awt.event.MouseEvent as AwtMouseEvent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ComposeFeatureFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.LayerType
 import androidx.compose.ui.awt.AwtEventFilter
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
 import androidx.compose.ui.awt.RenderSettings
+import androidx.compose.ui.backhandler.DesktopBackGestureDispatcher
+import androidx.compose.ui.backhandler.LocalBackGestureDispatcher
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
@@ -55,6 +56,8 @@ import java.awt.Component
 import java.awt.Window
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
+import java.awt.event.KeyEvent as AwtKeyEvent
+import java.awt.event.MouseEvent as AwtMouseEvent
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
 import java.awt.event.WindowListener
@@ -175,6 +178,8 @@ internal class ComposeContainer(
 
     override val lifecycle = LifecycleRegistry(this)
     override val viewModelStore = ViewModelStore()
+
+    private val backGestureDispatcher = DesktopBackGestureDispatcher()
 
     private var isDisposed = false
     private var isDetached = true
@@ -321,12 +326,17 @@ internal class ComposeContainer(
         onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
         onKeyEvent: (KeyEvent) -> Boolean = { false },
     ) {
-        mediator.setKeyEventListeners(onPreviewKeyEvent, onKeyEvent)
+        mediator.setKeyEventListeners(
+            onPreviewKeyEvent = onPreviewKeyEvent,
+            onKeyEvent = {
+                onKeyEvent(it) || backGestureDispatcher.onKeyEvent(it)
+            }
+        )
     }
 
     fun setContent(content: @Composable () -> Unit) {
         mediator.setContent {
-            ProvideContainerCompositionLocals(this) {
+            ProvideContainerCompositionLocals(this, backGestureDispatcher) {
                 content()
             }
         }
@@ -359,9 +369,7 @@ internal class ComposeContainer(
                     density = density,
                     layoutDirection = layoutDirection,
                     coroutineContext = mediator.coroutineContext,
-                    composeSceneContext = createComposeSceneContext(
-                        platformContext = mediator.platformContext
-                    ),
+                    platformContext = mediator.platformContext,
                     invalidate = mediator::onComposeInvalidation,
                 )
             else -> PlatformLayersComposeScene(
@@ -471,12 +479,12 @@ internal class ComposeContainer(
     private inner class ComposeSceneContextImpl(
         override val platformContext: PlatformContext,
     ) : ComposeSceneContext {
-        override fun createPlatformLayer(
+        override fun createLayer(
             density: Density,
             layoutDirection: LayoutDirection,
             focusable: Boolean,
             compositionContext: CompositionContext
-        ): ComposeSceneLayer = this@ComposeContainer.createPlatformLayer(
+        ): ComposeSceneLayer = createPlatformLayer(
             density = density,
             layoutDirection = layoutDirection,
             focusable = focusable,
@@ -515,12 +523,15 @@ internal class ComposeContainer(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ProvideContainerCompositionLocals(
     composeContainer: ComposeContainer,
+    backGestureDispatcher: DesktopBackGestureDispatcher,
     content: @Composable () -> Unit,
 ) = CompositionLocalProvider(
     LocalLifecycleOwner provides composeContainer,
     LocalInternalViewModelStoreOwner provides composeContainer,
+    LocalBackGestureDispatcher provides backGestureDispatcher,
     content = content
 )

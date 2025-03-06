@@ -27,8 +27,7 @@ import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.scene.LocalComposeScene
-import androidx.compose.ui.scene.platformContext
+import androidx.compose.ui.scene.LocalComposeSceneContext
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.ComponentUpdater
@@ -48,7 +47,9 @@ import javax.swing.JDialog
 
 @Deprecated(
     message = "Replaced by DialogWindow",
-    replaceWith = ReplaceWith("DialogWindow(onCloseRequest, state, visible, title, icon, undecorated, transparent, resizable, enabled, focusable, onPreviewKeyEvent, onKeyEvent, content)")
+    replaceWith = ReplaceWith("DialogWindow(onCloseRequest, state, visible, title, " +
+        "icon, undecorated, transparent, resizable, enabled, focusable, " +
+        "onPreviewKeyEvent, onKeyEvent, content)")
 )
 @Composable
 fun Dialog(
@@ -82,28 +83,6 @@ fun Dialog(
     content = content
 )
 
-@Deprecated(
-    level = DeprecationLevel.WARNING,
-    message = "Replaced by an overload that takes a decoration argument",
-    replaceWith = ReplaceWith("DialogWindow(" +
-        "onCloseRequest," +
-        "state," +
-        "visible," +
-        "title," +
-        "icon," +
-        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
-        "transparent," +
-        "resizable," +
-        "enabled," +
-        "focusable," +
-        "alwaysOnTop," +
-        "onPreviewKeyEvent," +
-        "onKeyEvent," +
-        "content" +
-        ")",
-        "androidx.compose.ui.window.WindowDecoration"
-    )
-)
 @Composable
 fun DialogWindow(
     onCloseRequest: () -> Unit,
@@ -111,7 +90,7 @@ fun DialogWindow(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean,
+    undecorated: Boolean = false,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -196,28 +175,6 @@ fun DialogWindow(
  * If you return false, the key event will be sent to this [onKeyEvent]'s parent.
  * @param content content of the dialog
  */
-@Deprecated(
-    level = DeprecationLevel.WARNING,
-    message = "Replaced by an overload that takes a decoration argument",
-    replaceWith = ReplaceWith("DialogWindow(" +
-        "onCloseRequest," +
-        "state," +
-        "visible," +
-        "title," +
-        "icon," +
-        "if (undecorated) WindowDecoration.Undecorated() else WindowDecoration.SystemDefault," +
-        "transparent," +
-        "resizable," +
-        "enabled," +
-        "focusable," +
-        "alwaysOnTop," +
-        "onPreviewKeyEvent," +
-        "onKeyEvent," +
-        "content" +
-        ")",
-        "androidx.compose.ui.window.WindowDecoration"
-    )
-)
 @Composable
 fun DialogWindow(
     onCloseRequest: () -> Unit,
@@ -225,7 +182,7 @@ fun DialogWindow(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    undecorated: Boolean,
+    undecorated: Boolean = false,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -311,6 +268,7 @@ fun DialogWindow(
  * If you return false, the key event will be sent to this [onKeyEvent]'s parent.
  * @param content content of the dialog
  */
+@ExperimentalComposeUiApi
 @Composable
 fun DialogWindow(
     onCloseRequest: () -> Unit,
@@ -318,7 +276,7 @@ fun DialogWindow(
     visible: Boolean = true,
     title: String = "Untitled",
     icon: Painter? = null,
-    decoration: WindowDecoration = WindowDecoration.SystemDefault,
+    decoration: WindowDecoration,
     transparent: Boolean = false,
     resizable: Boolean = true,
     enabled: Boolean = true,
@@ -518,7 +476,7 @@ fun DialogWindow(
     val windowExceptionHandlerFactory by rememberUpdatedState(
         LocalWindowExceptionHandlerFactory.current
     )
-    val parentPlatformContext = LocalComposeScene.current?.platformContext
+    val parentPlatformContext = LocalComposeSceneContext.current?.platformContext
     val layoutDirection = LocalLayoutDirection.current
     AwtWindow(
         visible = visible,

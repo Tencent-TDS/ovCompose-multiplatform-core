@@ -15,10 +15,10 @@
  */
 package androidx.appsearch.app;
 
-import android.content.Context;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import java.util.Set;
 
 /**
  * A class that encapsulates all features that are only supported in certain cases (e.g. only on
@@ -30,7 +30,9 @@ import androidx.annotation.RestrictTo;
  * Android API level, on that device.
  */
 
-// @exportToFramework:copyToPath(testing/testutils/src/android/app/appsearch/testutil/external/Features.java)
+// @exportToFramework:copyToPath(../../../cts/tests/appsearch/testutils/src/android/app/appsearch/testutil/external/Features.java)
+// Note: When adding new fields, The @RequiresFeature is needed in setters but could be skipped in
+// getters if call the getter won't send unsupported requests to the AppSearch-framework-impl.
 public interface Features {
 
     /**
@@ -62,8 +64,8 @@ public interface Features {
 
     /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers
-     * {@link SetSchemaRequest.Builder#addAllowedRoleForSchemaTypeVisibility},
-     * {@link SetSchemaRequest.Builder#clearAllowedRolesForSchemaTypeVisibility},
+     * {@link SetSchemaRequest.Builder#addRequiredPermissionsForSchemaTypeVisibility(String, Set)},
+     * {@link SetSchemaRequest.Builder#clearRequiredPermissionsForSchemaTypeVisibility(String)},
      * {@link GetSchemaResponse#getSchemaTypesNotDisplayedBySystem()},
      * {@link GetSchemaResponse#getSchemaTypesVisibleToPackages()},
      * {@link GetSchemaResponse#getRequiredPermissionsForSchemaTypeVisibility()},
@@ -86,6 +88,7 @@ public interface Features {
      * <p>For details on the numeric search expressions in the query language, see
      * {@link AppSearchSession#search}.
      */
+    // Note: The preferred name of this feature should have been LIST_FILTER_NUMERIC_SEARCH.
     String NUMERIC_SEARCH = FeatureConstants.NUMERIC_SEARCH;
 
     /**
@@ -96,6 +99,7 @@ public interface Features {
      *
      * <p>For details on the verbatim string operator, see {@link AppSearchSession#search}.
      */
+    // Note: The preferred name of this feature should have been LIST_FILTER_VERBATIM_SEARCH.
     String VERBATIM_SEARCH = FeatureConstants.VERBATIM_SEARCH;
 
     /**
@@ -106,6 +110,33 @@ public interface Features {
      * <p>For more details, see {@link AppSearchSession#search}.
      */
     String LIST_FILTER_QUERY_LANGUAGE = FeatureConstants.LIST_FILTER_QUERY_LANGUAGE;
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers the use of the
+     * "hasProperty" function in query expressions.
+     *
+     * <p>For details on the "hasProperty" function in the query language, see
+     * {@link AppSearchSession#search}.
+     */
+    String LIST_FILTER_HAS_PROPERTY_FUNCTION = FeatureConstants.LIST_FILTER_HAS_PROPERTY_FUNCTION;
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers whether or not the
+     * AppSearch backend can store the descriptions returned by
+     * {@link AppSearchSchema#getDescription} and
+     * {@link AppSearchSchema.PropertyConfig#getDescription}.
+     */
+    String SCHEMA_SET_DESCRIPTION = "SCHEMA_SET_DESCRIPTION";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link AppSearchSchema.EmbeddingPropertyConfig}.
+     *
+     * <p>For details on the embedding search expressions, see {@link AppSearchSession#search} for
+     * the query language and {@link SearchSpec.Builder#setRankingStrategy(String)} for the ranking
+     * language.
+     */
+    String SCHEMA_EMBEDDING_PROPERTY_CONFIG = "SCHEMA_EMBEDDING_PROPERTY_CONFIG";
 
     /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers
@@ -121,10 +152,9 @@ public interface Features {
 
     /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers
-     * {@link SearchSpec.Builder#addFilterProperties}.
-     * @exportToFramework:hide
+     * {@link SearchSpec.Builder#addFilterProperties} and
+     * {@link SearchSuggestionSpec.Builder#addFilterProperties}.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     String SEARCH_SPEC_ADD_FILTER_PROPERTIES = "SEARCH_SPEC_ADD_FILTER_PROPERTIES";
 
     /**
@@ -132,6 +162,13 @@ public interface Features {
      * {@link SearchSpec.Builder#setRankingStrategy(String)}.
      */
     String SEARCH_SPEC_ADVANCED_RANKING_EXPRESSION = "SEARCH_SPEC_ADVANCED_RANKING_EXPRESSION";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers the support of the
+     * {@link SearchSpec.Builder#addSearchStringParameters} and
+     * {@link SearchSuggestionSpec.Builder#addSearchStringParameters} apis.
+     */
+    String SEARCH_SPEC_SEARCH_STRING_PARAMETERS = "SEARCH_SPEC_SEARCH_STRING_PARAMETERS";
 
     /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers
@@ -145,12 +182,6 @@ public interface Features {
      * {@link AppSearchSession#searchSuggestionAsync}.
      */
     String SEARCH_SUGGESTION = "SEARCH_SUGGESTION";
-
-    /**
-     * Feature for {@link #isFeatureSupported(String)}. This feature covers
-     * {@link AppSearchSchema.StringPropertyConfig.Builder#setDeletionPropagation}.
-     */
-    String SCHEMA_SET_DELETION_PROPAGATION = "SCHEMA_SET_DELETION_PROPAGATION";
 
     /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers setting schemas with
@@ -172,6 +203,47 @@ public interface Features {
     String SCHEMA_ADD_INDEXABLE_NESTED_PROPERTIES = "SCHEMA_ADD_INDEXABLE_NESTED_PROPERTIES";
 
     /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link SearchSpec.Builder#setSearchSourceLogTag(String)}.
+     */
+    String SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG = "SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link SetSchemaRequest.Builder#setPubliclyVisibleSchema(String, PackageIdentifier)}.
+     */
+    String SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE = "SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link SetSchemaRequest.Builder#addSchemaTypeVisibleToConfig}.
+     */
+    String SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG =
+            "SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link EnterpriseGlobalSearchSession}
+     */
+    String ENTERPRISE_GLOBAL_SEARCH_SESSION = "ENTERPRISE_GLOBAL_SEARCH_SESSION";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link SearchSpec.Builder#addInformationalRankingExpressions}.
+     */
+    String SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS =
+            "SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers
+     * {@link AppSearchBlobHandle}.
+     */
+    // TODO(b/273591938) improve the java doc when we support set blob property in GenericDocument
+    // TODO(b/273591938) unhide the API once it read for API review.
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    String BLOB_STORAGE = "BLOB_STORAGE";
+
+    /**
      * Returns whether a feature is supported at run-time. Feature support depends on the
      * feature in question, the AppSearch backend being used and the Android version of the
      * device.
@@ -190,7 +262,6 @@ public interface Features {
      * given the Android API level and AppSearch backend.
      *
      * <p>A property is defined as all values that are present at a particular path.
-     * @param context to check mainline module version, as support varies by module version.
      */
-    int getMaxIndexedProperties(@NonNull Context context);
+    int getMaxIndexedProperties();
 }

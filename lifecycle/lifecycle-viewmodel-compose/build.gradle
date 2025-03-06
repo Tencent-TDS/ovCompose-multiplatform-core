@@ -58,9 +58,11 @@ kotlin {
                 api project(":compose:ui:ui")
 
                 implementation(libs.kotlinStdlib)
-                implementation project(":core:core-bundle")
             }
         }
+
+        jvmMain.dependsOn(commonMain)
+        androidMain.dependsOn(jvmMain)
 
         androidInstrumentedTest {
             dependencies {
@@ -75,16 +77,25 @@ kotlin {
         }
 
         jbMain.dependsOn(commonMain)
-        nativeMain.dependsOn(jbMain)
-
-        webMain.dependsOn(jbMain)
-        jsMain.dependsOn(webMain)
-        wasmJsMain.dependsOn(webMain)
+        desktopMain {
+            dependsOn(jvmMain)
+            dependsOn(jbMain)
+        }
+        nonJvmMain.dependsOn(jbMain)
+        nativeMain.dependsOn(nonJvmMain)
+        webMain.dependsOn(nonJvmMain)
 
         targets.all { target ->
-            if (target.platformType !in [KotlinPlatformType.androidJvm, KotlinPlatformType.common]) {
+            if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
-                    dependsOn(jbMain)
+                    dependsOn(nativeMain)
+                }
+            } else if (target.platformType in [
+                    KotlinPlatformType.js,
+                    KotlinPlatformType.wasm
+            ]) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(webMain)
                 }
             }
         }

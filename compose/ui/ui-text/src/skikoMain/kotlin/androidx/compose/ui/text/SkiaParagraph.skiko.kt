@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.isUnspecified
 import kotlin.math.floor
@@ -50,13 +51,17 @@ import org.jetbrains.skia.paragraph.TextBox
 internal class SkiaParagraph(
     private val paragraphIntrinsics: SkiaParagraphIntrinsics,
     val maxLines: Int,
-    ellipsis: Boolean,
+    overflow: TextOverflow,
     val constraints: Constraints
 ) : Paragraph {
-
-    private val ellipsisChar = if (ellipsis) "\u2026" else ""
-
     private val layouter = paragraphIntrinsics.layouter().apply {
+        // TODO: Support Middle/Start ellipsis
+        val ellipsisChar = if (overflow in listOf(
+                TextOverflow.Ellipsis,
+                TextOverflow.MiddleEllipsis,
+                TextOverflow.StartEllipsis,
+            )
+        ) "\u2026" else ""
         setParagraphStyle(
             maxLines = maxLines,
             ellipsis = ellipsisChar

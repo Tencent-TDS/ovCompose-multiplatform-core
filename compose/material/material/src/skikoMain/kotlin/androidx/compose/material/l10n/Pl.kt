@@ -28,4 +28,5 @@ internal fun Translations.pl() = mapOf(
     Strings.DefaultErrorMessage to "Nieprawidłowe dane wejściowe",
     Strings.SliderRangeStart to "Początek zakresu",
     Strings.SliderRangeEnd to "Koniec zakresu",
+    Strings.SnackbarPaneTitle to "Alert",
 )

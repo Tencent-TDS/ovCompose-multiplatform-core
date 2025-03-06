@@ -16,46 +16,15 @@
 
 package androidx.compose.mpp.demo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.unit.dp
-
-val HapticFeedbackExample = Screen.Example("Haptic feedback") {
-    val feedback = LocalHapticFeedback.current
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Button(onClick = {
-            feedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        }) {
-            Text("TextHandleMove")
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Button(onClick = {
-            feedback.performHapticFeedback(HapticFeedbackType.LongPress)
-        }) {
-            Text("LongPress")
-        }
-    }
-}
-
 val IosSpecificFeatures = Screen.Selection(
     "iOS-specific features",
     NativeModalWithNavigationExample,
     NativePopupWithComposePopupExample,
     HapticFeedbackExample,
+    IosPredictiveBackExample,
     LazyColumnWithInteropViewsExample,
     AccessibilityLiveRegionExample,
     InteropViewAndSemanticsConfigMerge,
-    StatusBarStateExample,
     InteropExample,
     ReusableMapsExample,
     UpdatableInteropPropertiesExample

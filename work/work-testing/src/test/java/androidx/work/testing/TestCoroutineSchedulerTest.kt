@@ -40,9 +40,12 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertThrows
 import org.junit.Before
@@ -67,7 +70,7 @@ class TestCoroutineSchedulerTest {
     private lateinit var workManager: WorkManager
 
     private val shadowLooper = shadowOf(Looper.getMainLooper())
-    private val testCoroutineScheduler = TestCoroutineScheduler().apply { advanceTimeBy(1) }
+    private val testCoroutineScheduler = TestCoroutineScheduler()
     private val testCoroutineDispatcher = StandardTestDispatcher(testCoroutineScheduler)
     private val testRunnableScheduler =
         CoroutineDispatcherRunnableScheduler(testCoroutineDispatcher)
@@ -81,7 +84,8 @@ class TestCoroutineSchedulerTest {
                 .setExecutor(testCoroutineDispatcher.asExecutor())
                 .setTaskExecutor(testCoroutineDispatcher.asExecutor())
                 .setRunnableScheduler(testRunnableScheduler)
-                .setMinimumLoggingLevel(Log.DEBUG).build()
+                .setMinimumLoggingLevel(Log.DEBUG)
+                .build()
 
         WorkManagerTestInitHelper.initializeTestWorkManager(
             context,
@@ -101,7 +105,8 @@ class TestCoroutineSchedulerTest {
         val initialDelayMillis = HOURS.toMillis(2)
         val request: WorkRequest =
             OneTimeWorkRequest.Builder(TestWorker::class.java)
-                .setInitialDelay(initialDelayMillis, MILLISECONDS).build()
+                .setInitialDelay(initialDelayMillis, MILLISECONDS)
+                .build()
 
         workManager.enqueue(listOf(request))
         synchronizeThreads()
@@ -109,7 +114,7 @@ class TestCoroutineSchedulerTest {
         val workInfoEarly = workManager.getWorkInfoById(request.id)
         synchronizeThreads()
 
-        assertThat(Futures.getDone(workInfoEarly).state).isEqualTo(ENQUEUED)
+        assertThat(Futures.getDone(workInfoEarly)!!.state).isEqualTo(ENQUEUED)
 
         // Work should run and finish now.
         testCoroutineScheduler.advanceTimeBy(initialDelayMillis)
@@ -118,7 +123,7 @@ class TestCoroutineSchedulerTest {
         // Verify result
         val workInfoOnTime = workManager.getWorkInfoById(request.id)
         synchronizeThreads()
-        assertThat(Futures.getDone(workInfoOnTime).state).isEqualTo(SUCCEEDED)
+        assertThat(Futures.getDone(workInfoOnTime)!!.state).isEqualTo(SUCCEEDED)
     }
 
     @Test
@@ -127,7 +132,8 @@ class TestCoroutineSchedulerTest {
         val initialDelayMillis = HOURS.toMillis(2)
         val request: WorkRequest =
             OneTimeWorkRequest.Builder(TestWorker::class.java)
-                .setInitialDelay(initialDelayMillis, MILLISECONDS).build()
+                .setInitialDelay(initialDelayMillis, MILLISECONDS)
+                .build()
 
         workManager.enqueue(listOf(request))
         synchronizeThreads()
@@ -135,16 +141,14 @@ class TestCoroutineSchedulerTest {
         val workInfoEarly = workManager.getWorkInfoById(request.id)
         synchronizeThreads()
 
-        assertThat(Futures.getDone(workInfoEarly).state).isEqualTo(ENQUEUED)
+        assertThat(Futures.getDone(workInfoEarly)!!.state).isEqualTo(ENQUEUED)
 
         // Can't use setXDelayMet with clock-based scheduling
         assertThrows(IllegalStateException::class.java) {
             testDriver.setInitialDelayMet(request.id)
         }
 
-        assertThrows(IllegalStateException::class.java) {
-            testDriver.setPeriodDelayMet(request.id)
-        }
+        assertThrows(IllegalStateException::class.java) { testDriver.setPeriodDelayMet(request.id) }
     }
 
     @Test
@@ -209,12 +213,19 @@ class TestCoroutineSchedulerTest {
 
     @After
     fun tearDown() {
-        WorkManagerTestInitHelper.closeWorkDatabase()
+        runBlocking {
+            val job = launch { WorkManagerTestInitHelper.closeWorkDatabase() }
+            while (job.isActive) {
+                synchronizeThreads()
+                yield()
+            }
+        }
     }
 }
 
 private class MarkedRunnable : Runnable {
     var ran = false
+
     override fun run() {
         ran = true
     }
@@ -224,15 +235,20 @@ private class MarkedRunnable : Runnable {
  * A [RunnableScheduler] that delegates to a Coroutines [kotlinx.coroutines.CoroutineDispatcher] for
  * scheduling.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 private class CoroutineDispatcherRunnableScheduler(private val testDispatcher: TestDispatcher) :
     RunnableScheduler {
     val runnables: MutableMap<Runnable, DisposableHandle> = Collections.synchronizedMap(HashMap())
 
     override fun scheduleWithDelay(delayInMillis: Long, runnable: Runnable) {
-        runnables[runnable] = testDispatcher.invokeOnTimeout(
-            delayInMillis, { runnable.run(); runnables.remove(runnable) }, EmptyCoroutineContext
-        )
+        runnables[runnable] =
+            testDispatcher.invokeOnTimeout(
+                delayInMillis,
+                {
+                    runnable.run()
+                    runnables.remove(runnable)
+                },
+                EmptyCoroutineContext
+            )
     }
 
     override fun cancel(runnable: Runnable) {

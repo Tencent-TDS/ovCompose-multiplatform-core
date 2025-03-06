@@ -17,17 +17,26 @@
 package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
+import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.focusedRectInRoot
+import androidx.compose.foundation.text.input.TextFieldCharSequence
+import androidx.compose.foundation.text.input.setSelectionCoerced
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -37,19 +46,14 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     imeOptions: ImeOptions,
     receiveContentConfiguration: ReceiveContentConfiguration?,
     onImeAction: ((ImeAction) -> Unit)?,
+    updateSelectionState: (() -> Unit)?,
     stylusHandwritingTrigger: MutableSharedFlow<Unit>?,
     viewConfiguration: ViewConfiguration?
 ): Nothing {
     val editProcessor = EditProcessor()
     fun onEditCommand(commands: List<EditCommand>) {
         editProcessor.reset(
-            value = with(state.visualText) {
-                TextFieldValue(
-                    text = toString(),
-                    selection = selection,
-                    composition = composition
-                )
-            },
+            value = state.untransformedText.toTextFieldValue(),
             textInputSession = null
         )
 
@@ -58,7 +62,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
             val untransformedSelection = state.mapFromTransformed(newValue.selection)
-            setSelection(untransformedSelection.start, untransformedSelection.end)
+            setSelectionCoerced(untransformedSelection.start, untransformedSelection.end)
 
             val composition = newValue.composition
             if (composition == null) {
@@ -70,30 +74,44 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         }
     }
 
-
     coroutineScope {
         launch {
-            state.collectImeNotifications{ _, newValue, _ ->
-                val newTextFieldValue = TextFieldValue(newValue.text.toString(), newValue.selection, newValue.composition)
-                updateSelectionState(newTextFieldValue)
+            state.collectImeNotifications { _, newValue, _ ->
+                updateTextFieldValue(newValue.toTextFieldValue())
             }
         }
 
+        val focusedRectInRootFlow = snapshotFlow {
+            val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
+            val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
+            focusedRectInRoot(
+                layoutResult = layoutResult,
+                layoutCoordinates = layoutCoords,
+                focusOffset = state.visualText.selection.max,
+                sizeForDefaultText = {
+                    layoutResult.layoutInput.let {
+                        computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
+                    }
+                }
+            )
+        }.filterNotNull()
+
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
-                state = TextFieldValue(
-                    state.visualText.toString(),
-                    state.visualText.selection,
-                    state.visualText.composition,
-                ),
+                state = state.untransformedText.toTextFieldValue(),
                 imeOptions = imeOptions,
                 onEditCommand = ::onEditCommand,
                 onImeAction = onImeAction,
                 editProcessor = editProcessor,
+                textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
+                focusedRectInRoot = focusedRectInRootFlow,
             )
         )
     }
 }
+
+private fun TextFieldCharSequence.toTextFieldValue() =
+    TextFieldValue(toString(), selection, composition)
 
 @OptIn(ExperimentalComposeUiApi::class)
 private data class SkikoPlatformTextInputMethodRequest(
@@ -101,5 +119,7 @@ private data class SkikoPlatformTextInputMethodRequest(
     override val imeOptions: ImeOptions,
     override val onEditCommand: (List<EditCommand>) -> Unit,
     override val onImeAction: ((ImeAction) -> Unit)?,
-    override val editProcessor: EditProcessor?
+    override val editProcessor: EditProcessor?,
+    override val textLayoutResult: Flow<TextLayoutResult>,
+    override val focusedRectInRoot: Flow<Rect>
 ): PlatformTextInputMethodRequest

@@ -49,7 +49,8 @@ import org.jetbrains.skiko.currentNanoTime
  */
 internal class ComposeSceneInputHandler(
     private val prepareForPointerInputEvent: () -> Unit,
-    processPointerInputEvent: (PointerInputEvent) -> Unit,
+    processPointerInputEvent: (PointerInputEvent) -> PointerEventResult,
+    private val cancelPointerInput: () -> Unit,
     private val processKeyEvent: (KeyEvent) -> Boolean,
 ) {
     private val defaultPointerStateTracker = DefaultPointerStateTracker()
@@ -79,14 +80,14 @@ internal class ComposeSceneInputHandler(
         keyboardModifiers: PointerKeyboardModifiers? = null,
         nativeEvent: Any? = null,
         button: PointerButton? = null
-    ) {
+    ): PointerEventResult {
         defaultPointerStateTracker.onPointerEvent(button, eventType)
 
         val actualButtons = buttons ?: defaultPointerStateTracker.buttons
         val actualKeyboardModifiers =
             keyboardModifiers ?: defaultPointerStateTracker.keyboardModifiers
 
-        onPointerEvent(
+        return onPointerEvent(
             eventType,
             listOf(ComposeScenePointer(PointerId(0), position, actualButtons.areAnyPressed, type)),
             actualButtons,
@@ -98,6 +99,11 @@ internal class ComposeSceneInputHandler(
         )
     }
 
+    fun cancelPointerInput() {
+        syntheticEventSender.reset()
+        this.cancelPointerInput.invoke()
+    }
+
     fun onPointerEvent(
         eventType: PointerEventType,
         pointers: List<ComposeScenePointer>,
@@ -107,7 +113,7 @@ internal class ComposeSceneInputHandler(
         timeMillis: Long = (currentNanoTime() / 1E6).toLong(),
         nativeEvent: Any? = null,
         button: PointerButton? = null,
-    ) {
+    ): PointerEventResult {
         val event = PointerInputEvent(
             eventType,
             pointers,
@@ -119,9 +125,10 @@ internal class ComposeSceneInputHandler(
             button,
         )
         prepareForPointerInputEvent()
-        updatePointerPosition()
-        syntheticEventSender.send(event)
+        val updatePointerPositionResult = updatePointerPosition()
+        val eventResult = syntheticEventSender.send(event)
         updatePointerPositions(event)
+        return updatePointerPositionResult.merging(eventResult)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {

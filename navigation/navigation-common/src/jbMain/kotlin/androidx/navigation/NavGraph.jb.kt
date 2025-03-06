@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
@@ -22,9 +21,10 @@ import androidx.collection.forEach
 import androidx.collection.size
 import androidx.collection.valueIterator
 import androidx.navigation.serialization.generateHashCode
-import androidx.navigation.serialization.generateRoutePattern
 import androidx.navigation.serialization.generateRouteWithArgs
 import kotlin.jvm.JvmStatic
+import kotlin.jvm.JvmSynthetic
+import kotlin.reflect.KClass
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
@@ -33,27 +33,66 @@ import kotlinx.serialization.serializer
 public actual open class NavGraph actual constructor(navGraphNavigator: Navigator<out NavGraph>) :
     NavDestination(navGraphNavigator), Iterable<NavDestination> {
 
-    public val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
+    public actual val nodes: SparseArrayCompat<NavDestination> = SparseArrayCompat<NavDestination>()
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) get
 
     private var startDestId = 0
     private var startDestIdName: String? = null
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public fun matchDeepLinkComprehensive(
+    public actual fun matchRouteComprehensive(
         route: String,
         searchChildren: Boolean,
         searchParent: Boolean,
         lastVisited: NavDestination
     ): DeepLinkMatch? {
+        // First try to match with this graph's route
+        val bestMatch = matchRoute(route)
+        // If searchChildren is true, search through all child destinations for a matching route
+        val bestChildMatch =
+            if (searchChildren) {
+                mapNotNull { child ->
+                    when (child) {
+                        lastVisited -> null
+                        is NavGraph ->
+                            child.matchRouteComprehensive(
+                                route,
+                                searchChildren = true,
+                                searchParent = false,
+                                lastVisited = this
+                            )
+                        else -> child.matchRoute(route)
+                    }
+                }
+                    .maxOrNull()
+            } else null
+
+        // If searchParent is true, search through all parents (and their children) destinations
+        // for a matching route
+        val bestParentMatch =
+            parent?.let {
+                if (searchParent && it != lastVisited)
+                    it.matchRouteComprehensive(route, searchChildren, true, this)
+                else null
+            }
+        return listOfNotNull(bestMatch, bestChildMatch, bestParentMatch).maxOrNull()
+    }
+
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public actual fun matchDeepLinkComprehensive(
+        navDeepLinkRequest: NavDeepLinkRequest,
+        searchChildren: Boolean,
+        searchParent: Boolean,
+        lastVisited: NavDestination
+    ): DeepLinkMatch? {
         // First search through any deep links directly added to this NavGraph
-        val bestMatch = matchDeepLinkRequest(route)
+        val bestMatch = super.matchDeepLink(navDeepLinkRequest)
 
         // If searchChildren is true, search through all child destinations for a matching deeplink
         val bestChildMatch =
             if (searchChildren) {
                 mapNotNull { child ->
-                    if (child != lastVisited) child.matchDeepLink(route) else null
+                    if (child != lastVisited) child.matchDeepLink(navDeepLinkRequest) else null
                 }
                     .maxOrNull()
             } else null
@@ -63,16 +102,18 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         val bestParentMatch =
             parent?.let {
                 if (searchParent && it != lastVisited)
-                    it.matchDeepLinkComprehensive(route, searchChildren, true, this)
+                    it.matchDeepLinkComprehensive(navDeepLinkRequest, searchChildren, true, this)
                 else null
             }
         return listOfNotNull(bestMatch, bestChildMatch, bestParentMatch).maxOrNull()
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public override fun matchDeepLink(route: String): DeepLinkMatch? =
+    public actual override fun matchDeepLink(
+        navDeepLinkRequest: NavDeepLinkRequest
+    ): DeepLinkMatch? =
         matchDeepLinkComprehensive(
-            route,
+            navDeepLinkRequest,
             searchChildren = true,
             searchParent = false,
             lastVisited = this
@@ -169,8 +210,11 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         return if (!route.isNullOrBlank()) findNode(route, true) else null
     }
 
-    public actual inline fun <reified T> findNode(): NavDestination? =
-        findNode(serializer<T>().generateHashCode())
+    public actual inline fun <reified T> findNode(): NavDestination? = findNode(T::class)
+
+    @OptIn(InternalSerializationApi::class)
+    public actual fun findNode(route: KClass<*>): NavDestination? =
+        findNode(route.serializer().generateHashCode())
 
     @OptIn(InternalSerializationApi::class)
     public actual fun <T> findNode(route: T?): NavDestination? =
@@ -182,7 +226,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
             nodes.valueIterator().asSequence().firstOrNull {
                 // first try matching with routePattern
                 // if not found with routePattern, try matching with route args
-                it.route.equals(route) || it.matchDeepLink(route) != null
+                it.route.equals(route) || it.matchRoute(route) != null
             }
 
         // Search the parent for the NavDestination if it is not a child of this navigation graph
@@ -246,7 +290,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         }
     }
 
-    override val displayName: String
+    actual override val displayName: String
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         get() = if (id != 0) super.displayName else "the root navigation"
 
@@ -279,6 +323,14 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         }
     }
 
+    @JvmSynthetic
+    @OptIn(InternalSerializationApi::class)
+    public actual fun <T : Any> setStartDestination(startDestRoute: KClass<T>) {
+        setStartDestination(startDestRoute.serializer()) { startDestination ->
+            startDestination.route!!
+        }
+    }
+
     @OptIn(InternalSerializationApi::class)
     public actual fun <T : Any> setStartDestination(startDestRoute: T) {
         setStartDestination(startDestRoute::class.serializer()) { startDestination ->
@@ -292,7 +344,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
     @OptIn(ExperimentalSerializationApi::class)
     public actual fun <T> setStartDestination(
         serializer: KSerializer<T>,
-        parseRoute: (NavDestination) -> String,
+        parseRoute: (NavDestination) -> String
     ) {
         val id = serializer.generateHashCode()
         val startDest = findNode(id)
@@ -334,6 +386,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
             return startDestIdName!!
         }
 
+    @OptIn(ExperimentalStdlibApi::class)
     public override fun toString(): String {
         val sb = StringBuilder()
         sb.append(super.toString())
@@ -343,7 +396,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
             when {
                 startDestinationRoute != null -> sb.append(startDestinationRoute)
                 startDestIdName != null -> sb.append(startDestIdName)
-                else -> sb.append(getDisplayName(startDestId))
+                else -> sb.append("0x${startDestId.toHexString()}")
             }
         } else {
             sb.append("{")
@@ -376,7 +429,7 @@ public actual open class NavGraph actual constructor(navGraphNavigator: Navigato
         public actual fun NavGraph.findStartDestination(): NavDestination = childHierarchy().last()
 
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        public fun NavGraph.childHierarchy(): Sequence<NavDestination> =
+        public actual fun NavGraph.childHierarchy(): Sequence<NavDestination> =
             generateSequence(this as NavDestination) {
                     if (it is NavGraph) {
                         it.findNode(it.startDestinationId)

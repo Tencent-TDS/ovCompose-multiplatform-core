@@ -28,7 +28,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -263,10 +262,6 @@ public class AudioFocusRequestCompat {
                 throw new IllegalArgumentException("Illegal audio focus gain type " + focusGain);
             }
 
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT
-                    && focusGain == AudioManagerCompat.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE) {
-                focusGain = AudioManagerCompat.AUDIOFOCUS_GAIN_TRANSIENT;
-            }
             mFocusGain = focusGain;
             return this;
         }
@@ -434,7 +429,6 @@ public class AudioFocusRequestCompat {
     private static class Api26Impl {
         private Api26Impl() {}
 
-        @DoNotInline
         static AudioFocusRequest createInstance(
                 int focusGain,
                 AudioAttributes audioAttributes,

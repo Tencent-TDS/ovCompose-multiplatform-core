@@ -28,4 +28,5 @@ internal fun Translations.sv() = mapOf(
     Strings.DefaultErrorMessage to "Ogiltiga indata",
     Strings.SliderRangeStart to "Intervallets början",
     Strings.SliderRangeEnd to "Intervallets slut",
+    Strings.SnackbarPaneTitle to "Varning",
 )

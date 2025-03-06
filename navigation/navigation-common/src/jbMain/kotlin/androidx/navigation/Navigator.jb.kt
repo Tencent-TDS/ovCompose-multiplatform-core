@@ -18,7 +18,7 @@ package androidx.navigation
 
 import androidx.annotation.CallSuper
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
+import androidx.savedstate.SavedState
 
 public actual abstract class Navigator<D : NavDestination> {
     public actual constructor() {
@@ -90,13 +90,16 @@ public actual abstract class Navigator<D : NavDestination> {
         state.onLaunchSingleTop(backStackEntry)
     }
 
+    // TODO Deprecate this method once all call sites are removed
+    @Suppress("UNUSED_PARAMETER", "RedundantNullableReturnType")
     public actual open fun navigate(
         destination: D,
-        args: Bundle?,
+        args: SavedState?,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
     ): NavDestination? = destination
 
+    @Suppress("UNUSED_PARAMETER")
     public actual open fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         val backStack = state.backStack.value
         check(backStack.contains(popUpTo)) {
@@ -116,13 +119,14 @@ public actual abstract class Navigator<D : NavDestination> {
         }
     }
 
+    // TODO Deprecate this method once all call sites are removed
     public actual open fun popBackStack(): Boolean = true
 
-    public actual open fun onSaveState(): Bundle? {
+    public actual open fun onSaveState(): SavedState? {
         return null
     }
 
-    public actual open fun onRestoreState(savedState: Bundle) {}
+    public actual open fun onRestoreState(savedState: SavedState) {}
 
     public actual interface Extras
 }

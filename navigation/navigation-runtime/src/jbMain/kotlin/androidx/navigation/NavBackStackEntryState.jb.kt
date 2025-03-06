@@ -16,20 +16,22 @@
 
 package androidx.navigation
 
-import androidx.core.bundle.Bundle
 import androidx.lifecycle.Lifecycle
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 
 internal data class NavBackStackEntryState(
     val id: String,
     val destinationId: Int,
-    val args: Bundle?,
-    val savedState: Bundle
+    val args: SavedState?,
+    val savedState: SavedState
 ) {
     constructor(entry: NavBackStackEntry) : this(
         id = entry.id,
         destinationId = entry.destination.id,
         args = entry.arguments,
-        savedState = Bundle()
+        savedState = savedState()
     ) {
         entry.saveState(savedState)
     }
@@ -49,11 +51,11 @@ internal data class NavBackStackEntryState(
         )
     }
 
-    fun toBundle(): Bundle = Bundle().apply {
+    fun toSavedState(): SavedState = savedState {
         putString(KEY_ID, id)
         putInt(KEY_DESTINATION_ID, destinationId)
-        putBundle(KEY_ARGS, args)
-        putBundle(KEY_SAVED_STATE, savedState)
+        args?.let { putSavedState(KEY_ARGS, it) }
+        putSavedState(KEY_SAVED_STATE, savedState)
     }
 
     companion object {
@@ -62,18 +64,20 @@ internal data class NavBackStackEntryState(
         private const val KEY_ARGS = "NavBackStackEntryState.args"
         private const val KEY_SAVED_STATE = "NavBackStackEntryState.savedState"
 
-        fun fromBundle(bundle: Bundle?): NavBackStackEntryState? {
+        fun fromBundle(bundle: SavedState?): NavBackStackEntryState? {
             if (bundle == null) return null
-            val id = bundle.getString(KEY_ID) ?: return null
-            val destinationId = bundle.getInt(KEY_DESTINATION_ID)
-            val args = bundle.getBundle(KEY_ARGS) ?: return null
-            val savedState = bundle.getBundle(KEY_SAVED_STATE) ?: return null
-            return NavBackStackEntryState(
-                id = id,
-                destinationId = destinationId,
-                args = args,
-                savedState = savedState
-            )
+            bundle.read {
+                val id = getStringOrElse(KEY_ID) { return null }
+                val destinationId = getIntOrElse(KEY_DESTINATION_ID) { return null }
+                val args = if (contains(KEY_ARGS)) getSavedState(KEY_ARGS) else null
+                val savedState = getSavedStateOrElse(KEY_SAVED_STATE) { return null }
+                return NavBackStackEntryState(
+                    id = id,
+                    destinationId = destinationId,
+                    args = args,
+                    savedState = savedState
+                )
+            }
         }
     }
 }

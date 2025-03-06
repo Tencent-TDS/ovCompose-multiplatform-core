@@ -33,7 +33,7 @@
     <string name="mr_controller_stop" msgid="5497722768305745508">"Atura"</string>
     <string name="mr_controller_expand_group" msgid="4521419834052044261">"Desplega"</string>
     <string name="mr_controller_collapse_group" msgid="2585048604188129749">"Replega"</string>
-    <string name="mr_controller_album_art" msgid="3330502667672708728">"Imatge de l\'àlbum"</string>
+    <string name="mr_controller_album_art" msgid="3330502667672708728">"Coberta de l\'àlbum"</string>
     <string name="mr_controller_volume_slider" msgid="2955862765169128170">"Control lliscant de volum"</string>
     <string name="mr_controller_no_media_selected" msgid="5495452265246139458">"No hi ha contingut multimèdia seleccionat"</string>
     <string name="mr_controller_no_info_available" msgid="855271725131981086">"No hi ha informació disponible"</string>
@@ -51,4 +51,8 @@
     <string name="mr_chooser_wifi_warning_description_unknown" msgid="3459891599800041449">"Assegura\'t que l\'altre dispositiu estigui connectat a la mateixa xarxa Wi‑Fi que aquest dispositiu"</string>
     <string name="mr_chooser_wifi_learn_more" msgid="3799500840179081429"><a href="https://support.google.com/chromecast/?p=trouble-finding-devices">"Més informació"</a></string>
     <string name="ic_media_route_learn_more_accessibility" msgid="9119039724000326934">"Informació sobre com pots emetre contingut"</string>
+    <string name="mr_route_name_unknown" msgid="5538521943939635302">"Desconegut"</string>
+    <string name="mr_route_name_bluetooth" msgid="5056346328175584455">"Bluetooth"</string>
+    <string name="mr_route_name_tv" msgid="8041420425123528188">"TV"</string>
+    <string name="mr_route_name_speaker" msgid="708574147123374685">"Altaveu"</string>
 </resources>

@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Button
@@ -36,6 +37,7 @@ import androidx.compose.ui.platform.a11y.ComposeSceneAccessible
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.isContainer
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
@@ -54,11 +56,17 @@ import java.awt.Point
 import javax.accessibility.AccessibleComponent
 import javax.accessibility.AccessibleContext
 import javax.accessibility.AccessibleRole
+import javax.accessibility.AccessibleState
 import javax.accessibility.AccessibleText
+import javax.accessibility.AccessibleValue
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Test
+
 
 @OptIn(ExperimentalTestApi::class)
 class AccessibilityTest {
@@ -171,6 +179,101 @@ class AccessibilityTest {
         }
 
         test.onNodeWithTag("box").assertHasAccessibleRole(AccessibleRole.GROUP_BOX)
+    }
+
+    @Test
+    fun hideFromA11yMakesComponentInvisible() = runDesktopA11yTest {
+        test.setContent {
+            Text(
+                text = "Hello",
+                modifier = Modifier.testTag("text")
+                    .semantics {
+                        hideFromAccessibility()
+                    }
+            )
+        }
+
+        assertFalse("Component should be invisible to accessibility, but isn't") {
+            test.onNodeWithTag("text").fetchAccessibleComponent().isVisible
+        }
+    }
+
+    @Test
+    fun materialRadioButtonHasCorrectCheckedStates() = runDesktopA11yTest {
+        var selected by mutableStateOf(true)
+        test.setContent {
+            Column {
+                androidx.compose.material.RadioButton(
+                    selected = selected,
+                    onClick = { },
+                    modifier = Modifier
+                        .testTag("radioButton")
+                )
+                androidx.compose.material3.RadioButton(
+                    selected = selected,
+                    onClick = { },
+                    modifier = Modifier
+                        .testTag("radioButton3")
+                )
+            }
+        }
+
+        with(test.onNodeWithTag("radioButton")) {
+            assertCurrentAccessibleValueEquals(1)
+            assertHasAccessibleState(AccessibleState.CHECKED)
+        }
+        with(test.onNodeWithTag("radioButton3")) {
+            assertCurrentAccessibleValueEquals(1)
+            assertHasAccessibleState(AccessibleState.CHECKED)
+        }
+        selected = false
+        with(test.onNodeWithTag("radioButton")) {
+            assertCurrentAccessibleValueEquals(0)
+            assertDoesNotHaveAccessibleState(AccessibleState.CHECKED)
+        }
+        with(test.onNodeWithTag("radioButton3")) {
+            assertCurrentAccessibleValueEquals(0)
+            assertDoesNotHaveAccessibleState(AccessibleState.CHECKED)
+        }
+    }
+
+    @Test
+    fun materialCheckboxHasCorrectCheckedStates() = runDesktopA11yTest {
+        var checked by mutableStateOf(true)
+        test.setContent {
+            Column {
+                androidx.compose.material.Checkbox(
+                    checked = checked,
+                    onCheckedChange = { },
+                    modifier = Modifier
+                        .testTag("checkBox")
+                )
+                androidx.compose.material3.Checkbox(
+                    checked = checked,
+                    onCheckedChange = { },
+                    modifier = Modifier
+                        .testTag("checkBox3")
+                )
+            }
+        }
+
+        with(test.onNodeWithTag("checkBox")) {
+            assertCurrentAccessibleValueEquals(1)
+            assertHasAccessibleState(AccessibleState.CHECKED)
+        }
+        with(test.onNodeWithTag("checkBox3")) {
+            assertCurrentAccessibleValueEquals(1)
+            assertHasAccessibleState(AccessibleState.CHECKED)
+        }
+        checked = false
+        with(test.onNodeWithTag("checkBox")) {
+            assertCurrentAccessibleValueEquals(0)
+            assertDoesNotHaveAccessibleState(AccessibleState.CHECKED)
+        }
+        with(test.onNodeWithTag("checkBox3")) {
+            assertCurrentAccessibleValueEquals(0)
+            assertDoesNotHaveAccessibleState(AccessibleState.CHECKED)
+        }
     }
 
     @Test
@@ -309,4 +412,35 @@ internal class ComposeA11yTestScope(
         assertThat(fetchAccessible().accessibleContext!!.accessibleRole).isEqualTo(role)
     }
 
+    /**
+     * Asserts that the [AccessibleContext] corresponding to the given semantics node has the given
+     * state.
+     */
+    fun SemanticsNodeInteraction.assertHasAccessibleState(state: AccessibleState) {
+        assertTrue("Accessible context expected to, but does not have state: $state") {
+            fetchAccessible().accessibleContext!!.accessibleStateSet.contains(state)
+        }
+    }
+
+    /**
+     * Asserts that the [AccessibleContext] corresponding to the given semantics node does not have
+     * the given state.
+     */
+    fun SemanticsNodeInteraction.assertDoesNotHaveAccessibleState(state: AccessibleState) {
+        assertFalse("Accessible context expected to not contain, but does have state: $state") {
+            fetchAccessible().accessibleContext!!.accessibleStateSet.contains(state)
+        }
+    }
+
+    /**
+     * Asserts that the [AccessibleContext] corresponding to the given semantics node has the given
+     * current accessible numeric value ([AccessibleValue.getCurrentAccessibleValue]).
+     */
+    fun SemanticsNodeInteraction.assertCurrentAccessibleValueEquals(number: Number) {
+        assertEquals(
+            expected = number,
+            actual = fetchAccessible().accessibleContext!!.accessibleValue.currentAccessibleValue,
+            message = "Current accessible value expected to, but does not equal: $number",
+        )
+    }
 }

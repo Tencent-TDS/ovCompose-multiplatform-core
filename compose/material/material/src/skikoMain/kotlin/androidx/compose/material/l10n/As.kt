@@ -28,4 +28,5 @@ internal fun Translations.`as`() = mapOf(
     Strings.DefaultErrorMessage to "অমান্য ইনপুট",
     Strings.SliderRangeStart to "পৰিসৰৰ আৰম্ভণি",
     Strings.SliderRangeEnd to "পৰিসৰৰ সমাপ্তি",
+    Strings.SnackbarPaneTitle to "সতৰ্কবাৰ্তা",
 )

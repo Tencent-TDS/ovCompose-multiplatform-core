@@ -17,7 +17,7 @@
 package androidx.compose.ui.input
 
 import androidx.compose.foundation.text.isTypedEvent
-import androidx.compose.ui.events.keyDownEvent
+import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -46,15 +46,15 @@ class IsTypedEventTests {
             "ш", "щ", "ь", "ъ", "э", "ю", "я"
         )
 
-        chars.forEach { char -> keyDownEvent(char).assertIsTyped() }
+        chars.forEach { char -> keyEvent(char).assertIsTyped() }
     }
 
     @Test
     fun shortcutsAreNotTyped() {
         val keyDownEvents = listOf(
-            keyDownEvent("c", metaKey = true, ctrlKey = true),
-            keyDownEvent("p", metaKey = true, ctrlKey = true),
-            keyDownEvent("v", metaKey = true, ctrlKey = true)
+            keyEvent("c", metaKey = true, ctrlKey = true),
+            keyEvent("p", metaKey = true, ctrlKey = true),
+            keyEvent("v", metaKey = true, ctrlKey = true)
         )
 
         keyDownEvents.forEach { event -> event.assertIsNotTyped() }
@@ -63,9 +63,9 @@ class IsTypedEventTests {
     @Test
     fun shortcutsWithCtrlOnlyAreNotTyped() {
         val keyDownEvents = listOf(
-            keyDownEvent("c", metaKey = false, ctrlKey = true),
-            keyDownEvent("p", metaKey = false, ctrlKey = true),
-            keyDownEvent("v", metaKey = false, ctrlKey = true)
+            keyEvent("c", metaKey = false, ctrlKey = true),
+            keyEvent("p", metaKey = false, ctrlKey = true),
+            keyEvent("v", metaKey = false, ctrlKey = true)
         )
 
         keyDownEvents.forEach { event -> event.assertIsNotTyped() }
@@ -74,9 +74,9 @@ class IsTypedEventTests {
     @Test
     fun shortcutsWithMetaOnlyAreNotTyped() {
         val keyDownEvents = listOf(
-            keyDownEvent("c", metaKey = true, ctrlKey = false),
-            keyDownEvent("p", metaKey = true, ctrlKey = false),
-            keyDownEvent("v", metaKey = true, ctrlKey = false)
+            keyEvent("c", metaKey = true, ctrlKey = false),
+            keyEvent("p", metaKey = true, ctrlKey = false),
+            keyEvent("v", metaKey = true, ctrlKey = false)
         )
 
         keyDownEvents.forEach { event -> event.assertIsNotTyped() }
@@ -85,9 +85,9 @@ class IsTypedEventTests {
     @Test
     fun altProducesATypedEvent() {
         val keyDownEvents = listOf(
-            keyDownEvent("c", altKey = true),
-            keyDownEvent("p", altKey = true),
-            keyDownEvent("v", altKey = true)
+            keyEvent("c", altKey = true),
+            keyEvent("p", altKey = true),
+            keyEvent("v", altKey = true)
         )
 
         keyDownEvents.forEach { event -> event.assertIsTyped() }
@@ -96,31 +96,31 @@ class IsTypedEventTests {
     @Test
     fun functionalsAreNotTyped() {
         val keyDownEvents = listOf(
-            keyDownEvent("Backspace", code="Backspace"),
-            keyDownEvent("Clear", code="Backspace"),
-            keyDownEvent("Home", code="Home"),
-            keyDownEvent("End", code="End"),
-            keyDownEvent("PageUp", code="PageUp"),
-            keyDownEvent("PageDown", code="PageDown"),
-            keyDownEvent("F1", code="F1"),
-            keyDownEvent("F2", code="F2"),
-            keyDownEvent("F3", code="F3"),
-            keyDownEvent("F4", code="F4"),
-            keyDownEvent("F5", code="F5"),
-            keyDownEvent("F6", code="F6"),
-            keyDownEvent("F7", code="F7"),
-            keyDownEvent("F8", code="F8"),
-            keyDownEvent("F9", code="F9"),
-            keyDownEvent("F10", code="F10"),
-            keyDownEvent("F11", code="F11"),
-            keyDownEvent("F12", code="F12"),
-            keyDownEvent("F13", code="F13"),
-            keyDownEvent("F14", code="F14"),
-            keyDownEvent("F15", code="F15"),
-            keyDownEvent("F16", code="F16"),
-            keyDownEvent("F17", code="F17"),
-            keyDownEvent("F18", code="F18"),
-            keyDownEvent("F19", code="F19"),
+            keyEvent("Backspace", code="Backspace"),
+            keyEvent("Clear", code="Backspace"),
+            keyEvent("Home", code="Home"),
+            keyEvent("End", code="End"),
+            keyEvent("PageUp", code="PageUp"),
+            keyEvent("PageDown", code="PageDown"),
+            keyEvent("F1", code="F1"),
+            keyEvent("F2", code="F2"),
+            keyEvent("F3", code="F3"),
+            keyEvent("F4", code="F4"),
+            keyEvent("F5", code="F5"),
+            keyEvent("F6", code="F6"),
+            keyEvent("F7", code="F7"),
+            keyEvent("F8", code="F8"),
+            keyEvent("F9", code="F9"),
+            keyEvent("F10", code="F10"),
+            keyEvent("F11", code="F11"),
+            keyEvent("F12", code="F12"),
+            keyEvent("F13", code="F13"),
+            keyEvent("F14", code="F14"),
+            keyEvent("F15", code="F15"),
+            keyEvent("F16", code="F16"),
+            keyEvent("F17", code="F17"),
+            keyEvent("F18", code="F18"),
+            keyEvent("F19", code="F19"),
         )
 
         keyDownEvents.forEach { event -> event.assertIsNotTyped() }

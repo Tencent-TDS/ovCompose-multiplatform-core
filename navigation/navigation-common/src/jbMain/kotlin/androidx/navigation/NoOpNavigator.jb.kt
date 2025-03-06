@@ -17,15 +17,16 @@
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
+import androidx.savedstate.SavedState
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public actual class NoOpNavigator : Navigator<NavDestination>("NoOp") {
+public actual class NoOpNavigator
+actual constructor(): Navigator<NavDestination>("NoOp") {
     public actual override fun createDestination(): NavDestination = NavDestination(this)
 
     public actual override fun navigate(
         destination: NavDestination,
-        args: Bundle?,
+        args: SavedState?,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
     ): NavDestination = destination

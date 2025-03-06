@@ -25,15 +25,16 @@ internal external interface KeyboardEventInitExtended : KeyboardEventInit {
     var keyCode: Int?
 }
 
-private fun KeyboardEventInit.keyDownEvent() = KeyboardEvent("keydown", this)
+private fun KeyboardEventInit.keyEvent(type: String) = KeyboardEvent(type, this)
 private fun KeyboardEventInit.withKeyCode(keyCode: Int) = (this as KeyboardEventInitExtended).apply {
     this.keyCode = keyCode
 }
 
-internal fun keyDownEvent(
+internal fun keyEvent(
     key: String,
     code: String = "Key${key.uppercase()}",
     keyCode: Int = key.uppercase().first().code,
+    type: String = "keydown",
     ctrlKey: Boolean = false,
     metaKey: Boolean = false,
     altKey: Boolean = false,
@@ -50,12 +51,12 @@ internal fun keyDownEvent(
         cancelable = cancelable
     )
         .withKeyCode(keyCode)
-        .keyDownEvent()
+        .keyEvent(type)
 
 internal fun keyDownEventUnprevented(): KeyboardEvent =
     KeyboardEventInit(ctrlKey = true, cancelable = true, key = "Control")
         .withKeyCode(Key.CtrlLeft.keyCode.toInt())
-        .keyDownEvent()
+        .keyEvent("keydown")
 
 private fun DummyTouchEventInit(): TouchEventInit = js("({ changedTouches: [new Touch({identifier: 0, target: document})] })")
 

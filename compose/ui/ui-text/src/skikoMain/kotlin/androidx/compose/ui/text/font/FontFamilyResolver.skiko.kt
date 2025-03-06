@@ -32,9 +32,11 @@ import kotlin.jvm.JvmName
  *
  * Usages inside of Composition should use LocalFontFamilyResolver.current
  */
-@OptIn(ExperimentalTextApi::class)
 fun createFontFamilyResolver(): FontFamily.Resolver {
-    return FontFamilyResolverImpl(SkiaFontLoader())
+    return FontFamilyResolverImpl(
+        SkiaFontLoader(),
+        createPlatformResolveInterceptor()
+    )
 }
 
 /**
@@ -62,7 +64,7 @@ fun createFontFamilyResolver(
 ): FontFamily.Resolver {
     return FontFamilyResolverImpl(
         SkiaFontLoader(),
-        PlatformResolveInterceptor.Default,
+        createPlatformResolveInterceptor(),
         GlobalTypefaceRequestCache,
         FontListFontFamilyTypefaceAdapter(
             GlobalAsyncTypefaceCache,
@@ -73,7 +75,8 @@ fun createFontFamilyResolver(
 /**
  * For bridging between FontLoader and FontFamily.ResourceLoader. Can remove with FontLoader.
  */
-@OptIn(ExperimentalTextApi::class)
 internal fun createFontFamilyResolver(fontCache: FontCache): FontFamily.Resolver {
-    return FontFamilyResolverImpl(SkiaFontLoader(fontCache))
+    return FontFamilyResolverImpl(SkiaFontLoader(fontCache), createPlatformResolveInterceptor())
 }
+
+internal expect fun createPlatformResolveInterceptor(): PlatformResolveInterceptor

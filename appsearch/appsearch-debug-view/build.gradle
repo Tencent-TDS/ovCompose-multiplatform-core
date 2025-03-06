@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import androidx.build.LibraryType
 
 plugins {
@@ -22,9 +29,6 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled true
-    }
     namespace "androidx.appsearch.debugview"
 }
 
@@ -40,7 +44,6 @@ dependencies {
     implementation('com.google.android.material:material:1.0.0')
     implementation(libs.constraintLayout)
     implementation(libs.guavaAndroid)
-    androidTestImplementation(libs.multidex)
 }
 
 androidx {
@@ -49,5 +52,6 @@ androidx {
     inceptionYear = "2021"
     description = "A support library for AndroidX AppSearch that contains activities and views " +
             "for debugging an application's integration with AppSearch."
+    doNotDocumentReason = "No public API"
     metalavaK2UastEnabled = true
 }

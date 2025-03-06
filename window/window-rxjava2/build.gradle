@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 import androidx.build.LibraryType
-import androidx.build.Publish
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -32,9 +31,6 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
     namespace "androidx.window.rxjava2"
 }
 
@@ -53,14 +49,13 @@ dependencies {
     androidTestImplementation(libs.mockitoCore, excludes.bytebuddy)
     androidTestImplementation(libs.mockitoKotlin, excludes.bytebuddy)
     androidTestImplementation(libs.kotlinCoroutinesTest)
-    androidTestImplementation(libs.multidex)
 }
 
 androidx {
     name = "WindowManager RxJava2"
-    publish = Publish.SNAPSHOT_AND_RELEASE
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "WindowManager RxJava 2"
     metalavaK2UastEnabled = true
+    legacyDisableKotlinStrictApiMode = true
 }

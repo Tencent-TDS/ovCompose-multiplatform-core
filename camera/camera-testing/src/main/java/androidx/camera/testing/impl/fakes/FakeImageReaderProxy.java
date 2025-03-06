@@ -22,7 +22,6 @@ import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.impl.ImageReaderProxy;
 import androidx.camera.core.impl.TagBundle;
@@ -41,7 +40,6 @@ import java.util.concurrent.LinkedBlockingQueue;
  * A fake implementation of ImageReaderProxy where the values are settable and the
  * OnImageAvailableListener can be triggered.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class FakeImageReaderProxy implements ImageReaderProxy {
     private int mWidth = 100;
     private int mHeight = 100;
@@ -225,9 +223,12 @@ public class FakeImageReaderProxy implements ImageReaderProxy {
      * <p> Blocks until successfully added an ImageProxy. This can block if the maximum number of
      * ImageProxy have been triggered without a {@link #acquireLatestImage()} or {@link
      * #acquireNextImage()} being called.
+     *
+     * @return the {@link ImageProxy} that was triggered.
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public void triggerImageAvailable(@NonNull TagBundle tagBundle,
+    @NonNull
+    public FakeImageProxy triggerImageAvailable(@NonNull TagBundle tagBundle,
             long timestamp) throws InterruptedException {
         FakeImageProxy fakeImageProxy = generateFakeImageProxy(tagBundle, timestamp);
 
@@ -240,6 +241,7 @@ public class FakeImageReaderProxy implements ImageReaderProxy {
         mImageProxyAcquisitionQueue.put(fakeImageProxy);
 
         triggerImageAvailableListener();
+        return fakeImageProxy;
     }
 
     private FakeImageProxy generateFakeImageProxy(TagBundle tagBundle, long timestamp) {

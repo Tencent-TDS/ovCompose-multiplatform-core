@@ -20,6 +20,8 @@ import androidx.room.compiler.codegen.XClassName
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.processing.XRawType
 import androidx.room.compiler.processing.XType
+import androidx.room.ext.CommonTypeNames
+import androidx.room.ext.PagingTypeNames
 import androidx.room.parser.ParsedQuery
 import androidx.room.processor.Context
 import androidx.room.processor.ProcessorErrors
@@ -32,7 +34,7 @@ import androidx.room.solver.query.result.QueryResultBinder
 class MultiTypedPagingSourceQueryResultBinderProvider(
     private val context: Context,
     private val roomPagingClassName: XClassName,
-    pagingSourceTypeName: XClassName,
+    private val pagingSourceTypeName: XClassName,
 ) : QueryResultBinderProvider {
 
     private val pagingSourceType: XRawType? by lazy {
@@ -48,23 +50,25 @@ class MultiTypedPagingSourceQueryResultBinderProvider(
             context.logger.e(ProcessorErrors.OBSERVABLE_QUERY_NOTHING_TO_OBSERVE)
         }
         val typeArg = declared.typeArguments.last()
-        val listAdapter = context.typeAdapterStore.findRowAdapter(typeArg, query)?.let {
-            ListQueryResultAdapter(typeArg, it)
-        }
-        val tableNames = (
-            (listAdapter?.accessedTableNames() ?: emptyList()) +
-                query.tables.map { it.name }
-            ).toSet()
+        val listAdapter =
+            context.typeAdapterStore.findRowAdapter(typeArg, query)?.let {
+                ListQueryResultAdapter(typeArg, it)
+            }
+        val tableNames =
+            ((listAdapter?.accessedTableNames() ?: emptyList()) + query.tables.map { it.name })
+                .toSet()
 
         return MultiTypedPagingSourceQueryResultBinder(
             listAdapter = listAdapter,
             tableNames = tableNames,
-            className = roomPagingClassName
+            className = roomPagingClassName,
+            isBasePagingSource = pagingSourceTypeName == PagingTypeNames.PAGING_SOURCE
         )
     }
 
     override fun matches(declared: XType): Boolean {
-        val collectionTypeRaw = context.COMMON_TYPES.READONLY_COLLECTION.rawType
+        val collectionTypeRaw =
+            context.processingEnv.requireType(CommonTypeNames.COLLECTION).rawType
 
         if (pagingSourceType == null) {
             return false
@@ -78,7 +82,8 @@ class MultiTypedPagingSourceQueryResultBinderProvider(
             return false
         }
 
-        if (declared.typeArguments.first().asTypeName() != XTypeName.BOXED_INT) {
+        val boxedIntType = context.processingEnv.requireType(XTypeName.BOXED_INT)
+        if (!declared.typeArguments.first().isSameType(boxedIntType)) {
             context.logger.e(ProcessorErrors.PAGING_SPECIFY_PAGING_SOURCE_TYPE)
         }
 

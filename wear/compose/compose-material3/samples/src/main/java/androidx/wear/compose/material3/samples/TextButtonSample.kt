@@ -17,11 +17,12 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.wear.compose.material3.ButtonDefaults
-import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
@@ -29,9 +30,7 @@ import androidx.wear.compose.material3.TextButtonDefaults
 @Composable
 @Sampled
 fun TextButtonSample() {
-    TextButton(onClick = { /* Do something */ }) {
-        Text(text = "ABC")
-    }
+    TextButton(onClick = { /* Do something */ }) { Text(text = "ABC") }
 }
 
 @Composable
@@ -47,14 +46,24 @@ fun FilledTextButtonSample() {
 
 @Composable
 @Sampled
+fun FilledVariantTextButtonSample() {
+    TextButton(
+        onClick = { /* Do something */ },
+        colors = TextButtonDefaults.filledVariantTextButtonColors()
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
 fun LargeFilledTonalTextButtonSample() {
     TextButton(
         onClick = { /* Do something */ },
         colors = TextButtonDefaults.filledTonalTextButtonColors(),
         modifier = Modifier.size(TextButtonDefaults.LargeButtonSize)
     ) {
-        // For large TextButton, use [Typography.labelLarge].
-        Text(text = "ABC", style = MaterialTheme.typography.labelLarge)
+        Text(text = "ABC", style = TextButtonDefaults.largeButtonTextStyle)
     }
 }
 
@@ -76,6 +85,31 @@ fun OutlinedTextButtonSample() {
         onClick = { /* Do something */ },
         colors = TextButtonDefaults.outlinedTextButtonColors(),
         border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Sampled
+@Composable
+fun TextButtonWithOnLongClickSample(onLongClick: () -> Unit) {
+    TextButton(
+        onClick = { /* Do something for onClick*/ },
+        onLongClick = onLongClick,
+        onLongClickLabel = "Long click"
+    ) {
+        Text(text = "ABC")
+    }
+}
+
+@Composable
+@Sampled
+fun TextButtonWithCornerAnimationSample() {
+    val interactionSource = remember { MutableInteractionSource() }
+    TextButton(
+        onClick = { /* Do something */ },
+        shape = TextButtonDefaults.animatedShape(interactionSource),
+        interactionSource = interactionSource
     ) {
         Text(text = "ABC")
     }

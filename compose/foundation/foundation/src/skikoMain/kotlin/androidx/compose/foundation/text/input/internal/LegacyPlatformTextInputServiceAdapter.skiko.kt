@@ -33,7 +33,6 @@ import androidx.compose.ui.text.input.TextInputSession
 
 // TODO remove after https://youtrack.jetbrains.com/issue/COMPOSE-740/Implement-BasicTextField2
 @Suppress("DEPRECATION")
-@OptIn(InternalTextApi::class)
 @Composable
 internal actual fun legacyTextInputServiceAdapterAndService():
     Pair<LegacyPlatformTextInputServiceAdapter, TextInputService>
@@ -54,7 +53,6 @@ internal actual fun legacyTextInputServiceAdapterAndService():
             }
 
             override fun stopInput() {
-                service.stopInput()
                 session?.dispose()
                 session = null
             }

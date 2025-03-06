@@ -28,4 +28,5 @@ internal fun Translations.sq() = mapOf(
     Strings.DefaultErrorMessage to "Hyrje e pavlefshme",
     Strings.SliderRangeStart to "Fillimi i diapazonit",
     Strings.SliderRangeEnd to "Fundi i diapazonit",
+    Strings.SnackbarPaneTitle to "Sinjalizim",
 )

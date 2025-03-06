@@ -185,7 +185,8 @@ private fun Project.configureComponentPublishing(
         publications.withType(MavenPublication::class.java).all { publication ->
             publication.pom { pom ->
                 addInformativeMetadata(extension, pom)
-                tweakDependenciesMetadata(androidxGroup, pom, androidLibrariesSetProvider,
+                tweakDependenciesMetadata(
+                    pom, androidLibrariesSetProvider,
                     publication.name == KMP_ANCHOR_PUBLICATION_NAME, kmpExtension.defaultPlatform)
             }
         }
@@ -231,7 +232,7 @@ private fun Project.configureComponentPublishing(
 }
 
 /**
- * Looks for a dependencies XML element within [pom] and sorts its contents.
+ * Looks for a dependencies XML element within [pom], sorts its contents and modify it by redirecting coordinates
  */
 internal fun modifyPomDependencies(
     pom: String,
@@ -253,7 +254,7 @@ internal fun modifyPomDependencies(
             val deps = element.elements()
             val modifiedDeps = deps
                 .map { modifyPomDependency(it, mavenCoordsToRedirecting) }
-                .toSortedSet(compareBy { it.stringValue }).toList()
+                .sortedBy { it.stringValue }
 
             // Content contains formatting nodes, so to avoid modifying those we replace
             // each element with the sorted element from its respective index. Note this
@@ -367,8 +368,11 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
+private val jetBrainsLibrariesWithAndroidTarget = setOf(
+    ":compose:ui:ui-backhandler",
+)
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
-    if (project.path != ":core:core-bundle") return
+    if (project.path !in jetBrainsLibrariesWithAndroidTarget) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {
@@ -552,7 +556,6 @@ private fun Project.addInformativeMetadata(extension: AndroidXExtension, pom: Ma
 }
 
 private fun tweakDependenciesMetadata(
-    mavenGroup: LibraryGroup,
     pom: MavenPom,
     androidLibrariesSetProvider: Provider<Set<String>>,
     kmpAnchor: Boolean,
@@ -564,7 +567,6 @@ private fun tweakDependenciesMetadata(
         // modified. TODO remove the use of getProjectsMap and move to earlier configuration.
         // For more context see:
         // https://android-review.googlesource.com/c/platform/frameworks/support/+/1144664/8/buildSrc/src/main/kotlin/androidx/build/MavenUploadHelper.kt#177
-        assignSingleVersionDependenciesInGroupForPom(xml, mavenGroup)
         assignAarTypes(xml, androidLibrariesSetProvider.get())
         ensureConsistentJvmSuffix(xml)
 
@@ -646,50 +648,6 @@ private fun org.w3c.dom.Node.find(
         }
     }
     return null
-}
-
-/**
- * Modifies the given .pom to specify that every dependency in <group> refers to a single version
- * and can't be automatically promoted to a new version.
- * This will replace, for example, a version string of "1.0" with a version string of "[1.0]"
- *
- * Note: this is not enforced in Gradle nor in plain Maven (without the Enforcer plugin)
- * (https://github.com/gradle/gradle/issues/8297)
- */
-fun assignSingleVersionDependenciesInGroupForPom(
-    xml: XmlProvider,
-    mavenGroup: LibraryGroup
-) {
-    if (!mavenGroup.requireSameVersion) {
-        return
-    }
-
-    val dependencies = xml.asElement().find {
-        it.nodeName == "dependencies"
-    } as? org.w3c.dom.Element ?: return
-
-    dependencies.getElementsByTagName("dependency").forEach { dependency ->
-        val groupId = dependency.find { it.nodeName == "groupId" }?.textContent
-            ?: throw IllegalArgumentException("Failed to locate groupId node")
-        if (groupId == mavenGroup.group) {
-            val versionNode = dependency.find { it.nodeName == "version" }
-                ?: throw IllegalArgumentException("Failed to locate version node")
-            val version = versionNode.textContent
-            if (isVersionRange(version)) {
-                throw GradleException("Unsupported version '$version': already is a version range")
-            }
-            val pinnedVersion = "[$version]"
-            versionNode.textContent = pinnedVersion
-        }
-    }
-}
-
-private fun isVersionRange(text: String): Boolean {
-    return text.contains("[") ||
-        text.contains("]") ||
-        text.contains("(") ||
-        text.contains(")") ||
-        text.contains(",")
 }
 
 /**

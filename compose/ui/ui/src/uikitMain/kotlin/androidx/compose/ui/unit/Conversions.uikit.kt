@@ -37,6 +37,8 @@ internal fun CGSize.asDpSize(): DpSize = DpSize(width.dp, height.dp)
 internal fun DpSize.asCGSize() = CGSizeMake(width.value.toDouble(), width.value.toDouble())
 
 internal fun CGRect.asDpRect(): DpRect = DpRect(origin.asDpOffset(), size.asDpSize())
+internal fun CValue<CGRect>.asDpRect() = useContents { asDpRect() }
+
 internal fun DpRect.asCGRect() = CGRectMake(
     left.value.toDouble(),
     top.value.toDouble(),

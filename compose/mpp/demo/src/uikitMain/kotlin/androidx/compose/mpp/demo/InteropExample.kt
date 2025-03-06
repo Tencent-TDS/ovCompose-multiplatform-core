@@ -16,42 +16,328 @@
 
 package androidx.compose.mpp.demo
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Button
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.viewinterop.UIKitView
-import androidx.compose.ui.viewinterop.UIKitViewController
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.uikit.LocalUIViewController
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import androidx.compose.ui.viewinterop.UIKitView
+import androidx.compose.ui.viewinterop.UIKitViewController
+import androidx.compose.ui.window.ComposeUIViewController
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.objcPtr
 import kotlinx.cinterop.readValue
-import kotlinx.coroutines.delay
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGRectZero
+import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSSelectorFromString
 import platform.MapKit.MKMapView
 import platform.UIKit.NSTextAlignmentCenter
+import platform.UIKit.UIAction
+import platform.UIKit.UIButton
+import platform.UIKit.UIButtonTypeSystem
 import platform.UIKit.UIColor
 import platform.UIKit.UIControlEventEditingChanged
+import platform.UIKit.UIControlStateNormal
 import platform.UIKit.UIEvent
 import platform.UIKit.UILabel
+import platform.UIKit.UIMenu
+import platform.UIKit.UINavigationController
+import platform.UIKit.UIScrollView
 import platform.UIKit.UITextField
-import platform.UIKit.UIView
 import platform.UIKit.UIViewController
+import platform.UIKit.addChildViewController
+import platform.UIKit.didMoveToParentViewController
+
+val InteropExample = Screen.Example("Interop") {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        UIKitViewInteractionModeSection()
+        UIKitViewControllerSection()
+        TextSection()
+        TextFieldSection()
+        ModalNavigationSection()
+        UIMenuSection()
+        ComposeSwipeBackFullscreenSection()
+        UIScrollViewSection()
+        ComposeInsideScrollViewSection()
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun UIKitViewInteractionModeSection() {
+    Text("UIKitView - interactionMode")
+    UIKitView(
+        factory = { TouchReactingView("Cooperative, Default") },
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+        properties = UIKitInteropProperties(
+            interactionMode = UIKitInteropInteractionMode.Cooperative()
+        )
+    )
+    UIKitView(
+        factory = { TouchReactingView("Cooperative, 1000 ms") },
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+        properties = UIKitInteropProperties(
+            interactionMode = UIKitInteropInteractionMode.Cooperative(delayMillis = 1000)
+        )
+    )
+    UIKitView(
+        factory = { TouchReactingView("Non-cooperative") },
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+        properties = UIKitInteropProperties(
+            interactionMode = UIKitInteropInteractionMode.NonCooperative
+        )
+    )
+    UIKitView(
+        factory = { TouchReactingView("Non-interactive") },
+        modifier = Modifier.fillMaxWidth().height(40.dp),
+        properties = UIKitInteropProperties(
+            interactionMode = null
+        )
+    )
+}
+
+@Composable
+private fun TextFieldSection() {
+    var text by remember { mutableStateOf("Type something") }
+    Text("Material TextField:")
+    TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
+
+    Text("UITextField:")
+    ComposeUITextField(
+        text,
+        onValueChange = { text = it },
+        Modifier.fillMaxWidth().height(40.dp)
+    )
+}
+
+@Composable
+private fun ModalNavigationSection() {
+    Text("Modal navigation:")
+    val controller = LocalUIViewController.current
+    Button({
+        controller.presentModalViewController(
+            ComposeUIViewController { ModalViewContent() },
+            animated = true
+        )
+    }, modifier = Modifier.fillMaxWidth().height(40.dp)) {
+        Text("Show modal view")
+    }
+}
+
+@Composable
+private fun ComposeInsideScrollViewSection() {
+    Text("Compose scene inside scroll view:")
+    val parent = LocalUIViewController.current
+    UIKitView(
+        factory = {
+            val scrollView = UIScrollView()
+            scrollView.setContentSize(CGSizeMake(1000.0, 100.0))
+            scrollView.backgroundColor = UIColor.whiteColor
+
+            val composeViewController = ComposeUIViewController {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.LightGray)
+                ) {
+                    Button(
+                        onClick = { println("Clicked") },
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                    ) {
+                        Column {
+                            Text("Compose Button")
+                            Text("(shouldn't click when swipe over)", fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+            parent.addChildViewController(composeViewController)
+            scrollView.addSubview(composeViewController.view)
+            composeViewController.view.setFrame(CGRectMake(10.0, 10.0, 300.0, 80.0))
+            composeViewController.didMoveToParentViewController(parent)
+
+            scrollView
+        },
+        modifier = Modifier.fillMaxWidth().height(100.dp),
+    )
+}
+
+@Composable
+private fun ComposeSwipeBackFullscreenSection() {
+    Text("Swipe back on modal navigation:")
+    val controller = LocalUIViewController.current
+    Button({
+        val navigationController = UINavigationController()
+        navigationController.setViewControllers(listOf(
+            ComposeUIViewController { ModalViewContent() }.also { it.title = "Screen 1"},
+            ComposeUIViewController { ModalViewContent() }.also { it.title = "Screen 2"},
+            ComposeUIViewController { ModalViewContent() }.also { it.title = "Screen 3"}
+        ))
+
+        controller.presentModalViewController(navigationController, animated = true)
+    }, modifier = Modifier.fillMaxWidth().height(40.dp)) {
+        Text("Show UINavigationController")
+    }
+}
+
+@Composable
+private fun UIScrollViewSection() {
+    Text("Horizontal interop UIScrollView:")
+    UIKitView(
+        factory = {
+            val scrollView = UIScrollView()
+            scrollView.setContentSize(CGSizeMake(1000.0, 100.0))
+            scrollView.backgroundColor = UIColor.lightGrayColor
+            scrollView
+        },
+        modifier = Modifier.fillMaxWidth().height(100.dp),
+        update = {
+            println("MKMapView updated")
+        }
+    )
+
+    Text("Vertical interop UIScrollView:")
+    var scrollViewSize by mutableStateOf(DpSize.Zero)
+    val density = LocalDensity.current
+    UIKitView(
+        factory = {
+            val scrollView = UIScrollView()
+            scrollView.setContentSize(
+                CGSizeMake(scrollViewSize.width.value.toDouble(), 1000.0)
+            )
+            scrollView.backgroundColor = UIColor.lightGrayColor
+            scrollView
+        },
+        update = { scrollView ->
+            scrollView.setContentSize(
+                CGSizeMake(scrollViewSize.width.value.toDouble(), 1000.0)
+            )
+        },
+        modifier = Modifier.fillMaxWidth().height(400.dp).onSizeChanged {
+            scrollViewSize = with(density) {
+                DpSize(it.width.toDp(), it.height.toDp())
+            }
+        }
+    )
+}
+
+@Composable
+private fun TextSection() {
+    Text("Material and Native text:")
+    Row(modifier = Modifier.fillMaxWidth().height(40.dp)) {
+        Text(
+            text = "material.Text",
+            modifier = Modifier.weight(0.5f).height(40.dp)
+                .wrapContentHeight(Alignment.CenterVertically),
+            letterSpacing = 0.sp,
+            style = MaterialTheme.typography.body1
+        )
+        UIKitView(
+            factory = {
+                val label = UILabel(frame = CGRectZero.readValue())
+                label.text = "UIKit.UILabel"
+                label.textColor = UIColor.blackColor
+                label
+            },
+            modifier = Modifier.weight(0.5f).height(40.dp)
+                .border(1.dp, Color.Blue),
+            onReset = { /* Just to make it reusable */ }
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalComposeUiApi::class)
+private fun UIKitViewControllerSection() {
+    var updatedValue by remember { mutableStateOf(null as Offset?) }
+
+    Text("UIViewController subclass:")
+    UIKitViewController(
+        factory = {
+            BlueViewController()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .onGloballyPositioned { coordinates ->
+                val rootCoordinates = coordinates.findRootCoordinates()
+                val box =
+                    rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
+                updatedValue = box.topLeft
+            },
+        update = { viewController ->
+            updatedValue?.let {
+                viewController.label.text = "Custom UIViewController:\n${it.x}, ${it.y}"
+            }
+        },
+        properties = UIKitInteropProperties(
+            isNativeAccessibilityEnabled = true
+        )
+    )
+}
+
+@Composable
+fun UIMenuSection() {
+    Text("UIMenu:")
+    UIKitView(
+        factory = {
+            UIButton.buttonWithType(UIButtonTypeSystem).apply {
+                showsMenuAsPrimaryAction = true
+                menu = UIMenu.menuWithChildren(
+                    listOf(
+                        UIAction.actionWithTitle("Menu Item 1", null, null) {
+                            println("Selected 'Menu Item 1'")
+                        },
+                        UIAction.actionWithTitle("Menu Item 2", null, null) {
+                            println("Selected 'Menu Item 2'")
+                        },
+                        UIAction.actionWithTitle("Menu Item 3", null, null) {
+                            println("Selected 'Menu Item 3'")
+                        }
+                    )
+                )
+                setTitle("Open UIMenu", forState = UIControlStateNormal)
+            }
+        },
+        modifier = Modifier.fillMaxWidth().height(40.dp)
+    )
+}
 
 private class BlueViewController : UIViewController(nibName = null, bundle = null) {
     val label = UILabel()
@@ -63,6 +349,7 @@ private class BlueViewController : UIViewController(nibName = null, bundle = nul
     override fun viewDidLoad() {
         super.viewDidLoad()
 
+        label.setNumberOfLines(2)
         label.textAlignment = NSTextAlignmentCenter
         label.textColor = UIColor.whiteColor
         label.backgroundColor = UIColor.blueColor
@@ -93,116 +380,61 @@ private class BlueViewController : UIViewController(nibName = null, bundle = nul
     }
 }
 
-private class TouchReactingView : UIView(frame = CGRectZero.readValue()) {
+private class TouchReactingView(val label: String) : UIButton(frame = CGRectZero.readValue()) {
     init {
-        setUserInteractionEnabled(true)
-
         setDefaultColor()
+        setTitle(label, forState = UIControlStateNormal)
     }
 
     private fun setDefaultColor() {
-        backgroundColor = UIColor.greenColor
+        backgroundColor = UIColor.darkGrayColor
     }
 
     override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesBegan(touches, withEvent)
         backgroundColor = UIColor.redColor
+        println("[${label}]: Touches Began")
     }
 
     override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesMoved(touches, withEvent)
+        println("[${label}]: Touches Moved")
     }
 
     override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesEnded(touches, withEvent)
         setDefaultColor()
+        println("[${label}]: Touches Ended")
     }
 
     override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
         super.touchesCancelled(touches, withEvent)
         setDefaultColor()
+        println("[${label}]: Touches Cancelled")
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
-val InteropExample = Screen.Example("Interop") {
-    var text by remember { mutableStateOf("Type something") }
-    var updatedValue by remember { mutableStateOf(null as Offset?) }
-
-
-    LazyColumn(Modifier.fillMaxSize()) {
-        item {
-            var temp by remember { mutableStateOf(0) }
-
-            LaunchedEffect(Unit) {
-                while (true) {
-                    temp += 1
-                    delay(1000)
-                }
-            }
-
-            UIKitView(
-                factory = {
-                    println("Factory called $temp")
-                    MKMapView()
-                },
-                modifier = Modifier.fillMaxWidth().height(200.dp),
-                update = {
-                    println("MKMapView updated")
-                }
+@Composable
+fun ModalViewContent() {
+    Column {
+        Box(Modifier.fillMaxWidth().weight(1f).background(Color.LightGray)) {
+            Text(
+                text = "Non-scrollable area.\nSwipe down to hide modal view",
+                modifier = Modifier.align(Alignment.Center)
             )
         }
-        item {
-            UIKitViewController(
-                factory = {
-                    BlueViewController()
-                },
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
-                    .onGloballyPositioned { coordinates ->
-                        val rootCoordinates = coordinates.findRootCoordinates()
-                        val box =
-                            rootCoordinates.localBoundingBoxOf(coordinates, clipBounds = false)
-                        updatedValue = box.topLeft
-                    },
-                update = { viewController ->
-                    updatedValue?.let {
-                        viewController.label.text = "${it.x}, ${it.y}"
-                    }
-                },
-                properties = UIKitInteropProperties(
-                    interactionMode = null,
-                    isNativeAccessibilityEnabled = false
-                )
-            )
-        }
-        items(100) { index ->
-            when (index % 5) {
-                0 -> Text("material.Text $index", Modifier.fillMaxSize().height(40.dp))
-                1 -> UIKitView(
-                    factory = {
-                        val label = UILabel(frame = CGRectZero.readValue())
-                        label.text = "UILabel $index"
-                        label.textColor = UIColor.blackColor
-                        label
-                    },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                    properties = UIKitInteropProperties(
-                        interactionMode = null
-                    )
-                )
-
-                2 -> UIKitView(
-                    factory = { TouchReactingView() },
-                    modifier = Modifier.fillMaxWidth().height(40.dp),
-                )
-
-                3 -> TextField(text, onValueChange = { text = it }, Modifier.fillMaxWidth())
-                4 -> ComposeUITextField(
-                    text,
-                    onValueChange = { text = it },
-                    Modifier.fillMaxWidth().height(40.dp)
+                    .background(Color.Gray)
+                    .padding(top = 100.dp)
+                    .height(1000.dp)
+            ) {
+                // TODO: https://youtrack.jetbrains.com/issue/CMP-5707
+                Text(
+                    text = "Scrollable area.\nSwipe down to collapse - does not work yet.",
+                    modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
         }
@@ -216,6 +448,7 @@ val InteropExample = Screen.Example("Interop") {
  * updated text comes as a parameter of the callback
  * @param modifier a [Modifier] for this text field. Size should be specified in modifier.
  */
+@OptIn(BetaInteropApi::class)
 @Composable
 private fun ComposeUITextField(value: String, onValueChange: (String) -> Unit, modifier: Modifier) {
     val latestOnValueChanged by rememberUpdatedState(onValueChange)

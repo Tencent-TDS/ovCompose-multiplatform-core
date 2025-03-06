@@ -38,7 +38,7 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.node.SnapshotInvalidationTracker
 import androidx.compose.ui.platform.GlobalSnapshotManager
-import androidx.compose.ui.platform.PlatformContext
+import androidx.compose.ui.platform.LocalPlatformScreenReader
 import androidx.compose.ui.util.trace
 import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
@@ -53,7 +53,6 @@ import kotlin.coroutines.CoroutineContext
 @OptIn(InternalComposeUiApi::class)
 internal abstract class BaseComposeScene(
     coroutineContext: CoroutineContext,
-    val composeSceneContext: ComposeSceneContext,
     private val invalidate: () -> Unit,
 ) : ComposeScene {
     protected val snapshotInvalidationTracker = SnapshotInvalidationTracker(::updateInvalidations)
@@ -61,6 +60,7 @@ internal abstract class BaseComposeScene(
         ComposeSceneInputHandler(
             prepareForPointerInputEvent = ::doMeasureAndLayout,
             processPointerInputEvent = ::processPointerInputEvent,
+            cancelPointerInput = ::processCancelPointerInput,
             processKeyEvent = ::processKeyEvent
         )
 
@@ -74,6 +74,8 @@ internal abstract class BaseComposeScene(
 
     protected val compositionContext: CompositionContext
         get() = recomposer.compositionContext
+
+    abstract val composeSceneContext: ComposeSceneContext
 
     protected var isClosed = false
         private set
@@ -129,26 +131,30 @@ internal abstract class BaseComposeScene(
 
     override fun hasInvalidations(): Boolean = hasPendingDraws || recomposer.hasPendingWork
 
-    override fun setContent(content: @Composable () -> Unit) = postponeInvalidation("BaseComposeScene:setContent") {
-        check(!isClosed) { "setContent called after ComposeScene is closed" }
-        inputHandler.onChangeContent()
+    override fun setContent(content: @Composable () -> Unit) =
+        postponeInvalidation("BaseComposeScene:setContent") {
+            check(!isClosed) { "setContent called after ComposeScene is closed" }
+            inputHandler.onChangeContent()
 
-        /*
+            /*
          * It's required before setting content to apply changed parameters
          * before first recomposition. Otherwise, it can lead to double recomposition.
          */
-        recomposer.performScheduledRecomposerTasks()
+            recomposer.performScheduledRecomposerTasks()
 
-        composition?.dispose()
-        composition = createComposition {
-            CompositionLocalProvider(
-                LocalComposeScene provides this,
-                content = content
-            )
+            composition?.dispose()
+            composition = createComposition {
+                CompositionLocalProvider(
+                    @Suppress("DEPRECATION")
+                    LocalComposeScene provides this,
+                    LocalComposeSceneContext provides composeSceneContext,
+                    LocalPlatformScreenReader provides composeSceneContext.platformContext.screenReader,
+                    content = content
+                )
+            }
+
+            recomposer.performScheduledRecomposerTasks()
         }
-
-        recomposer.performScheduledRecomposerTasks()
-    }
 
     override fun render(canvas: Canvas, nanoTime: Long) {
         // This is a no-op if the scene is closed, this situation can happen if the scene is
@@ -171,7 +177,7 @@ internal abstract class BaseComposeScene(
 
             // Schedule synthetic events to be sent after `render` completes
             if (inputHandler.needUpdatePointerPosition) {
-                recomposer.scheduleAsEffect(updatePointerPosition)
+                recomposer.scheduleAsEffect { updatePointerPosition() }
             }
 
             // Between layout and draw, Android's Choreographer flushes the main dispatcher.
@@ -201,7 +207,9 @@ internal abstract class BaseComposeScene(
         keyboardModifiers: PointerKeyboardModifiers?,
         nativeEvent: Any?,
         button: PointerButton?
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): PointerEventResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             position = position,
@@ -212,8 +220,9 @@ internal abstract class BaseComposeScene(
             keyboardModifiers = keyboardModifiers,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
     }
 
     // TODO(demin): return Boolean (when it is consumed)
@@ -227,7 +236,9 @@ internal abstract class BaseComposeScene(
         timeMillis: Long,
         nativeEvent: Any?,
         button: PointerButton?,
-    ) = postponeInvalidation("BaseComposeScene:sendPointerEvent") {
+    ): PointerEventResult = postponeInvalidation(
+        "BaseComposeScene:sendPointerEvent"
+    ) {
         inputHandler.onPointerEvent(
             eventType = eventType,
             pointers = pointers,
@@ -237,8 +248,13 @@ internal abstract class BaseComposeScene(
             timeMillis = timeMillis,
             nativeEvent = nativeEvent,
             button = button
-        )
-        recomposer.performScheduledEffects()
+        ).also {
+            recomposer.performScheduledEffects()
+        }
+    }
+
+    override fun cancelPointerInput() {
+        inputHandler.cancelPointerInput()
     }
 
     override fun sendKeyEvent(keyEvent: KeyEvent): Boolean = postponeInvalidation("BaseComposeScene:sendKeyEvent") {
@@ -254,7 +270,9 @@ internal abstract class BaseComposeScene(
 
     protected abstract fun createComposition(content: @Composable () -> Unit): Composition
 
-    protected abstract fun processPointerInputEvent(event: PointerInputEvent)
+    protected abstract fun processPointerInputEvent(event: PointerInputEvent): PointerEventResult
+
+    protected abstract fun processCancelPointerInput()
 
     protected abstract fun processKeyEvent(keyEvent: KeyEvent): Boolean
 
@@ -265,13 +283,6 @@ internal abstract class BaseComposeScene(
 
 internal val BaseComposeScene.semanticsOwnerListener
     get() = composeSceneContext.platformContext.semanticsOwnerListener
-
-// TODO: Remove the cast once there is a way to obtain [PlatformContext] without the scene
-internal val ComposeScene.platformContext: PlatformContext
-    get() {
-        this as BaseComposeScene
-        return composeSceneContext.platformContext
-    }
 
 // TODO: Remove the cast once there is a way to obtain it from [PlatformContext]
 internal val ComposeScene.lastKnownPointerPosition: Offset?

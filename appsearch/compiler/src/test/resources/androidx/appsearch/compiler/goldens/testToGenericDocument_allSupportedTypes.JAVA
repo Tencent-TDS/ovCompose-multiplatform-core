@@ -2,6 +2,7 @@ package com.example.appsearch;
 
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.DocumentClassFactory;
+import androidx.appsearch.app.EmbeddingVector;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.exceptions.AppSearchException;
 import java.lang.Boolean;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.processing.Generated;
 
 @Generated("androidx.appsearch.compiler.AppSearchCompiler")
@@ -59,6 +61,10 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
           .addProperty(new AppSearchSchema.DocumentPropertyConfig.Builder("collectGift", $$__AppSearch__Gift.SCHEMA_NAME)
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_REPEATED)
             .setShouldIndexNestedProperties(false)
+            .build())
+          .addProperty(new AppSearchSchema.EmbeddingPropertyConfig.Builder("collectVec")
+            .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_REPEATED)
+            .setIndexingType(AppSearchSchema.EmbeddingPropertyConfig.INDEXING_TYPE_NONE)
             .build())
           .addProperty(new AppSearchSchema.LongPropertyConfig.Builder("arrBoxLong")
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_REPEATED)
@@ -107,6 +113,10 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_REPEATED)
             .setShouldIndexNestedProperties(false)
             .build())
+          .addProperty(new AppSearchSchema.EmbeddingPropertyConfig.Builder("arrVec")
+            .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_REPEATED)
+            .setIndexingType(AppSearchSchema.EmbeddingPropertyConfig.INDEXING_TYPE_NONE)
+            .build())
           .addProperty(new AppSearchSchema.StringPropertyConfig.Builder("string")
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
             .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_NONE)
@@ -153,6 +163,10 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
           .addProperty(new AppSearchSchema.DocumentPropertyConfig.Builder("gift", $$__AppSearch__Gift.SCHEMA_NAME)
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
             .setShouldIndexNestedProperties(false)
+            .build())
+          .addProperty(new AppSearchSchema.EmbeddingPropertyConfig.Builder("vec")
+            .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+            .setIndexingType(AppSearchSchema.EmbeddingPropertyConfig.INDEXING_TYPE_NONE)
             .build())
           .build();
   }
@@ -235,6 +249,11 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
         collectGiftConv[i++] = GenericDocument.fromDocumentClass(item);
       }
       builder.setPropertyDocument("collectGift", collectGiftConv);
+    }
+    Collection<EmbeddingVector> collectVecCopy = document.collectVec;
+    if (collectVecCopy != null) {
+      EmbeddingVector[] collectVecConv = collectVecCopy.toArray(new EmbeddingVector[0]);
+      builder.setPropertyEmbedding("collectVec", collectVecConv);
     }
     Long[] arrBoxLongCopy = document.arrBoxLong;
     if (arrBoxLongCopy != null) {
@@ -320,6 +339,10 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
       }
       builder.setPropertyDocument("arrGift", arrGiftConv);
     }
+    EmbeddingVector[] arrVecCopy = document.arrVec;
+    if (arrVecCopy != null) {
+      builder.setPropertyEmbedding("arrVec", arrVecCopy);
+    }
     String stringCopy = document.string;
     if (stringCopy != null) {
       builder.setPropertyString("string", stringCopy);
@@ -358,11 +381,16 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
       GenericDocument giftConv = GenericDocument.fromDocumentClass(giftCopy);
       builder.setPropertyDocument("gift", giftConv);
     }
+    EmbeddingVector vecCopy = document.vec;
+    if (vecCopy != null) {
+      builder.setPropertyEmbedding("vec", vecCopy);
+    }
     return builder.build();
   }
 
   @Override
-  public Gift fromGenericDocument(GenericDocument genericDoc) throws AppSearchException {
+  public Gift fromGenericDocument(GenericDocument genericDoc,
+      Map<String, List<String>> documentClassMap) throws AppSearchException {
     String namespaceConv = genericDoc.getNamespace();
     String idConv = genericDoc.getId();
     long[] collectLongCopy = genericDoc.getPropertyLongArray("collectLong");
@@ -423,8 +451,13 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     if (collectGiftCopy != null) {
       collectGiftConv = new ArrayList<>(collectGiftCopy.length);
       for (int i = 0; i < collectGiftCopy.length; i++) {
-        collectGiftConv.add(collectGiftCopy[i].toDocumentClass(Gift.class));
+        collectGiftConv.add(collectGiftCopy[i].toDocumentClass(Gift.class, documentClassMap));
       }
+    }
+    EmbeddingVector[] collectVecCopy = genericDoc.getPropertyEmbeddingArray("collectVec");
+    List<EmbeddingVector> collectVecConv = null;
+    if (collectVecCopy != null) {
+      collectVecConv = Arrays.asList(collectVecCopy);
     }
     long[] arrBoxLongCopy = genericDoc.getPropertyLongArray("arrBoxLong");
     Long[] arrBoxLongConv = null;
@@ -492,9 +525,10 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     if (arrGiftCopy != null) {
       arrGiftConv = new Gift[arrGiftCopy.length];
       for (int i = 0; i < arrGiftCopy.length; i++) {
-        arrGiftConv[i] = arrGiftCopy[i].toDocumentClass(Gift.class);
+        arrGiftConv[i] = arrGiftCopy[i].toDocumentClass(Gift.class, documentClassMap);
       }
     }
+    EmbeddingVector[] arrVecConv = genericDoc.getPropertyEmbeddingArray("arrVec");
     String[] stringCopy = genericDoc.getPropertyStringArray("string");
     String stringConv = null;
     if (stringCopy != null && stringCopy.length != 0) {
@@ -538,7 +572,12 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     GenericDocument giftCopy = genericDoc.getPropertyDocument("gift");
     Gift giftConv = null;
     if (giftCopy != null) {
-      giftConv = giftCopy.toDocumentClass(Gift.class);
+      giftConv = giftCopy.toDocumentClass(Gift.class, documentClassMap);
+    }
+    EmbeddingVector[] vecCopy = genericDoc.getPropertyEmbeddingArray("vec");
+    EmbeddingVector vecConv = null;
+    if (vecCopy != null && vecCopy.length != 0) {
+      vecConv = vecCopy[0];
     }
     Gift document = new Gift();
     document.namespace = namespaceConv;
@@ -551,6 +590,7 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     document.collectByteArr = collectByteArrConv;
     document.collectString = collectStringConv;
     document.collectGift = collectGiftConv;
+    document.collectVec = collectVecConv;
     document.arrBoxLong = arrBoxLongConv;
     document.arrUnboxLong = arrUnboxLongConv;
     document.arrBoxInteger = arrBoxIntegerConv;
@@ -564,6 +604,7 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     document.arrUnboxByteArr = arrUnboxByteArrConv;
     document.arrString = arrStringConv;
     document.arrGift = arrGiftConv;
+    document.arrVec = arrVecConv;
     document.string = stringConv;
     document.boxLong = boxLongConv;
     document.unboxLong = unboxLongConv;
@@ -577,6 +618,7 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     document.unboxBoolean = unboxBooleanConv;
     document.unboxByteArr = unboxByteArrConv;
     document.gift = giftConv;
+    document.vec = vecConv;
     return document;
   }
 }

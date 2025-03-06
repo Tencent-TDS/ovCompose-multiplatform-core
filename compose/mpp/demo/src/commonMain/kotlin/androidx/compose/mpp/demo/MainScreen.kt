@@ -16,6 +16,7 @@
 
 package androidx.compose.mpp.demo
 
+import androidx.compose.mpp.demo.accessibility.AndroidAccessibilityDemos
 import androidx.compose.mpp.demo.bug.BugReproducers
 import androidx.compose.mpp.demo.components.Components
 import androidx.compose.mpp.demo.textfield.android.AndroidTextFieldSamples
@@ -27,14 +28,12 @@ val MainScreen = Screen.Selection(
     BugReproducers,
     Screen.Example("Example1") { Example1() },
     Screen.Example("ImageViewer") { ImageViewer() },
-    Screen.Example("TextDirection") { TextDirection() },
-    Screen.Example("FontFamilies") { FontFamilies() },
     Screen.Example("LottieAnimation") { LottieAnimation() },
     Screen.Fullscreen("ApplicationLayouts") { ApplicationLayouts(it) },
     Screen.Example("GraphicsLayerSettings") { GraphicsLayerSettings() },
     Screen.Example("Blending") { Blending() },
-    Screen.Example("FontRasterization") { FontRasterization() },
     Screen.Example("InteropOrder") { InteropOrder() },
     AndroidTextFieldSamples,
     Screen.Example("Android TextBrushDemo") { TextBrushDemo() },
+    AndroidAccessibilityDemos
 )

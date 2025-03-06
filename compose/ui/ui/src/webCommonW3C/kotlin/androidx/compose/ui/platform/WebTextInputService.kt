@@ -28,16 +28,15 @@ import org.w3c.dom.events.KeyboardEvent
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
     fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
-    fun isVirtualKeyboard(): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
-    private val webImeInputService = WebImeInputService(this)
-    private val webKeyboardInputService = WebKeyboardInputService()
 
-    private fun delegatedService(): PlatformTextInputService {
-        return if (isVirtualKeyboard()) webImeInputService else webKeyboardInputService
-    }
+    private var backingTextArea: BackingTextArea? = null
+        set(value) {
+            field?.dispose()
+            field = value
+        }
 
     override fun startInput(
         value: TextFieldValue,
@@ -45,26 +44,37 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        delegatedService().startInput(value, imeOptions, onEditCommand, onImeActionPerformed)
+        backingTextArea =
+            BackingTextArea(
+                imeOptions = imeOptions,
+                onEditCommand = onEditCommand,
+                onImeActionPerformed = onImeActionPerformed,
+                processKeyboardEvent = this::processKeyboardEvent
+            )
+        backingTextArea?.register()
+
+        showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        delegatedService().stopInput()
+        backingTextArea?.dispose()
     }
 
     override fun showSoftwareKeyboard() {
-        delegatedService().showSoftwareKeyboard()
+        backingTextArea?.focus()
     }
 
     override fun hideSoftwareKeyboard() {
-        delegatedService().hideSoftwareKeyboard()
+        backingTextArea?.blur()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        delegatedService().updateState(oldValue, newValue)
+        backingTextArea?.updateState(newValue)
     }
 
     override fun notifyFocusedRect(rect: Rect) {
-        delegatedService().notifyFocusedRect(rect)
+        super.notifyFocusedRect(rect)
+        backingTextArea?.updateHtmlInputPosition(getOffset(rect))
     }
+
 }

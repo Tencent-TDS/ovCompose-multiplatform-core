@@ -24,7 +24,6 @@ import android.util.Size;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.compat.workaround.OutputSizesCorrector;
 import androidx.camera.core.Logger;
 
@@ -35,7 +34,6 @@ import java.util.Map;
  * Helper for accessing features in {@link StreamConfigurationMap} in a backwards compatible
  * fashion.
  */
-@RequiresApi(21)
 public class StreamConfigurationMapCompat {
     private static final String TAG = "StreamConfigurationMapCompat";
 
@@ -69,6 +67,23 @@ public class StreamConfigurationMapCompat {
             @NonNull StreamConfigurationMap map,
             @NonNull OutputSizesCorrector outputSizesCorrector) {
         return new StreamConfigurationMapCompat(map, outputSizesCorrector);
+    }
+
+
+    /**
+     * Get the image format output formats in this stream configuration.
+     *
+     * <p>All image formats returned by this function will be defined in either ImageFormat or in
+     * PixelFormat.
+     *
+     * @return an array of integer format
+     * @see ImageFormat
+     * @see PixelFormat
+     */
+    @Nullable
+    public int[] getOutputFormats() {
+        int[] result = mImpl.getOutputFormats();
+        return result == null ? null : result.clone();
     }
 
     /**
@@ -167,6 +182,9 @@ public class StreamConfigurationMapCompat {
     }
 
     interface StreamConfigurationMapCompatImpl {
+
+        @Nullable
+        int[] getOutputFormats();
 
         @Nullable
         Size[] getOutputSizes(int format);

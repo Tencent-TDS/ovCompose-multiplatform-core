@@ -28,4 +28,5 @@ internal fun Translations.mn() = mapOf(
     Strings.DefaultErrorMessage to "Буруу оролт",
     Strings.SliderRangeStart to "Мужийн эхлэл",
     Strings.SliderRangeEnd to "Мужийн төгсгөл",
+    Strings.SnackbarPaneTitle to "Сэрэмжлүүлэг",
 )

@@ -18,7 +18,6 @@ package androidx.build
 
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
-import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.attributes.Attribute
 import org.gradle.api.tasks.Copy
@@ -31,8 +30,6 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithSimulatorTests
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.native.DefaultSimulatorTestRun
 import org.jetbrains.kotlin.konan.target.KonanTarget
 import org.tomlj.Toml
@@ -76,14 +73,54 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
         desktopTest.dependsOn(jvmTest)
     }
 
+    val skikoWasm = project.configurations.findByName("skikoWasm")
+        ?: project.configurations.create("skikoWasm")
+
     override fun js(): Unit = multiplatformExtension.run {
         js(KotlinJsCompilerType.IR) {
-            browser()
+            browser {
+                testTask {
+                    it.useKarma {
+                        // We need to set up at least one browser here due to kotlin tooling limitations
+                        // Actual browser configuration is set in mpp/karma.config.d/js/config.js
+                        useChrome()
+                        useConfigDirectory(
+                            project.rootProject.projectDir.resolve("mpp/karma.config.d/js")
+                        )
+                    }
+                }
+            }
         }
 
         val commonMain = sourceSets.getByName("commonMain")
         val jsMain = sourceSets.getByName("jsMain")
         jsMain.dependsOn(commonMain)
+
+        val resourcesDir = project.buildDir.resolve("resources/skiko-js")
+
+        // Below code helps configure the tests for k/wasm targets
+        project.dependencies {
+            skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
+        }
+
+        val fetchSkikoWasmRuntime = project.tasks.register("fetchSkikoJsWasmRuntime", Copy::class.java) {
+            it.destinationDir = project.file(resourcesDir)
+            it.from(skikoWasm.map { artifact ->
+                project.zipTree(artifact)
+                    .matching { pattern ->
+                        pattern.include("skiko.wasm", "skiko.js")
+                    }
+            })
+        }
+
+        project.tasks.getByName("jsTestProcessResources").apply {
+            dependsOn(fetchSkikoWasmRuntime)
+        }
+
+        sourceSets.getByName("jsTest").also {
+            it.resources.setSrcDirs(it.resources.srcDirs)
+            it.resources.srcDirs(fetchSkikoWasmRuntime.map { it.destinationDir })
+        }
     }
 
     internal val Project.isInIdea: Boolean
@@ -91,52 +128,42 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
             return System.getProperty("idea.active")?.toBoolean() == true
         }
 
-    @OptIn(ExperimentalWasmDsl::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     override fun wasm(): Unit = multiplatformExtension.run {
         wasmJs {
             browser {
-                testTask(Action<KotlinJsTest> {
+                testTask {
                     it.useKarma {
+                        // We need to set up at least one browser here due to kotlin tooling limitations
+                        // Actual browser configuration is set in mpp/karma.config.d/wasm/config.js
                         useChrome()
                         useConfigDirectory(
                             project.rootProject.projectDir.resolve("mpp/karma.config.d/wasm")
                         )
                     }
-                })
+                }
             }
         }
 
-        val resourcesDir = "${project.buildDir}/resources"
-        val skikoWasm by project.configurations.creating
+        val resourcesDir = project.buildDir.resolve("resources/skiko-wasm")
 
         // Below code helps configure the tests for k/wasm targets
         project.dependencies {
             skikoWasm("org.jetbrains.skiko:skiko-js-wasm-runtime:${skikoVersion}")
         }
 
-        val unzipTask = project.tasks.register("unzipSkikoForKWasm", Copy::class.java) {
+        val fetchSkikoWasmRuntime = project.tasks.register("fetchSkikoWasmRuntime", Copy::class.java) {
             it.destinationDir = project.file(resourcesDir)
-            it.from(skikoWasm.map { project.zipTree(it) })
-        }
-
-        val loadTestsTask = project.tasks.register("loadTests", Copy::class.java) {
-            it.destinationDir = project.file(resourcesDir)
-            it.from(
-                project.rootProject.projectDir.resolve(
-                    "mpp/load-wasm-tests/load-test-template.mjs"
-                )
-            )
-            it.filter {
-                it.replace("{module-name}", getDashedProjectName())
-            }
+            it.from(skikoWasm.map { artifact ->
+                project.zipTree(artifact)
+                    .matching { pattern ->
+                        pattern.include("skiko.wasm", "skiko.mjs")
+                    }
+            })
         }
 
         project.tasks.getByName("wasmJsTestProcessResources").apply {
-            dependsOn(loadTestsTask)
-        }
-
-        project.tasks.getByName("wasmJsBrowserTest").apply {
-            dependsOn(unzipTask)
+            dependsOn(fetchSkikoWasmRuntime)
         }
 
         val commonMain = sourceSets.getByName("commonMain")
@@ -145,7 +172,7 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
         sourceSets.getByName("wasmJsTest").also {
             it.resources.setSrcDirs(it.resources.srcDirs)
-            it.resources.srcDirs(unzipTask.map { it.destinationDir })
+            it.resources.srcDirs(fetchSkikoWasmRuntime.map { it.destinationDir })
         }
     }
 
@@ -271,22 +298,6 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
     // https://youtrack.jetbrains.com/issue/KT-55751/MPP-Gradle-Consumable-configurations-must-have-unique-attributes
     private val instrumentedTestAttribute = Attribute.of("instrumentedTest", String::class.java)
     private val instrumentedTestCompilationAttribute = Attribute.of("instrumentedTestCompilation", String::class.java)
-
-//    The consumer was configured to find a library for use during 'kotlin-metadata',
-//    preferably optimized for non-jvm, as well as
-//    attribute 'org.jetbrains.kotlin.platform.type'
-//        with value 'native',
-//    attribute 'org.jetbrains.kotlin.native.target'
-//        with value 'ios_simulator_arm64',
-//    attribute 'instrumentedTest'
-//        with value 'Test'.
-//    However we cannot choose between the following variants of project :compose:ui:ui:
-//        - uikitInstrumentedSimArm64ApiElements
-//        - uikitInstrumentedSimArm64MetadataElements
-//        - uikitSimArm64ApiElements
-//        - uikitSimArm64MetadataElements
-
-
     override fun iosInstrumentedTest(): Unit =
         multiplatformExtension.run {
             fun getDeviceName(): String? {

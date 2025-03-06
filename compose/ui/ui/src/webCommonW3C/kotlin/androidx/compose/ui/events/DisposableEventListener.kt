@@ -16,27 +16,28 @@
 
 package androidx.compose.ui.events
 
+import org.w3c.dom.AddEventListenerOptions
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.EventTarget
 
-private fun interface DisposableEventListener {
-    fun dispose()
+private external interface AbortSignal
+private external class AbortController {
+    val signal: AbortSignal
+    fun abort()
 }
 
-private fun EventTarget.addDisposableEvent(eventName: String, handler: (Event) -> Unit): DisposableEventListener {
-    addEventListener(eventName, handler)
-    return DisposableEventListener { removeEventListener(eventName, handler) }
-}
 
-internal class EventTargetListener(private val eventTarget: EventTarget): DisposableEventListener {
-    private val registeredEvents = mutableListOf<DisposableEventListener>()
+private fun withSignal(signal: AbortSignal): AddEventListenerOptions = js("({signal: signal})")
+
+internal class EventTargetListener(private val eventTarget: EventTarget) {
+    private val abortController = AbortController()
 
     fun addDisposableEvent(eventName: String, handler: (Event) -> Unit) {
-        registeredEvents.add(eventTarget.addDisposableEvent(eventName, handler))
+        eventTarget.addEventListener(eventName, handler, withSignal(abortController.signal))
     }
 
-    override fun dispose() {
-        registeredEvents.forEach { evt -> evt.dispose() }
+    fun dispose() {
+        abortController.abort()
     }
 }
 

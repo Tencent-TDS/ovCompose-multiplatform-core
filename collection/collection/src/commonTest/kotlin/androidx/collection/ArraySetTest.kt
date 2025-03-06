@@ -24,9 +24,8 @@ import kotlin.test.assertTrue
 internal class ArraySetTest {
     private val set = ArraySet<String>()
 
-    /**
-     * Check to make sure the same operations behave as expected in a single thread.
-     */
+
+    /** Check to make sure the same operations behave as expected in a single thread. */
     @Test
     fun testNonConcurrentAccesses() {
         repeat(100_000) { i ->

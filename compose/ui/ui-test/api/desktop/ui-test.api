@@ -3,6 +3,8 @@ public final class androidx/compose/ui/test/ActionsKt {
 	public static final fun performCustomAccessibilityActionWithLabel (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun performCustomAccessibilityActionWithLabelMatching (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static synthetic fun performCustomAccessibilityActionWithLabelMatching$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
+	public static final fun performFirstLinkClick (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
+	public static synthetic fun performFirstLinkClick$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun performGesture (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun performKeyInput (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun performMouseInput (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
@@ -18,6 +20,11 @@ public final class androidx/compose/ui/test/ActionsKt {
 	public static final synthetic fun performSemanticsAction (Landroidx/compose/ui/test/SemanticsNodeInteraction;Landroidx/compose/ui/semantics/SemanticsPropertyKey;Lkotlin/jvm/functions/Function1;)V
 	public static final fun performTouchInput (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun requestFocus (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
+	public static final fun tryPerformAccessibilityChecks (Landroidx/compose/ui/test/SemanticsNodeInteractionCollection;)Landroidx/compose/ui/test/SemanticsNodeInteractionCollection;
+}
+
+public final class androidx/compose/ui/test/Actions_skikoKt {
+	public static final fun tryPerformAccessibilityChecks (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 }
 
 public final class androidx/compose/ui/test/Actions_skikoMainKt {
@@ -72,6 +79,8 @@ public final class androidx/compose/ui/test/BoundsAssertionsKt {
 	public static final fun assertWidthIsEqualTo-3ABfNKs (Landroidx/compose/ui/test/SemanticsNodeInteraction;F)Landroidx/compose/ui/test/SemanticsNodeInteraction;
 	public static final fun getAlignmentLinePosition (Landroidx/compose/ui/test/SemanticsNodeInteraction;Landroidx/compose/ui/layout/AlignmentLine;)F
 	public static final fun getBoundsInRoot (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/unit/DpRect;
+	public static final fun getFirstLinkBounds (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;)Landroidx/compose/ui/geometry/Rect;
+	public static synthetic fun getFirstLinkBounds$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Landroidx/compose/ui/geometry/Rect;
 	public static final fun getUnclippedBoundsInRoot (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/unit/DpRect;
 }
 
@@ -82,13 +91,13 @@ public final class androidx/compose/ui/test/ComposeTimeoutException : java/lang/
 
 public abstract interface class androidx/compose/ui/test/ComposeUiTest : androidx/compose/ui/test/SemanticsNodeInteractionsProvider {
 	public abstract fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public abstract fun disableAccessibilityChecks ()V
+	public abstract fun enableAccessibilityChecks ()V
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public abstract fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
-	public abstract fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public abstract fun runOnIdle (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public abstract fun runOnUiThread (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public abstract fun setContent (Lkotlin/jvm/functions/Function2;)V
-	public abstract fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public abstract fun waitForIdle ()V
 	public abstract fun waitUntil (Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 	public static synthetic fun waitUntil$default (Landroidx/compose/ui/test/ComposeUiTest;Ljava/lang/String;JLkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
@@ -110,7 +119,7 @@ public final class androidx/compose/ui/test/ComposeUiTest_desktopKt {
 	public static synthetic fun runDesktopComposeUiTest$default (IILkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 }
 
-public final class androidx/compose/ui/test/ComposeUiTest_skikoMainKt {
+public final class androidx/compose/ui/test/ComposeUiTest_skikoKt {
 	public static final fun defaultTestDispatcher ()Lkotlinx/coroutines/test/TestDispatcher;
 	public static final fun runComposeUiTest (Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun runComposeUiTest$default (Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
@@ -118,6 +127,15 @@ public final class androidx/compose/ui/test/ComposeUiTest_skikoMainKt {
 	public static synthetic fun runInternalSkikoComposeUiTest$default (IILandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public static final fun runSkikoComposeUiTest-Cqks5Fs (JLandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun runSkikoComposeUiTest-Cqks5Fs$default (JLandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
+public final class androidx/compose/ui/test/DesktopComposeUiTest : androidx/compose/ui/test/SkikoComposeUiTest {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;)V
+	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
+	public final fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 }
 
 public abstract interface class androidx/compose/ui/test/DeviceConfigurationOverride {
@@ -477,34 +495,24 @@ public abstract interface class androidx/compose/ui/test/MouseInjectionScope : a
 }
 
 public final class androidx/compose/ui/test/MouseInjectionScopeKt {
-	public static final fun animateAlong (Landroidx/compose/ui/test/MouseInjectionScope;Lkotlin/jvm/functions/Function1;J)V
-	public static synthetic fun animateAlong$default (Landroidx/compose/ui/test/MouseInjectionScope;Lkotlin/jvm/functions/Function1;JILjava/lang/Object;)V
-	public static final fun animateBy-d-4ec7I (Landroidx/compose/ui/test/MouseInjectionScope;JJ)V
-	public static synthetic fun animateBy-d-4ec7I$default (Landroidx/compose/ui/test/MouseInjectionScope;JJILjava/lang/Object;)V
-	public static final fun animateTo-d-4ec7I (Landroidx/compose/ui/test/MouseInjectionScope;JJ)V
-	public static synthetic fun animateTo-d-4ec7I$default (Landroidx/compose/ui/test/MouseInjectionScope;JJILjava/lang/Object;)V
-	public static final synthetic fun click-Uv8p0NA (Landroidx/compose/ui/test/MouseInjectionScope;J)V
-	public static synthetic fun click-Uv8p0NA$default (Landroidx/compose/ui/test/MouseInjectionScope;JILjava/lang/Object;)V
+	public static final fun animateMoveAlong (Landroidx/compose/ui/test/MouseInjectionScope;Lkotlin/jvm/functions/Function1;J)V
+	public static synthetic fun animateMoveAlong$default (Landroidx/compose/ui/test/MouseInjectionScope;Lkotlin/jvm/functions/Function1;JILjava/lang/Object;)V
+	public static final fun animateMoveBy-d-4ec7I (Landroidx/compose/ui/test/MouseInjectionScope;JJ)V
+	public static synthetic fun animateMoveBy-d-4ec7I$default (Landroidx/compose/ui/test/MouseInjectionScope;JJILjava/lang/Object;)V
+	public static final fun animateMoveTo-d-4ec7I (Landroidx/compose/ui/test/MouseInjectionScope;JJ)V
+	public static synthetic fun animateMoveTo-d-4ec7I$default (Landroidx/compose/ui/test/MouseInjectionScope;JJILjava/lang/Object;)V
 	public static final fun click-xhG_qxo (Landroidx/compose/ui/test/MouseInjectionScope;JI)V
 	public static synthetic fun click-xhG_qxo$default (Landroidx/compose/ui/test/MouseInjectionScope;JIILjava/lang/Object;)V
-	public static final synthetic fun doubleClick-Uv8p0NA (Landroidx/compose/ui/test/MouseInjectionScope;J)V
-	public static synthetic fun doubleClick-Uv8p0NA$default (Landroidx/compose/ui/test/MouseInjectionScope;JILjava/lang/Object;)V
 	public static final fun doubleClick-xhG_qxo (Landroidx/compose/ui/test/MouseInjectionScope;JI)V
 	public static synthetic fun doubleClick-xhG_qxo$default (Landroidx/compose/ui/test/MouseInjectionScope;JIILjava/lang/Object;)V
-	public static final synthetic fun dragAndDrop-DUneCvk (Landroidx/compose/ui/test/MouseInjectionScope;JJJ)V
-	public static synthetic fun dragAndDrop-DUneCvk$default (Landroidx/compose/ui/test/MouseInjectionScope;JJJILjava/lang/Object;)V
 	public static final fun dragAndDrop-cI4L0Fs (Landroidx/compose/ui/test/MouseInjectionScope;JJIJ)V
 	public static synthetic fun dragAndDrop-cI4L0Fs$default (Landroidx/compose/ui/test/MouseInjectionScope;JJIJILjava/lang/Object;)V
-	public static final synthetic fun longClick-Uv8p0NA (Landroidx/compose/ui/test/MouseInjectionScope;J)V
-	public static synthetic fun longClick-Uv8p0NA$default (Landroidx/compose/ui/test/MouseInjectionScope;JILjava/lang/Object;)V
 	public static final fun longClick-xhG_qxo (Landroidx/compose/ui/test/MouseInjectionScope;JI)V
 	public static synthetic fun longClick-xhG_qxo$default (Landroidx/compose/ui/test/MouseInjectionScope;JIILjava/lang/Object;)V
 	public static final fun rightClick-Uv8p0NA (Landroidx/compose/ui/test/MouseInjectionScope;J)V
 	public static synthetic fun rightClick-Uv8p0NA$default (Landroidx/compose/ui/test/MouseInjectionScope;JILjava/lang/Object;)V
 	public static final fun smoothScroll-rNbqR-4 (Landroidx/compose/ui/test/MouseInjectionScope;FJI)V
 	public static synthetic fun smoothScroll-rNbqR-4$default (Landroidx/compose/ui/test/MouseInjectionScope;FJIILjava/lang/Object;)V
-	public static final synthetic fun tripleClick-Uv8p0NA (Landroidx/compose/ui/test/MouseInjectionScope;J)V
-	public static synthetic fun tripleClick-Uv8p0NA$default (Landroidx/compose/ui/test/MouseInjectionScope;JILjava/lang/Object;)V
 	public static final fun tripleClick-xhG_qxo (Landroidx/compose/ui/test/MouseInjectionScope;JI)V
 	public static synthetic fun tripleClick-xhG_qxo$default (Landroidx/compose/ui/test/MouseInjectionScope;JIILjava/lang/Object;)V
 }
@@ -637,29 +645,30 @@ public final class androidx/compose/ui/test/SemanticsSelector {
 	public final fun map (Ljava/lang/Iterable;Ljava/lang/String;)Landroidx/compose/ui/test/SelectionResult;
 }
 
-public final class androidx/compose/ui/test/SkikoComposeUiTest : androidx/compose/ui/test/ComposeUiTest {
+public class androidx/compose/ui/test/SkikoComposeUiTest : androidx/compose/ui/test/ComposeUiTest {
 	public static final field $stable I
 	public field scene Landroidx/compose/ui/scene/ComposeScene;
 	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;)V
 	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;)V
 	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	protected fun areAllResourcesIdle ()Z
 	public fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun captureToImage ()Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/semantics/SemanticsNode;)Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/graphics/ImageBitmap;
+	public fun disableAccessibilityChecks ()V
+	public fun enableAccessibilityChecks ()V
 	public fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
 	public final fun getScene ()Landroidx/compose/ui/scene/ComposeScene;
 	public fun onAllNodes (Landroidx/compose/ui/test/SemanticsMatcher;Z)Landroidx/compose/ui/test/SemanticsNodeInteractionCollection;
 	public fun onNode (Landroidx/compose/ui/test/SemanticsMatcher;Z)Landroidx/compose/ui/test/SemanticsNodeInteraction;
-	public fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public fun runOnIdle (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public fun runOnUiThread (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public final fun runTest (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 	public fun setContent (Lkotlin/jvm/functions/Function2;)V
 	public final fun setScene (Landroidx/compose/ui/scene/ComposeScene;)V
-	public fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public fun waitForIdle ()V
 	public fun waitUntil (Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 }
@@ -695,16 +704,6 @@ public final class androidx/compose/ui/test/TestMonotonicFrameClock : androidx/c
 
 public final class androidx/compose/ui/test/TestMonotonicFrameClock_jvmKt {
 	public static final fun getFrameDelayMillis (Landroidx/compose/ui/test/TestMonotonicFrameClock;)J
-}
-
-public abstract interface class androidx/compose/ui/test/TestOwner {
-	public abstract fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
-	public abstract fun getRoots (Z)Ljava/util/Set;
-	public abstract fun runOnUiThread (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
-}
-
-public final class androidx/compose/ui/test/TestOwnerKt {
-	public static final fun createTestContext (Landroidx/compose/ui/test/TestOwner;)Landroidx/compose/ui/test/TestContext;
 }
 
 public final class androidx/compose/ui/test/TextActionsKt {

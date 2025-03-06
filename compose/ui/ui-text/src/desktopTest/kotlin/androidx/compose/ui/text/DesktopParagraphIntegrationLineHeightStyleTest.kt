@@ -964,7 +964,6 @@ class DesktopParagraphIntegrationLineHeightStyleTest {
         text: String = "",
         style: TextStyle? = null,
         maxLines: Int = Int.MAX_VALUE,
-        ellipsis: Boolean = false,
         spanStyles: List<AnnotatedString.Range<SpanStyle>> = listOf(),
         width: Float = Float.MAX_VALUE
     ): Paragraph {
@@ -977,10 +976,9 @@ class DesktopParagraphIntegrationLineHeightStyleTest {
                 lineHeight = lineHeight,
             ).merge(style),
             maxLines = maxLines,
-            ellipsis = ellipsis,
             constraints = Constraints(maxWidth = width.ceilToInt()),
             density = defaultDensity,
-            fontFamilyResolver = fontFamilyResolver
+            fontFamilyResolver = fontFamilyResolver,
         )
     }
 

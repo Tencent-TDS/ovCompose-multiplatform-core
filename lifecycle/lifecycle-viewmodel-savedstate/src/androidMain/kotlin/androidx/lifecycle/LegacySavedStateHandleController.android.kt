@@ -44,9 +44,8 @@ internal object LegacySavedStateHandleController {
         registry: SavedStateRegistry,
         lifecycle: Lifecycle
     ) {
-        val controller = viewModel.getCloseable<SavedStateHandleController>(
-            TAG_SAVED_STATE_HANDLE_CONTROLLER
-        )
+        val controller =
+            viewModel.getCloseable<SavedStateHandleController>(TAG_SAVED_STATE_HANDLE_CONTROLLER)
         if (controller != null && !controller.isAttached) {
             controller.attachToLifecycle(registry, lifecycle)
             tryToAddRecreator(registry, lifecycle)
@@ -55,35 +54,36 @@ internal object LegacySavedStateHandleController {
 
     private fun tryToAddRecreator(registry: SavedStateRegistry, lifecycle: Lifecycle) {
         val currentState = lifecycle.currentState
-        if (currentState === Lifecycle.State.INITIALIZED ||
-            currentState.isAtLeast(Lifecycle.State.STARTED)) {
+        if (
+            currentState === Lifecycle.State.INITIALIZED ||
+                currentState.isAtLeast(Lifecycle.State.STARTED)
+        ) {
             registry.runOnNextRecreation(OnRecreation::class.java)
         } else {
-            lifecycle.addObserver(object : LifecycleEventObserver {
-                override fun onStateChanged(
-                    source: LifecycleOwner,
-                    event: Lifecycle.Event
-                ) {
-                    if (event === Lifecycle.Event.ON_START) {
-                        lifecycle.removeObserver(this)
-                        registry.runOnNextRecreation(OnRecreation::class.java)
+            lifecycle.addObserver(
+                object : LifecycleEventObserver {
+                    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                        if (event === Lifecycle.Event.ON_START) {
+                            lifecycle.removeObserver(this)
+                            registry.runOnNextRecreation(OnRecreation::class.java)
+                        }
                     }
                 }
-            })
+            )
         }
     }
 
     internal class OnRecreation : SavedStateRegistry.AutoRecreated {
         override fun onRecreated(owner: SavedStateRegistryOwner) {
             check(owner is ViewModelStoreOwner) {
-                ("Internal error: OnRecreation should be registered only on components " +
-                    "that implement ViewModelStoreOwner")
+                "Internal error: OnRecreation should be registered only on components " +
+                    "that implement ViewModelStoreOwner. Received owner: $owner"
             }
-            val viewModelStore = (owner as ViewModelStoreOwner).viewModelStore
+            val viewModelStore = owner.viewModelStore
             val savedStateRegistry = owner.savedStateRegistry
             for (key in viewModelStore.keys()) {
-                val viewModel = viewModelStore[key]
-                attachHandleIfNeeded(viewModel!!, savedStateRegistry, owner.lifecycle)
+                val viewModel = viewModelStore[key] ?: continue
+                attachHandleIfNeeded(viewModel, savedStateRegistry, owner.lifecycle)
             }
             if (viewModelStore.keys().isNotEmpty()) {
                 savedStateRegistry.runOnNextRecreation(OnRecreation::class.java)

@@ -62,7 +62,7 @@ class FlushCoroutineDispatcherTest {
         }
 
         assertEquals((0 until 10000).toList(), actualNumbers)
-        assertFalse(dispatcher.hasTasks())
+        assertFalse(dispatcher.hasImmediateTasks())
     }
 
     // Needs JVM APIs to test (and can't test in a single-threaded (JS) environment anyway)
@@ -79,7 +79,7 @@ class FlushCoroutineDispatcherTest {
 
         try {
             jobExchanger.exchange(Unit)  // Wait for the task to run
-            assertTrue(dispatcher.hasTasks(), "hasTasks == false while executing tasks")
+            assertTrue(dispatcher.hasImmediateTasks(), "hasTasks == false while executing tasks")
         } finally {
             // Allow the task to complete, even if `assertTrue` threw an exception
             jobExchanger.exchange(Unit)

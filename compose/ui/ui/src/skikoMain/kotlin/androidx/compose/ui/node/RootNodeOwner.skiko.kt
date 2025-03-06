@@ -16,15 +16,18 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.MutableIntObjectMap
+import androidx.collection.mutableIntObjectMapOf
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusOwner
@@ -34,8 +37,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Canvas
-import androidx.compose.ui.graphics.GraphicsContext
-import androidx.compose.ui.graphics.Matrix
+import androidx.compose.ui.graphics.SkiaGraphicsContext
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.key.Key
@@ -56,23 +58,27 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PositionCalculator
 import androidx.compose.ui.layout.RootMeasurePolicy
 import androidx.compose.ui.modifier.ModifierLocalManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.DefaultAccessibilityManager
 import androidx.compose.ui.platform.DefaultHapticFeedback
 import androidx.compose.ui.platform.DelegatingSoftwareKeyboardController
 import androidx.compose.ui.platform.GraphicsLayerOwnerLayer
+import androidx.compose.ui.platform.OwnedLayerManager
 import androidx.compose.ui.platform.PlatformClipboardManager
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformRootForTest
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
-import androidx.compose.ui.platform.RenderNodeLayer
+import androidx.compose.ui.platform.createPlatformClipboard
+import androidx.compose.ui.platform.setLightingInfo
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.ComposeSceneInputHandler
 import androidx.compose.ui.scene.ComposeScenePointer
-import androidx.compose.ui.semantics.EmptySemanticsElement
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.semantics.EmptySemanticsModifier
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
@@ -89,6 +95,10 @@ import androidx.compose.ui.viewinterop.pointerInteropFilter
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * Owner of root [LayoutNode].
@@ -124,6 +134,9 @@ internal class RootNodeOwner(
     val dragAndDropOwner = DragAndDropOwner(platformContext.dragAndDropManager)
 
     private val rootSemanticsNode = EmptySemanticsModifier()
+    private val snapshotObserver = snapshotInvalidationTracker.snapshotObserver()
+    private val graphicsContext = SkiaGraphicsContext(platformContext.measureDrawLayerBounds)
+    private val coroutineScope = CoroutineScope(coroutineContext + Job(parent = coroutineContext[Job]))
 
     private val rootModifier = EmptySemanticsElement(rootSemanticsNode)
         .focusProperties {
@@ -145,7 +158,7 @@ internal class RootNodeOwner(
             isTraversalGroup = true
         }
     val owner: Owner = OwnerImpl(layoutDirection, coroutineContext)
-    val semanticsOwner = SemanticsOwner(owner.root, rootSemanticsNode)
+    val semanticsOwner get() = owner.semanticsOwner
     var size: IntSize? = size
         set(value) {
             field = value
@@ -162,7 +175,7 @@ internal class RootNodeOwner(
         }
 
     private val rootForTest = PlatformRootForTestImpl()
-    private val snapshotObserver = snapshotInvalidationTracker.snapshotObserver()
+    private val ownedLayerManager = OwnedLayerManagerImpl()
     private val pointerInputEventProcessor = PointerInputEventProcessor(owner.root)
     private val measureAndLayoutDelegate = MeasureAndLayoutDelegate(owner.root)
     private var isDisposed = false
@@ -172,12 +185,21 @@ internal class RootNodeOwner(
         owner.root.attach(owner)
         platformContext.rootForTestListener?.onRootForTestCreated(rootForTest)
         onRootConstrainsChanged(size?.toConstraints())
+        onLightingInfoChanged()
+        coroutineScope.launch {
+            snapshotFlow { platformContext.windowInfo.containerSize }
+                .collect {
+                    onLightingInfoChanged()
+                }
+        }
     }
 
     fun dispose() {
         check(!isDisposed) { "RootNodeOwner is already disposed" }
+        coroutineScope.cancel()
         platformContext.rootForTestListener?.onRootForTestDisposed(rootForTest)
         snapshotObserver.stopObserving()
+        graphicsContext.dispose()
         // we don't need to call root.detach() because root will be garbage collected
         isDisposed = true
     }
@@ -218,13 +240,11 @@ internal class RootNodeOwner(
     fun invalidatePositionInWindow() {
         owner.root.layoutDelegate.measurePassDelegate.notifyChildrenUsingCoordinatesWhilePlacing()
         measureAndLayoutDelegate.dispatchOnPositionedCallbacks(forceDispatch = true)
+        onLightingInfoChanged()
     }
 
     fun draw(canvas: Canvas) = trace("RootNodeOwner:draw") {
-        owner.root.draw(
-            canvas = canvas,
-            graphicsLayer = null // the root node will provide the root graphics layer
-        )
+        ownedLayerManager.draw(canvas)
         clearInvalidObservations()
     }
 
@@ -239,18 +259,31 @@ internal class RootNodeOwner(
         }
     }
 
+    private fun onLightingInfoChanged() {
+        graphicsContext.setLightingInfo(
+            canvasOffset = platformContext.convertLocalToWindowPosition(Offset.Zero),
+            density = density,
+            containerSize = platformContext.windowInfo.containerSize
+        )
+    }
+
+    fun onCancelPointerInput() {
+        pointerInputEventProcessor.processCancel()
+    }
+
     @OptIn(InternalCoreApi::class)
-    fun onPointerInput(event: PointerInputEvent) {
+    fun onPointerInput(event: PointerInputEvent): PointerEventResult {
         if (event.button != null) {
             platformContext.inputModeManager.requestInputMode(InputMode.Touch)
         }
         val isInBounds = event.eventType != PointerEventType.Exit &&
             event.pointers.fastAll { isInBounds(it.position) }
-        pointerInputEventProcessor.process(
+        val result = pointerInputEventProcessor.process(
             event,
             IdentityPositionCalculator,
             isInBounds = isInBounds
         )
+        return PointerEventResult(result.anyMovementConsumed)
     }
 
     fun onKeyEvent(keyEvent: KeyEvent): Boolean {
@@ -275,7 +308,7 @@ internal class RootNodeOwner(
      */
     fun hitTestInteropView(position: Offset): InteropView? {
         val result = HitTestResult()
-        owner.root.hitTest(position, result, true)
+        owner.root.hitTest(position, result, isInLayer = true)
 
         val last = result.lastOrNull() as? BackwardsCompatNode
         val node = last?.element as? InteropPointerInputModifier
@@ -311,15 +344,19 @@ internal class RootNodeOwner(
         }
 
         override val sharedDrawScope = LayoutNodeDrawScope()
+        override val layoutNodes: MutableIntObjectMap<LayoutNode> = mutableIntObjectMapOf()
         override val rootForTest get() = this@RootNodeOwner.rootForTest
         override val hapticFeedBack = DefaultHapticFeedback()
         override val inputModeManager get() = platformContext.inputModeManager
         override val clipboardManager = PlatformClipboardManager()
+        override val clipboard = createPlatformClipboard()
         override val accessibilityManager = DefaultAccessibilityManager()
-        override val graphicsContext: GraphicsContext = GraphicsContext()
+        override val graphicsContext get() = this@RootNodeOwner.graphicsContext
         override val textToolbar get() = platformContext.textToolbar
         override val autofillTree = AutofillTree()
         override val autofill: Autofill?  get() = null
+        // TODO https://youtrack.jetbrains.com/issue/CMP-1572
+        override val autofillManager: AutofillManager? get() = null
         override val density get() = this@RootNodeOwner.density
         override val textInputService =
             TextInputService(platformContext.textInputService)
@@ -332,8 +369,12 @@ internal class RootNodeOwner(
 
         override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
         override val pointerIconService = PointerIconServiceImpl()
+        override val semanticsOwner = SemanticsOwner(root, rootSemanticsNode, layoutNodes)
         override val focusOwner get() = this@RootNodeOwner.focusOwner
         override val windowInfo get() = platformContext.windowInfo
+        // TODO: 1.8.0-alpha02 Implement ComposeUiFlags.isRectTrackingEnabled
+        //  https://youtrack.jetbrains.com/issue/CMP-6715/Support-ComposeUiFlags.isRectTrackingEnabled
+        override val rectManager = RectManager()
 
         @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
         override val fontLoader = androidx.compose.ui.text.platform.FontLoader()
@@ -349,8 +390,23 @@ internal class RootNodeOwner(
         override val measureIteration: Long get() = measureAndLayoutDelegate.measureIteration
 
         override fun requestFocus() = platformContext.requestFocus()
-        override fun onAttach(node: LayoutNode) = Unit
+        override fun requestAutofill(node: LayoutNode) {
+            // TODO: 1.8.0-beta01 Adopt requestAutofill API
+            //  https://youtrack.jetbrains.com/issue/CMP-7485
+        }
+
+        override fun onPreAttach(node: LayoutNode) {
+            layoutNodes[node.semanticsId] = node
+        }
+
+        override fun onPostAttach(node: LayoutNode) {
+        }
+
         override fun onDetach(node: LayoutNode) {
+            val existing = layoutNodes.remove(node.semanticsId)
+            checkNotNull(existing) {
+                "Invalid usage of Owner.onDetach: layoutNode was not previously attached"
+            }
             measureAndLayoutDelegate.onNodeDetached(node)
             snapshotObserver.clear(node)
             needClearObservations = true
@@ -433,45 +489,12 @@ internal class RootNodeOwner(
             drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
             invalidateParentLayer: () -> Unit,
             explicitLayer: GraphicsLayer?,
-        ) = if (explicitLayer != null) {
-                GraphicsLayerOwnerLayer(
-                    graphicsLayer = explicitLayer,
-                    context = null,
-                    drawBlock = drawBlock,
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                )
-            } else {
-                /*
-                TODO: Use GraphicsLayerOwnerLayer instead of RenderNodeLayer
-                GraphicsLayerOwnerLayer(
-                    graphicsLayer = graphicsContext.createGraphicsLayer(),
-                    context = graphicsContext,
-                    drawBlock = drawBlock,
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                )
-                */
-                RenderNodeLayer(
-                    density = Snapshot.withoutReadObservation {
-                        // density is a mutable state that is observed whenever layer is created. the layer
-                        // is updated manually on draw, so not observing the density changes here helps with
-                        // performance in layout.
-                        density
-                    },
-                    measureDrawBounds = platformContext.measureDrawLayerBounds,
-                    invalidateParentLayer = {
-                        invalidateParentLayer()
-                        snapshotInvalidationTracker.requestDraw()
-                    },
-                    drawBlock = drawBlock,
-                    onDestroy = { needClearObservations = true }
-                )
-            }
+            forceUseOldLayers: Boolean // It's added for temporary workaround on Android, no need to support that
+        ) = ownedLayerManager.createLayer(
+            drawBlock = drawBlock,
+            invalidateParentLayer = invalidateParentLayer,
+            explicitLayer = explicitLayer
+        )
 
         override fun onSemanticsChange() {
             platformContext.semanticsOwnerListener?.onSemanticsChange(semanticsOwner)
@@ -482,6 +505,21 @@ internal class RootNodeOwner(
                 semanticsOwner = semanticsOwner,
                 semanticsNodeId = layoutNode.semanticsId
             )
+        }
+
+        override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {
+        }
+
+        override fun onPreLayoutNodeReused(layoutNode: LayoutNode, oldSemanticsId: Int) {
+            // Keep the mapping up to date when the semanticsId changes
+            val existing = layoutNodes.remove(oldSemanticsId)
+            checkNotNull(existing) {
+                "Invalid usage of Owner.onPreLayoutNodeReused: layoutNode is not found"
+            }
+            check(existing == layoutNode) {
+                "Invalid usage of Owner.onPreLayoutNodeReused: previous semanticsId refers another layoutNode"
+            }
+            layoutNodes[layoutNode.semanticsId] = layoutNode
         }
 
         @InternalComposeUiApi
@@ -510,12 +548,13 @@ internal class RootNodeOwner(
         override fun localToScreen(localPosition: Offset): Offset =
             platformContext.convertLocalToScreenPosition(localPosition)
 
-        override fun localToScreen(localTransform: Matrix) {
-            throw UnsupportedOperationException(
-                "Construction of local-to-screen matrix is not supported, " +
-                    "use direct conversion instead"
-            )
-        }
+        // TODO: reverted in https://r.android.com/3208275
+//        override fun localToScreen(localTransform: Matrix) {
+//            throw UnsupportedOperationException(
+//                "Construction of local-to-screen matrix is not supported, " +
+//                    "use direct conversion instead"
+//            )
+//        }
 
         private val endApplyChangesListeners = mutableVectorOf<(() -> Unit)?>()
 
@@ -554,7 +593,7 @@ internal class RootNodeOwner(
         override val density get() = this@RootNodeOwner.density
         @Suppress("OVERRIDE_DEPRECATION")
         override val textInputService get() = owner.textInputService
-        override val semanticsOwner get() = this@RootNodeOwner.semanticsOwner
+        override val semanticsOwner get() = owner.semanticsOwner
         override val visibleBounds: Rect
             get() {
                 val windowRect = platformContext.windowInfo.containerSize.toIntRect().toRect()
@@ -582,17 +621,19 @@ internal class RootNodeOwner(
             keyboardModifiers: PointerKeyboardModifiers?,
             nativeEvent: Any?,
             button: PointerButton?
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            position = position,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            type = type,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                position = position,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                type = type,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests.
@@ -606,16 +647,18 @@ internal class RootNodeOwner(
             timeMillis: Long,
             nativeEvent: Any?,
             button: PointerButton?,
-        ) = inputHandler.onPointerEvent(
-            eventType = eventType,
-            pointers = pointers,
-            buttons = buttons,
-            keyboardModifiers = keyboardModifiers,
-            scrollDelta = scrollDelta,
-            timeMillis = timeMillis,
-            nativeEvent = nativeEvent,
-            button = button
-        )
+        ) {
+            inputHandler.onPointerEvent(
+                eventType = eventType,
+                pointers = pointers,
+                buttons = buttons,
+                keyboardModifiers = keyboardModifiers,
+                scrollDelta = scrollDelta,
+                timeMillis = timeMillis,
+                nativeEvent = nativeEvent,
+                button = button
+            )
+        }
 
         /**
          * Handles the input initiated by tests or accessibility.
@@ -640,6 +683,95 @@ internal class RootNodeOwner(
         override fun setIcon(value: PointerIcon?) {
             desiredPointerIcon = value
             platformContext.setPointerIcon(desiredPointerIcon ?: PointerIcon.Default)
+        }
+
+        // TODO https://youtrack.jetbrains.com/issue/CMP-7145/Properly-adopt-stylus-handwriting-hover-icon
+        override fun getStylusHoverIcon(): PointerIcon? = null
+        override fun setStylusHoverIcon(value: PointerIcon?) {}
+    }
+
+    private inner class OwnedLayerManagerImpl : OwnedLayerManager {
+        // OwnedLayers that are dirty and should be redrawn.
+        private val dirtyLayers = mutableListOf<OwnedLayer>()
+
+        // OwnerLayers that invalidated themselves during their last draw. They will be redrawn
+        // during the next AndroidComposeView dispatchDraw pass.
+        private var postponedDirtyLayers: MutableList<OwnedLayer>? = null
+
+        private var isDrawingContent = false
+
+        override fun createLayer(
+            drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
+            invalidateParentLayer: () -> Unit,
+            explicitLayer: GraphicsLayer?
+        ) = GraphicsLayerOwnerLayer(
+            graphicsLayer = explicitLayer ?: graphicsContext.createGraphicsLayer(),
+            context = if (explicitLayer != null) null else graphicsContext,
+            layerManager = this,
+            drawBlock = drawBlock,
+            invalidateParentLayer = invalidateParentLayer,
+        )
+
+        override fun recycle(layer: OwnedLayer): Boolean {
+            needClearObservations = true
+            dirtyLayers -= layer
+            return false
+        }
+
+        override fun notifyLayerIsDirty(layer: OwnedLayer, isDirty: Boolean) {
+            if (!isDirty) {
+                // It is correct to remove the layer here regardless of this if, but for performance
+                // we are hackily not doing the removal here in order to just do clear() a bit later.
+                if (!isDrawingContent) {
+                    dirtyLayers.remove(layer)
+                    postponedDirtyLayers?.remove(layer)
+                }
+            } else if (!isDrawingContent) {
+                dirtyLayers += layer
+            } else {
+                val postponed =
+                    postponedDirtyLayers
+                        ?: mutableListOf<OwnedLayer>().also { postponedDirtyLayers = it }
+                postponed += layer
+            }
+        }
+
+        override fun invalidate() {
+            snapshotInvalidationTracker.requestDraw()
+        }
+
+        fun draw(canvas: Canvas) {
+            isDrawingContent = true
+
+            // Unlike Android, "draw" forms actual render commands sequence, so updating
+            // display lists after that won't affect current frame result.
+            // So, we applying it before drawing to reflect the changes from previous phases.
+            // Changes that requires another round of invalidation will be scheduled to next frame.
+            if (dirtyLayers.isNotEmpty()) {
+                for (i in 0 until dirtyLayers.size) {
+                    val layer = dirtyLayers[i]
+                    layer.updateDisplayList()
+                }
+            }
+            dirtyLayers.clear()
+
+            // Draw root node
+            owner.root.draw(
+                canvas = canvas,
+                graphicsLayer = null // the root node will provide the root graphics layer
+            )
+
+            // updateDisplayList operations performed above (during root.draw and during the explicit
+            // layer.updateDisplayList() calls) can result in the same layers being invalidated. These
+            // layers have been added to postponedDirtyLayers and will be redrawn during the next
+            // dispatchDraw.
+            if (postponedDirtyLayers != null) {
+                val postponed = postponedDirtyLayers!!
+                dirtyLayers.addAll(postponed)
+                postponed.clear()
+            }
+
+            isDrawingContent = false
         }
     }
 }
@@ -695,5 +827,4 @@ private fun IntSize.toConstraints() = Constraints(maxWidth = width, maxHeight = 
 private object IdentityPositionCalculator: PositionCalculator {
     override fun screenToLocal(positionOnScreen: Offset): Offset = positionOnScreen
     override fun localToScreen(localPosition: Offset): Offset = localPosition
-    override fun localToScreen(localTransform: Matrix) = Unit
 }

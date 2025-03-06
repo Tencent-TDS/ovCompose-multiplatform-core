@@ -27,20 +27,17 @@ import androidx.compose.testutils.LayeredComposeTestCase
 import androidx.compose.testutils.benchmark.ComposeBenchmarkRule
 import androidx.compose.testutils.benchmark.benchmarkToFirstPixel
 import androidx.compose.ui.Modifier
-import androidx.wear.compose.foundation.SwipeToDismissBox
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material.SwipeToDismissBox
 import org.junit.Rule
 import org.junit.Test
 
 class SwipeToDismissBoxBenchmark {
     @OptIn(ExperimentalBenchmarkConfigApi::class)
     @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule(
-        MicrobenchmarkConfig(
-            profiler = ProfilerConfig.MethodTracing()
-        )
-    )
+    val benchmarkRule =
+        ComposeBenchmarkRule(MicrobenchmarkConfig(profiler = ProfilerConfig.MethodTracing()))
 
     @Test
     fun s2dbox_benchmarkToFirstPixel() {
@@ -59,20 +56,12 @@ private class S2DBoxTestCase : LayeredComposeTestCase() {
         val state = rememberSwipeToDismissBoxState()
         SwipeToDismissBox(
             state = state,
-            onDismissed = { },
+            onDismissed = {},
         ) { isBackground ->
             if (isBackground) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colors.onSurface)
-                )
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.onSurface))
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colors.primary)
-                )
+                Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colors.primary))
             }
         }
     }

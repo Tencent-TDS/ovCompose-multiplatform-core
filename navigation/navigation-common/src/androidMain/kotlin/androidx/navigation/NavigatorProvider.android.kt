@@ -24,12 +24,8 @@ import androidx.annotation.CallSuper
 import androidx.annotation.RestrictTo
 import kotlin.reflect.KClass
 
-/**
- * A NavigationProvider stores a set of [Navigator]s that are valid ways to navigate to a
- * destination.
- */
 @SuppressLint("TypeParameterUnusedInFormals")
-public actual open class NavigatorProvider {
+public actual open class NavigatorProvider actual constructor() {
     private val _navigators: MutableMap<String, Navigator<out NavDestination>> = mutableMapOf()
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual val navigators: Map<String, Navigator<out NavDestination>>
@@ -46,19 +42,12 @@ public actual open class NavigatorProvider {
      * @throws IllegalStateException if the Navigator has not been added
      * @see NavigatorProvider.addNavigator
      */
+    @CallSuper
     public fun <T : Navigator<*>> getNavigator(navigatorClass: Class<T>): T {
         val name = getNameForNavigator(navigatorClass)
         return getNavigator(name)
     }
 
-    /**
-     * Retrieves a registered [Navigator] by name.
-     *
-     * @param name name of the navigator to return
-     * @return the registered navigator with the given name
-     * @throws IllegalStateException if the Navigator has not been added
-     * @see NavigatorProvider.addNavigator
-     */
     @Suppress("UNCHECKED_CAST")
     @CallSuper
     public actual open fun <T : Navigator<*>> getNavigator(name: String): T {
@@ -72,31 +61,12 @@ public actual open class NavigatorProvider {
         return navigator as T
     }
 
-    /**
-     * Register a navigator using the name provided by the
-     * [Navigator.Name annotation][Navigator.Name]. [destinations][NavDestination] may refer to any
-     * registered navigator by name for inflation. If a navigator by this name is already
-     * registered, this new navigator will replace it.
-     *
-     * @param navigator navigator to add
-     * @return the previously added Navigator for the name provided by the
-     *   [Navigator.Name annotation][Navigator.Name], if any
-     */
     public actual fun addNavigator(
         navigator: Navigator<out NavDestination>
     ): Navigator<out NavDestination>? {
         return addNavigator(getNameForNavigator(navigator.javaClass), navigator)
     }
 
-    /**
-     * Register a navigator by name. [destinations][NavDestination] may refer to any registered
-     * navigator by name for inflation. If a navigator by this name is already registered, this new
-     * navigator will replace it.
-     *
-     * @param name name for this navigator
-     * @param navigator navigator to add
-     * @return the previously added Navigator for the given name, if any
-     */
     @CallSuper
     public actual open fun addNavigator(
         name: String,
@@ -139,12 +109,6 @@ public actual open class NavigatorProvider {
     }
 }
 
-/**
- * Retrieves a registered [Navigator] using the name provided by the
- * [Navigator.Name annotation][Navigator.Name].
- *
- * @throws IllegalStateException if the Navigator has not been added
- */
 @Suppress("NOTHING_TO_INLINE")
 public actual inline operator fun <T : Navigator<out NavDestination>> NavigatorProvider.get(
     clazz: KClass<T>

@@ -28,4 +28,5 @@ internal fun Translations.hi() = mapOf(
     Strings.DefaultErrorMessage to "अमान्य इनपुट",
     Strings.SliderRangeStart to "रेंज की शुरुआत",
     Strings.SliderRangeEnd to "रेंज की सीमा",
+    Strings.SnackbarPaneTitle to "चेतावनी",
 )

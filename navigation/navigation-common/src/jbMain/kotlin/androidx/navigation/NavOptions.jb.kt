@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package androidx.navigation
 
 import androidx.annotation.RestrictTo
@@ -28,7 +27,6 @@ public actual class NavOptions
 internal constructor(
     private val singleTop: Boolean,
     private val restoreState: Boolean,
-
     /**
      * The destination to pop up to before navigating. When set, all non-matching destinations
      * should be popped from the back stack.
@@ -59,11 +57,11 @@ internal constructor(
         popUpToInclusive: Boolean,
         popUpToSaveState: Boolean,
     ) : this(
-        singleTop = singleTop,
-        restoreState = restoreState,
-        popUpToId = createRoute(popUpToRoute).hashCode(),
-        popUpToInclusive = popUpToInclusive,
-        popUpToSaveState = popUpToSaveState
+        singleTop,
+        restoreState,
+        createRoute(popUpToRoute).hashCode(),
+        popUpToInclusive,
+        popUpToSaveState
     ) {
         this.popUpToRoute = popUpToRoute
     }
@@ -77,11 +75,11 @@ internal constructor(
         popUpToInclusive: Boolean,
         popUpToSaveState: Boolean,
     ) : this(
-        singleTop = singleTop,
-        restoreState = restoreState,
-        popUpToId = popUpToRouteClass!!.serializer().generateHashCode(),
-        popUpToInclusive = popUpToInclusive,
-        popUpToSaveState = popUpToSaveState
+        singleTop,
+        restoreState,
+        popUpToRouteClass!!.serializer().generateHashCode(),
+        popUpToInclusive,
+        popUpToSaveState
     ) {
         this.popUpToRouteClass = popUpToRouteClass
     }
@@ -95,11 +93,11 @@ internal constructor(
         popUpToInclusive: Boolean,
         popUpToSaveState: Boolean,
     ) : this(
-        singleTop = singleTop,
-        restoreState = restoreState,
-        popUpToId = popUpToRouteObject::class.serializer().generateHashCode(),
-        popUpToInclusive = popUpToInclusive,
-        popUpToSaveState = popUpToSaveState
+        singleTop,
+        restoreState,
+        popUpToRouteObject::class.serializer().generateHashCode(),
+        popUpToInclusive,
+        popUpToSaveState
     ) {
         this.popUpToRouteObject = popUpToRouteObject
     }
@@ -145,6 +143,7 @@ internal constructor(
         return result
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun toString(): String {
         val sb = StringBuilder()
         sb.append(this::class.simpleName)
@@ -155,31 +154,34 @@ internal constructor(
         if (restoreState) {
             sb.append("restoreState ")
         }
-        if (popUpToRoute != null || popUpToId != -1) {
-            sb.append("popUpTo(")
+        if (popUpToRoute != null || popUpToId != -1)
             if (popUpToRoute != null) {
-                sb.append(popUpToRoute)
-            } else if (popUpToRouteClass != null) {
-                sb.append(popUpToRouteClass)
-            } else if (popUpToRouteObject != null) {
-                sb.append(popUpToRouteObject)
-            } else {
-                sb.append(NavDestination.getDisplayName(popUpToId))
+                sb.append("popUpTo(")
+                if (popUpToRoute != null) {
+                    sb.append(popUpToRoute)
+                } else if (popUpToRouteClass != null) {
+                    sb.append(popUpToRouteClass)
+                } else if (popUpToRouteObject != null) {
+                    sb.append(popUpToRouteObject)
+                } else {
+                    sb.append("0x")
+                    sb.append(popUpToId.toHexString())
+                }
+                if (popUpToInclusive) {
+                    sb.append(" inclusive")
+                }
+                if (popUpToSaveState) {
+                    sb.append(" saveState")
+                }
+                sb.append(")")
             }
-            if (popUpToInclusive) {
-                sb.append(" inclusive")
-            }
-            if (popUpToSaveState) {
-                sb.append(" saveState")
-            }
-            sb.append(")")
-        }
         return sb.toString()
     }
 
     public actual class Builder {
         private var singleTop = false
         private var restoreState = false
+
         private var popUpToId = -1
         private var popUpToRoute: String? = null
         private var popUpToRouteClass: KClass<*>? = null
@@ -248,15 +250,13 @@ internal constructor(
             return this
         }
 
-        // this restricted public is needed so that the public reified [popUpTo] can call
-        // private popUpToRouteClass setter
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        public actual fun setPopUpTo(
-            klass: KClass<*>,
+        @JvmOverloads
+        public actual fun <T : Any> setPopUpTo(
+            route: KClass<T>,
             inclusive: Boolean,
             saveState: Boolean
         ): Builder {
-            popUpToRouteClass = klass
+            popUpToRouteClass = route
             popUpToId = -1
             popUpToInclusive = inclusive
             popUpToSaveState = saveState

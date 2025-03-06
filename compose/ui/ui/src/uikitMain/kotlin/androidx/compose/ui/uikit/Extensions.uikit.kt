@@ -18,6 +18,14 @@ package androidx.compose.ui.uikit
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
+import kotlin.math.floor
+import kotlin.math.roundToLong
+import kotlinx.cinterop.CValue
+import kotlinx.cinterop.useContents
+import platform.CoreGraphics.CGRect
+import platform.Foundation.NSTimeInterval
 import platform.UIKit.UIColor
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraExtraLarge
 import platform.UIKit.UIContentSizeCategoryAccessibilityExtraExtraLarge
@@ -85,3 +93,14 @@ internal fun Color.toUIColor(): UIColor? =
             alpha = alpha.toDouble(),
         )
     }
+
+internal fun NSTimeInterval.toNanoSeconds(): Long {
+    // The calculation is split in two instead of
+    // `(targetTimestamp * 1e9).toLong()`
+    // to avoid losing precision for fractional part
+    val integral = floor(this)
+    val fractional = this - integral
+    val secondsToNanos = 1_000_000_000L
+    val nanos = integral.roundToLong() * secondsToNanos + (fractional * 1e9).roundToLong()
+    return nanos
+}

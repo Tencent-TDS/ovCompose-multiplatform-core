@@ -18,7 +18,6 @@ package androidx.viewpager2.widget
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import androidx.test.filters.SdkSuppress
 import androidx.testutils.LocaleTestUtils
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_HORIZONTAL
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_VERTICAL
@@ -28,9 +27,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Tests [ViewPager2.canScrollHorizontally] and [ViewPager2.canScrollVertically]
- */
+/** Tests [ViewPager2.canScrollHorizontally] and [ViewPager2.canScrollVertically] */
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class CanScrollTest : BaseTest() {
@@ -66,9 +63,7 @@ class CanScrollTest : BaseTest() {
             assertScrollLeftRight()
 
             // when stop peeking and go to last page
-            runOnUiThreadSync {
-                viewPager.endFakeDrag()
-            }
+            runOnUiThreadSync { viewPager.endFakeDrag() }
             viewPager.setCurrentItemSync(1, false, 2, SECONDS)
 
             // then can scroll left
@@ -77,7 +72,6 @@ class CanScrollTest : BaseTest() {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 17)
     fun test_canScrollHorizontallyVertically_horizontal_rtl() {
         // given RTL locale
         localeUtil.resetLocale()
@@ -111,9 +105,7 @@ class CanScrollTest : BaseTest() {
             assertScrollLeftRight()
 
             // when stop peeking and go to last page
-            runOnUiThreadSync {
-                viewPager.endFakeDrag()
-            }
+            runOnUiThreadSync { viewPager.endFakeDrag() }
             viewPager.setCurrentItemSync(1, false, 2, SECONDS)
 
             // then can scroll right
@@ -153,9 +145,7 @@ class CanScrollTest : BaseTest() {
             assertScrollUpDown()
 
             // when stop peeking and go to last page
-            runOnUiThreadSync {
-                viewPager.endFakeDrag()
-            }
+            runOnUiThreadSync { viewPager.endFakeDrag() }
             viewPager.setCurrentItemSync(1, false, 2, SECONDS)
 
             // then can scroll up
@@ -164,11 +154,17 @@ class CanScrollTest : BaseTest() {
     }
 
     private fun Context.assertScrollNone() = verifyCanScroll(false, false, false, false)
+
     private fun Context.assertScrollRight() = verifyCanScroll(true, false, false, false)
+
     private fun Context.assertScrollLeft() = verifyCanScroll(false, true, false, false)
+
     private fun Context.assertScrollLeftRight() = verifyCanScroll(true, true, false, false)
+
     private fun Context.assertScrollDown() = verifyCanScroll(false, false, true, false)
+
     private fun Context.assertScrollUp() = verifyCanScroll(false, false, false, true)
+
     private fun Context.assertScrollUpDown() = verifyCanScroll(false, false, true, true)
 
     private fun Context.verifyCanScroll(

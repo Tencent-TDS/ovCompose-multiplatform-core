@@ -69,7 +69,7 @@ public class DialogNavigatorDestinationBuilder :
     public constructor(
         navigator: DialogNavigator,
         route: KClass<*>,
-        typeMap: Map<KType, NavType<*>>,
+        typeMap: Map<KType, @JvmSuppressWildcards NavType<*>>,
         dialogProperties: DialogProperties,
         content: @Composable (NavBackStackEntry) -> Unit
     ) : super(navigator, route, typeMap) {

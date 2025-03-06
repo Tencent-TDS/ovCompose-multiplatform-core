@@ -7,6 +7,35 @@ change is uploaded. It also contains a number of sample applications that are
 useful for demonstrating how to use features as well as performing manual
 testing.
 
+## Motivation
+
+Jetpack libraries are developed with the intention that they are functionally
+stable and production-ready as of the first public `alpha01` release, and that
+they remain production-ready at tip-of-tree thereafter.
+
+For this reason, we emphasize that continuous integration testing -- both pre-
+and post-submit -- is the ultimate source of truth for library correctness. If
+tests are failing at head, the library is not only at risk of blocking public
+releases but at risk of breaking production Google apps that rely on its
+tip-of-tree builds.
+
+### API level coverage in CI
+
+Generally, we aim to test Jetpack libraries against (1) the earliest supported
+API level, (2) the latest stable API level, (3) API levels with major changes,
+(4) API levels with high concentration of devices in the field, and (5) the next
+pre-release API level.
+
+In practice, this is limited by device and emulator availability and
+reliability. As of November 2023, we run tests on the following API levels:
+
+-   API level 21: the lowest API level supported by Firebase Test Lab (FTL)
+-   API level 26: the lowest supported ARM-based emulator FTL runner, which has
+    much greater performance and stability
+-   API level 28: provides coverage between 26 and 30
+-   API levels 30, 31, 33: the latest supported API levels, which represent the
+    majority of devices in the field
+
 ## Adding tests {#adding}
 
 For an example of how to set up simple unit and integration tests in a new
@@ -30,15 +59,7 @@ be distinguishable by their packages.
 
 NOTE For best practices on writing libraries in a way that makes it easy for end
 users -- and library developers -- to write tests, see the
-[Testability](/company/teams/androidx/testability.md) guide.
-
-### Adding a JVM based screenshot test
-
-For UI heavy libraries, it might make sense to add screenshot tests to verify
-that everything still renders as expected. For that you need to write the test
-([example](https://r.android.com/2428035)) and add new goldens
-([example](https://r.android.com/2428721)). You can run these tests just like
-any other JVM test using `test` Gradle task.
+[Testability](/docs/testability.md) guide.
 
 ### Adding screenshots tests using scuba library
 
@@ -144,16 +165,22 @@ Step 1: Click on the “Test” button below:
 Step 2: Click on the “Update scuba goldens” below:
 ![alt_text](onboarding_images/image8.png "Update scuba button")
 
-Step 3: You should see a dashboard similar to the example below. Check-out if
-the new screenshots look as expected and if yes click approve. This will create
-a new CL.
+Step 3: Select the tests for which you want to update the golden images. Confirm
+the images look correct and click on “Approve Changes”
 ![alt_text](onboarding_images/image9.png "Button to approve scuba changes")
 
-Step 4: Link your original CL with the new goldens CL by setting the same Topic
+Step 4: In the Approve changes dialog box, enter the following details and click
+on Approve: \
+Select gerrit host as shown in image below \
+Repo: platform/frameworks/support-golden \
+Branch: androidx-main
+![alt_text](onboarding_images/image10.png "Approve changes dialog box with dropdown field to select gerrit host and textboxes to select repo and branch")
+
+Step 5: Link your original CL with the new goldens CL by setting the same Topic
 field in both CLs (any arbitrary string will do). This tells Gerrit to submit
 the CLs together, effectively providing a reference from the original CL to the
 new goldens. And re-run presubmit. Your tests should now pass!
-![alt_text](onboarding_images/image10.png "Topic for connecting cls")
+![alt_text](onboarding_images/image11.png "Topic for connecting cls, so they can run together")
 
 #### Running manually / debugging
 
@@ -429,7 +456,7 @@ their library's public API surface. Test apps serve multiple purposes:
 *   Validation of API usability and developer experience, when paired with a use
     case or critical user journey
 *   Sample documentation, when embedded into API reference docs using the
-    [`@sample` and `@Sampled` annotations](/company/teams/androidx/api_guidelines/index.md#sample-usage)
+    [`@sample` and `@Sampled` annotations](/docs/api_guidelines/index.md#sample-usage)
 
 ### Legacy test apps {#testapps-legacy}
 
@@ -447,4 +474,4 @@ apps for new APIs, but they may be useful for manual regression testing.
 
 AndroidX supports benchmarking - locally with Studio/Gradle, and continuously in
 post-submit. For more information on how to create and run benchmarks, see
-[Benchmarking](/company/teams/androidx/benchmarking.md).
+[Benchmarking](/docs/benchmarking.md).

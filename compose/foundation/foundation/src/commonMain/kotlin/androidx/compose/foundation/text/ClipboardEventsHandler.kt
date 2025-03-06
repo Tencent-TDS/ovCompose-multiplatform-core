@@ -18,6 +18,7 @@ package androidx.compose.foundation.text
 
 import androidx.compose.runtime.Composable
 
+// TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
 @Composable
 internal expect inline fun rememberClipboardEventsHandler(
     crossinline onPaste: (String) -> Unit = {},

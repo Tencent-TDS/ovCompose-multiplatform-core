@@ -220,6 +220,9 @@ public abstract class CarAppService extends Service {
             synchronized (mBinders) {
                 CarAppBinder binder = mBinders.remove(sessionInfo);
                 if (binder != null) {
+                    // We call onDestroyLifecycle() instead of destroy() here because Service
+                    // caches the binder returned by onBind() for a given Intent meaning this
+                    // binder might be reused on a future onBind() call.
                     binder.onDestroyLifecycle();
                 }
             }
@@ -315,7 +318,7 @@ public abstract class CarAppService extends Service {
     public final void dump(@NonNull FileDescriptor fd, @NonNull PrintWriter writer,
             @Nullable String[] args) {
         super.dump(fd, writer, args);
-
+        if (args == null) return;
         for (String arg : args) {
             if (AUTO_DRIVE.equals(arg)) {
                 runOnMain(() -> {

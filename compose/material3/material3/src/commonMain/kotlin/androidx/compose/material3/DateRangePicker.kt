@@ -262,16 +262,20 @@ fun rememberDateRangePickerState(
 ): DateRangePickerState {
     val locale = defaultLocale()
     return rememberSaveable(saver = DateRangePickerStateImpl.Saver(selectableDates, locale)) {
-        DateRangePickerStateImpl(
-            initialSelectedStartDateMillis = initialSelectedStartDateMillis,
-            initialSelectedEndDateMillis = initialSelectedEndDateMillis,
-            initialDisplayedMonthMillis = initialDisplayedMonthMillis,
-            yearRange = yearRange,
-            initialDisplayMode = initialDisplayMode,
-            selectableDates = selectableDates,
-            locale = locale
-        )
-    }
+            DateRangePickerStateImpl(
+                initialSelectedStartDateMillis = initialSelectedStartDateMillis,
+                initialSelectedEndDateMillis = initialSelectedEndDateMillis,
+                initialDisplayedMonthMillis = initialDisplayedMonthMillis,
+                yearRange = yearRange,
+                initialDisplayMode = initialDisplayMode,
+                selectableDates = selectableDates,
+                locale = locale
+            )
+        }
+        .apply {
+            // Update the state's selectable dates if they were changed.
+            this.selectableDates = selectableDates
+        }
 }
 
 /**
@@ -715,8 +719,18 @@ private fun DateRangePickerContent(
     colors: DatePickerColors
 ) {
     val displayedMonth = calendarModel.getMonth(displayedMonthMillis)
-    val monthsListState =
-        rememberLazyListState(initialFirstVisibleItemIndex = displayedMonth.indexIn(yearRange))
+    val monthIndex = displayedMonth.indexIn(yearRange).coerceAtLeast(0)
+    val monthsListState = rememberLazyListState(initialFirstVisibleItemIndex = monthIndex)
+
+    // Scroll to the resolved displayedMonth, if needed.
+    LaunchedEffect(monthIndex) {
+        // Unlike the DatePicker, we don't have to check here for isScrollInProgress and scroll
+        // to the monthIndex even when there is a current scroll operation.
+        if (monthsListState.firstVisibleItemIndex != monthIndex) {
+            monthsListState.scrollToItem(monthIndex)
+        }
+    }
+
     Column(modifier = Modifier.padding(horizontal = DatePickerHorizontalPadding)) {
         WeekDays(colors, calendarModel)
         VerticalMonthsList(

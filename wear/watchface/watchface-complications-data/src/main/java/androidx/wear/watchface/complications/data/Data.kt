@@ -91,11 +91,30 @@ public annotation class ComplicationDisplayPolicy
 /**
  * Base type for all different types of [ComplicationData] types.
  *
- * Please note to aid unit testing of ComplicationDataSourceServices, [equals], [hashCode] and
- * [toString] have been overridden for all the types of ComplicationData, however due to the
- * embedded [Icon] class we have to fall back to reference equality and hashing below API 28 and
- * also for the [Icon]s that don't use either a resource or a uri (these should be rare but they can
- * exist).
+ * Please note to aid unit testing of
+ * [androidx.wear.watchface.complications.datasource.ComplicationDataSourceService], [equals],
+ * [hashCode] and [toString] have been overridden for all the types of ComplicationData, however due
+ * to the embedded [Icon] class we have to fall back to reference equality and hashing below API 28
+ * and also for the [Icon]s that don't use either a resource or a uri (these should be rare but they
+ * can exist).
+ *
+ * ## Evaluation
+ *
+ * Some dynamic fields may be evaluated by the platform, and refresh more often than the
+ * [androidx.wear.watchface.complications.datasource.ComplicationDataSourceService] provides them.
+ * There are interesting use cases that the user of these dynamic fields must consider:
+ * * The [ComplicationData] can be "invalidated" when the dynamic field cannot be evaluated, e.g.
+ *   when a data source is not available.
+ *
+ *   When this happens, the [dynamicValueInvalidationFallback] field is used instead of this
+ *   [ComplicationData], provided as a [NoDataComplicationData.placeholder].
+ * * If an incompatible platform doesn't recognize the dynamic field, the dynamic field's fallback
+ *   companion field will be used instead. An example field is
+ *   [DynamicComplicationText.fallbackValue].
+ *
+ *   Although the dynamic field APIs are annotated with [RequiresApi], this does not ensure the
+ *   platform will support the dynamic field at that API level. However, the platform _definitely
+ *   doesn't_ support the dynamic field below that API level.
  *
  * @property type The [ComplicationType] of this complication data.
  * @property tapAction The [PendingIntent] to send when the complication is tapped on.
@@ -105,10 +124,10 @@ public annotation class ComplicationDisplayPolicy
  * @property dataSource The [ComponentName] of the
  *   [androidx.wear.watchface.complications.datasource.ComplicationDataSourceService] that provided
  *   the ComplicationData. This may be `null` when run on old systems.
- * @property persistencePolicy The [ComplicationPersistencePolicy] for this complication. This
- *   requires the watchface to be built with a compatible library to work.
- * @property displayPolicy The [ComplicationDisplayPolicy] for this complication. This requires the
- *   watchface to be built with a compatible library to work.
+ * @property persistencePolicy The [persistence policy][ComplicationPersistencePolicies] for this
+ *   complication. This requires the watchface to be built with a compatible library to work.
+ * @property displayPolicy The [display policy][ComplicationDisplayPolicies] for this complication.
+ *   This requires the watchface to be built with a compatible library to work.
  * @property dynamicValueInvalidationFallback Used in case any dynamic value has been invalidated.
  *
  *   IMPORTANT: This is only used when the system supports dynamic values. See each dynamic field's
@@ -236,7 +255,7 @@ constructor(
             return this as BuilderT
         }
 
-        /** Sets the complication's [ComplicationPersistencePolicy]. */
+        /** Sets the complication's [persistence policy][ComplicationPersistencePolicies]. */
         @Suppress("UNCHECKED_CAST", "SetterReturnsThis")
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         public fun setPersistencePolicy(
@@ -246,7 +265,7 @@ constructor(
             return this as BuilderT
         }
 
-        /** Sets the complication's [ComplicationDisplayPolicy]. */
+        /** Sets the complication's [display policy][ComplicationDisplayPolicies]. */
         @Suppress("UNCHECKED_CAST", "SetterReturnsThis")
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         public fun setDisplayPolicy(@ComplicationDisplayPolicy displayPolicy: Int): BuilderT {
@@ -290,32 +309,37 @@ constructor(
  *   ComplicationData that would have otherwise been sent. The placeholder is expected to be
  *   rendered if the watch face has been built with a compatible library, older libraries which
  *   don't support placeholders will ignore this field.
+ * @property invalidatedData An optional value that describes the original [ComplicationData] that
+ *   was provided by the data source, following invalidation (see evaluation description in
+ *   [ComplicationData]). This is set by the system for privileged watch faces with the
+ *   `com.google.wear.permission.GET_COMPLICATION_DYNAMIC_VALUE` permission.
  */
 public class NoDataComplicationData
 internal constructor(
     public val placeholder: ComplicationData?,
-    cachedWireComplicationData: WireComplicationData?
+    public val invalidatedData: ComplicationData?,
+    cachedWireComplicationData: WireComplicationData?,
 ) :
     ComplicationData(
         TYPE,
         placeholder?.tapAction,
         cachedWireComplicationData,
         dataSource = null,
-        persistencePolicy = placeholder?.persistencePolicy
-                ?: ComplicationPersistencePolicies.CACHING_ALLOWED,
+        persistencePolicy =
+            placeholder?.persistencePolicy ?: ComplicationPersistencePolicies.CACHING_ALLOWED,
         displayPolicy = placeholder?.displayPolicy ?: ComplicationDisplayPolicies.ALWAYS_DISPLAY,
         dynamicValueInvalidationFallback = placeholder,
     ) {
 
     /** Constructs a NoDataComplicationData without a [placeholder]. */
-    constructor() : this(null, null)
+    constructor() : this(null, null, null)
 
     /**
      * Constructs a NoDataComplicationData with a [placeholder] [ComplicationData] which is allowed
      * to contain placeholder fields (see [hasPlaceholderFields]) which must be drawn to look like
      * placeholders. E.g. with grey boxes / arcs.
      */
-    constructor(placeholder: ComplicationData) : this(placeholder, null)
+    constructor(placeholder: ComplicationData) : this(placeholder, null, null)
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun getContentDescription(context: Context): TimeDependentText? =
@@ -336,6 +360,19 @@ internal constructor(
             is WeightedElementsComplicationData -> placeholder.contentDescription
             else -> null
         }
+
+    override fun fillWireComplicationDataBuilder(
+        builder: android.support.wearable.complications.ComplicationData.Builder
+    ) {
+        super.fillWireComplicationDataBuilder(builder)
+        if (invalidatedData == null) {
+            builder.setInvalidatedData(null)
+        } else {
+            val invalidatedDataBuilder = invalidatedData.createWireComplicationDataBuilder()
+            invalidatedData.fillWireComplicationDataBuilder(invalidatedDataBuilder)
+            builder.setInvalidatedData(invalidatedDataBuilder.build())
+        }
+    }
 
     override fun toString(): String {
         return "NoDataComplicationData(" +
@@ -496,6 +533,7 @@ internal constructor(
      *   do not have textual representation this attribute can be used for providing such. Please do
      *   not include the word 'complication' in the description.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         private val text: ComplicationText,
         private val contentDescription: ComplicationText
@@ -680,6 +718,7 @@ internal constructor(
      *   do not have textual representation this attribute can be used for providing such. Please do
      *   not include the word 'complication' in the description.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         private val text: ComplicationText,
         private val contentDescription: ComplicationText
@@ -965,6 +1004,7 @@ internal constructor(
      * [value] or [dynamicValue], and at least one of [monochromaticImage], [smallImage], [text] or
      * [title].
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public constructor(
@@ -1001,12 +1041,15 @@ internal constructor(
          *   into a value dynamically, and should be in the range [[min]] .. [[max]]. The semantic
          *   meaning of value can be specified via [setValueType].
          * @param fallbackValue The fallback value of the ranged complication used on systems that
-         *   don't support dynamic values, which should be in the range [[min]] .. [[max]]. The
+         *   don't support [dynamicValue], which should be in the range [[min]] .. [[max]]. The
          *   semantic meaning of value can be specified via [setValueType].
          *
-         *   IMPORTANT: This is only used when the system does not support dynamic values _at all_.
-         *   See [setDynamicValueInvalidationFallback] for the situation where the dynamic value
-         *   cannot be evaluated, e.g. when a data source is not available.
+         *   This is only relevant before [Build.VERSION_CODES.UPSIDE_DOWN_CAKE], use the
+         *   no-fallback constructor if you target an equal or higher API level.
+         *
+         *   IMPORTANT: This is only used when the system does not support [dynamicValue] _at all_.
+         *   See [setDynamicValueInvalidationFallback] for the situation where [dynamicValue] cannot
+         *   be evaluated, e.g. when a data source is not available.
          *
          * @param min The minimum value. For [TYPE_PERCENTAGE] this must be 0f.
          * @param max The maximum value. This must be less than [Float.MAX_VALUE]. For
@@ -1023,7 +1066,30 @@ internal constructor(
             min: Float,
             max: Float,
             contentDescription: ComplicationText
-        ) : this(fallbackValue, dynamicValue, min, max, contentDescription)
+        ) : this(value = fallbackValue, dynamicValue, min = min, max = max, contentDescription)
+
+        /**
+         * Creates a [Builder] for a [RangedValueComplicationData] with a [DynamicFloat] value, and
+         * no `fallbackValue` for API levels known to support dynamic values.
+         *
+         * @param dynamicValue The [DynamicFloat] of the ranged complication which will be evaluated
+         *   into a value dynamically, and should be in the range [[min]] .. [[max]]. The semantic
+         *   meaning of value can be specified via [setValueType].
+         * @param min The minimum value. For [TYPE_PERCENTAGE] this must be 0f.
+         * @param max The maximum value. This must be less than [Float.MAX_VALUE]. For
+         *   [TYPE_PERCENTAGE] this must be 0f.
+         * @param contentDescription Defines localized text that briefly describes content of the
+         *   complication. This property is used primarily for accessibility. Since some
+         *   complications do not have textual representation this attribute can be used for
+         *   providing such. Please do not include the word 'complication' in the description.
+         */
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        public constructor(
+            dynamicValue: DynamicFloat,
+            min: Float,
+            max: Float,
+            contentDescription: ComplicationText
+        ) : this(value = min, dynamicValue, min = min, max = max, contentDescription)
 
         private var tapAction: PendingIntent? = null
         private var validTimeRange: TimeRange? = null
@@ -1128,7 +1194,7 @@ internal constructor(
     override fun getContentDescription(context: Context): TimeDependentText? =
         _contentDescription?.emptyToNull()?.toWireComplicationText()
             ?: ComplicationTextTemplate.Builder().addTextAndTitle(text, title).buildOrNull()
-                ?: WireComplicationText(context.getString(R.string.a11y_template_range, value, max))
+            ?: WireComplicationText(context.getString(R.string.a11y_template_range, value, max))
 
     /** The content description field for accessibility. */
     val contentDescription: ComplicationText? = _contentDescription ?: ComplicationText.EMPTY
@@ -1322,6 +1388,7 @@ internal constructor(
      * or [dynamicValue], and at least one of [monochromaticImage], [smallImage], [text] or [title].
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public constructor(
@@ -1352,10 +1419,13 @@ internal constructor(
          * @param dynamicValue The [DynamicFloat] of the goal complication which will be evaluated
          *   into a value dynamically, and should be >= 0.
          * @param fallbackValue The fallback value of the goal complication which will be used on
-         *   systems that don't support dynamic values, and should be >= 0.
+         *   systems that don't support [dynamicValue], and should be >= 0.
          *
-         *   IMPORTANT: This is only used when the system does not support dynamic values _at all_.
-         *   See [setDynamicValueInvalidationFallback] for the situation where the dynamic value
+         *   This is only relevant before [Build.VERSION_CODES.UPSIDE_DOWN_CAKE], use the
+         *   no-fallback constructor if you target an equal or higher API level.
+         *
+         *   IMPORTANT: This is only used when the system does not support [dynamicValue] _at all_.
+         *   See [setDynamicValueInvalidationFallback] for the situation where the [dynamicValue]
          *   cannot be evaluated, e.g. when a data source is not available.
          *
          * @param targetValue The target value. This must be less than [Float.MAX_VALUE].
@@ -1370,7 +1440,26 @@ internal constructor(
             fallbackValue: Float,
             targetValue: Float,
             contentDescription: ComplicationText
-        ) : this(fallbackValue, dynamicValue, targetValue, contentDescription)
+        ) : this(value = fallbackValue, dynamicValue, targetValue = targetValue, contentDescription)
+
+        /**
+         * Creates a [Builder] for a [RangedValueComplicationData] with a [DynamicFloat] value, and
+         * no `fallbackValue` for API levels known to support dynamic values.
+         *
+         * @param dynamicValue The [DynamicFloat] of the goal complication which will be evaluated
+         *   into a value dynamically, and should be >= 0.
+         * @param targetValue The target value. This must be less than [Float.MAX_VALUE].
+         * @param contentDescription Defines localized text that briefly describes content of the
+         *   complication. This property is used primarily for accessibility. Since some
+         *   complications do not have textual representation this attribute can be used for
+         *   providing such. Please do not include the word 'complication' in the description.
+         */
+        @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        public constructor(
+            dynamicValue: DynamicFloat,
+            targetValue: Float,
+            contentDescription: ComplicationText
+        ) : this(value = 0f, dynamicValue, targetValue = targetValue, contentDescription)
 
         private var tapAction: PendingIntent? = null
         private var validTimeRange: TimeRange? = null
@@ -1460,7 +1549,7 @@ internal constructor(
     override fun getContentDescription(context: Context): TimeDependentText? =
         _contentDescription?.emptyToNull()?.toWireComplicationText()
             ?: ComplicationTextTemplate.Builder().addTextAndTitle(text, title).buildOrNull()
-                ?: WireComplicationText(
+            ?: WireComplicationText(
                 context.getString(R.string.a11y_template_range, value, targetValue)
             )
 
@@ -1620,6 +1709,7 @@ internal constructor(
             element.validate()
         }
     }
+
     /**
      * Describes a single value within a [WeightedElementsComplicationData].
      *
@@ -1680,6 +1770,7 @@ internal constructor(
      *   not include the word 'complication' in the description.
      */
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         elements: List<Element>,
         private val contentDescription: ComplicationText
@@ -1896,6 +1987,7 @@ internal constructor(
      *   content description is provided, a generic content description will be used instead. Please
      *   do not include the word 'complication' in the description.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         private val monochromaticImage: MonochromaticImage,
         private val contentDescription: ComplicationText
@@ -2013,6 +2105,7 @@ internal constructor(
      *   content description is provided, a generic content description will be used instead. Please
      *   do not include the word 'complication' in the description.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         private val smallImage: SmallImage,
         private val contentDescription: ComplicationText
@@ -2135,6 +2228,7 @@ internal constructor(
      *   content description is provided, a generic content description will be used instead. Please
      *   do not include the word 'complication' in the description.
      */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder(
         private val photoImage: Icon,
         private val contentDescription: ComplicationText
@@ -2260,6 +2354,7 @@ internal constructor(
         dynamicValueInvalidationFallback = null,
     ) {
     /** Builder for [NoPermissionComplicationData]. */
+    @SuppressWarnings("HiddenSuperclass")
     public class Builder : BaseBuilder<Builder, NoPermissionComplicationData>() {
         private var text: ComplicationText? = null
         private var title: ComplicationText? = null
@@ -2361,6 +2456,7 @@ private fun WireComplicationData.toApiComplicationData(
             NoDataComplicationData.TYPE.toWireComplicationType() ->
                 NoDataComplicationData(
                     placeholder = placeholder?.toPlaceholderComplicationData(),
+                    invalidatedData = invalidatedData?.toApiComplicationData(),
                     cachedWireComplicationData = this,
                 )
             EmptyComplicationData.TYPE.toWireComplicationType() -> EmptyComplicationData()

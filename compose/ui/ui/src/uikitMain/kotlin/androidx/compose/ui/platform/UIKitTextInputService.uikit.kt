@@ -24,6 +24,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -59,11 +60,13 @@ internal class UIKitTextInputService(
     private val rootView: UIView,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack?,
+    private val onInputStarted: () -> Unit,
     /**
      * Callback to handle keyboard presses. The parameter is a [Set] of [UIPress] objects.
      * Erasure happens due to K/N not supporting Obj-C lightweight generics.
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
+    private val focusManager: () -> ComposeSceneFocusManager
 ) : PlatformTextInputService, TextToolbar {
 
     private var currentInput: CurrentInput? = null
@@ -138,6 +141,7 @@ internal class UIKitTextInputService(
         textUIView?.inputTraits = getUITextInputTraits(imeOptions)
 
         showSoftwareKeyboard()
+        onInputStarted()
     }
 
     fun startInput(
@@ -160,6 +164,7 @@ internal class UIKitTextInputService(
     }
 
     override fun stopInput() {
+        flushEditCommandsIfNeeded(force = true)
         currentInput = null
         _tempCurrentInputSession = null
         currentImeOptions = null
@@ -215,6 +220,7 @@ internal class UIKitTextInputService(
         return when (event.key) {
             Key.Enter -> handleEnterKey(event)
             Key.Backspace -> handleBackspace(event)
+            Key.Escape -> handleEscape(event)
             else -> false
         }
     }
@@ -235,6 +241,10 @@ internal class UIKitTextInputService(
             innerTextFieldBounds,
             decorationBoxBounds
         )
+        updateTextLayoutResult(textLayoutResult)
+    }
+
+    fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
         this.textLayoutResult = textLayoutResult
     }
 
@@ -261,10 +271,36 @@ internal class UIKitTextInputService(
         return event.type == KeyEventType.KeyDown
     }
 
+    private fun handleEscape(event: KeyEvent): Boolean {
+        return if (currentInput != null && event.type == KeyEventType.KeyUp) {
+            focusManager().releaseFocus()
+            true
+        } else {
+            false
+        }
+    }
+
+    private val editCommandsBatch = mutableListOf<EditCommand>()
+    private var editBatchDepth: Int = 0
+        set(value) {
+            field = value
+            flushEditCommandsIfNeeded()
+        }
+
     private fun sendEditCommand(vararg commands: EditCommand) {
-        val commandList = commands.toList()
-        _tempCurrentInputSession?.apply(commandList)
-        currentInput?.onEditCommand?.invoke(commandList)
+        _tempCurrentInputSession?.apply(commands.toList())
+
+        editCommandsBatch.addAll(commands)
+        flushEditCommandsIfNeeded()
+    }
+
+    fun flushEditCommandsIfNeeded(force: Boolean = false) {
+        if ((force || editBatchDepth == 0) && editCommandsBatch.isNotEmpty()) {
+            val commandList = editCommandsBatch.toList()
+            editCommandsBatch.clear()
+
+            currentInput?.onEditCommand?.invoke(commandList)
+        }
     }
 
     private fun getCursorPos(): Int? {
@@ -391,6 +427,14 @@ internal class UIKitTextInputService(
 
         override fun endFloatingCursor() {
             floatingCursorTranslation = null
+        }
+
+        override fun beginEditBatch() {
+            editBatchDepth++
+        }
+
+        override fun endEditBatch() {
+            editBatchDepth--
         }
 
         /**

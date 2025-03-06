@@ -22,7 +22,7 @@ import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
@@ -30,7 +30,7 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCapture.CaptureMode;
 import androidx.camera.core.ImageCapture.FlashMode;
 import androidx.camera.core.ImageCapture.FlashType;
-import androidx.camera.core.ImageCapture.ScreenFlashUiControl;
+import androidx.camera.core.ImageCapture.ScreenFlash;
 import androidx.camera.core.impl.utils.futures.Futures;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -49,7 +49,6 @@ import java.util.List;
  * that contains the actual implementation and can be cast to an implementation specific class.
  * If the instance itself is the implementation instance, then it should return <code>this</code>.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface CameraControlInternal extends CameraControl {
 
     /** Returns the current flash mode. */
@@ -64,12 +63,12 @@ public interface CameraControlInternal extends CameraControl {
     void setFlashMode(@FlashMode int flashMode);
 
     /**
-     * Sets screen flash UI control.
+     * Sets {@link ScreenFlash} instance.
      *
-     * @param screenFlashUiControl An {@link ScreenFlashUiControl} used to notify API
+     * @param screenFlash An {@link ScreenFlash} used to notify API
      *                             users when UI side changes need to be done.
      */
-    default void setScreenFlashUiControl(@Nullable ScreenFlashUiControl screenFlashUiControl) {}
+    default void setScreenFlash(@Nullable ScreenFlash screenFlash) {}
 
     /**
      * Adds zero-shutter lag config to {@link SessionConfig}.
@@ -158,6 +157,18 @@ public interface CameraControlInternal extends CameraControl {
     @NonNull
     default CameraControlInternal getImplementation() {
         return this;
+    }
+
+    /** Increments the count of whether this camera is being used for a video output or not. */
+    default void incrementVideoUsage() {}
+
+    /** Decrements the count of whether this camera is being used for a video output or not. */
+    default void decrementVideoUsage() {}
+
+    /** Gets the information of whether the camera is being used in a video output or not. */
+    @VisibleForTesting
+    default boolean isInVideoUsage() {
+        return false;
     }
 
     @NonNull

@@ -183,6 +183,7 @@ private val codeMap = mapOf(
     "F12" to Key.F12,
 
     "Space" to Key.Spacebar,
+    "Quote" to Key.Apostrophe
 )
 
 private fun KeyboardEvent.toKey(): Key {

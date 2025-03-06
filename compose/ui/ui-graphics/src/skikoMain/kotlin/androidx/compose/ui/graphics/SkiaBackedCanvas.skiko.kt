@@ -16,12 +16,12 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.compose.runtime.InternalComposeApi
 import org.jetbrains.skia.ClipMode as SkClipMode
 import org.jetbrains.skia.RRect as SkRRect
 import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -52,6 +52,13 @@ fun org.jetbrains.skia.Canvas.asComposeCanvas(): Canvas = SkiaBackedCanvas(this)
 
 actual val Canvas.nativeCanvas: NativeCanvas get() = (this as SkiaBackedCanvas).skia
 
+// This was added for internal usage from old render layers (another submodule),
+// but wasn't properly marked as internal. Keep it as deprecated for some time to be safe.
+@InternalComposeApi
+@Deprecated(
+    level = DeprecationLevel.ERROR,
+    message = "This API is not supposed to be used outside of Compose UI package"
+)
 var Canvas.alphaMultiplier: Float
     get() = (this as SkiaBackedCanvas).alphaMultiplier
     set(value) { (this as SkiaBackedCanvas).alphaMultiplier = value }
@@ -111,11 +118,6 @@ internal class SkiaBackedCanvas(val skia: org.jetbrains.skia.Canvas) : Canvas {
     override fun clipPath(path: Path, clipOp: ClipOp) {
         val antiAlias = true
         skia.clipPath(path.asSkiaPath(), clipOp.toSkia(), antiAlias)
-    }
-
-    fun clipRoundRect(rect: RoundRect, clipOp: ClipOp = ClipOp.Intersect) {
-        val antiAlias = true
-        nativeCanvas.clipRRect(rect.toSkiaRRect(), clipOp.toSkia(), antiAlias)
     }
 
     override fun drawLine(p1: Offset, p2: Offset, paint: Paint) {

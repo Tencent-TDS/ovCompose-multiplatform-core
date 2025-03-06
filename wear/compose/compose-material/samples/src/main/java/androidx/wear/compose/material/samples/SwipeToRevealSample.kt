@@ -40,57 +40,75 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.SwipeToRevealCard
 import androidx.wear.compose.material.SwipeToRevealChip
 import androidx.wear.compose.material.SwipeToRevealDefaults
+import androidx.wear.compose.material.SwipeToRevealPrimaryAction
+import androidx.wear.compose.material.SwipeToRevealSecondaryAction
+import androidx.wear.compose.material.SwipeToRevealUndoAction
 import androidx.wear.compose.material.Text
 
 @OptIn(ExperimentalWearMaterialApi::class, ExperimentalWearFoundationApi::class)
 @Composable
 @Sampled
 fun SwipeToRevealChipSample(swipeToDismissBoxState: SwipeToDismissBoxState) {
+    val revealState = rememberRevealState()
     SwipeToRevealChip(
-        revealState = rememberRevealState(),
-        modifier = Modifier
-            .fillMaxWidth()
-            // Use edgeSwipeToDismiss to allow SwipeToDismissBox to capture swipe events
-            .edgeSwipeToDismiss(swipeToDismissBoxState)
-            .semantics {
-                // Use custom actions to make the primary and secondary actions accessible
-                customActions = listOf(
-                    CustomAccessibilityAction("Delete") {
-                        /* Add the primary action click handler here */
-                        true
-                    },
-                    CustomAccessibilityAction("More Options") {
-                        /* Add the secondary click handler here */
-                        true
-                    }
-                )
-            },
-        primaryAction = SwipeToRevealDefaults.primaryAction(
-            icon = { Icon(SwipeToRevealDefaults.Delete, "Delete") },
-            label = { Text("Delete") },
-            onClick = { /* Add the click handler here */ }
-        ),
-        secondaryAction = SwipeToRevealDefaults.secondaryAction(
-            icon = { Icon(SwipeToRevealDefaults.MoreOptions, "More Options") },
-            onClick = { /* Add the click handler here */ }
-        ),
-        undoPrimaryAction = SwipeToRevealDefaults.undoAction(
-            label = { Text("Undo") },
-            onClick = { /* Add the undo handler for primary action */ }
-        ),
-        undoSecondaryAction = SwipeToRevealDefaults.undoAction(
-            label = { Text("Undo") },
-            onClick = { /* Add the undo handler for secondary action */ }
-        )
+        revealState = revealState,
+        modifier =
+            Modifier.fillMaxWidth()
+                // Use edgeSwipeToDismiss to allow SwipeToDismissBox to capture swipe events
+                .edgeSwipeToDismiss(swipeToDismissBoxState)
+                .semantics {
+                    // Use custom actions to make the primary and secondary actions accessible
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction("Delete") {
+                                /* Add the primary action click handler here */
+                                true
+                            },
+                            CustomAccessibilityAction("More Options") {
+                                /* Add the secondary click handler here */
+                                true
+                            }
+                        )
+                },
+        primaryAction = {
+            SwipeToRevealPrimaryAction(
+                revealState = revealState,
+                icon = { Icon(SwipeToRevealDefaults.Delete, "Delete") },
+                label = { Text("Delete") },
+                onClick = { /* Add the click handler here */ }
+            )
+        },
+        secondaryAction = {
+            SwipeToRevealSecondaryAction(
+                revealState = revealState,
+                onClick = { /* Add the click handler here */ }
+            ) {
+                Icon(SwipeToRevealDefaults.MoreOptions, "More Options")
+            }
+        },
+        undoPrimaryAction = {
+            SwipeToRevealUndoAction(
+                revealState = revealState,
+                label = { Text("Undo") },
+                onClick = { /* Add the undo handler for primary action */ }
+            )
+        },
+        undoSecondaryAction = {
+            SwipeToRevealUndoAction(
+                revealState = revealState,
+                label = { Text("Undo") },
+                onClick = { /* Add the undo handler for secondary action */ }
+            )
+        },
+        onFullSwipe = { /* Add the full swipe handler here */ }
     ) {
         Chip(
             modifier = Modifier.fillMaxWidth(),
             onClick = { /* Add the chip click handler here */ },
             colors = ChipDefaults.primaryChipColors(),
-            border = ChipDefaults.outlinedChipBorder()
-        ) {
-            Text("SwipeToReveal Chip")
-        }
+            border = ChipDefaults.outlinedChipBorder(),
+            label = { Text("SwipeToReveal Chip", maxLines = 3) }
+        )
     }
 }
 
@@ -98,42 +116,58 @@ fun SwipeToRevealChipSample(swipeToDismissBoxState: SwipeToDismissBoxState) {
 @Composable
 @Sampled
 fun SwipeToRevealCardSample(swipeToDismissBoxState: SwipeToDismissBoxState) {
+    val revealState = rememberRevealState()
     SwipeToRevealCard(
-        revealState = rememberRevealState(),
-        modifier = Modifier
-            .fillMaxWidth()
-            // Use edgeSwipeToDismiss to allow SwipeToDismissBox to capture swipe events
-            .edgeSwipeToDismiss(swipeToDismissBoxState)
-            .semantics {
-                // Use custom actions to make the primary and secondary actions accessible
-                customActions = listOf(
-                    CustomAccessibilityAction("Delete") {
-                        /* Add the primary action click handler here */
-                        true
-                    },
-                    CustomAccessibilityAction("More Options") {
-                        /* Add the secondary click handler here */
-                        true
-                    }
-                )
-            },
-        primaryAction = SwipeToRevealDefaults.primaryAction(
-            icon = { Icon(SwipeToRevealDefaults.Delete, "Delete") },
-            label = { Text("Delete") },
-            onClick = { /* Add the click handler here */ }
-        ),
-        secondaryAction = SwipeToRevealDefaults.secondaryAction(
-            icon = { Icon(SwipeToRevealDefaults.MoreOptions, "More Options") },
-            onClick = { /* Add the click handler here */ }
-        ),
-        undoPrimaryAction = SwipeToRevealDefaults.undoAction(
-            label = { Text("Undo") },
-            onClick = { /* Add the undo handler for primary action */ }
-        ),
-        undoSecondaryAction = SwipeToRevealDefaults.undoAction(
-            label = { Text("Undo") },
-            onClick = { /* Add the undo handler for secondary action */ }
-        )
+        revealState = revealState,
+        modifier =
+            Modifier.fillMaxWidth()
+                // Use edgeSwipeToDismiss to allow SwipeToDismissBox to capture swipe events
+                .edgeSwipeToDismiss(swipeToDismissBoxState)
+                .semantics {
+                    // Use custom actions to make the primary and secondary actions accessible
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction("Delete") {
+                                /* Add the primary action click handler here */
+                                true
+                            },
+                            CustomAccessibilityAction("More Options") {
+                                /* Add the secondary click handler here */
+                                true
+                            }
+                        )
+                },
+        primaryAction = {
+            SwipeToRevealPrimaryAction(
+                revealState = revealState,
+                icon = { Icon(SwipeToRevealDefaults.Delete, "Delete") },
+                label = { Text("Delete") },
+                onClick = { /* Add the click handler here */ }
+            )
+        },
+        secondaryAction = {
+            SwipeToRevealSecondaryAction(
+                revealState = revealState,
+                onClick = { /* Add the click handler here */ }
+            ) {
+                Icon(SwipeToRevealDefaults.MoreOptions, "More Options")
+            }
+        },
+        undoPrimaryAction = {
+            SwipeToRevealUndoAction(
+                revealState = revealState,
+                label = { Text("Undo") },
+                onClick = { /* Add the undo handler for primary action */ }
+            )
+        },
+        undoSecondaryAction = {
+            SwipeToRevealUndoAction(
+                revealState = revealState,
+                label = { Text("Undo") },
+                onClick = { /* Add the undo handler for secondary action */ }
+            )
+        },
+        onFullSwipe = { /* Add the full swipe handler here */ }
     ) {
         AppCard(
             onClick = { /* Add the Card click handler */ },
@@ -142,8 +176,9 @@ fun SwipeToRevealCardSample(swipeToDismissBoxState: SwipeToDismissBoxState) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_airplanemode_active_24px),
                     contentDescription = "airplane",
-                    modifier = Modifier.size(CardDefaults.AppImageSize)
-                        .wrapContentSize(align = Alignment.Center),
+                    modifier =
+                        Modifier.size(CardDefaults.AppImageSize)
+                            .wrapContentSize(align = Alignment.Center),
                 )
             },
             title = { Text("AppCard") },

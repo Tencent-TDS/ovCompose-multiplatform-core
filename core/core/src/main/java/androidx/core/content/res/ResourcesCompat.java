@@ -42,7 +42,6 @@ import androidx.annotation.AnyRes;
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.DimenRes;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.FontRes;
 import androidx.annotation.GuardedBy;
@@ -170,10 +169,8 @@ public final class ResourcesCompat {
             int density, @Nullable Theme theme) throws NotFoundException {
         if (SDK_INT >= 21) {
             return Api21Impl.getDrawableForDensity(res, id, density, theme);
-        } else if (SDK_INT >= 15) {
-            return Api15Impl.getDrawableForDensity(res, id, density);
         } else {
-            return res.getDrawable(id);
+            return res.getDrawableForDensity(id, density);
         }
     }
 
@@ -670,7 +667,6 @@ public final class ResourcesCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static float getFloat(@NonNull Resources res, @DimenRes int id) {
             return res.getFloat(id);
         }
@@ -682,14 +678,12 @@ public final class ResourcesCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         @NonNull
         static ColorStateList getColorStateList(@NonNull Resources res, @ColorRes int id,
                 @Nullable Theme theme) {
             return res.getColorStateList(id, theme);
         }
 
-        @DoNotInline
         static int getColor(Resources resources, int id, Theme theme) {
             return resources.getColor(id, theme);
         }
@@ -701,29 +695,14 @@ public final class ResourcesCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Drawable getDrawable(Resources resources, int id, Theme theme) {
             return resources.getDrawable(id, theme);
         }
 
-        @DoNotInline
         static Drawable getDrawableForDensity(Resources resources, int id, int density,
                 Theme theme) {
             return resources.getDrawableForDensity(id, density, theme);
         }
-    }
-
-    @RequiresApi(15)
-    static class Api15Impl {
-        private Api15Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static Drawable getDrawableForDensity(Resources resources, int id, int density) {
-            return resources.getDrawableForDensity(id, density);
-        }
-
     }
 
     private ResourcesCompat() {
@@ -764,7 +743,6 @@ public final class ResourcesCompat {
                 // This class is not instantiable.
             }
 
-            @DoNotInline
             static void rebase(@NonNull Theme theme) {
                 theme.rebase();
             }

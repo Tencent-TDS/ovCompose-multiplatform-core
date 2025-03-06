@@ -17,18 +17,14 @@ package androidx.privacysandbox.sdkruntime.core
 
 import android.app.sdksandbox.SandboxedSdk
 import android.os.IBinder
-import android.os.ext.SdkExtensions.AD_SERVICES
-import androidx.annotation.DoNotInline
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
 import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
 
 /**
- * Compat wrapper for [SandboxedSdk].
- * Represents an SDK loaded in the sandbox process or locally.
- * An application should use this object to obtain an interface to the SDK through [getInterface].
+ * Compat wrapper for [SandboxedSdk]. Represents an SDK loaded in the sandbox process or locally. An
+ * application should use this object to obtain an interface to the SDK through [getInterface].
  *
  * The SDK should create it when [SandboxedSdkProviderCompat.onLoadSdk] is called, and drop all
  * references to it when [SandboxedSdkProviderCompat.beforeUnloadSdk] is called. Additionally, the
@@ -36,18 +32,15 @@ import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
  * [SandboxedSdkProviderCompat.beforeUnloadSdk] has been called.
  *
  * @see [SandboxedSdk]
- *
  */
-class SandboxedSdkCompat private constructor(
-    private val sdkImpl: SandboxedSdkImpl
-) {
+class SandboxedSdkCompat private constructor(private val sdkImpl: SandboxedSdkImpl) {
 
     /**
      * Creates SandboxedSdkCompat from SDK Binder object.
      *
      * @param sdkInterface The SDK's interface. This will be the entrypoint into the sandboxed SDK
-     * for the application. The SDK should keep this valid until it's loaded in the sandbox, and
-     * start failing calls to this interface once it has been unloaded
+     *   for the application. The SDK should keep this valid until it's loaded in the sandbox, and
+     *   start failing calls to this interface once it has been unloaded
      *
      * This interface can later be retrieved using [getInterface].
      *
@@ -73,19 +66,15 @@ class SandboxedSdkCompat private constructor(
      *
      * @param sandboxedSdk SandboxedSdk object. All calls will be delegated to that object.
      */
-    @RequiresExtension(extension = AD_SERVICES, version = 4)
+    @RequiresApi(34)
     @RestrictTo(LIBRARY_GROUP)
-    constructor(sandboxedSdk: SandboxedSdk) : this(
-        SdkImplFactory.createSdkImpl(sandboxedSdk)
-    )
+    constructor(sandboxedSdk: SandboxedSdk) : this(Api34Impl(sandboxedSdk))
 
     /**
-     * Returns the interface to the loaded SDK.
-     * A null interface is returned if the Binder has since
+     * Returns the interface to the loaded SDK. A null interface is returned if the Binder has since
      * become unavailable, in response to the SDK being unloaded.
      *
      * @return [IBinder] object for loaded SDK.
-     *
      * @see [SandboxedSdk.getInterface]
      */
     fun getInterface() = sdkImpl.getInterface()
@@ -94,7 +83,6 @@ class SandboxedSdkCompat private constructor(
      * Returns information about loaded SDK.
      *
      * @return [SandboxedSdkInfo] object for loaded SDK or null if no information available.
-     *
      * @see [SandboxedSdk.getSharedLibraryInfo]
      */
     fun getSdkInfo(): SandboxedSdkInfo? = sdkImpl.getSdkInfo()
@@ -104,50 +92,22 @@ class SandboxedSdkCompat private constructor(
      *
      * @return Platform SandboxedSdk
      */
-    @RequiresExtension(extension = AD_SERVICES, version = 4)
-    @RestrictTo(LIBRARY_GROUP)
-    fun toSandboxedSdk() = sdkImpl.toSandboxedSdk()
+    @RequiresApi(34) @RestrictTo(LIBRARY_GROUP) fun toSandboxedSdk() = sdkImpl.toSandboxedSdk()
 
     internal interface SandboxedSdkImpl {
         fun getInterface(): IBinder?
 
         fun getSdkInfo(): SandboxedSdkInfo?
 
-        @RequiresExtension(extension = AD_SERVICES, version = 4)
-        @DoNotInline
-        fun toSandboxedSdk(): SandboxedSdk
+        @RequiresApi(34) fun toSandboxedSdk(): SandboxedSdk
     }
 
-    @RequiresExtension(extension = AD_SERVICES, version = 4)
-    private open class ApiAdServicesV4Impl(
-        protected val sandboxedSdk: SandboxedSdk
-    ) : SandboxedSdkImpl {
+    @RequiresApi(34)
+    private open class Api34Impl(protected val sandboxedSdk: SandboxedSdk) : SandboxedSdkImpl {
 
-        @DoNotInline
         override fun getInterface(): IBinder? {
             return sandboxedSdk.getInterface()
         }
-
-        override fun getSdkInfo(): SandboxedSdkInfo? = null
-
-        @DoNotInline
-        override fun toSandboxedSdk(): SandboxedSdk {
-            return sandboxedSdk
-        }
-
-        companion object {
-            @DoNotInline
-            fun createSandboxedSdk(sdkInterface: IBinder): SandboxedSdk {
-                return SandboxedSdk(sdkInterface)
-            }
-        }
-    }
-
-    @RequiresApi(33)
-    @RequiresExtension(extension = AD_SERVICES, version = 5)
-    private class ApiAdServicesV5Impl(
-        sandboxedSdk: SandboxedSdk
-    ) : ApiAdServicesV4Impl(sandboxedSdk) {
 
         override fun getSdkInfo(): SandboxedSdkInfo {
             val sharedLibraryInfo = sandboxedSdk.sharedLibraryInfo
@@ -156,15 +116,14 @@ class SandboxedSdkCompat private constructor(
                 version = sharedLibraryInfo.longVersion,
             )
         }
-    }
 
-    @RequiresExtension(extension = AD_SERVICES, version = 4)
-    private object SdkImplFactory {
-        fun createSdkImpl(sandboxedSdk: SandboxedSdk): SandboxedSdkImpl {
-            return if (AdServicesInfo.isAtLeastV5()) {
-                ApiAdServicesV5Impl(sandboxedSdk)
-            } else {
-                ApiAdServicesV4Impl(sandboxedSdk)
+        override fun toSandboxedSdk(): SandboxedSdk {
+            return sandboxedSdk
+        }
+
+        companion object {
+            fun createSandboxedSdk(sdkInterface: IBinder): SandboxedSdk {
+                return SandboxedSdk(sdkInterface)
             }
         }
     }
@@ -182,10 +141,10 @@ class SandboxedSdkCompat private constructor(
 
         override fun getSdkInfo(): SandboxedSdkInfo? = sdkInfo
 
-        @RequiresExtension(extension = AD_SERVICES, version = 4)
+        @RequiresApi(34)
         override fun toSandboxedSdk(): SandboxedSdk {
             // avoid class verifications errors
-            return ApiAdServicesV4Impl.createSandboxedSdk(sdkInterface)
+            return Api34Impl.createSandboxedSdk(sdkInterface)
         }
     }
 }

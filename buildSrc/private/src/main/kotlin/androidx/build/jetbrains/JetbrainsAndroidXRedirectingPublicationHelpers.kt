@@ -54,7 +54,6 @@ internal class CustomUsage(
     override fun getDependencies(): Set<ModuleDependency> = dependencies
     override fun getDependencyConstraints(): Set<DependencyConstraint> = emptySet()
     override fun getGlobalExcludes(): Set<ExcludeRule> = emptySet()
-    override fun getUsage(): Usage = error("Should not be accessed!")
 }
 
 @OptIn(InternalKotlinGradlePluginApi::class)
@@ -133,11 +132,21 @@ internal class CustomRootComponent(
     fun addUsageFromConfiguration(configuration: Configuration, defaultUsage: KotlinUsageContext) {
         val newDependency = customizeDependencyPerConfiguration(configuration)
 
+        // Dependencies from metadataApiElements, metadataSourcesElements.
+        // Includes not only commonMain, but also other non-target sourceSets (skikoMain, webMain)
+        val metadataDependencies = rootComponent.usages.flatMap { it.dependencies }
+
+        // Dependencies from debugApiElements and other Android configurations
+        val androidDependencies = defaultUsage.dependencies.toSet()
+
+        // Intersection of metadataDependencies and androidDependencies gives us commonMain deps
+        val commonMainDependencies = metadataDependencies.filter { it in androidDependencies }
+
         extraUsages.add(
             CustomUsage(
                 name = configuration.name,
                 attributes = configuration.attributes,
-                dependencies = setOf(newDependency) + defaultUsage.dependencies
+                dependencies = setOf(newDependency) + commonMainDependencies
             )
         )
     }

@@ -41,7 +41,7 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
         implementation("androidx.compose.runtime:runtime:1.2.1")
         implementation(project(":compose:ui:ui-util"))
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
 
         testImplementation(libs.testRules)
         testImplementation(libs.testRunner)
@@ -83,14 +83,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
 
                 api(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
                 implementation(project(":compose:ui:ui-geometry"))
-                implementation(project(":collection:collection"))
                 implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
             }
 
             androidMain.dependencies {
@@ -135,7 +135,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             commonTest {
                 dependencies {
-                    implementation(kotlin("test"))
+                    implementation(libs.kotlinTest)
                 }
             }
 
@@ -163,14 +163,32 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.junit)
             }
 
-            desktopTest {
-                resources.srcDirs += "src/desktopTest/res"
+            skikoTest {
+                dependsOn(commonTest)
                 dependencies {
                     implementation(project(":compose:ui:ui-test-junit4"))
+                }
+            }
+
+            desktopTest {
+                dependsOn(skikoTest)
+                resources.srcDirs += "src/desktopTest/res"
+                dependencies {
                     implementation(libs.junit)
                     implementation(libs.truth)
                     implementation(libs.skikoCurrentOs)
                 }
+            }
+            nativeTest {
+                dependsOn(skikoTest)
+            }
+
+            jsTest {
+                dependsOn(skikoTest)
+            }
+
+            wasmJsTest {
+                dependsOn(skikoTest)
             }
 
             configureEach {

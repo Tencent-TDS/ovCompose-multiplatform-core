@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation
 
+import org.jetbrains.annotations.VisibleForTesting
+
 internal enum class DesktopPlatform {
     Linux,
     Windows,
@@ -23,16 +25,33 @@ internal enum class DesktopPlatform {
     Unknown;
 
     companion object {
-        /**
-         * Identify OS on which the application is currently running.
-         */
-        val Current: DesktopPlatform by lazy {
+        private var overriddenCurrent: DesktopPlatform? = null
+
+        private val _current: DesktopPlatform by lazy {
             val name = System.getProperty("os.name")
             when {
                 name?.startsWith("Linux") == true -> Linux
                 name?.startsWith("Win") == true -> Windows
                 name == "Mac OS X" -> MacOS
                 else -> Unknown
+            }
+        }
+
+        /**
+         * Identify OS on which the application is currently running.
+         */
+        val Current get() = overriddenCurrent ?: _current
+
+        /**
+         * Override [DesktopPlatform.Current] during [body] execution
+         */
+        @VisibleForTesting
+        inline fun <T> withOverriddenCurrent(newCurrent: DesktopPlatform, body: () -> T): T {
+            try {
+                overriddenCurrent = newCurrent
+                return body()
+            } finally {
+                overriddenCurrent = null
             }
         }
     }

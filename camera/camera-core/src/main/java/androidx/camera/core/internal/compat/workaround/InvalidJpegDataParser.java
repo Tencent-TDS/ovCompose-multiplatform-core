@@ -17,7 +17,6 @@
 package androidx.camera.core.internal.compat.workaround;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.core.internal.compat.quirk.LargeJpegImageQuirk;
@@ -27,9 +26,8 @@ import androidx.camera.core.internal.compat.quirk.LargeJpegImageQuirk;
  *
  * @see LargeJpegImageQuirk
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class InvalidJpegDataParser {
-    private final boolean mHasQuirk = DeviceQuirks.get(LargeJpegImageQuirk.class) != null;
+    private final LargeJpegImageQuirk mQuirk = DeviceQuirks.get(LargeJpegImageQuirk.class);
 
     /**
      * Returns the valid data length of the input JPEG byte data array which is determined by the
@@ -38,7 +36,7 @@ public class InvalidJpegDataParser {
      * <p>Returns the original byte array length when quirk doesn't exist or EOI can't be found.
      */
     public int getValidDataLength(@NonNull byte[] bytes) {
-        if (!mHasQuirk) {
+        if (mQuirk == null || !mQuirk.shouldCheckInvalidJpegData(bytes)) {
             return bytes.length;
         }
 

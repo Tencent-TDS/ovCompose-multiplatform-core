@@ -17,6 +17,7 @@
 package androidx.compose.ui.window
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowDecoration.Companion.Undecorated
@@ -25,6 +26,7 @@ import androidx.compose.ui.window.WindowDecoration.SystemDefault
 /**
  * Defines the options for window decoration.
  */
+@ExperimentalComposeUiApi
 sealed interface WindowDecoration {
 
     /**
@@ -61,6 +63,7 @@ internal class UndecoratedWindowDecoration(val resizerThickness: Dp): WindowDeco
 /**
  * Default values for window decoration.
  */
+@ExperimentalComposeUiApi
 object WindowDecorationDefaults {
     /**
      * The default thickness of the resizers in an undecorated window.

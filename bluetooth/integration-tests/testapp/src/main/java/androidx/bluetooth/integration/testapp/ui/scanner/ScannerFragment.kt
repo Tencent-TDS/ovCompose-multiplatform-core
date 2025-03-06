@@ -25,6 +25,7 @@ import androidx.bluetooth.BluetoothDevice
 import androidx.bluetooth.integration.testapp.R
 import androidx.bluetooth.integration.testapp.databinding.FragmentScannerBinding
 import androidx.bluetooth.integration.testapp.ui.common.getColor
+import androidx.bluetooth.integration.testapp.ui.common.toast
 import androidx.bluetooth.integration.testapp.ui.main.MainViewModel
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -50,7 +51,8 @@ class ScannerFragment : Fragment() {
     private val mainViewModel by activityViewModels<MainViewModel>()
 
     private var _binding: FragmentScannerBinding? = null
-    private val binding get() = _binding!!
+    private val binding
+        get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -79,9 +81,7 @@ class ScannerFragment : Fragment() {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.uiState
-                .flowWithLifecycle(viewLifecycleOwner.lifecycle)
-                .collect(::updateUi)
+            viewModel.uiState.flowWithLifecycle(viewLifecycleOwner.lifecycle).collect(::updateUi)
         }
     }
 
@@ -99,6 +99,11 @@ class ScannerFragment : Fragment() {
         } else {
             binding.buttonScan.text = getString(R.string.start_scanning)
             binding.buttonScan.backgroundTintList = getColor(R.color.indigo_500)
+        }
+
+        scannerUiState.resultMessage?.let {
+            toast(it).show()
+            viewModel.clearResultMessage()
         }
     }
 

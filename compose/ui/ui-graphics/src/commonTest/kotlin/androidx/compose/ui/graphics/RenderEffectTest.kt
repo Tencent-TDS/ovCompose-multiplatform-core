@@ -17,6 +17,7 @@
 package androidx.compose.ui.graphics
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.internal.IgnoreJs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -37,6 +38,7 @@ class RenderEffectTest {
     }
 
     @Test
+    @IgnoreJs // due to float formatting
     fun testBlurEffectToString() {
         assertEquals(
             "BlurEffect(" +
@@ -53,12 +55,8 @@ class RenderEffectTest {
     fun testNestedRenderEffectEquality() {
         val innerBlur = BlurEffect(5.0f, 10.0f, TileMode.Mirror)
         val wrappedBlur = BlurEffect(innerBlur, 20.0f, 50.0f, TileMode.Clamp)
-        val wrappedBlur2 = BlurEffect(
-            BlurEffect(5.0f, 10.0f, TileMode.Mirror),
-            20.0f,
-            50.0f,
-            TileMode.Clamp
-        )
+        val wrappedBlur2 =
+            BlurEffect(BlurEffect(5.0f, 10.0f, TileMode.Mirror), 20.0f, 50.0f, TileMode.Clamp)
         assertEquals(wrappedBlur, wrappedBlur2)
     }
 
@@ -66,23 +64,21 @@ class RenderEffectTest {
     fun testNestedRenderEffectHashcode() {
         val innerBlur = BlurEffect(5.0f, 10.0f, TileMode.Mirror)
         val wrappedBlur = BlurEffect(innerBlur, 20.0f, 50.0f, TileMode.Clamp)
-        val wrappedBlur2 = BlurEffect(
-            BlurEffect(5.0f, 10.0f, TileMode.Mirror),
-            20.0f,
-            50.0f,
-            TileMode.Clamp
-        )
+        val wrappedBlur2 =
+            BlurEffect(BlurEffect(5.0f, 10.0f, TileMode.Mirror), 20.0f, 50.0f, TileMode.Clamp)
         assertEquals(wrappedBlur.hashCode(), wrappedBlur2.hashCode())
     }
 
     @Test
+    @IgnoreJs // due to float formatting
     fun testNestedRenderEffectToString() {
-        val blur = BlurEffect(
-            BlurEffect(5.0f, 10.0f, TileMode.Clamp),
-            radiusX = 15.0f,
-            radiusY = 20.0f,
-            TileMode.Decal
-        )
+        val blur =
+            BlurEffect(
+                BlurEffect(5.0f, 10.0f, TileMode.Clamp),
+                radiusX = 15.0f,
+                radiusY = 20.0f,
+                TileMode.Decal
+            )
         assertEquals(
             "BlurEffect(" +
                 "renderEffect=" +
@@ -115,12 +111,10 @@ class RenderEffectTest {
     }
 
     @Test
+    @IgnoreJs
     fun testOffsetEffectToString() {
         assertEquals(
-            "OffsetEffect(" +
-                "renderEffect=null, " +
-                "offset=Offset(5.0, 10.0)" +
-                ")",
+            "OffsetEffect(" + "renderEffect=null, " + "offset=Offset(5.0, 10.0)" + ")",
             OffsetEffect(5f, 10.0f).toString()
         )
     }
@@ -129,10 +123,7 @@ class RenderEffectTest {
     fun testNestedOffsetEffectEquality() {
         val innerOffset = OffsetEffect(5.0f, 10.0f)
         val wrappedOffset = OffsetEffect(innerOffset, Offset(20.0f, 50.0f))
-        val wrappedOffset2 = OffsetEffect(
-            OffsetEffect(5.0f, 10.0f),
-            Offset(20.0f, 50.0f)
-        )
+        val wrappedOffset2 = OffsetEffect(OffsetEffect(5.0f, 10.0f), Offset(20.0f, 50.0f))
         assertEquals(wrappedOffset, wrappedOffset2)
     }
 
@@ -140,19 +131,15 @@ class RenderEffectTest {
     fun testNestedOffsetEffectHashcode() {
         val innerOffset = OffsetEffect(5.0f, 10.0f)
         val wrappedOffset = OffsetEffect(innerOffset, Offset(20.0f, 50.0f))
-        val wrappedOffset2 = OffsetEffect(
-            OffsetEffect(5.0f, 10.0f),
-            Offset(20.0f, 50.0f)
-        )
+        val wrappedOffset2 = OffsetEffect(OffsetEffect(5.0f, 10.0f), Offset(20.0f, 50.0f))
         assertEquals(wrappedOffset.hashCode(), wrappedOffset2.hashCode())
     }
 
     @Test
+    @IgnoreJs // due to float formatting
     fun testNestedOffsetEffectToString() {
-        val renderEffect = OffsetEffect(
-            BlurEffect(5.0f, 10.0f, TileMode.Clamp),
-            Offset(15.0f, 20.0f)
-        )
+        val renderEffect =
+            OffsetEffect(BlurEffect(5.0f, 10.0f, TileMode.Clamp), Offset(15.0f, 20.0f))
         assertEquals(
             "OffsetEffect(" +
                 "renderEffect=" +

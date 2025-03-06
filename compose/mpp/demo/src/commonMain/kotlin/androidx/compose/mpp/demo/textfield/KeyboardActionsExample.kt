@@ -109,7 +109,7 @@ private fun TextBlock(
         OutlinedTextField(
             value = textState.value,
             onValueChange = { textState.value = it },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).onKeyEvent { println("KEY EVENT $this"); false },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
             keyboardOptions = KeyboardOptions(imeAction = imeActionName),
             keyboardActions = keyboardActions

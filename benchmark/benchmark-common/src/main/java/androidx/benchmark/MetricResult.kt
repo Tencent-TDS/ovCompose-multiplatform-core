@@ -47,7 +47,7 @@ public class MetricResult(
     init {
         val values = data.sorted()
         val size = values.size
-        require(size >= 1) { "At least one result is necessary." }
+        require(size >= 1) { "At least one result is necessary, $size found for $name." }
 
         val mean: Double = data.average()
         min = values.first()
@@ -63,12 +63,13 @@ public class MetricResult(
         maxIndex = data.indexOfFirst { it == max }
         medianIndex = data.size / 2
 
-        standardDeviation = if (data.size == 1) {
-            0.0
-        } else {
-            val sum = values.map { (it - mean).pow(2) }.sum()
-            sqrt(sum / (size - 1).toDouble())
-        }
+        standardDeviation =
+            if (data.size == 1) {
+                0.0
+            } else {
+                val sum = values.map { (it - mean).pow(2) }.sum()
+                sqrt(sum / (size - 1).toDouble())
+            }
     }
 
     internal fun getSummary(): String {

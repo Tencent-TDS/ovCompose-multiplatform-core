@@ -1,0 +1,76 @@
+// Signature format: 4.0
+package sun.misc {
+
+  public final class Unsafe {
+    method public int addressSize();
+    method public Object! allocateInstance(Class<? extends java.lang.Object!>!);
+    method public long allocateMemory(long);
+    method public int arrayBaseOffset(Class<? extends java.lang.Object!>!);
+    method public int arrayIndexScale(Class<? extends java.lang.Object!>!);
+    method public boolean compareAndSwapInt(Object!, long, int, int);
+    method public boolean compareAndSwapLong(Object!, long, long, long);
+    method public boolean compareAndSwapObject(Object!, long, Object!, Object!);
+    method public void copyMemory(long, long, long);
+    method public void copyMemoryFromPrimitiveArray(Object!, long, long, long);
+    method public void copyMemoryToPrimitiveArray(long, Object!, long, long);
+    method public void freeMemory(long);
+    method public void fullFence();
+    method public int getAndAddInt(Object!, long, int);
+    method public long getAndAddLong(Object!, long, long);
+    method public int getAndSetInt(Object!, long, int);
+    method public long getAndSetLong(Object!, long, long);
+    method public Object! getAndSetObject(Object!, long, Object!);
+    method public boolean getBoolean(Object!, long);
+    method public byte getByte(Object!, long);
+    method public byte getByte(long);
+    method public char getChar(Object!, long);
+    method public char getChar(long);
+    method public double getDouble(Object!, long);
+    method public double getDouble(long);
+    method public float getFloat(Object!, long);
+    method public float getFloat(long);
+    method public int getInt(Object!, long);
+    method public int getInt(long);
+    method public int getIntVolatile(Object!, long);
+    method public long getLong(Object!, long);
+    method public long getLong(long);
+    method public long getLongVolatile(Object!, long);
+    method public Object! getObject(Object!, long);
+    method public Object! getObjectVolatile(Object!, long);
+    method public short getShort(Object!, long);
+    method public short getShort(long);
+    method public static sun.misc.Unsafe! getUnsafe();
+    method public void loadFence();
+    method public long objectFieldOffset(java.lang.reflect.Field!);
+    method public int pageSize();
+    method public void park(boolean, long);
+    method public void putBoolean(Object!, long, boolean);
+    method public void putByte(Object!, long, byte);
+    method public void putByte(long, byte);
+    method public void putChar(Object!, long, char);
+    method public void putChar(long, char);
+    method public void putDouble(Object!, long, double);
+    method public void putDouble(long, double);
+    method public void putFloat(Object!, long, float);
+    method public void putFloat(long, float);
+    method public void putInt(Object!, long, int);
+    method public void putInt(long, int);
+    method public void putIntVolatile(Object!, long, int);
+    method public void putLong(Object!, long, long);
+    method public void putLong(long, long);
+    method public void putLongVolatile(Object!, long, long);
+    method public void putObject(Object!, long, Object!);
+    method public void putObjectVolatile(Object!, long, Object!);
+    method public void putOrderedInt(Object!, long, int);
+    method public void putOrderedLong(Object!, long, long);
+    method public void putOrderedObject(Object!, long, Object!);
+    method public void putShort(Object!, long, short);
+    method public void putShort(long, short);
+    method public void setMemory(long, long, byte);
+    method public void storeFence();
+    method public void unpark(Object!);
+    field public static final int INVALID_FIELD_OFFSET = -1; // 0xffffffff
+  }
+
+}
+

@@ -75,12 +75,11 @@ internal constructor(
         deepLinks.add(NavDeepLink(uriPattern))
     }
 
-    @Suppress("BuilderSetStyle")
     @JvmName("deepLinkSafeArgs")
     public actual inline fun <reified T : Any> deepLink(
         basePath: String,
     ) {
-        deepLink(basePath, T::class) {}
+        deepLink(T::class, basePath) {}
     }
 
     public actual fun deepLink(navDeepLink: NavDeepLinkDslBuilder.() -> Unit) {
@@ -92,14 +91,14 @@ internal constructor(
         basePath: String,
         noinline navDeepLink: NavDeepLinkDslBuilder.() -> Unit
     ) {
-        deepLink(basePath, T::class, navDeepLink)
+        deepLink(T::class, basePath, navDeepLink)
     }
 
     @OptIn(InternalSerializationApi::class)
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual fun <T : Any> deepLink(
-        basePath: String,
         route: KClass<T>,
+        basePath: String,
         navDeepLink: NavDeepLinkDslBuilder.() -> Unit
     ) {
         // make sure they used the safe args constructors which automatically adds
@@ -119,7 +118,7 @@ internal constructor(
                     "route from KClass"
             }
         }
-        deepLink(navDeepLink(basePath, route, typeMap, navDeepLink))
+        deepLink(navDeepLink(route, basePath, typeMap, navDeepLink))
     }
 
     @Suppress("BuilderSetStyle")

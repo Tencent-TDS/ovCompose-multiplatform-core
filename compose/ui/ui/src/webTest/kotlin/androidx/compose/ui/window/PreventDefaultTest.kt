@@ -21,11 +21,10 @@ import androidx.compose.material.TextField
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
-import androidx.compose.ui.events.keyDownEvent
+import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.events.keyDownEventUnprevented
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -48,14 +47,14 @@ class PreventDefaultTest : OnCanvasTests {
             }
         }
 
-        var stack = mutableListOf<Boolean>()
+        val stack = mutableListOf<Boolean>()
 
         getCanvas().addEventListener("keydown", { event ->
             stack.add(event.defaultPrevented)
         })
 
         // dispatchEvent synchronously invokes all the listeners
-        dispatchEvents(keyDownEvent("c"))
+        dispatchEvents(keyEvent("c"))
         assertEquals(1, stack.size)
         assertTrue(stack.last())
 
@@ -66,7 +65,7 @@ class PreventDefaultTest : OnCanvasTests {
         assertEquals(changedValue, "c")
 
         // copy shortcut should not be prevented (we let browser create a corresponding event)
-        dispatchEvents(keyDownEvent("c", metaKey = true, ctrlKey = true))
+        dispatchEvents(keyEvent("c", metaKey = true, ctrlKey = true))
         assertEquals(3, stack.size)
         assertFalse(stack.last())
 
