@@ -16,6 +16,8 @@
 package androidx.compose.ui.unit.fontscaling
 
 import androidx.collection.SparseArrayCompat
+import androidx.collection.forEach
+import androidx.collection.size
 import androidx.compose.ui.unit.NonLinearFontSizeAnchors
 import androidx.compose.ui.unit.defaultFontScaleConverters
 import androidx.compose.ui.unit.isNonLinearFontScalingActive
@@ -29,7 +31,7 @@ internal object FontScaleConverterFactory {
 
     private val lookupTablesWriteLock = reentrantLock()
 
-    private val lookupTables = SparseArrayCompat<FontScaleConverter>().apply {
+    private var lookupTables = SparseArrayCompat<FontScaleConverter>().apply {
         lookupTablesWriteLock.withLock {
             defaultFontScaleConverters().forEach { (scale, converter) ->
                 put(getKey(scale), converter)
@@ -103,7 +105,13 @@ internal object FontScaleConverterFactory {
 
     private fun put(scaleKey: Float, fontScaleConverter: FontScaleConverter) {
         lookupTablesWriteLock.withLock {
-            lookupTables.put(getKey(scaleKey), fontScaleConverter)
+            // copy-on-write to safely omit reading synchronization
+            val copy = SparseArrayCompat<FontScaleConverter>(lookupTables.size)
+            lookupTables.forEach { key, value ->
+                copy.put(key, value)
+            }
+            copy.put(getKey(scaleKey), fontScaleConverter)
+            lookupTables = copy
         }
     }
 }
