@@ -466,7 +466,7 @@ internal class ComposeSceneMediator(
 
         // UIKit sends buttonMask that was before the release action. It should be empty if no
         // pressed pointers left.
-        val eventButtonsMask = event?.buttonMask?.takeIf {
+        val pointerButtonsMask = event?.buttonMask?.takeIf {
             pointers.any { it.pressed }
         } ?: 0L
 
@@ -475,11 +475,18 @@ internal class ComposeSceneMediator(
             pointers = pointers,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.button,
-            buttons = PointerButtons(eventButtonsMask),
+            button = event?.getButton(previousButtonMask, eventKind, previousTouchEventKind),
+            buttons = PointerButtons(pointerButtonsMask),
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
-        )
+        ).also {
+            previousButtonMask = event?.buttonMask ?: 0L
+            if (eventKind != TouchesEventKind.MOVED) {
+                previousTouchEventKind = eventKind
+            }
+        }
     }
+    private var previousButtonMask: Long = 0L
+    private var previousTouchEventKind: TouchesEventKind? = null
 
     init {
         parentView.embedSubview(view)
@@ -735,10 +742,18 @@ internal class ComposeSceneMediator(
     }
 }
 
-private val UIEvent.button: PointerButton? get() =
-    if (buttonMask and UIEventButtonMaskPrimary != 0L) {
+private fun UIEvent.getButton(
+    previousButtonMask: Long,
+    eventKind: TouchesEventKind,
+    previousEventKind: TouchesEventKind?
+): PointerButton? =
+    if (buttonMask and UIEventButtonMaskPrimary != 0L &&
+        (previousButtonMask and UIEventButtonMaskPrimary == 0L ||
+            eventKind != previousEventKind)) {
         PointerButton.Primary
-    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L) {
+    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L &&
+        (previousButtonMask and UIEventButtonMaskSecondary == 0L ||
+            eventKind != previousEventKind)) {
         PointerButton.Secondary
     } else {
         null
