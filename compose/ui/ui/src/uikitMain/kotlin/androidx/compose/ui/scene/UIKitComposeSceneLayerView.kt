@@ -24,6 +24,7 @@ import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
+import platform.UIKit.UIEventTypeTouches
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
 import platform.UIKit.UIWindow
@@ -39,8 +40,8 @@ import platform.UIKit.UIWindow
  */
 internal class UIKitComposeSceneLayerView(
     private var onDidMoveToWindow: (UIWindow?) -> Unit,
-    val isInsideInteractionBounds: (point: CValue<CGPoint>) -> Boolean,
-    val isInterceptingOutsideEvents: () -> Boolean
+    private var isInsideInteractionBounds: (point: CValue<CGPoint>) -> Boolean,
+    private var isInterceptingOutsideEvents: () -> Boolean
 ): UIView(frame = CGRectZero.readValue()) {
     private var touchesCount: Int = 0
     private var previousSuccessHitTestTimestamp: Double? = null
@@ -105,7 +106,9 @@ internal class UIKitComposeSceneLayerView(
         val result = super.hitTest(point, withEvent)
 
         if (isOutsideBounds && result == this) {
-            touchStartedOutside(withEvent)
+            if (withEvent?.type == UIEventTypeTouches) {
+                touchStartedOutside(withEvent)
+            }
 
             return if (isInterceptingOutsideEvents()) {
                 this
@@ -115,6 +118,13 @@ internal class UIKitComposeSceneLayerView(
         }
 
         return result
+    }
+
+    fun dispose() {
+        onDidMoveToWindow = {}
+        isInsideInteractionBounds = { false }
+        isInterceptingOutsideEvents = { false }
+        onOutsidePointerEvent = {}
     }
 
     override fun didMoveToWindow() {
