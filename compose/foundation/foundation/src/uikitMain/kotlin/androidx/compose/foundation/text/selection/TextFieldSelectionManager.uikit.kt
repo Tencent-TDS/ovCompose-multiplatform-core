@@ -20,6 +20,7 @@ import androidx.compose.foundation.PlatformMagnifierFactory
 import androidx.compose.foundation.isPlatformMagnifierSupported
 import androidx.compose.foundation.magnifier
 import androidx.compose.foundation.text.Handle
+import androidx.compose.foundation.text.InternalFoundationTextApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +31,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
     if (!isPlatformMagnifierSupported()) {
@@ -73,6 +73,7 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 // But! Compose text selection is a bit different from iOS:
 // when we select multiple lines below the selection start on iOS - we always see the caret / handle.
 // Compose caret in such scenario is always covered by finger so we don't actually see what do we select.
+@OptIn(InternalFoundationTextApi::class)
 private fun calculateSelectionMagnifierCenterIOS(
     manager: TextFieldSelectionManager,
     magnifierSize: IntSize,
@@ -106,7 +107,7 @@ private fun calculateSelectionMagnifierCenterIOS(
         .translateDecorationToInnerCoordinates(localDragPosition)
 
     // hide magnifier when selection goes below the text field
-    if (innerDragPosition.y > layoutResult.lastBaseline + MagnifierPostTravel.value * density) {
+    if (innerDragPosition.y > layoutResult.lastBaseline + HideThresholdDp * density) {
         return Offset.Unspecified
     }
 
@@ -135,10 +136,7 @@ private fun calculateSelectionMagnifierCenterIOS(
     return Offset(centerX, centerY)
 }
 
-/**
- * Bottom drag point below the last text baseline after that magnifier is dismissed
- * */
-internal val MagnifierPostTravel = 36.dp
+private const val HideThresholdDp = 36
 
 /**
  * Multiplier for height tolerance calculation.
