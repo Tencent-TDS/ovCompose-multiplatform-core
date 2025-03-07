@@ -380,8 +380,6 @@ internal class ComposeSceneMediator(
             scrollDelta = delta.toOffset(density) * SCROLL_DELTA_MULTIPLIER,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.button,
-            buttons = PointerButtons(event?.buttonMask ?: 0L),
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
         )
     }
@@ -468,20 +466,23 @@ internal class ComposeSceneMediator(
 
         // UIKit sends buttonMask that was before the release action. It should be empty if no
         // pressed pointers left.
-        val buttons = PointerButtons(event?.buttonMask?.takeIf {
+        val eventButtonsMask = event?.buttonMask?.takeIf {
             pointers.any { it.pressed }
-        } ?: 0L)
+        } ?: 0L
 
         return scene.sendPointerEvent(
             eventType = eventKind.toPointerEventType(),
             pointers = pointers,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.button?.takeIf { eventKind != TouchesEventKind.MOVED },
-            buttons = buttons,
+            button = event?.getButton(previousButtonMask = previousEventButtonMask),
+            buttons = PointerButtons(eventButtonsMask),
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
-        )
+        ).also {
+            previousEventButtonMask = eventButtonsMask
+        }
     }
+    private var previousEventButtonMask = 0L
 
     init {
         parentView.embedSubview(view)
@@ -737,10 +738,12 @@ internal class ComposeSceneMediator(
     }
 }
 
-private val UIEvent.button: PointerButton? get() =
-    if (buttonMask and UIEventButtonMaskPrimary != 0L) {
+private fun UIEvent.getButton(previousButtonMask: Long): PointerButton? =
+    if (buttonMask and UIEventButtonMaskPrimary != 0L &&
+        previousButtonMask and UIEventButtonMaskPrimary == 0L) {
         PointerButton.Primary
-    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L) {
+    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L &&
+        previousButtonMask and UIEventButtonMaskSecondary == 0L) {
         PointerButton.Secondary
     } else {
         null
