@@ -376,7 +376,7 @@ private class TouchesGestureRecognizer(
 }
 
 private class ScrollGestureRecognizer(
-    private var onScrollEvent: (position: DpOffset, velocity: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
+    private var onScrollEvent: (position: DpOffset, delta: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
     private var onCancelScroll: () -> Unit
 ) : CMPPanGestureRecognizer(target = null, action = null) {
 
@@ -473,7 +473,7 @@ internal class UserInputView(
     private var isPointInsideInteractionBounds: (CValue<CGPoint>) -> Boolean,
     onTouchesEvent: (touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> PointerEventResult,
     onCancelAllTouches: (touches: Set<*>) -> Unit,
-    onScrollEvent: (position: DpOffset, velocity: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
+    onScrollEvent: (position: DpOffset, delta: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
     onCancelScroll: () -> Unit,
     private var onHoverEvent: (position: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
     private var onKeyboardPresses: (Set<*>) -> Unit,

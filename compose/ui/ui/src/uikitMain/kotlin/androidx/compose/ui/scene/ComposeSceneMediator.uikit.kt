@@ -357,7 +357,7 @@ internal class ComposeSceneMediator(
 
     fun onScrollEvent(
         position: DpOffset,
-        velocity: DpOffset,
+        delta: DpOffset,
         event: UIEvent?,
         eventKind: TouchesEventKind
     ) {
@@ -377,7 +377,7 @@ internal class ComposeSceneMediator(
                     type = PointerType.Mouse,
                 )
             ),
-            scrollDelta = velocity.toOffset(density) * SCROLL_VELOCITY_MULTIPLIER,
+            scrollDelta = delta.toOffset(density) * SCROLL_DELTA_MULTIPLIER,
             timeMillis = event.timeMillis,
             nativeEvent = event,
             button = event?.button,
@@ -749,7 +749,7 @@ private val UIEvent?.timeMillis: Long get() {
 }
 
 private val FOCUS_CHANGE_ANIMATION_DURATION = 0.15.seconds
-private val SCROLL_VELOCITY_MULTIPLIER = 0.01f
+private val SCROLL_DELTA_MULTIPLIER = 0.01f
 
 private fun TouchesEventKind.toPointerEventType(): PointerEventType =
     when (this) {
