@@ -409,8 +409,6 @@ internal class ComposeSceneMediator(
             ),
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.button,
-            buttons = PointerButtons(event?.buttonMask ?: 0L),
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
         )
     }
@@ -442,9 +440,8 @@ internal class ComposeSceneMediator(
             TouchesEventKind.MOVED -> {}
         }
 
-        val pointers = touches.map {
-            val touch = it as UITouch
-            val id = touch.hashCode().toLong()
+        val pointers = touches.mapIndexed { index, touch ->
+            touch as UITouch
             val position = touch.offsetInView(userInputView, density.density)
             val pointerType = when (touch.type) {
                 UITouchTypeDirect -> PointerType.Touch
@@ -452,6 +449,9 @@ internal class ComposeSceneMediator(
                 UITouchTypePencil -> PointerType.Stylus
                 else -> PointerType.Touch
             }
+            val id = touch.hashCode().toLong().takeIf {
+                pointerType != PointerType.Mouse
+            } ?: index.toLong()
             ComposeScenePointer(
                 id = PointerId(id),
                 position = position,
@@ -466,13 +466,19 @@ internal class ComposeSceneMediator(
             )
         }
 
+        // UIKit sends buttonMask that was before the release action. It should be empty if no
+        // pressed pointers left.
+        val buttons = PointerButtons(event?.buttonMask?.takeIf {
+            pointers.any { it.pressed }
+        } ?: 0L)
+
         return scene.sendPointerEvent(
             eventType = eventKind.toPointerEventType(),
             pointers = pointers,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.button,
-            buttons = PointerButtons(event?.buttonMask ?: 0L),
+            button = event?.button?.takeIf { eventKind != TouchesEventKind.MOVED },
+            buttons = buttons,
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
         )
     }
