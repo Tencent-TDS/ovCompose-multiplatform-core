@@ -406,6 +406,8 @@ internal class TextFieldSelectionState(
                     },
                     onUp = { clearHandleDragging() }
                 )
+            }.invokeOnCompletion {
+                clearHandleDragging()
             }
             launch(start = CoroutineStart.UNDISPATCHED) {
                 detectSelectionHandleDragGestures(isStartHandle)
