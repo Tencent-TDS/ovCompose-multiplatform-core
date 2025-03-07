@@ -475,14 +475,11 @@ internal class ComposeSceneMediator(
             pointers = pointers,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            button = event?.getButton(previousButtonMask = previousEventButtonMask),
+            button = event?.button,
             buttons = PointerButtons(eventButtonsMask),
             keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
-        ).also {
-            previousEventButtonMask = eventButtonsMask
-        }
+        )
     }
-    private var previousEventButtonMask = 0L
 
     init {
         parentView.embedSubview(view)
@@ -738,12 +735,10 @@ internal class ComposeSceneMediator(
     }
 }
 
-private fun UIEvent.getButton(previousButtonMask: Long): PointerButton? =
-    if (buttonMask and UIEventButtonMaskPrimary != 0L &&
-        previousButtonMask and UIEventButtonMaskPrimary == 0L) {
+private val UIEvent.button: PointerButton? get() =
+    if (buttonMask and UIEventButtonMaskPrimary != 0L) {
         PointerButton.Primary
-    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L &&
-        previousButtonMask and UIEventButtonMaskSecondary == 0L) {
+    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L) {
         PointerButton.Secondary
     } else {
         null
