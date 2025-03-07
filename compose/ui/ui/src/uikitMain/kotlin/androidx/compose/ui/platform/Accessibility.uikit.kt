@@ -881,7 +881,7 @@ internal class AccessibilityMediator(
     val hasPendingInvalidations: Boolean get() = !invalidationChannel.isEmpty
 
     private fun convertToAppWindowCGRect(rect: Rect): CValue<CGRect> {
-        return rect.toDpRect(view.density).asCGRect()
+        return view.convertRect(rect.toDpRect(view.density).asCGRect(), toView = null)
     }
 
     fun notifyScrollCompleted(
