@@ -105,6 +105,28 @@ internal fun InteropContainer.countInteropComponentsBelow(holder: InteropViewHol
 }
 
 /**
+ * Sort the given interop components by their order in the container.
+ *
+ * @param holders The list to sort.
+ * @return The sorted list.
+ */
+internal fun InteropContainer.interopComponentsSortedByDrawOrder(
+    holders: Collection<InteropViewHolder>
+): List<InteropViewHolder> {
+    val remainingHolders = holders.toMutableSet()
+    val result = mutableListOf<InteropViewHolder>()
+    rootModifier?.traverseDescendantsInDrawOrder {
+        val holder = it.interopViewHolder
+        if ((holder != null) && remainingHolders.remove(holder)) {
+            result.add(holder)
+        }
+        true
+    }
+    check(remainingHolders.isEmpty()) { "Some interop view holders not found in interop container" }
+    return result
+}
+
+/**
  * Wrapper of Compose content that might contain interop views. It adds a helper modifier to root
  * that allows traversing interop views in the tree with the right order.
  *

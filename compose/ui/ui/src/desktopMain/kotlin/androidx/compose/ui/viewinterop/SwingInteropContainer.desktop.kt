@@ -108,16 +108,28 @@ private class ScheduledUpdatesSwapchain(
  * the same component that is used in [ComposeSceneMediator] to avoid issues with transparency.
  *
  * @property root The Swing container to add the interop views to.
- * @property placeInteropAbove Whether to place interop components above non-interop components.
+ * @param placeInteropAbove Whether to place interop components above non-interop components.
  * @param requestRedraw Function to request a redraw. It's needed because executing scheduled
  * updates is tied to the draw loop and update doesn't necessary trigger an invalidation causing
  * a redraw, so we need to request it explicitly.
  */
 internal class SwingInteropContainer(
     override val root: InteropViewGroup,
-    private val placeInteropAbove: Boolean,
+    placeInteropAbove: Boolean,
     requestRedraw: () -> Unit
 ) : InteropContainer {
+
+    /**
+     * Whether to place interop components above non-interop components.
+     */
+    var placeInteropAbove = placeInteropAbove
+        set(value) {
+            if (field != value) {
+                field = value
+                updateInteropComponentsOrder()
+            }
+        }
+
     /**
      * Map to reverse-lookup of [InteropViewHolder] having an [InteropViewGroup].
      */
@@ -142,6 +154,26 @@ internal class SwingInteropContainer(
         return interopComponents[group]
     }
 
+    private fun updateInteropComponentsOrder() {
+        val orderedInteropComponents =
+            interopComponentsSortedByDrawOrder(interopComponents.values)
+
+        scheduleUpdate {
+            val allComponentCount = root.components.size
+            // AWT/Swing uses the **REVERSE ORDER** for drawing and events, so add in reverse
+            for ((index, holder) in orderedInteropComponents.asReversed().withIndex()) {
+                holder.changeInteropViewIndex(
+                    root = root,
+                    index = if (placeInteropAbove) {
+                        allComponentCount - 1  // Put each one at the end
+                    } else {
+                        index  // Insert at 0, 1, 2 etc.
+                    }
+                )
+            }
+        }
+    }
+
     override fun place(holder: InteropViewHolder) {
         val group = holder.group
         if (interopComponents.isEmpty()) {
@@ -158,7 +190,7 @@ internal class SwingInteropContainer(
         val interopComponentsCount = interopComponents.size
 
         // Iterate through a Compose layout tree in draw order and count interop view below this one
-        val countBelow = countInteropComponentsBelow(holder)
+        val interopComponentsBelowCount = countInteropComponentsBelow(holder)
 
         // Update AWT/Swing hierarchy
         scheduleUpdate {
@@ -171,7 +203,7 @@ internal class SwingInteropContainer(
             }
 
             // AWT/Swing uses the **REVERSE ORDER** for drawing and events
-            val awtIndex = lastInteropIndex - countBelow
+            val awtIndex = lastInteropIndex - interopComponentsBelowCount
             if (isNewInteropView) {
                 holder.insertInteropView(root = root, index = awtIndex)
             } else {
