@@ -48,3 +48,10 @@ internal fun TextFieldSelectionState.contextMenuBuilder(
         }
     }
 }
+
+internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
+    selectionState: TextFieldSelectionState,
+    interactionSource: MutableInteractionSource?,
+    requestFocus: () -> Unit,
+    showKeyboard: () -> Unit
+) = defaultDetectTextFieldTapGestures(selectionState, interactionSource, requestFocus, showKeyboard)
