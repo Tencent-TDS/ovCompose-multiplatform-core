@@ -677,30 +677,4 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
         window.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assertStateEquals("", selection = TextRange(0), composition = null)
     }
-
-//    @Test
-//    fun secureTextFieldWorksWithInputMethods() = runTextFieldTest(
-//        textFieldKind = SecureTextField,
-//        name = "OutputTransform, Chinese, macOS"
-//    ) {
-//        // c
-//        window.sendInputEvent("c", 0)
-//        window.sendKeyEvent(67, 'c', KEY_RELEASED)
-//        assertStateEquals("c", selection = TextRange(1), composition = TextRange(0, 1))
-//
-//        // space
-//        window.sendInputEvent("才", 1)
-//        window.sendKeyEvent(32, ' ', KEY_RELEASED)
-//        assertStateEquals("才", selection = TextRange(1), composition = null)
-//
-//        // c
-//        window.sendInputEvent("c", 0)
-//        window.sendKeyEvent(67, 'c', KEY_RELEASED)
-//        assertStateEquals("才c", selection = TextRange(2), composition = TextRange(1, 2))
-//
-//        // space
-//        window.sendInputEvent("才", 1)
-//        window.sendKeyEvent(32, ' ', KEY_RELEASED)
-//        assertStateEquals("才才", selection = TextRange(2), composition = null)
-//    }
 }
