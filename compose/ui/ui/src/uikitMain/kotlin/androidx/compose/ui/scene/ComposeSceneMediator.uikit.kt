@@ -747,11 +747,13 @@ private fun UIEvent.getButton(
     eventKind: TouchesEventKind,
     previousEventKind: TouchesEventKind?
 ): PointerButton? =
-    if (buttonMask and UIEventButtonMaskPrimary != 0L &&
+    if (eventKind == TouchesEventKind.MOVED) {
+        null
+    } else if (buttonMask and UIEventButtonMaskPrimary != 0L &&
         (previousButtonMask and UIEventButtonMaskPrimary == 0L ||
             eventKind != previousEventKind)) {
         PointerButton.Primary
-    } else  if (buttonMask and UIEventButtonMaskSecondary != 0L &&
+    } else if (buttonMask and UIEventButtonMaskSecondary != 0L &&
         (previousButtonMask and UIEventButtonMaskSecondary == 0L ||
             eventKind != previousEventKind)) {
         PointerButton.Secondary
