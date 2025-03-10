@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.fontscaling.FontScaleConverter
 import androidx.compose.ui.unit.fontscaling.FontScaleConverterTable
 
 internal actual fun isNonLinearFontScalingActive(fontScale: Float): Boolean {
-    return fontScale >= UIKitContentSize.ExtraSmall.fontScale && fontScale !in 0.97f..1.03f
+    return fontScale >= UIKitContentSize.ExtraSmall.fontScale
+        && fontScale !in 0.97f..1.03f // scale range resulting close to linear
+                                            // isn't worth the computational overhead
 }
 
 internal actual val NonLinearFontSizeAnchors : List<Float> =
