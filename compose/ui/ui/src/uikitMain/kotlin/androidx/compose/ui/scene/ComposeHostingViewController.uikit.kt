@@ -23,6 +23,8 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.runtime.saveable.SaveableStateRegistry
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
 import androidx.compose.ui.MotionDurationScale
@@ -108,6 +110,9 @@ internal class ComposeHostingViewController(
     private val motionDurationScale = MotionDurationScaleImpl()
     private var applicationActiveStateListener: ApplicationActiveStateListener? = null
     private val composeCoroutineContext: CoroutineContext = coroutineContext + motionDurationScale
+    private var savableStateRegistry = SaveableStateRegistry(
+        restoredValues = null, canBeSaved = { true }
+    )
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = rootView.density,
@@ -310,6 +315,14 @@ internal class ComposeHostingViewController(
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
 
+        // Store the current state in the next SaveableStateRegistry instance. It is used to
+        // provide the saved state to the next compose scene when the view controller re-enters
+        // the window hierarchy.
+        savableStateRegistry = SaveableStateRegistry(
+            restoredValues = savableStateRegistry.performSave(),
+            canBeSaved = { true }
+        )
+
         rootView.updateMetalView(metalView = null)
 
         mediator?.dispose()
@@ -456,6 +469,7 @@ internal class ComposeHostingViewController(
             LocalLifecycleOwner provides lifecycleOwner,
             LocalInternalViewModelStoreOwner provides lifecycleOwner,
             LocalBackGestureDispatcher provides backGestureDispatcher,
+            LocalSaveableStateRegistry provides savableStateRegistry,
             content = content
         )
 
