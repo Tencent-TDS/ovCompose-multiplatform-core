@@ -1,21 +1,17 @@
 Describe proposed changes and the issue being fixed
 
-<!-- Optional -->
-Fixes [link to the issue]
+(Optional) Fixes [link to the issue]
 
 ## Testing
-<!-- Optional -->
-Describe how you tested your changes. If possible and needed:
-- Test it on a sample project
-- Write unit tests
-- Provide a code snippet
+(Optional) Describe how you tested your changes (provide a snippet or/and steps)
 
-<!-- Optional -->
-This should be tested by QA
+(Optional) This should be tested by QA
 
 ## Release Notes
-See the format in https://github.com/JetBrains/compose-multiplatform/blob/master/tools/changelog/PR_FORMAT.md
+### Section - Subsection
+- Describe change in format https://github.com/JetBrains/compose-multiplatform/blob/master/tools/changelog/PR_FORMAT.md
+  - Sections: Highlights, Known Issues, Breaking Changes, Migration Notes, Features, Fixes
+  - Subsections: Multiple Platforms, iOS, Desktop, Web, Android, Resources, Gradle Plugin, Lifecycle, Navigation
 
 ## Google CLA
-You need to sign the Google Contributor’s License Agreement at https://cla.developers.google.com/.
-This is needed since we synchronise most of the code with Google’s AOSP repository. Signing this agreement allows us to synchronise code from your Pull Requests as well.
+Sign the Google Contributor's License Agreement at https://cla.developers.google.com to let us upstream your code to Google's AOSP repository
