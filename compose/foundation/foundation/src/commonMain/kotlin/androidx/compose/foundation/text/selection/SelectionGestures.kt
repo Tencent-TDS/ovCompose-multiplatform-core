@@ -209,7 +209,12 @@ private suspend fun AwaitPointerEventScope.mouseSelection(
  * Gesture handler for mouse and touch. Determines whether this is mouse or touch based on the first
  * down, then uses the gesture handler for that input type, delegating to the appropriate observer.
  */
-internal suspend fun PointerInputScope.selectionGesturePointerInputBtf2(
+internal expect suspend fun PointerInputScope.selectionGesturePointerInputBtf2(
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver,
+)
+
+internal suspend fun PointerInputScope.defaultSelectionGesturePointerInputBtf2(
     mouseSelectionObserver: MouseSelectionObserver,
     textDragObserver: TextDragObserver,
 ) {
@@ -220,8 +225,8 @@ internal suspend fun PointerInputScope.selectionGesturePointerInputBtf2(
         val isPrecise = downEvent.isPrecisePointer
         if (
             isPrecise &&
-                downEvent.buttons.isPrimaryPressed &&
-                downEvent.changes.fastAll { !it.isConsumed }
+            downEvent.buttons.isPrimaryPressed &&
+            downEvent.changes.fastAll { !it.isConsumed }
         ) {
             mouseSelectionBtf2(mouseSelectionObserver, clicksCounter, downEvent)
         } else if (!isPrecise) {
