@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9968C35B2D76FE16005E8DE4 /* CMPPanGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9968C35A2D76FE16005E8DE4 /* CMPPanGestureRecognizer.m */; };
+		9968C3612D7746BD005E8DE4 /* CMPHoverGestureHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 9968C3602D7746BD005E8DE4 /* CMPHoverGestureHandler.m */; };
 		9968C38B2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m in Sources */ = {isa = PBXBuildFile; fileRef = 9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */; };
 		997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCDD2B18D135000B56B5 /* CMPViewController.m */; };
 		997DFCE62B18D99E000B56B5 /* CMPViewControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997DFCE52B18D99E000B56B5 /* CMPViewControllerTests.swift */; };
@@ -61,6 +63,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9968C3592D76FE16005E8DE4 /* CMPPanGestureRecognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPPanGestureRecognizer.h; sourceTree = "<group>"; };
+		9968C35A2D76FE16005E8DE4 /* CMPPanGestureRecognizer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPPanGestureRecognizer.m; sourceTree = "<group>"; };
+		9968C35F2D7746BD005E8DE4 /* CMPHoverGestureHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPHoverGestureHandler.h; sourceTree = "<group>"; };
+		9968C3602D7746BD005E8DE4 /* CMPHoverGestureHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPHoverGestureHandler.m; sourceTree = "<group>"; };
 		9968C3892D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CMPScreenEdgePanGestureRecognizer.h; sourceTree = "<group>"; };
 		9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CMPScreenEdgePanGestureRecognizer.m; sourceTree = "<group>"; };
 		996EFEEA2B02CE5D0000FE0F /* libCMPUIKitUtils.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCMPUIKitUtils.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -138,6 +144,8 @@
 				99D97A872BF73A9B0035552B /* CMPEditMenuView.m */,
 				EA4B52942C2EDEF200FBB55C /* CMPGestureRecognizer.h */,
 				EA4B52952C2EDEF200FBB55C /* CMPGestureRecognizer.m */,
+				9968C35F2D7746BD005E8DE4 /* CMPHoverGestureHandler.h */,
+				9968C3602D7746BD005E8DE4 /* CMPHoverGestureHandler.m */,
 				EABD91292BC02B5F00455279 /* CMPInteropWrappingView.h */,
 				EABD912A2BC02B5F00455279 /* CMPInteropWrappingView.m */,
 				EA70A7E72B27106100300068 /* CMPMacros.h */,
@@ -147,6 +155,8 @@
 				EA82F4F82B86144E00465418 /* CMPOSLogger.m */,
 				EA82F4FA2B86184F00465418 /* CMPOSLoggerInterval.h */,
 				EA82F4FB2B86184F00465418 /* CMPOSLoggerInterval.m */,
+				9968C3592D76FE16005E8DE4 /* CMPPanGestureRecognizer.h */,
+				9968C35A2D76FE16005E8DE4 /* CMPPanGestureRecognizer.m */,
 				9968C3892D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.h */,
 				9968C38A2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m */,
 				99DCAB0C2BD00F5C002E6AC7 /* CMPTextLoupeSession.h */,
@@ -331,10 +341,12 @@
 				997DFCDE2B18D135000B56B5 /* CMPViewController.m in Sources */,
 				9968C38B2D7892DF005E8DE4 /* CMPScreenEdgePanGestureRecognizer.m in Sources */,
 				EAB33E182C12E746002CFF44 /* CMPMetalDrawablesHandler.m in Sources */,
+				9968C35B2D76FE16005E8DE4 /* CMPPanGestureRecognizer.m in Sources */,
 				99D97A882BF73A9B0035552B /* CMPEditMenuView.m in Sources */,
 				EABD912B2BC02B5F00455279 /* CMPInteropWrappingView.m in Sources */,
 				EADD02902C9846D9003F66E8 /* CMPDragInteractionProxy.m in Sources */,
 				EA82F4F92B86144E00465418 /* CMPOSLogger.m in Sources */,
+				9968C3612D7746BD005E8DE4 /* CMPHoverGestureHandler.m in Sources */,
 				EA4B52962C2EDEF200FBB55C /* CMPGestureRecognizer.m in Sources */,
 				EA70A7EB2B27106100300068 /* CMPAccessibilityElement.m in Sources */,
 				99DCAB0E2BD00F5C002E6AC7 /* CMPTextLoupeSession.m in Sources */,
