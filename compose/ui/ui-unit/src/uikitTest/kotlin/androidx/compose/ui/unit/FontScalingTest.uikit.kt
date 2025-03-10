@@ -20,17 +20,20 @@ import androidx.compose.ui.unit.fontscaling.FontScaleConverterFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class FontScalingTest {
 
     @Test
     fun sp_to_dp_test() {
 
-        val density : Density = DensityWithConverter(
+        val density: Density = DensityWithConverter(
             density = 1f,
             fontScale = UIKitContentSize.XXXL.fontScale,
-            converter = assertNotNull(FontScaleConverterFactory
-                .forScale(UIKitContentSize.XXXL.fontScale))
+            converter = assertNotNull(
+                FontScaleConverterFactory
+                    .forScale(UIKitContentSize.XXXL.fontScale)
+            )
         )
 
         with(density) {
@@ -50,6 +53,44 @@ class FontScalingTest {
             // interpolated
             assertEquals(17.5f, 11.5f.sp.toDp().value)
             assertEquals(31f, 25.sp.toDp().value)
+        }
+    }
+
+    @Test
+    fun interpolated_converter() {
+
+        val scale = androidx.compose.ui.util.lerp(
+            UIKitContentSize.XL.fontScale,
+            UIKitContentSize.XXL.fontScale,
+            .5f
+        )
+
+        val converter = assertNotNull(FontScaleConverterFactory.forScale(scale))
+
+        assertTrue("interpolated converter should be cached") {
+            converter === FontScaleConverterFactory.forScale(scale)
+        }
+
+        val density: Density = DensityWithConverter(
+            density = 1f,
+            fontScale = scale,
+            converter = converter
+        )
+
+        val tolerance = 1e-4f
+
+        with(density) {
+
+            assertEquals(14f, 11.sp.toDp().value, tolerance)
+            assertEquals(15f, 12.sp.toDp().value, tolerance)
+            assertEquals(16f, 13.sp.toDp().value, tolerance)
+            assertEquals(18f, 15.sp.toDp().value, tolerance)
+            assertEquals(19f, 16.sp.toDp().value, tolerance)
+            assertEquals(20f, 17.sp.toDp().value, tolerance)
+            assertEquals(23f, 20.sp.toDp().value, tolerance)
+            assertEquals(25f, 22.sp.toDp().value, tolerance)
+            assertEquals(31f, 28.sp.toDp().value, tolerance)
+            assertEquals(37f, 34.sp.toDp().value, tolerance)
         }
     }
 }
