@@ -29,8 +29,17 @@ class WasmPlatformClipboard : Clipboard {
         getW3CClipboard()
     }
 
+    private val emptyClipboardItems = emptyArray<ClipboardItem>().toJsArray()
+
     override suspend fun getClipEntry(): ClipEntry? {
-        val items = nativeClipboard.read().await<JsArray<ClipboardItem>>()
+        val items = nativeClipboard.read().catch {
+            // The most common reason is that the permission was denied
+            println("Failed to read from Clipboard: $it")
+            emptyClipboardItems
+        }.then {
+            it
+        }.await<JsArray<ClipboardItem>>()
+
         if (items.length == 0) return null
         return ClipEntry(items)
     }
