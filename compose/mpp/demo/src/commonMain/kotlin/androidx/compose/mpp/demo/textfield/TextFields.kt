@@ -16,12 +16,15 @@
 
 package androidx.compose.mpp.demo.textfield
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.OutlinedTextField
@@ -34,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 val TextFields = Screen.Selection(
@@ -41,6 +45,11 @@ val TextFields = Screen.Selection(
     Screen.Example("AlmostFullscreen") {
         ClearFocusBox {
             AlmostFullscreen()
+        }
+    },
+    Screen.Example("AlmostFullscreen2") {
+        ClearFocusBox {
+            AlmostFullscreen2()
         }
     },
     Screen.Example("Keyboard Actions") {
@@ -86,10 +95,29 @@ val TextFields = Screen.Selection(
             BasicTextField(
                 textFieldState,
                 onValueChange = { textFieldState = it },
-                Modifier.padding(16.dp).fillMaxWidth()
+                Modifier
+                    .padding(16.dp)
+                    .height(24.dp)
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = Color.LightGray,
+                        shape = RoundedCornerShape(4.dp)
+                    )
             )
             Box(Modifier.height(16.dp))
-            BasicTextField(textFieldState2, Modifier.padding(16.dp).fillMaxWidth())
+            BasicTextField(
+                textFieldState2,
+                Modifier
+                    .padding(16.dp)
+                    .height(24.dp)
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = Color.LightGray,
+                        shape = RoundedCornerShape(4.dp)
+                    )
+            )
         }
     },
 
@@ -112,5 +140,22 @@ private fun AlmostFullscreen() {
     TextField(
         textState.value, { textState.value = it },
         Modifier.fillMaxSize().padding(vertical = 40.dp)
+    )
+}
+
+@Composable
+private fun AlmostFullscreen2() {
+    val state = remember {
+        TextFieldState(
+            buildString {
+                repeat(100) {
+                    appendLine("Text line $it")
+                }
+            }
+        )
+    }
+    TextField(
+        state,
+        Modifier.fillMaxSize().padding(vertical = 40.dp).background(Color.LightGray)
     )
 }
