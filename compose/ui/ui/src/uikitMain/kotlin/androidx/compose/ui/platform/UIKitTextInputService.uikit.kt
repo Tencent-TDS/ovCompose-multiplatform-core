@@ -52,7 +52,6 @@ import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
-import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
 
@@ -359,9 +358,7 @@ internal class UIKitTextInputService(
             updateView()
         }
         textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(rootView.density).asCGRect().also {
-                println(">> MENU: ${NSStringFromCGRect(it)}")
-            },
+            targetRect = rect.toDpRect(rootView.density).asCGRect(),
             textActions = object : TextActions {
                 override val copy: (() -> Unit)? = onCopyRequested
                 override val cut: (() -> Unit)? = onCutRequested
