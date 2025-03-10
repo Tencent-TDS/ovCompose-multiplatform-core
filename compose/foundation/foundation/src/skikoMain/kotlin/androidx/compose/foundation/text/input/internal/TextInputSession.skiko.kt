@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
@@ -96,6 +97,14 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             )
         }.filterNotNull()
 
+        val textFieldRectInRoot = snapshotFlow {
+            layoutState.decoratorNodeCoordinates?.boundsInRoot()
+        }.filterNotNull()
+
+        val textClippingRectInRoot = snapshotFlow {
+            layoutState.coreNodeCoordinates?.boundsInRoot()
+        }.filterNotNull()
+
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
                 state = state.untransformedText.toTextFieldValue(),
@@ -105,6 +114,8 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
                 editProcessor = editProcessor,
                 textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
                 focusedRectInRoot = focusedRectInRootFlow,
+                textFieldRectInRoot = textFieldRectInRoot,
+                textClippingRectInRoot = textClippingRectInRoot
             )
         )
     }
@@ -121,5 +132,7 @@ private data class SkikoPlatformTextInputMethodRequest(
     override val onImeAction: ((ImeAction) -> Unit)?,
     override val editProcessor: EditProcessor?,
     override val textLayoutResult: Flow<TextLayoutResult>,
-    override val focusedRectInRoot: Flow<Rect>
+    override val focusedRectInRoot: Flow<Rect>,
+    override val textFieldRectInRoot: Flow<Rect>,
+    override val textClippingRectInRoot: Flow<Rect>
 ): PlatformTextInputMethodRequest

@@ -3595,6 +3595,8 @@ public abstract interface class androidx/compose/ui/platform/PlatformTextInputMe
 	public abstract fun getOnEditCommand ()Lkotlin/jvm/functions/Function1;
 	public abstract fun getOnImeAction ()Lkotlin/jvm/functions/Function1;
 	public abstract fun getState ()Landroidx/compose/ui/text/input/TextFieldValue;
+	public abstract fun getTextClippingRectInRoot ()Lkotlinx/coroutines/flow/Flow;
+	public abstract fun getTextFieldRectInRoot ()Lkotlinx/coroutines/flow/Flow;
 	public abstract fun getTextLayoutResult ()Lkotlinx/coroutines/flow/Flow;
 }
 
