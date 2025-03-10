@@ -315,6 +315,9 @@ internal class ComposeHostingViewController(
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
 
+        // Store the current state in the next SaveableStateRegistry instance. It is used to
+        // provide the saved state to the next compose scene when the view controller re-enters
+        // the window hierarchy.
         savableStateRegistry = SaveableStateRegistry(
             restoredValues = savableStateRegistry.performSave(),
             canBeSaved = { true }
