@@ -33,6 +33,7 @@ internal fun Translations.el() = mapOf(
     Strings.MenuCollapsed to "Συμπτυγμένο",
     Strings.ToggleDropdownMenu to "Εναλλαγή αναπτυσσόμενου μενού",
     Strings.SnackbarDismiss to "Παράβλεψη",
+    Strings.SnackbarPaneTitle to "Ειδοποίηση",
     Strings.SearchBarSearch to "Αναζήτηση",
     Strings.SuggestionsAvailable to "Προτάσεις παρακάτω",
     Strings.DatePickerTitle to "Επιλογή ημερομηνίας",
@@ -85,4 +86,6 @@ internal fun Translations.el() = mapOf(
     Strings.TimePickerHour to "Ώρα",
     Strings.TimePickerMinuteTextField to "για λεπτά",
     Strings.TimePickerHourTextField to "για ώρα",
+    Strings.CloseRail to "Κλείσιμο στήλης",
+    Strings.WideNavigationRailPaneTitle to "Στήλη πλοήγησης",
 )

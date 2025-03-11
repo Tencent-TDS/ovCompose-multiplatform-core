@@ -33,6 +33,7 @@ internal fun Translations.pt() = mapOf(
     Strings.MenuCollapsed to "Fechado",
     Strings.ToggleDropdownMenu to "Ativar/desativar o menu suspenso",
     Strings.SnackbarDismiss to "Dispensar",
+    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Pesquisar",
     Strings.SuggestionsAvailable to "Sugestões abaixo",
     Strings.DatePickerTitle to "Selecionar data",
@@ -85,6 +86,8 @@ internal fun Translations.pt() = mapOf(
     Strings.TimePickerHour to "Hora",
     Strings.TimePickerMinuteTextField to "por minutos",
     Strings.TimePickerHourTextField to "por hora",
+    Strings.CloseRail to "Fechar coluna",
+    Strings.WideNavigationRailPaneTitle to "Coluna de navegação",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -101,6 +104,7 @@ internal fun Translations.ptBR() = mapOf(
     Strings.MenuCollapsed to "Fechado",
     Strings.ToggleDropdownMenu to "Ativar/desativar o menu suspenso",
     Strings.SnackbarDismiss to "Dispensar",
+    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Pesquisar",
     Strings.SuggestionsAvailable to "Sugestões abaixo",
     Strings.DatePickerTitle to "Selecionar data",
@@ -153,6 +157,8 @@ internal fun Translations.ptBR() = mapOf(
     Strings.TimePickerHour to "Hora",
     Strings.TimePickerMinuteTextField to "por minutos",
     Strings.TimePickerHourTextField to "por hora",
+    Strings.CloseRail to "Fechar coluna",
+    Strings.WideNavigationRailPaneTitle to "Coluna de navegação",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -169,6 +175,7 @@ internal fun Translations.ptPT() = mapOf(
     Strings.MenuCollapsed to "Reduzido",
     Strings.ToggleDropdownMenu to "Ativar/desativar menu pendente",
     Strings.SnackbarDismiss to "Ignorar",
+    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Pesquisar",
     Strings.SuggestionsAvailable to "Sugestões abaixo",
     Strings.DatePickerTitle to "Selecione uma data",
@@ -221,4 +228,6 @@ internal fun Translations.ptPT() = mapOf(
     Strings.TimePickerHour to "Hora",
     Strings.TimePickerMinuteTextField to "para minutos",
     Strings.TimePickerHourTextField to "para hora",
+    Strings.CloseRail to "Fechar barra",
+    Strings.WideNavigationRailPaneTitle to "Barra de navegação",
 )

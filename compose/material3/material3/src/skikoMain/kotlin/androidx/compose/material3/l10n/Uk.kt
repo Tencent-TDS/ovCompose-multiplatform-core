@@ -33,6 +33,7 @@ internal fun Translations.uk() = mapOf(
     Strings.MenuCollapsed to "Згорнуто",
     Strings.ToggleDropdownMenu to "Згорнути або розгорнути спадне меню",
     Strings.SnackbarDismiss to "Закрити",
+    Strings.SnackbarPaneTitle to "Сповіщення",
     Strings.SearchBarSearch to "Пошук",
     Strings.SuggestionsAvailable to "Підказки внизу",
     Strings.DatePickerTitle to "Виберіть дату",
@@ -85,4 +86,6 @@ internal fun Translations.uk() = mapOf(
     Strings.TimePickerHour to "Година",
     Strings.TimePickerMinuteTextField to "для хвилин",
     Strings.TimePickerHourTextField to "для годин",
+    Strings.CloseRail to "Закрити панель",
+    Strings.WideNavigationRailPaneTitle to "Панель навігації",
 )

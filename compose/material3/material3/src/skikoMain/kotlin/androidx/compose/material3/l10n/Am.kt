@@ -33,6 +33,7 @@ internal fun Translations.am() = mapOf(
     Strings.MenuCollapsed to "ተሰብስቧል",
     Strings.ToggleDropdownMenu to "ተቆልቋይ ምናሌ ይቀያይሩ",
     Strings.SnackbarDismiss to "አሰናብት",
+    Strings.SnackbarPaneTitle to "ማንቂያ",
     Strings.SearchBarSearch to "ፈልግ",
     Strings.SuggestionsAvailable to "የአስተያየት ጥቆማዎች ከታች",
     Strings.DatePickerTitle to "ቀን ይምረጡ",
@@ -85,4 +86,6 @@ internal fun Translations.am() = mapOf(
     Strings.TimePickerHour to "ሰዓት",
     Strings.TimePickerMinuteTextField to "ለደቂቃዎች",
     Strings.TimePickerHourTextField to "ለሰዓት",
+    Strings.CloseRail to "ሐዲድ ዝጋ",
+    Strings.WideNavigationRailPaneTitle to "የአሰሳ ሐዲድ",
 )

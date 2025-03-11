@@ -33,6 +33,7 @@ internal fun Translations.ta() = mapOf(
     Strings.MenuCollapsed to "சுருக்கப்பட்டது",
     Strings.ToggleDropdownMenu to "கீழ்த்தோன்றல் மெனுவை நிலைமாற்றும்",
     Strings.SnackbarDismiss to "நிராகரிக்கும்",
+    Strings.SnackbarPaneTitle to "விழிப்பூட்டல்",
     Strings.SearchBarSearch to "தேடல்",
     Strings.SuggestionsAvailable to "பரிந்துரைகள் கீழே கிடைக்கும்",
     Strings.DatePickerTitle to "தேதியைத் தேர்வுசெய்க",
@@ -85,4 +86,6 @@ internal fun Translations.ta() = mapOf(
     Strings.TimePickerHour to "மணிநேரம்",
     Strings.TimePickerMinuteTextField to "நிமிடங்களுக்கு",
     Strings.TimePickerHourTextField to "மணிநேரத்திற்கு",
+    Strings.CloseRail to "பாதையை மூடும்",
+    Strings.WideNavigationRailPaneTitle to "வழிசெலுத்தல் பாதை",
 )

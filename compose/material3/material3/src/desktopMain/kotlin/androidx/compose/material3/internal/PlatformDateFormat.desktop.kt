@@ -73,11 +73,8 @@ internal actual class PlatformDateFormat actual constructor(private val locale: 
         return formatWithPattern(utcTimeMillis, pattern)
     }
 
-    actual fun parse(
-        date: String,
-        pattern: String
-    ): CalendarDate? {
-        return delegate.parse(date, pattern)
+    actual fun parse(date: String, pattern: String, locale: CalendarLocale): CalendarDate? {
+        return delegate.parse(date, pattern, locale)
     }
 
     actual fun getDateInputFormat(): DateInputFormat {

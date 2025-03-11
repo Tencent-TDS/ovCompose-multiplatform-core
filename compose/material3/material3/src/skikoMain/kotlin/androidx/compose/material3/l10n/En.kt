@@ -33,6 +33,7 @@ internal fun Translations.en() = mapOf(
     Strings.MenuCollapsed to "Collapsed",
     Strings.ToggleDropdownMenu to "Toggle dropdown menu",
     Strings.SnackbarDismiss to "Dismiss",
+    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Search",
     Strings.SuggestionsAvailable to "Suggestions below",
     Strings.DatePickerTitle to "Select date",
@@ -85,6 +86,8 @@ internal fun Translations.en() = mapOf(
     Strings.TimePickerHour to "Hour",
     Strings.TimePickerMinuteTextField to "for minutes",
     Strings.TimePickerHourTextField to "for hour",
+    Strings.CloseRail to "Close rail",
+    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -101,6 +104,7 @@ internal fun Translations.enAU() = mapOf(
     Strings.MenuCollapsed to "Collapsed",
     Strings.ToggleDropdownMenu to "Toggle drop-down menu",
     Strings.SnackbarDismiss to "Dismiss",
+    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Search",
     Strings.SuggestionsAvailable to "Suggestions below",
     Strings.DatePickerTitle to "Select date",
@@ -153,6 +157,8 @@ internal fun Translations.enAU() = mapOf(
     Strings.TimePickerHour to "Hour",
     Strings.TimePickerMinuteTextField to "for minutes",
     Strings.TimePickerHourTextField to "for hour",
+    Strings.CloseRail to "Close rail",
+    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -169,6 +175,7 @@ internal fun Translations.enCA() = mapOf(
     Strings.MenuCollapsed to "Collapsed",
     Strings.ToggleDropdownMenu to "Toggle dropdown menu",
     Strings.SnackbarDismiss to "Dismiss",
+    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Search",
     Strings.SuggestionsAvailable to "Suggestions below",
     Strings.DatePickerTitle to "Select date",
@@ -221,6 +228,8 @@ internal fun Translations.enCA() = mapOf(
     Strings.TimePickerHour to "Hour",
     Strings.TimePickerMinuteTextField to "for minutes",
     Strings.TimePickerHourTextField to "for hour",
+    Strings.CloseRail to "Close rail",
+    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -237,6 +246,7 @@ internal fun Translations.enGB() = mapOf(
     Strings.MenuCollapsed to "Collapsed",
     Strings.ToggleDropdownMenu to "Toggle drop-down menu",
     Strings.SnackbarDismiss to "Dismiss",
+    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Search",
     Strings.SuggestionsAvailable to "Suggestions below",
     Strings.DatePickerTitle to "Select date",
@@ -289,6 +299,8 @@ internal fun Translations.enGB() = mapOf(
     Strings.TimePickerHour to "Hour",
     Strings.TimePickerMinuteTextField to "for minutes",
     Strings.TimePickerHourTextField to "for hour",
+    Strings.CloseRail to "Close rail",
+    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -305,6 +317,7 @@ internal fun Translations.enIN() = mapOf(
     Strings.MenuCollapsed to "Collapsed",
     Strings.ToggleDropdownMenu to "Toggle drop-down menu",
     Strings.SnackbarDismiss to "Dismiss",
+    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Search",
     Strings.SuggestionsAvailable to "Suggestions below",
     Strings.DatePickerTitle to "Select date",
@@ -357,4 +370,6 @@ internal fun Translations.enIN() = mapOf(
     Strings.TimePickerHour to "Hour",
     Strings.TimePickerMinuteTextField to "for minutes",
     Strings.TimePickerHourTextField to "for hour",
+    Strings.CloseRail to "Close rail",
+    Strings.WideNavigationRailPaneTitle to "Navigation rail",
 )

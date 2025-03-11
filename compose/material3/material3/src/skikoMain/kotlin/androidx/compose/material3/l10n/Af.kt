@@ -33,6 +33,7 @@ internal fun Translations.af() = mapOf(
     Strings.MenuCollapsed to "Ingevou",
     Strings.ToggleDropdownMenu to "Wissel aftrekkieslys",
     Strings.SnackbarDismiss to "Maak toe",
+    Strings.SnackbarPaneTitle to "Opletberig",
     Strings.SearchBarSearch to "Soek",
     Strings.SuggestionsAvailable to "Voorstelle hieronder",
     Strings.DatePickerTitle to "Kies datum",
@@ -85,4 +86,6 @@ internal fun Translations.af() = mapOf(
     Strings.TimePickerHour to "Uur",
     Strings.TimePickerMinuteTextField to "vir minute",
     Strings.TimePickerHourTextField to "vir uur",
+    Strings.CloseRail to "Maak spoor toe",
+    Strings.WideNavigationRailPaneTitle to "Navigasiespoor",
 )
