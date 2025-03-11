@@ -167,12 +167,18 @@ internal class ComposeSceneMediator(
         get() = renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer
 
     /**
+     * Whether to place interop components above non-interop components.
+     */
+    private val shouldPlaceInteropAbove: Boolean
+        get() = !useInteropBlending || metalOrderHack
+
+    /**
      * A container that controls interop views/components. It is used to add and remove
      * native views/components to [container].
      */
     private val interopContainer = SwingInteropContainer(
         root = container,
-        placeInteropAbove = !useInteropBlending || metalOrderHack,
+        placeInteropAbove = shouldPlaceInteropAbove,
         requestRedraw = ::onComposeInvalidation
     )
 
@@ -362,6 +368,9 @@ internal class ComposeSceneMediator(
         // Because interopContainer.root == container, add a listener only after adding
         // [invisibleComponent] and [contentComponent] to react only on changes with [interopLayer].
         interopContainer.root.addContainerListener(interopContainerListener)
+        onRenderApiChanged {
+            interopContainer.placeInteropAbove = shouldPlaceInteropAbove
+        }
 
         // AwtDragAndDropManager support
         container.transferHandler = dragAndDropManager.transferHandler
